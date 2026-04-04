@@ -5,6 +5,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.Baby
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -23,17 +24,17 @@ import java.time.LocalDate
 @OptIn(ExperimentalCoroutinesApi::class)
 class BabyRepositoryImplTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
-    private val testScope = TestScope(testDispatcher)
+    private lateinit var testScope: TestScope
     private lateinit var prefsFile: File
     private lateinit var repository: BabyRepositoryImpl
 
     @Before
     fun setUp() {
+        testScope = TestScope(UnconfinedTestDispatcher())
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         prefsFile = File(context.filesDir, "test_baby_prefs.preferences_pb")
         val dataStore = PreferenceDataStoreFactory.create(
-            scope = testScope,
+            scope = testScope.backgroundScope,
             produceFile = { prefsFile },
         )
         repository = BabyRepositoryImpl(dataStore)
@@ -41,11 +42,12 @@ class BabyRepositoryImplTest {
 
     @After
     fun tearDown() {
+        testScope.cancel()
         prefsFile.delete()
     }
 
     @Test
-    fun saveThenGet_roundTrips() = runTest {
+    fun saveThenGet_roundTrips() = testScope.runTest {
         val baby = Baby(
             name = "Luna",
             birthDate = LocalDate.of(2025, 1, 15),
@@ -64,7 +66,7 @@ class BabyRepositoryImplTest {
     }
 
     @Test
-    fun isOnboardingComplete_afterSave_true() = runTest {
+    fun isOnboardingComplete_afterSave_true() = testScope.runTest {
         val baby = Baby("Luna", LocalDate.now())
         repository.saveBabyProfile(baby)
 
@@ -74,13 +76,13 @@ class BabyRepositoryImplTest {
     }
 
     @Test
-    fun isOnboardingComplete_beforeSave_false() = runTest {
+    fun isOnboardingComplete_beforeSave_false() = testScope.runTest {
         val result = repository.isOnboardingComplete().first()
         assertFalse(result)
     }
 
     @Test
-    fun saveTwice_overwritesPrevious() = runTest {
+    fun saveTwice_overwritesPrevious() = testScope.runTest {
         val babyA = Baby("Luna", LocalDate.of(2025, 1, 1))
         val babyB = Baby("Stella", LocalDate.of(2025, 6, 1))
 
@@ -93,7 +95,7 @@ class BabyRepositoryImplTest {
     }
 
     @Test
-    fun getAllergies_multipleSelected_roundTrips() = runTest {
+    fun getAllergies_multipleSelected_roundTrips() = testScope.runTest {
         val allergies = listOf(AllergyType.CMPA, AllergyType.SOY, AllergyType.OTHER)
         val baby = Baby(
             name = "Luna",
