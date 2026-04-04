@@ -1,17 +1,13 @@
 package com.babytracker.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.babytracker.ui.breastfeeding.BreastfeedingHistoryScreen
 import com.babytracker.ui.breastfeeding.BreastfeedingScreen
 import com.babytracker.ui.home.HomeScreen
 import com.babytracker.ui.onboarding.OnboardingScreen
-import com.babytracker.ui.onboarding.OnboardingViewModel
 import com.babytracker.ui.settings.SettingsScreen
 import com.babytracker.ui.sleep.SleepHistoryScreen
 import com.babytracker.ui.sleep.SleepScheduleScreen
@@ -29,18 +25,14 @@ object Routes {
 }
 
 @Composable
-fun AppNavGraph() {
-    val navController = rememberNavController()
-    val onboardingViewModel: OnboardingViewModel = hiltViewModel()
-    val isOnboardingComplete by onboardingViewModel.isOnboardingComplete.collectAsState(initial = null)
-
-    val startDestination = when (isOnboardingComplete) {
-        true -> Routes.HOME
-        false -> Routes.ONBOARDING
-        null -> return
-    }
-
-    NavHost(navController = navController, startDestination = startDestination) {
+fun AppNavGraph(
+    navController: NavHostController,
+    isOnboardingComplete: Boolean,
+) {
+    NavHost(
+        navController = navController,
+        startDestination = if (isOnboardingComplete) Routes.HOME else Routes.ONBOARDING,
+    ) {
         composable(Routes.ONBOARDING) {
             OnboardingScreen(
                 onOnboardingComplete = {

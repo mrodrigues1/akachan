@@ -8,5 +8,5 @@ import javax.inject.Inject
 class GetBabyProfileUseCase @Inject constructor(
     private val babyRepository: BabyRepository
 ) {
-    operator fun invoke(): Flow<Baby?> = babyRepository.getBaby()
+    operator fun invoke(): Flow<Baby?> = babyRepository.getBabyProfile()
 }
