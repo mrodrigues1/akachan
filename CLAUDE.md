@@ -106,6 +106,88 @@ app/src/main/java/com/babytracker/
 
 ---
 
+## Conventional Commits
+
+All commits follow the [Conventional Commits](https://www.conventionalcommits.org/) specification.
+
+### Format
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Types
+
+| Type | Purpose | Example |
+|------|---------|---------|
+| `feat` | New feature | `feat(breastfeeding): add session pause functionality` |
+| `fix` | Bug fix | `fix(sleep): correct duration calculation for night sleep` |
+| `docs` | Documentation changes | `docs: update README with setup instructions` |
+| `style` | Code style (formatting, missing semicolons, etc.) | `style: reformat code to match kotlin conventions` |
+| `refactor` | Code refactoring without feature change | `refactor(repository): extract common db query logic` |
+| `perf` | Performance improvements | `perf(ui): optimize recomposition in HomeScreen` |
+| `test` | Adding or updating tests | `test(breastfeeding): add unit tests for session duration` |
+| `chore` | Build, deps, CI, tooling | `chore: upgrade Room dependency to 2.6.2` |
+| `ci` | CI/CD pipeline changes | `ci: add lint check to GitHub Actions` |
+| `revert` | Revert previous commit | `revert: revert "feat(sleep): add nap prediction"` |
+
+### Scope (Optional)
+
+Scopes identify the area of the codebase:
+- `breastfeeding` — Breastfeeding feature (sessions, history, etc.)
+- `sleep` — Sleep tracking feature (records, schedule, etc.)
+- `onboarding` — Onboarding flow
+- `settings` — Settings screen and preferences
+- `ui` — UI components and theme
+- `db` — Database schema and migrations
+- `repository` — Data layer and repositories
+- `usecase` — Use cases and business logic
+- `navigation` — Navigation graph and routing
+- `di` — Dependency injection and modules
+
+### Examples
+
+✅ **Good commits:**
+```
+feat(breastfeeding): add session duration calculator
+
+Calculates total duration and elapsed time for active sessions.
+Handles side switches and provides formatted output.
+
+Closes #42
+```
+
+```
+fix(sleep): prevent negative duration in sleep records
+```
+
+```
+test(breastfeeding): add unit tests for StartBreastfeedingSessionUseCase
+```
+
+```
+docs: add testing conventions to CLAUDE.md
+```
+
+❌ **Bad commits:**
+```
+updated code
+```
+
+```
+Fix bug in breastfeeding
+```
+
+```
+wip: work on new feature
+```
+
+---
+
 ## Code Patterns
 
 ### Use Cases
