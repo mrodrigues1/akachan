@@ -4,6 +4,7 @@ import com.babytracker.domain.model.Baby
 import kotlinx.coroutines.flow.Flow
 
 interface BabyRepository {
-    fun getBaby(): Flow<Baby?>
-    suspend fun saveBaby(baby: Baby)
+    fun getBabyProfile(): Flow<Baby?>
+    suspend fun saveBabyProfile(baby: Baby)
+    fun isOnboardingComplete(): Flow<Boolean>
 }

@@ -4,14 +4,14 @@ import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.ScheduleEntry
 import com.babytracker.domain.model.SleepSchedule
 import java.time.Duration
-import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 class GenerateSleepScheduleUseCase @Inject constructor() {
     operator fun invoke(baby: Baby, wakeUpTime: LocalTime = LocalTime.of(7, 0)): SleepSchedule {
-        val ageInWeeks = ChronoUnit.WEEKS.between(baby.birthDate, Instant.now()).toInt()
+        val ageInWeeks = ChronoUnit.WEEKS.between(baby.birthDate, LocalDate.now()).toInt()
         val wakeWindows = getWakeWindowsForAge(ageInWeeks)
         val napTimes = generateNapTimes(wakeUpTime, wakeWindows)
         val bedtime = calculateBedtime(napTimes, wakeWindows)
