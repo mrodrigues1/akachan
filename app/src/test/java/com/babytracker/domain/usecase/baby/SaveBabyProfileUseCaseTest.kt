@@ -6,10 +6,11 @@ import com.babytracker.domain.repository.BabyRepository
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.time.LocalDate
 
 class SaveBabyProfileUseCaseTest {
@@ -34,22 +35,18 @@ class SaveBabyProfileUseCaseTest {
     }
 
     @Test
-    fun `invoke_blankName_throwsIllegalArgument`() = runTest {
+    fun `invoke_blankName_throwsIllegalArgument`() {
         val baby = Baby("  ", LocalDate.now())
-        coJustRun { repository.saveBabyProfile(any()) }
-
-        assertThrows(IllegalArgumentException::class.java) {
-            runTest { useCase(baby) }
+        assertThrows<IllegalArgumentException> {
+            runBlocking { useCase(baby) }
         }
     }
 
     @Test
-    fun `invoke_futureBirthDate_throwsIllegalArgument`() = runTest {
+    fun `invoke_futureBirthDate_throwsIllegalArgument`() {
         val baby = Baby("Luna", LocalDate.now().plusDays(1))
-        coJustRun { repository.saveBabyProfile(any()) }
-
-        assertThrows(IllegalArgumentException::class.java) {
-            runTest { useCase(baby) }
+        assertThrows<IllegalArgumentException> {
+            runBlocking { useCase(baby) }
         }
     }
 
