@@ -17,8 +17,8 @@ fun Instant.formatDateTime(): String =
 
 fun Duration.formatDuration(): String {
     val hours = toHours()
-    val minutes = toMinutesPart()
-    val seconds = toSecondsPart()
+    val minutes = (toMinutes() % 60).toInt()
+    val seconds = (getSeconds() % 60).toInt()
     return when {
         hours > 0 -> "${hours}h ${minutes}m"
         minutes > 0 -> "${minutes}m ${seconds}s"
