@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
+import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +23,8 @@ data class SettingsUiState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val getBabyProfile: GetBabyProfileUseCase,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val saveBabyProfile: SaveBabyProfileUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -50,5 +52,9 @@ class SettingsViewModel @Inject constructor(
 
     fun onMaxTotalFeedChanged(minutes: Int) {
         viewModelScope.launch { settingsRepository.setMaxTotalFeedMinutes(minutes) }
+    }
+
+    fun onSaveBabyProfile(baby: Baby) {
+        viewModelScope.launch { saveBabyProfile(baby) }
     }
 }
