@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
@@ -41,6 +42,8 @@ fun TimerDisplay(
     startTimeMillis: Long,
     isRunning: Boolean,
     maxDurationSeconds: Int = 0,
+    ringColor: Color = Color.Unspecified,
+    trackColor: Color = Color.Unspecified,
     modifier: Modifier = Modifier
 ) {
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
@@ -71,12 +74,14 @@ fun TimerDisplay(
     val progress = (elapsedSeconds.toFloat() / maxDurationSeconds).coerceIn(0f, 1f)
     val isOverMax = elapsedSeconds >= maxDurationSeconds
 
+    val resolvedRingColor = if (ringColor == Color.Unspecified) MaterialTheme.colorScheme.primary else ringColor
+    val resolvedTrackColor = if (trackColor == Color.Unspecified) MaterialTheme.colorScheme.primaryContainer else trackColor
+
     val progressColor = if (isOverMax) {
         MaterialTheme.colorScheme.tertiary
     } else {
-        MaterialTheme.colorScheme.primary
+        resolvedRingColor
     }
-    val trackColor = MaterialTheme.colorScheme.primaryContainer
 
     val infiniteTransition = rememberInfiniteTransition(label = "ring_pulse")
     val scale by if (isRunning) {
@@ -112,7 +117,7 @@ fun TimerDisplay(
 
             // Background track
             drawArc(
-                color = trackColor,
+                color = resolvedTrackColor,
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
