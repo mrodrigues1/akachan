@@ -116,11 +116,13 @@ fun HomeScreen(
                 val isFeeding = uiState.activeSession != null
                 val emoji = if (isFeeding) "🍼" else "🌙"
                 val label = if (isFeeding) "Feeding in progress" else "Sleep in progress"
+                val bannerColor = if (isFeeding) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                val bannerOnColor = if (isFeeding) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondary
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
+                    colors = CardDefaults.cardColors(containerColor = bannerColor)
                 ) {
                     Row(
                         modifier = Modifier
@@ -137,7 +139,7 @@ fun HomeScreen(
                             Text(
                                 text = label,
                                 style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onPrimary,
+                                color = bannerOnColor,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -146,9 +148,9 @@ fun HomeScreen(
                                 if (isFeeding) viewModel.onStopActiveSession()
                                 else viewModel.onStopActiveRecord()
                             },
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, bannerOnColor),
                             colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.onPrimary
+                                contentColor = bannerOnColor
                             )
                         ) {
                             Text("Stop")

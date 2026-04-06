@@ -97,7 +97,9 @@ fun SleepTrackingScreen(
                 TimerDisplay(
                     startTimeMillis = record.startTime.toEpochMilli(),
                     isRunning = true,
-                    maxDurationSeconds = if (record.sleepType == SleepType.NAP) 90 * 60 else 0
+                    maxDurationSeconds = if (record.sleepType == SleepType.NAP) 90 * 60 else 0,
+                    ringColor = MaterialTheme.colorScheme.secondary,
+                    trackColor = MaterialTheme.colorScheme.secondaryContainer
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
