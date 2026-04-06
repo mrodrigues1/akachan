@@ -79,15 +79,19 @@ fun TimerDisplay(
     val trackColor = MaterialTheme.colorScheme.primaryContainer
 
     val infiniteTransition = rememberInfiniteTransition(label = "ring_pulse")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.04f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1250),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "ring_scale"
-    )
+    val scale by if (isRunning) {
+        infiniteTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.04f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1250),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "ring_scale"
+        )
+    } else {
+        remember { androidx.compose.runtime.mutableFloatStateOf(1f) }
+    }
 
     Box(
         modifier = modifier
