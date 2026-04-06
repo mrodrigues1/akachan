@@ -145,12 +145,13 @@ fun HomeScreen(
                             onClick = {
                                 if (isFeeding) viewModel.onStopActiveSession()
                                 else viewModel.onStopActiveRecord()
-                            }
-                        ) {
-                            Text(
-                                text = "Stop",
-                                color = MaterialTheme.colorScheme.onPrimary
+                            },
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary),
+                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onPrimary
                             )
+                        ) {
+                            Text("Stop")
                         }
                     }
                 }

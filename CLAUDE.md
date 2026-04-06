@@ -82,7 +82,7 @@ app/src/main/java/com/babytracker/
 │   ├── sleep/                 # SleepScreen, SleepHistoryScreen, SleepScheduleScreen + VMs
 │   ├── settings/              # SettingsScreen + SettingsViewModel
 │   ├── component/             # Reusable: TimerDisplay, HistoryCard, SideSelector
-│   └── theme/                 # BabyTrackerTheme (MD3, dynamic colors on API 31+)
+│   └── theme/                 # BabyTrackerTheme (MD3, custom baby palette — dynamicColor disabled)
 └── util/
     ├── DateTimeExt.kt         # Instant.formatTime(), formatDateTime(), Duration.formatDuration()
     └── FlowExt.kt             # Flow.catchAndLog()
