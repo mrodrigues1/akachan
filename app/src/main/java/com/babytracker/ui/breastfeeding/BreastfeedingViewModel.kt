@@ -8,6 +8,7 @@ import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
+import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,6 +27,7 @@ data class BreastfeedingUiState(
 class BreastfeedingViewModel @Inject constructor(
     private val startSession: StartBreastfeedingSessionUseCase,
     private val stopSession: StopBreastfeedingSessionUseCase,
+    private val switchSide: SwitchBreastfeedingSideUseCase,
     private val getHistory: GetBreastfeedingHistoryUseCase,
     private val repository: BreastfeedingRepository
 ) : ViewModel() {
@@ -60,5 +62,10 @@ class BreastfeedingViewModel @Inject constructor(
         viewModelScope.launch {
             stopSession(session)
         }
+    }
+
+    fun onSwitchSide() {
+        val session = _uiState.value.activeSession ?: return
+        viewModelScope.launch { switchSide(session) }
     }
 }
