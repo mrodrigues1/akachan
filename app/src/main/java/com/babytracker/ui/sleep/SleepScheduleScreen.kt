@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -45,7 +46,8 @@ fun SleepScheduleScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         }
     ) { padding ->
@@ -57,7 +59,8 @@ fun SleepScheduleScreen(
         ) {
             Button(
                 onClick = viewModel::onGenerateSchedule,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.extraLarge
             ) {
                 Text("Generate Schedule")
             }
@@ -80,7 +83,8 @@ fun SleepScheduleScreen(
                     items(schedule.napTimes) { entry ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                            shape = MaterialTheme.shapes.medium
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(entry.label, style = MaterialTheme.typography.titleSmall)
