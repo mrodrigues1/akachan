@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.babytracker.ui.component.HistoryCard
@@ -53,7 +54,9 @@ fun BreastfeedingHistoryScreen(
                 HistoryCard(
                     title = session.startingSide.name,
                     subtitle = session.startTime.formatDateTime(),
-                    trailing = session.duration?.formatDuration() ?: "In progress"
+                    trailing = session.duration?.formatDuration() ?: "In progress",
+                    badgeEmoji = "🤱",
+                    badgeColor = Color(0xFFE8F5E9)
                 )
             }
         }
