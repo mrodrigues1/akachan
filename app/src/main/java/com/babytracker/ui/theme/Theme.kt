@@ -53,7 +53,7 @@ fun BabyTrackerTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = AkachanTypography,
         shapes = AkachanShapes,
         content = content
     )
