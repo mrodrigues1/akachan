@@ -104,6 +104,7 @@ fun OnboardingScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 24.dp),
+                shape = MaterialTheme.shapes.extraLarge,
             ) {
                 if (uiState.isSaving) {
                     CircularProgressIndicator(
