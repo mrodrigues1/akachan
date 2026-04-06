@@ -1,0 +1,170 @@
+name: Prepare Release PR
+
+on:
+  push:
+    branches:
+      - main
+
+# Skip when the release PR itself is merged to avoid an infinite loop
+jobs:
+  prepare:
+    name: Create or Update Release PR
+    runs-on: ubuntu-latest
+    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute next version and changelog
+        id: release
+        run: |
+          # ── Last release tag ─────────────────────────────────────────────
+          LAST_TAG=$(git tag --sort=-version:refname | grep '^v' | head -1)
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"%s" HEAD)
+            LAST_TAG_DISPLAY="the beginning of the project"
+          else
+            COMMITS=$(git log --pretty=format:"%s" "${LAST_TAG}..HEAD")
+            LAST_TAG_DISPLAY="$LAST_TAG"
+          fi
+
+          # ── Determine semver bump from Conventional Commits ───────────────
+          BUMP="patch"
+          while IFS= read -r msg; do
+            if echo "$msg" | grep -qiE "BREAKING[- ]CHANGE|^[a-z]+(\(.+\))?!:"; then
+              BUMP="major"; break
+            elif echo "$msg" | grep -qE "^feat(\(.+\))?:"; then
+              [ "$BUMP" != "major" ] && BUMP="minor"
+            fi
+          done <<< "$COMMITS"
+
+          # ── Current version from build.gradle.kts ────────────────────────
+          RAW_VERSION=$(grep 'versionName\s*=' app/build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          CURRENT_CODE=$(grep 'versionCode\s*=' app/build.gradle.kts | head -1 | grep -oE '[0-9]+')
+
+          # Normalise to three parts (e.g. "1.0" → "1.0.0")
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$RAW_VERSION"
+          MAJOR="${MAJOR:-0}"; MINOR="${MINOR:-0}"; PATCH="${PATCH:-0}"
+
+          # ── Calculate new version ─────────────────────────────────────────
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR+1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH+1)) ;;
+          esac
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          NEW_CODE=$((CURRENT_CODE+1))
+
+          echo "bump=$BUMP"             >> "$GITHUB_OUTPUT"
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "new_code=$NEW_CODE"     >> "$GITHUB_OUTPUT"
+          echo "last_tag=$LAST_TAG_DISPLAY" >> "$GITHUB_OUTPUT"
+
+          # ── Build categorised changelog ───────────────────────────────────
+          FEATURES="" FIXES="" PERF="" OTHERS=""
+          while IFS= read -r msg; do
+            [ -z "$msg" ] && continue
+            if echo "$msg" | grep -qE "^feat(\(.+\))?:"; then
+              FEATURES="${FEATURES}- ${msg}\n"
+            elif echo "$msg" | grep -qE "^fix(\(.+\))?:"; then
+              FIXES="${FIXES}- ${msg}\n"
+            elif echo "$msg" | grep -qE "^perf(\(.+\))?:"; then
+              PERF="${PERF}- ${msg}\n"
+            else
+              OTHERS="${OTHERS}- ${msg}\n"
+            fi
+          done <<< "$COMMITS"
+
+          {
+            [ -n "$FEATURES" ] && printf "### New Features\n%b\n" "$FEATURES"
+            [ -n "$FIXES"    ] && printf "### Bug Fixes\n%b\n"    "$FIXES"
+            [ -n "$PERF"     ] && printf "### Performance\n%b\n"  "$PERF"
+            [ -n "$OTHERS"   ] && printf "### Other Changes\n%b\n" "$OTHERS"
+          } > /tmp/changelog.md
+
+          echo "--- Changelog ---"
+          cat /tmp/changelog.md
+
+      - name: Bump version in build.gradle.kts
+        run: |
+          NEW_VERSION="${{ steps.release.outputs.new_version }}"
+          NEW_CODE="${{ steps.release.outputs.new_code }}"
+
+          sed -i "s/versionName = \"[^\"]*\"/versionName = \"$NEW_VERSION\"/" app/build.gradle.kts
+          sed -i "s/versionCode = [0-9]*/versionCode = $NEW_CODE/" app/build.gradle.kts
+
+          grep -E "versionCode|versionName" app/build.gradle.kts
+
+      - name: Commit and push release branch
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -B chore/release
+          git add app/build.gradle.kts
+          git commit -m "chore(release): bump version to v${{ steps.release.outputs.new_version }}"
+          git push origin chore/release --force
+
+      - name: Write PR body
+        run: |
+          NEW_VERSION="${{ steps.release.outputs.new_version }}"
+          LAST_TAG="${{ steps.release.outputs.last_tag }}"
+
+          cat > /tmp/pr_body.md << 'BODY_EOF'
+          ## Release v__NEW_VERSION__
+
+          Bumps the version to `v__NEW_VERSION__` and includes all changes since __LAST_TAG__.
+
+          __CHANGELOG__
+
+          ---
+          *Merging this PR will trigger an automated build and publish a new GitHub Release with the signed APK.*
+          BODY_EOF
+
+          CHANGELOG=$(cat /tmp/changelog.md)
+          sed -i "s|__NEW_VERSION__|$NEW_VERSION|g" /tmp/pr_body.md
+          sed -i "s|__LAST_TAG__|$LAST_TAG|g"       /tmp/pr_body.md
+
+          # Inline the changelog (replace placeholder line)
+          python3 - << 'PYEOF'
+          import re, pathlib
+          body = pathlib.Path("/tmp/pr_body.md").read_text()
+          changelog = pathlib.Path("/tmp/changelog.md").read_text()
+          body = body.replace("__CHANGELOG__", changelog)
+          pathlib.Path("/tmp/pr_body.md").write_text(body)
+          PYEOF
+
+          echo "--- PR body ---"
+          cat /tmp/pr_body.md
+
+      - name: Create or update release PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEW_VERSION="${{ steps.release.outputs.new_version }}"
+          PR_TITLE="chore(release): release v${NEW_VERSION}"
+
+          EXISTING_PR=$(gh pr list --head chore/release --base main --json number --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "Updating existing PR #$EXISTING_PR"
+            gh pr edit "$EXISTING_PR" \
+              --title "$PR_TITLE" \
+              --body-file /tmp/pr_body.md
+          else
+            echo "Creating new release PR"
+            gh pr create \
+              --head chore/release \
+              --base main \
+              --title "$PR_TITLE" \
+              --body-file /tmp/pr_body.md
+          fi
