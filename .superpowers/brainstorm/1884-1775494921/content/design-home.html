@@ -1,0 +1,155 @@
+<style>
+  @keyframes banner-pulse {
+    0% { box-shadow: 0 4px 16px rgba(194,24,91,0.25); }
+    50% { box-shadow: 0 4px 24px rgba(194,24,91,0.45); }
+    100% { box-shadow: 0 4px 16px rgba(194,24,91,0.25); }
+  }
+  .banner-live { animation: banner-pulse 2.5s ease-in-out infinite; }
+</style>
+
+<h2>Section 2 — Home Screen</h2>
+<p class="subtitle">Two states: idle (no active session) and live (session in progress). Both use the Hybrid layout.</p>
+
+<div class="split">
+
+  <!-- State A: Idle -->
+  <div class="mockup">
+    <div class="mockup-header">State A — No active session</div>
+    <div class="mockup-body" style="background: #FFF9F0; min-height: 460px; padding: 0; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+
+      <!-- TopAppBar -->
+      <div style="background: #FFF9F0; padding: 16px 16px 8px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="font-size: 13px; font-weight: 800; color: #C2185B;">Hi, Emma 👋</div>
+          <div style="font-size: 10px; color: #aaa; margin-top: 1px;">Sunday, Apr 6</div>
+        </div>
+        <div style="width: 32px; height: 32px; border-radius: 50%; background: #F8BBD0; display: flex; align-items: center; justify-content: center; font-size: 14px;">⚙️</div>
+      </div>
+
+      <!-- Content -->
+      <div style="flex: 1; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 12px;">
+
+        <!-- Summary cards -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <!-- Feeding card -->
+          <div style="background: #fff; border-radius: 16px; padding: 14px; box-shadow: 0 2px 10px rgba(244,194,194,0.3);">
+            <div style="font-size: 18px; margin-bottom: 6px;">🍼</div>
+            <div style="font-size: 10px; font-weight: 700; color: #C2185B;">Breastfeeding</div>
+            <div style="font-size: 9px; color: #999; margin-top: 2px;">3 sessions today</div>
+            <div style="font-size: 8px; color: #bbb; margin-top: 1px;">Last: 2h 15m ago</div>
+          </div>
+          <!-- Sleep card -->
+          <div style="background: #fff; border-radius: 16px; padding: 14px; box-shadow: 0 2px 10px rgba(137,207,240,0.3);">
+            <div style="font-size: 18px; margin-bottom: 6px;">🌙</div>
+            <div style="font-size: 10px; font-weight: 700; color: #1976D2;">Sleep</div>
+            <div style="font-size: 9px; color: #999; margin-top: 2px;">8h 20m last night</div>
+            <div style="font-size: 8px; color: #bbb; margin-top: 1px;">Next nap: ~30m</div>
+          </div>
+        </div>
+
+        <!-- Quick tips / empty banner placeholder -->
+        <div style="background: #F8BBD0; border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 10px;">
+          <div style="font-size: 20px;">✨</div>
+          <div>
+            <div style="font-size: 9px; font-weight: 700; color: #880E4F;">Tip</div>
+            <div style="font-size: 8px; color: #AD1457; margin-top: 2px;">Emma last fed on the Left side. Try Right next.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Nav -->
+      <div style="background: #fff; border-top: 1px solid #f5e6ea; padding: 8px 0 4px; display: flex; justify-content: space-around;">
+        <div style="text-align: center; flex: 1;">
+          <div style="font-size: 18px;">🍼</div>
+          <div style="font-size: 7px; font-weight: 700; color: #C2185B;">Feeding</div>
+        </div>
+        <div style="text-align: center; flex: 1;">
+          <div style="font-size: 18px; opacity: 0.4;">🌙</div>
+          <div style="font-size: 7px; color: #bbb;">Sleep</div>
+        </div>
+        <div style="text-align: center; flex: 1;">
+          <div style="font-size: 18px; opacity: 0.4;">⚙️</div>
+          <div style="font-size: 7px; color: #bbb;">Settings</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- State B: Live session -->
+  <div class="mockup">
+    <div class="mockup-header">State B — Feeding session active</div>
+    <div class="mockup-body" style="background: #FFF9F0; min-height: 460px; padding: 0; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+
+      <!-- TopAppBar -->
+      <div style="background: #FFF9F0; padding: 16px 16px 8px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="font-size: 13px; font-weight: 800; color: #C2185B;">Hi, Emma 👋</div>
+          <div style="font-size: 10px; color: #aaa; margin-top: 1px;">Sunday, Apr 6</div>
+        </div>
+        <div style="width: 32px; height: 32px; border-radius: 50%; background: #F8BBD0; display: flex; align-items: center; justify-content: center; font-size: 14px;">⚙️</div>
+      </div>
+
+      <!-- Content -->
+      <div style="flex: 1; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 12px;">
+
+        <!-- Active session banner -->
+        <div class="banner-live" style="background: linear-gradient(135deg, #C2185B, #1976D2); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px;">
+          <div style="font-size: 22px;">🍼</div>
+          <div style="flex: 1;">
+            <div style="font-size: 10px; font-weight: 700; color: #fff;">Feeding in progress</div>
+            <div style="font-size: 9px; color: rgba(255,255,255,0.8); margin-top: 2px;">Left side · 07:42 elapsed</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.25); border-radius: 20px; padding: 5px 12px;">
+            <div style="font-size: 8px; font-weight: 700; color: #fff;">STOP</div>
+          </div>
+        </div>
+
+        <!-- Summary cards (dimmed) -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; opacity: 0.7;">
+          <div style="background: #fff; border-radius: 16px; padding: 14px; box-shadow: 0 2px 10px rgba(244,194,194,0.2);">
+            <div style="font-size: 18px; margin-bottom: 6px;">🍼</div>
+            <div style="font-size: 10px; font-weight: 700; color: #C2185B;">Breastfeeding</div>
+            <div style="font-size: 9px; color: #999; margin-top: 2px;">3 sessions today</div>
+            <div style="font-size: 8px; color: #bbb; margin-top: 1px;">Last: 2h 15m ago</div>
+          </div>
+          <div style="background: #fff; border-radius: 16px; padding: 14px; box-shadow: 0 2px 10px rgba(137,207,240,0.2);">
+            <div style="font-size: 18px; margin-bottom: 6px;">🌙</div>
+            <div style="font-size: 10px; font-weight: 700; color: #1976D2;">Sleep</div>
+            <div style="font-size: 9px; color: #999; margin-top: 2px;">8h 20m last night</div>
+            <div style="font-size: 8px; color: #bbb; margin-top: 1px;">Next nap: ~30m</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Nav -->
+      <div style="background: #fff; border-top: 1px solid #f5e6ea; padding: 8px 0 4px; display: flex; justify-content: space-around;">
+        <div style="text-align: center; flex: 1;">
+          <div style="font-size: 18px;">🍼</div>
+          <div style="font-size: 7px; font-weight: 700; color: #C2185B;">Feeding</div>
+        </div>
+        <div style="text-align: center; flex: 1;">
+          <div style="font-size: 18px; opacity: 0.4;">🌙</div>
+          <div style="font-size: 7px; color: #bbb;">Sleep</div>
+        </div>
+        <div style="text-align: center; flex: 1;">
+          <div style="font-size: 18px; opacity: 0.4;">⚙️</div>
+          <div style="font-size: 7px; color: #bbb;">Settings</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="margin-top: 16px; background: #fff9f0; border-radius: 12px; padding: 14px; border: 1px solid #ffe0cc;">
+  <div style="font-size: 9px; font-weight: 700; color: #C2185B; margin-bottom: 8px;">📋 Implementation notes</div>
+  <div style="display: flex; flex-direction: column; gap: 4px; font-size: 8px; color: #666; line-height: 1.6;">
+    <div>• Bottom nav <strong>selected state fixed</strong> — currently hardcoded <code style="background:#f5e6ea;padding:1px 4px;border-radius:3px;">selected = false</code> on all items</div>
+    <div>• Active session banner driven by <code style="background:#f5e6ea;padding:1px 4px;border-radius:3px;">HomeUiState.activeSession</code> — already in the ViewModel</div>
+    <div>• "Last fed X ago" / "Next nap ~Xm" derived from existing <code style="background:#f5e6ea;padding:1px 4px;border-radius:3px;">recentFeedings</code> + <code style="background:#f5e6ea;padding:1px 4px;border-radius:3px;">recentSleepRecords</code></div>
+    <div>• Tip card is static for v1 (hardcoded last-side suggestion logic)</div>
+    <div>• Surface background color: SoftYellow tint (<code style="background:#f5e6ea;padding:1px 4px;border-radius:3px;">#FFFDE7</code>)</div>
+  </div>
+</div>
+
+<div style="margin-top: 16px; text-align: center; font-size: 10px; color: #999;">Does this Home screen design look right? Reply in the terminal.</div>
