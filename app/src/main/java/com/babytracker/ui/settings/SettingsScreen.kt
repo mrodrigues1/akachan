@@ -17,6 +17,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -54,6 +55,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.BuildConfig
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.ui.onboarding.components.AllergiesStepContent
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -62,7 +64,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private enum class SettingsSheet {
-    NAME, BIRTH_DATE, ALLERGIES, MAX_PER_BREAST, MAX_TOTAL_FEED
+    NAME, BIRTH_DATE, ALLERGIES, MAX_PER_BREAST, MAX_TOTAL_FEED, THEME
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -192,6 +194,26 @@ fun SettingsScreen(
             )
 
             HorizontalDivider()
+            
+            // App settings section
+            Text(
+                text = "App Settings",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+            )
+
+            SettingsRow(
+                label = "Theme",
+                value = when (uiState.themeConfig) {
+                    ThemeConfig.SYSTEM -> "System"
+                    ThemeConfig.LIGHT -> "Light"
+                    ThemeConfig.DARK -> "Dark"
+                },
+                onClick = { activeSheet = SettingsSheet.THEME }
+            )
+
+            HorizontalDivider()
 
             // Version footer
             Spacer(modifier = Modifier.height(32.dp))
@@ -272,6 +294,15 @@ fun SettingsScreen(
                     currentMinutes = uiState.maxTotalFeedMinutes,
                     onSave = { minutes ->
                         viewModel.onMaxTotalFeedChanged(minutes)
+                        dismissSheet()
+                    },
+                    onDismiss = { dismissSheet() },
+                )
+
+                SettingsSheet.THEME -> ThemeSelectionSheet(
+                    currentConfig = uiState.themeConfig,
+                    onSave = { themeConfig ->
+                        viewModel.onThemeConfigChanged(themeConfig)
                         dismissSheet()
                     },
                     onDismiss = { dismissSheet() },
@@ -535,6 +566,79 @@ private fun MinutesEditSheet(
             TextButton(onClick = onDismiss) { Text("Cancel") }
             Spacer(modifier = Modifier.padding(horizontal = 4.dp))
             Button(onClick = { onSave(minutes) }) { Text("Save") }
+        }
+    }
+}
+
+@Composable
+private fun ThemeSelectionSheet(
+    currentConfig: ThemeConfig,
+    onSave: (ThemeConfig) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 24.dp),
+    ) {
+        Text(
+            text = "Select theme",
+            style = MaterialTheme.typography.titleLarge,
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        ThemeOption(
+            label = "System",
+            selected = currentConfig == ThemeConfig.SYSTEM,
+            onClick = { onSave(ThemeConfig.SYSTEM) },
+        )
+        ThemeOption(
+            label = "Light",
+            selected = currentConfig == ThemeConfig.LIGHT,
+            onClick = { onSave(ThemeConfig.LIGHT) },
+        )
+        ThemeOption(
+            label = "Dark",
+            selected = currentConfig == ThemeConfig.DARK,
+            onClick = { onSave(ThemeConfig.DARK) },
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    }
+}
+
+@Composable
+private fun ThemeOption(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        if (selected) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
