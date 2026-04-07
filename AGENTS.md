@@ -38,7 +38,6 @@ Data Layer     Repository Impls → Room DAOs / DataStore
 - SOLID: depend on abstractions (repository interfaces), single-responsibility use cases
 - KISS: flat packages, no mapper classes, no base classes, no sealed `Result<>` wrappers
 - DDD: domain models are pure Kotlin data classes — zero framework imports
-- UI: Material 3 with custom "Baby" palette, rounded shapes, and one-handed usability
 
 **Anti-goals:** no multi-module setup, no `Mapper` classes, no `BaseViewModel`, no `BaseFragment`.
 
@@ -66,52 +65,28 @@ app/src/main/java/com/babytracker/
 │   │                          #   SleepRepository, SettingsRepository
 │   └── usecase/
 │       ├── baby/              # GetBabyProfile, SaveBabyProfile
-│       ├── breastfeeding/     # StartSession, StopSession, GetHistory, SwitchSide,
-│       │                      #   PauseSession, ResumeSession
+│       ├── breastfeeding/     # StartSession, StopSession, GetHistory
 │       └── sleep/             # StartRecord, StopRecord, GetHistory, GenerateSchedule
 ├── data/
 │   ├── local/
-│   │   ├── BabyTrackerDatabase.kt   # Room DB v2, entities: breastfeeding_sessions, sleep_records
+│   │   ├── BabyTrackerDatabase.kt   # Room DB v1, entities: breastfeeding_sessions, sleep_records
 │   │   ├── dao/               # BreastfeedingDao, SleepDao
 │   │   ├── entity/            # BreastfeedingEntity, SleepEntity
 │   │   └── converter/         # TypeConverter: Instant ↔ Long (epoch ms)
 │   └── repository/            # BabyRepositoryImpl, BreastfeedingRepositoryImpl,
 │                              #   SleepRepositoryImpl, SettingsRepositoryImpl
-├── manager/
-│   ├── NotificationScheduler.kt          # Interface: schedule/cancel AlarmManager alarms
-│   └── BreastfeedingNotificationManager.kt  # Impl: schedules max-time and per-breast alarms
 ├── ui/
 │   ├── onboarding/            # OnboardingScreen + OnboardingViewModel
 │   ├── home/                  # HomeScreen + HomeViewModel
 │   ├── breastfeeding/         # BreastfeedingScreen, BreastfeedingHistoryScreen + VMs
-│   ├── sleep/                 # SleepTrackingScreen, SleepHistoryScreen, SleepScheduleScreen + VMs
+│   ├── sleep/                 # SleepScreen, SleepHistoryScreen, SleepScheduleScreen + VMs
 │   ├── settings/              # SettingsScreen + SettingsViewModel
 │   ├── component/             # Reusable: TimerDisplay, HistoryCard, SideSelector
-│   └── theme/                 # Theme.kt, Color.kt, Shape.kt, Type.kt
+│   └── theme/                 # BabyTrackerTheme (MD3, dynamic colors on API 31+)
 └── util/
-    ├── DateTimeExt.kt         # Instant.formatTime(), formatDateTime(), Duration.formatDuration(),
-    │                          #   Duration.formatElapsedAgo()
-    ├── FlowExt.kt             # Flow.catchAndLog()
-    ├── NotificationHelper.kt  # Cancel/show notification helpers
-    └── UpdateChecker.kt       # In-app update check utility
+    ├── DateTimeExt.kt         # Instant.formatTime(), formatDateTime(), Duration.formatDuration()
+    └── FlowExt.kt             # Flow.catchAndLog()
 ```
-
----
-
-## Theme & UI Tokens
-
-| Token | Light Value | Usage |
-|-------|-------------|-------|
-| `primary` | `#C2185B` | Primary actions, Feeding theme |
-| `secondary` | `#1976D2` | Secondary actions, Sleep theme |
-| `tertiary` | `#388E3C` | Success states, Warning/Overtime in timers |
-| `surface` | `#FFFDE7` | Background, Cards |
-| `shapes.medium` | `16.dp` | Main cards |
-| `shapes.extraLarge`| `50.dp` | Primary buttons (FAB-like) |
-
-**Custom Typography:**
-- `displaySmall`: ExtraBold 36sp (Timer clock)
-- `labelMedium`: Bold 12sp UPPERCASE (Day section headers)
 
 ---
 
@@ -213,23 +188,6 @@ wip: work on new feature
 
 ---
 
-## Workflow
-
-### Branching Model
-
-When working on a new feature, pull `main` branch latest changes and create a new branch from `main` and name it after the feature:
-- `feat/breastfeeding-history`
-- `fix/sleep-schedule-bug`
-- `refactor/settings-screen-refactor`
-- `chore/update-room-version`
-- `ci/add-android-test-coverage`
-
-After the feature is complete, run all tests, 
-if all tests are passing: create a PR to `main` with a descriptive title and description, 
-if there is any broken test: fix it, re-run tests and do it until all tests pass.
-
----
-
 ## Code Patterns
 
 ### Use Cases
@@ -273,7 +231,7 @@ fun BreastfeedingSession.toEntity(): BreastfeedingEntity = ...
 
 ## Database Schema
 
-**Database:** `baby_tracker_db` (Room v2)
+**Database:** `baby_tracker_db` (Room v1)
 
 **`breastfeeding_sessions`**
 | Column | Type | Notes |
@@ -284,8 +242,6 @@ fun BreastfeedingSession.toEntity(): BreastfeedingEntity = ...
 | `starting_side` | String NOT NULL | "LEFT" or "RIGHT" |
 | `switch_time` | Long NULLABLE | epoch ms when sides switched |
 | `notes` | String NULLABLE | |
-| `paused_at` | Long NULLABLE | epoch ms when session was paused; null = running |
-| `paused_duration_ms` | Long NOT NULL | accumulated paused time in ms (default 0) |
 
 **`sleep_records`**
 | Column | Type | Notes |
@@ -321,9 +277,6 @@ Build variants: `debug` (default) and `release` (ProGuard minification enabled v
 ---
 
 ## Testing Conventions
-
-Create tests for new features, bug fixes, and edge cases.
-Doesn't need to follow the TDD pattern. Make sure the feature works as expected.
 
 ### Unit Tests (`src/test/`)
 - Framework: JUnit 5 (`@Test`, `@BeforeEach`, `runTest`)
@@ -369,6 +322,7 @@ All repository implementations are `@Singleton` scoped.
 Detailed feature specs live in `specs/`:
 
 - `specs/SPEC-001-APP-STRUCTURE.md` — architecture, package layout, design principles, DB schema
+- `SPEC-002-Onboarding.md` — onboarding flow (3 steps: baby name → DOB → allergies), validation rules, persistence strategy
 
 Read specs before implementing new features — they define the intended behaviour and non-goals.
 

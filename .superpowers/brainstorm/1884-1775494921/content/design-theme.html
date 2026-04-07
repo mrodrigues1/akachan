@@ -1,0 +1,87 @@
+<h2>Section 1 — Theme & Color System</h2>
+<p class="subtitle">How the existing color constants get wired into Material 3 semantic roles</p>
+
+<div class="section">
+  <h3>Color Token Mapping</h3>
+  <p class="subtitle">BabyPink and BabyBlue become the semantic primary/secondary pair. SoftYellow and SoftGreen fill tertiary and surface roles.</p>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+
+    <!-- Light scheme -->
+    <div style="background: #fff; border-radius: 12px; padding: 16px; border: 1px solid #eee;">
+      <div style="font-size: 10px; font-weight: 700; color: #555; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.8px;">☀️ Light Theme</div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #C2185B; flex-shrink: 0;"></div>
+          <div><div style="font-size: 9px; font-weight: 700; color: #333;">primary</div><div style="font-size: 8px; color: #999;">#C2185B — deep BabyPink</div></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #F8BBD0; flex-shrink: 0;"></div>
+          <div><div style="font-size: 9px; font-weight: 700; color: #333;">primaryContainer</div><div style="font-size: 8px; color: #999;">#F8BBD0 — BabyPink light</div></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #1976D2; flex-shrink: 0;"></div>
+          <div><div style="font-size: 9px; font-weight: 700; color: #333;">secondary</div><div style="font-size: 8px; color: #999;">#1976D2 — deep BabyBlue</div></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #B3E5FC; flex-shrink: 0;"></div>
+          <div><div style="font-size: 9px; font-weight: 700; color: #333;">secondaryContainer</div><div style="font-size: 8px; color: #999;">#B3E5FC — BabyBlue light</div></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #388E3C; flex-shrink: 0;"></div>
+          <div><div style="font-size: 9px; font-weight: 700; color: #333;">tertiary</div><div style="font-size: 8px; color: #999;">#388E3C — SoftGreen deep</div></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #FFF9C4; flex-shrink: 0; border: 1px solid #eee;"></div>
+          <div><div style="font-size: 9px; font-weight: 700; color: #333;">surface / background</div><div style="font-size: 8px; color: #999;">#FFF9C4 tinted — SoftYellow</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shape & typography -->
+    <div style="background: #fff; border-radius: 12px; padding: 16px; border: 1px solid #eee;">
+      <div style="font-size: 10px; font-weight: 700; color: #555; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.8px;">🔵 Shapes & Type</div>
+
+      <div style="font-size: 9px; font-weight: 700; color: #333; margin-bottom: 6px;">Corner radii (Shapes)</div>
+      <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 36px; height: 20px; background: #F8BBD0; border-radius: 4px;"></div>
+          <div style="font-size: 8px; color: #777;">small = 8dp (chips, badges)</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 36px; height: 20px; background: #F8BBD0; border-radius: 8px;"></div>
+          <div style="font-size: 8px; color: #777;">medium = 16dp (cards)</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 36px; height: 20px; background: #F8BBD0; border-radius: 12px;"></div>
+          <div style="font-size: 8px; color: #777;">large = 24dp (sheets, dialogs)</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 36px; height: 20px; background: #F8BBD0; border-radius: 10px;"></div>
+          <div style="font-size: 8px; color: #777;">extraLarge = 50% (FAB, buttons)</div>
+        </div>
+      </div>
+
+      <div style="font-size: 9px; font-weight: 700; color: #333; margin-bottom: 6px;">Typography additions</div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 8px; color: #777;">• <strong>displaySmall</strong> — timer ring number (36sp, W800)</div>
+        <div style="font-size: 8px; color: #777;">• <strong>labelMedium</strong> — section headers (12sp, W700)</div>
+        <div style="font-size: 8px; color: #777;">• Rounded style: all FontFamily.Default (no custom font needed)</div>
+      </div>
+
+      <div style="margin-top: 12px; font-size: 9px; font-weight: 700; color: #333; margin-bottom: 6px;">Dynamic color</div>
+      <div style="font-size: 8px; color: #777;">Dynamic color (API 31+) <strong>disabled</strong> — use our custom palette consistently across all Android versions.</div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 16px; background: #fff9f0; border-radius: 12px; padding: 14px; border: 1px solid #ffe0cc;">
+  <div style="font-size: 9px; font-weight: 700; color: #c4678a; margin-bottom: 6px;">⚡ Key change from current code</div>
+  <div style="font-size: 8px; color: #666; line-height: 1.5;">
+    <code style="background: #f5e6ea; padding: 1px 4px; border-radius: 3px; font-size: 8px;">dynamicColor = true</code> → <code style="background: #f5e6ea; padding: 1px 4px; border-radius: 3px; font-size: 8px;">dynamicColor = false</code> in BabyTrackerTheme.<br>
+    BabyPink/BabyBlue constants moved from orphaned variables into <code style="background: #f5e6ea; padding: 1px 4px; border-radius: 3px; font-size: 8px;">lightColorScheme()</code> / <code style="background: #f5e6ea; padding: 1px 4px; border-radius: 3px; font-size: 8px;">darkColorScheme()</code>.<br>
+    A <code style="background: #f5e6ea; padding: 1px 4px; border-radius: 3px; font-size: 8px;">Shapes.kt</code> file added alongside Color.kt and Type.kt.
+  </div>
+</div>
+
+<div style="margin-top: 20px; text-align: center; font-size: 10px; color: #999;">Does this color + shape system look right? Reply in the terminal.</div>

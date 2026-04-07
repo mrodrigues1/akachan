@@ -1,0 +1,173 @@
+<h2>Section 4 — History Screens & Settings</h2>
+<p class="subtitle">Grouped-by-day history (shared pattern for feeding + sleep) and a refreshed Settings screen.</p>
+
+<div class="split">
+
+  <!-- Feeding History -->
+  <div class="mockup">
+    <div class="mockup-header">Feeding History — Grouped by day</div>
+    <div class="mockup-body" style="background:#FFF9F0; min-height:480px; padding:0; display:flex; flex-direction:column; overflow:hidden; border-radius:8px;">
+
+      <!-- TopAppBar -->
+      <div style="background:#FFF9F0; padding:14px 16px 8px; display:flex; align-items:center; gap:8px; border-bottom:1px solid #f5e6ea;">
+        <div style="font-size:16px; color:#C2185B;">←</div>
+        <div style="font-size:12px; font-weight:700; color:#1a1a1a; flex:1;">Feeding History</div>
+      </div>
+
+      <div style="flex:1; padding:12px 16px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;">
+
+        <!-- Day group: Today -->
+        <div style="font-size:8px; font-weight:700; color:#C2185B; text-transform:uppercase; letter-spacing:0.8px; padding:4px 0 6px;">Today · 3 sessions · 36m total</div>
+
+        <div style="background:#fff; border-radius:12px; padding:10px 12px; display:flex; align-items:center; gap:10px; box-shadow:0 1px 4px rgba(244,194,194,0.2); margin-bottom:5px;">
+          <div style="width:28px; height:28px; border-radius:8px; background:#F8BBD0; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🍼</div>
+          <div style="flex:1;">
+            <div style="font-size:9px; font-weight:700; color:#C2185B;">Left side</div>
+            <div style="font-size:8px; color:#aaa; margin-top:1px;">08:42 AM</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px; font-weight:700; color:#1a1a1a;">12m 34s</div>
+          </div>
+        </div>
+
+        <div style="background:#fff; border-radius:12px; padding:10px 12px; display:flex; align-items:center; gap:10px; box-shadow:0 1px 4px rgba(137,207,240,0.2); margin-bottom:5px;">
+          <div style="width:28px; height:28px; border-radius:8px; background:#B3E5FC; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🍼</div>
+          <div style="flex:1;">
+            <div style="font-size:9px; font-weight:700; color:#1976D2;">Right side</div>
+            <div style="font-size:8px; color:#aaa; margin-top:1px;">06:15 AM</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px; font-weight:700; color:#1a1a1a;">09m 10s</div>
+          </div>
+        </div>
+
+        <div style="background:#fff; border-radius:12px; padding:10px 12px; display:flex; align-items:center; gap:10px; box-shadow:0 1px 4px rgba(244,194,194,0.2); margin-bottom:5px;">
+          <div style="width:28px; height:28px; border-radius:8px; background:#F8BBD0; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🍼</div>
+          <div style="flex:1;">
+            <div style="font-size:9px; font-weight:700; color:#C2185B;">Left side</div>
+            <div style="font-size:8px; color:#aaa; margin-top:1px;">03:30 AM</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px; font-weight:700; color:#1a1a1a;">14m 16s</div>
+          </div>
+        </div>
+
+        <!-- Day group: Yesterday -->
+        <div style="font-size:8px; font-weight:700; color:#C2185B; text-transform:uppercase; letter-spacing:0.8px; padding:8px 0 6px;">Yesterday · 5 sessions · 58m total</div>
+
+        <div style="background:#fff; border-radius:12px; padding:10px 12px; display:flex; align-items:center; gap:10px; box-shadow:0 1px 4px rgba(244,194,194,0.15); margin-bottom:5px;">
+          <div style="width:28px; height:28px; border-radius:8px; background:#F8BBD0; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🍼</div>
+          <div style="flex:1;">
+            <div style="font-size:9px; font-weight:700; color:#C2185B;">Left side</div>
+            <div style="font-size:8px; color:#aaa; margin-top:1px;">11:30 PM</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px; font-weight:700; color:#1a1a1a;">15m 02s</div>
+          </div>
+        </div>
+
+        <div style="background:#fff; border-radius:12px; padding:10px 12px; display:flex; align-items:center; gap:10px; box-shadow:0 1px 4px rgba(244,194,194,0.15);">
+          <div style="width:28px; height:28px; border-radius:8px; background:#B3E5FC; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🍼</div>
+          <div style="flex:1;">
+            <div style="font-size:9px; font-weight:700; color:#1976D2;">Right side</div>
+            <div style="font-size:8px; color:#aaa; margin-top:1px;">09:15 PM</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px; font-weight:700; color:#1a1a1a;">11m 44s</div>
+          </div>
+        </div>
+
+        <!-- Empty state hint -->
+        <div style="margin-top:8px; text-align:center; padding:12px 0;">
+          <div style="font-size:8px; color:#ddd;">· · ·</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div class="mockup">
+    <div class="mockup-header">Settings — Refreshed (read display + edit actions)</div>
+    <div class="mockup-body" style="background:#FFF9F0; min-height:480px; padding:0; display:flex; flex-direction:column; overflow:hidden; border-radius:8px;">
+
+      <!-- TopAppBar -->
+      <div style="background:#FFF9F0; padding:14px 16px 8px; display:flex; align-items:center; gap:8px; border-bottom:1px solid #f5e6ea;">
+        <div style="font-size:16px; color:#C2185B;">←</div>
+        <div style="font-size:12px; font-weight:700; color:#1a1a1a; flex:1;">Settings</div>
+      </div>
+
+      <div style="flex:1; padding:16px; display:flex; flex-direction:column; gap:12px;">
+
+        <!-- Baby Profile section -->
+        <div style="font-size:8px; font-weight:700; color:#C2185B; text-transform:uppercase; letter-spacing:0.8px;">Baby Profile</div>
+
+        <div style="background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 2px 8px rgba(244,194,194,0.2);">
+          <div style="padding:12px 14px; display:flex; align-items:center; border-bottom:1px solid #f9f0f3;">
+            <div style="flex:1;">
+              <div style="font-size:8px; color:#aaa; margin-bottom:2px;">Name</div>
+              <div style="font-size:10px; font-weight:600; color:#1a1a1a;">Emma</div>
+            </div>
+            <div style="font-size:9px; color:#C2185B; font-weight:600;">Edit</div>
+          </div>
+          <div style="padding:12px 14px; display:flex; align-items:center; border-bottom:1px solid #f9f0f3;">
+            <div style="flex:1;">
+              <div style="font-size:8px; color:#aaa; margin-bottom:2px;">Date of birth</div>
+              <div style="font-size:10px; font-weight:600; color:#1a1a1a;">Mar 15, 2026 · 3 weeks</div>
+            </div>
+            <div style="font-size:9px; color:#C2185B; font-weight:600;">Edit</div>
+          </div>
+          <div style="padding:12px 14px; display:flex; align-items:center;">
+            <div style="flex:1;">
+              <div style="font-size:8px; color:#aaa; margin-bottom:4px;">Allergies</div>
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <div style="background:#F8BBD0; border-radius:20px; padding:2px 8px; font-size:7px; font-weight:600; color:#880E4F;">Dairy</div>
+                <div style="background:#F8BBD0; border-radius:20px; padding:2px 8px; font-size:7px; font-weight:600; color:#880E4F;">Nuts</div>
+              </div>
+            </div>
+            <div style="font-size:9px; color:#C2185B; font-weight:600;">Edit</div>
+          </div>
+        </div>
+
+        <!-- Feeding limits section -->
+        <div style="font-size:8px; font-weight:700; color:#C2185B; text-transform:uppercase; letter-spacing:0.8px; margin-top:4px;">Feeding Limits</div>
+
+        <div style="background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 2px 8px rgba(244,194,194,0.2);">
+          <div style="padding:12px 14px; display:flex; align-items:center; border-bottom:1px solid #f9f0f3;">
+            <div style="flex:1;">
+              <div style="font-size:8px; color:#aaa; margin-bottom:2px;">Max per breast</div>
+              <div style="font-size:10px; font-weight:600; color:#1a1a1a;">20 minutes</div>
+            </div>
+            <div style="font-size:9px; color:#C2185B; font-weight:600;">Edit</div>
+          </div>
+          <div style="padding:12px 14px; display:flex; align-items:center;">
+            <div style="flex:1;">
+              <div style="font-size:8px; color:#aaa; margin-bottom:2px;">Max total feed</div>
+              <div style="font-size:10px; font-weight:600; color:#1a1a1a;">Disabled</div>
+            </div>
+            <div style="font-size:9px; color:#C2185B; font-weight:600;">Edit</div>
+          </div>
+        </div>
+
+        <!-- App version -->
+        <div style="text-align:center; margin-top:auto; padding-top:16px;">
+          <div style="font-size:8px; color:#ddd;">Akachan v1.0.3</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="margin-top:16px; background:#fff9f0; border-radius:12px; padding:14px; border:1px solid #ffe0cc;">
+  <div style="font-size:9px; font-weight:700; color:#C2185B; margin-bottom:8px;">📋 Implementation notes</div>
+  <div style="display:flex; flex-direction:column; gap:4px; font-size:8px; color:#666; line-height:1.6;">
+    <div>• <strong>HistoryCard</strong> updated: icon badge (pink=left, blue=right/nap/night), formatted side name ("Left side" not "LEFT"), time as "08:42 AM".</div>
+    <div>• History list grouped using <code style="background:#f5e6ea;padding:1px 4px;border-radius:3px;">LazyColumn</code> with <code style="background:#f5e6ea;padding:1px 4px;border-radius:3px;">stickyHeader</code> per day. Group key = date epoch day.</div>
+    <div>• Empty state: if list is empty, show centred illustration (🍼 or 🌙 emoji + "No sessions yet" message) instead of blank screen.</div>
+    <div>• <strong>Settings</strong> adds "Edit" tap targets per row — opens a BottomSheet or dialog (same pattern as onboarding steps). No new screen needed.</div>
+    <div>• Allergies displayed as pink pill chips instead of comma-joined string.</div>
+    <div>• App version string shown at bottom — reads from <code style="background:#f5e6ea;padding:1px 4px;border-radius:3px;">BuildConfig.VERSION_NAME</code>.</div>
+  </div>
+</div>
+
+<div style="margin-top:16px; text-align:center; font-size:10px; color:#999;">Does this look right? Reply in the terminal.</div>

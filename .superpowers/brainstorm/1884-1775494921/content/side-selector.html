@@ -1,0 +1,75 @@
+<h2>How should the breastfeeding side selector look?</h2>
+<p class="subtitle">This is the first thing a parent taps before starting a session. Currently two plain chips.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="pill-toggle" onclick="toggleSelect(this)">
+    <div class="card-image" style="background: linear-gradient(135deg, #fce4f0 0%, #e8f4fd 100%); padding: 20px; border-radius: 8px; min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;">
+      <div style="font-size: 9px; font-weight: 700; color: #c4678a; text-transform: uppercase; letter-spacing: 1px;">Choose Side</div>
+      <!-- Segmented pill -->
+      <div style="display: flex; background: #f4d6e8; border-radius: 30px; padding: 4px; gap: 2px;">
+        <div style="background: #c4678a; border-radius: 26px; padding: 8px 24px; font-size: 10px; font-weight: 700; color: #fff;">← Left</div>
+        <div style="border-radius: 26px; padding: 8px 24px; font-size: 10px; font-weight: 700; color: #c4678a;">Right →</div>
+      </div>
+      <div style="font-size: 8px; color: #ccc;">Tap to switch</div>
+    </div>
+    <div class="card-body">
+      <h3>A — Segmented Pill Toggle</h3>
+      <p>Styled segmented control: one side is filled/active, the other is ghost. Clean and familiar — like a tab switch. The most readable option in low light.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="big-buttons" onclick="toggleSelect(this)">
+    <div class="card-image" style="background: linear-gradient(135deg, #fce4f0 0%, #e8f4fd 100%); padding: 20px; border-radius: 8px; min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+      <div style="font-size: 9px; font-weight: 700; color: #c4678a; text-transform: uppercase; letter-spacing: 1px;">Choose Side</div>
+      <div style="display: flex; gap: 12px;">
+        <!-- Left button — selected -->
+        <div style="width: 80px; height: 80px; border-radius: 16px; background: #c4678a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; box-shadow: 0 4px 12px rgba(196,103,138,0.35);">
+          <div style="font-size: 22px;">←</div>
+          <div style="font-size: 9px; font-weight: 700; color: #fff;">Left</div>
+        </div>
+        <!-- Right button — unselected -->
+        <div style="width: 80px; height: 80px; border-radius: 16px; background: #fff; border: 2px solid #f4c2c2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+          <div style="font-size: 22px; opacity: 0.4;">→</div>
+          <div style="font-size: 9px; font-weight: 700; color: #d4aabb;">Right</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Big Touch Targets</h3>
+      <p>Two large square buttons — easy to tap one-handed at 3am. Selected side is filled/elevated, unselected is outlined. Hard to miss, thumb-friendly.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="body-diagram" onclick="toggleSelect(this)">
+    <div class="card-image" style="background: linear-gradient(135deg, #fce4f0 0%, #e8f4fd 100%); padding: 20px; border-radius: 8px; min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+      <div style="font-size: 9px; font-weight: 700; color: #c4678a; text-transform: uppercase; letter-spacing: 1px;">Choose Side</div>
+      <!-- Simple body outline with left/right indicators -->
+      <div style="position: relative; display: flex; align-items: center; gap: 10px;">
+        <!-- Left label -->
+        <div style="text-align: center;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: #c4678a; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(196,103,138,0.3);">
+            <div style="font-size: 14px;">●</div>
+          </div>
+          <div style="font-size: 7px; font-weight: 700; color: #c4678a; margin-top: 4px;">LEFT</div>
+        </div>
+        <!-- Simple torso shape -->
+        <div style="width: 40px; height: 60px; background: #f4d6e8; border-radius: 12px 12px 8px 8px; position: relative; display: flex; align-items: flex-start; justify-content: center; padding-top: 6px;">
+          <div style="width: 20px; height: 20px; border-radius: 50%; background: #e8c0d0; opacity: 0.6;"></div>
+        </div>
+        <!-- Right label -->
+        <div style="text-align: center;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: #fff; border: 2px solid #f4c2c2; display: flex; align-items: center; justify-content: center;">
+            <div style="font-size: 14px; opacity: 0.3;">●</div>
+          </div>
+          <div style="font-size: 7px; font-weight: 700; color: #d4aabb; margin-top: 4px;">RIGHT</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Body Diagram</h3>
+      <p>A simple illustrated torso with tappable left/right circles. Spatial metaphor — no reading required. More playful but slightly more complex to build.</p>
+    </div>
+  </div>
+
+</div>
