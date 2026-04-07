@@ -38,6 +38,7 @@ Data Layer     Repository Impls → Room DAOs / DataStore
 - SOLID: depend on abstractions (repository interfaces), single-responsibility use cases
 - KISS: flat packages, no mapper classes, no base classes, no sealed `Result<>` wrappers
 - DDD: domain models are pure Kotlin data classes — zero framework imports
+- UI: Material 3 with custom "Baby" palette, rounded shapes, and one-handed usability
 
 **Anti-goals:** no multi-module setup, no `Mapper` classes, no `BaseViewModel`, no `BaseFragment`.
 
@@ -79,14 +80,31 @@ app/src/main/java/com/babytracker/
 │   ├── onboarding/            # OnboardingScreen + OnboardingViewModel
 │   ├── home/                  # HomeScreen + HomeViewModel
 │   ├── breastfeeding/         # BreastfeedingScreen, BreastfeedingHistoryScreen + VMs
-│   ├── sleep/                 # SleepScreen, SleepHistoryScreen, SleepScheduleScreen + VMs
+│   ├── sleep/                 # SleepTrackingScreen, SleepHistoryScreen, SleepScheduleScreen + VMs
 │   ├── settings/              # SettingsScreen + SettingsViewModel
 │   ├── component/             # Reusable: TimerDisplay, HistoryCard, SideSelector
-│   └── theme/                 # BabyTrackerTheme (MD3, custom baby palette — dynamicColor disabled)
+│   └── theme/                 # Theme.kt, Color.kt, Shape.kt, Type.kt
 └── util/
     ├── DateTimeExt.kt         # Instant.formatTime(), formatDateTime(), Duration.formatDuration()
     └── FlowExt.kt             # Flow.catchAndLog()
 ```
+
+---
+
+## Theme & UI Tokens
+
+| Token | Light Value | Usage |
+|-------|-------------|-------|
+| `primary` | `#C2185B` | Primary actions, Feeding theme |
+| `secondary` | `#1976D2` | Secondary actions, Sleep theme |
+| `tertiary` | `#388E3C` | Success states, Warning/Overtime in timers |
+| `surface` | `#FFFDE7` | Background, Cards |
+| `shapes.medium` | `16.dp` | Main cards |
+| `shapes.extraLarge`| `50.dp` | Primary buttons (FAB-like) |
+
+**Custom Typography:**
+- `displaySmall`: ExtraBold 36sp (Timer clock)
+- `labelMedium`: Bold 12sp UPPERCASE (Day section headers)
 
 ---
 
