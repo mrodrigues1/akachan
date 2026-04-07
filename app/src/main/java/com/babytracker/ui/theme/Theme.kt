@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import com.babytracker.domain.model.ThemeConfig
 
 private val LightColorScheme = lightColorScheme(
     primary = PrimaryPink,
@@ -46,7 +47,12 @@ private val DarkColorScheme = darkColorScheme(
 
 @Composable
 fun BabyTrackerTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeConfig: ThemeConfig = ThemeConfig.SYSTEM,
+    darkTheme: Boolean = when (themeConfig) {
+        ThemeConfig.SYSTEM -> isSystemInDarkTheme()
+        ThemeConfig.LIGHT -> false
+        ThemeConfig.DARK -> true
+    },
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme

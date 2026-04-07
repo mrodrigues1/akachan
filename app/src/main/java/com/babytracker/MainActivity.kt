@@ -12,7 +12,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
+import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.BabyRepository
+import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.navigation.AppNavGraph
 import com.babytracker.ui.theme.BabyTrackerTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -24,6 +26,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var babyRepository: BabyRepository
 
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -32,7 +37,11 @@ class MainActivity : ComponentActivity() {
                 .isOnboardingComplete()
                 .collectAsStateWithLifecycle(initialValue = null)
 
-            BabyTrackerTheme {
+            val themeConfig by settingsRepository
+                .getThemeConfig()
+                .collectAsStateWithLifecycle(initialValue = ThemeConfig.SYSTEM)
+
+            BabyTrackerTheme(themeConfig = themeConfig) {
                 when (isOnboardingComplete) {
                     null -> Box(
                         modifier = Modifier.fillMaxSize(),
