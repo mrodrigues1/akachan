@@ -2,6 +2,7 @@ package com.babytracker.domain.repository
 
 import com.babytracker.domain.model.ThemeConfig
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalTime
 
 interface SettingsRepository {
     fun getThemeConfig(): Flow<ThemeConfig>
@@ -12,4 +13,6 @@ interface SettingsRepository {
     suspend fun setMaxPerBreastMinutes(minutes: Int)
     fun getMaxTotalFeedMinutes(): Flow<Int>
     suspend fun setMaxTotalFeedMinutes(minutes: Int)
+    fun getWakeTime(): Flow<LocalTime?>
+    suspend fun setWakeTime(time: LocalTime)
 }
