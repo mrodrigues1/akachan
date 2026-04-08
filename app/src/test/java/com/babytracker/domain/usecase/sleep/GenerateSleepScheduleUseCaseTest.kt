@@ -395,10 +395,10 @@ class GenerateSleepScheduleUseCaseTest {
             coEvery { breastfeedingRepository.getLastSession() } returns null
 
             every { settingsRepository.getWakeTime() } returns flowOf(LocalTime.of(6, 0))
-            val scheduleEarly = useCase(babyOfAge(20))
+            val scheduleEarly = useCase(babyOfAge(8))
 
             every { settingsRepository.getWakeTime() } returns flowOf(LocalTime.of(8, 0))
-            val scheduleLate = useCase(babyOfAge(20))
+            val scheduleLate = useCase(babyOfAge(8))
 
             assertTrue(scheduleEarly.napTimes[0].startTime < scheduleLate.napTimes[0].startTime)
         }
@@ -407,7 +407,9 @@ class GenerateSleepScheduleUseCaseTest {
         fun `null stored wake time falls back to 7am`() = runTest {
             setupEmptyData()
             val schedule = useCase(babyOfAge(20))
+            // First nap should be after 7:00 AM + first wake window, but not unreasonably late
             assertTrue(schedule.napTimes[0].startTime >= LocalTime.of(7, 0))
+            assertTrue(schedule.napTimes[0].startTime < LocalTime.of(11, 0))
         }
     }
 
