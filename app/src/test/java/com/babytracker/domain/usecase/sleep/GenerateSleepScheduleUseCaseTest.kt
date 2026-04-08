@@ -7,9 +7,12 @@ import com.babytracker.domain.model.ScheduleMode
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -29,13 +32,15 @@ class GenerateSleepScheduleUseCaseTest {
 
     private lateinit var sleepRepository: SleepRepository
     private lateinit var breastfeedingRepository: BreastfeedingRepository
+    private lateinit var settingsRepository: SettingsRepository
     private lateinit var useCase: GenerateSleepScheduleUseCase
 
     @BeforeEach
     fun setUp() {
         sleepRepository = mockk()
         breastfeedingRepository = mockk()
-        useCase = GenerateSleepScheduleUseCase(sleepRepository, breastfeedingRepository)
+        settingsRepository = mockk()
+        useCase = GenerateSleepScheduleUseCase(sleepRepository, breastfeedingRepository, settingsRepository)
     }
 
     private fun babyOfAge(weeks: Int): Baby = Baby(
@@ -46,9 +51,8 @@ class GenerateSleepScheduleUseCaseTest {
     private fun setupEmptyData() {
         coEvery { sleepRepository.getCompletedRecordsSince(any()) } returns emptyList()
         coEvery { breastfeedingRepository.getLastSession() } returns null
+        every { settingsRepository.getWakeTime() } returns flowOf(null)
     }
-
-    // --- Schedule Mode ---
 
     @Nested
     inner class ScheduleModeTests {
@@ -73,8 +77,6 @@ class GenerateSleepScheduleUseCaseTest {
             assertEquals(ScheduleMode.CLOCK_ALIGNED, schedule.mode)
         }
     }
-
-    // --- Wake Windows ---
 
     @Nested
     inner class WakeWindowTests {
@@ -144,8 +146,6 @@ class GenerateSleepScheduleUseCaseTest {
         }
     }
 
-    // --- Nap Count ---
-
     @Nested
     inner class NapCountTests {
         @Test
@@ -176,8 +176,6 @@ class GenerateSleepScheduleUseCaseTest {
             assertEquals(2, schedule.napTimes.size)
         }
     }
-
-    // --- Bedtime Guardrails ---
 
     @Nested
     inner class BedtimeTests {
@@ -228,8 +226,6 @@ class GenerateSleepScheduleUseCaseTest {
         }
     }
 
-    // --- Total Sleep Recommendation ---
-
     @Nested
     inner class TotalSleepTests {
         @Test
@@ -253,8 +249,6 @@ class GenerateSleepScheduleUseCaseTest {
             assertNull(schedule.totalSleepLogged)
         }
     }
-
-    // --- Regression Detection ---
 
     @Nested
     inner class RegressionTests {
@@ -302,8 +296,6 @@ class GenerateSleepScheduleUseCaseTest {
         }
     }
 
-    // --- Personalization ---
-
     @Nested
     inner class PersonalizationTests {
         @Test
@@ -314,6 +306,7 @@ class GenerateSleepScheduleUseCaseTest {
             )
             coEvery { sleepRepository.getCompletedRecordsSince(any()) } returns records
             coEvery { breastfeedingRepository.getLastSession() } returns null
+            every { settingsRepository.getWakeTime() } returns flowOf(null)
 
             val schedule = useCase(babyOfAge(20))
             assertFalse(schedule.isPersonalized)
@@ -321,7 +314,6 @@ class GenerateSleepScheduleUseCaseTest {
 
         @Test
         fun `personalized with 3 or more nap records`() = runTest {
-            // Create records with realistic spacing (2-3 hour gaps) so wake windows are valid
             val baseTime = Instant.now().minus(2, ChronoUnit.DAYS)
             val records = listOf(
                 SleepRecord(id = 1, startTime = baseTime, endTime = baseTime.plus(Duration.ofMinutes(60)), sleepType = SleepType.NAP),
@@ -332,6 +324,7 @@ class GenerateSleepScheduleUseCaseTest {
             )
             coEvery { sleepRepository.getCompletedRecordsSince(any()) } returns records
             coEvery { breastfeedingRepository.getLastSession() } returns null
+            every { settingsRepository.getWakeTime() } returns flowOf(null)
 
             val schedule = useCase(babyOfAge(20))
             assertTrue(schedule.isPersonalized)
@@ -359,8 +352,6 @@ class GenerateSleepScheduleUseCaseTest {
             assertNull(schedule.lastFeedTime)
         }
     }
-
-    // --- Full Schedule Integration ---
 
     @Nested
     inner class IntegrationTests {
@@ -390,7 +381,7 @@ class GenerateSleepScheduleUseCaseTest {
         @Test
         fun `nap times are in chronological order`() = runTest {
             setupEmptyData()
-            val schedule = useCase(babyOfAge(20), wakeUpTime = LocalTime.of(7, 0))
+            val schedule = useCase(babyOfAge(20))
 
             for (i in 0 until schedule.napTimes.size - 1) {
                 assertTrue(schedule.napTimes[i].startTime < schedule.napTimes[i + 1].startTime,
@@ -399,16 +390,26 @@ class GenerateSleepScheduleUseCaseTest {
         }
 
         @Test
-        fun `custom wake time shifts entire schedule`() = runTest {
-            setupEmptyData()
-            val scheduleEarly = useCase(babyOfAge(20), wakeUpTime = LocalTime.of(6, 0))
-            val scheduleLate = useCase(babyOfAge(20), wakeUpTime = LocalTime.of(8, 0))
+        fun `stored wake time shifts entire schedule`() = runTest {
+            coEvery { sleepRepository.getCompletedRecordsSince(any()) } returns emptyList()
+            coEvery { breastfeedingRepository.getLastSession() } returns null
+
+            every { settingsRepository.getWakeTime() } returns flowOf(LocalTime.of(6, 0))
+            val scheduleEarly = useCase(babyOfAge(20))
+
+            every { settingsRepository.getWakeTime() } returns flowOf(LocalTime.of(8, 0))
+            val scheduleLate = useCase(babyOfAge(20))
 
             assertTrue(scheduleEarly.napTimes[0].startTime < scheduleLate.napTimes[0].startTime)
         }
-    }
 
-    // --- Helpers ---
+        @Test
+        fun `null stored wake time falls back to 7am`() = runTest {
+            setupEmptyData()
+            val schedule = useCase(babyOfAge(20))
+            assertTrue(schedule.napTimes[0].startTime >= LocalTime.of(7, 0))
+        }
+    }
 
     private fun createSleepRecord(
         type: SleepType,
