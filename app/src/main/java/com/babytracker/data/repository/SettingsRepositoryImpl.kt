@@ -10,6 +10,7 @@ import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.LocalTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,6 +24,7 @@ class SettingsRepositoryImpl @Inject constructor(
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val MAX_PER_BREAST_MINUTES = intPreferencesKey("max_per_breast_minutes")
         val MAX_TOTAL_FEED_MINUTES = intPreferencesKey("max_total_feed_minutes")
+        val WAKE_TIME_MINUTES = intPreferencesKey("wake_time_minutes")
     }
 
     override fun getThemeConfig(): Flow<ThemeConfig> =
@@ -58,5 +60,16 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setMaxTotalFeedMinutes(minutes: Int) {
         dataStore.edit { it[MAX_TOTAL_FEED_MINUTES] = minutes }
+    }
+
+    override fun getWakeTime(): Flow<LocalTime?> =
+        dataStore.data.map { preferences ->
+            preferences[WAKE_TIME_MINUTES]?.let { minutes ->
+                LocalTime.of(minutes / 60, minutes % 60)
+            }
+        }
+
+    override suspend fun setWakeTime(time: LocalTime) {
+        dataStore.edit { it[WAKE_TIME_MINUTES] = time.hour * 60 + time.minute }
     }
 }
