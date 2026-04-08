@@ -12,18 +12,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.domain.model.SleepType
-import com.babytracker.ui.component.TimerDisplay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +43,7 @@ fun SleepTrackingScreen(
     viewModel: SleepViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Scaffold(
         topBar = {
@@ -73,151 +73,209 @@ fun SleepTrackingScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            if (uiState.activeRecord != null) {
-                val record = uiState.activeRecord!!
+            Text(
+                text = "Track Sleep",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
 
-                // Status pill
-                Card(
-                    shape = MaterialTheme.shapes.extraLarge,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
-                ) {
-                    Text(
-                        text = "● ${record.sleepType.label} in progress",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                    )
-                }
+            Spacer(modifier = Modifier.height(8.dp))
 
-                Spacer(modifier = Modifier.height(20.dp))
+            Text(
+                text = "Log a sleep entry with start and end times",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
-                // Ring timer — blue for sleep
-                TimerDisplay(
-                    startTimeMillis = record.startTime.toEpochMilli(),
-                    isRunning = true,
-                    maxDurationSeconds = if (record.sleepType == SleepType.NAP) 90 * 60 else 0,
-                    ringColor = MaterialTheme.colorScheme.secondary,
-                    trackColor = MaterialTheme.colorScheme.secondaryContainer
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = viewModel::onAddEntryClick,
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
                 )
+            ) {
+                Text("Add Sleep Entry", style = MaterialTheme.typography.titleSmall)
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-                Button(
-                    onClick = viewModel::onStopTracking,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.extraLarge,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
-                    )
-                ) {
-                    Text("Stop", style = MaterialTheme.typography.titleSmall)
-                }
-            } else {
-                Text(
-                    text = "Track Sleep",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onNavigateToHistory,
+                    modifier = Modifier.weight(1f),
+                    shape = MaterialTheme.shapes.extraLarge
+                ) { Text("History") }
+
+                OutlinedButton(
+                    onClick = onNavigateToSchedule,
+                    modifier = Modifier.weight(1f),
+                    shape = MaterialTheme.shapes.extraLarge
+                ) { Text("Schedule") }
+            }
+        }
+
+        if (uiState.showEntrySheet) {
+            ModalBottomSheet(
+                onDismissRequest = viewModel::onDismissSheet,
+                sheetState = sheetState
+            ) {
+                SleepEntrySheet(
+                    uiState = uiState,
+                    onTypeChanged = viewModel::onEntryTypeChanged,
+                    onStartTimeChanged = viewModel::onEntryStartTimeChanged,
+                    onEndTimeChanged = viewModel::onEntryEndTimeChanged,
+                    onSave = viewModel::onSaveEntry,
+                    onDismiss = viewModel::onDismissSheet
                 )
+            }
+        }
+    }
+}
 
-                Spacer(modifier = Modifier.height(8.dp))
+@Composable
+private fun SleepEntrySheet(
+    uiState: SleepUiState,
+    onTypeChanged: (SleepType) -> Unit,
+    onStartTimeChanged: (java.time.LocalTime) -> Unit,
+    onEndTimeChanged: (java.time.LocalTime) -> Unit,
+    onSave: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = "Log Sleep",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
 
-                Text(
-                    text = "Choose a sleep type to begin",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Sleep type selector — big card buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    SleepType.entries.forEach { type ->
-                        val isSelected = uiState.selectedType == type
-                        Card(
-                            onClick = { viewModel.onTypeSelected(type) },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(100.dp),
-                            shape = MaterialTheme.shapes.large,
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) {
-                                    MaterialTheme.colorScheme.secondary
-                                } else {
-                                    MaterialTheme.colorScheme.surface
-                                }
-                            ),
-                            border = if (isSelected) null else androidx.compose.foundation.BorderStroke(
-                                width = 2.dp,
-                                color = MaterialTheme.colorScheme.secondaryContainer
-                            ),
-                            elevation = CardDefaults.cardElevation(
-                                defaultElevation = if (isSelected) 6.dp else 0.dp
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(12.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = type.emoji,
-                                    style = MaterialTheme.typography.headlineMedium
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    text = type.label,
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = if (isSelected) {
-                                        MaterialTheme.colorScheme.onSecondary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                                    },
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
+        // Sleep type selector
+        Text(
+            text = "Sleep type",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            SleepType.entries.forEach { type ->
+                val isSelected = uiState.entryType == type
+                if (isSelected) {
+                    Button(
+                        onClick = { onTypeChanged(type) },
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        )
+                    ) {
+                        Text("${type.emoji} ${type.label}", style = MaterialTheme.typography.labelLarge)
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { onTypeChanged(type) },
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Text("${type.emoji} ${type.label}", style = MaterialTheme.typography.labelLarge)
                     }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = viewModel::onStartTracking,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.extraLarge,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
-                    )
-                ) {
-                    Text("Start Tracking", style = MaterialTheme.typography.titleSmall)
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = onNavigateToHistory,
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.extraLarge
-                    ) { Text("History") }
-
-                    OutlinedButton(
-                        onClick = onNavigateToSchedule,
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.extraLarge
-                    ) { Text("Schedule") }
-                }
             }
+        }
+
+        // Time pickers
+        TimePickerRow(
+            label = "Start time",
+            time = uiState.entryStartTime,
+            onTimeChanged = onStartTimeChanged
+        )
+
+        TimePickerRow(
+            label = "End time",
+            time = uiState.entryEndTime,
+            onTimeChanged = onEndTimeChanged
+        )
+
+        // Error message
+        if (uiState.entryError != null) {
+            Text(
+                text = uiState.entryError,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
+        // Actions
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Cancel")
+            }
+
+            Button(
+                onClick = onSave,
+                modifier = Modifier.weight(1f),
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
+                )
+            ) {
+                Text("Save")
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimePickerRow(
+    label: String,
+    time: java.time.LocalTime,
+    onTimeChanged: (java.time.LocalTime) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            TextButton(onClick = {
+                onTimeChanged(time.minusMinutes(15))
+            }) { Text("-15m") }
+
+            Text(
+                text = time.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            TextButton(onClick = {
+                onTimeChanged(time.plusMinutes(15))
+            }) { Text("+15m") }
         }
     }
 }

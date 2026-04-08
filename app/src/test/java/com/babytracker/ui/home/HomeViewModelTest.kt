@@ -3,13 +3,10 @@ package com.babytracker.ui.home
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
-import com.babytracker.domain.model.SleepRecord
-import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
-import com.babytracker.domain.usecase.sleep.StopSleepRecordUseCase
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
@@ -37,7 +34,6 @@ class HomeViewModelTest {
     private lateinit var getBreastfeedingHistory: GetBreastfeedingHistoryUseCase
     private lateinit var getSleepHistory: GetSleepHistoryUseCase
     private lateinit var stopBreastfeedingSession: StopBreastfeedingSessionUseCase
-    private lateinit var stopSleepRecord: StopSleepRecordUseCase
     private lateinit var viewModel: HomeViewModel
     private val testDispatcher = StandardTestDispatcher()
 
@@ -54,12 +50,6 @@ class HomeViewModelTest {
         endTime = Instant.now().minusSeconds(6900),
         startingSide = BreastSide.RIGHT
     )
-    private val inProgressRecord = SleepRecord(
-        id = 1L,
-        startTime = Instant.now().minusSeconds(1800),
-        endTime = null,
-        sleepType = SleepType.NAP
-    )
 
     @BeforeEach
     fun setUp() {
@@ -68,7 +58,6 @@ class HomeViewModelTest {
         getBreastfeedingHistory = mockk()
         getSleepHistory = mockk()
         stopBreastfeedingSession = mockk()
-        stopSleepRecord = mockk()
 
         every { getBabyProfile() } returns flowOf(testBaby)
         every { getBreastfeedingHistory() } returns flowOf(emptyList())
@@ -84,8 +73,7 @@ class HomeViewModelTest {
         getBabyProfile,
         getBreastfeedingHistory,
         getSleepHistory,
-        stopBreastfeedingSession,
-        stopSleepRecord
+        stopBreastfeedingSession
     )
 
     @Test
@@ -103,14 +91,6 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
         assertNotNull(viewModel.uiState.value.activeSession)
         assertEquals(inProgressSession.id, viewModel.uiState.value.activeSession!!.id)
-    }
-
-    @Test
-    fun `activeRecord_isSet_whenInProgressSleepExists`() = runTest {
-        every { getSleepHistory() } returns flowOf(listOf(inProgressRecord))
-        viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-        assertNotNull(viewModel.uiState.value.activeRecord)
     }
 
     @Test
@@ -146,18 +126,5 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { stopBreastfeedingSession(inProgressSession) }
-    }
-
-    @Test
-    fun `onStopActiveRecord_callsStopUseCase`() = runTest {
-        every { getSleepHistory() } returns flowOf(listOf(inProgressRecord))
-        coJustRun { stopSleepRecord(any()) }
-        viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.onStopActiveRecord()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        coVerify(exactly = 1) { stopSleepRecord(inProgressRecord) }
     }
 }

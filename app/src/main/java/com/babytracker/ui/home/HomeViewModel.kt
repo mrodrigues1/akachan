@@ -11,7 +11,6 @@ import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
-import com.babytracker.domain.usecase.sleep.StopSleepRecordUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +27,6 @@ data class HomeUiState(
     val recentFeedings: List<BreastfeedingSession> = emptyList(),
     val recentSleepRecords: List<SleepRecord> = emptyList(),
     val activeSession: BreastfeedingSession? = null,
-    val activeRecord: SleepRecord? = null,
     val lastFeedSide: BreastSide? = null,
     val sessionsTodayCount: Int = 0,
     val lastNightSleepDuration: Duration? = null
@@ -40,7 +38,6 @@ class HomeViewModel @Inject constructor(
     getBreastfeedingHistory: GetBreastfeedingHistoryUseCase,
     getSleepHistory: GetSleepHistoryUseCase,
     private val stopBreastfeedingSession: StopBreastfeedingSessionUseCase,
-    private val stopSleepRecord: StopSleepRecordUseCase,
 ) : ViewModel() {
 
     val uiState: StateFlow<HomeUiState> = combine(
@@ -66,7 +63,6 @@ class HomeViewModel @Inject constructor(
             recentFeedings = feedings.take(3),
             recentSleepRecords = sleepRecords.take(3),
             activeSession = feedings.firstOrNull { it.isInProgress },
-            activeRecord = sleepRecords.firstOrNull { it.isInProgress },
             lastFeedSide = feedings.firstOrNull()?.startingSide,
             sessionsTodayCount = feedings.count {
                 it.startTime.atZone(zone).toLocalDate() == today
@@ -84,8 +80,4 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch { stopBreastfeedingSession(session) }
     }
 
-    fun onStopActiveRecord() {
-        val record = uiState.value.activeRecord ?: return
-        viewModelScope.launch { stopSleepRecord(record) }
-    }
 }
