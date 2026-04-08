@@ -18,9 +18,6 @@ class SleepRepositoryImpl @Inject constructor(
     override fun getAllRecords(): Flow<List<SleepRecord>> =
         dao.getAllRecords().map { entities -> entities.map { it.toDomain() } }
 
-    override fun getActiveRecord(): Flow<SleepRecord?> =
-        dao.getActiveRecord().map { it?.toDomain() }
-
     override suspend fun getCompletedRecordsSince(since: Instant): List<SleepRecord> =
         dao.getCompletedRecordsSince(since.toEpochMilli()).map { it.toDomain() }
 
