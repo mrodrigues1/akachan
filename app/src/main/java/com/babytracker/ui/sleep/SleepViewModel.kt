@@ -120,10 +120,6 @@ class SleepViewModel @Inject constructor(
         }
     }
 
-    fun onGenerateSchedule() {
-        loadSchedule()
-    }
-
     fun refreshSchedule() {
         loadSchedule()
     }
