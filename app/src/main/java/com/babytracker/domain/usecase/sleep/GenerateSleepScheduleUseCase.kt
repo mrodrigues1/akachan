@@ -9,6 +9,7 @@ import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepSchedule
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import java.time.Duration
 import java.time.Instant
@@ -17,14 +18,15 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
+import kotlinx.coroutines.flow.first
 
 class GenerateSleepScheduleUseCase @Inject constructor(
     private val sleepRepository: SleepRepository,
-    private val breastfeedingRepository: BreastfeedingRepository
+    private val breastfeedingRepository: BreastfeedingRepository,
+    private val settingsRepository: SettingsRepository
 ) {
     suspend operator fun invoke(
-        baby: Baby,
-        wakeUpTime: LocalTime = LocalTime.of(7, 0)
+        baby: Baby
     ): SleepSchedule {
         val ageInWeeks = ChronoUnit.WEEKS.between(baby.birthDate, LocalDate.now()).toInt()
         val mode = if (ageInWeeks < 16) ScheduleMode.DEMAND_DRIVEN else ScheduleMode.CLOCK_ALIGNED
@@ -43,7 +45,8 @@ class GenerateSleepScheduleUseCase @Inject constructor(
         val averageNapDuration = personalizationResult.averageNapDuration
         val isPersonalized = personalizationResult.isPersonalized
 
-        val effectiveWakeTime = resolveWakeTime(wakeUpTime, recentRecords)
+        val storedWakeTime = settingsRepository.getWakeTime().first()
+        val effectiveWakeTime = storedWakeTime ?: LocalTime.of(7, 0)
 
         val todayNaps = getTodayNaps(recentRecords)
         val shortNapAdjustment = if (todayNaps.isNotEmpty()) {
@@ -159,29 +162,6 @@ class GenerateSleepScheduleUseCase @Inject constructor(
         }
 
         return PersonalizationResult(blendedWindows, avgNapDuration, true)
-    }
-
-    // --- Wake Time Resolution ---
-
-    private fun resolveWakeTime(defaultWakeTime: LocalTime, recentRecords: List<SleepRecord>): LocalTime {
-        val today = LocalDate.now()
-        val zone = ZoneId.systemDefault()
-
-        // Find today's last night sleep end time
-        val todayNightSleepEnd = recentRecords
-            .filter { it.sleepType == SleepType.NIGHT_SLEEP && it.endTime != null }
-            .filter { it.endTime!!.atZone(zone).toLocalDate() == today }
-            .maxByOrNull { it.endTime!! }
-            ?.endTime
-            ?.atZone(zone)
-            ?.toLocalTime()
-
-        if (todayNightSleepEnd != null && todayNightSleepEnd.isBefore(LocalTime.of(6, 0))) {
-            // Early wake: use desired wake time instead
-            return defaultWakeTime
-        }
-
-        return todayNightSleepEnd ?: defaultWakeTime
     }
 
     // --- Nap Schedule Generation ---
