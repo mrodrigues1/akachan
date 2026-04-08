@@ -73,8 +73,8 @@ fun SleepTrackingScreen(
     val history by viewModel.history.collectAsStateWithLifecycle()
 
     val zone = ZoneId.systemDefault()
-    val today = LocalDate.now()
     val todayEntries = remember(history) {
+        val today = LocalDate.now()
         history
             .filter { it.startTime.atZone(zone).toLocalDate() == today }
             .sortedByDescending { it.startTime }
@@ -132,10 +132,12 @@ fun SleepTrackingScreen(
         )
     }
 
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     if (uiState.showEntrySheet) {
         ModalBottomSheet(
             onDismissRequest = viewModel::onDismissSheet,
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            sheetState = sheetState
         ) {
             AddSleepEntrySheetContent(
                 uiState = uiState,
@@ -244,7 +246,7 @@ fun SleepTrackingScreen(
 
 @Composable
 private fun WakeTimeChip(wakeTime: LocalTime?, onClick: () -> Unit) {
-    val formatter = remember { DateTimeFormatter.ofPattern("h:mm a") }
+    val formatter = remember { DateTimeFormatter.ofPattern("h:mm a").withLocale(java.util.Locale.getDefault()) }
     if (wakeTime != null) {
         Card(
             onClick = onClick,
@@ -405,20 +407,7 @@ private fun AddSleepEntrySheetContent(
     onEndTimeClick: () -> Unit,
     onSave: () -> Unit
 ) {
-    val formatter = remember { DateTimeFormatter.ofPattern("h:mm a") }
-    val zone = ZoneId.systemDefault()
-    val today = LocalDate.now()
-
-    // Duration preview (cross-midnight aware)
-    val durationPreview: Duration? = remember(uiState.entryStartTime, uiState.entryEndTime) {
-        var startInstant = uiState.entryStartTime.atDate(today).atZone(zone).toInstant()
-        val endInstant = uiState.entryEndTime.atDate(today).atZone(zone).toInstant()
-        if (startInstant > endInstant) {
-            startInstant = uiState.entryStartTime.atDate(today.minusDays(1)).atZone(zone).toInstant()
-        }
-        val d = Duration.between(startInstant, endInstant)
-        if (d.isNegative || d.isZero) null else d
-    }
+    val formatter = remember { DateTimeFormatter.ofPattern("h:mm a").withLocale(java.util.Locale.getDefault()) }
 
     Column(
         modifier = Modifier
@@ -524,7 +513,7 @@ private fun AddSleepEntrySheetContent(
                     )
                 }
             }
-            durationPreview != null -> {
+            uiState.entryDurationPreview != null -> {
                 Card(
                     shape = MaterialTheme.shapes.small,
                     colors = CardDefaults.cardColors(
@@ -532,7 +521,7 @@ private fun AddSleepEntrySheetContent(
                     )
                 ) {
                     Text(
-                        text = "\u23F1 Duration: ${durationPreview.formatDuration()}",
+                        text = "\u23F1 Duration: ${uiState.entryDurationPreview.formatDuration()}",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
