@@ -6,14 +6,18 @@ import com.babytracker.domain.repository.SleepRepository
 import java.time.Instant
 import javax.inject.Inject
 
-class StartSleepRecordUseCase @Inject constructor(
+class SaveSleepEntryUseCase @Inject constructor(
     private val repository: SleepRepository
 ) {
-    suspend operator fun invoke(type: SleepType): Long {
-        val record = SleepRecord(
-            startTime = Instant.now(),
+    suspend operator fun invoke(
+        startTime: Instant,
+        endTime: Instant,
+        type: SleepType
+    ): Long = repository.insertRecord(
+        SleepRecord(
+            startTime = startTime,
+            endTime = endTime,
             sleepType = type
         )
-        return repository.insertRecord(record)
-    }
+    )
 }
