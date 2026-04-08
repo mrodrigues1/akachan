@@ -409,6 +409,7 @@ class GenerateSleepScheduleUseCaseTest {
             val schedule = useCase(babyOfAge(20))
             // First nap should be after 7:00 AM + first wake window, but not unreasonably late
             assertTrue(schedule.napTimes[0].startTime >= LocalTime.of(7, 0))
+            // Upper bound: 7:00 AM wake + max first wake window (2.5h for 4–6 months) + circadian snap headroom = well before 11 AM
             assertTrue(schedule.napTimes[0].startTime < LocalTime.of(11, 0))
         }
     }

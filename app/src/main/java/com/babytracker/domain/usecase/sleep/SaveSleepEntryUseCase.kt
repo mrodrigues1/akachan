@@ -13,11 +13,14 @@ class SaveSleepEntryUseCase @Inject constructor(
         startTime: Instant,
         endTime: Instant,
         type: SleepType
-    ): Long = repository.insertRecord(
-        SleepRecord(
-            startTime = startTime,
-            endTime = endTime,
-            sleepType = type
+    ): Long {
+        require(endTime > startTime) { "endTime must be after startTime" }
+        return repository.insertRecord(
+            SleepRecord(
+                startTime = startTime,
+                endTime = endTime,
+                sleepType = type
+            )
         )
-    )
+    }
 }
