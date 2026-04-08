@@ -109,7 +109,7 @@ fun HomeScreen(
 
             // Active session banner
             AnimatedVisibility(
-                visible = uiState.activeSession != null || uiState.activeRecord != null,
+                visible = uiState.activeSession != null,
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
@@ -144,10 +144,7 @@ fun HomeScreen(
                             )
                         }
                         OutlinedButton(
-                            onClick = {
-                                if (isFeeding) viewModel.onStopActiveSession()
-                                else viewModel.onStopActiveRecord()
-                            },
+                            onClick = { viewModel.onStopActiveSession() },
                             border = androidx.compose.foundation.BorderStroke(1.dp, bannerOnColor),
                             colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
                                 contentColor = bannerOnColor
