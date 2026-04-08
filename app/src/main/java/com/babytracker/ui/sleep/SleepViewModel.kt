@@ -24,7 +24,8 @@ import javax.inject.Inject
 data class SleepUiState(
     val activeRecord: SleepRecord? = null,
     val selectedType: SleepType = SleepType.NAP,
-    val schedule: SleepSchedule? = null
+    val schedule: SleepSchedule? = null,
+    val isLoading: Boolean = false
 )
 
 @HiltViewModel
@@ -49,6 +50,7 @@ class SleepViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(activeRecord = record)
             }
         }
+        loadSchedule()
     }
 
     fun onTypeSelected(type: SleepType) {
@@ -69,9 +71,23 @@ class SleepViewModel @Inject constructor(
     }
 
     fun onGenerateSchedule() {
+        loadSchedule()
+    }
+
+    fun refreshSchedule() {
+        loadSchedule()
+    }
+
+    private fun loadSchedule() {
         viewModelScope.launch {
-            val baby = getBabyProfile().firstOrNull() ?: return@launch
-            _uiState.value = _uiState.value.copy(schedule = generateSchedule(baby))
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            val baby = getBabyProfile().firstOrNull()
+            if (baby != null) {
+                val schedule = generateSchedule(baby)
+                _uiState.value = _uiState.value.copy(schedule = schedule, isLoading = false)
+            } else {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
         }
     }
 }

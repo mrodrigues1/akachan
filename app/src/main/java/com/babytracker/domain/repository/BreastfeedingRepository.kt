@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 interface BreastfeedingRepository {
     fun getAllSessions(): Flow<List<BreastfeedingSession>>
     fun getActiveSession(): Flow<BreastfeedingSession?>
+    suspend fun getLastSession(): BreastfeedingSession?
     suspend fun insertSession(session: BreastfeedingSession): Long
     suspend fun updateSession(session: BreastfeedingSession)
 }

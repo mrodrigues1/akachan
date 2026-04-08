@@ -15,6 +15,9 @@ interface SleepDao {
     @Query("SELECT * FROM sleep_records WHERE end_time IS NULL LIMIT 1")
     fun getActiveRecord(): Flow<SleepEntity?>
 
+    @Query("SELECT * FROM sleep_records WHERE start_time >= :sinceMillis AND end_time IS NOT NULL ORDER BY start_time ASC")
+    suspend fun getCompletedRecordsSince(sinceMillis: Long): List<SleepEntity>
+
     @Insert
     suspend fun insertRecord(entity: SleepEntity): Long
 

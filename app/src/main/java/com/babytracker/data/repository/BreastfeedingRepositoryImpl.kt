@@ -20,6 +20,9 @@ class BreastfeedingRepositoryImpl @Inject constructor(
     override fun getActiveSession(): Flow<BreastfeedingSession?> =
         dao.getActiveSession().map { it?.toDomain() }
 
+    override suspend fun getLastSession(): BreastfeedingSession? =
+        dao.getLastSession()?.toDomain()
+
     override suspend fun insertSession(session: BreastfeedingSession): Long =
         dao.insertSession(session.toEntity())
 
