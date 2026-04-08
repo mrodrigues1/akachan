@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -31,7 +32,8 @@ data class SleepUiState(
     val entryType: SleepType = SleepType.NAP,
     val entryStartTime: LocalTime = LocalTime.now(),
     val entryEndTime: LocalTime = LocalTime.now(),
-    val entryError: String? = null
+    val entryError: String? = null,
+    val entryDurationPreview: Duration? = null
 )
 
 @HiltViewModel
@@ -59,11 +61,13 @@ class SleepViewModel @Inject constructor(
     }
 
     fun onAddEntryClick() {
+        val now = LocalTime.now()
         _uiState.value = _uiState.value.copy(
             showEntrySheet = true,
-            entryStartTime = LocalTime.now(),
-            entryEndTime = LocalTime.now(),
-            entryError = null
+            entryStartTime = now,
+            entryEndTime = now,
+            entryError = null,
+            entryDurationPreview = null
         )
     }
 
@@ -76,11 +80,13 @@ class SleepViewModel @Inject constructor(
     }
 
     fun onEntryStartTimeChanged(time: LocalTime) {
-        _uiState.value = _uiState.value.copy(entryStartTime = time, entryError = null)
+        val newState = _uiState.value.copy(entryStartTime = time, entryError = null)
+        _uiState.value = newState.copy(entryDurationPreview = computeDurationPreview(time, newState.entryEndTime))
     }
 
     fun onEntryEndTimeChanged(time: LocalTime) {
-        _uiState.value = _uiState.value.copy(entryEndTime = time, entryError = null)
+        val newState = _uiState.value.copy(entryEndTime = time, entryError = null)
+        _uiState.value = newState.copy(entryDurationPreview = computeDurationPreview(newState.entryStartTime, time))
     }
 
     fun onSaveEntry() {
@@ -120,6 +126,18 @@ class SleepViewModel @Inject constructor(
 
     fun refreshSchedule() {
         loadSchedule()
+    }
+
+    private fun computeDurationPreview(start: LocalTime, end: LocalTime): Duration? {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now()
+        var startInstant = start.atDate(today).atZone(zone).toInstant()
+        val endInstant = end.atDate(today).atZone(zone).toInstant()
+        if (startInstant > endInstant) {
+            startInstant = start.atDate(today.minusDays(1)).atZone(zone).toInstant()
+        }
+        val d = Duration.between(startInstant, endInstant)
+        return if (d.isNegative || d.isZero) null else d
     }
 
     private fun loadSchedule() {
