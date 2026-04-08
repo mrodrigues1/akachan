@@ -10,6 +10,7 @@ import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.DateTimeException
 import java.time.LocalTime
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -65,7 +66,11 @@ class SettingsRepositoryImpl @Inject constructor(
     override fun getWakeTime(): Flow<LocalTime?> =
         dataStore.data.map { preferences ->
             preferences[WAKE_TIME_MINUTES]?.let { minutes ->
-                LocalTime.of(minutes / 60, minutes % 60)
+                try {
+                    LocalTime.of(minutes / 60, minutes % 60)
+                } catch (e: DateTimeException) {
+                    null
+                }
             }
         }
 
