@@ -31,6 +31,9 @@ fun OnboardingScreen(
             snackbarHostState.showSnackbar("Could not save. Please try again.")
         }
     }
+    LaunchedEffect(uiState.navigationComplete) {
+        if (uiState.navigationComplete) onOnboardingComplete()
+    }
 
     BackHandler(enabled = uiState.currentStep != OnboardingStep.WELCOME) {
         viewModel.onPreviousStep()
@@ -66,7 +69,7 @@ fun OnboardingScreen(
                     onAllergyToggled = viewModel::onAllergyToggled,
                     onCustomNoteChanged = viewModel::onCustomAllergyNoteChanged,
                     onBack = viewModel::onPreviousStep,
-                    onFinish = { viewModel.onFinish(onOnboardingComplete) },
+                    onFinish = viewModel::onFinish,
                 )
             }
         }

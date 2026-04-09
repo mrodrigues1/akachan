@@ -3,6 +3,7 @@ package com.babytracker.ui.onboarding
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
+import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -41,27 +42,27 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `initial_state_isWelcomeStep`() {
+    fun `initial state is welcome step`() {
         val state = viewModel.uiState.value
         assertEquals(OnboardingStep.WELCOME, state.currentStep)
         assertEquals("", state.babyName)
     }
 
     @Test
-    fun `onNextStep_fromWelcome_movesToBabyInfo`() {
+    fun `onNextStep from welcome moves to baby info`() {
         viewModel.onNextStep()
         assertEquals(OnboardingStep.BABY_INFO, viewModel.uiState.value.currentStep)
     }
 
     @Test
-    fun `onNextStep_fromBabyInfo_movesToAllergies`() {
+    fun `onNextStep from baby info moves to allergies`() {
         viewModel.onNextStep() // WELCOME -> BABY_INFO
         viewModel.onNextStep() // BABY_INFO -> ALLERGIES
         assertEquals(OnboardingStep.ALLERGIES, viewModel.uiState.value.currentStep)
     }
 
     @Test
-    fun `onNextStep_fromAllergies_staysOnAllergies`() {
+    fun `onNextStep from allergies stays on allergies`() {
         viewModel.onNextStep()
         viewModel.onNextStep()
         viewModel.onNextStep()
@@ -69,20 +70,20 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `onPreviousStep_fromWelcome_staysOnWelcome`() {
+    fun `onPreviousStep from welcome stays on welcome`() {
         viewModel.onPreviousStep()
         assertEquals(OnboardingStep.WELCOME, viewModel.uiState.value.currentStep)
     }
 
     @Test
-    fun `onPreviousStep_fromBabyInfo_movesToWelcome`() {
+    fun `onPreviousStep from baby info moves to welcome`() {
         viewModel.onNextStep()
         viewModel.onPreviousStep()
         assertEquals(OnboardingStep.WELCOME, viewModel.uiState.value.currentStep)
     }
 
     @Test
-    fun `onPreviousStep_fromAllergies_movesToBabyInfo`() {
+    fun `onPreviousStep from allergies moves to baby info`() {
         viewModel.onNextStep()
         viewModel.onNextStep()
         viewModel.onPreviousStep()
@@ -90,65 +91,65 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `onNameChanged_updatesName`() {
+    fun `onNameChanged updates name`() {
         viewModel.onNameChanged("Luna")
         assertEquals("Luna", viewModel.uiState.value.babyName)
     }
 
     @Test
-    fun `onNameChanged_exceeds50Chars_ignored`() {
+    fun `onNameChanged exceeds 50 chars is ignored`() {
         viewModel.onNameChanged("A".repeat(51))
         assertEquals("", viewModel.uiState.value.babyName)
     }
 
     @Test
-    fun `isNextEnabled_onWelcome_alwaysTrue`() {
+    fun `isNextEnabled on welcome is always true`() {
         assertTrue(viewModel.isNextEnabled)
     }
 
     @Test
-    fun `isNextEnabled_onBabyInfo_blankName_false`() {
+    fun `isNextEnabled on baby info with blank name is false`() {
         viewModel.onNextStep() // move to BABY_INFO
         assertFalse(viewModel.isNextEnabled)
     }
 
     @Test
-    fun `isNextEnabled_onBabyInfo_whitespaceOnlyName_false`() {
+    fun `isNextEnabled on baby info with whitespace only name is false`() {
         viewModel.onNextStep() // move to BABY_INFO
         viewModel.onNameChanged("   ")
         assertFalse(viewModel.isNextEnabled)
     }
 
     @Test
-    fun `isNextEnabled_onBabyInfo_validName_true`() {
+    fun `isNextEnabled on baby info with valid name is true`() {
         viewModel.onNextStep()
         viewModel.onNameChanged("Luna")
         assertTrue(viewModel.isNextEnabled)
     }
 
     @Test
-    fun `isNextEnabled_onAllergies_alwaysTrue`() {
+    fun `isNextEnabled on allergies is always true`() {
         viewModel.onNextStep()
         viewModel.onNextStep()
         assertTrue(viewModel.isNextEnabled)
     }
 
     @Test
-    fun `onBirthDateSelected_over12Months_showsWarning`() {
+    fun `onBirthDateSelected over 12 months shows warning`() {
         val fourteenMonthsAgo = LocalDate.now().minusMonths(14)
         viewModel.onBirthDateSelected(fourteenMonthsAgo)
         assertTrue(viewModel.uiState.value.showAgeWarning)
     }
 
     @Test
-    fun `onBirthDateSelected_under12Months_noWarning`() {
+    fun `onBirthDateSelected under 12 months no warning`() {
         val threeMonthsAgo = LocalDate.now().minusMonths(3)
         viewModel.onBirthDateSelected(threeMonthsAgo)
         assertFalse(viewModel.uiState.value.showAgeWarning)
     }
 
     @Test
-    fun `onAllergyToggled_addsAndRemoves`() {
+    fun `onAllergyToggled adds and removes`() {
         viewModel.onAllergyToggled(AllergyType.CMPA)
         assertTrue(AllergyType.CMPA in viewModel.uiState.value.selectedAllergies)
         viewModel.onAllergyToggled(AllergyType.CMPA)
@@ -156,17 +157,46 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `onFinish_savesProfile_callsOnComplete`() = runTest {
+    fun `onFinish saves profile and sets navigationComplete`() = runTest {
         val babySlot = slot<Baby>()
         coJustRun { saveBabyProfile(capture(babySlot)) }
 
         viewModel.onNameChanged("Luna")
-        var completeCalled = false
-        viewModel.onFinish { completeCalled = true }
+        viewModel.onFinish()
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { saveBabyProfile(any()) }
         assertEquals("Luna", babySlot.captured.name)
-        assertTrue(completeCalled)
+        assertTrue(viewModel.uiState.value.navigationComplete)
+        assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun `onFinish on failure sets savingError and clears isSaving`() = runTest {
+        coEvery { saveBabyProfile(any()) } throws RuntimeException("network error")
+
+        viewModel.onNameChanged("Luna")
+        viewModel.onFinish()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.savingError)
+        assertFalse(viewModel.uiState.value.isSaving)
+        assertFalse(viewModel.uiState.value.navigationComplete)
+    }
+
+    @Test
+    fun `onFinish resets savingError before retry so snackbar can fire again`() = runTest {
+        coEvery { saveBabyProfile(any()) } throws RuntimeException("fail")
+        viewModel.onNameChanged("Luna")
+        viewModel.onFinish()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.savingError)
+
+        // Second attempt succeeds — savingError must be false at the end
+        coJustRun { saveBabyProfile(any()) }
+        viewModel.onFinish()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.savingError)
+        assertTrue(viewModel.uiState.value.navigationComplete)
     }
 }

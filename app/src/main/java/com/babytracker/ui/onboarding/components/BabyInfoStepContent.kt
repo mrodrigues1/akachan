@@ -32,6 +32,7 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -66,10 +67,15 @@ fun BabyInfoStepContent(
     val focusRequester = remember { FocusRequester() }
     val formatter = remember { DateTimeFormatter.ofPattern("MMMM d, yyyy") }
     val ageText = remember(selectedDate) {
-        val period = Period.between(selectedDate, LocalDate.now())
-        buildString {
-            if (period.months > 0) append("${period.months} month${if (period.months != 1) "s" else ""}, ")
-            append("${period.days} day${if (period.days != 1) "s" else ""} old")
+        val today = LocalDate.now()
+        if (selectedDate.isAfter(today)) {
+            "Date cannot be in the future"
+        } else {
+            val period = Period.between(selectedDate, today)
+            buildString {
+                if (period.months > 0) append("${period.months} month${if (period.months != 1) "s" else ""}, ")
+                append("${period.days} day${if (period.days != 1) "s" else ""} old")
+            }
         }
     }
 
@@ -80,13 +86,17 @@ fun BabyInfoStepContent(
     val initialMillis = remember(selectedDate) {
         selectedDate.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
     }
-    val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = initialMillis,
-        selectableDates = object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long): Boolean =
-                utcTimeMillis <= todayMillis
-        },
-    )
+    // key(selectedDate) forces a fresh DatePickerState when the confirmed date changes,
+    // preventing stale picker state after the user cancels mid-selection and navigates away.
+    val datePickerState = key(selectedDate) {
+        rememberDatePickerState(
+            initialSelectedDateMillis = initialMillis,
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                    utcTimeMillis <= todayMillis
+            },
+        )
+    }
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 

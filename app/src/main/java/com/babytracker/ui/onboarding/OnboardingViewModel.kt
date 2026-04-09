@@ -26,6 +26,7 @@ data class OnboardingUiState(
     val showAgeWarning: Boolean = false,
     val isSaving: Boolean = false,
     val savingError: Boolean = false,
+    val navigationComplete: Boolean = false,
 )
 
 @HiltViewModel
@@ -90,9 +91,9 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    fun onFinish(onComplete: () -> Unit) {
+    fun onFinish() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isSaving = true) }
+            _uiState.update { it.copy(isSaving = true, savingError = false) }
             val state = _uiState.value
             val baby = Baby(
                 name = state.babyName.trim(),
@@ -103,7 +104,7 @@ class OnboardingViewModel @Inject constructor(
             )
             try {
                 saveBabyProfile(baby)
-                onComplete()
+                _uiState.update { it.copy(isSaving = false, navigationComplete = true) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isSaving = false, savingError = true) }
             }
