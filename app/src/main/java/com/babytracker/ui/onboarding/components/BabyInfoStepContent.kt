@@ -73,6 +73,21 @@ fun BabyInfoStepContent(
         }
     }
 
+    // Hoist date picker state outside the conditional
+    val todayMillis = remember {
+        LocalDate.now().atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
+    }
+    val initialMillis = remember(selectedDate) {
+        selectedDate.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
+    }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = initialMillis,
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                utcTimeMillis <= todayMillis
+        },
+    )
+
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -195,21 +210,6 @@ fun BabyInfoStepContent(
     }
 
     if (showDatePicker) {
-        val todayMillis = LocalDate.now()
-            .atStartOfDay(ZoneId.of("UTC"))
-            .toInstant()
-            .toEpochMilli()
-        val initialMillis = selectedDate
-            .atStartOfDay(ZoneId.of("UTC"))
-            .toInstant()
-            .toEpochMilli()
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = initialMillis,
-            selectableDates = object : SelectableDates {
-                override fun isSelectableDate(utcTimeMillis: Long): Boolean =
-                    utcTimeMillis <= todayMillis
-            },
-        )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
