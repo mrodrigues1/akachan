@@ -15,4 +15,6 @@ interface SettingsRepository {
     suspend fun setMaxTotalFeedMinutes(minutes: Int)
     fun getWakeTime(): Flow<LocalTime?>
     suspend fun setWakeTime(time: LocalTime)
+    fun getAutoUpdateEnabled(): Flow<Boolean>
+    suspend fun setAutoUpdateEnabled(enabled: Boolean)
 }

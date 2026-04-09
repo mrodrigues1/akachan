@@ -26,6 +26,7 @@ class SettingsRepositoryImpl @Inject constructor(
         val MAX_PER_BREAST_MINUTES = intPreferencesKey("max_per_breast_minutes")
         val MAX_TOTAL_FEED_MINUTES = intPreferencesKey("max_total_feed_minutes")
         val WAKE_TIME_MINUTES = intPreferencesKey("wake_time_minutes")
+        val AUTO_UPDATE_ENABLED = booleanPreferencesKey("auto_update_enabled")
     }
 
     override fun getThemeConfig(): Flow<ThemeConfig> =
@@ -76,5 +77,12 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setWakeTime(time: LocalTime) {
         dataStore.edit { it[WAKE_TIME_MINUTES] = time.hour * 60 + time.minute }
+    }
+
+    override fun getAutoUpdateEnabled(): Flow<Boolean> =
+        dataStore.data.map { it[AUTO_UPDATE_ENABLED] ?: true }
+
+    override suspend fun setAutoUpdateEnabled(enabled: Boolean) {
+        dataStore.edit { it[AUTO_UPDATE_ENABLED] = enabled }
     }
 }
