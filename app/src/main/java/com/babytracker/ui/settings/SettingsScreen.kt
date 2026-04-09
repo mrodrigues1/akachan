@@ -535,6 +535,7 @@ private fun AllergiesEditSheet(
             babyName = babyName,
             selectedAllergies = selectedAllergies,
             customNote = customNote,
+            isSaving = false,
             onAllergyToggled = { allergy ->
                 selectedAllergies = if (allergy in selectedAllergies) {
                     selectedAllergies - allergy
@@ -543,6 +544,8 @@ private fun AllergiesEditSheet(
                 }
             },
             onCustomNoteChanged = { customNote = it },
+            onBack = {},
+            onFinish = {},
         )
         Spacer(modifier = Modifier.height(24.dp))
         Row(

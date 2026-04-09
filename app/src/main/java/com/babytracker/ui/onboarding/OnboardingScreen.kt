@@ -83,8 +83,11 @@ fun OnboardingScreen(
                         babyName = uiState.babyName,
                         selectedAllergies = uiState.selectedAllergies,
                         customNote = uiState.customAllergyNote,
+                        isSaving = uiState.isSaving,
                         onAllergyToggled = viewModel::onAllergyToggled,
                         onCustomNoteChanged = viewModel::onCustomAllergyNoteChanged,
+                        onBack = viewModel::onPreviousStep,
+                        onFinish = { viewModel.onFinish(onComplete = onOnboardingComplete) },
                     )
                 }
             }
