@@ -25,6 +25,9 @@ fun OnboardingHeroStrip(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    require(gradientColors.size >= 2) {
+        "OnboardingHeroStrip requires at least 2 gradient colors, got ${gradientColors.size}"
+    }
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -38,6 +41,7 @@ fun OnboardingHeroStrip(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
+                tint = labelColor,
             )
         }
         Text(
