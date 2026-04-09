@@ -15,10 +15,10 @@ import java.time.LocalDate
 import java.time.Period
 import javax.inject.Inject
 
-enum class OnboardingStep { NAME, BIRTH_DATE, ALLERGIES }
+enum class OnboardingStep { WELCOME, BABY_INFO, ALLERGIES }
 
 data class OnboardingUiState(
-    val currentStep: OnboardingStep = OnboardingStep.NAME,
+    val currentStep: OnboardingStep = OnboardingStep.WELCOME,
     val babyName: String = "",
     val birthDate: LocalDate = LocalDate.now(),
     val selectedAllergies: Set<AllergyType> = emptySet(),
@@ -38,8 +38,8 @@ class OnboardingViewModel @Inject constructor(
 
     val isNextEnabled: Boolean
         get() = when (_uiState.value.currentStep) {
-            OnboardingStep.NAME -> _uiState.value.babyName.isNotBlank()
-            OnboardingStep.BIRTH_DATE -> true
+            OnboardingStep.WELCOME -> true
+            OnboardingStep.BABY_INFO -> _uiState.value.babyName.isNotBlank()
             OnboardingStep.ALLERGIES -> true
         }
 
@@ -52,10 +52,7 @@ class OnboardingViewModel @Inject constructor(
     fun onBirthDateSelected(date: LocalDate) {
         val monthsAgo = Period.between(date, LocalDate.now()).toTotalMonths()
         _uiState.update {
-            it.copy(
-                birthDate = date,
-                showAgeWarning = monthsAgo > 12,
-            )
+            it.copy(birthDate = date, showAgeWarning = monthsAgo > 12)
         }
     }
 
@@ -76,8 +73,8 @@ class OnboardingViewModel @Inject constructor(
     fun onNextStep() {
         _uiState.update { state ->
             when (state.currentStep) {
-                OnboardingStep.NAME -> state.copy(currentStep = OnboardingStep.BIRTH_DATE)
-                OnboardingStep.BIRTH_DATE -> state.copy(currentStep = OnboardingStep.ALLERGIES)
+                OnboardingStep.WELCOME -> state.copy(currentStep = OnboardingStep.BABY_INFO)
+                OnboardingStep.BABY_INFO -> state.copy(currentStep = OnboardingStep.ALLERGIES)
                 OnboardingStep.ALLERGIES -> state
             }
         }
@@ -86,9 +83,9 @@ class OnboardingViewModel @Inject constructor(
     fun onPreviousStep() {
         _uiState.update { state ->
             when (state.currentStep) {
-                OnboardingStep.NAME -> state
-                OnboardingStep.BIRTH_DATE -> state.copy(currentStep = OnboardingStep.NAME)
-                OnboardingStep.ALLERGIES -> state.copy(currentStep = OnboardingStep.BIRTH_DATE)
+                OnboardingStep.WELCOME -> state
+                OnboardingStep.BABY_INFO -> state.copy(currentStep = OnboardingStep.WELCOME)
+                OnboardingStep.ALLERGIES -> state.copy(currentStep = OnboardingStep.BABY_INFO)
             }
         }
     }

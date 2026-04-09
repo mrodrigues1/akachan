@@ -41,10 +41,52 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `initial_state_isNameStep`() {
+    fun `initial_state_isWelcomeStep`() {
         val state = viewModel.uiState.value
-        assertEquals(OnboardingStep.NAME, state.currentStep)
+        assertEquals(OnboardingStep.WELCOME, state.currentStep)
         assertEquals("", state.babyName)
+    }
+
+    @Test
+    fun `onNextStep_fromWelcome_movesToBabyInfo`() {
+        viewModel.onNextStep()
+        assertEquals(OnboardingStep.BABY_INFO, viewModel.uiState.value.currentStep)
+    }
+
+    @Test
+    fun `onNextStep_fromBabyInfo_movesToAllergies`() {
+        viewModel.onNextStep() // WELCOME -> BABY_INFO
+        viewModel.onNextStep() // BABY_INFO -> ALLERGIES
+        assertEquals(OnboardingStep.ALLERGIES, viewModel.uiState.value.currentStep)
+    }
+
+    @Test
+    fun `onNextStep_fromAllergies_staysOnAllergies`() {
+        viewModel.onNextStep()
+        viewModel.onNextStep()
+        viewModel.onNextStep()
+        assertEquals(OnboardingStep.ALLERGIES, viewModel.uiState.value.currentStep)
+    }
+
+    @Test
+    fun `onPreviousStep_fromWelcome_staysOnWelcome`() {
+        viewModel.onPreviousStep()
+        assertEquals(OnboardingStep.WELCOME, viewModel.uiState.value.currentStep)
+    }
+
+    @Test
+    fun `onPreviousStep_fromBabyInfo_movesToWelcome`() {
+        viewModel.onNextStep()
+        viewModel.onPreviousStep()
+        assertEquals(OnboardingStep.WELCOME, viewModel.uiState.value.currentStep)
+    }
+
+    @Test
+    fun `onPreviousStep_fromAllergies_movesToBabyInfo`() {
+        viewModel.onNextStep()
+        viewModel.onNextStep()
+        viewModel.onPreviousStep()
+        assertEquals(OnboardingStep.BABY_INFO, viewModel.uiState.value.currentStep)
     }
 
     @Test
@@ -60,19 +102,28 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `onNextStep_fromName_movesToBirthDate`() {
-        viewModel.onNameChanged("Luna")
-        viewModel.onNextStep()
-        assertEquals(OnboardingStep.BIRTH_DATE, viewModel.uiState.value.currentStep)
+    fun `isNextEnabled_onWelcome_alwaysTrue`() {
+        assertTrue(viewModel.isNextEnabled)
     }
 
     @Test
-    fun `onPreviousStep_fromBirthDate_movesToName`() {
-        viewModel.onNameChanged("Luna")
+    fun `isNextEnabled_onBabyInfo_blankName_false`() {
+        viewModel.onNextStep() // move to BABY_INFO
+        assertFalse(viewModel.isNextEnabled)
+    }
+
+    @Test
+    fun `isNextEnabled_onBabyInfo_validName_true`() {
         viewModel.onNextStep()
-        viewModel.onPreviousStep()
-        assertEquals(OnboardingStep.NAME, viewModel.uiState.value.currentStep)
-        assertEquals("Luna", viewModel.uiState.value.babyName)
+        viewModel.onNameChanged("Luna")
+        assertTrue(viewModel.isNextEnabled)
+    }
+
+    @Test
+    fun `isNextEnabled_onAllergies_alwaysTrue`() {
+        viewModel.onNextStep()
+        viewModel.onNextStep()
+        assertTrue(viewModel.isNextEnabled)
     }
 
     @Test
@@ -93,7 +144,6 @@ class OnboardingViewModelTest {
     fun `onAllergyToggled_addsAndRemoves`() {
         viewModel.onAllergyToggled(AllergyType.CMPA)
         assertTrue(AllergyType.CMPA in viewModel.uiState.value.selectedAllergies)
-
         viewModel.onAllergyToggled(AllergyType.CMPA)
         assertFalse(AllergyType.CMPA in viewModel.uiState.value.selectedAllergies)
     }
@@ -111,17 +161,5 @@ class OnboardingViewModelTest {
         coVerify(exactly = 1) { saveBabyProfile(any()) }
         assertEquals("Luna", babySlot.captured.name)
         assertTrue(completeCalled)
-    }
-
-    @Test
-    fun `isNextEnabled_blankName_false`() {
-        viewModel.onNameChanged("  ")
-        assertFalse(viewModel.isNextEnabled)
-    }
-
-    @Test
-    fun `isNextEnabled_validName_true`() {
-        viewModel.onNameChanged("Luna")
-        assertTrue(viewModel.isNextEnabled)
     }
 }
