@@ -45,7 +45,7 @@ fun OnboardingScreen(
         }
     }
 
-    BackHandler(enabled = uiState.currentStep != OnboardingStep.NAME) {
+    BackHandler(enabled = uiState.currentStep != OnboardingStep.WELCOME) {
         viewModel.onPreviousStep()
     }
 
@@ -68,12 +68,12 @@ fun OnboardingScreen(
 
             AnimatedContent(targetState = uiState.currentStep, label = "onboarding_step") { step ->
                 when (step) {
-                    OnboardingStep.NAME -> NameStepContent(
+                    OnboardingStep.WELCOME -> NameStepContent(
                         name = uiState.babyName,
                         onNameChanged = viewModel::onNameChanged,
                         onNextStep = viewModel::onNextStep,
                     )
-                    OnboardingStep.BIRTH_DATE -> BirthDateStepContent(
+                    OnboardingStep.BABY_INFO -> BirthDateStepContent(
                         babyName = uiState.babyName,
                         selectedDate = uiState.birthDate,
                         showAgeWarning = uiState.showAgeWarning,
