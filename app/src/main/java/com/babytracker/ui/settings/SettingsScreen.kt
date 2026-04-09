@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.Switch
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -212,6 +213,14 @@ fun SettingsScreen(
                 },
                 onClick = { activeSheet = SettingsSheet.THEME }
             )
+            HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+
+            SettingsSwitchRow(
+                label = "Auto-update",
+                description = "Check for new versions on launch",
+                checked = uiState.autoUpdateEnabled,
+                onCheckedChange = viewModel::onAutoUpdateChanged,
+            )
 
             HorizontalDivider()
 
@@ -339,6 +348,36 @@ private fun SettingsRow(
         TextButton(onClick = onClick) {
             Text("Edit")
         }
+    }
+}
+
+@Composable
+private fun SettingsSwitchRow(
+    label: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+        )
     }
 }
 

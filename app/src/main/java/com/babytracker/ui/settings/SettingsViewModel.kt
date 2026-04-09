@@ -19,7 +19,8 @@ data class SettingsUiState(
     val baby: Baby? = null,
     val maxPerBreastMinutes: Int = 0,
     val maxTotalFeedMinutes: Int = 0,
-    val themeConfig: ThemeConfig = ThemeConfig.SYSTEM
+    val themeConfig: ThemeConfig = ThemeConfig.SYSTEM,
+    val autoUpdateEnabled: Boolean = true,
 )
 
 @HiltViewModel
@@ -38,13 +39,15 @@ class SettingsViewModel @Inject constructor(
                 getBabyProfile(),
                 settingsRepository.getMaxPerBreastMinutes(),
                 settingsRepository.getMaxTotalFeedMinutes(),
-                settingsRepository.getThemeConfig()
-            ) { baby, maxPerBreast, maxTotal, themeConfig ->
+                settingsRepository.getThemeConfig(),
+                settingsRepository.getAutoUpdateEnabled(),
+            ) { baby, maxPerBreast, maxTotal, themeConfig, autoUpdateEnabled ->
                 SettingsUiState(
                     baby = baby,
                     maxPerBreastMinutes = maxPerBreast,
                     maxTotalFeedMinutes = maxTotal,
-                    themeConfig = themeConfig
+                    themeConfig = themeConfig,
+                    autoUpdateEnabled = autoUpdateEnabled,
                 )
             }.collect { _uiState.value = it }
         }
@@ -64,5 +67,9 @@ class SettingsViewModel @Inject constructor(
 
     fun onSaveBabyProfile(baby: Baby) {
         viewModelScope.launch { saveBabyProfile(baby) }
+    }
+
+    fun onAutoUpdateChanged(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setAutoUpdateEnabled(enabled) }
     }
 }
