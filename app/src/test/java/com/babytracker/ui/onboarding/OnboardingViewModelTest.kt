@@ -113,6 +113,13 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun `isNextEnabled_onBabyInfo_whitespaceOnlyName_false`() {
+        viewModel.onNextStep() // move to BABY_INFO
+        viewModel.onNameChanged("   ")
+        assertFalse(viewModel.isNextEnabled)
+    }
+
+    @Test
     fun `isNextEnabled_onBabyInfo_validName_true`() {
         viewModel.onNextStep()
         viewModel.onNameChanged("Luna")
