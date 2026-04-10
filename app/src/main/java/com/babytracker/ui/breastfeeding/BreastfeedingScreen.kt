@@ -108,7 +108,11 @@ fun BreastfeedingScreen(
                 TimerDisplay(
                     startTimeMillis = activeSession.startTime.toEpochMilli(),
                     isRunning = true,
-                    maxDurationSeconds = 20 * 60
+                    maxDurationSeconds = if (uiState.maxTotalFeedMinutes > 0) {
+                        uiState.maxTotalFeedMinutes * 60
+                    } else {
+                        0 // No max set, don't show progress ring
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
