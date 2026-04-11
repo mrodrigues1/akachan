@@ -101,13 +101,6 @@ class BreastfeedingViewModel @Inject constructor(
         val session = _uiState.value.activeSession ?: return
         viewModelScope.launch {
             switchSide(session)
-            val maxPerBreastMinutes = _uiState.value.maxPerBreastMinutes
-            if (maxPerBreastMinutes > 0) {
-                notificationScheduler.scheduleMaxPerBreastNotification(
-                    java.time.Instant.now(),
-                    maxPerBreastMinutes
-                )
-            }
         }
     }
 

@@ -240,7 +240,7 @@ class BreastfeedingViewModelTest {
     }
 
     @Test
-    fun `notification scheduler is called when switching side with max per breast set`() = runTest {
+    fun `notification scheduler is not called when switching side`() = runTest {
         val session = BreastfeedingSession(
             id = 1L,
             startTime = Instant.now().minusSeconds(300),
@@ -255,6 +255,6 @@ class BreastfeedingViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { switchSide(session) }
-        coVerify(atLeast = 1) { notificationScheduler.scheduleMaxPerBreastNotification(any(), 15) }
+        coVerify(exactly = 0) { notificationScheduler.scheduleMaxPerBreastNotification(any(), any()) }
     }
 }
