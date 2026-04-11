@@ -1,5 +1,11 @@
 package com.babytracker.ui.breastfeeding
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,18 +25,26 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.domain.model.BreastSide
@@ -49,6 +63,19 @@ fun BreastfeedingScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val activeSession = uiState.activeSession
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    var notificationPermissionGranted by remember { mutableStateOf(isNotificationPermissionGranted(context)) }
+
+    // Permission launcher for Android 13+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        notificationPermissionGranted = granted
+        if (!granted) {
+            // Permission denied - sessions will still work, just no notifications
+        }
+    }
 
     // Live clock for per-side elapsed breakdown
     val now by produceState(initialValue = Instant.now(), key1 = activeSession?.id) {
@@ -56,6 +83,19 @@ fun BreastfeedingScreen(
             kotlinx.coroutines.delay(1000L)
             value = Instant.now()
         }
+    }
+
+    // Helper to start session with permission check
+    fun onStartSessionWithPermission() {
+        if (uiState.selectedSide == null) return
+        
+        // Request permission if on Android 13+ and not yet granted
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !notificationPermissionGranted) {
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            return
+        }
+        
+        viewModel.onStartSession()
     }
 
     Scaffold(
@@ -76,7 +116,8 @@ fun BreastfeedingScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -231,7 +272,7 @@ fun BreastfeedingScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
-                    onClick = viewModel::onStartSession,
+                    onClick = { onStartSessionWithPermission() },
                     enabled = uiState.selectedSide != null,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.extraLarge
@@ -241,4 +282,18 @@ fun BreastfeedingScreen(
             }
         }
     }
+}
+
+/**
+ * Check if notification permission is already granted.
+ * On Android 12L and below, notifications don't require runtime permission.
+ */
+private fun isNotificationPermissionGranted(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        return true // No runtime permission needed on older versions
+    }
+    return ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.POST_NOTIFICATIONS
+    ) == PackageManager.PERMISSION_GRANTED
 }
