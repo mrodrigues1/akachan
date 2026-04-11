@@ -26,8 +26,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import java.util.Locale
 
 /**
  * Displays a live elapsed-time counter.
@@ -59,8 +61,7 @@ fun TimerDisplay(
 
     val hours = elapsedSeconds / 3600
     val minutes = (elapsedSeconds % 3600) / 60
-    val seconds = elapsedSeconds % 60
-    val timeText = String.format("%02d:%02d:%02d", hours, minutes, seconds)
+    val timeText = String.format(Locale.US, "%02d:%02d", hours, minutes)
 
     if (maxDurationSeconds <= 0) {
         Text(
@@ -100,11 +101,11 @@ fun TimerDisplay(
 
     Box(
         modifier = modifier
-            .size(160.dp)
+            .size(208.dp)
             .scale(scale),
         contentAlignment = Alignment.Center
     ) {
-        val strokeWidthDp = 14.dp
+        val strokeWidthDp = 16.dp
         Canvas(modifier = Modifier.fillMaxSize()) {
             val strokePx = strokeWidthDp.toPx()
             val diameter = size.minDimension - strokePx
@@ -143,13 +144,14 @@ fun TimerDisplay(
             Text(
                 text = timeText,
                 style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             val percent = (progress * 100).toInt()
             val maxMinutes = maxDurationSeconds / 60
             Text(
                 text = "$percent% of ${maxMinutes}m",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
