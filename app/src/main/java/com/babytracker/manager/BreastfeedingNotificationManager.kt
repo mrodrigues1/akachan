@@ -5,12 +5,14 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import com.babytracker.receiver.BreastfeedingNotificationReceiver
 import java.time.Instant
 
 class BreastfeedingNotificationManager(private val context: Context) : NotificationScheduler {
 
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
+    private val TAG = "NotificationManager"
 
     override fun scheduleMaxTotalTimeNotification(sessionStartTime: Instant, maxTotalMinutes: Int) {
         if (maxTotalMinutes <= 0) return
@@ -44,6 +46,8 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
         requestCode: Int,
         notificationType: String
     ) {
+        Log.d(TAG, "Scheduling alarm for type=$notificationType at $triggerTime (requestCode=$requestCode)")
+
         val intent = Intent(context, BreastfeedingNotificationReceiver::class.java).apply {
             action = "com.babytracker.BREASTFEEDING_NOTIFICATION"
             putExtra("notification_type", notificationType)
@@ -72,6 +76,7 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
                 triggerTime.toEpochMilli(),
                 pendingIntent
             )
+            Log.d(TAG, "Exact alarm scheduled at ${triggerTime.toEpochMilli()}")
         } else {
             // Fallback to inexact alarm if permission not granted
             alarmManager.setAndAllowWhileIdle(
@@ -79,6 +84,7 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
                 triggerTime.toEpochMilli(),
                 pendingIntent
             )
+            Log.d(TAG, "Inexact alarm scheduled at ${triggerTime.toEpochMilli()}")
         }
     }
 
