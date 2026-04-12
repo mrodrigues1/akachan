@@ -5,6 +5,8 @@ import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
+import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
+import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
@@ -43,6 +45,8 @@ class BreastfeedingViewModelTest {
     private lateinit var stopSession: StopBreastfeedingSessionUseCase
     private lateinit var switchSide: SwitchBreastfeedingSideUseCase
     private lateinit var getHistory: GetBreastfeedingHistoryUseCase
+    private lateinit var pauseSession: PauseBreastfeedingSessionUseCase
+    private lateinit var resumeSession: ResumeBreastfeedingSessionUseCase
     private lateinit var repository: BreastfeedingRepository
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var notificationScheduler: NotificationScheduler
@@ -70,10 +74,16 @@ class BreastfeedingViewModelTest {
         every { repository.getActiveSession() } returns activeSessionFlow
         every { settingsRepository.getMaxPerBreastMinutes() } returns maxPerBreastFlow
         every { settingsRepository.getMaxTotalFeedMinutes() } returns maxTotalFlow
+        pauseSession = mockk()
+        resumeSession = mockk()
         coJustRun { startSession(any()) }
+        coJustRun { pauseSession(any()) }
+        coJustRun { resumeSession(any()) }
         every { notificationScheduler.cancelAllScheduledNotifications() } returns Unit
         every { notificationScheduler.scheduleMaxPerBreastNotification(any(), any()) } returns Unit
         every { notificationScheduler.scheduleMaxTotalTimeNotification(any(), any()) } returns Unit
+        every { notificationScheduler.scheduleMaxPerBreastNotificationAt(any()) } returns Unit
+        every { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any()) } returns Unit
 
         viewModel = createViewModel()
     }
@@ -88,6 +98,8 @@ class BreastfeedingViewModelTest {
         stopSession,
         switchSide,
         getHistory,
+        pauseSession,
+        resumeSession,
         repository,
         settingsRepository,
         mockk(),
@@ -256,5 +268,55 @@ class BreastfeedingViewModelTest {
 
         coVerify(exactly = 1) { switchSide(session) }
         coVerify(exactly = 0) { notificationScheduler.scheduleMaxPerBreastNotification(any(), any()) }
+    }
+
+    @Test
+    fun `onPauseSession does nothing when no active session`() = runTest {
+        viewModel.onPauseSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { pauseSession(any()) }
+    }
+
+    @Test
+    fun `onPauseSession calls pauseSession use case and cancels notifications`() = runTest {
+        val session = BreastfeedingSession(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(300),
+            startingSide = BreastSide.LEFT
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onPauseSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { pauseSession(session) }
+        verify(exactly = 1) { notificationScheduler.cancelAllScheduledNotifications() }
+    }
+
+    @Test
+    fun `onResumeSession does nothing when no active session`() = runTest {
+        viewModel.onResumeSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { resumeSession(any()) }
+    }
+
+    @Test
+    fun `onResumeSession calls resumeSession use case`() = runTest {
+        val session = BreastfeedingSession(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(300),
+            startingSide = BreastSide.LEFT,
+            pausedAt = Instant.now().minusSeconds(60)
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onResumeSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { resumeSession(session) }
     }
 }

@@ -8,6 +8,8 @@ import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
+import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
+import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
@@ -23,6 +25,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Duration
+import java.time.Instant
 import javax.inject.Inject
 
 data class BreastfeedingUiState(
@@ -38,6 +42,8 @@ class BreastfeedingViewModel @Inject constructor(
     private val stopSession: StopBreastfeedingSessionUseCase,
     private val switchSide: SwitchBreastfeedingSideUseCase,
     private val getHistory: GetBreastfeedingHistoryUseCase,
+    private val pauseSession: PauseBreastfeedingSessionUseCase,
+    private val resumeSession: ResumeBreastfeedingSessionUseCase,
     private val repository: BreastfeedingRepository,
     private val settingsRepository: SettingsRepository,
     @param:ApplicationContext private val context: Context,
@@ -77,7 +83,6 @@ class BreastfeedingViewModel @Inject constructor(
         val side = _uiState.value.selectedSide ?: return
         viewModelScope.launch {
             startSession(side)
-            // Get the active session to schedule notifications
             repository.getActiveSession().collect { session ->
                 session?.let {
                     scheduleNotifications(it)
@@ -104,6 +109,22 @@ class BreastfeedingViewModel @Inject constructor(
         }
     }
 
+    fun onPauseSession() {
+        val session = _uiState.value.activeSession ?: return
+        viewModelScope.launch {
+            pauseSession(session)
+            notificationScheduler.cancelAllScheduledNotifications()
+        }
+    }
+
+    fun onResumeSession() {
+        val session = _uiState.value.activeSession ?: return
+        viewModelScope.launch {
+            resumeSession(session)
+            rescheduleNotificationsAfterResume(session)
+        }
+    }
+
     private fun scheduleNotifications(session: BreastfeedingSession) {
         val maxPerBreastMinutes = _uiState.value.maxPerBreastMinutes
         val maxTotalFeedMinutes = _uiState.value.maxTotalFeedMinutes
@@ -120,6 +141,48 @@ class BreastfeedingViewModel @Inject constructor(
                 session.startTime,
                 maxTotalFeedMinutes
             )
+        }
+    }
+
+    /**
+     * After a resume, reschedule any notification that had not yet fired before the pause.
+     *
+     * The original trigger time for each notification type is:
+     *   startTime + maxMinutes + previousPausedDurationMs
+     *
+     * If that trigger time is still in the future relative to session.pausedAt, the
+     * notification hadn't fired yet — reschedule it for (now + remaining).
+     *
+     * [session] is the state *before* the resume use case cleared pausedAt, so
+     * pausedAt is still set and pausedDurationMs reflects only previously accumulated pauses.
+     */
+    private fun rescheduleNotificationsAfterResume(session: BreastfeedingSession) {
+        val pausedAt = session.pausedAt ?: return
+        val maxPerBreast = _uiState.value.maxPerBreastMinutes
+        val maxTotal = _uiState.value.maxTotalFeedMinutes
+
+        if (maxPerBreast > 0) {
+            val adjustedTrigger = session.startTime
+                .plusSeconds(maxPerBreast * 60L)
+                .plusMillis(session.pausedDurationMs)
+            val remaining = Duration.between(pausedAt, adjustedTrigger)
+            if (!remaining.isNegative && !remaining.isZero) {
+                notificationScheduler.scheduleMaxPerBreastNotificationAt(
+                    Instant.now().plus(remaining)
+                )
+            }
+        }
+
+        if (maxTotal > 0) {
+            val adjustedTrigger = session.startTime
+                .plusSeconds(maxTotal * 60L)
+                .plusMillis(session.pausedDurationMs)
+            val remaining = Duration.between(pausedAt, adjustedTrigger)
+            if (!remaining.isNegative && !remaining.isZero) {
+                notificationScheduler.scheduleMaxTotalTimeNotificationAt(
+                    Instant.now().plus(remaining)
+                )
+            }
         }
     }
 }
