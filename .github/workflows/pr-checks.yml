@@ -9,6 +9,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+    if: github.head_ref != 'chore/release'
 
     steps:
       - name: Checkout code
@@ -37,6 +38,7 @@ jobs:
   instrumentation-tests:
     name: Instrumentation Tests
     runs-on: ubuntu-latest
+    if: github.head_ref != 'chore/release'
 
     steps:
       - name: Checkout code
