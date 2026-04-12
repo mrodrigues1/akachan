@@ -3,6 +3,7 @@ package com.babytracker.di
 import android.content.Context
 import androidx.room.Room
 import com.babytracker.data.local.BabyTrackerDatabase
+import com.babytracker.data.local.MIGRATION_1_2
 import com.babytracker.data.local.dao.BreastfeedingDao
 import com.babytracker.data.local.dao.SleepDao
 import dagger.Module
@@ -23,7 +24,9 @@ object DatabaseModule {
             context,
             BabyTrackerDatabase::class.java,
             "baby_tracker_db"
-        ).build()
+        )
+            .addMigrations(MIGRATION_1_2)
+            .build()
 
     @Provides
     fun provideBreastfeedingDao(database: BabyTrackerDatabase): BreastfeedingDao =
