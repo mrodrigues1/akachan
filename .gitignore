@@ -23,6 +23,9 @@ misc.xml
 deploymentTargetDropDown.xml
 render.experimental.xml
 
+# Local configuration file (sdk path, etc)
+.claude/settings.local.json
+
 # Keystore files
 *.jks
 *.keystore
