@@ -59,9 +59,7 @@ fun TimerDisplay(
         }
     }
 
-    val hours = elapsedSeconds / 3600
-    val minutes = (elapsedSeconds % 3600) / 60
-    val timeText = String.format(Locale.US, "%02d:%02d", hours, minutes)
+    val timeText = formatElapsedAsMinutesSeconds(elapsedSeconds)
 
     if (maxDurationSeconds <= 0) {
         Text(
@@ -156,4 +154,10 @@ fun TimerDisplay(
             )
         }
     }
+}
+
+internal fun formatElapsedAsMinutesSeconds(elapsedSeconds: Long): String {
+    val totalMinutes = elapsedSeconds / 60
+    val seconds = elapsedSeconds % 60
+    return String.format(Locale.US, "%02d:%02d", totalMinutes, seconds)
 }
