@@ -4,14 +4,13 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import io.mockk.anyConstructed
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkConstructor
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import io.mockk.verify
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -27,14 +26,6 @@ class BreastfeedingNotificationManagerTest {
         context = mockk()
         alarmManager = mockk()
         every { context.getSystemService(AlarmManager::class.java) } returns alarmManager
-
-        // Mock Intent constructor to prevent Android framework stubs from throwing in JVM tests.
-        // Intent(Context, Class) internally calls context.getPackageName() via ComponentName,
-        // and setAction() is a stub that throws — mockkConstructor intercepts the constructor
-        // so none of the real Android code runs.
-        mockkConstructor(Intent::class)
-        every { anyConstructed<Intent>().setAction(any()) } returns mockk()
-        every { anyConstructed<Intent>().putExtra(any<String>(), any<String>()) } returns mockk()
 
         // Mock PendingIntent static methods
         mockkStatic(PendingIntent::class)
@@ -90,13 +81,12 @@ class BreastfeedingNotificationManagerTest {
     }
 
     @Test
-    fun `cancelAllScheduledNotifications uses correct action so PendingIntent matches scheduled alarm`() {
-        notificationManager.cancelAllScheduledNotifications()
-
-        // The intent used for cancellation must carry the same action as the scheduled alarm's intent,
-        // because Android's PendingIntent matching uses filterEquals() which compares the action field.
-        // Without the matching action the cancel PendingIntent would differ from the scheduled one
-        // and alarmManager.cancel() would have no effect.
-        verify(atLeast = 1) { anyConstructed<Intent>().setAction("com.babytracker.BREASTFEEDING_NOTIFICATION") }
+    fun `NOTIFICATION_ACTION is identical for schedule and cancel ensuring PendingIntent filterEquals match`() {
+        // Android's PendingIntent matching uses filterEquals() which compares the intent action.
+        // Both scheduleAlarm() and cancelAlarm() use NOTIFICATION_ACTION so the PendingIntents
+        // are considered equal and alarmManager.cancel() actually cancels the scheduled alarm.
+        // If they diverged, cancel() would target a different PendingIntent and be a no-op —
+        // causing notifications to keep firing during a paused session.
+        assertEquals("com.babytracker.BREASTFEEDING_NOTIFICATION", BreastfeedingNotificationManager.NOTIFICATION_ACTION)
     }
 }

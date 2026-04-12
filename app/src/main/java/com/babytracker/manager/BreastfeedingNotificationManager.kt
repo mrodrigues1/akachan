@@ -65,7 +65,7 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
         Log.d(TAG, "Scheduling alarm for type=$notificationType at $triggerTime (requestCode=$requestCode)")
 
         val intent = Intent(context, BreastfeedingNotificationReceiver::class.java).apply {
-            action = "com.babytracker.BREASTFEEDING_NOTIFICATION"
+            action = NOTIFICATION_ACTION
             putExtra("notification_type", notificationType)
         }
 
@@ -106,7 +106,7 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
 
     private fun cancelAlarm(requestCode: Int) {
         val intent = Intent(context, BreastfeedingNotificationReceiver::class.java).apply {
-            action = "com.babytracker.BREASTFEEDING_NOTIFICATION"
+            action = NOTIFICATION_ACTION
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -118,6 +118,7 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
     }
 
     companion object {
+        const val NOTIFICATION_ACTION = "com.babytracker.BREASTFEEDING_NOTIFICATION"
         private const val REQUEST_CODE_MAX_TOTAL = 1001
         private const val REQUEST_CODE_MAX_PER_BREAST = 1002
     }
