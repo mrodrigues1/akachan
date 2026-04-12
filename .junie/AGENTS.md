@@ -33,6 +33,8 @@ The project is a standard Android application using Gradle (Kotlin DSL).
 
 The project follows a strict testing strategy using JUnit 5 and MockK.
 
+Create tests for new features, bug fixes, and edge cases.
+
 ### Testing Stack
 - **Unit Testing**: JUnit 5 (`org.junit.jupiter`)
 - **Mocking**: MockK (`io.mockk`)
@@ -69,6 +71,21 @@ class DemoTest {
     }
 }
 ```
+
+## Workflow
+
+### Branching Model
+
+When working on a new feature, pull `main` branch latest changes and create a new branch from `main` and name it after the feature:
+- `feat/breastfeeding-history`
+- `fix/sleep-schedule-bug`
+- `refactor/settings-screen-refactor`
+- `chore/update-room-version`
+- `ci/add-android-test-coverage`
+
+After the feature is complete, run all tests,
+if all tests are passing: create a PR to `main` with a descriptive title and description,
+if there is any broken test: fix it, re-run tests and do it until all tests pass.
 
 ## Architecture & Style
 

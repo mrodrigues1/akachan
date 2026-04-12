@@ -206,6 +206,23 @@ wip: work on new feature
 
 ---
 
+## Workflow
+
+### Branching Model
+
+When working on a new feature, pull `main` branch latest changes and create a new branch from `main` and name it after the feature:
+- `feat/breastfeeding-history`
+- `fix/sleep-schedule-bug`
+- `refactor/settings-screen-refactor`
+- `chore/update-room-version`
+- `ci/add-android-test-coverage`
+
+After the feature is complete, run all tests, 
+if all tests are passing: create a PR to `main` with a descriptive title and description, 
+if there is any broken test: fix it, re-run tests and do it until all tests pass.
+
+---
+
 ## Code Patterns
 
 ### Use Cases
@@ -296,6 +313,8 @@ Build variants: `debug` (default) and `release` (ProGuard minification enabled v
 
 ## Testing Conventions
 
+Create tests for new features, bug fixes, and edge cases. 
+
 ### Unit Tests (`src/test/`)
 - Framework: JUnit 5 (`@Test`, `@BeforeEach`, `runTest`)
 - Mocking: MockK — use `mockk()`, `coEvery`, `coVerify`, `slot<T>()` for argument capture
@@ -340,7 +359,6 @@ All repository implementations are `@Singleton` scoped.
 Detailed feature specs live in `specs/`:
 
 - `specs/SPEC-001-APP-STRUCTURE.md` — architecture, package layout, design principles, DB schema
-- `SPEC-002-Onboarding.md` — onboarding flow (3 steps: baby name → DOB → allergies), validation rules, persistence strategy
 
 Read specs before implementing new features — they define the intended behaviour and non-goals.
 
