@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -83,12 +84,9 @@ class BreastfeedingViewModel @Inject constructor(
         val side = _uiState.value.selectedSide ?: return
         viewModelScope.launch {
             startSession(side)
-            repository.getActiveSession().collect { session ->
-                session?.let {
-                    scheduleNotifications(it)
-                    return@collect
-                }
-            }
+            repository.getActiveSession()
+                .first { it != null }
+                ?.let { scheduleNotifications(it) }
         }
     }
 

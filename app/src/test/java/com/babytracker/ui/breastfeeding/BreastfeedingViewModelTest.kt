@@ -252,6 +252,37 @@ class BreastfeedingViewModelTest {
     }
 
     @Test
+    fun `onStartSession schedules notifications only once even when session is updated later`() = runTest {
+        viewModel.onSideSelected(BreastSide.LEFT)
+
+        val session = BreastfeedingSession(
+            id = 1L,
+            startTime = Instant.now(),
+            startingSide = BreastSide.LEFT
+        )
+
+        coEvery { startSession(BreastSide.LEFT) } answers {
+            activeSessionFlow.value = session
+            1L
+        }
+
+        viewModel.onStartSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Simulate a session update (e.g., pause) that triggers a new DB emission
+        val updatedSession = session.copy(pausedAt = Instant.now())
+        activeSessionFlow.value = updatedSession
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // scheduleMaxPerBreastNotification must be called exactly once — on session start —
+        // and NOT again when the session update (pause) emits from the repository Flow.
+        // The persistent-collect bug caused it to reschedule on every update, which meant
+        // cancelling alarms on pause had no lasting effect.
+        verify(exactly = 1) { notificationScheduler.scheduleMaxPerBreastNotification(any(), any()) }
+        verify(exactly = 1) { notificationScheduler.scheduleMaxTotalTimeNotification(any(), any()) }
+    }
+
+    @Test
     fun `notification scheduler is not called when switching side`() = runTest {
         val session = BreastfeedingSession(
             id = 1L,
@@ -268,6 +299,27 @@ class BreastfeedingViewModelTest {
 
         coVerify(exactly = 1) { switchSide(session) }
         coVerify(exactly = 0) { notificationScheduler.scheduleMaxPerBreastNotification(any(), any()) }
+    }
+
+    @Test
+    fun `onResumeSession reschedules notifications for remaining active time`() = runTest {
+        // Session started 300s ago, paused 60s ago, no previous pauses.
+        // maxPerBreast=15min (900s), maxTotal=30min (1800s).
+        // Remaining per-breast = (0 + 900 + 0) - (300 - 60) = 900 - 240 = 660s → scheduleAt(now+660s).
+        val session = BreastfeedingSession(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(300),
+            startingSide = BreastSide.LEFT,
+            pausedAt = Instant.now().minusSeconds(60)
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onResumeSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) { notificationScheduler.scheduleMaxPerBreastNotificationAt(any()) }
+        verify(exactly = 1) { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any()) }
     }
 
     @Test
