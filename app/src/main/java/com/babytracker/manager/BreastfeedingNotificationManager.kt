@@ -36,6 +36,22 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
         )
     }
 
+    override fun scheduleMaxTotalTimeNotificationAt(triggerTime: Instant) {
+        scheduleAlarm(
+            triggerTime = triggerTime,
+            requestCode = REQUEST_CODE_MAX_TOTAL,
+            notificationType = BreastfeedingNotificationReceiver.NOTIFICATION_TYPE_MAX_TOTAL
+        )
+    }
+
+    override fun scheduleMaxPerBreastNotificationAt(triggerTime: Instant) {
+        scheduleAlarm(
+            triggerTime = triggerTime,
+            requestCode = REQUEST_CODE_MAX_PER_BREAST,
+            notificationType = BreastfeedingNotificationReceiver.NOTIFICATION_TYPE_SWITCH_SIDE
+        )
+    }
+
     override fun cancelAllScheduledNotifications() {
         cancelAlarm(REQUEST_CODE_MAX_TOTAL)
         cancelAlarm(REQUEST_CODE_MAX_PER_BREAST)
