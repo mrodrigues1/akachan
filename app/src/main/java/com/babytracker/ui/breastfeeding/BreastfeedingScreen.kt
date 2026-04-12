@@ -129,42 +129,66 @@ fun BreastfeedingScreen(
         ) {
             if (activeSession != null) {
                 // Status pill
+                val statusText = if (activeSession.isPaused) "⏸ Session paused" else "● Session in progress"
                 Card(
                     shape = MaterialTheme.shapes.extraLarge,
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                        containerColor = if (activeSession.isPaused)
+                            MaterialTheme.colorScheme.secondaryContainer
+                        else
+                            MaterialTheme.colorScheme.primaryContainer
                     )
                 ) {
                     Text(
-                        text = "● Session in progress",
+                        text = statusText,
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = if (activeSession.isPaused)
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        else
+                            MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     )
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Ring timer
+                // Compute frozen elapsed seconds when paused so TimerDisplay shows the
+                // correct value on cold-load.
+                val frozenElapsedSeconds: Long? = if (activeSession.isPaused) {
+                    val pausedAt = activeSession.pausedAt!!
+                    (pausedAt.toEpochMilli() - activeSession.startTime.toEpochMilli() - activeSession.pausedDurationMs) / 1000L
+                } else {
+                    null
+                }
+
+                // Ring timer — effective start accounts for accumulated paused time.
                 TimerDisplay(
-                    startTimeMillis = activeSession.startTime.toEpochMilli(),
-                    isRunning = true,
+                    startTimeMillis = activeSession.startTime.toEpochMilli() + activeSession.pausedDurationMs,
+                    isRunning = !activeSession.isPaused,
+                    frozenElapsedSeconds = frozenElapsedSeconds,
                     maxDurationSeconds = if (uiState.maxTotalFeedMinutes > 0) {
                         uiState.maxTotalFeedMinutes * 60
                     } else {
-                        0 // No max set, don't show progress ring
+                        0
                     }
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
 
                 // Per-side breakdown
+                // Freeze per-side breakdown at pausedAt when session is paused.
+                val effectiveNow: Instant = if (activeSession.isPaused) activeSession.pausedAt!! else now
+
                 val firstSideDuration: Duration = activeSession.switchTime
                     ?.let { Duration.between(activeSession.startTime, it) }
-                    ?: Duration.between(activeSession.startTime, now)
+                    ?: Duration.between(activeSession.startTime, effectiveNow)
+                        .minus(Duration.ofMillis(activeSession.pausedDurationMs))
 
                 val secondSideDuration: Duration = activeSession.switchTime
-                    ?.let { Duration.between(it, now) }
+                    ?.let {
+                        Duration.between(it, effectiveNow)
+                            .minus(Duration.ofMillis(activeSession.pausedDurationMs))
+                    }
                     ?: Duration.ZERO
 
                 val currentSide: BreastSide = activeSession.switchTime?.let {
@@ -224,8 +248,8 @@ fun BreastfeedingScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Switch side button (only shown if not switched yet)
-                if (activeSession.switchTime == null) {
+                // Switch side button (only shown if not switched yet and not paused)
+                if (activeSession.switchTime == null && !activeSession.isPaused) {
                     val nextSide = if (activeSession.startingSide == BreastSide.LEFT) "Right" else "Left"
                     OutlinedCard(
                         onClick = viewModel::onSwitchSide,
@@ -246,6 +270,27 @@ fun BreastfeedingScreen(
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                 }
+
+                // Pause / Resume button (above Stop)
+                OutlinedCard(
+                    onClick = if (activeSession.isPaused) viewModel::onResumeSession else viewModel::onPauseSession,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = if (activeSession.isPaused) "▶  Resume Session" else "⏸  Pause Session",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Stop button
                 Button(
