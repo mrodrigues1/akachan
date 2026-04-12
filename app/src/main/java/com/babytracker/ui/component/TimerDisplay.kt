@@ -46,16 +46,19 @@ fun TimerDisplay(
     maxDurationSeconds: Int = 0,
     ringColor: Color = Color.Unspecified,
     trackColor: Color = Color.Unspecified,
+    frozenElapsedSeconds: Long? = null,
     modifier: Modifier = Modifier
 ) {
-    var elapsedSeconds by remember { mutableLongStateOf(0L) }
+    var elapsedSeconds by remember { mutableLongStateOf(frozenElapsedSeconds ?: 0L) }
 
-    LaunchedEffect(isRunning, startTimeMillis) {
+    LaunchedEffect(isRunning, startTimeMillis, frozenElapsedSeconds) {
         if (isRunning) {
             while (true) {
                 elapsedSeconds = (System.currentTimeMillis() - startTimeMillis) / 1000
                 delay(1000L)
             }
+        } else if (frozenElapsedSeconds != null) {
+            elapsedSeconds = frozenElapsedSeconds
         }
     }
 
