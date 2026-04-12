@@ -4,12 +4,14 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import io.mockk.anyConstructed
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkConstructor
 import io.mockk.mockkStatic
-import io.mockk.slot
+import io.mockk.unmockkAll
 import io.mockk.verify
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -25,7 +27,15 @@ class BreastfeedingNotificationManagerTest {
         context = mockk()
         alarmManager = mockk()
         every { context.getSystemService(AlarmManager::class.java) } returns alarmManager
-        
+
+        // Mock Intent constructor to prevent Android framework stubs from throwing in JVM tests.
+        // Intent(Context, Class) internally calls context.getPackageName() via ComponentName,
+        // and setAction() is a stub that throws — mockkConstructor intercepts the constructor
+        // so none of the real Android code runs.
+        mockkConstructor(Intent::class)
+        every { anyConstructed<Intent>().setAction(any()) } returns mockk()
+        every { anyConstructed<Intent>().putExtra(any<String>(), any<String>()) } returns mockk()
+
         // Mock PendingIntent static methods
         mockkStatic(PendingIntent::class)
         every { PendingIntent.getBroadcast(any(), any(), any<Intent>(), any()) } returns mockk()
@@ -36,6 +46,11 @@ class BreastfeedingNotificationManagerTest {
         every { alarmManager.setAndAllowWhileIdle(any(), any(), any<PendingIntent>()) } returns Unit
 
         notificationManager = BreastfeedingNotificationManager(context)
+    }
+
+    @AfterEach
+    fun tearDown() {
+        unmockkAll()
     }
 
     @Test
@@ -76,14 +91,12 @@ class BreastfeedingNotificationManagerTest {
 
     @Test
     fun `cancelAllScheduledNotifications uses correct action so PendingIntent matches scheduled alarm`() {
-        val intentSlot = slot<Intent>()
-        every { PendingIntent.getBroadcast(any(), any(), capture(intentSlot), any()) } returns mockk()
-
         notificationManager.cancelAllScheduledNotifications()
 
-        // The intent used for cancellation must have the same action as the one used for scheduling,
-        // because Android's PendingIntent matching uses filterEquals() which compares the action.
-        // Without the correct action the cancel PendingIntent won't match and the alarm won't be cancelled.
-        assertEquals("com.babytracker.BREASTFEEDING_NOTIFICATION", intentSlot.captured.action)
+        // The intent used for cancellation must carry the same action as the scheduled alarm's intent,
+        // because Android's PendingIntent matching uses filterEquals() which compares the action field.
+        // Without the matching action the cancel PendingIntent would differ from the scheduled one
+        // and alarmManager.cancel() would have no effect.
+        verify(atLeast = 1) { anyConstructed<Intent>().setAction("com.babytracker.BREASTFEEDING_NOTIFICATION") }
     }
 }
