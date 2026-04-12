@@ -7,7 +7,9 @@ import android.content.Intent
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.slot
 import io.mockk.verify
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -70,5 +72,18 @@ class BreastfeedingNotificationManagerTest {
 
         // Should cancel both REQUEST_CODE_MAX_TOTAL (1001) and REQUEST_CODE_MAX_PER_BREAST (1002)
         verify(exactly = 2) { alarmManager.cancel(any<PendingIntent>()) }
+    }
+
+    @Test
+    fun `cancelAllScheduledNotifications uses correct action so PendingIntent matches scheduled alarm`() {
+        val intentSlot = slot<Intent>()
+        every { PendingIntent.getBroadcast(any(), any(), capture(intentSlot), any()) } returns mockk()
+
+        notificationManager.cancelAllScheduledNotifications()
+
+        // The intent used for cancellation must have the same action as the one used for scheduling,
+        // because Android's PendingIntent matching uses filterEquals() which compares the action.
+        // Without the correct action the cancel PendingIntent won't match and the alarm won't be cancelled.
+        assertEquals("com.babytracker.BREASTFEEDING_NOTIFICATION", intentSlot.captured.action)
     }
 }

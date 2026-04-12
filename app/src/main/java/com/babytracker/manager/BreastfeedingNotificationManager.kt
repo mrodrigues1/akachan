@@ -105,7 +105,9 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
     }
 
     private fun cancelAlarm(requestCode: Int) {
-        val intent = Intent(context, BreastfeedingNotificationReceiver::class.java)
+        val intent = Intent(context, BreastfeedingNotificationReceiver::class.java).apply {
+            action = "com.babytracker.BREASTFEEDING_NOTIFICATION"
+        }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
             requestCode,
