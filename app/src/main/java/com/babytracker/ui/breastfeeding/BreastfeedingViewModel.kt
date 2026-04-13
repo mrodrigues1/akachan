@@ -24,8 +24,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.babytracker.util.formatElapsedAgo
 import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
@@ -80,10 +85,32 @@ class BreastfeedingViewModel @Inject constructor(
                     activeSession = session,
                     selectedSide = _uiState.value.selectedSide,
                     maxPerBreastMinutes = maxPerBreast,
-                    maxTotalFeedMinutes = maxTotal
+                    maxTotalFeedMinutes = maxTotal,
+                    lastFeedingSummary = _uiState.value.lastFeedingSummary
                 )
             }.collect { newState ->
                 _uiState.value = newState
+            }
+        }
+
+        viewModelScope.launch {
+            val ticker = flow<Unit> {
+                while (true) {
+                    emit(Unit)
+                    kotlinx.coroutines.delay(60_000L)
+                }
+            // flowOn(Default) moves the delay off the Main/test dispatcher so that
+            // StandardTestDispatcher.advanceUntilIdle() terminates correctly in tests.
+            }.flowOn(Dispatchers.Default)
+            combine(
+                history.map { sessions ->
+                    sessions.filter { it.endTime != null }.maxByOrNull { it.endTime!! }
+                },
+                ticker
+            ) { lastSession, _ ->
+                buildLastFeedingSummary(lastSession)
+            }.collect { summary ->
+                _uiState.value = _uiState.value.copy(lastFeedingSummary = summary)
             }
         }
     }
@@ -194,5 +221,35 @@ class BreastfeedingViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    private fun buildLastFeedingSummary(lastSession: BreastfeedingSession?): LastFeedingSummaryState {
+        if (lastSession == null) return LastFeedingSummaryState.Empty
+        val endTime = lastSession.endTime ?: return LastFeedingSummaryState.Empty
+
+        val elapsed = Duration.between(endTime, Instant.now())
+        val elapsedLabel = elapsed.formatElapsedAgo()
+
+        val endingSide = if (lastSession.switchTime != null) {
+            if (lastSession.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
+        } else {
+            lastSession.startingSide
+        }
+        val nextRecommendedSide = if (endingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
+
+        val firstSideDuration: Duration = lastSession.switchTime
+            ?.let { Duration.between(lastSession.startTime, it) }
+            ?: Duration.between(lastSession.startTime, endTime)
+
+        val secondSideDuration: Duration? = lastSession.switchTime
+            ?.let { Duration.between(it, endTime) }
+
+        return LastFeedingSummaryState.Populated(
+            lastSession = lastSession,
+            elapsedLabel = elapsedLabel,
+            nextRecommendedSide = nextRecommendedSide,
+            firstSideDuration = firstSideDuration,
+            secondSideDuration = secondSideDuration
+        )
     }
 }
