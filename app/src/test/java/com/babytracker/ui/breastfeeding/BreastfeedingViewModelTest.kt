@@ -266,6 +266,10 @@ class BreastfeedingViewModelTest {
             1L
         }
 
+        // Let the init-block combine emit once so _uiState.maxPerBreastMinutes/maxTotalFeedMinutes
+        // are populated before onStartSession reads them inside scheduleNotifications.
+        testDispatcher.scheduler.advanceUntilIdle()
+
         viewModel.onStartSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
