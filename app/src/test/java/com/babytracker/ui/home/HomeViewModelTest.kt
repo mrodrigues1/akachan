@@ -108,11 +108,38 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `lastFeedSide_returnsFirstSessionStartingSide`() = runTest {
+    fun `nextRecommendedSide_returnsOppositeOfLastCompletedSessionStartingSide_whenNoSwitch`() = runTest {
+        // completedSession started on RIGHT with no switch → recommend LEFT (the less-used side)
         every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession, completedSession))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
-        assertEquals(BreastSide.LEFT, viewModel.uiState.value.lastFeedSide)
+        assertEquals(BreastSide.LEFT, viewModel.uiState.value.nextRecommendedSide)
+    }
+
+    @Test
+    fun `nextRecommendedSide_isNull_whenNoCompletedSession`() = runTest {
+        every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession))
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.uiState.value.nextRecommendedSide)
+    }
+
+    @Test
+    fun `nextRecommendedSide_recommendsLessUsedSide_whenSessionHadSwitch`() = runTest {
+        val now = Instant.now()
+        // RIGHT 2m10s (130s), LEFT 19s — LEFT was used less → recommend LEFT (opposite of starting)
+        val sessionWithSwitch = BreastfeedingSession(
+            id = 3L,
+            startTime = now.minusSeconds(300),
+            endTime = now.minusSeconds(151),  // session ended
+            startingSide = BreastSide.RIGHT,
+            switchTime = now.minusSeconds(170) // 19s on RIGHT before switch, then 19s on LEFT
+        )
+        every { getBreastfeedingHistory() } returns flowOf(listOf(sessionWithSwitch))
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        // RIGHT used 130s, LEFT used 19s → LEFT was used less → recommend LEFT
+        assertEquals(BreastSide.LEFT, viewModel.uiState.value.nextRecommendedSide)
     }
 
     @Test

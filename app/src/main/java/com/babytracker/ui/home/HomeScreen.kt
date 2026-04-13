@@ -216,9 +216,9 @@ fun HomeScreen(
                 }
             }
 
-            // Tip card — suggests which side to try next
-            uiState.lastFeedSide?.let { lastSide ->
-                val nextSide = if (lastSide.name == "LEFT") "Right" else "Left"
+            // Tip card — suggests which side to try next (based on the less-used side last session)
+            uiState.nextRecommendedSide?.let { nextSide ->
+                val nextSideName = nextSide.name.lowercase().replaceFirstChar { it.uppercase() }
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
@@ -238,7 +238,7 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Text(
-                                text = "Last session used ${lastSide.name.lowercase().replaceFirstChar { it.uppercase() }}. Try $nextSide next.",
+                                text = "Try $nextSideName breast next — used less last session.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )

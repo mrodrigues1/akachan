@@ -230,19 +230,22 @@ class BreastfeedingViewModel @Inject constructor(
         val elapsed = Duration.between(endTime, Instant.now())
         val elapsedLabel = elapsed.formatElapsedAgo()
 
-        val endingSide = if (lastSession.switchTime != null) {
-            if (lastSession.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
-        } else {
-            lastSession.startingSide
-        }
-        val nextRecommendedSide = if (endingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
-
         val firstSideDuration: Duration = lastSession.switchTime
             ?.let { Duration.between(lastSession.startTime, it) }
             ?: Duration.between(lastSession.startTime, endTime)
 
         val secondSideDuration: Duration? = lastSession.switchTime
             ?.let { Duration.between(it, endTime) }
+
+        val oppositeSide = if (lastSession.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
+        val nextRecommendedSide = when {
+            // No switch: only the starting side was used — recommend the other side
+            secondSideDuration == null -> oppositeSide
+            // Second side was used less than first — recommend second side (opposite of starting)
+            secondSideDuration < firstSideDuration -> oppositeSide
+            // First side was used less (or both equal) — recommend first/starting side
+            else -> lastSession.startingSide
+        }
 
         return LastFeedingSummaryState.Populated(
             lastSession = lastSession,

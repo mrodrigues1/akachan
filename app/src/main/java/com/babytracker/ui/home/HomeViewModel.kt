@@ -27,7 +27,7 @@ data class HomeUiState(
     val recentFeedings: List<BreastfeedingSession> = emptyList(),
     val recentSleepRecords: List<SleepRecord> = emptyList(),
     val activeSession: BreastfeedingSession? = null,
-    val lastFeedSide: BreastSide? = null,
+    val nextRecommendedSide: BreastSide? = null,
     val sessionsTodayCount: Int = 0,
     val lastNightSleepDuration: Duration? = null
 )
@@ -58,12 +58,25 @@ class HomeViewModel @Inject constructor(
             .fold(Duration.ZERO) { acc, d -> acc + d }
             .takeIf { !it.isZero }
 
+        val lastCompleted = feedings.firstOrNull { it.endTime != null }
+        val nextRecommendedSide = lastCompleted?.let { session ->
+            val endTime = session.endTime ?: return@let null
+            val oppositeSide = if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
+            if (session.switchTime == null) {
+                oppositeSide
+            } else {
+                val firstDuration = Duration.between(session.startTime, session.switchTime!!)
+                val secondDuration = Duration.between(session.switchTime!!, endTime)
+                if (secondDuration < firstDuration) oppositeSide else session.startingSide
+            }
+        }
+
         HomeUiState(
             baby = baby,
             recentFeedings = feedings.take(3),
             recentSleepRecords = sleepRecords.take(3),
             activeSession = feedings.firstOrNull { it.isInProgress },
-            lastFeedSide = feedings.firstOrNull()?.startingSide,
+            nextRecommendedSide = nextRecommendedSide,
             sessionsTodayCount = feedings.count {
                 it.startTime.atZone(zone).toLocalDate() == today
             },
