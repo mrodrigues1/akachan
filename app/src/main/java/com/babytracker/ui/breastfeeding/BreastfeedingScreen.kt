@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -48,9 +50,11 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.domain.model.BreastSide
+import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.SideSelector
 import com.babytracker.ui.component.TimerDisplay
 import com.babytracker.util.formatDuration
+import com.babytracker.util.formatTime12h
 import java.time.Duration
 import java.time.Instant
 
@@ -125,7 +129,7 @@ fun BreastfeedingScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Top
         ) {
             if (activeSession != null) {
                 // Status pill
@@ -301,28 +305,44 @@ fun BreastfeedingScreen(
                     Text("Stop Session", style = MaterialTheme.typography.titleSmall)
                 }
             } else {
-                // Idle state
-                Text(
-                    text = "Start a feeding session",
-                    style = MaterialTheme.typography.titleLarge
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                SideSelector(
-                    selectedSide = uiState.selectedSide,
-                    onSideSelected = viewModel::onSideSelected
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = { onStartSessionWithPermission() },
-                    enabled = uiState.selectedSide != null,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.extraLarge
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Start Session", style = MaterialTheme.typography.titleSmall)
+                    Spacer(modifier = Modifier.height(48.dp))
+
+                    Text(
+                        text = "Start a feeding session",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    SideSelector(
+                        selectedSide = uiState.selectedSide,
+                        onSideSelected = viewModel::onSideSelected
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Button(
+                        onClick = { onStartSessionWithPermission() },
+                        enabled = uiState.selectedSide != null,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.extraLarge
+                    ) {
+                        Text("Start Session", style = MaterialTheme.typography.titleSmall)
+                    }
+
+                    val summary = uiState.lastFeedingSummary
+                    if (summary is LastFeedingSummaryState.Populated) {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        LastFeedingSummaryCard(summary = summary)
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }
@@ -341,4 +361,78 @@ private fun isNotificationPermissionGranted(context: Context): Boolean {
         context,
         Manifest.permission.POST_NOTIFICATIONS
     ) == PackageManager.PERMISSION_GRANTED
+}
+
+private fun BreastSide.displayName(): String =
+    name.lowercase().replaceFirstChar { it.uppercase() }
+
+@Composable
+private fun LastFeedingSummaryCard(summary: LastFeedingSummaryState.Populated) {
+    val session = summary.lastSession
+    val secondSide = if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "LAST FEEDING",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = summary.elapsedLabel,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Card(
+                shape = MaterialTheme.shapes.small,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Text(
+                    text = "Start with: ${summary.nextRecommendedSide.displayName()} breast",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            HistoryCard(
+                title = "${session.startingSide.displayName()} breast",
+                subtitle = "First side · ${session.startTime.formatTime12h()}",
+                trailing = summary.firstSideDuration.formatDuration(),
+                badgeEmoji = "🍼",
+                badgeColor = if (session.startingSide == BreastSide.LEFT) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.secondaryContainer
+                }
+            )
+
+            if (summary.secondSideDuration != null) {
+                HistoryCard(
+                    title = "${secondSide.displayName()} breast",
+                    subtitle = "Second side",
+                    trailing = summary.secondSideDuration.formatDuration(),
+                    badgeEmoji = "🍼",
+                    badgeColor = if (secondSide == BreastSide.LEFT) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    }
+                )
+            }
+        }
+    }
 }
