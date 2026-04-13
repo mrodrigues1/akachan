@@ -43,3 +43,13 @@ fun LocalDate.toRelativeLabel(): String {
         else -> DateTimeFormatter.ofPattern("MMM d").format(this)
     }
 }
+
+fun Duration.formatElapsedAgo(): String {
+    val hours = toHours()
+    val minutes = (toMinutes() % 60).toInt()
+    return when {
+        hours > 0 -> "${hours}h ${minutes}m ago"
+        minutes > 0 -> "${minutes}m ago"
+        else -> "Just now"
+    }
+}

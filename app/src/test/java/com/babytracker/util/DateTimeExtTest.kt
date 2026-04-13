@@ -2,6 +2,7 @@ package com.babytracker.util
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -65,5 +66,30 @@ class DateTimeExtTest {
         val date = LocalDate.of(2026, 3, 15)
         val result = date.toRelativeLabel()
         assertEquals("Mar 15", result)
+    }
+
+    @Test
+    fun `formatElapsedAgo_underOneMinute_returnsJustNow`() {
+        assertEquals("Just now", Duration.ofSeconds(30).formatElapsedAgo())
+    }
+
+    @Test
+    fun `formatElapsedAgo_exactlyOneMinute_returnsMinutesAgo`() {
+        assertEquals("1m ago", Duration.ofMinutes(1).formatElapsedAgo())
+    }
+
+    @Test
+    fun `formatElapsedAgo_minutes_returnsMinutesAgo`() {
+        assertEquals("14m ago", Duration.ofMinutes(14).formatElapsedAgo())
+    }
+
+    @Test
+    fun `formatElapsedAgo_hoursAndMinutes_returnsHoursAndMinutesAgo`() {
+        assertEquals("2h 14m ago", Duration.ofHours(2).plus(Duration.ofMinutes(14)).formatElapsedAgo())
+    }
+
+    @Test
+    fun `formatElapsedAgo_exactHour_returnsZeroMinutes`() {
+        assertEquals("1h 0m ago", Duration.ofHours(1).formatElapsedAgo())
     }
 }
