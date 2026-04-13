@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Duration
 import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -374,5 +375,249 @@ class BreastfeedingViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { resumeSession(session) }
+    }
+
+    @Test
+    fun `lastFeedingSummary is Empty when no sessions exist`() = runTest {
+        every { getHistory() } returns flowOf(emptyList())
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(LastFeedingSummaryState.Empty, viewModel.uiState.value.lastFeedingSummary)
+    }
+
+    @Test
+    fun `lastFeedingSummary is Empty when all sessions are still in progress`() = runTest {
+        // Pre-create Instant values before mockkStatic to avoid InaccessibleObjectException
+        val startTime = Instant.ofEpochSecond(1744538400L) // 2026-04-13T10:00:00Z
+        val inProgress = BreastfeedingSession(
+            id = 1L,
+            startTime = startTime,
+            endTime = null,
+            startingSide = BreastSide.LEFT
+        )
+        every { getHistory() } returns flowOf(listOf(inProgress))
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(LastFeedingSummaryState.Empty, viewModel.uiState.value.lastFeedingSummary)
+    }
+
+    @Test
+    fun `lastFeedingSummary recommends RIGHT when last session ended on LEFT without switch`() = runTest {
+        // Pre-create all Instant values before mockkStatic to avoid InaccessibleObjectException
+        val now = Instant.ofEpochSecond(1744545600L)       // 2026-04-13T12:00:00Z
+        val startTime = Instant.ofEpochSecond(1744538400L) // 2026-04-13T10:00:00Z
+        val endTime = Instant.ofEpochSecond(1744540200L)   // 2026-04-13T10:30:00Z
+
+        mockkStatic(Instant::class)
+        try {
+            every { Instant.now() } returns now
+
+            val session = BreastfeedingSession(
+                id = 1L,
+                startTime = startTime,
+                endTime = endTime,
+                startingSide = BreastSide.LEFT,
+                switchTime = null
+            )
+            every { getHistory() } returns flowOf(listOf(session))
+            viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val summary = viewModel.uiState.value.lastFeedingSummary
+            assertTrue(summary is LastFeedingSummaryState.Populated)
+            assertEquals(BreastSide.RIGHT, (summary as LastFeedingSummaryState.Populated).nextRecommendedSide)
+        } finally {
+            unmockkAll()
+        }
+    }
+
+    @Test
+    fun `lastFeedingSummary recommends LEFT when last session switched from LEFT to RIGHT`() = runTest {
+        // Pre-create all Instant values before mockkStatic to avoid InaccessibleObjectException
+        val now = Instant.ofEpochSecond(1744545600L)        // 2026-04-13T12:00:00Z
+        val startTime = Instant.ofEpochSecond(1744538400L)  // 2026-04-13T10:00:00Z
+        val switchTime = Instant.ofEpochSecond(1744539300L) // 2026-04-13T10:15:00Z
+        val endTime = Instant.ofEpochSecond(1744540200L)    // 2026-04-13T10:30:00Z
+
+        mockkStatic(Instant::class)
+        try {
+            every { Instant.now() } returns now
+
+            // Started LEFT, switched → ended on RIGHT → recommend LEFT
+            val session = BreastfeedingSession(
+                id = 1L,
+                startTime = startTime,
+                endTime = endTime,
+                startingSide = BreastSide.LEFT,
+                switchTime = switchTime
+            )
+            every { getHistory() } returns flowOf(listOf(session))
+            viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val summary = viewModel.uiState.value.lastFeedingSummary
+            assertTrue(summary is LastFeedingSummaryState.Populated)
+            assertEquals(BreastSide.LEFT, (summary as LastFeedingSummaryState.Populated).nextRecommendedSide)
+        } finally {
+            unmockkAll()
+        }
+    }
+
+    @Test
+    fun `lastFeedingSummary recommends LEFT when last session ended on RIGHT without switch`() = runTest {
+        // Pre-create all Instant values before mockkStatic to avoid InaccessibleObjectException
+        val now = Instant.ofEpochSecond(1744545600L)       // 2026-04-13T12:00:00Z
+        val startTime = Instant.ofEpochSecond(1744538400L) // 2026-04-13T10:00:00Z
+        val endTime = Instant.ofEpochSecond(1744540200L)   // 2026-04-13T10:30:00Z
+
+        mockkStatic(Instant::class)
+        try {
+            every { Instant.now() } returns now
+
+            val session = BreastfeedingSession(
+                id = 1L,
+                startTime = startTime,
+                endTime = endTime,
+                startingSide = BreastSide.RIGHT,
+                switchTime = null
+            )
+            every { getHistory() } returns flowOf(listOf(session))
+            viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val summary = viewModel.uiState.value.lastFeedingSummary as LastFeedingSummaryState.Populated
+            assertEquals(BreastSide.LEFT, summary.nextRecommendedSide)
+        } finally {
+            unmockkAll()
+        }
+    }
+
+    @Test
+    fun `lastFeedingSummary elapsed label formats hours and minutes ago correctly`() = runTest {
+        // Pre-create all Instant values before mockkStatic to avoid InaccessibleObjectException
+        // end at 09:45, now is 12:00 → 2h 15m elapsed
+        val now = Instant.ofEpochSecond(1744545600L)       // 2026-04-13T12:00:00Z
+        val startTime = Instant.ofEpochSecond(1744536900L) // 2026-04-13T09:15:00Z
+        val endTime = Instant.ofEpochSecond(1744537500L)   // 2026-04-13T09:45:00Z
+
+        mockkStatic(Instant::class)
+        try {
+            every { Instant.now() } returns now
+
+            val session = BreastfeedingSession(
+                id = 1L,
+                startTime = startTime,
+                endTime = endTime,
+                startingSide = BreastSide.RIGHT
+            )
+            every { getHistory() } returns flowOf(listOf(session))
+            viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val summary = viewModel.uiState.value.lastFeedingSummary as LastFeedingSummaryState.Populated
+            assertEquals("2h 15m ago", summary.elapsedLabel)
+        } finally {
+            unmockkAll()
+        }
+    }
+
+    @Test
+    fun `lastFeedingSummary computes correct durations when no side switch`() = runTest {
+        // Pre-create all Instant values before mockkStatic to avoid InaccessibleObjectException
+        val now = Instant.ofEpochSecond(1744545600L)       // 2026-04-13T12:00:00Z
+        val startTime = Instant.ofEpochSecond(1744538400L) // 2026-04-13T10:00:00Z
+        val endTime = Instant.ofEpochSecond(1744539600L)   // 2026-04-13T10:20:00Z
+
+        mockkStatic(Instant::class)
+        try {
+            every { Instant.now() } returns now
+
+            val session = BreastfeedingSession(
+                id = 1L,
+                startTime = startTime,
+                endTime = endTime,
+                startingSide = BreastSide.LEFT,
+                switchTime = null
+            )
+            every { getHistory() } returns flowOf(listOf(session))
+            viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val summary = viewModel.uiState.value.lastFeedingSummary as LastFeedingSummaryState.Populated
+            assertEquals(Duration.ofMinutes(20), summary.firstSideDuration)
+            assertNull(summary.secondSideDuration)
+        } finally {
+            unmockkAll()
+        }
+    }
+
+    @Test
+    fun `lastFeedingSummary computes correct durations when sides were switched`() = runTest {
+        // Pre-create all Instant values before mockkStatic to avoid InaccessibleObjectException
+        // 10:00 start → 10:15 switch → 10:30 end: first=15m, second=15m
+        val now = Instant.ofEpochSecond(1744545600L)        // 2026-04-13T12:00:00Z
+        val startTime = Instant.ofEpochSecond(1744538400L)  // 2026-04-13T10:00:00Z
+        val switchTime = Instant.ofEpochSecond(1744539300L) // 2026-04-13T10:15:00Z
+        val endTime = Instant.ofEpochSecond(1744540200L)    // 2026-04-13T10:30:00Z
+
+        mockkStatic(Instant::class)
+        try {
+            every { Instant.now() } returns now
+
+            val session = BreastfeedingSession(
+                id = 1L,
+                startTime = startTime,
+                endTime = endTime,
+                startingSide = BreastSide.LEFT,
+                switchTime = switchTime
+            )
+            every { getHistory() } returns flowOf(listOf(session))
+            viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val summary = viewModel.uiState.value.lastFeedingSummary as LastFeedingSummaryState.Populated
+            assertEquals(Duration.ofMinutes(15), summary.firstSideDuration)
+            assertEquals(Duration.ofMinutes(15), summary.secondSideDuration)
+        } finally {
+            unmockkAll()
+        }
+    }
+
+    @Test
+    fun `lastFeedingSummary picks the most recent completed session from history`() = runTest {
+        // Pre-create all Instant values before mockkStatic to avoid InaccessibleObjectException
+        val now = Instant.ofEpochSecond(1744545600L)          // 2026-04-13T12:00:00Z
+        val olderStart = Instant.ofEpochSecond(1744531200L)   // 2026-04-13T08:00:00Z
+        val olderEnd = Instant.ofEpochSecond(1744532400L)     // 2026-04-13T08:20:00Z
+        val newerStart = Instant.ofEpochSecond(1744538400L)   // 2026-04-13T10:00:00Z
+        val newerEnd = Instant.ofEpochSecond(1744540200L)     // 2026-04-13T10:30:00Z
+
+        mockkStatic(Instant::class)
+        try {
+            every { Instant.now() } returns now
+
+            val older = BreastfeedingSession(
+                id = 1L,
+                startTime = olderStart,
+                endTime = olderEnd,
+                startingSide = BreastSide.LEFT
+            )
+            val newer = BreastfeedingSession(
+                id = 2L,
+                startTime = newerStart,
+                endTime = newerEnd,
+                startingSide = BreastSide.RIGHT
+            )
+            every { getHistory() } returns flowOf(listOf(older, newer))
+            viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val summary = viewModel.uiState.value.lastFeedingSummary as LastFeedingSummaryState.Populated
+            assertEquals(2L, summary.lastSession.id)
+        } finally {
+            unmockkAll()
+        }
     }
 }
