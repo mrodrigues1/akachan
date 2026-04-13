@@ -30,11 +30,23 @@ import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
 
+sealed class LastFeedingSummaryState {
+    object Empty : LastFeedingSummaryState()
+    data class Populated(
+        val lastSession: BreastfeedingSession,
+        val elapsedLabel: String,
+        val nextRecommendedSide: BreastSide,
+        val firstSideDuration: Duration,
+        val secondSideDuration: Duration?
+    ) : LastFeedingSummaryState()
+}
+
 data class BreastfeedingUiState(
     val activeSession: BreastfeedingSession? = null,
     val selectedSide: BreastSide? = null,
     val maxPerBreastMinutes: Int = 0,
-    val maxTotalFeedMinutes: Int = 0
+    val maxTotalFeedMinutes: Int = 0,
+    val lastFeedingSummary: LastFeedingSummaryState = LastFeedingSummaryState.Empty
 )
 
 @HiltViewModel
