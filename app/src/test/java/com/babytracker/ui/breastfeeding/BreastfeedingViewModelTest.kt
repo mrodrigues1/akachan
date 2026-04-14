@@ -559,9 +559,9 @@ class BreastfeedingViewModelTest {
     @Test
     fun `lastFeedingSummary elapsed label formats hours and minutes ago correctly`() = runTest {
         // Pre-create all Instant values before mockkStatic to avoid InaccessibleObjectException
-        // end at 09:45, now is 12:00 → 2h 15m elapsed
+        // start at 09:35, now is 12:00 → 2h 25m elapsed
         val now = Instant.ofEpochSecond(1744545600L)       // 2026-04-13T12:00:00Z
-        val startTime = Instant.ofEpochSecond(1744536900L) // 2026-04-13T09:15:00Z
+        val startTime = Instant.ofEpochSecond(1744536900L) // 2026-04-13T09:35:00Z
         val endTime = Instant.ofEpochSecond(1744537500L)   // 2026-04-13T09:45:00Z
 
         mockkStatic(Instant::class)
@@ -579,7 +579,7 @@ class BreastfeedingViewModelTest {
             testDispatcher.scheduler.advanceUntilIdle()
 
             val summary = viewModel.uiState.value.lastFeedingSummary as LastFeedingSummaryState.Populated
-            assertEquals("2h 15m ago", summary.elapsedLabel)
+            assertEquals("2h 25m ago", summary.elapsedLabel)
         } finally {
             unmockkAll()
         }
