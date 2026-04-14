@@ -227,7 +227,7 @@ class BreastfeedingViewModel @Inject constructor(
         if (lastSession == null) return LastFeedingSummaryState.Empty
         val endTime = lastSession.endTime ?: return LastFeedingSummaryState.Empty
 
-        val elapsed = Duration.between(endTime, Instant.now())
+        val elapsed = Duration.between(lastSession.startTime, Instant.now())
         val elapsedLabel = elapsed.formatElapsedAgo()
 
         val firstSideDuration: Duration = lastSession.switchTime
