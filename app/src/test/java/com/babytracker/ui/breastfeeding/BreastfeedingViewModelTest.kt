@@ -11,12 +11,10 @@ import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUse
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.manager.NotificationScheduler
-import com.babytracker.util.NotificationHelper
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
-import io.mockk.justRun
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
@@ -106,6 +104,18 @@ class BreastfeedingViewModelTest {
         mockk(),
         notificationScheduler
     )
+
+    private fun awaitLastFeedingSummaryPopulated(): LastFeedingSummaryState.Populated {
+        repeat(20) {
+            val summary = viewModel.uiState.value.lastFeedingSummary
+            if (summary is LastFeedingSummaryState.Populated) {
+                return summary
+            }
+            testDispatcher.scheduler.advanceTimeBy(1)
+            testDispatcher.scheduler.runCurrent()
+        }
+        throw AssertionError("Expected populated lastFeedingSummary, but was ${viewModel.uiState.value.lastFeedingSummary}")
+    }
 
     @Test
     fun `initial state has no active session and default settings`() = runTest {
@@ -520,7 +530,7 @@ class BreastfeedingViewModelTest {
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
-            val summary = viewModel.uiState.value.lastFeedingSummary as LastFeedingSummaryState.Populated
+            val summary = awaitLastFeedingSummaryPopulated()
             assertEquals(BreastSide.LEFT, summary.nextRecommendedSide)
         } finally {
             unmockkAll()
@@ -578,7 +588,7 @@ class BreastfeedingViewModelTest {
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
-            val summary = viewModel.uiState.value.lastFeedingSummary as LastFeedingSummaryState.Populated
+            val summary = awaitLastFeedingSummaryPopulated()
             assertEquals("2h 25m ago", summary.elapsedLabel)
         } finally {
             unmockkAll()
@@ -607,7 +617,7 @@ class BreastfeedingViewModelTest {
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
-            val summary = viewModel.uiState.value.lastFeedingSummary as LastFeedingSummaryState.Populated
+            val summary = awaitLastFeedingSummaryPopulated()
             assertEquals(Duration.ofMinutes(20), summary.firstSideDuration)
             assertNull(summary.secondSideDuration)
         } finally {
@@ -639,7 +649,7 @@ class BreastfeedingViewModelTest {
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
-            val summary = viewModel.uiState.value.lastFeedingSummary as LastFeedingSummaryState.Populated
+            val summary = awaitLastFeedingSummaryPopulated()
             assertEquals(Duration.ofMinutes(15), summary.firstSideDuration)
             assertEquals(Duration.ofMinutes(15), summary.secondSideDuration)
         } finally {
