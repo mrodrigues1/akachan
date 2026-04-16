@@ -686,7 +686,7 @@ class BreastfeedingViewModelTest {
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
-            val summary = viewModel.uiState.value.lastFeedingSummary as LastFeedingSummaryState.Populated
+            val summary = awaitLastFeedingSummaryPopulated()
             assertEquals(2L, summary.lastSession.id)
         } finally {
             unmockkAll()
