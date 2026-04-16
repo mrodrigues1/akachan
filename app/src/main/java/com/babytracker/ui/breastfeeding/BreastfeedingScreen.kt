@@ -136,7 +136,7 @@ fun BreastfeedingScreen(
         ) {
             if (activeSession != null) {
                 // Status pill
-                val statusText = if (activeSession.isPaused) "⏸ Session paused" else "● Session in progress"
+                val statusText = if (activeSession.isPaused) "Session paused" else "● Session in progress"
                 Card(
                     shape = MaterialTheme.shapes.extraLarge,
                     colors = CardDefaults.cardColors(
@@ -146,15 +146,31 @@ fun BreastfeedingScreen(
                             MaterialTheme.colorScheme.primaryContainer
                     )
                 ) {
-                    Text(
-                        text = statusText,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (activeSession.isPaused)
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        val statusColor = if (activeSession.isPaused)
                             MaterialTheme.colorScheme.onSecondaryContainer
                         else
-                            MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                    )
+                            MaterialTheme.colorScheme.onPrimaryContainer
+
+                        if (activeSession.isPaused) {
+                            Icon(
+                                imageVector = Icons.Default.Pause,
+                                contentDescription = null,
+                                tint = statusColor
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+
+                        Text(
+                            text = statusText,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = statusColor
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
