@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flow
@@ -59,7 +60,7 @@ class BreastfeedingViewModel @Inject constructor(
     private val startSession: StartBreastfeedingSessionUseCase,
     private val stopSession: StopBreastfeedingSessionUseCase,
     private val switchSide: SwitchBreastfeedingSideUseCase,
-    private val getHistory: GetBreastfeedingHistoryUseCase,
+    getHistory: GetBreastfeedingHistoryUseCase,
     private val pauseSession: PauseBreastfeedingSessionUseCase,
     private val resumeSession: ResumeBreastfeedingSessionUseCase,
     private val repository: BreastfeedingRepository,
@@ -94,14 +95,21 @@ class BreastfeedingViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            // The initial emit runs on the collecting coroutine (Main/testDispatcher) so that
+            // StandardTestDispatcher.advanceUntilIdle() sees it and terminates correctly.
+            // Subsequent ticks are delayed on Dispatchers.Default to keep the infinite loop
+            // off the test scheduler.
             val ticker = flow<Unit> {
-                while (true) {
-                    emit(Unit)
-                    kotlinx.coroutines.delay(60_000L)
-                }
-            // flowOn(Default) moves the delay off the Main/test dispatcher so that
-            // StandardTestDispatcher.advanceUntilIdle() terminates correctly in tests.
-            }.flowOn(Dispatchers.Default)
+                emit(Unit)
+                emitAll(
+                    flow<Unit> {
+                        while (true) {
+                            kotlinx.coroutines.delay(60_000L)
+                            emit(Unit)
+                        }
+                    }.flowOn(Dispatchers.Default)
+                )
+            }
             combine(
                 history.map { sessions ->
                     sessions.filter { it.endTime != null }.maxByOrNull { it.endTime!! }
