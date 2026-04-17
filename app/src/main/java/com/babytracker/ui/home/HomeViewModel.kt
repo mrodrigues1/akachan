@@ -29,7 +29,6 @@ data class HomeUiState(
     val recentSleepRecords: List<SleepRecord> = emptyList(),
     val activeSession: BreastfeedingSession? = null,
     val nextRecommendedSide: BreastSide? = null,
-    val sessionsTodayCount: Int = 0,
     val lastNightSleepDuration: Duration? = null,
     val lastSessionStartTime: Instant? = null
 )
@@ -47,8 +46,7 @@ class HomeViewModel @Inject constructor(
         getBreastfeedingHistory(),
         getSleepHistory()
     ) { baby, feedings, sleepRecords ->
-        val today = LocalDate.now()
-        val yesterday = today.minusDays(1)
+        val yesterday = LocalDate.now().minusDays(1)
         val zone = ZoneId.systemDefault()
 
         val lastNightSleep = sleepRecords
@@ -79,9 +77,6 @@ class HomeViewModel @Inject constructor(
             recentSleepRecords = sleepRecords.take(3),
             activeSession = feedings.firstOrNull { it.isInProgress },
             nextRecommendedSide = nextRecommendedSide,
-            sessionsTodayCount = feedings.count {
-                it.startTime.atZone(zone).toLocalDate() == today
-            },
             lastNightSleepDuration = lastNightSleep,
             lastSessionStartTime = (feedings.firstOrNull { it.isInProgress }
                 ?: feedings.firstOrNull())?.startTime
