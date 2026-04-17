@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -31,6 +32,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +40,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.util.formatDuration
+import com.babytracker.util.formatElapsedShort
+import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -156,6 +161,17 @@ fun HomeScreen(
                 }
             }
 
+            val lastStart = uiState.lastSessionStartTime
+            val now by produceState(initialValue = Instant.now(), key1 = lastStart) {
+                while (true) {
+                    value = Instant.now()
+                    kotlinx.coroutines.delay(60_000L)
+                }
+            }
+            val breastfeedingElapsedLabel = lastStart?.let {
+                Duration.between(it, now).formatElapsedShort()
+            }
+
             // Summary cards row
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -164,42 +180,48 @@ fun HomeScreen(
                 // Breastfeeding card
                 Card(
                     onClick = onNavigateToBreastfeeding,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 140.dp),
                     shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "🍼", style = MaterialTheme.typography.titleLarge)
-                        Spacer(modifier = Modifier.height(8.dp))
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(text = "🍼", style = MaterialTheme.typography.headlineMedium)
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = "Breastfeeding",
-                            style = MaterialTheme.typography.titleSmall,
+                            style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
                         )
-                        Text(
-                            text = "${uiState.sessionsTodayCount} sessions today",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        if (breastfeedingElapsedLabel != null) {
+                            Text(
+                                text = breastfeedingElapsedLabel,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 
                 // Sleep card
                 Card(
                     onClick = onNavigateToSleep,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 140.dp),
                     shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "🌙", style = MaterialTheme.typography.titleLarge)
-                        Spacer(modifier = Modifier.height(8.dp))
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text(text = "🌙", style = MaterialTheme.typography.headlineMedium)
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = "Sleep",
-                            style = MaterialTheme.typography.titleSmall,
+                            style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.secondary,
                             fontWeight = FontWeight.Bold
                         )

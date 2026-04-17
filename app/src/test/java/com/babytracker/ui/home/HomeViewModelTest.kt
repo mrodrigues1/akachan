@@ -158,6 +158,38 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `lastSessionStartTime_isNull_whenHistoryIsEmpty`() = runTest {
+        every { getBreastfeedingHistory() } returns flowOf(emptyList())
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.uiState.value.lastSessionStartTime)
+    }
+
+    @Test
+    fun `lastSessionStartTime_equalsActiveSessionStart_whenActiveSessionExists`() = runTest {
+        every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession, completedSession))
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(inProgressSession.startTime, viewModel.uiState.value.lastSessionStartTime)
+    }
+
+    @Test
+    fun `lastSessionStartTime_prefersActiveSession_evenWhenNotFirstInList`() = runTest {
+        every { getBreastfeedingHistory() } returns flowOf(listOf(completedSession, inProgressSession))
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(inProgressSession.startTime, viewModel.uiState.value.lastSessionStartTime)
+    }
+
+    @Test
+    fun `lastSessionStartTime_equalsMostRecentCompletedStart_whenNoActiveSession`() = runTest {
+        every { getBreastfeedingHistory() } returns flowOf(listOf(completedSession))
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(completedSession.startTime, viewModel.uiState.value.lastSessionStartTime)
+    }
+
+    @Test
     fun `onStopActiveSession_callsStopUseCase`() = runTest {
         every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession))
         coJustRun { stopBreastfeedingSession(any()) }
