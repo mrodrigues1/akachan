@@ -92,4 +92,29 @@ class DateTimeExtTest {
     fun `formatElapsedAgo_exactHour_returnsZeroMinutes`() {
         assertEquals("1h 0m ago", Duration.ofHours(1).formatElapsedAgo())
     }
+
+    @Test
+    fun `formatElapsedShort_zero_returnsZeroMinutes`() {
+        assertEquals("0m", Duration.ZERO.formatElapsedShort())
+    }
+
+    @Test
+    fun `formatElapsedShort_negative_returnsZeroMinutes`() {
+        assertEquals("0m", Duration.ofMinutes(-5).formatElapsedShort())
+    }
+
+    @Test
+    fun `formatElapsedShort_minutesOnly_returnsMinutesNoPadding`() {
+        assertEquals("43m", Duration.ofMinutes(43).formatElapsedShort())
+    }
+
+    @Test
+    fun `formatElapsedShort_hoursAndMinutes_returnsPaddedMinutes`() {
+        assertEquals("1h 04m", Duration.ofMinutes(64).formatElapsedShort())
+    }
+
+    @Test
+    fun `formatElapsedShort_exactHours_returnsZeroPaddedMinutes`() {
+        assertEquals("2h 00m", Duration.ofHours(2).formatElapsedShort())
+    }
 }

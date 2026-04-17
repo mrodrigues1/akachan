@@ -53,3 +53,10 @@ fun Duration.formatElapsedAgo(): String {
         else -> "Just now"
     }
 }
+
+fun Duration.formatElapsedShort(): String {
+    if (isNegative || isZero) return "0m"
+    val hours = toHours()
+    val minutes = (toMinutes() % 60).toInt()
+    return if (hours > 0) "${hours}h ${"%02d".format(minutes)}m" else "${minutes}m"
+}

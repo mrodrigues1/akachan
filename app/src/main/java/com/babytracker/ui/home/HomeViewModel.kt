@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
@@ -29,7 +30,8 @@ data class HomeUiState(
     val activeSession: BreastfeedingSession? = null,
     val nextRecommendedSide: BreastSide? = null,
     val sessionsTodayCount: Int = 0,
-    val lastNightSleepDuration: Duration? = null
+    val lastNightSleepDuration: Duration? = null,
+    val lastSessionStartTime: Instant? = null
 )
 
 @HiltViewModel
@@ -80,7 +82,9 @@ class HomeViewModel @Inject constructor(
             sessionsTodayCount = feedings.count {
                 it.startTime.atZone(zone).toLocalDate() == today
             },
-            lastNightSleepDuration = lastNightSleep
+            lastNightSleepDuration = lastNightSleep,
+            lastSessionStartTime = (feedings.firstOrNull { it.isInProgress }
+                ?: feedings.firstOrNull())?.startTime
         )
     }.stateIn(
         scope = viewModelScope,
