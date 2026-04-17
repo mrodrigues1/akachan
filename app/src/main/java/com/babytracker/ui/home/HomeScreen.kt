@@ -199,8 +199,9 @@ fun HomeScreen(
                         if (breastfeedingElapsedLabel != null) {
                             Text(
                                 text = breastfeedingElapsedLabel,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
@@ -231,8 +232,9 @@ fun HomeScreen(
                             ?: "${uiState.recentSleepRecords.size} records"
                         Text(
                             text = sleepLabel,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.secondary,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
