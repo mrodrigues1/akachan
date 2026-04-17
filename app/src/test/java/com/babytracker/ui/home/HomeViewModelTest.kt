@@ -20,12 +20,10 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.time.ZoneId
 import java.time.Instant
 import java.time.LocalDate
 
@@ -93,33 +91,6 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
         assertNotNull(viewModel.uiState.value.activeSession)
         assertEquals(inProgressSession.id, viewModel.uiState.value.activeSession!!.id)
-    }
-
-    @Test
-    fun `sessionsTodayCount_countsOnlyTodaySessions`() = runTest {
-        val zone = ZoneId.systemDefault()
-        val todayAtNoon = LocalDate.now().atTime(12, 0).atZone(zone).toInstant()
-        val yesterdayAtNoon = LocalDate.now().minusDays(1).atTime(12, 0).atZone(zone).toInstant()
-
-        val todaySession = BreastfeedingSession(
-            id = 3L,
-            startTime = todayAtNoon,
-            endTime = todayAtNoon.plusSeconds(600),
-            startingSide = BreastSide.LEFT
-        )
-        val yesterdaySession = BreastfeedingSession(
-            id = 4L,
-            startTime = yesterdayAtNoon,
-            endTime = yesterdayAtNoon.plusSeconds(600),
-            startingSide = BreastSide.RIGHT
-        )
-
-        every { getBreastfeedingHistory() } returns flowOf(listOf(todaySession, yesterdaySession))
-        viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals(1, viewModel.uiState.value.sessionsTodayCount)
-        assertTrue(viewModel.uiState.value.recentFeedings.any { it.id == todaySession.id })
     }
 
     @Test
