@@ -5,6 +5,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 fun Instant.formatTime(): String =
     DateTimeFormatter.ofPattern("HH:mm")
@@ -52,6 +53,12 @@ fun Duration.formatElapsedAgo(): String {
         minutes > 0 -> "${minutes}m ago"
         else -> "Just now"
     }
+}
+
+fun Long.formatMinutesSeconds(): String {
+    val totalMinutes = this / 60
+    val seconds = this % 60
+    return String.format(Locale.US, "%02d:%02d", totalMinutes, seconds)
 }
 
 fun Duration.formatElapsedShort(): String {

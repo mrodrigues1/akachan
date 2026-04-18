@@ -30,7 +30,8 @@ data class HomeUiState(
     val activeSession: BreastfeedingSession? = null,
     val nextRecommendedSide: BreastSide? = null,
     val lastNightSleepDuration: Duration? = null,
-    val lastSessionStartTime: Instant? = null
+    val lastSessionStartTime: Instant? = null,
+    val lastCompletedSessionEndTime: Instant? = null
 )
 
 @HiltViewModel
@@ -79,7 +80,8 @@ class HomeViewModel @Inject constructor(
             nextRecommendedSide = nextRecommendedSide,
             lastNightSleepDuration = lastNightSleep,
             lastSessionStartTime = (feedings.firstOrNull { it.isInProgress }
-                ?: feedings.firstOrNull())?.startTime
+                ?: feedings.firstOrNull())?.startTime,
+            lastCompletedSessionEndTime = feedings.firstOrNull { it.endTime != null }?.endTime
         )
     }.stateIn(
         scope = viewModelScope,
