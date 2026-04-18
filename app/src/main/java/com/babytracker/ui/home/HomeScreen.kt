@@ -224,10 +224,10 @@ fun HomeScreen(
                                 )
                             }
                         } else {
-                            val lastEnd = uiState.lastCompletedSessionEndTime
-                            if (lastEnd != null) {
+                            val lastStart = uiState.lastSessionStartTime
+                            if (lastStart != null) {
                                 Text(
-                                    text = Duration.between(lastEnd, now).formatElapsedAgo(),
+                                    text = Duration.between(lastStart, now).formatElapsedAgo(),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.SemiBold
