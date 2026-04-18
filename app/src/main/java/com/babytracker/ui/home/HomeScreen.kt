@@ -12,10 +12,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
@@ -40,7 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.util.formatDuration
-import com.babytracker.util.formatElapsedShort
+import com.babytracker.util.formatElapsedAgo
+import com.babytracker.util.formatMinutesSeconds
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -161,15 +165,20 @@ fun HomeScreen(
                 }
             }
 
-            val lastStart = uiState.lastSessionStartTime
-            val now by produceState(initialValue = Instant.now(), key1 = lastStart) {
+            val now by produceState(initialValue = Instant.now()) {
                 while (true) {
                     value = Instant.now()
-                    kotlinx.coroutines.delay(60_000L)
+                    kotlinx.coroutines.delay(1_000L)
                 }
             }
-            val breastfeedingElapsedLabel = lastStart?.let {
-                Duration.between(it, now).formatElapsedShort()
+            val activeSession = uiState.activeSession
+            val activeElapsedSeconds: Long? = activeSession?.let { session ->
+                if (session.isPaused) {
+                    val pausedAt = session.pausedAt!!
+                    (pausedAt.toEpochMilli() - session.startTime.toEpochMilli() - session.pausedDurationMs) / 1000
+                } else {
+                    (now.toEpochMilli() - session.startTime.toEpochMilli() - session.pausedDurationMs) / 1000
+                }.coerceAtLeast(0L)
             }
 
             // Summary cards row
@@ -196,13 +205,34 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
                         )
-                        if (breastfeedingElapsedLabel != null) {
-                            Text(
-                                text = breastfeedingElapsedLabel,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                        if (activeSession != null && activeElapsedSeconds != null) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (activeSession.isPaused) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = activeElapsedSeconds.formatMinutesSeconds(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        } else {
+                            val lastEnd = uiState.lastCompletedSessionEndTime
+                            if (lastEnd != null) {
+                                Text(
+                                    text = Duration.between(lastEnd, now).formatElapsedAgo(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
                 }
