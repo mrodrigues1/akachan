@@ -14,7 +14,7 @@ The project is a standard Android application using Gradle (Kotlin DSL).
 - **Language**: Kotlin 2.0.21
 - **UI**: Jetpack Compose (Material 3)
 - **DI**: Hilt 2.52 with KSP
-- **Database**: Room 2.6.1 with KSP
+- **Database**: Room 2.6.1 with KSP (schema v2 — `breastfeeding_sessions` has `paused_at`, `paused_duration_ms` columns)
 - **Local Storage**: DataStore 1.1.1
 
 ### Build Commands
@@ -34,6 +34,7 @@ The project is a standard Android application using Gradle (Kotlin DSL).
 The project follows a strict testing strategy using JUnit 5 and MockK.
 
 Create tests for new features, bug fixes, and edge cases.
+Doesn't need to follow the TDD pattern. Make sure the feature works as expected.
 
 ### Testing Stack
 - **Unit Testing**: JUnit 5 (`org.junit.jupiter`)
