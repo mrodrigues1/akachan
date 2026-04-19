@@ -66,16 +66,20 @@ app/src/main/java/com/babytracker/
 │   │                          #   SleepRepository, SettingsRepository
 │   └── usecase/
 │       ├── baby/              # GetBabyProfile, SaveBabyProfile
-│       ├── breastfeeding/     # StartSession, StopSession, GetHistory
+│       ├── breastfeeding/     # StartSession, StopSession, GetHistory, SwitchSide,
+│       │                      #   PauseSession, ResumeSession
 │       └── sleep/             # StartRecord, StopRecord, GetHistory, GenerateSchedule
 ├── data/
 │   ├── local/
-│   │   ├── BabyTrackerDatabase.kt   # Room DB v1, entities: breastfeeding_sessions, sleep_records
+│   │   ├── BabyTrackerDatabase.kt   # Room DB v2, entities: breastfeeding_sessions, sleep_records
 │   │   ├── dao/               # BreastfeedingDao, SleepDao
 │   │   ├── entity/            # BreastfeedingEntity, SleepEntity
 │   │   └── converter/         # TypeConverter: Instant ↔ Long (epoch ms)
 │   └── repository/            # BabyRepositoryImpl, BreastfeedingRepositoryImpl,
 │                              #   SleepRepositoryImpl, SettingsRepositoryImpl
+├── manager/
+│   ├── NotificationScheduler.kt          # Interface: schedule/cancel AlarmManager alarms
+│   └── BreastfeedingNotificationManager.kt  # Impl: schedules max-time and per-breast alarms
 ├── ui/
 │   ├── onboarding/            # OnboardingScreen + OnboardingViewModel
 │   ├── home/                  # HomeScreen + HomeViewModel
@@ -85,8 +89,11 @@ app/src/main/java/com/babytracker/
 │   ├── component/             # Reusable: TimerDisplay, HistoryCard, SideSelector
 │   └── theme/                 # Theme.kt, Color.kt, Shape.kt, Type.kt
 └── util/
-    ├── DateTimeExt.kt         # Instant.formatTime(), formatDateTime(), Duration.formatDuration()
-    └── FlowExt.kt             # Flow.catchAndLog()
+    ├── DateTimeExt.kt         # Instant.formatTime(), formatDateTime(), Duration.formatDuration(),
+    │                          #   Duration.formatElapsedAgo()
+    ├── FlowExt.kt             # Flow.catchAndLog()
+    ├── NotificationHelper.kt  # Cancel/show notification helpers
+    └── UpdateChecker.kt       # In-app update check utility
 ```
 
 ---
@@ -266,7 +273,7 @@ fun BreastfeedingSession.toEntity(): BreastfeedingEntity = ...
 
 ## Database Schema
 
-**Database:** `baby_tracker_db` (Room v1)
+**Database:** `baby_tracker_db` (Room v2)
 
 **`breastfeeding_sessions`**
 | Column | Type | Notes |
@@ -277,6 +284,8 @@ fun BreastfeedingSession.toEntity(): BreastfeedingEntity = ...
 | `starting_side` | String NOT NULL | "LEFT" or "RIGHT" |
 | `switch_time` | Long NULLABLE | epoch ms when sides switched |
 | `notes` | String NULLABLE | |
+| `paused_at` | Long NULLABLE | epoch ms when session was paused; null = running |
+| `paused_duration_ms` | Long NOT NULL | accumulated paused time in ms (default 0) |
 
 **`sleep_records`**
 | Column | Type | Notes |
@@ -313,7 +322,8 @@ Build variants: `debug` (default) and `release` (ProGuard minification enabled v
 
 ## Testing Conventions
 
-Create tests for new features, bug fixes, and edge cases. 
+Create tests for new features, bug fixes, and edge cases.
+Doesn't need to follow the TDD pattern. Make sure the feature works as expected.
 
 ### Unit Tests (`src/test/`)
 - Framework: JUnit 5 (`@Test`, `@BeforeEach`, `runTest`)

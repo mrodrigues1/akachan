@@ -33,8 +33,9 @@ app/src/main/java/com/babytracker/
 │   ├── repository/            # Repository interfaces
 │   └── usecase/               # Single-responsibility use cases
 ├── data/
-│   ├── local/                 # Room DB, DAOs, Entities, TypeConverters
+│   ├── local/                 # Room DB v2, DAOs, Entities, TypeConverters
 │   └── repository/            # Repository implementations
+├── manager/                   # NotificationScheduler interface + BreastfeedingNotificationManager impl
 ├── ui/                        # Compose screens + ViewModels
 │   ├── onboarding/
 │   ├── home/
@@ -43,7 +44,7 @@ app/src/main/java/com/babytracker/
 │   ├── settings/
 │   ├── component/             # Reusable Compose components
 │   └── theme/                 # Theme.kt, Color.kt, Shape.kt, Type.kt
-└── util/                      # Extension functions (DateTime, Flow)
+└── util/                      # Extension functions (DateTime, Flow, NotificationHelper, UpdateChecker)
 ```
 
 ## Building and Running
@@ -156,11 +157,17 @@ fun BreastfeedingSession.toEntity(): BreastfeedingEntity = ...
 ### DateTime
 - Always use `java.time.Instant` for timestamps
 - Store as epoch milliseconds (Long) in Room and DataStore
-- Format via extension functions in `util/DateTimeExt.kt`
+- Format via extension functions in `util/DateTimeExt.kt`: `formatTime()`, `formatDateTime()`, `Duration.formatDuration()`, `Duration.formatElapsedAgo()`
+
+### Database
+- Room DB `baby_tracker_db` is at **v2**
+- `breastfeeding_sessions` has two pause columns: `paused_at` (Long NULLABLE, epoch ms) and `paused_duration_ms` (Long NOT NULL, default 0)
+- Migration `MIGRATION_1_2` is declared in `BabyTrackerDatabase.kt`
 
 ## Testing
 
 Create tests for new features, bug fixes, and edge cases.
+Doesn't need to follow the TDD pattern. Make sure the feature works as expected.
 
 ### Unit Tests (`src/test/`)
 - Framework: JUnit 5 (`@Test`, `@BeforeEach`, `runTest`)
