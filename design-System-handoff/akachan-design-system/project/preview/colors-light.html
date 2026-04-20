@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Roboto', sans-serif; background: #FFFDE7; padding: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .swatch { border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+  .swatch-color { height: 56px; }
+  .swatch-info { padding: 8px 10px; background: #fff; }
+  .swatch-name { font-size: 11px; font-weight: 700; color: #1A1A1A; }
+  .swatch-hex { font-size: 10px; color: #757575; font-family: monospace; margin-top: 2px; }
+  .section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #757575; margin: 10px 0 6px; grid-column: 1/-1; }
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="section-label">Primary — Feeding / Breastfeeding</div>
+  <div class="swatch"><div class="swatch-color" style="background:#880E4F"></div><div class="swatch-info"><div class="swatch-name">On Primary Container</div><div class="swatch-hex">#880E4F</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#C2185B"></div><div class="swatch-info"><div class="swatch-name">Primary</div><div class="swatch-hex">#C2185B</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#F8BBD0"></div><div class="swatch-info"><div class="swatch-name">Primary Container</div><div class="swatch-hex">#F8BBD0</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#F4C2C2"></div><div class="swatch-info"><div class="swatch-name">Baby Pink (raw)</div><div class="swatch-hex">#F4C2C2</div></div></div>
+
+  <div class="section-label">Secondary — Sleep</div>
+  <div class="swatch"><div class="swatch-color" style="background:#0D47A1"></div><div class="swatch-info"><div class="swatch-name">On Secondary Container</div><div class="swatch-hex">#0D47A1</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#1976D2"></div><div class="swatch-info"><div class="swatch-name">Secondary</div><div class="swatch-hex">#1976D2</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#B3E5FC"></div><div class="swatch-info"><div class="swatch-name">Secondary Container</div><div class="swatch-hex">#B3E5FC</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#89CFF0"></div><div class="swatch-info"><div class="swatch-name">Baby Blue (raw)</div><div class="swatch-hex">#89CFF0</div></div></div>
+
+  <div class="section-label">Tertiary — Overtime Alert / Warm Amber <span style="font-size:9px;font-weight:400;text-transform:none;letter-spacing:0;color:#AAAAAA">↳ replaces green; reads as a gentle warm "heads up" on the yellow surface</span></div>
+  <div class="swatch"><div class="swatch-color" style="background:#7A3600"></div><div class="swatch-info"><div class="swatch-name">On Tertiary Container</div><div class="swatch-hex">#7A3600</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#E65100"></div><div class="swatch-info"><div class="swatch-name">Tertiary</div><div class="swatch-hex">#E65100</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#FFE0B2"></div><div class="swatch-info"><div class="swatch-name">Tertiary Container</div><div class="swatch-hex">#FFE0B2</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#FFCC80"></div><div class="swatch-info"><div class="swatch-name">Amber (raw)</div><div class="swatch-hex">#FFCC80</div></div></div>
+
+  <div class="section-label">Surface & Neutrals</div>
+  <div class="swatch"><div class="swatch-color" style="background:#FFFDE7; border:1px solid #e0e0e0"></div><div class="swatch-info"><div class="swatch-name">Surface / Background</div><div class="swatch-hex">#FFFDE7</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#FFF9C4; border:1px solid #e0e0e0"></div><div class="swatch-info"><div class="swatch-name">Soft Yellow (raw)</div><div class="swatch-hex">#FFF9C4</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#757575"></div><div class="swatch-info"><div class="swatch-name">On Surface Variant</div><div class="swatch-hex">#757575</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#1A1A1A"></div><div class="swatch-info"><div class="swatch-name">On Surface</div><div class="swatch-hex">#1A1A1A</div></div></div>
+</div>
+</body>
+</html>

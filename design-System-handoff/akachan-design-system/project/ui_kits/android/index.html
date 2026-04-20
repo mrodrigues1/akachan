@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Akachan Android UI Kit</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Roboto', sans-serif; background: #ECEFF1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 32px 16px 64px; gap: 24px; }
+  h1 { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #757575; }
+  .stage { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .device-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #9E9E9E; text-align: center; margin-bottom: 8px; }
+  .device-col { display: flex; flex-direction: column; align-items: center; }
+  /* Device frame */
+  .device { width: 360px; height: 720px; border-radius: 40px; overflow: hidden; background: #FFFDE7; border: 8px solid #424242; box-shadow: 0 32px 80px rgba(0,0,0,0.22), 0 0 0 1px rgba(255,255,255,0.08) inset; display: flex; flex-direction: column; position: relative; }
+  .device.dark { background: #1C1B1F; border-color: #212121; }
+  /* Status bar */
+  .status-bar { height: 36px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; }
+  .status-bar .time { font-size: 13px; font-weight: 500; }
+  .status-icons { display: flex; gap: 4px; align-items: center; }
+  /* Punch hole */
+  .punch { width: 12px; height: 12px; border-radius: 50%; background: #2e2e2e; position: absolute; top: 12px; left: 50%; transform: translateX(-50%); }
+  /* Nav gesture */
+  .gesture-bar { height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .gesture-pill { width: 96px; height: 4px; border-radius: 2px; opacity: 0.3; }
+  /* Screen content */
+  .screen-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+</style>
+</head>
+<body>
+<h1>Akachan · Android UI Kit</h1>
+<div class="stage" id="root"></div>
+
+<script type="text/babel" src="Screens.jsx"></script>
+<script type="text/babel">
+
+// ── Device Frame ─────────────────────────────────────────────
+
+function Device({ children, dark, label }) {
+  const textColor = dark ? '#E6E1E5' : '#1A1A1A';
+  const pillColor = dark ? '#fff' : '#1A1A1A';
+  return (
+    <div className="device-col">
+      <div className="device-label">{label}</div>
+      <div className={`device${dark ? ' dark' : ''}`}>
+        <div className="punch" />
+        {/* Status bar */}
+        <div className="status-bar" style={{ color: textColor }}>
+          <span className="time" style={{ color: textColor }}>9:30</span>
+          <div className="status-icons">
+            {/* wifi */}
+            <svg width="16" height="12" viewBox="0 0 24 18" fill={textColor}>
+              <path d="M12 6.5C9.6 6.5 7.4 7.4 5.7 9L4 7.3C6.1 5.3 8.9 4 12 4s5.9 1.3 8 3.3L18.3 9C16.6 7.4 14.4 6.5 12 6.5zm0 5c-1.4 0-2.7.5-3.7 1.4L6.6 11C8 9.8 9.9 9 12 9s4 .8 5.4 2l-1.7 1.9C14.7 12 13.4 11.5 12 11.5zm0 5a2 2 0 100 4 2 2 0 000-4z"/>
+            </svg>
+            {/* signal bars */}
+            <svg width="14" height="12" viewBox="0 0 24 18" fill={textColor}>
+              <rect x="1" y="12" width="4" height="6" rx="1"/>
+              <rect x="7" y="8" width="4" height="10" rx="1"/>
+              <rect x="13" y="4" width="4" height="14" rx="1"/>
+              <rect x="19" y="0" width="4" height="18" rx="1" opacity="0.3"/>
+            </svg>
+            {/* battery */}
+            <svg width="22" height="12" viewBox="0 0 30 14" fill={textColor}>
+              <rect x="0" y="1" width="26" height="12" rx="2" stroke={textColor} strokeWidth="1.5" fill="none"/>
+              <rect x="27" y="4" width="3" height="6" rx="1" fill={textColor} opacity="0.5"/>
+              <rect x="1.5" y="2.5" width="18" height="9" rx="1.5" fill={textColor}/>
+            </svg>
+          </div>
+        </div>
+        {/* Screen */}
+        <div className="screen-content">
+          {children}
+        </div>
+        {/* Gesture bar */}
+        <div className="gesture-bar">
+          <div className="gesture-pill" style={{ background: pillColor }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── App ──────────────────────────────────────────────────────
+
+function App() {
+  const [darkA, setDarkA] = React.useState(false);
+  const [screenA, setScreenA] = React.useState('onboarding');
+  const [screenB, setScreenB] = React.useState('home');
+  const [screenC, setScreenC] = React.useState('feeding');
+  const [screenD, setScreenD] = React.useState('sleep');
+  const [darkD, setDarkD] = React.useState(true);
+
+  const nav = (setter) => (s) => setter(s);
+
+  const renderScreen = (screen, onNav, dark, onToggleDark) => {
+    switch (screen) {
+      case 'onboarding': return <OnboardingScreen onComplete={() => onNav('home')} dark={dark} />;
+      case 'home':       return <HomeScreen babyName="Mia" onNav={onNav} lastFeedAgo="3h ago" lastSleepDuration="7h 30m last night" tipSide="Left" dark={dark} />;
+      case 'feeding':    return <BreastfeedingScreen onNav={onNav} dark={dark} />;
+      case 'sleep':      return <SleepScreen onNav={onNav} dark={dark} />;
+      case 'settings':   return <SettingsScreen onNav={onNav} dark={dark} onToggleDark={onToggleDark} />;
+      default:           return <HomeScreen babyName="Mia" onNav={onNav} lastFeedAgo="3h ago" lastSleepDuration="7h 30m last night" tipSide="Left" dark={dark} />;
+    }
+  };
+
+  return (
+    <div className="stage">
+      <Device label="Onboarding → Home" dark={darkA}>
+        {renderScreen(screenA, nav(setScreenA), darkA, () => setDarkA(d => !d))}
+      </Device>
+      <Device label="Home (Light)" dark={false}>
+        {renderScreen(screenB, nav(setScreenB), false, () => {})}
+      </Device>
+      <Device label="Breastfeeding" dark={false}>
+        {renderScreen(screenC, nav(setScreenC), false, () => {})}
+      </Device>
+      <Device label="Sleep + Settings (Dark)" dark={darkD}>
+        {renderScreen(screenD, nav(setScreenD), darkD, () => setDarkD(d => !d))}
+      </Device>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+
+<script>
+// Tweaks
+window.addEventListener('message', e => {
+  if (e.data?.type === '__activate_edit_mode') document.getElementById('tweaks').style.display = 'flex';
+  if (e.data?.type === '__deactivate_edit_mode') document.getElementById('tweaks').style.display = 'none';
+});
+window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{"theme":"light"}/*EDITMODE-END*/;
+</script>
+
+<div id="tweaks" style="display:none; position:fixed; bottom:20px; right:20px; background:#fff; border-radius:16px; padding:16px; box-shadow:0 4px 20px rgba(0,0,0,0.15); font-family:Roboto,sans-serif; flex-direction:column; gap:8px; z-index:999; min-width:180px;">
+  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#757575;margin-bottom:4px;">Tweaks</div>
+  <div style="font-size:12px;color:#1A1A1A;">Click screens to navigate.<br>Toggle dark mode inside Settings.</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Roboto', sans-serif; background: #1B1410; padding: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .swatch { border-radius: 12px; overflow: hidden; }
+  .swatch-color { height: 56px; }
+  .swatch-info { padding: 8px 10px; background: #2C2019; }
+  .swatch-name { font-size: 11px; font-weight: 700; color: #EDE0D8; }
+  .swatch-hex { font-size: 10px; color: #C5B4AB; font-family: monospace; margin-top: 2px; }
+  .section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #C5B4AB; margin: 10px 0 6px; grid-column: 1/-1; }
+  .note { grid-column: 1/-1; font-size: 11px; color: #C5B4AB; background: #2C2019; border-radius: 8px; padding: 8px 12px; margin-top: 4px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="grid">
+
+  <div class="section-label">Surface & Neutrals — Warm Dark</div>
+  <div class="swatch"><div class="swatch-color" style="background:#1B1410; outline:1px solid #2C2019"></div><div class="swatch-info"><div class="swatch-name">Surface / Background</div><div class="swatch-hex">#1B1410</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#2C2019"></div><div class="swatch-info"><div class="swatch-name">Surface Variant</div><div class="swatch-hex">#2C2019</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#C5B4AB"></div><div class="swatch-info"><div class="swatch-name">On Surface Variant</div><div class="swatch-hex">#C5B4AB</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#EDE0D8"></div><div class="swatch-info"><div class="swatch-name">On Surface</div><div class="swatch-hex">#EDE0D8</div></div></div>
+
+  <div class="section-label">Primary — Feeding (Warm Dark)</div>
+  <div class="swatch"><div class="swatch-color" style="background:#F06292"></div><div class="swatch-info"><div class="swatch-name">Primary</div><div class="swatch-hex">#F06292</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#7B1039"></div><div class="swatch-info"><div class="swatch-name">Primary Container</div><div class="swatch-hex">#7B1039</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#FFDDE9"></div><div class="swatch-info"><div class="swatch-name">On Primary Container</div><div class="swatch-hex">#FFDDE9</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#F8BBD0"></div><div class="swatch-info"><div class="swatch-name">Primary Container (light)</div><div class="swatch-hex">#F8BBD0</div></div></div>
+
+  <div class="section-label">Secondary — Sleep (Warm Blue)</div>
+  <div class="swatch"><div class="swatch-color" style="background:#82B1FF"></div><div class="swatch-info"><div class="swatch-name">Secondary</div><div class="swatch-hex">#82B1FF</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#0E3D75"></div><div class="swatch-info"><div class="swatch-name">Secondary Container</div><div class="swatch-hex">#0E3D75</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#C5E3FF"></div><div class="swatch-info"><div class="swatch-name">On Secondary Container</div><div class="swatch-hex">#C5E3FF</div></div></div>
+
+  <div class="section-label">Tertiary — Warm Amber (Night-time Glow)</div>
+  <div class="swatch"><div class="swatch-color" style="background:#FFCC80"></div><div class="swatch-info"><div class="swatch-name">Tertiary</div><div class="swatch-hex">#FFCC80</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#7A4800"></div><div class="swatch-info"><div class="swatch-name">Tertiary Container</div><div class="swatch-hex">#7A4800</div></div></div>
+  <div class="swatch"><div class="swatch-color" style="background:#FFE0B2"></div><div class="swatch-info"><div class="swatch-name">On Tertiary Container</div><div class="swatch-hex">#FFE0B2</div></div></div>
+
+  <div class="note">🌙 Warm dark rationale: surfaces use a deep mahogany-brown (#1B1410) instead of cool gray — mirrors the soft warmth of a nursery nightlight. Tertiary shifts from green to warm amber, which reads more naturally as an "overtime" alert in a dark, low-light environment. Sleep blue is warmed to periwinkle (#82B1FF).</div>
+</div>
+</body>
+</html>

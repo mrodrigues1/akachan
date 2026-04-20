@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Roboto', sans-serif; background: #FFFDE7; padding: 16px; }
+  .row { display: flex; align-items: center; gap: 20px; padding: 10px 0; border-bottom: 1px solid #F0EDE0; }
+  .row:last-child { border-bottom: none; }
+  .shape-box { width: 80px; height: 52px; background: #F8BBD0; border: 1px solid #C2185B; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .meta { flex: 1; }
+  .token { font-size: 12px; font-weight: 700; color: #1A1A1A; }
+  .value { font-size: 11px; color: #757575; margin-top: 2px; font-family: monospace; }
+  .usage { font-size: 11px; color: #C2185B; margin-top: 3px; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="shape-box" style="border-radius:4px"></div>
+    <div class="meta">
+      <div class="token">extraSmall</div>
+      <div class="value">4dp · --radius-xs</div>
+      <div class="usage">Error chips, small inline elements</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="shape-box" style="border-radius:8px"></div>
+    <div class="meta">
+      <div class="token">small</div>
+      <div class="value">8dp · --radius-sm</div>
+      <div class="usage">History cards, recommendation chips</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="shape-box" style="border-radius:16px"></div>
+    <div class="meta">
+      <div class="token">medium</div>
+      <div class="value">16dp · --radius-md</div>
+      <div class="usage">Main cards, side breakdown cards, outlined action cards</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="shape-box" style="border-radius:24px"></div>
+    <div class="meta">
+      <div class="token">large</div>
+      <div class="value">24dp · --radius-lg</div>
+      <div class="usage">Home summary cards, active session banners</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="shape-box" style="border-radius:50px; width:120px; height:44px"></div>
+    <div class="meta">
+      <div class="token">extraLarge (pill)</div>
+      <div class="value">50dp · --radius-xl</div>
+      <div class="usage">Primary buttons, status pill, wake time chip, FAB-like actions</div>
+    </div>
+  </div>
+</body>
+</html>
