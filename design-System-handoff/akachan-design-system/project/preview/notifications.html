@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Roboto', sans-serif; background: #E0E0E0; padding: 14px; display: flex; gap: 12px; align-items: flex-start; }
+  .col { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .col-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #757575; margin-bottom: 2px; }
+
+  /* Notification base */
+  .notif { border-radius: 16px; padding: 13px 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.14); overflow: hidden; }
+  .notif-header { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .app-icon { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
+  .app-name { font-size: 11px; font-weight: 600; flex: 1; }
+  .notif-time { font-size: 11px; }
+  .notif-title { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+  .notif-body { font-size: 12px; line-height: 1.4; }
+  .progress-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .progress-bar { flex: 1; height: 5px; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; }
+  .progress-label { font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .actions { display: flex; gap: 7px; margin-top: 9px; }
+  .action-btn { border: none; border-radius: 50px; padding: 6px 14px; font-size: 11px; font-weight: 700; font-family: 'Roboto', sans-serif; cursor: pointer; }
+  .accent-bar { height: 3px; margin: -13px -14px 11px; border-radius: 16px 16px 0 0; }
+</style>
+</head>
+<body>
+
+<!-- LEFT COL: Light theme -->
+<div class="col">
+  <div class="col-label">☀ Light theme</div>
+
+  <!-- Switch breast reminder -->
+  <div class="notif" style="background:#FFFDE7">
+    <div class="accent-bar" style="background:#C2185B"></div>
+    <div class="notif-header">
+      <div class="app-icon" style="background:#C2185B"></div>
+      <div class="app-name" style="color:#757575">Akachan</div>
+      <div class="notif-time" style="color:#AAAAAA">now</div>
+    </div>
+    <div class="notif-title" style="color:#1A1A1A">🍼 Time to switch sides</div>
+    <div class="notif-body" style="color:#757575">Left breast: 10 min. Try switching to the right.</div>
+    <div class="progress-row">
+      <div class="progress-bar" style="background:#F8BBD0"><div class="progress-fill" style="width:67%;background:#C2185B"></div></div>
+      <div class="progress-label" style="color:#C2185B">10 / 15 min</div>
+    </div>
+    <div class="actions">
+      <button class="action-btn" style="background:#F8BBD0;color:#880E4F">Switch Now</button>
+      <button class="action-btn" style="background:#F0EDE0;color:#757575">Dismiss</button>
+    </div>
+  </div>
+
+  <!-- Feed limit reached — LIGHT (amber tertiary) -->
+  <div class="notif" style="background:#FFFDE7">
+    <div class="accent-bar" style="background:#E65100"></div>
+    <div class="notif-header">
+      <div class="app-icon" style="background:#E65100"></div>
+      <div class="app-name" style="color:#757575">Akachan</div>
+      <div class="notif-time" style="color:#AAAAAA">now</div>
+    </div>
+    <div class="notif-title" style="color:#1A1A1A">⏱ Feeding limit reached</div>
+    <div class="notif-body" style="color:#757575">Session has reached 20 minutes. Consider wrapping up.</div>
+    <div class="progress-row">
+      <div class="progress-bar" style="background:#FFE0B2"><div class="progress-fill" style="width:100%;background:#E65100"></div></div>
+      <div class="progress-label" style="color:#E65100">20 / 20 min</div>
+    </div>
+    <div class="actions">
+      <button class="action-btn" style="background:#FFE0B2;color:#7A3600">Stop Session</button>
+      <button class="action-btn" style="background:#F0EDE0;color:#757575">Keep Going</button>
+    </div>
+  </div>
+
+  <!-- Sleep active -->
+  <div class="notif" style="background:#FFFDE7">
+    <div class="accent-bar" style="background:#1976D2"></div>
+    <div class="notif-header">
+      <div class="app-icon" style="background:#1976D2"></div>
+      <div class="app-name" style="color:#757575">Akachan</div>
+      <div class="notif-time" style="color:#AAAAAA">9:32 PM</div>
+    </div>
+    <div class="notif-title" style="color:#1A1A1A">🌙 Sleep session active</div>
+    <div class="notif-body" style="color:#757575">Night sleep started at 9:00 PM · 32 min elapsed</div>
+    <div class="actions">
+      <button class="action-btn" style="background:#B3E5FC;color:#0D47A1">Stop Sleep</button>
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT COL: Dark theme -->
+<div class="col">
+  <div class="col-label" style="color:#C5B4AB">🌙 Dark theme</div>
+
+  <!-- Switch breast reminder — dark -->
+  <div class="notif" style="background:#2C2019">
+    <div class="accent-bar" style="background:#F06292"></div>
+    <div class="notif-header">
+      <div class="app-icon" style="background:#F06292"></div>
+      <div class="app-name" style="color:#C5B4AB">Akachan</div>
+      <div class="notif-time" style="color:#7A6860">now</div>
+    </div>
+    <div class="notif-title" style="color:#EDE0D8">🍼 Time to switch sides</div>
+    <div class="notif-body" style="color:#C5B4AB">Left breast: 10 min. Try switching to the right.</div>
+    <div class="progress-row">
+      <div class="progress-bar" style="background:#7B1039"><div class="progress-fill" style="width:67%;background:#F06292"></div></div>
+      <div class="progress-label" style="color:#F06292">10 / 15 min</div>
+    </div>
+    <div class="actions">
+      <button class="action-btn" style="background:#7B1039;color:#FFDDE9">Switch Now</button>
+      <button class="action-btn" style="background:#3A2A20;color:#C5B4AB">Dismiss</button>
+    </div>
+  </div>
+
+  <!-- Feed limit reached — DARK (warm amber tertiary) -->
+  <div class="notif" style="background:#2C2019">
+    <div class="accent-bar" style="background:#FFCC80"></div>
+    <div class="notif-header">
+      <div class="app-icon" style="background:#FFCC80"></div>
+      <div class="app-name" style="color:#C5B4AB">Akachan</div>
+      <div class="notif-time" style="color:#7A6860">now</div>
+    </div>
+    <div class="notif-title" style="color:#EDE0D8">⏱ Feeding limit reached</div>
+    <div class="notif-body" style="color:#C5B4AB">Session has reached 20 minutes. Consider wrapping up.</div>
+    <div class="progress-row">
+      <div class="progress-bar" style="background:#7A4800"><div class="progress-fill" style="width:100%;background:#FFCC80"></div></div>
+      <div class="progress-label" style="color:#FFCC80">20 / 20 min</div>
+    </div>
+    <div class="actions">
+      <button class="action-btn" style="background:#7A4800;color:#FFE0B2">Stop Session</button>
+      <button class="action-btn" style="background:#3A2A20;color:#C5B4AB">Keep Going</button>
+    </div>
+  </div>
+
+  <!-- Sleep active — dark -->
+  <div class="notif" style="background:#2C2019">
+    <div class="accent-bar" style="background:#82B1FF"></div>
+    <div class="notif-header">
+      <div class="app-icon" style="background:#82B1FF"></div>
+      <div class="app-name" style="color:#C5B4AB">Akachan</div>
+      <div class="notif-time" style="color:#7A6860">9:32 PM</div>
+    </div>
+    <div class="notif-title" style="color:#EDE0D8">🌙 Sleep session active</div>
+    <div class="notif-body" style="color:#C5B4AB">Night sleep started at 9:00 PM · 32 min elapsed</div>
+    <div class="actions">
+      <button class="action-btn" style="background:#0E3D75;color:#C5E3FF">Stop Sleep</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Roboto', sans-serif; background: #ECEFF1; padding: 16px; display: flex; gap: 0; align-items: stretch; }
+
+  .theme-panel { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 16px; align-items: center; }
+  .theme-panel.light { background: #FFFDE7; border-radius: 16px 0 0 16px; }
+  .theme-panel.dark  { background: #1B1410; border-radius: 0 16px 16px 0; }
+
+  .theme-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+  .timers-row { display: flex; gap: 20px; align-items: flex-start; justify-content: center; }
+
+  .timer-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .ring-container { position: relative; width: 128px; height: 128px; }
+  .timer-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; white-space: nowrap; }
+  .timer-digits { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+  .timer-pct { font-size: 10px; font-weight: 700; margin-top: 2px; }
+  .timer-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .plain-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 32px; }
+  .plain-digits { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; }
+</style>
+</head>
+<body>
+
+<!-- LIGHT THEME -->
+<div class="theme-panel light">
+  <div class="theme-label" style="color:#757575">☀ Light Theme</div>
+  <div class="timers-row">
+    <!-- In-progress — primary pink -->
+    <div class="timer-wrap">
+      <div class="ring-container">
+        <canvas id="l1" width="128" height="128"></canvas>
+        <div class="timer-text">
+          <div class="timer-digits" style="color:#1A1A1A">08:32</div>
+          <div class="timer-pct" style="color:#757575">57% of 15m</div>
+        </div>
+      </div>
+      <div class="timer-label" style="color:#C2185B">In progress</div>
+    </div>
+    <!-- Overtime — tertiary amber -->
+    <div class="timer-wrap">
+      <div class="ring-container">
+        <canvas id="l2" width="128" height="128"></canvas>
+        <div class="timer-text">
+          <div class="timer-digits" style="color:#E65100">16:10</div>
+          <div class="timer-pct" style="color:#E65100">100%</div>
+        </div>
+      </div>
+      <div class="timer-label" style="color:#E65100">Overtime</div>
+    </div>
+    <!-- No limit -->
+    <div class="plain-wrap">
+      <div class="plain-digits" style="color:#1A1A1A">03:45</div>
+      <div class="timer-label" style="color:#757575">No limit</div>
+    </div>
+  </div>
+</div>
+
+<!-- DARK THEME -->
+<div class="theme-panel dark">
+  <div class="theme-label" style="color:#C5B4AB">🌙 Dark Theme</div>
+  <div class="timers-row">
+    <!-- In-progress — primary warm pink -->
+    <div class="timer-wrap">
+      <div class="ring-container">
+        <canvas id="d1" width="128" height="128"></canvas>
+        <div class="timer-text">
+          <div class="timer-digits" style="color:#EDE0D8">08:32</div>
+          <div class="timer-pct" style="color:#C5B4AB">57% of 15m</div>
+        </div>
+      </div>
+      <div class="timer-label" style="color:#F06292">In progress</div>
+    </div>
+    <!-- Overtime — dark tertiary amber -->
+    <div class="timer-wrap">
+      <div class="ring-container">
+        <canvas id="d2" width="128" height="128"></canvas>
+        <div class="timer-text">
+          <div class="timer-digits" style="color:#FFCC80">16:10</div>
+          <div class="timer-pct" style="color:#FFCC80">100%</div>
+        </div>
+      </div>
+      <div class="timer-label" style="color:#FFCC80">Overtime</div>
+    </div>
+    <!-- No limit -->
+    <div class="plain-wrap">
+      <div class="plain-digits" style="color:#EDE0D8">03:45</div>
+      <div class="timer-label" style="color:#C5B4AB">No limit</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function ring(id, progress, ringColor, trackColor) {
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  const cx = 64, cy = 64, r = 50, sw = 11;
+  ctx.clearRect(0, 0, 128, 128);
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.strokeStyle = trackColor; ctx.lineWidth = sw; ctx.lineCap = 'round'; ctx.stroke();
+  if (progress > 0) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + Math.PI*2*progress);
+    ctx.strokeStyle = ringColor; ctx.lineWidth = sw; ctx.lineCap = 'round'; ctx.stroke();
+  }
+}
+// Light theme
+ring('l1', 0.57, '#C2185B', '#F8BBD0');   // feeding progress — pink
+ring('l2', 1.00, '#E65100', '#FFE0B2');   // overtime — amber
+// Dark theme
+ring('d1', 0.57, '#F06292', '#7B1039');   // feeding progress — warm pink
+ring('d2', 1.00, '#FFCC80', '#7A4800');   // overtime — warm amber
+</script>
+</body>
+</html>

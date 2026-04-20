@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Roboto', sans-serif; background: #FFFDE7; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #757575; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .btn-primary { background: #C2185B; color: #fff; border: none; border-radius: 50px; padding: 12px 28px; font-size: 14px; font-weight: 600; font-family: 'Roboto', sans-serif; cursor: pointer; }
+  .btn-secondary { background: #1976D2; color: #fff; border: none; border-radius: 50px; padding: 12px 28px; font-size: 14px; font-weight: 600; font-family: 'Roboto', sans-serif; cursor: pointer; }
+  .btn-outlined { background: transparent; color: #C2185B; border: 1.5px solid #C2185B; border-radius: 50px; padding: 11px 24px; font-size: 14px; font-weight: 600; font-family: 'Roboto', sans-serif; cursor: pointer; }
+  .btn-outlined-blue { background: transparent; color: #1976D2; border: 1.5px solid #1976D2; border-radius: 50px; padding: 11px 24px; font-size: 14px; font-weight: 600; font-family: 'Roboto', sans-serif; cursor: pointer; }
+  .btn-text { background: transparent; color: #C2185B; border: none; padding: 8px 12px; font-size: 14px; font-weight: 600; font-family: 'Roboto', sans-serif; cursor: pointer; }
+  .btn-disabled { background: #E0E0E0; color: #AAAAAA; border: none; border-radius: 50px; padding: 12px 28px; font-size: 14px; font-weight: 600; font-family: 'Roboto', sans-serif; cursor: not-allowed; }
+  .outlined-card-btn { background: transparent; border: 1.5px solid #CAC4D0; border-radius: 16px; padding: 12px 20px; font-size: 14px; font-weight: 600; font-family: 'Roboto', sans-serif; color: #C2185B; cursor: pointer; display: flex; align-items: center; gap: 10px; width: 100%; }
+  .mi { width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .chip-primary { background: #F8BBD0; color: #880E4F; border-radius: 50px; padding: 6px 14px; font-size: 12px; font-weight: 700; border: none; font-family: 'Roboto', sans-serif; }
+  .chip-secondary { background: #B3E5FC; color: #0D47A1; border-radius: 50px; padding: 6px 14px; font-size: 12px; font-weight: 700; border: none; font-family: 'Roboto', sans-serif; }
+  .chip-filter { background: #F8BBD0; color: #880E4F; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; border: none; font-family: 'Roboto', sans-serif; }
+  .chip-filter-unsel { background: transparent; color: #757575; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; border: 1.5px solid #CAC4D0; font-family: 'Roboto', sans-serif; }
+  .chip-suggestion { background: #B3E5FC; color: #0D47A1; border-radius: 50px; padding: 5px 12px; font-size: 12px; font-family: 'Roboto', sans-serif; border: 1px solid #89CFF0; }
+  .pill-status { background: #F8BBD0; color: #880E4F; border-radius: 50px; padding: 6px 16px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #C2185B; display: inline-block; }
+</style>
+</head>
+<body>
+  <div class="section-label">Filled Buttons (pill — extraLarge 50dp)</div>
+  <div class="row">
+    <button class="btn-primary">Start Session</button>
+    <button class="btn-secondary">+ Add Sleep Entry</button>
+    <button class="btn-disabled">Start Session</button>
+  </div>
+
+  <div class="section-label">Outlined Buttons (pill)</div>
+  <div class="row">
+    <button class="btn-outlined">History</button>
+    <button class="btn-outlined-blue">Schedule</button>
+    <button class="btn-text">History</button>
+  </div>
+
+  <div class="section-label">Outlined Card Buttons (medium 16dp — action rows)</div>
+  <div class="row" style="flex-direction:column; align-items:stretch;">
+    <!-- Switch sides — swap_horiz -->
+    <button class="outlined-card-btn">
+      <span class="mi"><svg viewBox="0 0 24 24" fill="#C2185B"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg></span>
+      Switch to Right
+    </button>
+    <!-- Pause — pause -->
+    <button class="outlined-card-btn">
+      <span class="mi"><svg viewBox="0 0 24 24" fill="#C2185B"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></span>
+      Pause Session
+    </button>
+    <!-- Stop — stop -->
+    <button class="outlined-card-btn" style="background:#F8BBD0">
+      <span class="mi"><svg viewBox="0 0 24 24" fill="#C2185B"><path d="M6 6h12v12H6z"/></svg></span>
+      Stop Session
+    </button>
+    <!-- Resume — play_arrow -->
+    <button class="outlined-card-btn">
+      <span class="mi"><svg viewBox="0 0 24 24" fill="#C2185B"><path d="M8 5v14l11-7z"/></svg></span>
+      Resume Session
+    </button>
+  </div>
+
+  <div class="section-label">Status Pills & Filter Chips</div>
+  <div class="row">
+    <span class="pill-status"><span class="dot"></span> Session in progress</span>
+    <span class="pill-status" style="background:#B3E5FC; color:#0D47A1; gap:6px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="#0D47A1"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      Session paused
+    </span>
+  </div>
+  <div class="row">
+    <button class="chip-filter" style="background:#B3E5FC; color:#0D47A1">🍼 Nap</button>
+    <button class="chip-filter-unsel">🌙 Night Sleep</button>
+    <span class="chip-suggestion">Dairy</span>
+    <span class="chip-suggestion" style="background:#F8BBD0; color:#880E4F; border-color:#F4C2C2">Gluten</span>
+  </div>
+</body>
+</html>

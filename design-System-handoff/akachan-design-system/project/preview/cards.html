@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Roboto', sans-serif; background: #FFFDE7; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .row { display: flex; gap: 10px; }
+  /* Home summary card */
+  .summary-card { background: #FFFDE7; border-radius: 24px; padding: 20px; flex: 1; box-shadow: 0 2px 6px rgba(0,0,0,0.10); }
+  .emoji { font-size: 22px; margin-bottom: 10px; display: block; }
+  .card-title-pink { font-size: 16px; font-weight: 700; color: #C2185B; }
+  .card-title-blue { font-size: 16px; font-weight: 700; color: #1976D2; }
+  .card-subtitle { font-size: 13px; font-weight: 600; margin-top: 4px; }
+  /* Active session banner */
+  .banner { background: #C2185B; border-radius: 24px; padding: 16px; display: flex; align-items: center; gap: 12px; }
+  .banner-text { color: #fff; font-size: 14px; font-weight: 700; flex: 1; }
+  .banner-btn { background: transparent; border: 1.5px solid #fff; color: #fff; border-radius: 50px; padding: 6px 14px; font-size: 13px; font-weight: 600; font-family: 'Roboto', sans-serif; }
+  /* Tip card */
+  .tip-card { background: #F8BBD0; border-radius: 24px; padding: 14px; display: flex; align-items: flex-start; gap: 10px; }
+  .tip-label { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #880E4F; }
+  .tip-body { font-size: 12px; color: #880E4F; margin-top: 2px; }
+  /* History card */
+  .history-card { background: #FFFDE7; border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .badge { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .history-main { flex: 1; }
+  .history-title { font-size: 14px; font-weight: 600; color: #1A1A1A; }
+  .history-sub { font-size: 12px; color: #757575; margin-top: 2px; }
+  .history-trail { font-size: 14px; font-weight: 700; color: #C2185B; }
+  /* Sleep summary */
+  .sleep-summary { background: rgba(179,229,252,0.5); border-radius: 16px; padding: 12px; display: flex; justify-content: space-around; }
+  .stat-col { text-align: center; }
+  .stat-val { font-size: 16px; font-weight: 700; color: #1976D2; }
+  .stat-label { font-size: 11px; color: #757575; margin-top: 2px; }
+</style>
+</head>
+<body>
+  <!-- Active session banner -->
+  <div class="banner">
+    <span style="font-size:22px">🍼</span>
+    <div class="banner-text">Feeding in progress</div>
+    <button class="banner-btn">Stop</button>
+  </div>
+
+  <!-- Home summary cards -->
+  <div class="row">
+    <div class="summary-card">
+      <span class="emoji">🍼</span>
+      <div class="card-title-pink">Breastfeeding</div>
+      <div class="card-subtitle" style="color:#C2185B">3h ago</div>
+    </div>
+    <div class="summary-card">
+      <span class="emoji">🌙</span>
+      <div class="card-title-blue">Sleep</div>
+      <div class="card-subtitle" style="color:#1976D2">7h 30m last night</div>
+    </div>
+  </div>
+
+  <!-- Tip card -->
+  <div class="tip-card">
+    <span style="font-size:18px">✨</span>
+    <div>
+      <div class="tip-label">Tip</div>
+      <div class="tip-body">Try Left breast next — used less last session.</div>
+    </div>
+  </div>
+
+  <!-- History card (breastfeeding) -->
+  <div class="history-card">
+    <div class="badge" style="background:#F8BBD0">🍼</div>
+    <div class="history-main">
+      <div class="history-title">Left breast</div>
+      <div class="history-sub">First side · 2:30 PM</div>
+    </div>
+    <div class="history-trail">12m 30s</div>
+  </div>
+
+  <!-- History card (sleep) -->
+  <div class="history-card">
+    <div class="badge" style="background:#B3E5FC">🌙</div>
+    <div class="history-main">
+      <div class="history-title">Night Sleep</div>
+      <div class="history-sub">9:00 PM – 5:30 AM</div>
+    </div>
+    <div class="history-trail" style="color:#1976D2">7h 30m</div>
+  </div>
+
+  <!-- Sleep summary -->
+  <div class="sleep-summary">
+    <div class="stat-col"><div class="stat-val">9h 15m</div><div class="stat-label">Sleep today</div></div>
+    <div class="stat-col"><div class="stat-val">2</div><div class="stat-label">Naps</div></div>
+    <div class="stat-col"><div class="stat-val">7h 30m</div><div class="stat-label">Night sleep</div></div>
+  </div>
+</body>
+</html>
