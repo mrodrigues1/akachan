@@ -27,32 +27,32 @@ val Green100 = Color(0xFF90EE90)
 // Soft yellow — retained for surface (no scale equivalent)
 val SoftYellow = Color(0xFFFFF9C4)
 
-// Light scheme semantic tokens
-val PrimaryPink = Color(0xFFC2185B)
+// ─── Light scheme semantic tokens ─────────────────────────────
+val PrimaryPink = Pink700
 val OnPrimaryWhite = Color(0xFFFFFFFF)
-val PrimaryContainerPink = Color(0xFFF8BBD0)
-val OnPrimaryContainerDarkPink = Color(0xFF880E4F)
+val PrimaryContainerPink = Pink200
+val OnPrimaryContainerDarkPink = Pink900
 
-val SecondaryBlue = Color(0xFF1976D2)
+val SecondaryBlue = Blue700
 val OnSecondaryWhite = Color(0xFFFFFFFF)
-val SecondaryContainerBlue = Color(0xFFB3E5FC)
-val OnSecondaryContainerDarkBlue = Color(0xFF0D47A1)
+val SecondaryContainerBlue = Blue200
+val OnSecondaryContainerDarkBlue = Blue900
 
-val TertiaryGreen = Color(0xFF388E3C)
+val TertiaryGreen = Green700
 val OnTertiaryWhite = Color(0xFFFFFFFF)
-val TertiaryContainerGreen = Color(0xFFC8E6C9)
-val OnTertiaryContainerDarkGreen = Color(0xFF1B5E20)
+val TertiaryContainerGreen = Green200
+val OnTertiaryContainerDarkGreen = Green900
 
-val SurfaceYellow = Color(0xFFFFFDE7)
-val OnSurfaceDark = Color(0xFF1A1A1A)
-val OnSurfaceVariantGrey = Color(0xFF757575)
+val SurfaceYellow = Color(0xFFFFFDE7)       // no scale equivalent
+val OnSurfaceDark = Color(0xFF1A1A1A)       // no scale equivalent
+val OnSurfaceVariantGrey = Color(0xFF757575) // no scale equivalent
 
-// Dark scheme semantic tokens
-val PrimaryPinkDark = Color(0xFFF48FB1)
-val PrimaryContainerPinkDark = Color(0xFF880E4F)
-val SecondaryBlueDark = Color(0xFF90CAF9)
-val SecondaryContainerBlueDark = Color(0xFF0D47A1)
-val TertiaryGreenDark = Color(0xFFA5D6A7)
-val TertiaryContainerGreenDark = Color(0xFF1B5E20)
-val SurfaceDark = Color(0xFF1C1B1F)
-val OnSurfaceDarkTheme = Color(0xFFE6E1E5)
+// ─── Dark scheme semantic tokens ──────────────────────────────
+val PrimaryPinkDark = Color(0xFFF48FB1)     // no scale equivalent (brighter than Pink100)
+val PrimaryContainerPinkDark = Pink900
+val SecondaryBlueDark = Color(0xFF90CAF9)   // no scale equivalent (brighter than Blue100)
+val SecondaryContainerBlueDark = Blue900
+val TertiaryGreenDark = Color(0xFFA5D6A7)   // no scale equivalent (brighter than Green100)
+val TertiaryContainerGreenDark = Green900
+val SurfaceDark = Color(0xFF1C1B1F)         // no scale equivalent
+val OnSurfaceDarkTheme = Color(0xFFE6E1E5)  // no scale equivalent
