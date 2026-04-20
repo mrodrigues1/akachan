@@ -29,17 +29,17 @@ val SoftYellow = Color(0xFFFFF9C4)
 
 // ─── Light scheme semantic tokens ─────────────────────────────
 val PrimaryPink = Pink700
-val OnPrimaryWhite = Color(0xFFFFFFFF)
+val OnPrimaryWhite = Color(0xFFFFFFFF)      // no scale equivalent (pure white)
 val PrimaryContainerPink = Pink200
 val OnPrimaryContainerDarkPink = Pink900
 
 val SecondaryBlue = Blue700
-val OnSecondaryWhite = Color(0xFFFFFFFF)
+val OnSecondaryWhite = Color(0xFFFFFFFF)    // no scale equivalent (pure white)
 val SecondaryContainerBlue = Blue200
 val OnSecondaryContainerDarkBlue = Blue900
 
 val TertiaryGreen = Green700
-val OnTertiaryWhite = Color(0xFFFFFFFF)
+val OnTertiaryWhite = Color(0xFFFFFFFF)     // no scale equivalent (pure white)
 val TertiaryContainerGreen = Green200
 val OnTertiaryContainerDarkGreen = Green900
 
