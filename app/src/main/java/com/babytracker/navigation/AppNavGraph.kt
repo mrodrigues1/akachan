@@ -9,6 +9,7 @@ import com.babytracker.ui.breastfeeding.BreastfeedingScreen
 import com.babytracker.ui.home.HomeScreen
 import com.babytracker.ui.onboarding.OnboardingScreen
 import com.babytracker.ui.settings.SettingsScreen
+import com.babytracker.ui.theme.DesignSystemPreviewScreen
 import com.babytracker.ui.sleep.SleepHistoryScreen
 import com.babytracker.ui.sleep.SleepScheduleScreen
 import com.babytracker.ui.sleep.SleepTrackingScreen
@@ -22,6 +23,7 @@ object Routes {
     const val SLEEP_HISTORY = "sleep/history"
     const val SLEEP_SCHEDULE = "sleep/schedule"
     const val SETTINGS = "settings"
+    const val DESIGN_SYSTEM_PREVIEW = "design_system/preview"
 }
 
 @Composable
@@ -79,6 +81,12 @@ fun AppNavGraph(
         }
         composable(Routes.SETTINGS) {
             SettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToDesignSystem = { navController.navigate(Routes.DESIGN_SYSTEM_PREVIEW) },
+            )
+        }
+        composable(Routes.DESIGN_SYSTEM_PREVIEW) {
+            DesignSystemPreviewScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
