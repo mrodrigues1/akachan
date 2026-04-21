@@ -72,6 +72,7 @@ private enum class SettingsSheet {
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToDesignSystem: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -223,6 +224,23 @@ fun SettingsScreen(
             )
 
             HorizontalDivider()
+
+            if (BuildConfig.DEBUG) {
+                Text(
+                    text = "Developer",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                )
+
+                SettingsRow(
+                    label = "Design System",
+                    value = "Colors, typography, shapes",
+                    onClick = onNavigateToDesignSystem,
+                )
+
+                HorizontalDivider()
+            }
 
             // Version footer
             Spacer(modifier = Modifier.height(32.dp))
