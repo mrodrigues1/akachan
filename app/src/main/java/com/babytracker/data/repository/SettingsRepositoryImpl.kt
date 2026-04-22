@@ -27,6 +27,7 @@ class SettingsRepositoryImpl @Inject constructor(
         val MAX_TOTAL_FEED_MINUTES = intPreferencesKey("max_total_feed_minutes")
         val WAKE_TIME_MINUTES = intPreferencesKey("wake_time_minutes")
         val AUTO_UPDATE_ENABLED = booleanPreferencesKey("auto_update_enabled")
+        val RICH_NOTIFICATIONS_ENABLED = booleanPreferencesKey("rich_notifications_enabled")
     }
 
     override fun getThemeConfig(): Flow<ThemeConfig> =
@@ -84,5 +85,12 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setAutoUpdateEnabled(enabled: Boolean) {
         dataStore.edit { it[AUTO_UPDATE_ENABLED] = enabled }
+    }
+
+    override fun getRichNotificationsEnabled(): Flow<Boolean> =
+        dataStore.data.map { it[RICH_NOTIFICATIONS_ENABLED] ?: true }
+
+    override suspend fun setRichNotificationsEnabled(enabled: Boolean) {
+        dataStore.edit { it[RICH_NOTIFICATIONS_ENABLED] = enabled }
     }
 }
