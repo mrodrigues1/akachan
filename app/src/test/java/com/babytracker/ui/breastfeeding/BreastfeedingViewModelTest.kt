@@ -79,10 +79,10 @@ class BreastfeedingViewModelTest {
         coJustRun { pauseSession(any()) }
         coJustRun { resumeSession(any()) }
         every { notificationScheduler.cancelAllScheduledNotifications() } returns Unit
-        every { notificationScheduler.scheduleMaxPerBreastNotification(any(), any()) } returns Unit
-        every { notificationScheduler.scheduleMaxTotalTimeNotification(any(), any()) } returns Unit
-        every { notificationScheduler.scheduleMaxPerBreastNotificationAt(any()) } returns Unit
-        every { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any()) } returns Unit
+        every { notificationScheduler.scheduleMaxPerBreastNotification(any(), any(), any(), any(), any()) } returns Unit
+        every { notificationScheduler.scheduleMaxTotalTimeNotification(any(), any(), any(), any(), any()) } returns Unit
+        every { notificationScheduler.scheduleMaxPerBreastNotificationAt(any(), any(), any(), any(), any()) } returns Unit
+        every { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any(), any(), any(), any(), any()) } returns Unit
 
         viewModel = createViewModel()
     }
@@ -293,8 +293,8 @@ class BreastfeedingViewModelTest {
         // and NOT again when the session update (pause) emits from the repository Flow.
         // The persistent-collect bug caused it to reschedule on every update, which meant
         // cancelling alarms on pause had no lasting effect.
-        verify(exactly = 1) { notificationScheduler.scheduleMaxPerBreastNotification(any(), any()) }
-        verify(exactly = 1) { notificationScheduler.scheduleMaxTotalTimeNotification(any(), any()) }
+        verify(exactly = 1) { notificationScheduler.scheduleMaxPerBreastNotification(any(), any(), any(), any(), any()) }
+        verify(exactly = 1) { notificationScheduler.scheduleMaxTotalTimeNotification(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -313,7 +313,7 @@ class BreastfeedingViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { switchSide(session) }
-        coVerify(exactly = 0) { notificationScheduler.scheduleMaxPerBreastNotification(any(), any()) }
+        coVerify(exactly = 0) { notificationScheduler.scheduleMaxPerBreastNotification(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -333,8 +333,8 @@ class BreastfeedingViewModelTest {
         viewModel.onResumeSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        verify(exactly = 1) { notificationScheduler.scheduleMaxPerBreastNotificationAt(any()) }
-        verify(exactly = 1) { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any()) }
+        verify(exactly = 1) { notificationScheduler.scheduleMaxPerBreastNotificationAt(any(), any(), any(), any(), any()) }
+        verify(exactly = 1) { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any(), any(), any(), any(), any()) }
     }
 
     @Test

@@ -7,6 +7,7 @@ import android.content.Intent
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.slot
 import io.mockk.unmockkAll
 import io.mockk.verify
 import org.junit.jupiter.api.AfterEach
@@ -46,28 +47,28 @@ class BreastfeedingNotificationManagerTest {
 
     @Test
     fun `scheduleMaxTotalTimeNotification does nothing when maxTotalMinutes is zero`() {
-        notificationManager.scheduleMaxTotalTimeNotification(Instant.now(), 0)
+        notificationManager.scheduleMaxTotalTimeNotification(Instant.now(), 0, 1L, "LEFT", 15)
 
         verify(exactly = 0) { alarmManager.setExactAndAllowWhileIdle(any(), any(), any<PendingIntent>()) }
     }
 
     @Test
     fun `scheduleMaxTotalTimeNotification does nothing when maxTotalMinutes is negative`() {
-        notificationManager.scheduleMaxTotalTimeNotification(Instant.now(), -5)
+        notificationManager.scheduleMaxTotalTimeNotification(Instant.now(), -5, 1L, "LEFT", 15)
 
         verify(exactly = 0) { alarmManager.setExactAndAllowWhileIdle(any(), any(), any<PendingIntent>()) }
     }
 
     @Test
     fun `scheduleMaxPerBreastNotification does nothing when maxPerBreastMinutes is zero`() {
-        notificationManager.scheduleMaxPerBreastNotification(Instant.now(), 0)
+        notificationManager.scheduleMaxPerBreastNotification(Instant.now(), 0, 1L, "LEFT", 30)
 
         verify(exactly = 0) { alarmManager.setExactAndAllowWhileIdle(any(), any(), any<PendingIntent>()) }
     }
 
     @Test
     fun `scheduleMaxPerBreastNotification does nothing when maxPerBreastMinutes is negative`() {
-        notificationManager.scheduleMaxPerBreastNotification(Instant.now(), -10)
+        notificationManager.scheduleMaxPerBreastNotification(Instant.now(), -10, 1L, "LEFT", 30)
 
         verify(exactly = 0) { alarmManager.setExactAndAllowWhileIdle(any(), any(), any<PendingIntent>()) }
     }
@@ -77,6 +78,38 @@ class BreastfeedingNotificationManagerTest {
         notificationManager.cancelAllScheduledNotifications()
 
         // Should cancel both REQUEST_CODE_MAX_TOTAL (1001) and REQUEST_CODE_MAX_PER_BREAST (1002)
+        verify(exactly = 2) { alarmManager.cancel(any<PendingIntent>()) }
+    }
+
+    @Test
+    fun `scheduleMaxPerBreastNotification schedules alarm when maxPerBreastMinutes is positive`() {
+        notificationManager.scheduleMaxPerBreastNotification(
+            sessionStartTime = Instant.now(),
+            maxPerBreastMinutes = 15,
+            sessionId = 42L,
+            currentSide = "LEFT",
+            maxTotalMinutes = 30
+        )
+
+        verify(exactly = 1) { alarmManager.setExactAndAllowWhileIdle(any(), any(), any<PendingIntent>()) }
+    }
+
+    @Test
+    fun `scheduleMaxTotalTimeNotification schedules alarm when maxTotalMinutes is positive`() {
+        notificationManager.scheduleMaxTotalTimeNotification(
+            sessionStartTime = Instant.now(),
+            maxTotalMinutes = 30,
+            sessionId = 7L,
+            currentSide = "RIGHT",
+            maxPerBreastMinutes = 15
+        )
+
+        verify(exactly = 1) { alarmManager.setExactAndAllowWhileIdle(any(), any(), any<PendingIntent>()) }
+    }
+
+    @Test
+    fun `cancelAllScheduledNotifications regression - still cancels both request codes`() {
+        notificationManager.cancelAllScheduledNotifications()
         verify(exactly = 2) { alarmManager.cancel(any<PendingIntent>()) }
     }
 
