@@ -87,7 +87,8 @@ app/src/main/java/com/babytracker/
 │   ├── sleep/                 # SleepTrackingScreen, SleepHistoryScreen, SleepScheduleScreen + VMs
 │   ├── settings/              # SettingsScreen + SettingsViewModel
 │   ├── component/             # Reusable: TimerDisplay, HistoryCard, SideSelector
-│   └── theme/                 # Theme.kt, Color.kt, Shape.kt, Type.kt
+│   └── theme/                 # Theme.kt, Color.kt, Shape.kt, Type.kt,
+│                              #   DesignSystemPreviewScreen.kt (debug catalog)
 └── util/
     ├── DateTimeExt.kt         # Instant.formatTime(), formatDateTime(), Duration.formatDuration(),
     │                          #   Duration.formatElapsedAgo()
@@ -100,18 +101,104 @@ app/src/main/java/com/babytracker/
 
 ## Theme & UI Tokens
 
-| Token | Light Value | Usage |
-|-------|-------------|-------|
-| `primary` | `#C2185B` | Primary actions, Feeding theme |
-| `secondary` | `#1976D2` | Secondary actions, Sleep theme |
-| `tertiary` | `#388E3C` | Success states, Warning/Overtime in timers |
-| `surface` | `#FFFDE7` | Background, Cards |
-| `shapes.medium` | `16.dp` | Main cards |
-| `shapes.extraLarge`| `50.dp` | Primary buttons (FAB-like) |
+All design-system source lives in `ui/theme/`. The live catalog is at `ui/theme/DesignSystemPreviewScreen.kt` — reachable from Settings → Developer (debug builds only).
 
-**Custom Typography:**
-- `displaySmall`: ExtraBold 36sp (Timer clock)
-- `labelMedium`: Bold 12sp UPPERCASE (Day section headers)
+### Palette Scale (`Color.kt`)
+
+Three hue families, each with a 4-stop scale. The scale semantics are shared across families:
+
+| Stop | Role |
+|------|------|
+| 700  | Primary action color |
+| 200  | Container / background tint |
+| 900  | On-container text (dark) |
+| 100  | Softest tone |
+
+| Family | 100 | 200 | 700 | 900 |
+|--------|-----|-----|-----|-----|
+| **Pink** (Feeding/Primary) | `#F4C2C2` | `#F8BBD0` | `#C2185B` | `#880E4F` |
+| **Blue** (Sleep/Secondary) | `#89CFF0` | `#B3E5FC` | `#1976D2` | `#0D47A1` |
+| **Green** (Success/Tertiary) | `#90EE90` | `#C8E6C9` | `#388E3C` | `#1B5E20` |
+
+Surface grays and yellows have no scale equivalent:
+- `SoftYellow` `#FFF9C4` — soft background hint
+- `SurfaceYellow` `#FFFDE7` — light scheme surface / background
+
+### Semantic Color Tokens (`Color.kt` → `Theme.kt`)
+
+**Light scheme**
+
+| Token name | Palette constant | Hex |
+|------------|-----------------|-----|
+| `primary` | `Pink700` | `#C2185B` |
+| `onPrimary` | `OnPrimaryWhite` | `#FFFFFF` |
+| `primaryContainer` | `Pink200` | `#F8BBD0` |
+| `onPrimaryContainer` | `Pink900` | `#880E4F` |
+| `secondary` | `Blue700` | `#1976D2` |
+| `onSecondary` | `OnSecondaryWhite` | `#FFFFFF` |
+| `secondaryContainer` | `Blue200` | `#B3E5FC` |
+| `onSecondaryContainer` | `Blue900` | `#0D47A1` |
+| `tertiary` | `Green700` | `#388E3C` |
+| `onTertiary` | `OnTertiaryWhite` | `#FFFFFF` |
+| `tertiaryContainer` | `Green200` | `#C8E6C9` |
+| `onTertiaryContainer` | `Green900` | `#1B5E20` |
+| `surface` / `background` | `SurfaceYellow` | `#FFFDE7` |
+| `onSurface` | `OnSurfaceDark` | `#1A1A1A` |
+| `onSurfaceVariant` | `OnSurfaceVariantGrey` | `#757575` |
+| `surfaceVariant` | `SurfaceVariantLight` | `#F0EDE0` |
+| `outline` | `OutlineLight` | `#CAC4D0` |
+| `outlineVariant` | `OutlineVariantLight` | `#CAC4D0` |
+| `error` | `ErrorLight` | `#B00020` |
+| `errorContainer` | `ErrorContainerLight` | `#FFDAD6` |
+| `onErrorContainer` | `OnErrorContainerLight` | `#410002` |
+
+**Dark scheme** — all dark tokens have no palette-scale equivalent (independently chosen for contrast):
+
+| Token name | Hex |
+|------------|-----|
+| `primary` | `#F48FB1` |
+| `primaryContainer` | `#880E4F` (Pink900) |
+| `secondary` | `#90CAF9` |
+| `secondaryContainer` | `#0D47A1` (Blue900) |
+| `tertiary` | `#A5D6A7` |
+| `tertiaryContainer` | `#1B5E20` (Green900) |
+| `surface` / `background` | `#1C1B1F` |
+| `onSurface` | `#E6E1E5` |
+| `surfaceVariant` | `#2B2930` |
+| `outline` | `#938F99` |
+| `outlineVariant` | `#49454F` |
+| `error` | `#FFB4AB` |
+| `errorContainer` | `#93000A` |
+
+### Typography (`Type.kt` → `AkachanTypography`)
+
+All 13 M3 slots are defined. Key custom roles:
+
+| Slot | Weight | Size | Usage |
+|------|--------|------|-------|
+| `displaySmall` | ExtraBold | 36sp | Timer clock display |
+| `headlineLarge` | Bold | 32sp | Screen titles |
+| `headlineMedium` | Bold | 28sp | Section titles |
+| `headlineSmall` | SemiBold | 24sp | Card titles |
+| `titleLarge` | SemiBold | 22sp | TopAppBar title |
+| `titleMedium` | SemiBold | 16sp | List item primary text |
+| `titleSmall` | Medium | 14sp | List item secondary |
+| `bodyLarge` | Normal | 16sp | Body / description |
+| `bodyMedium` | Normal | 14sp | Secondary body |
+| `bodySmall` | Normal | 12sp | Captions |
+| `labelLarge` | SemiBold | 14sp | Button labels |
+| `labelMedium` | Bold | 12sp | Section headers (UPPERCASE convention) |
+| `labelSmall` | Medium | 11sp | Swatch / chip labels |
+
+### Shapes (`Shape.kt` → `AkachanShapes`)
+
+| Slot | Corner radius | Usage |
+|------|--------------|-------|
+| `extraSmall` | 4dp | Dense chips |
+| `small` | 8dp | Input fields, small cards |
+| `medium` | 16dp | Main cards |
+| `large` | 24dp | Bottom sheets, dialogs |
+| `extraLarge` | 50dp | Primary buttons (FAB-like) |
 
 ---
 
