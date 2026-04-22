@@ -8,7 +8,7 @@ import dagger.hilt.android.HiltAndroidApp
 class BabyTrackerApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        // Create notification channel on app startup (required for Android 8.0+)
-        NotificationHelper.createNotificationChannel(this)
+        NotificationHelper.createBreastfeedingNotificationChannel(this)
+        NotificationHelper.createSleepNotificationChannel(this)
     }
 }
