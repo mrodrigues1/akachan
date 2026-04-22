@@ -55,40 +55,45 @@ class BreastfeedingActionReceiverTest {
     fun tearDown() = unmockkAll()
 
     @Test
-    fun `ACTION_SWITCH calls switchSide for matching session`() = runTest {
+    fun `ACTION_SWITCH calls switchSide and cancels switch-side notification`() = runTest {
         coEvery { switchSide(activeSession) } returns Unit
-        every { (mockk<Intent>()).getStringExtra(BreastfeedingActionReceiver.EXTRA_ACTION) } returns BreastfeedingActionReceiver.ACTION_SWITCH
 
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_SWITCH, 42L))
 
         coVerify { switchSide(activeSession) }
+        verify { NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID) }
+        verify(exactly = 0) { NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID) }
     }
 
     @Test
-    fun `ACTION_STOP calls stopSession for matching session`() = runTest {
+    fun `ACTION_STOP calls stopSession and cancels feeding-limit notification`() = runTest {
         coEvery { stopSession(activeSession) } returns Unit
 
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_STOP, 42L))
 
         coVerify { stopSession(activeSession) }
+        verify { NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID) }
+        verify(exactly = 0) { NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID) }
     }
 
     @Test
-    fun `ACTION_DISMISS cancels notification without touching repository`() = runTest {
+    fun `ACTION_DISMISS cancels only switch-side notification without touching repository`() = runTest {
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_DISMISS, 42L))
 
         coVerify(exactly = 0) { switchSide(any()) }
         coVerify(exactly = 0) { stopSession(any()) }
-        verify { NotificationHelper.cancelNotification(any(), any()) }
+        verify { NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID) }
+        verify(exactly = 0) { NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID) }
     }
 
     @Test
-    fun `ACTION_KEEP_GOING cancels notification without touching repository`() = runTest {
+    fun `ACTION_KEEP_GOING cancels only feeding-limit notification without touching repository`() = runTest {
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_KEEP_GOING, 42L))
 
         coVerify(exactly = 0) { switchSide(any()) }
         coVerify(exactly = 0) { stopSession(any()) }
-        verify { NotificationHelper.cancelNotification(any(), any()) }
+        verify { NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID) }
+        verify(exactly = 0) { NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID) }
     }
 
     private fun intent(action: String, sessionId: Long) = mockk<Intent>(relaxed = true).also {
