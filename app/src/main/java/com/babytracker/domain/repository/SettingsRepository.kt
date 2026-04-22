@@ -17,4 +17,6 @@ interface SettingsRepository {
     suspend fun setWakeTime(time: LocalTime)
     fun getAutoUpdateEnabled(): Flow<Boolean>
     suspend fun setAutoUpdateEnabled(enabled: Boolean)
+    fun getRichNotificationsEnabled(): Flow<Boolean>
+    suspend fun setRichNotificationsEnabled(enabled: Boolean)
 }
