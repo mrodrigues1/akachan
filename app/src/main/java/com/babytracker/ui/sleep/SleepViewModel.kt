@@ -10,12 +10,16 @@ import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.sleep.GenerateSleepScheduleUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.SaveSleepEntryUseCase
+import com.babytracker.domain.usecase.sleep.StartSleepRecordUseCase
+import com.babytracker.domain.usecase.sleep.StopSleepRecordUseCase
+import com.babytracker.manager.SleepNotificationScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -42,7 +46,10 @@ class SleepViewModel @Inject constructor(
     private val getSleepHistory: GetSleepHistoryUseCase,
     private val generateSchedule: GenerateSleepScheduleUseCase,
     private val getBabyProfile: GetBabyProfileUseCase,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val startRecord: StartSleepRecordUseCase,
+    private val stopRecord: StopSleepRecordUseCase,
+    private val sleepNotificationScheduler: SleepNotificationScheduler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SleepUiState())
@@ -51,6 +58,10 @@ class SleepViewModel @Inject constructor(
     val history: StateFlow<List<SleepRecord>> = getSleepHistory()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val activeSleepSession: StateFlow<SleepRecord?> = history
+        .map { records -> records.find { it.isInProgress } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     init {
         viewModelScope.launch {
             settingsRepository.getWakeTime().collect { wakeTime ->
@@ -58,6 +69,21 @@ class SleepViewModel @Inject constructor(
             }
         }
         loadSchedule()
+    }
+
+    fun onStartRecord(sleepType: SleepType) {
+        viewModelScope.launch {
+            val record = startRecord(sleepType)
+            sleepNotificationScheduler.show(record.id, record.sleepType, record.startTime)
+        }
+    }
+
+    fun onStopRecord() {
+        val session = activeSleepSession.value ?: return
+        viewModelScope.launch {
+            stopRecord(session.id)
+            sleepNotificationScheduler.cancel()
+        }
     }
 
     fun onAddEntryClick() {
@@ -93,20 +119,15 @@ class SleepViewModel @Inject constructor(
         val state = _uiState.value
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now()
-
         var startInstant = state.entryStartTime.atDate(today).atZone(zone).toInstant()
         val endInstant = state.entryEndTime.atDate(today).atZone(zone).toInstant()
-
-        // Cross-midnight night sleep: start was yesterday
         if (startInstant > endInstant) {
             startInstant = state.entryStartTime.atDate(today.minusDays(1)).atZone(zone).toInstant()
         }
-
         if (endInstant <= startInstant) {
             _uiState.value = state.copy(entryError = "End time must be after start time")
             return
         }
-
         viewModelScope.launch {
             saveSleepEntry(startInstant, endInstant, state.entryType)
             _uiState.value = _uiState.value.copy(showEntrySheet = false, entryError = null)
