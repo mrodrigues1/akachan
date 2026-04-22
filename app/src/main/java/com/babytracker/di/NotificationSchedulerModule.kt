@@ -1,8 +1,11 @@
 package com.babytracker.di
 
 import android.content.Context
+import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.manager.BreastfeedingNotificationManager
 import com.babytracker.manager.NotificationScheduler
+import com.babytracker.manager.SleepNotificationManager
+import com.babytracker.manager.SleepNotificationScheduler
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,7 +21,12 @@ object NotificationSchedulerModule {
     @ViewModelScoped
     fun provideNotificationScheduler(
         @ApplicationContext context: Context
-    ): NotificationScheduler {
-        return BreastfeedingNotificationManager(context)
-    }
+    ): NotificationScheduler = BreastfeedingNotificationManager(context)
+
+    @Provides
+    @ViewModelScoped
+    fun provideSleepNotificationScheduler(
+        @ApplicationContext context: Context,
+        settingsRepository: SettingsRepository
+    ): SleepNotificationScheduler = SleepNotificationManager(context, settingsRepository)
 }
