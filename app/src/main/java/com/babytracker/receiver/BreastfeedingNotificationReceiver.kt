@@ -26,11 +26,11 @@ class BreastfeedingNotificationReceiver : BroadcastReceiver() {
         when (notificationType) {
             NOTIFICATION_TYPE_MAX_TOTAL -> {
                 Log.i(TAG, "Triggering max total time notification")
-                NotificationHelper.showBreastfeedingTimeNotification(context)
+                NotificationHelper.showFeedingLimit(context, -1L, 0, false)
             }
             NOTIFICATION_TYPE_SWITCH_SIDE -> {
                 Log.i(TAG, "Triggering switch side notification")
-                NotificationHelper.showSwitchSideNotification(context)
+                NotificationHelper.showSwitchSide(context, -1L, "LEFT", 0, 0, 0, false)
             }
             else -> {
                 Log.w(TAG, "Unknown notification type: $notificationType")
