@@ -223,6 +223,34 @@ fun SettingsScreen(
                 onCheckedChange = viewModel::onAutoUpdateChanged,
             )
 
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Text(
+                text = "NOTIFICATIONS",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Rich notifications", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Show progress bars and quick actions on notifications",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = uiState.richNotificationsEnabled,
+                    onCheckedChange = { viewModel.onRichNotificationsToggled(it) }
+                )
+            }
+
             HorizontalDivider()
 
             if (BuildConfig.DEBUG) {
