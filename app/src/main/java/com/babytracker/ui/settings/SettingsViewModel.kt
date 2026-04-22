@@ -21,6 +21,7 @@ data class SettingsUiState(
     val maxTotalFeedMinutes: Int = 0,
     val themeConfig: ThemeConfig = ThemeConfig.SYSTEM,
     val autoUpdateEnabled: Boolean = true,
+    val richNotificationsEnabled: Boolean = true,
 )
 
 @HiltViewModel
@@ -41,13 +42,21 @@ class SettingsViewModel @Inject constructor(
                 settingsRepository.getMaxTotalFeedMinutes(),
                 settingsRepository.getThemeConfig(),
                 settingsRepository.getAutoUpdateEnabled(),
-            ) { baby, maxPerBreast, maxTotal, themeConfig, autoUpdateEnabled ->
+                settingsRepository.getRichNotificationsEnabled(),
+            ) { values ->
+                val baby = values[0] as Baby?
+                val maxPerBreast = values[1] as Int
+                val maxTotal = values[2] as Int
+                val themeConfig = values[3] as ThemeConfig
+                val autoUpdate = values[4] as Boolean
+                val richNotifications = values[5] as Boolean
                 SettingsUiState(
                     baby = baby,
                     maxPerBreastMinutes = maxPerBreast,
                     maxTotalFeedMinutes = maxTotal,
                     themeConfig = themeConfig,
-                    autoUpdateEnabled = autoUpdateEnabled,
+                    autoUpdateEnabled = autoUpdate,
+                    richNotificationsEnabled = richNotifications,
                 )
             }.collect { _uiState.value = it }
         }
@@ -71,5 +80,9 @@ class SettingsViewModel @Inject constructor(
 
     fun onAutoUpdateChanged(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.setAutoUpdateEnabled(enabled) }
+    }
+
+    fun onRichNotificationsToggled(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setRichNotificationsEnabled(enabled) }
     }
 }
