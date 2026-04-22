@@ -54,13 +54,19 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
             ACTION_SWITCH -> {
                 val session = repository.getActiveSession().first()
                 if (session?.id == sessionId) switchSide(session)
+                NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
             }
             ACTION_STOP -> {
                 val session = repository.getActiveSession().first()
                 if (session?.id == sessionId) stopSession(session)
+                NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID)
+            }
+            ACTION_DISMISS -> {
+                NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
+            }
+            ACTION_KEEP_GOING -> {
+                NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID)
             }
         }
-        NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
-        NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID)
     }
 }

@@ -47,4 +47,15 @@ class SleepActionReceiverTest {
         coVerify { stopRecord(99L) }
         verify { NotificationHelper.cancelNotification(context, NotificationHelper.SLEEP_NOTIFICATION_ID) }
     }
+
+    @Test
+    fun `unknown action does not stop record and does not cancel notification`() = runTest {
+        receiver.handle(context, mockk<Intent>(relaxed = true).also {
+            every { it.getStringExtra(SleepActionReceiver.EXTRA_ACTION) } returns "unknown"
+            every { it.getLongExtra(SleepActionReceiver.EXTRA_SESSION_ID, -1L) } returns 1L
+        })
+
+        coVerify(exactly = 0) { stopRecord(any()) }
+        verify(exactly = 0) { NotificationHelper.cancelNotification(any(), any()) }
+    }
 }

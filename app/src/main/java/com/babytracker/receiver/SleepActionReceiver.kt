@@ -44,7 +44,7 @@ class SleepActionReceiver : BroadcastReceiver() {
 
         if (action == ACTION_STOP) {
             stopRecord(sessionId)
+            NotificationHelper.cancelNotification(context, NotificationHelper.SLEEP_NOTIFICATION_ID)
         }
-        NotificationHelper.cancelNotification(context, NotificationHelper.SLEEP_NOTIFICATION_ID)
     }
 }
