@@ -1,7 +1,6 @@
 package com.babytracker.ui.component
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun HistoryCard(
@@ -45,14 +45,14 @@ fun HistoryCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(44.dp)
                     .background(
                         color = badgeColor,
                         shape = MaterialTheme.shapes.small
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = badgeEmoji, style = MaterialTheme.typography.bodyLarge)
+                Text(text = badgeEmoji, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 20.sp))
             }
 
             Spacer(modifier = Modifier.width(12.dp))
