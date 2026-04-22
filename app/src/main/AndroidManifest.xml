@@ -32,6 +32,20 @@
             </intent-filter>
         </receiver>
 
+        <receiver android:name=".receiver.BreastfeedingActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.babytracker.BREASTFEEDING_ACTION" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".receiver.SleepActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.babytracker.SLEEP_ACTION" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>
