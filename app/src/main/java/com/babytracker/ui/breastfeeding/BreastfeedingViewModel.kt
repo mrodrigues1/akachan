@@ -176,15 +176,21 @@ class BreastfeedingViewModel @Inject constructor(
 
         if (maxPerBreastMinutes > 0) {
             notificationScheduler.scheduleMaxPerBreastNotification(
-                session.startTime,
-                maxPerBreastMinutes
+                sessionStartTime = session.startTime,
+                maxPerBreastMinutes = maxPerBreastMinutes,
+                sessionId = session.id,
+                currentSide = session.startingSide.name,
+                maxTotalMinutes = maxTotalFeedMinutes
             )
         }
 
         if (maxTotalFeedMinutes > 0) {
             notificationScheduler.scheduleMaxTotalTimeNotification(
-                session.startTime,
-                maxTotalFeedMinutes
+                sessionStartTime = session.startTime,
+                maxTotalMinutes = maxTotalFeedMinutes,
+                sessionId = session.id,
+                currentSide = session.startingSide.name,
+                maxPerBreastMinutes = maxPerBreastMinutes
             )
         }
     }
@@ -213,7 +219,11 @@ class BreastfeedingViewModel @Inject constructor(
             val remaining = Duration.between(pausedAt, adjustedTrigger)
             if (!remaining.isNegative && !remaining.isZero) {
                 notificationScheduler.scheduleMaxPerBreastNotificationAt(
-                    Instant.now().plus(remaining)
+                    triggerTime = Instant.now().plus(remaining),
+                    sessionId = session.id,
+                    maxPerBreastMinutes = maxPerBreast,
+                    currentSide = session.startingSide.name,
+                    maxTotalMinutes = maxTotal
                 )
             }
         }
@@ -225,7 +235,11 @@ class BreastfeedingViewModel @Inject constructor(
             val remaining = Duration.between(pausedAt, adjustedTrigger)
             if (!remaining.isNegative && !remaining.isZero) {
                 notificationScheduler.scheduleMaxTotalTimeNotificationAt(
-                    Instant.now().plus(remaining)
+                    triggerTime = Instant.now().plus(remaining),
+                    sessionId = session.id,
+                    maxTotalMinutes = maxTotal,
+                    currentSide = session.startingSide.name,
+                    maxPerBreastMinutes = maxPerBreast
                 )
             }
         }
