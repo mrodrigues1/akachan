@@ -133,7 +133,18 @@ class BreastfeedingViewModel @Inject constructor(
             startSession(side)
             repository.getActiveSession()
                 .first { it != null }
-                ?.let { scheduleNotifications(it) }
+                ?.let { session ->
+                    scheduleNotifications(session)
+                    val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
+                    NotificationHelper.showBreastfeedingActive(
+                        context = context,
+                        sessionId = session.id,
+                        currentSide = session.startingSide.name,
+                        sessionStartEpochMs = session.startTime.toEpochMilli(),
+                        pausedDurationMs = session.pausedDurationMs,
+                        richEnabled = richEnabled
+                    )
+                }
         }
     }
 
@@ -144,6 +155,7 @@ class BreastfeedingViewModel @Inject constructor(
             notificationScheduler.cancelAllScheduledNotifications()
             NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID)
             NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
+            NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID)
         }
     }
 
@@ -159,6 +171,7 @@ class BreastfeedingViewModel @Inject constructor(
         viewModelScope.launch {
             pauseSession(session)
             notificationScheduler.cancelAllScheduledNotifications()
+            NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID)
         }
     }
 
@@ -167,6 +180,19 @@ class BreastfeedingViewModel @Inject constructor(
         viewModelScope.launch {
             resumeSession(session)
             rescheduleNotificationsAfterResume(session)
+            val currentPauseDurationMs = session.pausedAt
+                ?.let { Duration.between(it, Instant.now()).toMillis() }
+                ?: 0L
+            val totalPausedMs = session.pausedDurationMs + currentPauseDurationMs
+            val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
+            NotificationHelper.showBreastfeedingActive(
+                context = context,
+                sessionId = session.id,
+                currentSide = session.startingSide.name,
+                sessionStartEpochMs = session.startTime.toEpochMilli(),
+                pausedDurationMs = totalPausedMs,
+                richEnabled = richEnabled
+            )
         }
     }
 
