@@ -5,13 +5,22 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Build
 import android.util.Log
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
 import com.babytracker.MainActivity
 import com.babytracker.R
 import com.babytracker.receiver.BreastfeedingActionReceiver
 import com.babytracker.receiver.SleepActionReceiver
+import com.babytracker.ui.theme.Blue700
+import com.babytracker.ui.theme.Pink700
+import com.babytracker.ui.theme.PrimaryPinkDark
+import com.babytracker.ui.theme.SecondaryBlueDark
+import com.babytracker.ui.theme.WarningAmber
+import com.babytracker.ui.theme.WarningAmberDark
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -30,6 +39,20 @@ object NotificationHelper {
     private const val RC_STOP_SLEEP = 2005
     private const val RC_STOP_BF_ACTIVE = 2006
     private const val TAG = "NotificationHelper"
+
+    private fun resolveAccent(context: Context, light: Color, dark: Color): Int {
+        val nightMask = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        val isDark = nightMask == Configuration.UI_MODE_NIGHT_YES
+        return (if (isDark) dark else light).toArgb()
+    }
+
+    private fun NotificationCompat.Builder.applyDesignSystem(
+        accentColor: Int,
+        smallIconRes: Int
+    ): NotificationCompat.Builder = this
+        .setSmallIcon(smallIconRes)
+        .setColor(accentColor)
+        .setColorized(false)
 
     fun createBreastfeedingNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -70,8 +93,9 @@ object NotificationHelper {
         val sideLabel = if (currentSide == "LEFT") "Left" else "Right"
         val body = "$sideLabel breast: $elapsedMinutes min · Switch to the $otherSide"
         val tapPi = mainActivityPendingIntent(context)
+        val accent = resolveAccent(context, Pink700, PrimaryPinkDark)
         val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .applyDesignSystem(accent, R.drawable.ic_notif_breastfeeding)
             .setContentTitle("🍼 Time to switch sides")
             .setAutoCancel(true)
             .setOngoing(false)
@@ -101,8 +125,9 @@ object NotificationHelper {
     ) {
         val body = "Session has reached $maxTotalMinutes minutes. Consider wrapping up."
         val tapPi = mainActivityPendingIntent(context)
+        val accent = resolveAccent(context, WarningAmber, WarningAmberDark)
         val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .applyDesignSystem(accent, R.drawable.ic_notif_limit)
             .setContentTitle("⏱ Feeding limit reached")
             .setAutoCancel(true)
             .setOngoing(false)
@@ -135,8 +160,9 @@ object NotificationHelper {
         val sideLabel = if (currentSide == "LEFT") "Left" else "Right"
         val body = "$sideLabel breast · Session in progress"
         val tapPi = mainActivityPendingIntent(context)
+        val accent = resolveAccent(context, Pink700, PrimaryPinkDark)
         val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .applyDesignSystem(accent, R.drawable.ic_notif_breastfeeding)
             .setContentTitle("🍼 Feeding session active")
             .setAutoCancel(false)
             .setOngoing(true)
@@ -170,8 +196,9 @@ object NotificationHelper {
             .format(DateTimeFormatter.ofPattern("h:mm a"))
         val body = "$typeLabel · started at $startFormatted"
         val tapPi = mainActivityPendingIntent(context)
+        val accent = resolveAccent(context, Blue700, SecondaryBlueDark)
         val builder = NotificationCompat.Builder(context, SLEEP_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .applyDesignSystem(accent, R.drawable.ic_notif_sleep)
             .setContentTitle("🌙 Sleep session active")
             .setAutoCancel(false)
             .setOngoing(false)
