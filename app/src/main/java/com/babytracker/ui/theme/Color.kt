@@ -77,3 +77,28 @@ val OutlineVariantDark = Color(0xFF49454F)   // intentionally same as OutlineDar
 val ErrorDark = Color(0xFFFFB4AB)            // no scale equivalent
 val ErrorContainerDark = Color(0xFF93000A)   // no scale equivalent
 val OnErrorContainerDark = Color(0xFFFFDAD6) // no scale equivalent
+
+// ─── Raw palette — Warning / Amber ───────────────────────────
+// Non-M3 extended palette for limit / over-limit states.
+// Scale semantics match Pink/Blue/Green (700 = primary, 200 = container,
+// 900 = on-container text, 100 = softest tone).
+// Amber800 is off-scale: only the dark-scheme warning container uses it.
+val Amber900 = Color(0xFF7A3600)
+val Amber800 = Color(0xFF7A4800)
+val Amber700 = Color(0xFFE65100)
+val Amber200 = Color(0xFFFFE0B2)
+val Amber100 = Color(0xFFFFCC80)
+
+// ─── Warning semantic tokens (extended, non-M3) ──────────────
+// Accessed as top-level vals — NOT wired through MaterialTheme.colorScheme.
+// Consumed directly by NotificationHelper for the Feeding Limit notification.
+
+// Light scheme
+val WarningAmber = Amber700
+val WarningContainerAmber = Amber200
+val OnWarningContainerAmber = Amber900
+
+// Dark scheme
+val WarningAmberDark = Amber100
+val WarningContainerAmberDark = Amber800
+val OnWarningContainerAmberDark = Amber200
