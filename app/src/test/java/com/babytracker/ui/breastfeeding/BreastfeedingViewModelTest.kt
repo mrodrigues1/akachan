@@ -11,11 +11,13 @@ import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUse
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.manager.NotificationScheduler
+import com.babytracker.util.NotificationHelper
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import io.mockk.verify
@@ -52,6 +54,7 @@ class BreastfeedingViewModelTest {
 
     private lateinit var viewModel: BreastfeedingViewModel
     private val testDispatcher = StandardTestDispatcher()
+    private val context = mockk<android.content.Context>(relaxed = true)
 
     private val activeSessionFlow = MutableStateFlow<BreastfeedingSession?>(null)
     private val maxPerBreastFlow = MutableStateFlow(15)
@@ -69,10 +72,15 @@ class BreastfeedingViewModelTest {
         settingsRepository = mockk()
         notificationScheduler = mockk()
 
+        mockkObject(NotificationHelper)
+        every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any()) } returns Unit
+        every { NotificationHelper.cancelNotification(any(), any()) } returns Unit
+
         every { getHistory() } returns flowOf(emptyList())
         every { repository.getActiveSession() } returns activeSessionFlow
         every { settingsRepository.getMaxPerBreastMinutes() } returns maxPerBreastFlow
         every { settingsRepository.getMaxTotalFeedMinutes() } returns maxTotalFlow
+        every { settingsRepository.getRichNotificationsEnabled() } returns flowOf(false)
         pauseSession = mockk()
         resumeSession = mockk()
         coJustRun { startSession(any()) }
@@ -90,6 +98,7 @@ class BreastfeedingViewModelTest {
     @AfterEach
     fun tearDown() {
         Dispatchers.resetMain()
+        unmockkAll()
     }
 
     private fun createViewModel() = BreastfeedingViewModel(
@@ -101,7 +110,7 @@ class BreastfeedingViewModelTest {
         resumeSession,
         repository,
         settingsRepository,
-        mockk(),
+        context,
         notificationScheduler
     )
 
@@ -180,6 +189,165 @@ class BreastfeedingViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { startSession(BreastSide.LEFT) }
+    }
+
+    @Test
+    fun `onStartSession posts active notification with starting side`() = runTest {
+        viewModel.onSideSelected(BreastSide.LEFT)
+        val session = BreastfeedingSession(
+            id = 1L,
+            startTime = Instant.now(),
+            startingSide = BreastSide.LEFT
+        )
+        coEvery { startSession(BreastSide.LEFT) } answers {
+            activeSessionFlow.value = session
+            1L
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onStartSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify {
+            NotificationHelper.showBreastfeedingActive(
+                context = context,
+                sessionId = 1L,
+                currentSide = "LEFT",
+                sessionStartEpochMs = session.startTime.toEpochMilli(),
+                pausedDurationMs = 0L,
+                richEnabled = false
+            )
+        }
+    }
+
+    @Test
+    fun `onStopSession cancels active notification`() = runTest {
+        val session = BreastfeedingSession(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(300),
+            startingSide = BreastSide.LEFT
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+        coJustRun { stopSession(session) }
+
+        viewModel.onStopSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify { NotificationHelper.cancelNotification(any(), NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID) }
+    }
+
+    @Test
+    fun `onPauseSession cancels active notification`() = runTest {
+        val session = BreastfeedingSession(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(300),
+            startingSide = BreastSide.LEFT
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onPauseSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify { NotificationHelper.cancelNotification(any(), NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID) }
+    }
+
+    @Test
+    fun `onResumeSession posts active notification with starting side when no switch`() = runTest {
+        val session = BreastfeedingSession(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(300),
+            startingSide = BreastSide.LEFT,
+            pausedAt = Instant.now().minusSeconds(60)
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onResumeSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify {
+            NotificationHelper.showBreastfeedingActive(
+                context = context,
+                sessionId = 1L,
+                currentSide = "LEFT",
+                sessionStartEpochMs = session.startTime.toEpochMilli(),
+                pausedDurationMs = any(),
+                richEnabled = false
+            )
+        }
+    }
+
+    @Test
+    fun `onResumeSession posts active notification with switched side after a switch`() = runTest {
+        val session = BreastfeedingSession(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(600),
+            startingSide = BreastSide.LEFT,
+            switchTime = Instant.now().minusSeconds(300),
+            pausedAt = Instant.now().minusSeconds(60)
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onResumeSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify {
+            NotificationHelper.showBreastfeedingActive(
+                context = context,
+                sessionId = 1L,
+                currentSide = "RIGHT",
+                sessionStartEpochMs = session.startTime.toEpochMilli(),
+                pausedDurationMs = any(),
+                richEnabled = false
+            )
+        }
+    }
+
+    @Test
+    fun `onSwitchSide posts active notification with new side`() = runTest {
+        val session = BreastfeedingSession(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(300),
+            startingSide = BreastSide.LEFT
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+        coJustRun { switchSide(session) }
+
+        viewModel.onSwitchSide()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify {
+            NotificationHelper.showBreastfeedingActive(
+                context = context,
+                sessionId = 1L,
+                currentSide = "RIGHT",
+                sessionStartEpochMs = session.startTime.toEpochMilli(),
+                pausedDurationMs = 0L,
+                richEnabled = false
+            )
+        }
+    }
+
+    @Test
+    fun `onSwitchSide does not post notification when already switched`() = runTest {
+        val session = BreastfeedingSession(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(600),
+            startingSide = BreastSide.LEFT,
+            switchTime = Instant.now().minusSeconds(300)
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+        coJustRun { switchSide(session) }
+
+        viewModel.onSwitchSide()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 0) { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any()) }
     }
 
     @Test
