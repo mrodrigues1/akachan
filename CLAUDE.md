@@ -93,7 +93,8 @@ app/src/main/java/com/babytracker/
     ├── DateTimeExt.kt         # Instant.formatTime(), formatDateTime(), Duration.formatDuration(),
     │                          #   Duration.formatElapsedAgo()
     ├── FlowExt.kt             # Flow.catchAndLog()
-    ├── NotificationHelper.kt  # Cancel/show notification helpers
+    ├── NotificationHelper.kt  # Cancel/show notification helpers — builds design-system-themed
+    │                          #   notifications (per-type small icon + accent color via setColor())
     └── UpdateChecker.kt       # In-app update check utility
 ```
 
@@ -119,10 +120,12 @@ Three hue families, each with a 4-stop scale. The scale semantics are shared acr
 | **Pink** (Feeding/Primary) | `#F4C2C2` | `#F8BBD0` | `#C2185B` | `#880E4F` |
 | **Blue** (Sleep/Secondary) | `#89CFF0` | `#B3E5FC` | `#1976D2` | `#0D47A1` |
 | **Green** (Success/Tertiary) | `#90EE90` | `#C8E6C9` | `#388E3C` | `#1B5E20` |
+| **Amber** (Warning) | `#FFCC80` | `#FFE0B2` | `#E65100` | `#7A3600` |
 
 Surface grays and yellows have no scale equivalent:
 - `SoftYellow` `#FFF9C4` — soft background hint
 - `SurfaceYellow` `#FFFDE7` — light scheme surface / background
+- `Amber800` `#7A4800` — off-scale raw used only by the dark-scheme warning container
 
 ### Semantic Color Tokens (`Color.kt` → `Theme.kt`)
 
@@ -169,6 +172,16 @@ Surface grays and yellows have no scale equivalent:
 | `outlineVariant` | `#49454F` |
 | `error` | `#FFB4AB` |
 | `errorContainer` | `#93000A` |
+
+### Warning semantic tokens (extended, non-M3)
+
+Accessed as top-level `val`s from `ui/theme/Color.kt` — **not** wired through `MaterialTheme.colorScheme`. Consumed directly by `NotificationHelper` for the Feeding Limit notification.
+
+| Token | Light | Dark |
+|------|-------|------|
+| `WarningAmber` | `Amber700` `#E65100` | `Amber100` `#FFCC80` |
+| `WarningContainerAmber` | `Amber200` `#FFE0B2` | `Amber800` `#7A4800` |
+| `OnWarningContainerAmber` | `Amber900` `#7A3600` | `Amber200` `#FFE0B2` |
 
 ### Typography (`Type.kt` → `AkachanTypography`)
 
@@ -469,3 +482,4 @@ Read specs before implementing new features — they define the intended behavio
 - Do not wrap return values in `sealed class Result<T>` — let exceptions propagate or use nullable types
 - Do not add cloud sync, analytics, or remote API calls — local-only is by design
 - Do not use KAPT — KSP is configured for all annotation processing (Hilt, Room)
+- Do not access warning tokens (`WarningAmber`, `WarningContainerAmber`, `OnWarningContainerAmber` and their `*Dark` pairs) through `MaterialTheme.colorScheme` — they are extended, non-M3 semantics and ship as top-level `val`s in `ui/theme/Color.kt`. Import them by name.
