@@ -163,6 +163,20 @@ class BreastfeedingViewModel @Inject constructor(
         val session = _uiState.value.activeSession ?: return
         viewModelScope.launch {
             switchSide(session)
+            // Update the ongoing notification only when this is the first (and only) side switch.
+            // After switching, the current side is the opposite of the original starting side.
+            if (session.switchTime == null) {
+                val newSide = if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
+                val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
+                NotificationHelper.showBreastfeedingActive(
+                    context = context,
+                    sessionId = session.id,
+                    currentSide = newSide.name,
+                    sessionStartEpochMs = session.startTime.toEpochMilli(),
+                    pausedDurationMs = session.pausedDurationMs,
+                    richEnabled = richEnabled
+                )
+            }
         }
     }
 
@@ -178,17 +192,23 @@ class BreastfeedingViewModel @Inject constructor(
     fun onResumeSession() {
         val session = _uiState.value.activeSession ?: return
         viewModelScope.launch {
+            val resumeInstant = Instant.now()
             resumeSession(session)
             rescheduleNotificationsAfterResume(session)
             val currentPauseDurationMs = session.pausedAt
-                ?.let { Duration.between(it, Instant.now()).toMillis() }
+                ?.let { Duration.between(it, resumeInstant).toMillis() }
                 ?: 0L
             val totalPausedMs = session.pausedDurationMs + currentPauseDurationMs
+            val currentSide = if (session.switchTime != null) {
+                if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT.name else BreastSide.LEFT.name
+            } else {
+                session.startingSide.name
+            }
             val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
             NotificationHelper.showBreastfeedingActive(
                 context = context,
                 sessionId = session.id,
-                currentSide = session.startingSide.name,
+                currentSide = currentSide,
                 sessionStartEpochMs = session.startTime.toEpochMilli(),
                 pausedDurationMs = totalPausedMs,
                 richEnabled = richEnabled

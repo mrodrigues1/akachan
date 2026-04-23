@@ -4,7 +4,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.util.NotificationHelper
@@ -20,6 +22,7 @@ import javax.inject.Inject
 class BreastfeedingActionReceiver : BroadcastReceiver() {
 
     @Inject lateinit var repository: BreastfeedingRepository
+    @Inject lateinit var settingsRepository: SettingsRepository
     @Inject lateinit var switchSide: SwitchBreastfeedingSideUseCase
     @Inject lateinit var stopSession: StopBreastfeedingSessionUseCase
 
@@ -53,13 +56,30 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
         when (action) {
             ACTION_SWITCH -> {
                 val session = repository.getActiveSession().first()
-                if (session?.id == sessionId) switchSide(session)
+                if (session?.id == sessionId) {
+                    switchSide(session)
+                    // Refresh the ongoing notification with the new side.
+                    // Only the first switch is supported; after it the current side is opposite startingSide.
+                    if (session.switchTime == null) {
+                        val newSide = if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
+                        val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
+                        NotificationHelper.showBreastfeedingActive(
+                            context = context,
+                            sessionId = session.id,
+                            currentSide = newSide.name,
+                            sessionStartEpochMs = session.startTime.toEpochMilli(),
+                            pausedDurationMs = session.pausedDurationMs,
+                            richEnabled = richEnabled
+                        )
+                    }
+                }
                 NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
             }
             ACTION_STOP -> {
                 val session = repository.getActiveSession().first()
                 if (session?.id == sessionId) stopSession(session)
                 NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID)
+                NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
                 NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID)
             }
             ACTION_DISMISS -> {
