@@ -21,12 +21,14 @@ object NotificationHelper {
     const val BREASTFEEDING_NOTIFICATION_ID = 1001
     const val SWITCH_SIDE_NOTIFICATION_ID = 1002
     const val SLEEP_NOTIFICATION_ID = 1003
+    const val BREASTFEEDING_ACTIVE_NOTIFICATION_ID = 1004
     private const val RC_MAIN_TAP = 0
     private const val RC_SWITCH_NOW = 2001
     private const val RC_BF_DISMISS = 2002
     private const val RC_STOP_SESSION = 2003
     private const val RC_KEEP_GOING = 2004
     private const val RC_STOP_SLEEP = 2005
+    private const val RC_STOP_BF_ACTIVE = 2006
     private const val TAG = "NotificationHelper"
 
     fun createBreastfeedingNotificationChannel(context: Context) {
@@ -120,6 +122,39 @@ object NotificationHelper {
         context.getSystemService(NotificationManager::class.java)
             .notify(BREASTFEEDING_NOTIFICATION_ID, builder.build())
         Log.d(TAG, "showFeedingLimit posted (rich=$richEnabled)")
+    }
+
+    fun showBreastfeedingActive(
+        context: Context,
+        sessionId: Long,
+        currentSide: String,
+        sessionStartEpochMs: Long,
+        pausedDurationMs: Long,
+        richEnabled: Boolean
+    ) {
+        val sideLabel = if (currentSide == "LEFT") "Left" else "Right"
+        val body = "$sideLabel breast · Session in progress"
+        val tapPi = mainActivityPendingIntent(context)
+        val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("🍼 Feeding session active")
+            .setAutoCancel(false)
+            .setOngoing(true)
+            .setContentIntent(tapPi)
+
+        if (richEnabled) {
+            builder
+                .setUsesChronometer(true)
+                .setWhen(sessionStartEpochMs + pausedDurationMs)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                .addAction(0, "Stop Session", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_STOP, RC_STOP_BF_ACTIVE))
+        } else {
+            builder.setContentText(body)
+        }
+
+        context.getSystemService(NotificationManager::class.java)
+            .notify(BREASTFEEDING_ACTIVE_NOTIFICATION_ID, builder.build())
+        Log.d(TAG, "showBreastfeedingActive posted (rich=$richEnabled)")
     }
 
     fun showSleepActive(
