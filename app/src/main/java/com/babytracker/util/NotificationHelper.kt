@@ -106,6 +106,15 @@ object NotificationHelper {
         }
     }
 
+    private fun formatMaxTimeLabel(maxMinutes: Int): String =
+        "${maxMinutes.coerceAtLeast(0)} min"
+
+    private fun activeProgressText(maxTotalMinutes: Int): String =
+        formatMaxTimeLabel(maxTotalMinutes)
+
+    private fun limitProgressText(maxTotalMinutes: Int): String =
+        formatMaxTimeLabel(maxTotalMinutes)
+
     private fun activeElapsedSeconds(sessionStartEpochMs: Long, pausedDurationMs: Long): Int =
         ((System.currentTimeMillis() - sessionStartEpochMs - pausedDurationMs).coerceAtLeast(0L) / 1000L)
             .coerceAtMost(Int.MAX_VALUE.toLong())
@@ -207,7 +216,7 @@ object NotificationHelper {
             .setContentIntent(tapPi)
 
         if (richEnabled) {
-            val progressText = "$maxTotalMinutes / $maxTotalMinutes min"
+            val progressText = limitProgressText(maxTotalMinutes)
             builder
                 .setStyle(NotificationCompat.DecoratedCustomViewStyle())
                 .setCustomBigContentView(
@@ -263,8 +272,7 @@ object NotificationHelper {
             val progress = if (progressEnabled) elapsedSeconds else 0
             val maxProgress = if (progressEnabled) maxSeconds else 1
             val progressText = if (progressEnabled) {
-                val percent = ((elapsedSeconds.coerceAtMost(maxSeconds) * 100f) / maxSeconds).toInt()
-                "$percent% of $maxTotalMinutes min"
+                activeProgressText(maxTotalMinutes)
             } else {
                 formatDurationCompact(elapsedSeconds)
             }
