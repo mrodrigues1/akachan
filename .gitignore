@@ -23,10 +23,6 @@ misc.xml
 deploymentTargetDropDown.xml
 render.experimental.xml
 
-# Local configuration file (sdk path, etc)
-.claude/settings.local.json
-.qwen/
-
 # Keystore files
 *.jks
 *.keystore
@@ -39,4 +35,5 @@ google-services.json
 
 # Git worktrees
 .worktrees/
-.superpowers/
+/.qwen/
+/.superpowers/
