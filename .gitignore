@@ -35,5 +35,8 @@ google-services.json
 
 # Git worktrees
 .worktrees/
+
 /.qwen/
 /.superpowers/
+/.claude/settings.local.json
+
