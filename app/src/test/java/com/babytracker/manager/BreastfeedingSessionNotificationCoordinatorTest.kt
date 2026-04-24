@@ -136,6 +136,16 @@ class BreastfeedingSessionNotificationCoordinatorTest {
     }
 
     @Test
+    fun `cancelPostedSessionNotifications cancels all breastfeeding notifications without cancelling alarms`() {
+        coordinator.cancelPostedSessionNotifications()
+
+        verify(exactly = 0) { notificationScheduler.cancelAllScheduledNotifications() }
+        verify { NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID) }
+        verify { NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID) }
+        verify { NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID) }
+    }
+
+    @Test
     fun `cancelAllSessionNotifications cancels alarms and all breastfeeding notifications`() {
         coordinator.cancelAllSessionNotifications()
 

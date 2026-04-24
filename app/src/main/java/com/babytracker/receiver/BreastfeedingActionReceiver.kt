@@ -107,8 +107,11 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
             }
             ACTION_STOP -> {
                 val session = repository.getActiveSession().first()
-                if (session?.id == sessionId) stopSession(session)
-                notificationCoordinator.cancelAllSessionNotifications()
+                if (session?.id == sessionId) {
+                    stopSession(session)
+                    notificationCoordinator.cancelScheduled()
+                }
+                notificationCoordinator.cancelPostedSessionNotifications()
             }
             ACTION_DISMISS -> {
                 NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
