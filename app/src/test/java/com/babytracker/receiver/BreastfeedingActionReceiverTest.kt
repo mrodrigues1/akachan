@@ -144,6 +144,38 @@ class BreastfeedingActionReceiverTest {
         }
     }
 
+    @Test
+    fun `ACTION_REFRESH_ACTIVE ignores wrong session id`() = runTest {
+        receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_REFRESH_ACTIVE, 999L))
+
+        verify(exactly = 0) {
+            NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any())
+        }
+    }
+
+    @Test
+    fun `ACTION_REFRESH_ACTIVE ignores missing active session`() = runTest {
+        coEvery { repository.getActiveSession() } returns flowOf(null)
+
+        receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_REFRESH_ACTIVE, 42L))
+
+        verify(exactly = 0) {
+            NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any())
+        }
+    }
+
+    @Test
+    fun `ACTION_REFRESH_ACTIVE ignores paused active session`() = runTest {
+        val pausedSession = activeSession.copy(pausedAt = Instant.now())
+        coEvery { repository.getActiveSession() } returns flowOf(pausedSession)
+
+        receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_REFRESH_ACTIVE, 42L))
+
+        verify(exactly = 0) {
+            NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any())
+        }
+    }
+
     private fun intent(action: String, sessionId: Long) = mockk<Intent>(relaxed = true).also {
         every { it.getStringExtra(BreastfeedingActionReceiver.EXTRA_ACTION) } returns action
         every { it.getLongExtra(BreastfeedingActionReceiver.EXTRA_SESSION_ID, -1L) } returns sessionId
