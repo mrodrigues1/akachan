@@ -6,8 +6,11 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
+import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
+import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.util.NotificationHelper
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -30,6 +33,9 @@ class BreastfeedingActionReceiverTest {
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var switchSide: SwitchBreastfeedingSideUseCase
     private lateinit var stopSession: StopBreastfeedingSessionUseCase
+    private lateinit var pauseSession: PauseBreastfeedingSessionUseCase
+    private lateinit var resumeSession: ResumeBreastfeedingSessionUseCase
+    private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
     private lateinit var receiver: BreastfeedingActionReceiver
     private val context = mockk<Context>(relaxed = true)
 
@@ -45,18 +51,31 @@ class BreastfeedingActionReceiverTest {
         settingsRepository = mockk()
         switchSide = mockk()
         stopSession = mockk()
+        pauseSession = mockk()
+        resumeSession = mockk()
+        notificationCoordinator = mockk()
         receiver = BreastfeedingActionReceiver()
         receiver.repository = repository
         receiver.settingsRepository = settingsRepository
         receiver.switchSide = switchSide
         receiver.stopSession = stopSession
+        receiver.pauseSession = pauseSession
+        receiver.resumeSession = resumeSession
+        receiver.notificationCoordinator = notificationCoordinator
 
         coEvery { repository.getActiveSession() } returns flowOf(activeSession)
         every { settingsRepository.getRichNotificationsEnabled() } returns MutableStateFlow(false)
         every { settingsRepository.getMaxTotalFeedMinutes() } returns MutableStateFlow(30)
+        coEvery { pauseSession(any()) } returns Unit
+        coEvery { resumeSession(any()) } returns Unit
+        every { notificationCoordinator.cancelScheduled() } returns Unit
+        every { notificationCoordinator.cancelAllSessionNotifications() } returns Unit
+        coEvery { notificationCoordinator.showPaused(any(), any()) } returns Unit
+        coEvery { notificationCoordinator.showRunning(any(), any()) } returns Unit
+        coEvery { notificationCoordinator.rescheduleAfterResume(any(), any()) } returns 60_000L
         mockkObject(NotificationHelper)
         every { NotificationHelper.cancelNotification(any(), any()) } returns Unit
-        every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any()) } returns Unit
+        every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any(), any()) } returns Unit
     }
 
     @AfterEach
@@ -92,7 +111,7 @@ class BreastfeedingActionReceiverTest {
 
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_SWITCH, 42L))
 
-        verify(exactly = 0) { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -102,9 +121,71 @@ class BreastfeedingActionReceiverTest {
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_STOP, 42L))
 
         coVerify { stopSession(activeSession) }
-        verify { NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID) }
-        verify { NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID) }
-        verify { NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID) }
+        verify { notificationCoordinator.cancelAllSessionNotifications() }
+    }
+
+    @Test
+    fun `ACTION_PAUSE pauses active session cancels scheduled alarms and shows paused notification`() = runTest {
+        receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_PAUSE, 42L))
+
+        coVerify { pauseSession(activeSession) }
+        verify { notificationCoordinator.cancelScheduled() }
+        coVerify { notificationCoordinator.showPaused(activeSession, any()) }
+    }
+
+    @Test
+    fun `ACTION_PAUSE ignores wrong session id`() = runTest {
+        receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_PAUSE, 999L))
+
+        coVerify(exactly = 0) { pauseSession(any()) }
+        verify(exactly = 0) { notificationCoordinator.cancelScheduled() }
+        coVerify(exactly = 0) { notificationCoordinator.showPaused(any(), any()) }
+    }
+
+    @Test
+    fun `ACTION_PAUSE ignores already paused session`() = runTest {
+        val pausedSession = activeSession.copy(pausedAt = Instant.now())
+        coEvery { repository.getActiveSession() } returns flowOf(pausedSession)
+
+        receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_PAUSE, 42L))
+
+        coVerify(exactly = 0) { pauseSession(any()) }
+        verify(exactly = 0) { notificationCoordinator.cancelScheduled() }
+        coVerify(exactly = 0) { notificationCoordinator.showPaused(any(), any()) }
+    }
+
+    @Test
+    fun `ACTION_RESUME resumes paused session reschedules alarms and shows running notification`() = runTest {
+        val pausedSession = activeSession.copy(pausedAt = Instant.now().minusSeconds(30))
+        coEvery { repository.getActiveSession() } returns flowOf(pausedSession)
+        coEvery { notificationCoordinator.rescheduleAfterResume(pausedSession, any()) } returns 30_000L
+
+        receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_RESUME, 42L))
+
+        coVerify { resumeSession(pausedSession) }
+        coVerify { notificationCoordinator.rescheduleAfterResume(pausedSession, any()) }
+        coVerify { notificationCoordinator.showRunning(pausedSession, pausedDurationMs = 30_000L) }
+    }
+
+    @Test
+    fun `ACTION_RESUME ignores wrong session id`() = runTest {
+        val pausedSession = activeSession.copy(pausedAt = Instant.now().minusSeconds(30))
+        coEvery { repository.getActiveSession() } returns flowOf(pausedSession)
+
+        receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_RESUME, 999L))
+
+        coVerify(exactly = 0) { resumeSession(any()) }
+        coVerify(exactly = 0) { notificationCoordinator.rescheduleAfterResume(any(), any()) }
+        coVerify(exactly = 0) { notificationCoordinator.showRunning(any(), any()) }
+    }
+
+    @Test
+    fun `ACTION_RESUME ignores running session`() = runTest {
+        receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_RESUME, 42L))
+
+        coVerify(exactly = 0) { resumeSession(any()) }
+        coVerify(exactly = 0) { notificationCoordinator.rescheduleAfterResume(any(), any()) }
+        coVerify(exactly = 0) { notificationCoordinator.showRunning(any(), any()) }
     }
 
     @Test
@@ -149,7 +230,7 @@ class BreastfeedingActionReceiverTest {
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_REFRESH_ACTIVE, 999L))
 
         verify(exactly = 0) {
-            NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any())
+            NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any(), any())
         }
     }
 
@@ -160,7 +241,7 @@ class BreastfeedingActionReceiverTest {
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_REFRESH_ACTIVE, 42L))
 
         verify(exactly = 0) {
-            NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any())
+            NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any(), any())
         }
     }
 
@@ -172,7 +253,7 @@ class BreastfeedingActionReceiverTest {
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_REFRESH_ACTIVE, 42L))
 
         verify(exactly = 0) {
-            NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any())
+            NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any(), any())
         }
     }
 

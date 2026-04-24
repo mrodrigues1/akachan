@@ -7,8 +7,11 @@ import android.util.Log
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
+import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
+import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.util.NotificationHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -16,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.Instant
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -25,6 +29,9 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
     @Inject lateinit var settingsRepository: SettingsRepository
     @Inject lateinit var switchSide: SwitchBreastfeedingSideUseCase
     @Inject lateinit var stopSession: StopBreastfeedingSessionUseCase
+    @Inject lateinit var pauseSession: PauseBreastfeedingSessionUseCase
+    @Inject lateinit var resumeSession: ResumeBreastfeedingSessionUseCase
+    @Inject lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
 
     companion object {
         const val ACTION = "com.babytracker.BREASTFEEDING_ACTION"
@@ -80,12 +87,28 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
                 }
                 NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
             }
+            ACTION_PAUSE -> {
+                val session = repository.getActiveSession().first()
+                if (session?.id == sessionId && !session.isPaused) {
+                    val pausedAt = Instant.now()
+                    pauseSession(session)
+                    notificationCoordinator.cancelScheduled()
+                    notificationCoordinator.showPaused(session, pausedAt)
+                }
+            }
+            ACTION_RESUME -> {
+                val session = repository.getActiveSession().first()
+                if (session?.id == sessionId && session.isPaused) {
+                    val resumeInstant = Instant.now()
+                    resumeSession(session)
+                    val totalPausedMs = notificationCoordinator.rescheduleAfterResume(session, resumeInstant)
+                    notificationCoordinator.showRunning(session, pausedDurationMs = totalPausedMs)
+                }
+            }
             ACTION_STOP -> {
                 val session = repository.getActiveSession().first()
                 if (session?.id == sessionId) stopSession(session)
-                NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID)
-                NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
-                NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID)
+                notificationCoordinator.cancelAllSessionNotifications()
             }
             ACTION_DISMISS -> {
                 NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
