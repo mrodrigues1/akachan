@@ -79,6 +79,14 @@ class NotificationHelperTest {
     }
 
     @Test
+    fun `active notification refresh interval is five seconds`() {
+        val field = NotificationHelper::class.java.getDeclaredField("ACTIVE_REFRESH_INTERVAL_MS")
+        field.isAccessible = true
+
+        assertEquals(5_000L, field.getLong(NotificationHelper))
+    }
+
+    @Test
     fun `rich breastfeeding notifications do not use system progress or subtext`() {
         val source = listOf(
             java.io.File("src/main/java/com/babytracker/util/NotificationHelper.kt"),
