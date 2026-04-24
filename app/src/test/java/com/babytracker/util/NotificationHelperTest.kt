@@ -48,6 +48,12 @@ class NotificationHelperTest {
         return method.invoke(NotificationHelper, value) as String
     }
 
+    private fun notificationHelperSource(): String =
+        listOf(
+            java.io.File("src/main/java/com/babytracker/util/NotificationHelper.kt"),
+            java.io.File("app/src/main/java/com/babytracker/util/NotificationHelper.kt")
+        ).first { it.exists() }.readText()
+
     @Test
     fun `resolveAccent returns dark color when uiMode is night`() {
         val context = contextWithUiMode(Configuration.UI_MODE_NIGHT_YES)
@@ -89,10 +95,7 @@ class NotificationHelperTest {
 
     @Test
     fun `rich breastfeeding notifications do not use system progress or subtext`() {
-        val source = listOf(
-            java.io.File("src/main/java/com/babytracker/util/NotificationHelper.kt"),
-            java.io.File("app/src/main/java/com/babytracker/util/NotificationHelper.kt")
-        ).first { it.exists() }.readText()
+        val source = notificationHelperSource()
 
         assertEquals(0, Regex("\\.setProgress\\(").findAll(source).count())
         assertEquals(0, Regex("\\.setSubText\\(").findAll(source).count())
@@ -100,15 +103,23 @@ class NotificationHelperTest {
 
     @Test
     fun `active breastfeeding notification exposes pause and resume actions`() {
-        val source = listOf(
-            java.io.File("src/main/java/com/babytracker/util/NotificationHelper.kt"),
-            java.io.File("app/src/main/java/com/babytracker/util/NotificationHelper.kt")
-        ).first { it.exists() }.readText()
+        val source = notificationHelperSource()
 
         assertTrue(source.contains("ACTION_PAUSE"))
         assertTrue(source.contains("ACTION_RESUME"))
         assertTrue(source.contains("\"Pause\""))
         assertTrue(source.contains("\"Resume\""))
         assertTrue(source.contains("\"Stop Session\""))
+    }
+
+    @Test
+    fun `switch side rich notification hides custom progress row`() {
+        val source = notificationHelperSource()
+        val showSwitchSideBody = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
+            .find(source)
+            ?.value
+            ?: error("showSwitchSide body not found")
+
+        assertEquals(1, Regex("showProgress = false").findAll(showSwitchSideBody).count())
     }
 }

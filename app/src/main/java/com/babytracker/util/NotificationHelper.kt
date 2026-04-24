@@ -184,7 +184,6 @@ object NotificationHelper {
             .setContentIntent(tapPi)
 
         if (richEnabled) {
-            val progressText = "$elapsedMinutes / $maxPerBreastMinutes min"
             builder
                 .setStyle(NotificationCompat.DecoratedCustomViewStyle())
                 .setCustomBigContentView(
@@ -193,9 +192,10 @@ object NotificationHelper {
                         layoutRes = R.layout.notification_breastfeeding_progress,
                         title = title,
                         body = body,
-                        progress = elapsedMinutes,
-                        maxProgress = maxPerBreastMinutes,
-                        progressText = progressText
+                        progress = 0,
+                        maxProgress = 1,
+                        progressText = "",
+                        showProgress = false
                     )
                 )
                 .addAction(0, "Switch Now", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_SWITCH, RC_SWITCH_NOW))
