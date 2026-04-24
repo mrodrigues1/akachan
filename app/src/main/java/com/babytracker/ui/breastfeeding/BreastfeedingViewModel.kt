@@ -1,6 +1,5 @@
 package com.babytracker.ui.breastfeeding
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.BreastSide
@@ -13,11 +12,8 @@ import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUs
 import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
-import com.babytracker.manager.BreastfeedingNotificationManager
-import com.babytracker.manager.NotificationScheduler
-import com.babytracker.util.NotificationHelper
+import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -65,8 +61,7 @@ class BreastfeedingViewModel @Inject constructor(
     private val resumeSession: ResumeBreastfeedingSessionUseCase,
     private val repository: BreastfeedingRepository,
     private val settingsRepository: SettingsRepository,
-    @param:ApplicationContext private val context: Context,
-    private val notificationScheduler: NotificationScheduler = BreastfeedingNotificationManager(context)
+    private val notificationCoordinator: BreastfeedingSessionNotificationCoordinator
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BreastfeedingUiState())
@@ -134,17 +129,8 @@ class BreastfeedingViewModel @Inject constructor(
             repository.getActiveSession()
                 .first { it != null }
                 ?.let { session ->
-                    scheduleNotifications(session)
-                    val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
-                    NotificationHelper.showBreastfeedingActive(
-                        context = context,
-                        sessionId = session.id,
-                        currentSide = session.startingSide.name,
-                        sessionStartEpochMs = session.startTime.toEpochMilli(),
-                        pausedDurationMs = session.pausedDurationMs,
-                        richEnabled = richEnabled,
-                        maxTotalMinutes = _uiState.value.maxTotalFeedMinutes
-                    )
+                    notificationCoordinator.scheduleInitial(session)
+                    notificationCoordinator.showRunning(session)
                 }
         }
     }
@@ -153,10 +139,7 @@ class BreastfeedingViewModel @Inject constructor(
         val session = _uiState.value.activeSession ?: return
         viewModelScope.launch {
             stopSession(session)
-            notificationScheduler.cancelAllScheduledNotifications()
-            NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID)
-            NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
-            NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID)
+            notificationCoordinator.cancelAllSessionNotifications()
         }
     }
 
@@ -167,17 +150,10 @@ class BreastfeedingViewModel @Inject constructor(
             // Update the ongoing notification only when this is the first (and only) side switch.
             // After switching, the current side is the opposite of the original starting side.
             if (session.switchTime == null) {
-                val newSide = if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
-                val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
-                NotificationHelper.showBreastfeedingActive(
-                    context = context,
-                    sessionId = session.id,
-                    currentSide = newSide.name,
-                    sessionStartEpochMs = session.startTime.toEpochMilli(),
-                    pausedDurationMs = session.pausedDurationMs,
-                    richEnabled = richEnabled,
-                    maxTotalMinutes = _uiState.value.maxTotalFeedMinutes
+                val switchedSession = session.copy(
+                    switchTime = Instant.now()
                 )
+                notificationCoordinator.showRunning(switchedSession)
             }
         }
     }
@@ -185,9 +161,10 @@ class BreastfeedingViewModel @Inject constructor(
     fun onPauseSession() {
         val session = _uiState.value.activeSession ?: return
         viewModelScope.launch {
+            val pausedAt = Instant.now()
             pauseSession(session)
-            notificationScheduler.cancelAllScheduledNotifications()
-            NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID)
+            notificationCoordinator.cancelScheduled()
+            notificationCoordinator.showPaused(session, pausedAt)
         }
     }
 
@@ -196,101 +173,8 @@ class BreastfeedingViewModel @Inject constructor(
         viewModelScope.launch {
             val resumeInstant = Instant.now()
             resumeSession(session)
-            rescheduleNotificationsAfterResume(session)
-            val currentPauseDurationMs = session.pausedAt
-                ?.let { Duration.between(it, resumeInstant).toMillis() }
-                ?: 0L
-            val totalPausedMs = session.pausedDurationMs + currentPauseDurationMs
-            val currentSide = if (session.switchTime != null) {
-                if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT.name else BreastSide.LEFT.name
-            } else {
-                session.startingSide.name
-            }
-            val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
-            NotificationHelper.showBreastfeedingActive(
-                context = context,
-                sessionId = session.id,
-                currentSide = currentSide,
-                sessionStartEpochMs = session.startTime.toEpochMilli(),
-                pausedDurationMs = totalPausedMs,
-                richEnabled = richEnabled,
-                maxTotalMinutes = _uiState.value.maxTotalFeedMinutes
-            )
-        }
-    }
-
-    private fun scheduleNotifications(session: BreastfeedingSession) {
-        val maxPerBreastMinutes = _uiState.value.maxPerBreastMinutes
-        val maxTotalFeedMinutes = _uiState.value.maxTotalFeedMinutes
-
-        if (maxPerBreastMinutes > 0) {
-            notificationScheduler.scheduleMaxPerBreastNotification(
-                sessionStartTime = session.startTime,
-                maxPerBreastMinutes = maxPerBreastMinutes,
-                sessionId = session.id,
-                currentSide = session.startingSide.name,
-                maxTotalMinutes = maxTotalFeedMinutes
-            )
-        }
-
-        if (maxTotalFeedMinutes > 0) {
-            notificationScheduler.scheduleMaxTotalTimeNotification(
-                sessionStartTime = session.startTime,
-                maxTotalMinutes = maxTotalFeedMinutes,
-                sessionId = session.id,
-                currentSide = session.startingSide.name,
-                maxPerBreastMinutes = maxPerBreastMinutes
-            )
-        }
-    }
-
-    /**
-     * After a resume, reschedule any notification that had not yet fired before the pause.
-     *
-     * The original trigger time for each notification type is:
-     *   startTime + maxMinutes + previousPausedDurationMs
-     *
-     * If that trigger time is still in the future relative to session.pausedAt, the
-     * notification hadn't fired yet — reschedule it for (now + remaining).
-     *
-     * [session] is the state *before* the resume use case cleared pausedAt, so
-     * pausedAt is still set and pausedDurationMs reflects only previously accumulated pauses.
-     */
-    private fun rescheduleNotificationsAfterResume(session: BreastfeedingSession) {
-        val pausedAt = session.pausedAt ?: return
-        val maxPerBreast = _uiState.value.maxPerBreastMinutes
-        val maxTotal = _uiState.value.maxTotalFeedMinutes
-
-        if (maxPerBreast > 0) {
-            val adjustedTrigger = session.startTime
-                .plusSeconds(maxPerBreast * 60L)
-                .plusMillis(session.pausedDurationMs)
-            val remaining = Duration.between(pausedAt, adjustedTrigger)
-            if (!remaining.isNegative && !remaining.isZero) {
-                notificationScheduler.scheduleMaxPerBreastNotificationAt(
-                    triggerTime = Instant.now().plus(remaining),
-                    sessionId = session.id,
-                    maxPerBreastMinutes = maxPerBreast,
-                    currentSide = session.startingSide.name,
-                    maxTotalMinutes = maxTotal
-                )
-            }
-        }
-
-        if (maxTotal > 0) {
-            val adjustedTrigger = session.startTime
-                .plusSeconds(maxTotal * 60L)
-                .plusMillis(session.pausedDurationMs)
-            val remaining = Duration.between(pausedAt, adjustedTrigger)
-            if (!remaining.isNegative && !remaining.isZero) {
-                notificationScheduler.scheduleMaxTotalTimeNotificationAt(
-                    triggerTime = Instant.now().plus(remaining),
-                    sessionId = session.id,
-                    maxTotalMinutes = maxTotal,
-                    currentSide = session.startingSide.name,
-                    maxPerBreastMinutes = maxPerBreast
-                )
-            }
+            val totalPausedMs = notificationCoordinator.rescheduleAfterResume(session, resumeInstant)
+            notificationCoordinator.showRunning(session, pausedDurationMs = totalPausedMs)
         }
     }
 

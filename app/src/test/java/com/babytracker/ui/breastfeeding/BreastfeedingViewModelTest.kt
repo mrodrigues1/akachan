@@ -10,14 +10,12 @@ import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUs
 import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
-import com.babytracker.manager.NotificationScheduler
-import com.babytracker.util.NotificationHelper
+import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkObject
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import io.mockk.verify
@@ -50,11 +48,10 @@ class BreastfeedingViewModelTest {
     private lateinit var resumeSession: ResumeBreastfeedingSessionUseCase
     private lateinit var repository: BreastfeedingRepository
     private lateinit var settingsRepository: SettingsRepository
-    private lateinit var notificationScheduler: NotificationScheduler
+    private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
 
     private lateinit var viewModel: BreastfeedingViewModel
     private val testDispatcher = StandardTestDispatcher()
-    private val context = mockk<android.content.Context>(relaxed = true)
 
     private val activeSessionFlow = MutableStateFlow<BreastfeedingSession?>(null)
     private val maxPerBreastFlow = MutableStateFlow(15)
@@ -70,11 +67,7 @@ class BreastfeedingViewModelTest {
         getHistory = mockk()
         repository = mockk()
         settingsRepository = mockk()
-        notificationScheduler = mockk()
-
-        mockkObject(NotificationHelper)
-        every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any()) } returns Unit
-        every { NotificationHelper.cancelNotification(any(), any()) } returns Unit
+        notificationCoordinator = mockk()
 
         every { getHistory() } returns flowOf(emptyList())
         every { repository.getActiveSession() } returns activeSessionFlow
@@ -86,11 +79,12 @@ class BreastfeedingViewModelTest {
         coJustRun { startSession(any()) }
         coJustRun { pauseSession(any()) }
         coJustRun { resumeSession(any()) }
-        every { notificationScheduler.cancelAllScheduledNotifications() } returns Unit
-        every { notificationScheduler.scheduleMaxPerBreastNotification(any(), any(), any(), any(), any()) } returns Unit
-        every { notificationScheduler.scheduleMaxTotalTimeNotification(any(), any(), any(), any(), any()) } returns Unit
-        every { notificationScheduler.scheduleMaxPerBreastNotificationAt(any(), any(), any(), any(), any()) } returns Unit
-        every { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any(), any(), any(), any(), any()) } returns Unit
+        coEvery { notificationCoordinator.scheduleInitial(any()) } returns Unit
+        coEvery { notificationCoordinator.showRunning(any(), any()) } returns Unit
+        coEvery { notificationCoordinator.showPaused(any(), any()) } returns Unit
+        every { notificationCoordinator.cancelScheduled() } returns Unit
+        every { notificationCoordinator.cancelAllSessionNotifications() } returns Unit
+        coEvery { notificationCoordinator.rescheduleAfterResume(any(), any()) } returns 0L
 
         viewModel = createViewModel()
     }
@@ -110,8 +104,7 @@ class BreastfeedingViewModelTest {
         resumeSession,
         repository,
         settingsRepository,
-        context,
-        notificationScheduler
+        notificationCoordinator
     )
 
     private fun awaitLastFeedingSummaryPopulated(): LastFeedingSummaryState.Populated {
@@ -208,17 +201,8 @@ class BreastfeedingViewModelTest {
         viewModel.onStartSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        verify {
-            NotificationHelper.showBreastfeedingActive(
-                context = context,
-                sessionId = 1L,
-                currentSide = "LEFT",
-                sessionStartEpochMs = session.startTime.toEpochMilli(),
-                pausedDurationMs = 0L,
-                richEnabled = false,
-                maxTotalMinutes = 30
-            )
-        }
+        coVerify { notificationCoordinator.scheduleInitial(session) }
+        coVerify { notificationCoordinator.showRunning(session) }
     }
 
     @Test
@@ -235,11 +219,11 @@ class BreastfeedingViewModelTest {
         viewModel.onStopSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        verify { NotificationHelper.cancelNotification(any(), NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID) }
+        verify { notificationCoordinator.cancelAllSessionNotifications() }
     }
 
     @Test
-    fun `onPauseSession cancels active notification`() = runTest {
+    fun `onPauseSession shows paused active notification`() = runTest {
         val session = BreastfeedingSession(
             id = 1L,
             startTime = Instant.now().minusSeconds(300),
@@ -251,7 +235,8 @@ class BreastfeedingViewModelTest {
         viewModel.onPauseSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        verify { NotificationHelper.cancelNotification(any(), NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID) }
+        verify { notificationCoordinator.cancelScheduled() }
+        coVerify { notificationCoordinator.showPaused(session, any()) }
     }
 
     @Test
@@ -268,17 +253,8 @@ class BreastfeedingViewModelTest {
         viewModel.onResumeSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        verify {
-            NotificationHelper.showBreastfeedingActive(
-                context = context,
-                sessionId = 1L,
-                currentSide = "LEFT",
-                sessionStartEpochMs = session.startTime.toEpochMilli(),
-                pausedDurationMs = any(),
-                richEnabled = false,
-                maxTotalMinutes = 30
-            )
-        }
+        coVerify { notificationCoordinator.rescheduleAfterResume(session, any()) }
+        coVerify { notificationCoordinator.showRunning(session, pausedDurationMs = any()) }
     }
 
     @Test
@@ -296,17 +272,8 @@ class BreastfeedingViewModelTest {
         viewModel.onResumeSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        verify {
-            NotificationHelper.showBreastfeedingActive(
-                context = context,
-                sessionId = 1L,
-                currentSide = "RIGHT",
-                sessionStartEpochMs = session.startTime.toEpochMilli(),
-                pausedDurationMs = any(),
-                richEnabled = false,
-                maxTotalMinutes = 30
-            )
-        }
+        coVerify { notificationCoordinator.rescheduleAfterResume(session, any()) }
+        coVerify { notificationCoordinator.showRunning(session, pausedDurationMs = any()) }
     }
 
     @Test
@@ -323,15 +290,10 @@ class BreastfeedingViewModelTest {
         viewModel.onSwitchSide()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        verify {
-            NotificationHelper.showBreastfeedingActive(
-                context = context,
-                sessionId = 1L,
-                currentSide = "RIGHT",
-                sessionStartEpochMs = session.startTime.toEpochMilli(),
-                pausedDurationMs = 0L,
-                richEnabled = false,
-                maxTotalMinutes = 30
+        coVerify {
+            notificationCoordinator.showRunning(
+                match { it.id == session.id && it.startingSide == BreastSide.LEFT && it.switchTime != null },
+                pausedDurationMs = 0L
             )
         }
     }
@@ -351,7 +313,7 @@ class BreastfeedingViewModelTest {
         viewModel.onSwitchSide()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        verify(exactly = 0) { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { notificationCoordinator.showRunning(any(), any()) }
     }
 
     @Test
@@ -365,7 +327,7 @@ class BreastfeedingViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coJustRun { stopSession(session) }
-        // Skip this test - requires Android framework to mock NotificationHelper
+        // Just verify the method can be called without error.
         
         // Just verify the method can be called without error
         // Full notification cancellation testing requires instrumented tests
@@ -465,12 +427,11 @@ class BreastfeedingViewModelTest {
         // and NOT again when the session update (pause) emits from the repository Flow.
         // The persistent-collect bug caused it to reschedule on every update, which meant
         // cancelling alarms on pause had no lasting effect.
-        verify(exactly = 1) { notificationScheduler.scheduleMaxPerBreastNotification(any(), any(), any(), any(), any()) }
-        verify(exactly = 1) { notificationScheduler.scheduleMaxTotalTimeNotification(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { notificationCoordinator.scheduleInitial(session) }
     }
 
     @Test
-    fun `notification scheduler is not called when switching side`() = runTest {
+    fun `notification coordinator does not schedule initial alarms when switching side`() = runTest {
         val session = BreastfeedingSession(
             id = 1L,
             startTime = Instant.now().minusSeconds(300),
@@ -485,11 +446,11 @@ class BreastfeedingViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { switchSide(session) }
-        coVerify(exactly = 0) { notificationScheduler.scheduleMaxPerBreastNotification(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { notificationCoordinator.scheduleInitial(any()) }
     }
 
     @Test
-    fun `onResumeSession reschedules notifications for remaining active time`() = runTest {
+    fun `onResumeSession asks coordinator to reschedule notifications for remaining active time`() = runTest {
         // Session started 300s ago, paused 60s ago, no previous pauses.
         // maxPerBreast=15min (900s), maxTotal=30min (1800s).
         // Remaining per-breast = (0 + 900 + 0) - (300 - 60) = 900 - 240 = 660s → scheduleAt(now+660s).
@@ -505,8 +466,7 @@ class BreastfeedingViewModelTest {
         viewModel.onResumeSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        verify(exactly = 1) { notificationScheduler.scheduleMaxPerBreastNotificationAt(any(), any(), any(), any(), any()) }
-        verify(exactly = 1) { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { notificationCoordinator.rescheduleAfterResume(session, any()) }
     }
 
     @Test
@@ -531,7 +491,7 @@ class BreastfeedingViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { pauseSession(session) }
-        verify(exactly = 1) { notificationScheduler.cancelAllScheduledNotifications() }
+        verify(exactly = 1) { notificationCoordinator.cancelScheduled() }
     }
 
     @Test
