@@ -53,9 +53,10 @@ class BreastfeedingActionReceiverTest {
 
         coEvery { repository.getActiveSession() } returns flowOf(activeSession)
         every { settingsRepository.getRichNotificationsEnabled() } returns MutableStateFlow(false)
+        every { settingsRepository.getMaxTotalFeedMinutes() } returns MutableStateFlow(30)
         mockkObject(NotificationHelper)
         every { NotificationHelper.cancelNotification(any(), any()) } returns Unit
-        every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any()) } returns Unit
+        every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any()) } returns Unit
     }
 
     @AfterEach
@@ -75,7 +76,8 @@ class BreastfeedingActionReceiverTest {
                 currentSide = "RIGHT",
                 sessionStartEpochMs = activeSession.startTime.toEpochMilli(),
                 pausedDurationMs = 0L,
-                richEnabled = false
+                richEnabled = false,
+                maxTotalMinutes = 30
             )
         }
         verify { NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID) }
@@ -90,7 +92,7 @@ class BreastfeedingActionReceiverTest {
 
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_SWITCH, 42L))
 
-        verify(exactly = 0) { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -123,6 +125,23 @@ class BreastfeedingActionReceiverTest {
         coVerify(exactly = 0) { stopSession(any()) }
         verify { NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID) }
         verify(exactly = 0) { NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID) }
+    }
+
+    @Test
+    fun `ACTION_REFRESH_ACTIVE reposts active notification with current progress target`() = runTest {
+        receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_REFRESH_ACTIVE, 42L))
+
+        verify {
+            NotificationHelper.showBreastfeedingActive(
+                context = context,
+                sessionId = 42L,
+                currentSide = "LEFT",
+                sessionStartEpochMs = activeSession.startTime.toEpochMilli(),
+                pausedDurationMs = 0L,
+                richEnabled = false,
+                maxTotalMinutes = 30
+            )
+        }
     }
 
     private fun intent(action: String, sessionId: Long) = mockk<Intent>(relaxed = true).also {

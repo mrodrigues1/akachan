@@ -34,6 +34,7 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
         const val ACTION_STOP = "stop"
         const val ACTION_DISMISS = "dismiss"
         const val ACTION_KEEP_GOING = "keep_going"
+        const val ACTION_REFRESH_ACTIVE = "refresh_active"
         private const val TAG = "BreastfeedingActionReceiver"
     }
 
@@ -63,13 +64,15 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
                     if (session.switchTime == null) {
                         val newSide = if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
                         val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
+                        val maxTotalMinutes = settingsRepository.getMaxTotalFeedMinutes().first()
                         NotificationHelper.showBreastfeedingActive(
                             context = context,
                             sessionId = session.id,
                             currentSide = newSide.name,
                             sessionStartEpochMs = session.startTime.toEpochMilli(),
                             pausedDurationMs = session.pausedDurationMs,
-                            richEnabled = richEnabled
+                            richEnabled = richEnabled,
+                            maxTotalMinutes = maxTotalMinutes
                         )
                     }
                 }
@@ -88,6 +91,29 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
             ACTION_KEEP_GOING -> {
                 NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID)
             }
+            ACTION_REFRESH_ACTIVE -> refreshActiveNotification(context, sessionId)
         }
+    }
+
+    private suspend fun refreshActiveNotification(context: Context, sessionId: Long) {
+        val session = repository.getActiveSession().first()
+        if (session == null || session.id != sessionId || session.isPaused) return
+
+        val currentSide = if (session.switchTime != null) {
+            if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT.name else BreastSide.LEFT.name
+        } else {
+            session.startingSide.name
+        }
+        val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
+        val maxTotalMinutes = settingsRepository.getMaxTotalFeedMinutes().first()
+        NotificationHelper.showBreastfeedingActive(
+            context = context,
+            sessionId = session.id,
+            currentSide = currentSide,
+            sessionStartEpochMs = session.startTime.toEpochMilli(),
+            pausedDurationMs = session.pausedDurationMs,
+            richEnabled = richEnabled,
+            maxTotalMinutes = maxTotalMinutes
+        )
     }
 }
