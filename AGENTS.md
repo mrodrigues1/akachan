@@ -38,6 +38,7 @@ Data Layer     Repository Impls → Room DAOs / DataStore
 - SOLID: depend on abstractions (repository interfaces), single-responsibility use cases
 - KISS: flat packages, no mapper classes, no base classes, no sealed `Result<>` wrappers
 - DDD: domain models are pure Kotlin data classes — zero framework imports
+- UI: Material 3 with custom "Baby" palette, rounded shapes, and one-handed usability
 
 **Anti-goals:** no multi-module setup, no `Mapper` classes, no `BaseViewModel`, no `BaseFragment`.
 
@@ -65,28 +66,152 @@ app/src/main/java/com/babytracker/
 │   │                          #   SleepRepository, SettingsRepository
 │   └── usecase/
 │       ├── baby/              # GetBabyProfile, SaveBabyProfile
-│       ├── breastfeeding/     # StartSession, StopSession, GetHistory
+│       ├── breastfeeding/     # StartSession, StopSession, GetHistory, SwitchSide,
+│       │                      #   PauseSession, ResumeSession
 │       └── sleep/             # StartRecord, StopRecord, GetHistory, GenerateSchedule
 ├── data/
 │   ├── local/
-│   │   ├── BabyTrackerDatabase.kt   # Room DB v1, entities: breastfeeding_sessions, sleep_records
+│   │   ├── BabyTrackerDatabase.kt   # Room DB v2, entities: breastfeeding_sessions, sleep_records
 │   │   ├── dao/               # BreastfeedingDao, SleepDao
 │   │   ├── entity/            # BreastfeedingEntity, SleepEntity
 │   │   └── converter/         # TypeConverter: Instant ↔ Long (epoch ms)
 │   └── repository/            # BabyRepositoryImpl, BreastfeedingRepositoryImpl,
 │                              #   SleepRepositoryImpl, SettingsRepositoryImpl
+├── manager/
+│   ├── NotificationScheduler.kt          # Interface: schedule/cancel AlarmManager alarms
+│   └── BreastfeedingNotificationManager.kt  # Impl: schedules max-time and per-breast alarms
 ├── ui/
 │   ├── onboarding/            # OnboardingScreen + OnboardingViewModel
 │   ├── home/                  # HomeScreen + HomeViewModel
 │   ├── breastfeeding/         # BreastfeedingScreen, BreastfeedingHistoryScreen + VMs
-│   ├── sleep/                 # SleepScreen, SleepHistoryScreen, SleepScheduleScreen + VMs
+│   ├── sleep/                 # SleepTrackingScreen, SleepHistoryScreen, SleepScheduleScreen + VMs
 │   ├── settings/              # SettingsScreen + SettingsViewModel
 │   ├── component/             # Reusable: TimerDisplay, HistoryCard, SideSelector
-│   └── theme/                 # BabyTrackerTheme (MD3, dynamic colors on API 31+)
+│   └── theme/                 # Theme.kt, Color.kt, Shape.kt, Type.kt,
+│                              #   DesignSystemPreviewScreen.kt (debug catalog)
 └── util/
-    ├── DateTimeExt.kt         # Instant.formatTime(), formatDateTime(), Duration.formatDuration()
-    └── FlowExt.kt             # Flow.catchAndLog()
+    ├── DateTimeExt.kt         # Instant.formatTime(), formatDateTime(), Duration.formatDuration(),
+    │                          #   Duration.formatElapsedAgo()
+    ├── FlowExt.kt             # Flow.catchAndLog()
+    ├── NotificationHelper.kt  # Cancel/show notification helpers — builds design-system-themed
+    │                          #   notifications (per-type small icon + accent color via setColor())
+    └── UpdateChecker.kt       # In-app update check utility
 ```
+
+---
+
+## Theme & UI Tokens
+
+All design-system source lives in `ui/theme/`. The live catalog is at `ui/theme/DesignSystemPreviewScreen.kt` — reachable from Settings → Developer (debug builds only).
+
+### Palette Scale (`Color.kt`)
+
+Three hue families, each with a 4-stop scale. The scale semantics are shared across families:
+
+| Stop | Role |
+|------|------|
+| 700  | Primary action color |
+| 200  | Container / background tint |
+| 900  | On-container text (dark) |
+| 100  | Softest tone |
+
+| Family | 100 | 200 | 700 | 900 |
+|--------|-----|-----|-----|-----|
+| **Pink** (Feeding/Primary) | `#F4C2C2` | `#F8BBD0` | `#C2185B` | `#880E4F` |
+| **Blue** (Sleep/Secondary) | `#89CFF0` | `#B3E5FC` | `#1976D2` | `#0D47A1` |
+| **Green** (Success/Tertiary) | `#90EE90` | `#C8E6C9` | `#388E3C` | `#1B5E20` |
+| **Amber** (Warning) | `#FFCC80` | `#FFE0B2` | `#E65100` | `#7A3600` |
+
+Surface grays and yellows have no scale equivalent:
+- `SoftYellow` `#FFF9C4` — soft background hint
+- `SurfaceYellow` `#FFFDE7` — light scheme surface / background
+- `Amber800` `#7A4800` — off-scale raw used only by the dark-scheme warning container
+
+### Semantic Color Tokens (`Color.kt` → `Theme.kt`)
+
+**Light scheme**
+
+| Token name | Palette constant | Hex |
+|------------|-----------------|-----|
+| `primary` | `Pink700` | `#C2185B` |
+| `onPrimary` | `OnPrimaryWhite` | `#FFFFFF` |
+| `primaryContainer` | `Pink200` | `#F8BBD0` |
+| `onPrimaryContainer` | `Pink900` | `#880E4F` |
+| `secondary` | `Blue700` | `#1976D2` |
+| `onSecondary` | `OnSecondaryWhite` | `#FFFFFF` |
+| `secondaryContainer` | `Blue200` | `#B3E5FC` |
+| `onSecondaryContainer` | `Blue900` | `#0D47A1` |
+| `tertiary` | `Green700` | `#388E3C` |
+| `onTertiary` | `OnTertiaryWhite` | `#FFFFFF` |
+| `tertiaryContainer` | `Green200` | `#C8E6C9` |
+| `onTertiaryContainer` | `Green900` | `#1B5E20` |
+| `surface` / `background` | `SurfaceYellow` | `#FFFDE7` |
+| `onSurface` | `OnSurfaceDark` | `#1A1A1A` |
+| `onSurfaceVariant` | `OnSurfaceVariantGrey` | `#757575` |
+| `surfaceVariant` | `SurfaceVariantLight` | `#F0EDE0` |
+| `outline` | `OutlineLight` | `#CAC4D0` |
+| `outlineVariant` | `OutlineVariantLight` | `#CAC4D0` |
+| `error` | `ErrorLight` | `#B00020` |
+| `errorContainer` | `ErrorContainerLight` | `#FFDAD6` |
+| `onErrorContainer` | `OnErrorContainerLight` | `#410002` |
+
+**Dark scheme** — all dark tokens have no palette-scale equivalent (independently chosen for contrast):
+
+| Token name | Hex |
+|------------|-----|
+| `primary` | `#F48FB1` |
+| `primaryContainer` | `#880E4F` (Pink900) |
+| `secondary` | `#90CAF9` |
+| `secondaryContainer` | `#0D47A1` (Blue900) |
+| `tertiary` | `#A5D6A7` |
+| `tertiaryContainer` | `#1B5E20` (Green900) |
+| `surface` / `background` | `#1C1B1F` |
+| `onSurface` | `#E6E1E5` |
+| `surfaceVariant` | `#2B2930` |
+| `outline` | `#938F99` |
+| `outlineVariant` | `#49454F` |
+| `error` | `#FFB4AB` |
+| `errorContainer` | `#93000A` |
+
+### Warning semantic tokens (extended, non-M3)
+
+Accessed as top-level `val`s from `ui/theme/Color.kt` — **not** wired through `MaterialTheme.colorScheme`. Consumed directly by `NotificationHelper` for the Feeding Limit notification.
+
+| Token | Light | Dark |
+|------|-------|------|
+| `WarningAmber` | `Amber700` `#E65100` | `Amber100` `#FFCC80` |
+| `WarningContainerAmber` | `Amber200` `#FFE0B2` | `Amber800` `#7A4800` |
+| `OnWarningContainerAmber` | `Amber900` `#7A3600` | `Amber200` `#FFE0B2` |
+
+### Typography (`Type.kt` → `AkachanTypography`)
+
+All 13 M3 slots are defined. Key custom roles:
+
+| Slot | Weight | Size | Usage |
+|------|--------|------|-------|
+| `displaySmall` | ExtraBold | 36sp | Timer clock display |
+| `headlineLarge` | Bold | 32sp | Screen titles |
+| `headlineMedium` | Bold | 28sp | Section titles |
+| `headlineSmall` | SemiBold | 24sp | Card titles |
+| `titleLarge` | SemiBold | 22sp | TopAppBar title |
+| `titleMedium` | SemiBold | 16sp | List item primary text |
+| `titleSmall` | Medium | 14sp | List item secondary |
+| `bodyLarge` | Normal | 16sp | Body / description |
+| `bodyMedium` | Normal | 14sp | Secondary body |
+| `bodySmall` | Normal | 12sp | Captions |
+| `labelLarge` | SemiBold | 14sp | Button labels |
+| `labelMedium` | Bold | 12sp | Section headers (UPPERCASE convention) |
+| `labelSmall` | Medium | 11sp | Swatch / chip labels |
+
+### Shapes (`Shape.kt` → `AkachanShapes`)
+
+| Slot | Corner radius | Usage |
+|------|--------------|-------|
+| `extraSmall` | 4dp | Dense chips |
+| `small` | 8dp | Input fields, small cards |
+| `medium` | 16dp | Main cards |
+| `large` | 24dp | Bottom sheets, dialogs |
+| `extraLarge` | 50dp | Primary buttons (FAB-like) |
 
 ---
 
@@ -188,6 +313,23 @@ wip: work on new feature
 
 ---
 
+## Workflow
+
+### Branching Model
+
+When working on a new feature, pull `main` branch latest changes and create a new branch from `main` and name it after the feature:
+- `feat/breastfeeding-history`
+- `fix/sleep-schedule-bug`
+- `refactor/settings-screen-refactor`
+- `chore/update-room-version`
+- `ci/add-android-test-coverage`
+
+After the feature is complete, run all tests, 
+if all tests are passing: create a PR to `main` with a descriptive title and description, 
+if there is any broken test: fix it, re-run tests and do it until all tests pass.
+
+---
+
 ## Code Patterns
 
 ### Use Cases
@@ -231,7 +373,7 @@ fun BreastfeedingSession.toEntity(): BreastfeedingEntity = ...
 
 ## Database Schema
 
-**Database:** `baby_tracker_db` (Room v1)
+**Database:** `baby_tracker_db` (Room v2)
 
 **`breastfeeding_sessions`**
 | Column | Type | Notes |
@@ -242,6 +384,8 @@ fun BreastfeedingSession.toEntity(): BreastfeedingEntity = ...
 | `starting_side` | String NOT NULL | "LEFT" or "RIGHT" |
 | `switch_time` | Long NULLABLE | epoch ms when sides switched |
 | `notes` | String NULLABLE | |
+| `paused_at` | Long NULLABLE | epoch ms when session was paused; null = running |
+| `paused_duration_ms` | Long NOT NULL | accumulated paused time in ms (default 0) |
 
 **`sleep_records`**
 | Column | Type | Notes |
@@ -277,6 +421,9 @@ Build variants: `debug` (default) and `release` (ProGuard minification enabled v
 ---
 
 ## Testing Conventions
+
+Create tests for new features, bug fixes, and edge cases.
+Doesn't need to follow the TDD pattern. Make sure the feature works as expected.
 
 ### Unit Tests (`src/test/`)
 - Framework: JUnit 5 (`@Test`, `@BeforeEach`, `runTest`)
@@ -322,7 +469,6 @@ All repository implementations are `@Singleton` scoped.
 Detailed feature specs live in `specs/`:
 
 - `specs/SPEC-001-APP-STRUCTURE.md` — architecture, package layout, design principles, DB schema
-- `SPEC-002-Onboarding.md` — onboarding flow (3 steps: baby name → DOB → allergies), validation rules, persistence strategy
 
 Read specs before implementing new features — they define the intended behaviour and non-goals.
 
@@ -336,3 +482,4 @@ Read specs before implementing new features — they define the intended behavio
 - Do not wrap return values in `sealed class Result<T>` — let exceptions propagate or use nullable types
 - Do not add cloud sync, analytics, or remote API calls — local-only is by design
 - Do not use KAPT — KSP is configured for all annotation processing (Hilt, Room)
+- Do not access warning tokens (`WarningAmber`, `WarningContainerAmber`, `OnWarningContainerAmber` and their `*Dark` pairs) through `MaterialTheme.colorScheme` — they are extended, non-M3 semantics and ship as top-level `val`s in `ui/theme/Color.kt`. Import them by name.
