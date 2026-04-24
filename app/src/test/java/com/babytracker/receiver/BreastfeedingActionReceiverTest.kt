@@ -69,6 +69,7 @@ class BreastfeedingActionReceiverTest {
         coEvery { pauseSession(any()) } returns Unit
         coEvery { resumeSession(any()) } returns Unit
         every { notificationCoordinator.cancelScheduled() } returns Unit
+        every { notificationCoordinator.cancelPostedSessionNotifications() } returns Unit
         every { notificationCoordinator.cancelAllSessionNotifications() } returns Unit
         coEvery { notificationCoordinator.showPaused(any(), any()) } returns Unit
         coEvery { notificationCoordinator.showRunning(any(), any()) } returns Unit
@@ -115,13 +116,25 @@ class BreastfeedingActionReceiverTest {
     }
 
     @Test
-    fun `ACTION_STOP calls stopSession and cancels feeding-limit, switch-side, and active notifications`() = runTest {
+    fun `ACTION_STOP calls stopSession and cancels scheduled alarms plus feeding-limit, switch-side, and active notifications`() = runTest {
         coEvery { stopSession(activeSession) } returns Unit
 
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_STOP, 42L))
 
         coVerify { stopSession(activeSession) }
-        verify { notificationCoordinator.cancelAllSessionNotifications() }
+        verify(exactly = 1) { notificationCoordinator.cancelScheduled() }
+        verify(exactly = 1) { notificationCoordinator.cancelPostedSessionNotifications() }
+        verify(exactly = 0) { notificationCoordinator.cancelAllSessionNotifications() }
+    }
+
+    @Test
+    fun `ACTION_STOP ignores wrong session id without cancelling scheduled alarms`() = runTest {
+        receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_STOP, 999L))
+
+        coVerify(exactly = 0) { stopSession(any()) }
+        verify(exactly = 0) { notificationCoordinator.cancelScheduled() }
+        verify(exactly = 1) { notificationCoordinator.cancelPostedSessionNotifications() }
+        verify(exactly = 0) { notificationCoordinator.cancelAllSessionNotifications() }
     }
 
     @Test

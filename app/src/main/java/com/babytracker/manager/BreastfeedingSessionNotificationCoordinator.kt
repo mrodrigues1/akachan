@@ -81,11 +81,15 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
         notificationScheduler.cancelAllScheduledNotifications()
     }
 
-    fun cancelAllSessionNotifications() {
-        notificationScheduler.cancelAllScheduledNotifications()
+    fun cancelPostedSessionNotifications() {
         NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID)
         NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
         NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID)
+    }
+
+    fun cancelAllSessionNotifications() {
+        cancelScheduled()
+        cancelPostedSessionNotifications()
     }
 
     suspend fun rescheduleAfterResume(
