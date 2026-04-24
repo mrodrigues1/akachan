@@ -40,6 +40,13 @@ class NotificationHelperTest {
         return context
     }
 
+    private fun invokePrivateStringMethod(name: String, value: Int): String {
+        val method = NotificationHelper::class.java.declaredMethods
+            .first { it.name == name }
+        method.isAccessible = true
+        return method.invoke(NotificationHelper, value) as String
+    }
+
     @Test
     fun `resolveAccent returns dark color when uiMode is night`() {
         val context = contextWithUiMode(Configuration.UI_MODE_NIGHT_YES)
@@ -59,5 +66,15 @@ class NotificationHelperTest {
         val context = contextWithUiMode(Configuration.UI_MODE_NIGHT_UNDEFINED)
         val result = invokeResolveAccent(context, lightColor, darkColor)
         assertEquals(lightColor.toArgb(), result)
+    }
+
+    @Test
+    fun `activeProgressText shows only max feeding time`() {
+        assertEquals("2 min", invokePrivateStringMethod("activeProgressText", 2))
+    }
+
+    @Test
+    fun `limitProgressText shows only max feeding time`() {
+        assertEquals("2 min", invokePrivateStringMethod("limitProgressText", 2))
     }
 }
