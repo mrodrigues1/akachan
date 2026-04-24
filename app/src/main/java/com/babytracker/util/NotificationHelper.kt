@@ -43,6 +43,8 @@ object NotificationHelper {
     private const val RC_STOP_SLEEP = 2005
     private const val RC_STOP_BF_ACTIVE = 2006
     private const val RC_REFRESH_BF_ACTIVE = 2007
+    private const val RC_PAUSE_BF_ACTIVE = 2008
+    private const val RC_RESUME_BF_ACTIVE = 2009
     private const val TAG = "NotificationHelper"
     private const val SECONDS_PER_MINUTE = 60
     private const val ACTIVE_REFRESH_INTERVAL_MS = 5_000L
@@ -71,6 +73,7 @@ object NotificationHelper {
         maxProgress: Int,
         progressText: String,
         chronometerBaseElapsedMs: Long? = null,
+        chronometerRunning: Boolean = true,
         showProgress: Boolean = true
     ): RemoteViews = RemoteViews(context.packageName, layoutRes).apply {
         val safeMax = maxProgress.coerceAtLeast(1)
@@ -89,7 +92,7 @@ object NotificationHelper {
 
         if (chronometerBaseElapsedMs != null) {
             setViewVisibility(R.id.notification_timer, View.VISIBLE)
-            setChronometer(R.id.notification_timer, chronometerBaseElapsedMs, null, true)
+            setChronometer(R.id.notification_timer, chronometerBaseElapsedMs, null, chronometerRunning)
         } else {
             setViewVisibility(R.id.notification_timer, View.GONE)
         }
@@ -117,6 +120,15 @@ object NotificationHelper {
 
     private fun activeElapsedSeconds(sessionStartEpochMs: Long, pausedDurationMs: Long): Int =
         ((System.currentTimeMillis() - sessionStartEpochMs - pausedDurationMs).coerceAtLeast(0L) / 1000L)
+            .coerceAtMost(Int.MAX_VALUE.toLong())
+            .toInt()
+
+    private fun pausedElapsedSeconds(
+        sessionStartEpochMs: Long,
+        pausedDurationMs: Long,
+        pausedAtEpochMs: Long
+    ): Int =
+        ((pausedAtEpochMs - sessionStartEpochMs - pausedDurationMs).coerceAtLeast(0L) / 1000L)
             .coerceAtMost(Int.MAX_VALUE.toLong())
             .toInt()
 
@@ -248,11 +260,13 @@ object NotificationHelper {
         sessionStartEpochMs: Long,
         pausedDurationMs: Long,
         richEnabled: Boolean,
-        maxTotalMinutes: Int = 0
+        maxTotalMinutes: Int = 0,
+        pausedAtEpochMs: Long? = null
     ) {
         val sideLabel = if (currentSide == "LEFT") "Left" else "Right"
-        val title = "\uD83C\uDF7C Feeding session active"
-        val body = "$sideLabel breast \u00B7 Session in progress"
+        val isPaused = pausedAtEpochMs != null
+        val title = if (isPaused) "\uD83C\uDF7C Feeding session paused" else "\uD83C\uDF7C Feeding session active"
+        val body = if (isPaused) "$sideLabel breast \u00B7 Session paused" else "$sideLabel breast \u00B7 Session in progress"
         val tapPi = mainActivityPendingIntent(context)
         val accent = resolveAccent(context, Pink700, PrimaryPinkDark)
         val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
@@ -266,7 +280,9 @@ object NotificationHelper {
             .setContentIntent(tapPi)
 
         if (richEnabled) {
-            val elapsedSeconds = activeElapsedSeconds(sessionStartEpochMs, pausedDurationMs)
+            val elapsedSeconds = pausedAtEpochMs
+                ?.let { pausedElapsedSeconds(sessionStartEpochMs, pausedDurationMs, it) }
+                ?: activeElapsedSeconds(sessionStartEpochMs, pausedDurationMs)
             val maxSeconds = maxTotalMinutes * SECONDS_PER_MINUTE
             val progressEnabled = maxSeconds > 0
             val progress = if (progressEnabled) elapsedSeconds else 0
@@ -278,7 +294,8 @@ object NotificationHelper {
             }
 
             builder
-                .setUsesChronometer(true)
+                .setUsesChronometer(!isPaused)
+                .setShowWhen(!isPaused)
                 .setWhen(sessionStartEpochMs + pausedDurationMs)
                 .setStyle(NotificationCompat.DecoratedCustomViewStyle())
                 .setCustomBigContentView(
@@ -291,12 +308,23 @@ object NotificationHelper {
                         maxProgress = maxProgress,
                         progressText = progressText,
                         chronometerBaseElapsedMs = SystemClock.elapsedRealtime() - (elapsedSeconds * 1000L),
+                        chronometerRunning = !isPaused,
                         showProgress = progressEnabled
+                    )
+                )
+                .addAction(
+                    0,
+                    if (isPaused) "Resume" else "Pause",
+                    breastfeedingActionPi(
+                        context = context,
+                        sessionId = sessionId,
+                        action = if (isPaused) BreastfeedingActionReceiver.ACTION_RESUME else BreastfeedingActionReceiver.ACTION_PAUSE,
+                        requestCode = if (isPaused) RC_RESUME_BF_ACTIVE else RC_PAUSE_BF_ACTIVE
                     )
                 )
                 .addAction(0, "Stop Session", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_STOP, RC_STOP_BF_ACTIVE))
 
-            if (progressEnabled) {
+            if (progressEnabled && !isPaused) {
                 scheduleBreastfeedingActiveRefresh(context, sessionId)
             }
         } else {
