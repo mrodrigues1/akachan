@@ -3,11 +3,15 @@ package com.babytracker.util
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
+import android.os.SystemClock
 import android.util.Log
+import android.view.View
+import android.widget.RemoteViews
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
@@ -38,7 +42,10 @@ object NotificationHelper {
     private const val RC_KEEP_GOING = 2004
     private const val RC_STOP_SLEEP = 2005
     private const val RC_STOP_BF_ACTIVE = 2006
+    private const val RC_REFRESH_BF_ACTIVE = 2007
     private const val TAG = "NotificationHelper"
+    private const val SECONDS_PER_MINUTE = 60
+    private const val ACTIVE_REFRESH_INTERVAL_MS = 30_000L
 
     private fun resolveAccent(context: Context, light: Color, dark: Color): Int {
         val nightMask = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
@@ -53,6 +60,56 @@ object NotificationHelper {
         .setSmallIcon(smallIconRes)
         .setColor(accentColor)
         .setColorized(false)
+        .setOnlyAlertOnce(true)
+
+    private fun buildProgressBigView(
+        context: Context,
+        layoutRes: Int,
+        title: String,
+        body: String,
+        progress: Int,
+        maxProgress: Int,
+        progressText: String,
+        chronometerBaseElapsedMs: Long? = null,
+        showProgress: Boolean = true
+    ): RemoteViews = RemoteViews(context.packageName, layoutRes).apply {
+        val safeMax = maxProgress.coerceAtLeast(1)
+
+        setTextViewText(R.id.notification_title, title)
+        setTextViewText(R.id.notification_body, body)
+        setTextViewText(R.id.notification_progress_label, progressText)
+        setViewVisibility(R.id.notification_progress, if (showProgress) View.VISIBLE else View.GONE)
+        setViewVisibility(R.id.notification_progress_label, if (showProgress) View.VISIBLE else View.GONE)
+        setProgressBar(
+            R.id.notification_progress,
+            safeMax,
+            progress.coerceIn(0, safeMax),
+            false
+        )
+
+        if (chronometerBaseElapsedMs != null) {
+            setViewVisibility(R.id.notification_timer, View.VISIBLE)
+            setChronometer(R.id.notification_timer, chronometerBaseElapsedMs, null, true)
+        } else {
+            setViewVisibility(R.id.notification_timer, View.GONE)
+        }
+    }
+
+    private fun formatDurationCompact(totalSeconds: Int): String {
+        val safeSeconds = totalSeconds.coerceAtLeast(0)
+        val minutes = safeSeconds / SECONDS_PER_MINUTE
+        val seconds = safeSeconds % SECONDS_PER_MINUTE
+        return when {
+            minutes == 0 -> "${seconds}s"
+            seconds == 0 -> "${minutes}m"
+            else -> "${minutes}m ${seconds}s"
+        }
+    }
+
+    private fun activeElapsedSeconds(sessionStartEpochMs: Long, pausedDurationMs: Long): Int =
+        ((System.currentTimeMillis() - sessionStartEpochMs - pausedDurationMs).coerceAtLeast(0L) / 1000L)
+            .coerceAtMost(Int.MAX_VALUE.toLong())
+            .toInt()
 
     fun createBreastfeedingNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -91,21 +148,35 @@ object NotificationHelper {
     ) {
         val otherSide = if (currentSide == "LEFT") "right" else "left"
         val sideLabel = if (currentSide == "LEFT") "Left" else "Right"
-        val body = "$sideLabel breast: $elapsedMinutes min · Switch to the $otherSide"
+        val title = "\uD83C\uDF7C Time to switch sides"
+        val body = "$sideLabel breast: $elapsedMinutes min \u00B7 Switch to the $otherSide"
         val tapPi = mainActivityPendingIntent(context)
         val accent = resolveAccent(context, Pink700, PrimaryPinkDark)
         val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
             .applyDesignSystem(accent, R.drawable.ic_notif_breastfeeding)
-            .setContentTitle("🍼 Time to switch sides")
+            .setContentTitle(title)
+            .setContentText(body)
             .setAutoCancel(true)
             .setOngoing(false)
             .setContentIntent(tapPi)
 
         if (richEnabled) {
+            val progressText = "$elapsedMinutes / $maxPerBreastMinutes min"
             builder
-                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomBigContentView(
+                    buildProgressBigView(
+                        context = context,
+                        layoutRes = R.layout.notification_breastfeeding_progress,
+                        title = title,
+                        body = body,
+                        progress = elapsedMinutes,
+                        maxProgress = maxPerBreastMinutes,
+                        progressText = progressText
+                    )
+                )
                 .setProgress(maxPerBreastMinutes, elapsedMinutes, false)
-                .setSubText("$elapsedMinutes / $maxPerBreastMinutes min")
+                .setSubText(progressText)
                 .addAction(0, "Switch Now", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_SWITCH, RC_SWITCH_NOW))
                 .addAction(0, "Dismiss", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_DISMISS, RC_BF_DISMISS))
         } else {
@@ -123,21 +194,35 @@ object NotificationHelper {
         maxTotalMinutes: Int,
         richEnabled: Boolean
     ) {
+        val title = "\u23F1 Feeding limit reached"
         val body = "Session has reached $maxTotalMinutes minutes. Consider wrapping up."
         val tapPi = mainActivityPendingIntent(context)
         val accent = resolveAccent(context, WarningAmber, WarningAmberDark)
         val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
             .applyDesignSystem(accent, R.drawable.ic_notif_limit)
-            .setContentTitle("⏱ Feeding limit reached")
+            .setContentTitle(title)
+            .setContentText(body)
             .setAutoCancel(true)
             .setOngoing(false)
             .setContentIntent(tapPi)
 
         if (richEnabled) {
+            val progressText = "$maxTotalMinutes / $maxTotalMinutes min"
             builder
-                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomBigContentView(
+                    buildProgressBigView(
+                        context = context,
+                        layoutRes = R.layout.notification_warning_progress,
+                        title = title,
+                        body = body,
+                        progress = maxTotalMinutes,
+                        maxProgress = maxTotalMinutes,
+                        progressText = progressText
+                    )
+                )
                 .setProgress(maxTotalMinutes, maxTotalMinutes, false)
-                .setSubText("$maxTotalMinutes / $maxTotalMinutes min")
+                .setSubText(progressText)
                 .addAction(0, "Stop Session", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_STOP, RC_STOP_SESSION))
                 .addAction(0, "Keep Going", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_KEEP_GOING, RC_KEEP_GOING))
         } else {
@@ -155,25 +240,59 @@ object NotificationHelper {
         currentSide: String,
         sessionStartEpochMs: Long,
         pausedDurationMs: Long,
-        richEnabled: Boolean
+        richEnabled: Boolean,
+        maxTotalMinutes: Int = 0
     ) {
         val sideLabel = if (currentSide == "LEFT") "Left" else "Right"
-        val body = "$sideLabel breast · Session in progress"
+        val title = "\uD83C\uDF7C Feeding session active"
+        val body = "$sideLabel breast \u00B7 Session in progress"
         val tapPi = mainActivityPendingIntent(context)
         val accent = resolveAccent(context, Pink700, PrimaryPinkDark)
         val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
             .applyDesignSystem(accent, R.drawable.ic_notif_breastfeeding)
-            .setContentTitle("🍼 Feeding session active")
+            .setContentTitle(title)
+            .setContentText(body)
             .setAutoCancel(false)
             .setOngoing(true)
             .setContentIntent(tapPi)
 
         if (richEnabled) {
+            val elapsedSeconds = activeElapsedSeconds(sessionStartEpochMs, pausedDurationMs)
+            val maxSeconds = maxTotalMinutes * SECONDS_PER_MINUTE
+            val progressEnabled = maxSeconds > 0
+            val progress = if (progressEnabled) elapsedSeconds else 0
+            val maxProgress = if (progressEnabled) maxSeconds else 1
+            val progressText = if (progressEnabled) {
+                val percent = ((elapsedSeconds.coerceAtMost(maxSeconds) * 100f) / maxSeconds).toInt()
+                "$percent% of $maxTotalMinutes min"
+            } else {
+                formatDurationCompact(elapsedSeconds)
+            }
+
             builder
                 .setUsesChronometer(true)
                 .setWhen(sessionStartEpochMs + pausedDurationMs)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomBigContentView(
+                    buildProgressBigView(
+                        context = context,
+                        layoutRes = R.layout.notification_breastfeeding_progress,
+                        title = title,
+                        body = body,
+                        progress = progress,
+                        maxProgress = maxProgress,
+                        progressText = progressText,
+                        chronometerBaseElapsedMs = SystemClock.elapsedRealtime() - (elapsedSeconds * 1000L),
+                        showProgress = progressEnabled
+                    )
+                )
+                .setProgress(maxProgress, progress, false)
+                .setSubText(progressText)
                 .addAction(0, "Stop Session", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_STOP, RC_STOP_BF_ACTIVE))
+
+            if (progressEnabled) {
+                scheduleBreastfeedingActiveRefresh(context, sessionId)
+            }
         } else {
             builder.setContentText(body)
         }
@@ -194,12 +313,14 @@ object NotificationHelper {
         val startFormatted = java.time.Instant.ofEpochMilli(startTimeEpochMs)
             .atZone(ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("h:mm a"))
-        val body = "$typeLabel · started at $startFormatted"
+        val title = "\uD83C\uDF19 Sleep session active"
+        val body = "$typeLabel \u00B7 started at $startFormatted"
         val tapPi = mainActivityPendingIntent(context)
         val accent = resolveAccent(context, Blue700, SecondaryBlueDark)
         val builder = NotificationCompat.Builder(context, SLEEP_CHANNEL_ID)
             .applyDesignSystem(accent, R.drawable.ic_notif_sleep)
-            .setContentTitle("🌙 Sleep session active")
+            .setContentTitle(title)
+            .setContentText(body)
             .setAutoCancel(false)
             .setOngoing(false)
             .setContentIntent(tapPi)
@@ -244,6 +365,25 @@ object NotificationHelper {
         },
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
+
+    private fun scheduleBreastfeedingActiveRefresh(context: Context, sessionId: Long) {
+        val alarmManager = context.getSystemService(AlarmManager::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            RC_REFRESH_BF_ACTIVE,
+            Intent(BreastfeedingActionReceiver.ACTION).apply {
+                setClass(context, BreastfeedingActionReceiver::class.java)
+                putExtra(BreastfeedingActionReceiver.EXTRA_SESSION_ID, sessionId)
+                putExtra(BreastfeedingActionReceiver.EXTRA_ACTION, BreastfeedingActionReceiver.ACTION_REFRESH_ACTIVE)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager.setAndAllowWhileIdle(
+            AlarmManager.ELAPSED_REALTIME_WAKEUP,
+            SystemClock.elapsedRealtime() + ACTIVE_REFRESH_INTERVAL_MS,
+            pendingIntent
+        )
+    }
 
     private fun sleepActionPi(
         context: Context, sessionId: Long, action: String, requestCode: Int

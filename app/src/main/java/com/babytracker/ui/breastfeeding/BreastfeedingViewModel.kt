@@ -142,7 +142,8 @@ class BreastfeedingViewModel @Inject constructor(
                         currentSide = session.startingSide.name,
                         sessionStartEpochMs = session.startTime.toEpochMilli(),
                         pausedDurationMs = session.pausedDurationMs,
-                        richEnabled = richEnabled
+                        richEnabled = richEnabled,
+                        maxTotalMinutes = _uiState.value.maxTotalFeedMinutes
                     )
                 }
         }
@@ -174,7 +175,8 @@ class BreastfeedingViewModel @Inject constructor(
                     currentSide = newSide.name,
                     sessionStartEpochMs = session.startTime.toEpochMilli(),
                     pausedDurationMs = session.pausedDurationMs,
-                    richEnabled = richEnabled
+                    richEnabled = richEnabled,
+                    maxTotalMinutes = _uiState.value.maxTotalFeedMinutes
                 )
             }
         }
@@ -211,7 +213,8 @@ class BreastfeedingViewModel @Inject constructor(
                 currentSide = currentSide,
                 sessionStartEpochMs = session.startTime.toEpochMilli(),
                 pausedDurationMs = totalPausedMs,
-                richEnabled = richEnabled
+                richEnabled = richEnabled,
+                maxTotalMinutes = _uiState.value.maxTotalFeedMinutes
             )
         }
     }

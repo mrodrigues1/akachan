@@ -73,7 +73,7 @@ class BreastfeedingViewModelTest {
         notificationScheduler = mockk()
 
         mockkObject(NotificationHelper)
-        every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any()) } returns Unit
+        every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any()) } returns Unit
         every { NotificationHelper.cancelNotification(any(), any()) } returns Unit
 
         every { getHistory() } returns flowOf(emptyList())
@@ -215,7 +215,8 @@ class BreastfeedingViewModelTest {
                 currentSide = "LEFT",
                 sessionStartEpochMs = session.startTime.toEpochMilli(),
                 pausedDurationMs = 0L,
-                richEnabled = false
+                richEnabled = false,
+                maxTotalMinutes = 30
             )
         }
     }
@@ -274,7 +275,8 @@ class BreastfeedingViewModelTest {
                 currentSide = "LEFT",
                 sessionStartEpochMs = session.startTime.toEpochMilli(),
                 pausedDurationMs = any(),
-                richEnabled = false
+                richEnabled = false,
+                maxTotalMinutes = 30
             )
         }
     }
@@ -301,7 +303,8 @@ class BreastfeedingViewModelTest {
                 currentSide = "RIGHT",
                 sessionStartEpochMs = session.startTime.toEpochMilli(),
                 pausedDurationMs = any(),
-                richEnabled = false
+                richEnabled = false,
+                maxTotalMinutes = 30
             )
         }
     }
@@ -327,7 +330,8 @@ class BreastfeedingViewModelTest {
                 currentSide = "RIGHT",
                 sessionStartEpochMs = session.startTime.toEpochMilli(),
                 pausedDurationMs = 0L,
-                richEnabled = false
+                richEnabled = false,
+                maxTotalMinutes = 30
             )
         }
     }
@@ -347,7 +351,7 @@ class BreastfeedingViewModelTest {
         viewModel.onSwitchSide()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        verify(exactly = 0) { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any()) }
     }
 
     @Test
