@@ -184,8 +184,6 @@ object NotificationHelper {
                         progressText = progressText
                     )
                 )
-                .setProgress(maxPerBreastMinutes, elapsedMinutes, false)
-                .setSubText(progressText)
                 .addAction(0, "Switch Now", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_SWITCH, RC_SWITCH_NOW))
                 .addAction(0, "Dismiss", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_DISMISS, RC_BF_DISMISS))
         } else {
@@ -230,8 +228,6 @@ object NotificationHelper {
                         progressText = progressText
                     )
                 )
-                .setProgress(maxTotalMinutes, maxTotalMinutes, false)
-                .setSubText(progressText)
                 .addAction(0, "Stop Session", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_STOP, RC_STOP_SESSION))
                 .addAction(0, "Keep Going", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_KEEP_GOING, RC_KEEP_GOING))
         } else {
@@ -294,8 +290,6 @@ object NotificationHelper {
                         showProgress = progressEnabled
                     )
                 )
-                .setProgress(maxProgress, progress, false)
-                .setSubText(progressText)
                 .addAction(0, "Stop Session", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_STOP, RC_STOP_BF_ACTIVE))
 
             if (progressEnabled) {
