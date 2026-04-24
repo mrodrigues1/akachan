@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.toArgb
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class NotificationHelperTest {
@@ -95,5 +96,19 @@ class NotificationHelperTest {
 
         assertEquals(0, Regex("\\.setProgress\\(").findAll(source).count())
         assertEquals(0, Regex("\\.setSubText\\(").findAll(source).count())
+    }
+
+    @Test
+    fun `active breastfeeding notification exposes pause and resume actions`() {
+        val source = listOf(
+            java.io.File("src/main/java/com/babytracker/util/NotificationHelper.kt"),
+            java.io.File("app/src/main/java/com/babytracker/util/NotificationHelper.kt")
+        ).first { it.exists() }.readText()
+
+        assertTrue(source.contains("ACTION_PAUSE"))
+        assertTrue(source.contains("ACTION_RESUME"))
+        assertTrue(source.contains("\"Pause\""))
+        assertTrue(source.contains("\"Resume\""))
+        assertTrue(source.contains("\"Stop Session\""))
     }
 }
