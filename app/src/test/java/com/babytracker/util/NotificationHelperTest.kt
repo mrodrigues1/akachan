@@ -77,4 +77,15 @@ class NotificationHelperTest {
     fun `limitProgressText shows only max feeding time`() {
         assertEquals("2 min", invokePrivateStringMethod("limitProgressText", 2))
     }
+
+    @Test
+    fun `rich breastfeeding notifications do not use system progress or subtext`() {
+        val source = listOf(
+            java.io.File("src/main/java/com/babytracker/util/NotificationHelper.kt"),
+            java.io.File("app/src/main/java/com/babytracker/util/NotificationHelper.kt")
+        ).first { it.exists() }.readText()
+
+        assertEquals(0, Regex("\\.setProgress\\(").findAll(source).count())
+        assertEquals(0, Regex("\\.setSubText\\(").findAll(source).count())
+    }
 }
