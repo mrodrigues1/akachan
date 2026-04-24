@@ -45,7 +45,7 @@ object NotificationHelper {
     private const val RC_REFRESH_BF_ACTIVE = 2007
     private const val TAG = "NotificationHelper"
     private const val SECONDS_PER_MINUTE = 60
-    private const val ACTIVE_REFRESH_INTERVAL_MS = 30_000L
+    private const val ACTIVE_REFRESH_INTERVAL_MS = 5_000L
 
     private fun resolveAccent(context: Context, light: Color, dark: Color): Int {
         val nightMask = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
