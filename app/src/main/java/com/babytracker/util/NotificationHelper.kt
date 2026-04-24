@@ -167,6 +167,8 @@ object NotificationHelper {
             .setContentText(body)
             .setAutoCancel(true)
             .setOngoing(false)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(tapPi)
 
         if (richEnabled) {
@@ -259,6 +261,8 @@ object NotificationHelper {
             .setContentText(body)
             .setAutoCancel(false)
             .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setContentIntent(tapPi)
 
         if (richEnabled) {
