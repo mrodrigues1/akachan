@@ -224,7 +224,7 @@ class GenerateSleepScheduleUseCase @Inject constructor(
             }
         }
         // Bias midday nap toward 12:30-14:00
-        if ((napIndex == 1 && totalNaps >= 2) || (napIndex == 0 && totalNaps == 1)) {
+        if (isMiddayNap(napIndex, totalNaps)) {
             val target = LocalTime.of(13, 0)
             if (isWithinMinutes(napTime, target, 45)) {
                 return shiftToward(napTime, target)
@@ -232,6 +232,9 @@ class GenerateSleepScheduleUseCase @Inject constructor(
         }
         return napTime
     }
+
+    private fun isMiddayNap(napIndex: Int, totalNaps: Int): Boolean =
+        (napIndex == 1 && totalNaps >= 2) || (napIndex == 0 && totalNaps == 1)
 
     private fun isWithinMinutes(time: LocalTime, target: LocalTime, minutes: Int): Boolean {
         val diff = kotlin.math.abs(Duration.between(time, target).toMinutes())
@@ -322,7 +325,9 @@ class GenerateSleepScheduleUseCase @Inject constructor(
 
     private fun detectNapTransition(recentRecords: List<SleepRecord>, ageInWeeks: Int): String? {
         val completedRecords = recentRecords.filter { it.duration != null }
-        if (completedRecords.size < 5) return null
+        if (completedRecords.size < 5) {
+            return null
+        }
 
         val zone = ZoneId.systemDefault()
         val dailyNapCounts = completedRecords
@@ -330,30 +335,38 @@ class GenerateSleepScheduleUseCase @Inject constructor(
             .groupBy { it.startTime.atZone(zone).toLocalDate() }
             .mapValues { it.value.size }
 
-        if (dailyNapCounts.size < 3) return null
+        if (dailyNapCounts.size < 3) {
+            return null
+        }
 
         val avgNapsPerDay = dailyNapCounts.values.average()
         val expectedNaps = getExpectedNapCount(ageInWeeks)
 
-        // Check if baby averages fewer naps than expected
-        if (avgNapsPerDay >= expectedNaps - 0.5) return null
-
-        // Check if night sleep is adequate (>= 10 hours)
         val nightRecords = completedRecords.filter { it.sleepType == SleepType.NIGHT_SLEEP }
-        if (nightRecords.isEmpty()) return null
-
-        val avgNightSleep = nightRecords
-            .mapNotNull { it.duration }
-            .fold(Duration.ZERO) { acc, d -> acc.plus(d) }
-            .dividedBy(nightRecords.size.toLong())
-
-        if (avgNightSleep < Duration.ofHours(10)) return null
+        val hasNapTransitionPattern = avgNapsPerDay < expectedNaps - 0.5 &&
+            hasAdequateNightSleep(nightRecords)
+        if (!hasNapTransitionPattern) {
+            return null
+        }
 
         val currentNaps = expectedNaps
         val targetNaps = (expectedNaps - 1).coerceAtLeast(1)
         return "Your baby may be ready to transition from $currentNaps to $targetNaps naps. " +
             "They've been averaging ${String.format(Locale.US, "%.1f", avgNapsPerDay)} naps per day " +
             "with good night sleep."
+    }
+
+    private fun hasAdequateNightSleep(nightRecords: List<SleepRecord>): Boolean {
+        if (nightRecords.isEmpty()) {
+            return false
+        }
+
+        val avgNightSleep = nightRecords
+            .mapNotNull { it.duration }
+            .fold(Duration.ZERO) { acc, d -> acc.plus(d) }
+            .dividedBy(nightRecords.size.toLong())
+
+        return avgNightSleep >= Duration.ofHours(10)
     }
 
     private fun getExpectedNapCount(ageInWeeks: Int): Int = when {

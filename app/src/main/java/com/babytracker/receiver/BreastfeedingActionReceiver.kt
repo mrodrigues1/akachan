@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.babytracker.domain.model.BreastSide
+import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
@@ -64,84 +65,94 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
         Log.d(TAG, "Handling action=$action sessionId=$sessionId")
 
         when (action) {
-            ACTION_SWITCH -> {
-                val session = repository.getActiveSession().first()
-                if (session?.id == sessionId) {
-                    switchSide(session)
-                    // Refresh the ongoing notification with the new side.
-                    // Only the first switch is supported; after it the current side is opposite startingSide.
-                    if (session.switchTime == null) {
-                        val newSide = if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
-                        val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
-                        val maxTotalMinutes = settingsRepository.getMaxTotalFeedMinutes().first()
-                        NotificationHelper.showBreastfeedingActive(
-                            context = context,
-                            sessionId = session.id,
-                            currentSide = newSide.name,
-                            sessionStartEpochMs = session.startTime.toEpochMilli(),
-                            pausedDurationMs = session.pausedDurationMs,
-                            richEnabled = richEnabled,
-                            maxTotalMinutes = maxTotalMinutes
-                        )
-                    }
-                }
-                NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
-            }
-            ACTION_PAUSE -> {
-                val session = repository.getActiveSession().first()
-                if (session?.id == sessionId && !session.isPaused) {
-                    val pausedAt = Instant.now()
-                    pauseSession(session)
-                    notificationCoordinator.cancelScheduled()
-                    notificationCoordinator.showPaused(session, pausedAt)
-                }
-            }
-            ACTION_RESUME -> {
-                val session = repository.getActiveSession().first()
-                if (session?.id == sessionId && session.isPaused) {
-                    val resumeInstant = Instant.now()
-                    resumeSession(session)
-                    val totalPausedMs = notificationCoordinator.rescheduleAfterResume(session, resumeInstant)
-                    notificationCoordinator.showRunning(session, pausedDurationMs = totalPausedMs)
-                }
-            }
-            ACTION_STOP -> {
-                val session = repository.getActiveSession().first()
-                if (session?.id == sessionId) {
-                    stopSession(session)
-                    notificationCoordinator.cancelScheduled()
-                }
-                notificationCoordinator.cancelPostedSessionNotifications()
-            }
-            ACTION_DISMISS -> {
-                NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
-            }
-            ACTION_KEEP_GOING -> {
-                NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID)
-            }
+            ACTION_SWITCH -> handleSwitch(context, sessionId)
+            ACTION_PAUSE -> handlePause(sessionId)
+            ACTION_RESUME -> handleResume(sessionId)
+            ACTION_STOP -> handleStop(sessionId)
+            ACTION_DISMISS -> NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
+            ACTION_KEEP_GOING -> NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID)
             ACTION_REFRESH_ACTIVE -> refreshActiveNotification(context, sessionId)
         }
     }
 
-    private suspend fun refreshActiveNotification(context: Context, sessionId: Long) {
+    private suspend fun handleSwitch(context: Context, sessionId: Long) {
         val session = repository.getActiveSession().first()
-        if (session == null || session.id != sessionId || session.isPaused) return
-
-        val currentSide = if (session.switchTime != null) {
-            if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT.name else BreastSide.LEFT.name
-        } else {
-            session.startingSide.name
+        if (session?.id == sessionId) {
+            switchSide(session)
+            if (session.switchTime == null) {
+                showSwitchedActiveNotification(context, session)
+            }
         }
+        NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
+    }
+
+    private suspend fun showSwitchedActiveNotification(context: Context, session: BreastfeedingSession) {
         val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
         val maxTotalMinutes = settingsRepository.getMaxTotalFeedMinutes().first()
         NotificationHelper.showBreastfeedingActive(
             context = context,
             sessionId = session.id,
-            currentSide = currentSide,
+            currentSide = oppositeSide(session.startingSide),
             sessionStartEpochMs = session.startTime.toEpochMilli(),
             pausedDurationMs = session.pausedDurationMs,
             richEnabled = richEnabled,
             maxTotalMinutes = maxTotalMinutes
         )
     }
+
+    private suspend fun handlePause(sessionId: Long) {
+        val session = repository.getActiveSession().first()
+        if (session?.id == sessionId && !session.isPaused) {
+            val pausedAt = Instant.now()
+            pauseSession(session)
+            notificationCoordinator.cancelScheduled()
+            notificationCoordinator.showPaused(session, pausedAt)
+        }
+    }
+
+    private suspend fun handleResume(sessionId: Long) {
+        val session = repository.getActiveSession().first()
+        if (session?.id == sessionId && session.isPaused) {
+            val resumeInstant = Instant.now()
+            resumeSession(session)
+            val totalPausedMs = notificationCoordinator.rescheduleAfterResume(session, resumeInstant)
+            notificationCoordinator.showRunning(session, pausedDurationMs = totalPausedMs)
+        }
+    }
+
+    private suspend fun handleStop(sessionId: Long) {
+        val session = repository.getActiveSession().first()
+        if (session?.id == sessionId) {
+            stopSession(session)
+            notificationCoordinator.cancelScheduled()
+        }
+        notificationCoordinator.cancelPostedSessionNotifications()
+    }
+
+    private suspend fun refreshActiveNotification(context: Context, sessionId: Long) {
+        val session = repository.getActiveSession().first()
+        if (session == null || session.id != sessionId || session.isPaused) return
+
+        val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
+        val maxTotalMinutes = settingsRepository.getMaxTotalFeedMinutes().first()
+        NotificationHelper.showBreastfeedingActive(
+            context = context,
+            sessionId = session.id,
+            currentSide = currentSide(session),
+            sessionStartEpochMs = session.startTime.toEpochMilli(),
+            pausedDurationMs = session.pausedDurationMs,
+            richEnabled = richEnabled,
+            maxTotalMinutes = maxTotalMinutes
+        )
+    }
+
+    private fun currentSide(session: BreastfeedingSession): String =
+        if (session.switchTime != null) {
+            oppositeSide(session.startingSide)
+        } else {
+            session.startingSide.name
+        }
+
+    private fun oppositeSide(side: BreastSide): String =
+        if (side == BreastSide.LEFT) BreastSide.RIGHT.name else BreastSide.LEFT.name
 }

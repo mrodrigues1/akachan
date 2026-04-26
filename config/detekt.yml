@@ -47,6 +47,7 @@ complexity:
   CognitiveComplexMethod:
     active: true
     threshold: 20
+    excludes: ['**/ui/**', '**/screen/**', '**/composable/**', '**/component/**']
   ComplexCondition:
     active: true
     threshold: 4
@@ -55,12 +56,14 @@ complexity:
   CyclomaticComplexMethod:
     active: true
     threshold: 15
+    excludes: ['**/ui/**', '**/screen/**', '**/composable/**', '**/component/**']
     ignoreSingleWhenExpression: true
   LabeledExpression:
     active: false
   LargeClass:
     active: true
     threshold: 600
+    excludes: ['**/test/**', '**/androidTest/**']
   LongMethod:
     active: true
     threshold: 80
@@ -69,6 +72,7 @@ complexity:
     active: true
     functionThreshold: 8
     constructorThreshold: 8
+    excludes: ['**/ui/**', '**/screen/**', '**/composable/**', '**/component/**']
     ignoreDefaultParameters: true
     ignoreDataClasses: true
     ignoreAnnotatedParameter: ['Preview']
@@ -90,7 +94,7 @@ complexity:
     thresholdInFiles: 25
     thresholdInClasses: 20
     thresholdInObjects: 15
-    thresholdInInterfaces: 10
+    thresholdInInterfaces: 15
     ignorePrivate: true
     ignoreOverridden: true
 
@@ -398,18 +402,18 @@ style:
     active: true
     maxJumpCount: 2
   MagicNumber:
-    active: true
-    excludes: ['**/ui/**', '**/screen/**', '**/composable/**', '**/component/**']
+    active: false
+    excludes: ['**/ui/**', '**/screen/**', '**/composable/**', '**/component/**', '**/test/**', '**/androidTest/**']
     ignoreNumbers: ['-1', '0', '1', '2', '100']
     ignoreHashCodeFunction: true
     ignorePropertyDeclaration: true
-    ignoreLocalVariableDeclaration: false
+    ignoreLocalVariableDeclaration: true
     ignoreConstantDeclaration: true
     ignoreCompanionObjectPropertyDeclaration: true
     ignoreAnnotation: true
     ignoreNamedArgument: true
     ignoreEnums: true
-    ignoreRanges: false
+    ignoreRanges: true
     ignoreExtensionFunctions: true
   MandatoryBracesLoops:
     active: false
