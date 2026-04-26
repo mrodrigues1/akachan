@@ -483,3 +483,20 @@ Read specs before implementing new features — they define the intended behavio
 - Do not add cloud sync, analytics, or remote API calls — local-only is by design
 - Do not use KAPT — KSP is configured for all annotation processing (Hilt, Room)
 - Do not access warning tokens (`WarningAmber`, `WarningContainerAmber`, `OnWarningContainerAmber` and their `*Dark` pairs) through `MaterialTheme.colorScheme` — they are extended, non-M3 semantics and ship as top-level `val`s in `ui/theme/Color.kt`. Import them by name.
+
+---
+
+## Code Quality
+
+- This project uses **ktlint** (via `ktlint-gradle` plugin v12.1.1) for Kotlin formatting and **detekt** (v1.23.6) for static analysis.
+- The detekt config lives at `config/detekt.yml` and is tuned for Jetpack Compose and MVI (Orbit).
+- Formatting is delegated entirely to ktlint; detekt does not enforce formatting rules.
+- **Before committing**, always run `./gradlew ktlintFormat` to auto-fix formatting, then `./gradlew detekt` to catch code smells.
+- A pre-commit hook is available at `scripts/pre-commit`. Install it with: `cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit`
+- Both tools run automatically on CI (GitHub Actions) on every push to `main` and on every pull request.
+- If detekt reports a violation, **always fix the code - never suppress with `@Suppress`**. Each fix should be its own commit using the format `fix(detekt): fix <RuleName> violations`.
+- Useful commands:
+  - `./gradlew ktlintCheck` - check formatting
+  - `./gradlew ktlintFormat` - auto-fix formatting
+  - `./gradlew detekt` - run static analysis
+  - `./gradlew detektGenerateConfig` - regenerate the base detekt config (do not overwrite `config/detekt.yml` without review)
