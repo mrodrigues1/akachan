@@ -1,5 +1,6 @@
 package com.babytracker.ui.onboarding
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.AllergyType
@@ -105,9 +106,14 @@ class OnboardingViewModel @Inject constructor(
             try {
                 saveBabyProfile(baby)
                 _uiState.update { it.copy(isSaving = false, navigationComplete = true) }
-            } catch (e: Exception) {
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Invalid baby profile during onboarding", e)
                 _uiState.update { it.copy(isSaving = false, savingError = true) }
             }
         }
+    }
+
+    private companion object {
+        const val TAG = "OnboardingViewModel"
     }
 }

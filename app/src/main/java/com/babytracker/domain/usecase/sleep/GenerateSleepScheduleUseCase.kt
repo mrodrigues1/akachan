@@ -17,6 +17,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 
@@ -39,7 +40,7 @@ class GenerateSleepScheduleUseCase @Inject constructor(
         val wakeWindowBounds = getWakeWindowBounds(ageInWeeks)
 
         val personalizationResult = personalizeFromData(
-            recentRecords, defaultWakeWindows, wakeWindowBounds, ageInWeeks
+            recentRecords, defaultWakeWindows, wakeWindowBounds
         )
         val wakeWindows = personalizationResult.wakeWindows
         val averageNapDuration = personalizationResult.averageNapDuration
@@ -118,8 +119,7 @@ class GenerateSleepScheduleUseCase @Inject constructor(
     private fun personalizeFromData(
         recentRecords: List<SleepRecord>,
         defaultWakeWindows: List<Duration>,
-        wakeWindowBounds: Pair<Duration, Duration>,
-        ageInWeeks: Int
+        wakeWindowBounds: Pair<Duration, Duration>
     ): PersonalizationResult {
         val completedNaps = recentRecords.filter { it.sleepType == SleepType.NAP && it.duration != null }
 
@@ -352,7 +352,7 @@ class GenerateSleepScheduleUseCase @Inject constructor(
         val currentNaps = expectedNaps
         val targetNaps = (expectedNaps - 1).coerceAtLeast(1)
         return "Your baby may be ready to transition from $currentNaps to $targetNaps naps. " +
-            "They've been averaging ${String.format("%.1f", avgNapsPerDay)} naps per day " +
+            "They've been averaging ${String.format(Locale.US, "%.1f", avgNapsPerDay)} naps per day " +
             "with good night sleep."
     }
 

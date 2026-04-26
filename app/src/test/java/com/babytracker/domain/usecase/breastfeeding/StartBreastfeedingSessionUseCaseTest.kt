@@ -25,7 +25,7 @@ class StartBreastfeedingSessionUseCaseTest {
     }
 
     @Test
-    fun `invoke_withLeftSide_createsSessionWithLeftSide`() = runTest {
+    fun invokeWithLeftSideCreatesSessionWithLeftSide() = runTest {
         val sessionSlot = slot<BreastfeedingSession>()
         coEvery { repository.insertSession(capture(sessionSlot)) } returns 1L
 
@@ -37,7 +37,7 @@ class StartBreastfeedingSessionUseCaseTest {
     }
 
     @Test
-    fun `invoke_withRightSide_createsSessionWithRightSide`() = runTest {
+    fun invokeWithRightSideCreatesSessionWithRightSide() = runTest {
         val sessionSlot = slot<BreastfeedingSession>()
         coEvery { repository.insertSession(capture(sessionSlot)) } returns 2L
 
@@ -48,7 +48,7 @@ class StartBreastfeedingSessionUseCaseTest {
     }
 
     @Test
-    fun `invoke_callsRepositoryInsertSession`() = runTest {
+    fun invokeCallsRepositoryInsertSession() = runTest {
         coEvery { repository.insertSession(any()) } returns 1L
 
         useCase(BreastSide.LEFT)

@@ -25,7 +25,7 @@ class SaveBabyProfileUseCaseTest {
     }
 
     @Test
-    fun `invoke_validBaby_savesToRepository`() = runTest {
+    fun invokeValidBabySavesToRepository() = runTest {
         val baby = Baby("Luna", LocalDate.now(), listOf(AllergyType.CMPA), null)
         coJustRun { repository.saveBabyProfile(baby) }
 
@@ -35,7 +35,7 @@ class SaveBabyProfileUseCaseTest {
     }
 
     @Test
-    fun `invoke_blankName_throwsIllegalArgument`() {
+    fun invokeBlankNameThrowsIllegalArgument() {
         val baby = Baby("  ", LocalDate.now())
         assertThrows<IllegalArgumentException> {
             runBlocking { useCase(baby) }
@@ -43,7 +43,7 @@ class SaveBabyProfileUseCaseTest {
     }
 
     @Test
-    fun `invoke_futureBirthDate_throwsIllegalArgument`() {
+    fun invokeFutureBirthDateThrowsIllegalArgument() {
         val baby = Baby("Luna", LocalDate.now().plusDays(1))
         assertThrows<IllegalArgumentException> {
             runBlocking { useCase(baby) }
@@ -51,7 +51,7 @@ class SaveBabyProfileUseCaseTest {
     }
 
     @Test
-    fun `invoke_noAllergies_savesEmptyList`() = runTest {
+    fun invokeNoAllergiesSavesEmptyList() = runTest {
         val baby = Baby("Luna", LocalDate.now(), emptyList(), null)
         coJustRun { repository.saveBabyProfile(baby) }
 
@@ -61,7 +61,7 @@ class SaveBabyProfileUseCaseTest {
     }
 
     @Test
-    fun `invoke_otherAllergyWithNote_savesNote`() = runTest {
+    fun invokeOtherAllergyWithNoteSavesNote() = runTest {
         val baby = Baby("Luna", LocalDate.now(), listOf(AllergyType.OTHER), "Shellfish")
         coJustRun { repository.saveBabyProfile(baby) }
 

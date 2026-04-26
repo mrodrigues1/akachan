@@ -77,7 +77,7 @@ class HomeViewModelTest {
     )
 
     @Test
-    fun `activeSession_isNull_whenNoInProgressFeeding`() = runTest {
+    fun activeSession_isNull_whenNoInProgressFeeding() = runTest {
         every { getBreastfeedingHistory() } returns flowOf(listOf(completedSession))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -85,7 +85,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `activeSession_isSet_whenInProgressFeedingExists`() = runTest {
+    fun activeSession_isSet_whenInProgressFeedingExists() = runTest {
         every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession, completedSession))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -94,7 +94,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `nextRecommendedSide_returnsOppositeOfLastCompletedSessionStartingSide_whenNoSwitch`() = runTest {
+    fun nextRecommendedSide_returnsOppositeOfLastCompletedSessionStartingSide_whenNoSwitch() = runTest {
         // completedSession started on RIGHT with no switch → recommend LEFT (the less-used side)
         every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession, completedSession))
         viewModel = createViewModel()
@@ -103,7 +103,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `nextRecommendedSide_isNull_whenNoCompletedSession`() = runTest {
+    fun nextRecommendedSide_isNull_whenNoCompletedSession() = runTest {
         every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -111,7 +111,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `nextRecommendedSide_recommendsLessUsedSide_whenSessionHadSwitch`() = runTest {
+    fun nextRecommendedSide_recommendsLessUsedSide_whenSessionHadSwitch() = runTest {
         val now = Instant.now()
         // RIGHT 2m10s (130s), LEFT 19s — LEFT was used less → recommend LEFT (opposite of starting)
         val sessionWithSwitch = BreastfeedingSession(
@@ -129,7 +129,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `lastSessionStartTime_isNull_whenHistoryIsEmpty`() = runTest {
+    fun lastSessionStartTime_isNull_whenHistoryIsEmpty() = runTest {
         every { getBreastfeedingHistory() } returns flowOf(emptyList())
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -137,7 +137,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `lastSessionStartTime_equalsActiveSessionStart_whenActiveSessionExists`() = runTest {
+    fun lastSessionStartTime_equalsActiveSessionStart_whenActiveSessionExists() = runTest {
         every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession, completedSession))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -145,7 +145,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `lastSessionStartTime_prefersActiveSession_evenWhenNotFirstInList`() = runTest {
+    fun lastSessionStartTime_prefersActiveSession_evenWhenNotFirstInList() = runTest {
         every { getBreastfeedingHistory() } returns flowOf(listOf(completedSession, inProgressSession))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -153,7 +153,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `lastSessionStartTime_equalsMostRecentCompletedStart_whenNoActiveSession`() = runTest {
+    fun lastSessionStartTime_equalsMostRecentCompletedStart_whenNoActiveSession() = runTest {
         every { getBreastfeedingHistory() } returns flowOf(listOf(completedSession))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -161,7 +161,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `onStopActiveSession_callsStopUseCase`() = runTest {
+    fun onStopActiveSession_callsStopUseCase() = runTest {
         every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession))
         coJustRun { stopBreastfeedingSession(any()) }
         viewModel = createViewModel()

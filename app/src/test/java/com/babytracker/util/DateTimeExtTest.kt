@@ -10,7 +10,7 @@ import java.time.ZoneId
 class DateTimeExtTest {
 
     @Test
-    fun `formatTime12h_morning_returnsAmFormat`() {
+    fun formatTime12hMorningReturnsAmFormat() {
         val instant = Instant.parse("2026-04-06T08:42:00Z")
         val result = instant.formatTime12h()
         assert(result.contains("AM") || result.contains("PM")) {
@@ -19,7 +19,7 @@ class DateTimeExtTest {
     }
 
     @Test
-    fun `formatTime12h_afternoon_returnsPmFormat`() {
+    fun formatTime12hAfternoonReturnsPmFormat() {
         val instant = Instant.parse("2026-04-06T15:30:00Z")
         val result = instant.formatTime12h()
         assert(result.contains("AM") || result.contains("PM")) {
@@ -28,13 +28,13 @@ class DateTimeExtTest {
     }
 
     @Test
-    fun `groupByLocalDate_emptyList_returnsEmptyMap`() {
+    fun groupByLocalDateEmptyListReturnsEmptyMap() {
         val result = emptyList<Instant>().groupByLocalDate { it }
         assertEquals(emptyMap<LocalDate, List<Instant>>(), result)
     }
 
     @Test
-    fun `groupByLocalDate_singleDay_returnsOneGroup`() {
+    fun groupByLocalDateSingleDayReturnsOneGroup() {
         val morning = Instant.parse("2026-04-06T12:00:00Z")
         val evening = Instant.parse("2026-04-06T13:00:00Z")
         val result = listOf(morning, evening).groupByLocalDate { it }
@@ -42,7 +42,7 @@ class DateTimeExtTest {
     }
 
     @Test
-    fun `groupByLocalDate_twoDays_returnsTwoGroups`() {
+    fun groupByLocalDateTwoDaysReturnsTwoGroups() {
         val day1 = Instant.parse("2026-04-05T10:00:00Z")
         val day2 = Instant.parse("2026-04-06T10:00:00Z")
         val result = listOf(day1, day2).groupByLocalDate { it }
@@ -50,71 +50,71 @@ class DateTimeExtTest {
     }
 
     @Test
-    fun `localDateToRelativeLabel_today_returnsToday`() {
+    fun localDateToRelativeLabelTodayReturnsToday() {
         val today = LocalDate.now()
         assertEquals("Today", today.toRelativeLabel())
     }
 
     @Test
-    fun `localDateToRelativeLabel_yesterday_returnsYesterday`() {
+    fun localDateToRelativeLabelYesterdayReturnsYesterday() {
         val yesterday = LocalDate.now().minusDays(1)
         assertEquals("Yesterday", yesterday.toRelativeLabel())
     }
 
     @Test
-    fun `localDateToRelativeLabel_olderDate_returnsFormattedDate`() {
+    fun localDateToRelativeLabelOlderDateReturnsFormattedDate() {
         val date = LocalDate.of(2026, 3, 15)
         val result = date.toRelativeLabel()
         assertEquals("Mar 15", result)
     }
 
     @Test
-    fun `formatElapsedAgo_underOneMinute_returnsJustNow`() {
+    fun formatElapsedAgoUnderOneMinuteReturnsJustNow() {
         assertEquals("Just now", Duration.ofSeconds(30).formatElapsedAgo())
     }
 
     @Test
-    fun `formatElapsedAgo_exactlyOneMinute_returnsMinutesAgo`() {
+    fun formatElapsedAgoExactlyOneMinuteReturnsMinutesAgo() {
         assertEquals("1m ago", Duration.ofMinutes(1).formatElapsedAgo())
     }
 
     @Test
-    fun `formatElapsedAgo_minutes_returnsMinutesAgo`() {
+    fun formatElapsedAgoMinutesReturnsMinutesAgo() {
         assertEquals("14m ago", Duration.ofMinutes(14).formatElapsedAgo())
     }
 
     @Test
-    fun `formatElapsedAgo_hoursAndMinutes_returnsHoursAndMinutesAgo`() {
+    fun formatElapsedAgoHoursAndMinutesReturnsHoursAndMinutesAgo() {
         assertEquals("2h 14m ago", Duration.ofHours(2).plus(Duration.ofMinutes(14)).formatElapsedAgo())
     }
 
     @Test
-    fun `formatElapsedAgo_exactHour_returnsZeroMinutes`() {
+    fun formatElapsedAgoExactHourReturnsZeroMinutes() {
         assertEquals("1h 0m ago", Duration.ofHours(1).formatElapsedAgo())
     }
 
     @Test
-    fun `formatElapsedShort_zero_returnsZeroMinutes`() {
+    fun formatElapsedShortZeroReturnsZeroMinutes() {
         assertEquals("0m", Duration.ZERO.formatElapsedShort())
     }
 
     @Test
-    fun `formatElapsedShort_negative_returnsZeroMinutes`() {
+    fun formatElapsedShortNegativeReturnsZeroMinutes() {
         assertEquals("0m", Duration.ofMinutes(-5).formatElapsedShort())
     }
 
     @Test
-    fun `formatElapsedShort_minutesOnly_returnsMinutesNoPadding`() {
+    fun formatElapsedShortMinutesOnlyReturnsMinutesNoPadding() {
         assertEquals("43m", Duration.ofMinutes(43).formatElapsedShort())
     }
 
     @Test
-    fun `formatElapsedShort_hoursAndMinutes_returnsPaddedMinutes`() {
+    fun formatElapsedShortHoursAndMinutesReturnsPaddedMinutes() {
         assertEquals("1h 04m", Duration.ofMinutes(64).formatElapsedShort())
     }
 
     @Test
-    fun `formatElapsedShort_exactHours_returnsZeroPaddedMinutes`() {
+    fun formatElapsedShortExactHoursReturnsZeroPaddedMinutes() {
         assertEquals("2h 00m", Duration.ofHours(2).formatElapsedShort())
     }
 }
