@@ -44,7 +44,7 @@ class SettingsViewModel @Inject constructor(
                 settingsRepository.getAutoUpdateEnabled(),
                 settingsRepository.getRichNotificationsEnabled(),
             ) { values ->
-                val baby = values[0] as Baby?
+                val baby = values[0] as? Baby
                 val maxPerBreast = values[1] as Int
                 val maxTotal = values[2] as Int
                 val themeConfig = values[3] as ThemeConfig

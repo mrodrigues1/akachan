@@ -1,5 +1,6 @@
 package com.babytracker.data.repository
 
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -21,6 +22,7 @@ class SettingsRepositoryImpl @Inject constructor(
 ) : SettingsRepository {
 
     private companion object {
+        const val TAG = "SettingsRepository"
         val THEME_CONFIG = stringPreferencesKey("theme_config")
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val MAX_PER_BREAST_MINUTES = intPreferencesKey("max_per_breast_minutes")
@@ -36,6 +38,7 @@ class SettingsRepositoryImpl @Inject constructor(
             try {
                 ThemeConfig.valueOf(themeStr)
             } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Invalid theme config stored: $themeStr", e)
                 ThemeConfig.SYSTEM
             }
         }
@@ -71,6 +74,7 @@ class SettingsRepositoryImpl @Inject constructor(
                 try {
                     LocalTime.of(minutes / 60, minutes % 60)
                 } catch (e: DateTimeException) {
+                    Log.w(TAG, "Invalid wake time minutes stored: $minutes", e)
                     null
                 }
             }

@@ -5,7 +5,9 @@ import com.babytracker.BuildConfig
 import com.babytracker.domain.model.UpdateInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONException
 import org.json.JSONObject
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import javax.inject.Inject
@@ -33,8 +35,11 @@ class UpdateChecker @Inject constructor() {
             } else {
                 null
             }
-        } catch (e: Exception) {
-            Log.d("UpdateChecker", "Update check failed: ${e.message}")
+        } catch (e: IOException) {
+            Log.d(TAG, "Update check network failed", e)
+            null
+        } catch (e: JSONException) {
+            Log.d(TAG, "Update check response parsing failed", e)
             null
         }
     }
@@ -49,5 +54,9 @@ class UpdateChecker @Inject constructor() {
             if (remote < current) return false
         }
         return false
+    }
+
+    private companion object {
+        const val TAG = "UpdateChecker"
     }
 }

@@ -12,7 +12,6 @@ import java.time.Instant
 class BreastfeedingNotificationManager(private val context: Context) : NotificationScheduler {
 
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
-    private val TAG = "NotificationManager"
 
     override fun scheduleMaxTotalTimeNotification(
         sessionStartTime: Instant,
@@ -147,6 +146,7 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
 
     companion object {
         const val NOTIFICATION_ACTION = "com.babytracker.BREASTFEEDING_NOTIFICATION"
+        private const val TAG = "NotificationManager"
         private const val REQUEST_CODE_MAX_TOTAL = 1001
         private const val REQUEST_CODE_MAX_PER_BREAST = 1002
     }

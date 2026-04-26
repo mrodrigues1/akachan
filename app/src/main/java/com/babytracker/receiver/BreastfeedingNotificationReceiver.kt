@@ -40,15 +40,13 @@ class BreastfeedingNotificationReceiver : BroadcastReceiver() {
                 val sessionId = intent.getLongExtra("session_id", -1L)
                 val currentSide = intent.getStringExtra("current_side") ?: "LEFT"
                 val elapsedMinutes = intent.getIntExtra("elapsed_minutes", 0)
-                val maxPerBreastMinutes = intent.getIntExtra("max_per_breast_minutes", 0)
                 val maxTotalMinutes = intent.getIntExtra("max_total_minutes", 0)
 
                 when (notificationType) {
                     NOTIFICATION_TYPE_SWITCH_SIDE -> {
                         Log.i(TAG, "Triggering switch side notification (rich=$richEnabled)")
                         NotificationHelper.showSwitchSide(
-                            context, sessionId, currentSide, elapsedMinutes,
-                            maxPerBreastMinutes, maxTotalMinutes, richEnabled
+                            context, sessionId, currentSide, elapsedMinutes, richEnabled
                         )
                     }
                     NOTIFICATION_TYPE_MAX_TOTAL -> {

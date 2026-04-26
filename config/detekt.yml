@@ -399,6 +399,7 @@ style:
     maxJumpCount: 2
   MagicNumber:
     active: true
+    excludes: ['**/ui/**', '**/screen/**', '**/composable/**', '**/component/**']
     ignoreNumbers: ['-1', '0', '1', '2', '100']
     ignoreHashCodeFunction: true
     ignorePropertyDeclaration: true

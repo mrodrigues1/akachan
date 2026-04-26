@@ -163,8 +163,6 @@ object NotificationHelper {
         sessionId: Long,
         currentSide: String,
         elapsedMinutes: Int,
-        maxPerBreastMinutes: Int,
-        maxTotalMinutes: Int,
         richEnabled: Boolean
     ) {
         val otherSide = if (currentSide == "LEFT") "right" else "left"

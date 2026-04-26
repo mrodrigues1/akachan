@@ -25,7 +25,7 @@ class SwitchBreastfeedingSideUseCaseTest {
     }
 
     @Test
-    fun `invoke_setsSwitchTimeOnSession`() = runTest {
+    fun invokeSetsSwitchTimeOnSession() = runTest {
         val session = BreastfeedingSession(
             id = 1L,
             startTime = Instant.now().minusSeconds(600),
@@ -42,7 +42,7 @@ class SwitchBreastfeedingSideUseCaseTest {
     }
 
     @Test
-    fun `invoke_doesNotOverrideExistingSwitch`() = runTest {
+    fun invokeDoesNotOverrideExistingSwitch() = runTest {
         val existingSwitch = Instant.now().minusSeconds(300)
         val session = BreastfeedingSession(
             id = 1L,
@@ -58,7 +58,7 @@ class SwitchBreastfeedingSideUseCaseTest {
     }
 
     @Test
-    fun `invoke_callsRepositoryUpdate`() = runTest {
+    fun invokeCallsRepositoryUpdate() = runTest {
         val session = BreastfeedingSession(
             id = 1L,
             startTime = Instant.now().minusSeconds(600),
