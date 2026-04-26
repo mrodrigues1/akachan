@@ -47,6 +47,7 @@ object NotificationHelper {
     private const val RC_RESUME_BF_ACTIVE = 2009
     private const val TAG = "NotificationHelper"
     private const val SECONDS_PER_MINUTE = 60
+    private const val MILLIS_PER_SECOND = 1000L
     private const val ACTIVE_REFRESH_INTERVAL_MS = 5_000L
 
     private fun resolveAccent(context: Context, light: Color, dark: Color): Int {
@@ -278,53 +279,18 @@ object NotificationHelper {
             .setContentIntent(tapPi)
 
         if (richEnabled) {
-            val elapsedSeconds = pausedAtEpochMs
-                ?.let { pausedElapsedSeconds(sessionStartEpochMs, pausedDurationMs, it) }
-                ?: activeElapsedSeconds(sessionStartEpochMs, pausedDurationMs)
-            val maxSeconds = maxTotalMinutes * SECONDS_PER_MINUTE
-            val progressEnabled = maxSeconds > 0
-            val progress = if (progressEnabled) elapsedSeconds else 0
-            val maxProgress = if (progressEnabled) maxSeconds else 1
-            val progressText = if (progressEnabled) {
-                activeProgressText(maxTotalMinutes)
-            } else {
-                formatDurationCompact(elapsedSeconds)
-            }
-
-            builder
-                .setUsesChronometer(!isPaused)
-                .setShowWhen(!isPaused)
-                .setWhen(sessionStartEpochMs + pausedDurationMs)
-                .setStyle(NotificationCompat.DecoratedCustomViewStyle())
-                .setCustomBigContentView(
-                    buildProgressBigView(
-                        context = context,
-                        layoutRes = R.layout.notification_breastfeeding_progress,
-                        title = title,
-                        body = body,
-                        progress = progress,
-                        maxProgress = maxProgress,
-                        progressText = progressText,
-                        chronometerBaseElapsedMs = SystemClock.elapsedRealtime() - (elapsedSeconds * 1000L),
-                        chronometerRunning = !isPaused,
-                        showProgress = progressEnabled
-                    )
+            builder.applyBreastfeedingActiveRichContent(
+                ActiveNotificationContent(
+                    context = context,
+                    sessionId = sessionId,
+                    sessionStartEpochMs = sessionStartEpochMs,
+                    pausedDurationMs = pausedDurationMs,
+                    pausedAtEpochMs = pausedAtEpochMs,
+                    maxTotalMinutes = maxTotalMinutes,
+                    title = title,
+                    body = body
                 )
-                .addAction(
-                    0,
-                    if (isPaused) "Resume" else "Pause",
-                    breastfeedingActionPi(
-                        context = context,
-                        sessionId = sessionId,
-                        action = if (isPaused) BreastfeedingActionReceiver.ACTION_RESUME else BreastfeedingActionReceiver.ACTION_PAUSE,
-                        requestCode = if (isPaused) RC_RESUME_BF_ACTIVE else RC_PAUSE_BF_ACTIVE
-                    )
-                )
-                .addAction(0, "Stop Session", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_STOP, RC_STOP_BF_ACTIVE))
-
-            if (progressEnabled && !isPaused) {
-                scheduleBreastfeedingActiveRefresh(context, sessionId)
-            }
+            )
         } else {
             builder.setContentText(body)
         }
@@ -333,6 +299,88 @@ object NotificationHelper {
             .notify(BREASTFEEDING_ACTIVE_NOTIFICATION_ID, builder.build())
         Log.d(TAG, "showBreastfeedingActive posted (rich=$richEnabled)")
     }
+
+    private fun NotificationCompat.Builder.applyBreastfeedingActiveRichContent(content: ActiveNotificationContent) {
+        val isPaused = content.pausedAtEpochMs != null
+        val elapsedSeconds = content.pausedAtEpochMs
+            ?.let { pausedElapsedSeconds(content.sessionStartEpochMs, content.pausedDurationMs, it) }
+            ?: activeElapsedSeconds(content.sessionStartEpochMs, content.pausedDurationMs)
+        val progress = breastfeedingActiveProgress(elapsedSeconds, content.maxTotalMinutes)
+
+        setUsesChronometer(!isPaused)
+            .setShowWhen(!isPaused)
+            .setWhen(content.sessionStartEpochMs + content.pausedDurationMs)
+            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+            .setCustomBigContentView(
+                buildProgressBigView(
+                    context = content.context,
+                    layoutRes = R.layout.notification_breastfeeding_progress,
+                    title = content.title,
+                    body = content.body,
+                    progress = progress.current,
+                    maxProgress = progress.max,
+                    progressText = progress.label,
+                    chronometerBaseElapsedMs = SystemClock.elapsedRealtime() - (elapsedSeconds * MILLIS_PER_SECOND),
+                    chronometerRunning = !isPaused,
+                    showProgress = progress.isEnabled
+                )
+            )
+            .addAction(0, pauseResumeLabel(isPaused), pauseResumePendingIntent(content.context, content.sessionId, isPaused))
+            .addAction(
+                0,
+                "Stop Session",
+                breastfeedingActionPi(
+                    content.context,
+                    content.sessionId,
+                    BreastfeedingActionReceiver.ACTION_STOP,
+                    RC_STOP_BF_ACTIVE
+                )
+            )
+
+        if (progress.isEnabled && !isPaused) {
+            scheduleBreastfeedingActiveRefresh(content.context, content.sessionId)
+        }
+    }
+
+    private fun breastfeedingActiveProgress(elapsedSeconds: Int, maxTotalMinutes: Int): ActiveProgress {
+        val maxSeconds = maxTotalMinutes * SECONDS_PER_MINUTE
+        val progressEnabled = maxSeconds > 0
+        return ActiveProgress(
+            current = if (progressEnabled) elapsedSeconds else 0,
+            max = if (progressEnabled) maxSeconds else 1,
+            label = if (progressEnabled) activeProgressText(maxTotalMinutes) else formatDurationCompact(elapsedSeconds),
+            isEnabled = progressEnabled
+        )
+    }
+
+    private fun pauseResumeLabel(isPaused: Boolean): String =
+        if (isPaused) "Resume" else "Pause"
+
+    private fun pauseResumePendingIntent(context: Context, sessionId: Long, isPaused: Boolean): PendingIntent =
+        breastfeedingActionPi(
+            context = context,
+            sessionId = sessionId,
+            action = if (isPaused) BreastfeedingActionReceiver.ACTION_RESUME else BreastfeedingActionReceiver.ACTION_PAUSE,
+            requestCode = if (isPaused) RC_RESUME_BF_ACTIVE else RC_PAUSE_BF_ACTIVE
+        )
+
+    private data class ActiveProgress(
+        val current: Int,
+        val max: Int,
+        val label: String,
+        val isEnabled: Boolean
+    )
+
+    private data class ActiveNotificationContent(
+        val context: Context,
+        val sessionId: Long,
+        val sessionStartEpochMs: Long,
+        val pausedDurationMs: Long,
+        val pausedAtEpochMs: Long?,
+        val maxTotalMinutes: Int,
+        val title: String,
+        val body: String
+    )
 
     fun showSleepActive(
         context: Context,

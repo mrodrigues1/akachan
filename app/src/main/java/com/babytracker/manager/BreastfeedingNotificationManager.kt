@@ -22,14 +22,16 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
     ) {
         if (maxTotalMinutes <= 0) return
         scheduleAlarm(
-            triggerTime = sessionStartTime.plusSeconds(maxTotalMinutes * 60L),
-            requestCode = REQUEST_CODE_MAX_TOTAL,
-            notificationType = BreastfeedingNotificationReceiver.NOTIFICATION_TYPE_MAX_TOTAL,
-            sessionId = sessionId,
-            currentSide = currentSide,
-            elapsedMinutes = maxTotalMinutes,
-            maxPerBreastMinutes = maxPerBreastMinutes,
-            maxTotalMinutes = maxTotalMinutes
+            AlarmRequest(
+                triggerTime = sessionStartTime.plusSeconds(maxTotalMinutes * SECONDS_PER_MINUTE),
+                requestCode = REQUEST_CODE_MAX_TOTAL,
+                notificationType = BreastfeedingNotificationReceiver.NOTIFICATION_TYPE_MAX_TOTAL,
+                sessionId = sessionId,
+                currentSide = currentSide,
+                elapsedMinutes = maxTotalMinutes,
+                maxPerBreastMinutes = maxPerBreastMinutes,
+                maxTotalMinutes = maxTotalMinutes
+            )
         )
     }
 
@@ -42,14 +44,16 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
     ) {
         if (maxPerBreastMinutes <= 0) return
         scheduleAlarm(
-            triggerTime = sessionStartTime.plusSeconds(maxPerBreastMinutes * 60L),
-            requestCode = REQUEST_CODE_MAX_PER_BREAST,
-            notificationType = BreastfeedingNotificationReceiver.NOTIFICATION_TYPE_SWITCH_SIDE,
-            sessionId = sessionId,
-            currentSide = currentSide,
-            elapsedMinutes = maxPerBreastMinutes,
-            maxPerBreastMinutes = maxPerBreastMinutes,
-            maxTotalMinutes = maxTotalMinutes
+            AlarmRequest(
+                triggerTime = sessionStartTime.plusSeconds(maxPerBreastMinutes * SECONDS_PER_MINUTE),
+                requestCode = REQUEST_CODE_MAX_PER_BREAST,
+                notificationType = BreastfeedingNotificationReceiver.NOTIFICATION_TYPE_SWITCH_SIDE,
+                sessionId = sessionId,
+                currentSide = currentSide,
+                elapsedMinutes = maxPerBreastMinutes,
+                maxPerBreastMinutes = maxPerBreastMinutes,
+                maxTotalMinutes = maxTotalMinutes
+            )
         )
     }
 
@@ -61,14 +65,16 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
         maxPerBreastMinutes: Int
     ) {
         scheduleAlarm(
-            triggerTime = triggerTime,
-            requestCode = REQUEST_CODE_MAX_TOTAL,
-            notificationType = BreastfeedingNotificationReceiver.NOTIFICATION_TYPE_MAX_TOTAL,
-            sessionId = sessionId,
-            currentSide = currentSide,
-            elapsedMinutes = maxTotalMinutes,
-            maxPerBreastMinutes = maxPerBreastMinutes,
-            maxTotalMinutes = maxTotalMinutes
+            AlarmRequest(
+                triggerTime = triggerTime,
+                requestCode = REQUEST_CODE_MAX_TOTAL,
+                notificationType = BreastfeedingNotificationReceiver.NOTIFICATION_TYPE_MAX_TOTAL,
+                sessionId = sessionId,
+                currentSide = currentSide,
+                elapsedMinutes = maxTotalMinutes,
+                maxPerBreastMinutes = maxPerBreastMinutes,
+                maxTotalMinutes = maxTotalMinutes
+            )
         )
     }
 
@@ -80,14 +86,16 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
         maxTotalMinutes: Int
     ) {
         scheduleAlarm(
-            triggerTime = triggerTime,
-            requestCode = REQUEST_CODE_MAX_PER_BREAST,
-            notificationType = BreastfeedingNotificationReceiver.NOTIFICATION_TYPE_SWITCH_SIDE,
-            sessionId = sessionId,
-            currentSide = currentSide,
-            elapsedMinutes = maxPerBreastMinutes,
-            maxPerBreastMinutes = maxPerBreastMinutes,
-            maxTotalMinutes = maxTotalMinutes
+            AlarmRequest(
+                triggerTime = triggerTime,
+                requestCode = REQUEST_CODE_MAX_PER_BREAST,
+                notificationType = BreastfeedingNotificationReceiver.NOTIFICATION_TYPE_SWITCH_SIDE,
+                sessionId = sessionId,
+                currentSide = currentSide,
+                elapsedMinutes = maxPerBreastMinutes,
+                maxPerBreastMinutes = maxPerBreastMinutes,
+                maxTotalMinutes = maxTotalMinutes
+            )
         )
     }
 
@@ -96,28 +104,19 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
         cancelAlarm(REQUEST_CODE_MAX_PER_BREAST)
     }
 
-    private fun scheduleAlarm(
-        triggerTime: Instant,
-        requestCode: Int,
-        notificationType: String,
-        sessionId: Long,
-        currentSide: String,
-        elapsedMinutes: Int,
-        maxPerBreastMinutes: Int,
-        maxTotalMinutes: Int
-    ) {
-        Log.d(TAG, "Scheduling alarm type=$notificationType at $triggerTime (rc=$requestCode)")
+    private fun scheduleAlarm(request: AlarmRequest) {
+        Log.d(TAG, "Scheduling alarm type=${request.notificationType} at ${request.triggerTime} (rc=${request.requestCode})")
         val intent = Intent(context, BreastfeedingNotificationReceiver::class.java).apply {
             action = NOTIFICATION_ACTION
-            putExtra("notification_type", notificationType)
-            putExtra("session_id", sessionId)
-            putExtra("current_side", currentSide)
-            putExtra("elapsed_minutes", elapsedMinutes)
-            putExtra("max_per_breast_minutes", maxPerBreastMinutes)
-            putExtra("max_total_minutes", maxTotalMinutes)
+            putExtra("notification_type", request.notificationType)
+            putExtra("session_id", request.sessionId)
+            putExtra("current_side", request.currentSide)
+            putExtra("elapsed_minutes", request.elapsedMinutes)
+            putExtra("max_per_breast_minutes", request.maxPerBreastMinutes)
+            putExtra("max_total_minutes", request.maxTotalMinutes)
         }
         val pendingIntent = PendingIntent.getBroadcast(
-            context, requestCode, intent,
+            context, request.requestCode, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         alarmManager.cancel(pendingIntent)
@@ -127,11 +126,22 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
             true
         }
         if (canScheduleExact) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime.toEpochMilli(), pendingIntent)
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, request.triggerTime.toEpochMilli(), pendingIntent)
         } else {
-            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime.toEpochMilli(), pendingIntent)
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, request.triggerTime.toEpochMilli(), pendingIntent)
         }
     }
+
+    private data class AlarmRequest(
+        val triggerTime: Instant,
+        val requestCode: Int,
+        val notificationType: String,
+        val sessionId: Long,
+        val currentSide: String,
+        val elapsedMinutes: Int,
+        val maxPerBreastMinutes: Int,
+        val maxTotalMinutes: Int
+    )
 
     private fun cancelAlarm(requestCode: Int) {
         val intent = Intent(context, BreastfeedingNotificationReceiver::class.java).apply {
@@ -149,5 +159,6 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
         private const val TAG = "NotificationManager"
         private const val REQUEST_CODE_MAX_TOTAL = 1001
         private const val REQUEST_CODE_MAX_PER_BREAST = 1002
+        private const val SECONDS_PER_MINUTE = 60L
     }
 }
