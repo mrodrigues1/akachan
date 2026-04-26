@@ -483,3 +483,25 @@ Read specs before implementing new features — they define the intended behavio
 - Do not add cloud sync, analytics, or remote API calls — local-only is by design
 - Do not use KAPT — KSP is configured for all annotation processing (Hilt, Room)
 - Do not access warning tokens (`WarningAmber`, `WarningContainerAmber`, `OnWarningContainerAmber` and their `*Dark` pairs) through `MaterialTheme.colorScheme` — they are extended, non-M3 semantics and ship as top-level `val`s in `ui/theme/Color.kt`. Import them by name.
+
+---
+
+## Code Quality Tools
+
+- Before producing any Kotlin code changes, be aware that this project enforces **ktlint** formatting and **detekt** static analysis.
+- Always write code that passes both tools. Do not introduce code that would fail either check.
+- **ktlint rules to follow:**
+  - 4-space indentation
+  - No wildcard imports (except whitelisted Compose packages defined in `config/detekt.yml`)
+  - Trailing newline at end of file
+  - No trailing whitespace
+  - Single empty line between declarations
+- **detekt rules to follow (key ones):**
+  - No `FIXME:` or `STOPSHIP` comments - use proper ticket references
+  - Avoid swallowing exceptions silently
+  - Avoid `GlobalScope` usage - inject dispatchers instead
+  - Functions should not exceed 80 lines (UI composables in `ui/`, `screen/`, `composable/` packages are excluded)
+  - Boolean properties must be prefixed with `is`, `has`, `are`, `can`, `should`, `show`, or `enable`
+  - Composable function naming (PascalCase) is allowed in `ui/`, `screen/`, `composable/`, `component/` packages
+- **Never use `@Suppress` to silence a detekt rule.** If detekt reports a violation, the code must be fixed. There are no exceptions to this rule.
+- After making Kotlin changes, remind the developer to run `./gradlew ktlintFormat && ./gradlew detekt` before committing. If detekt finds issues, fix each rule group in its own commit using the format `fix(detekt): fix <RuleName> violations`.

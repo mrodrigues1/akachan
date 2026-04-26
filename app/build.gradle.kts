@@ -37,7 +37,7 @@ android {
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
             val signingEnvPresent = System.getenv("SIGNING_KEY_ALIAS") != null
             if (signingEnvPresent) {
