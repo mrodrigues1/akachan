@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 import java.time.LocalDate
 import java.time.Period
 import javax.inject.Inject
@@ -108,6 +109,9 @@ class OnboardingViewModel @Inject constructor(
                 _uiState.update { it.copy(isSaving = false, navigationComplete = true) }
             } catch (e: IllegalArgumentException) {
                 Log.w(TAG, "Invalid baby profile during onboarding", e)
+                _uiState.update { it.copy(isSaving = false, savingError = true) }
+            } catch (e: IOException) {
+                Log.w(TAG, "Unable to save baby profile during onboarding", e)
                 _uiState.update { it.copy(isSaving = false, savingError = true) }
             }
         }

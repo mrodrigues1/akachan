@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.io.IOException
 import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -173,7 +174,7 @@ class OnboardingViewModelTest {
 
     @Test
     fun `onFinish on failure sets savingError and clears isSaving`() = runTest {
-        coEvery { saveBabyProfile(any()) } throws RuntimeException("network error")
+        coEvery { saveBabyProfile(any()) } throws IOException("storage error")
 
         viewModel.onNameChanged("Luna")
         viewModel.onFinish()
@@ -186,7 +187,7 @@ class OnboardingViewModelTest {
 
     @Test
     fun `onFinish resets savingError before retry so snackbar can fire again`() = runTest {
-        coEvery { saveBabyProfile(any()) } throws RuntimeException("fail")
+        coEvery { saveBabyProfile(any()) } throws IOException("storage error")
         viewModel.onNameChanged("Luna")
         viewModel.onFinish()
         testDispatcher.scheduler.advanceUntilIdle()
