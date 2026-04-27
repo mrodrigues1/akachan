@@ -324,10 +324,6 @@ When working on a new feature, pull `main` branch latest changes and create a ne
 - `chore/update-room-version`
 - `ci/add-android-test-coverage`
 
-After the feature is complete, run all tests, 
-if all tests are passing: create a PR to `main` with a descriptive title and description, 
-if there is any broken test: fix it, re-run tests and do it until all tests pass.
-
 ---
 
 ## Code Patterns
@@ -423,7 +419,10 @@ Build variants: `debug` (default) and `release` (ProGuard minification enabled v
 ## Testing Conventions
 
 Create tests for new features, bug fixes, and edge cases.
-Doesn't need to follow the TDD pattern. Make sure the feature works as expected.
+Follow the TDD pattern. Make sure the feature works as expected.
+
+After the feature is complete, run all tests,
+if there is any broken test: fix it, re-run tests and do it until all tests pass.
 
 ### Unit Tests (`src/test/`)
 - Framework: JUnit 5 (`@Test`, `@BeforeEach`, `runTest`)
