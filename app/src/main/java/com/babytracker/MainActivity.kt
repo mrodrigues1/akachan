@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
+import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.UpdateInfo
 import com.babytracker.domain.repository.BabyRepository
@@ -51,6 +52,10 @@ class MainActivity : ComponentActivity() {
                 .isOnboardingComplete()
                 .collectAsStateWithLifecycle(initialValue = null)
 
+            val appMode by settingsRepository
+                .getAppMode()
+                .collectAsStateWithLifecycle(initialValue = null)
+
             val themeConfig by settingsRepository
                 .getThemeConfig()
                 .collectAsStateWithLifecycle(initialValue = ThemeConfig.SYSTEM)
@@ -66,8 +71,8 @@ class MainActivity : ComponentActivity() {
             }
 
             BabyTrackerTheme(themeConfig = themeConfig) {
-                when (isOnboardingComplete) {
-                    null -> Box(
+                when {
+                    isOnboardingComplete == null || appMode == null -> Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -78,6 +83,7 @@ class MainActivity : ComponentActivity() {
                         AppNavGraph(
                             navController = navController,
                             isOnboardingComplete = isOnboardingComplete!!,
+                            appMode = appMode!!,
                         )
                     }
                 }

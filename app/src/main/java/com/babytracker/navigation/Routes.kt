@@ -10,4 +10,7 @@ object Routes {
     const val SLEEP_SCHEDULE = "sleep/schedule"
     const val SETTINGS = "settings"
     const val DESIGN_SYSTEM_PREVIEW = "design_system/preview"
+    const val CONNECT_PARTNER = "connect_partner"
+    const val PARTNER_DASHBOARD = "partner_dashboard"
+    const val MANAGE_SHARING = "manage_sharing"
 }
