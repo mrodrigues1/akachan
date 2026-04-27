@@ -1,6 +1,7 @@
 package com.babytracker.domain.repository
 
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.sharing.domain.model.AppMode
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalTime
 
@@ -19,4 +20,9 @@ interface SettingsRepository {
     suspend fun setAutoUpdateEnabled(enabled: Boolean)
     fun getRichNotificationsEnabled(): Flow<Boolean>
     suspend fun setRichNotificationsEnabled(enabled: Boolean)
+    fun getAppMode(): Flow<AppMode>
+    suspend fun setAppMode(mode: AppMode)
+    fun getShareCode(): Flow<String?>
+    suspend fun setShareCode(code: String)
+    suspend fun clearShareCode()
 }

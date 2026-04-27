@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.sharing.domain.model.AppMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.DateTimeException
@@ -30,6 +31,8 @@ class SettingsRepositoryImpl @Inject constructor(
         val WAKE_TIME_MINUTES = intPreferencesKey("wake_time_minutes")
         val AUTO_UPDATE_ENABLED = booleanPreferencesKey("auto_update_enabled")
         private val RICH_NOTIFICATIONS_ENABLED = booleanPreferencesKey("rich_notifications_enabled")
+        val APP_MODE = stringPreferencesKey("app_mode")
+        val SHARE_CODE = stringPreferencesKey("share_code")
     }
 
     override fun getThemeConfig(): Flow<ThemeConfig> =
@@ -96,5 +99,31 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setRichNotificationsEnabled(enabled: Boolean) {
         dataStore.edit { it[RICH_NOTIFICATIONS_ENABLED] = enabled }
+    }
+
+    override fun getAppMode(): Flow<AppMode> =
+        dataStore.data.map { preferences ->
+            val modeStr = preferences[APP_MODE] ?: AppMode.NONE.name
+            try {
+                AppMode.valueOf(modeStr)
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Invalid app mode stored: $modeStr", e)
+                AppMode.NONE
+            }
+        }
+
+    override suspend fun setAppMode(mode: AppMode) {
+        dataStore.edit { it[APP_MODE] = mode.name }
+    }
+
+    override fun getShareCode(): Flow<String?> =
+        dataStore.data.map { it[SHARE_CODE] }
+
+    override suspend fun setShareCode(code: String) {
+        dataStore.edit { it[SHARE_CODE] = code }
+    }
+
+    override suspend fun clearShareCode() {
+        dataStore.edit { it.remove(SHARE_CODE) }
     }
 }
