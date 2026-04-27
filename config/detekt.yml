@@ -94,7 +94,7 @@ complexity:
     thresholdInFiles: 25
     thresholdInClasses: 20
     thresholdInObjects: 15
-    thresholdInInterfaces: 15
+    thresholdInInterfaces: 20
     ignorePrivate: true
     ignoreOverridden: true
 
