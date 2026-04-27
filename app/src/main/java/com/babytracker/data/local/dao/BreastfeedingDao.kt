@@ -18,6 +18,9 @@ interface BreastfeedingDao {
     @Query("SELECT * FROM breastfeeding_sessions ORDER BY start_time DESC LIMIT 1")
     suspend fun getLastSession(): BreastfeedingEntity?
 
+    @Query("SELECT * FROM breastfeeding_sessions ORDER BY start_time DESC LIMIT :limit")
+    suspend fun getRecentSessions(limit: Int): List<BreastfeedingEntity>
+
     @Insert
     suspend fun insertSession(entity: BreastfeedingEntity): Long
 
