@@ -7,6 +7,7 @@ interface BreastfeedingRepository {
     fun getAllSessions(): Flow<List<BreastfeedingSession>>
     fun getActiveSession(): Flow<BreastfeedingSession?>
     suspend fun getLastSession(): BreastfeedingSession?
+    suspend fun getRecentSessions(limit: Int): List<BreastfeedingSession>
     suspend fun insertSession(session: BreastfeedingSession): Long
     suspend fun updateSession(session: BreastfeedingSession)
 }
