@@ -13,6 +13,7 @@ import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUse
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -61,7 +62,8 @@ class BreastfeedingViewModel @Inject constructor(
     private val resumeSession: ResumeBreastfeedingSessionUseCase,
     private val repository: BreastfeedingRepository,
     private val settingsRepository: SettingsRepository,
-    private val notificationCoordinator: BreastfeedingSessionNotificationCoordinator
+    private val notificationCoordinator: BreastfeedingSessionNotificationCoordinator,
+    private val syncToFirestore: SyncToFirestoreUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BreastfeedingUiState())
@@ -132,6 +134,7 @@ class BreastfeedingViewModel @Inject constructor(
                     notificationCoordinator.scheduleInitial(session)
                     notificationCoordinator.showRunning(session)
                 }
+            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
         }
     }
 
@@ -140,6 +143,7 @@ class BreastfeedingViewModel @Inject constructor(
         viewModelScope.launch {
             stopSession(session)
             notificationCoordinator.cancelAllSessionNotifications()
+            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
         }
     }
 
@@ -155,6 +159,7 @@ class BreastfeedingViewModel @Inject constructor(
                 )
                 notificationCoordinator.showRunning(switchedSession)
             }
+            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
         }
     }
 
@@ -165,6 +170,7 @@ class BreastfeedingViewModel @Inject constructor(
             pauseSession(session)
             notificationCoordinator.cancelScheduled()
             notificationCoordinator.showPaused(session, pausedAt)
+            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
         }
     }
 
@@ -175,6 +181,7 @@ class BreastfeedingViewModel @Inject constructor(
             resumeSession(session)
             val totalPausedMs = notificationCoordinator.rescheduleAfterResume(session, resumeInstant)
             notificationCoordinator.showRunning(session, pausedDurationMs = totalPausedMs)
+            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
         }
     }
 
