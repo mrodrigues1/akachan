@@ -80,7 +80,14 @@ fun AppNavGraph(
             DesignSystemPreviewScreen(onNavigateBack = { navController.popBackStack() })
         }
         composable(Routes.CONNECT_PARTNER) {
-            ConnectPartnerScreen(onNavigateBack = { navController.popBackStack() })
+            ConnectPartnerScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onConnected = {
+                    navController.navigate(Routes.PARTNER_DASHBOARD) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+            )
         }
         composable(Routes.PARTNER_DASHBOARD) {
             PartnerDashboardScreen()
