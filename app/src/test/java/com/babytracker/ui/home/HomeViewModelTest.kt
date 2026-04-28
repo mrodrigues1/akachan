@@ -3,10 +3,13 @@ package com.babytracker.ui.home
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
+import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
@@ -34,6 +37,8 @@ class HomeViewModelTest {
     private lateinit var getBreastfeedingHistory: GetBreastfeedingHistoryUseCase
     private lateinit var getSleepHistory: GetSleepHistoryUseCase
     private lateinit var stopBreastfeedingSession: StopBreastfeedingSessionUseCase
+    private lateinit var syncToFirestore: SyncToFirestoreUseCase
+    private lateinit var settingsRepository: SettingsRepository
     private lateinit var viewModel: HomeViewModel
     private val testDispatcher = StandardTestDispatcher()
 
@@ -58,10 +63,14 @@ class HomeViewModelTest {
         getBreastfeedingHistory = mockk()
         getSleepHistory = mockk()
         stopBreastfeedingSession = mockk()
+        syncToFirestore = mockk()
+        settingsRepository = mockk()
 
         every { getBabyProfile() } returns flowOf(testBaby)
         every { getBreastfeedingHistory() } returns flowOf(emptyList())
         every { getSleepHistory() } returns flowOf(emptyList())
+        every { settingsRepository.getAppMode() } returns flowOf(AppMode.NONE)
+        coJustRun { syncToFirestore(any()) }
     }
 
     @AfterEach
@@ -73,7 +82,9 @@ class HomeViewModelTest {
         getBabyProfile,
         getBreastfeedingHistory,
         getSleepHistory,
-        stopBreastfeedingSession
+        stopBreastfeedingSession,
+        syncToFirestore,
+        settingsRepository,
     )
 
     @Test
@@ -171,5 +182,20 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { stopBreastfeedingSession(inProgressSession) }
+    }
+
+    @Test
+    fun appMode_reflectsRepositoryValue() = runTest {
+        every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(AppMode.PRIMARY, viewModel.uiState.value.appMode)
+    }
+
+    @Test
+    fun init_firesSyncToFirestore() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify(exactly = 1) { syncToFirestore(any()) }
     }
 }
