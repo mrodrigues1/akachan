@@ -11,6 +11,7 @@ import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUse
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
@@ -49,6 +50,7 @@ class BreastfeedingViewModelTest {
     private lateinit var repository: BreastfeedingRepository
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
+    private lateinit var syncToFirestore: SyncToFirestoreUseCase
 
     private lateinit var viewModel: BreastfeedingViewModel
     private val testDispatcher = StandardTestDispatcher()
@@ -68,6 +70,7 @@ class BreastfeedingViewModelTest {
         repository = mockk()
         settingsRepository = mockk()
         notificationCoordinator = mockk()
+        syncToFirestore = mockk()
 
         every { getHistory() } returns flowOf(emptyList())
         every { repository.getActiveSession() } returns activeSessionFlow
@@ -79,6 +82,7 @@ class BreastfeedingViewModelTest {
         coJustRun { startSession(any()) }
         coJustRun { pauseSession(any()) }
         coJustRun { resumeSession(any()) }
+        coJustRun { syncToFirestore(any()) }
         coEvery { notificationCoordinator.scheduleInitial(any()) } returns Unit
         coEvery { notificationCoordinator.showRunning(any(), any()) } returns Unit
         coEvery { notificationCoordinator.showPaused(any(), any()) } returns Unit
@@ -104,7 +108,8 @@ class BreastfeedingViewModelTest {
         resumeSession,
         repository,
         settingsRepository,
-        notificationCoordinator
+        notificationCoordinator,
+        syncToFirestore,
     )
 
     private fun awaitLastFeedingSummaryPopulated(): LastFeedingSummaryState.Populated {
@@ -787,6 +792,78 @@ class BreastfeedingViewModelTest {
         } finally {
             unmockkAll()
         }
+    }
+
+    @Test
+    fun `onStartSession triggers session sync`() = runTest {
+        viewModel.onSideSelected(BreastSide.LEFT)
+        val session = BreastfeedingSession(
+            id = 1L, startTime = Instant.now(), startingSide = BreastSide.LEFT
+        )
+        coEvery { startSession(BreastSide.LEFT) } answers {
+            activeSessionFlow.value = session
+            1L
+        }
+        viewModel.onStartSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+    }
+
+    @Test
+    fun `onStopSession triggers session sync`() = runTest {
+        val session = BreastfeedingSession(
+            id = 1L, startTime = Instant.now().minusSeconds(300), startingSide = BreastSide.LEFT
+        )
+        activeSessionFlow.value = session
+        coJustRun { stopSession(session) }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onStopSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+    }
+
+    @Test
+    fun `onSwitchSide triggers session sync`() = runTest {
+        val session = BreastfeedingSession(
+            id = 1L, startTime = Instant.now().minusSeconds(300), startingSide = BreastSide.LEFT
+        )
+        activeSessionFlow.value = session
+        coJustRun { switchSide(session) }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onSwitchSide()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+    }
+
+    @Test
+    fun `onPauseSession triggers session sync`() = runTest {
+        val session = BreastfeedingSession(
+            id = 1L, startTime = Instant.now().minusSeconds(300), startingSide = BreastSide.LEFT
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onPauseSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+    }
+
+    @Test
+    fun `onResumeSession triggers session sync`() = runTest {
+        val session = BreastfeedingSession(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(300),
+            startingSide = BreastSide.LEFT,
+            pausedAt = Instant.now().minusSeconds(60),
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onResumeSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
     }
 
     @Test
