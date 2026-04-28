@@ -74,6 +74,8 @@ fun AppNavGraph(
             SettingsScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToDesignSystem = { navController.navigate(Routes.DESIGN_SYSTEM_PREVIEW) },
+                onNavigateToManageSharing = { navController.navigate(Routes.MANAGE_SHARING) },
+                onNavigateToConnectPartner = { navController.navigate(Routes.CONNECT_PARTNER) },
             )
         }
         composable(Routes.DESIGN_SYSTEM_PREVIEW) {
@@ -82,11 +84,7 @@ fun AppNavGraph(
         composable(Routes.CONNECT_PARTNER) {
             ConnectPartnerScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onConnected = {
-                    navController.navigate(Routes.PARTNER_DASHBOARD) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                },
+                onConnected = { navController.navigate(Routes.PARTNER_DASHBOARD) { popUpTo(0) { inclusive = true } } },
             )
         }
         composable(Routes.PARTNER_DASHBOARD) {

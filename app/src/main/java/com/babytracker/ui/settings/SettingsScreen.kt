@@ -57,6 +57,7 @@ import com.babytracker.BuildConfig
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.ui.onboarding.components.AllergiesStepContent
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -73,7 +74,9 @@ private enum class SettingsSheet {
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToDesignSystem: () -> Unit = {},
-    viewModel: SettingsViewModel = hiltViewModel()
+    onNavigateToManageSharing: () -> Unit = {},
+    onNavigateToConnectPartner: () -> Unit = {},
+    viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var activeSheet by rememberSaveable { mutableStateOf<SettingsSheet?>(null) }
@@ -249,6 +252,36 @@ fun SettingsScreen(
                     checked = uiState.richNotificationsEnabled,
                     onCheckedChange = { viewModel.onRichNotificationsToggled(it) }
                 )
+            }
+
+            HorizontalDivider()
+
+            Text(
+                text = "Partner Access",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            )
+            when (uiState.appMode) {
+                AppMode.NONE -> {
+                    SettingsRow(
+                        label = "Partner Sharing",
+                        value = "Set up as primary parent",
+                        onClick = onNavigateToManageSharing,
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+                    SettingsRow(
+                        label = "Connect as Partner",
+                        value = "View a partner's baby data",
+                        onClick = onNavigateToConnectPartner,
+                    )
+                }
+                AppMode.PRIMARY -> SettingsRow(
+                    label = "Manage Sharing",
+                    value = "Active",
+                    onClick = onNavigateToManageSharing,
+                )
+                AppMode.PARTNER -> Unit
             }
 
             HorizontalDivider()
