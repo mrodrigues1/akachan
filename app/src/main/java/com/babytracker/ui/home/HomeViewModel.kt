@@ -7,10 +7,13 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
+import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +34,7 @@ data class HomeUiState(
     val nextRecommendedSide: BreastSide? = null,
     val lastNightSleepDuration: Duration? = null,
     val lastSessionStartTime: Instant? = null,
+    val appMode: AppMode = AppMode.NONE,
 )
 
 @HiltViewModel
@@ -39,13 +43,16 @@ class HomeViewModel @Inject constructor(
     getBreastfeedingHistory: GetBreastfeedingHistoryUseCase,
     getSleepHistory: GetSleepHistoryUseCase,
     private val stopBreastfeedingSession: StopBreastfeedingSessionUseCase,
+    private val syncToFirestore: SyncToFirestoreUseCase,
+    settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     val uiState: StateFlow<HomeUiState> = combine(
         getBabyProfile(),
         getBreastfeedingHistory(),
-        getSleepHistory()
-    ) { baby, feedings, sleepRecords ->
+        getSleepHistory(),
+        settingsRepository.getAppMode()
+    ) { baby, feedings, sleepRecords, appMode ->
         val yesterday = LocalDate.now().minusDays(1)
         val zone = ZoneId.systemDefault()
 
@@ -80,12 +87,17 @@ class HomeViewModel @Inject constructor(
             lastNightSleepDuration = lastNightSleep,
             lastSessionStartTime = (feedings.firstOrNull { it.isInProgress }
                 ?: feedings.firstOrNull())?.startTime,
+            appMode = appMode,
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = HomeUiState()
     )
+
+    init {
+        viewModelScope.launch { runCatching { syncToFirestore() } }
+    }
 
     fun onStopActiveSession() {
         val session = uiState.value.activeSession ?: return

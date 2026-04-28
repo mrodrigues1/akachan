@@ -45,7 +45,8 @@ fun AppNavGraph(
             HomeScreen(
                 onNavigateToBreastfeeding = { navController.navigate(Routes.BREASTFEEDING) },
                 onNavigateToSleep = { navController.navigate(Routes.SLEEP_TRACKING) },
-                onNavigateToSettings = { navController.navigate(Routes.SETTINGS) }
+                onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
+                onNavigateToConnectPartner = { navController.navigate(Routes.CONNECT_PARTNER) },
             )
         }
         composable(Routes.BREASTFEEDING) {
