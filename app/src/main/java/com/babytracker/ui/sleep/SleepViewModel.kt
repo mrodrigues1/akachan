@@ -13,6 +13,7 @@ import com.babytracker.domain.usecase.sleep.SaveSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.StartSleepRecordUseCase
 import com.babytracker.domain.usecase.sleep.StopSleepRecordUseCase
 import com.babytracker.manager.SleepNotificationScheduler
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -49,7 +50,8 @@ class SleepViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val startRecord: StartSleepRecordUseCase,
     private val stopRecord: StopSleepRecordUseCase,
-    private val sleepNotificationScheduler: SleepNotificationScheduler
+    private val sleepNotificationScheduler: SleepNotificationScheduler,
+    private val syncToFirestore: SyncToFirestoreUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SleepUiState())
@@ -75,6 +77,7 @@ class SleepViewModel @Inject constructor(
         viewModelScope.launch {
             val record = startRecord(sleepType)
             sleepNotificationScheduler.show(record.id, record.sleepType, record.startTime)
+            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
         }
     }
 
@@ -83,6 +86,7 @@ class SleepViewModel @Inject constructor(
         viewModelScope.launch {
             stopRecord(session.id)
             sleepNotificationScheduler.cancel()
+            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
         }
     }
 
@@ -131,6 +135,7 @@ class SleepViewModel @Inject constructor(
         viewModelScope.launch {
             saveSleepEntry(startInstant, endInstant, state.entryType)
             _uiState.value = _uiState.value.copy(showEntrySheet = false, entryError = null)
+            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
         }
     }
 
