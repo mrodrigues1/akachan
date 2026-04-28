@@ -3,6 +3,7 @@ package com.babytracker.ui.settings
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
+import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -41,6 +42,7 @@ class SettingsViewModelTest {
         every { settingsRepository.getThemeConfig() } returns flowOf(ThemeConfig.SYSTEM)
         every { settingsRepository.getAutoUpdateEnabled() } returns flowOf(true)
         every { settingsRepository.getRichNotificationsEnabled() } returns richNotificationsFlow
+        every { settingsRepository.getAppMode() } returns flowOf(AppMode.NONE)
 
         viewModel = SettingsViewModel(getBabyProfile, settingsRepository, mockk())
     }
