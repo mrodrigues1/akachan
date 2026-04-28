@@ -90,7 +90,12 @@ fun AppNavGraph(
             )
         }
         composable(Routes.PARTNER_DASHBOARD) {
-            PartnerDashboardScreen()
+            PartnerDashboardScreen(
+                onDisconnected = {
+                    val destination = if (isOnboardingComplete) Routes.HOME else Routes.ONBOARDING
+                    navController.navigate(destination) { popUpTo(0) { inclusive = true } }
+                },
+            )
         }
         composable(Routes.MANAGE_SHARING) {
             ManageSharingScreen(onNavigateBack = { navController.popBackStack() })
