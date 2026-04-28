@@ -25,6 +25,16 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
+      - name: Create google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "${GOOGLE_SERVICES_JSON:-}" ]; then
+            echo "::error::Missing GOOGLE_SERVICES_JSON repository secret"
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+
       - name: Run unit tests
         run: ./gradlew test
 
@@ -53,6 +63,16 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
+
+      - name: Create google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "${GOOGLE_SERVICES_JSON:-}" ]; then
+            echo "::error::Missing GOOGLE_SERVICES_JSON repository secret"
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
 
       - name: Enable KVM
         run: |

@@ -34,6 +34,16 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Create google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "${GOOGLE_SERVICES_JSON:-}" ]; then
+            echo "::error::Missing GOOGLE_SERVICES_JSON repository secret"
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+
       - name: Extract version info
         id: version
         run: |
