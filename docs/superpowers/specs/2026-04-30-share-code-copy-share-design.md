@@ -16,6 +16,7 @@ Add Copy and Share affordances to the share code card in `ManageSharingScreen` s
 - User can copy the share code to the clipboard with one tap
 - User can open the Android share sheet with pre-filled text with one tap
 - Copy action gives visible confirmation via a Snackbar
+- Both actions are disabled when the share code is blank
 
 ## Non-Goals
 
@@ -38,35 +39,73 @@ Add Copy and Share affordances to the share code card in `ManageSharingScreen` s
 - Create a `SnackbarHostState` with `remember`.
 - Create a `CoroutineScope` with `rememberCoroutineScope`.
 - Wire `snackbarHost = { SnackbarHost(snackbarHostState) }` into the existing `Scaffold`.
-- Pass `snackbarHostState` and `scope` down to `PrimaryContent`.
+- Define `onCopyCode` and `onShareCode` lambdas at this level (see below) and pass them into `PrimaryContent` as callbacks — do **not** pass `snackbarHostState` or `scope` into the child composable.
 
-**`PrimaryContent` composable**
+**`PrimaryContent` composable signature addition**
 
-Below the existing share code `Card`, add a `Row` with `horizontalArrangement = Arrangement.spacedBy(8.dp)`:
-
-| Button | Type | Icon | Label | Action |
-|--------|------|------|-------|--------|
-| Copy | `OutlinedButton` | `Icons.Default.ContentCopy` | "Copy" | Copy code to clipboard; show Snackbar |
-| Share | `OutlinedButton` | `Icons.Default.Share` | "Share" | Open Android share chooser |
-
-**Copy action (inline)**
 ```kotlin
-val clipboard = LocalClipboardManager.current
-clipboard.setText(AnnotatedString(shareCode))
-scope.launch { snackbarHostState.showSnackbar("Code copied to clipboard") }
+onCopyCode: () -> Unit,
+onShareCode: () -> Unit,
 ```
 
-**Share action (inline)**
+Below the existing share code `Card`, add a `Row`:
+
+```kotlin
+Row(
+    modifier = Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.spacedBy(8.dp),
+) {
+    OutlinedButton(
+        onClick = onCopyCode,
+        enabled = shareCode.isNotBlank(),
+        modifier = Modifier.weight(1f),
+    ) {
+        Icon(Icons.Default.ContentCopy, contentDescription = null)
+        Spacer(Modifier.width(8.dp))
+        Text("Copy")
+    }
+    OutlinedButton(
+        onClick = onShareCode,
+        enabled = shareCode.isNotBlank(),
+        modifier = Modifier.weight(1f),
+    ) {
+        Icon(Icons.Default.Share, contentDescription = null)
+        Spacer(Modifier.width(8.dp))
+        Text("Share")
+    }
+}
+```
+
+Both buttons are **disabled** when `shareCode.isBlank()` — this covers the transient window during `generateNewCode()` where `AppMode.PRIMARY` is active but no code exists yet.
+
+**`onCopyCode` lambda (defined in `ManageSharingScreen`)**
+
+```kotlin
+val clipboard = LocalClipboardManager.current
+val onCopyCode: () -> Unit = {
+    clipboard.setText(AnnotatedString(shareCode))
+    scope.launch { snackbarHostState.showSnackbar("Code copied to clipboard") }
+}
+```
+
+**`onShareCode` lambda (defined in `ManageSharingScreen`)**
+
 ```kotlin
 val context = LocalContext.current
-val sendIntent = Intent(Intent.ACTION_SEND).apply {
-    type = "text/plain"
-    putExtra(
-        Intent.EXTRA_TEXT,
-        "Use this code to connect to my baby tracker: $shareCode"
-    )
+val onShareCode: () -> Unit = {
+    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(
+            Intent.EXTRA_TEXT,
+            "Use this code to connect to my baby tracker: $shareCode"
+        )
+    }
+    try {
+        context.startActivity(Intent.createChooser(sendIntent, null))
+    } catch (e: ActivityNotFoundException) {
+        scope.launch { snackbarHostState.showSnackbar("No app available to share this code.") }
+    }
 }
-context.startActivity(Intent.createChooser(sendIntent, null))
 ```
 
 ### Snackbar placement
@@ -78,7 +117,7 @@ The `SnackbarHost` is added to the `Scaffold` already wrapping `ManageSharingScr
 ## Error handling
 
 - Clipboard write is infallible on Android — no error handling needed.
-- `startActivity` for `ACTION_SEND` is always resolvable (`text/plain` has universal support) — no fallback needed.
+- `startActivity` for `ACTION_SEND` **can** throw `ActivityNotFoundException` on restricted or managed devices. Wrap in `try/catch` and show a Snackbar: `"No app available to share this code."`.
 
 ---
 
@@ -87,3 +126,4 @@ The `SnackbarHost` is added to the `Scaffold` already wrapping `ManageSharingScr
 - No new unit tests required (no ViewModel or domain logic changed).
 - Manual test: tap Copy → verify Snackbar appears and clipboard contains the code.
 - Manual test: tap Share → verify Android chooser opens with the pre-filled sentence.
+- Manual test: with a blank share code (during code regeneration) → verify both buttons are disabled.
