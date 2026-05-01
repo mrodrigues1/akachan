@@ -33,6 +33,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -61,6 +63,7 @@ fun ManageSharingScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showStopDialog by remember { mutableStateOf(false) }
     var showNewCodeDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) { viewModel.refresh() }
 
@@ -80,6 +83,7 @@ fun ManageSharingScreen(
                 ),
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
             modifier = Modifier
