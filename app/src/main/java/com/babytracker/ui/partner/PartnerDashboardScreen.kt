@@ -265,8 +265,8 @@ private fun SessionRow(session: SessionSnapshot) {
             .minusMillis(session.pausedDurationMs)
             .let { if (it.isNegative) Duration.ZERO else it }
     }
-    val timeAgo = remember(session.endTime) {
-        Duration.between(endInstant, Instant.now()).formatElapsedAgo()
+    val timeAgo = remember(session.startTime) {
+        Duration.between(startInstant, Instant.now()).formatElapsedAgo()
     }
     val sideText = remember(session.startingSide, session.switchTime) {
         val from = if (session.startingSide == "LEFT") "L" else "R"
