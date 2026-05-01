@@ -6,8 +6,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,7 +34,7 @@ fun SideSelector(
         BreastSide.entries.forEach { side ->
             val isSelected = selectedSide == side
             val label = if (side == BreastSide.LEFT) "Left" else "Right"
-            val arrow = if (side == BreastSide.LEFT) "←" else "→"
+            val arrowIcon = if (side == BreastSide.LEFT) Icons.Filled.KeyboardArrowLeft else Icons.Filled.KeyboardArrowRight
 
             Card(
                 onClick = { onSideSelected(side) },
@@ -59,10 +64,11 @@ fun SideSelector(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(
-                        text = arrow,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = if (isSelected) {
+                    Icon(
+                        imageVector = arrowIcon,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = if (isSelected) {
                             MaterialTheme.colorScheme.onPrimary
                         } else {
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
