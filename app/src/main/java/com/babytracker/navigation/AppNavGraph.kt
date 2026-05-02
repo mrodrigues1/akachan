@@ -77,6 +77,7 @@ fun AppNavGraph(
                 onNavigateToDesignSystem = { navController.navigate(Routes.DESIGN_SYSTEM_PREVIEW) },
                 onNavigateToManageSharing = { navController.navigate(Routes.MANAGE_SHARING) },
                 onNavigateToConnectPartner = { navController.navigate(Routes.CONNECT_PARTNER) },
+                onDisconnect = { navController.navigateAfterDisconnect(isOnboardingComplete) },
             )
         }
         composable(Routes.DESIGN_SYSTEM_PREVIEW) {
@@ -90,14 +91,17 @@ fun AppNavGraph(
         }
         composable(Routes.PARTNER_DASHBOARD) {
             PartnerDashboardScreen(
-                onDisconnected = {
-                    val destination = if (isOnboardingComplete) Routes.HOME else Routes.ONBOARDING
-                    navController.navigate(destination) { popUpTo(0) { inclusive = true } }
-                },
+                onDisconnected = { navController.navigateAfterDisconnect(isOnboardingComplete) },
+                onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
             )
         }
         composable(Routes.MANAGE_SHARING) {
             ManageSharingScreen(onNavigateBack = { navController.popBackStack() })
         }
     }
+}
+
+private fun NavHostController.navigateAfterDisconnect(isOnboardingComplete: Boolean) {
+    val destination = if (isOnboardingComplete) Routes.HOME else Routes.ONBOARDING
+    navigate(destination) { popUpTo(0) { inclusive = true } }
 }
