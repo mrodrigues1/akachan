@@ -65,6 +65,8 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/LICENSE.md"
+            excludes += "/META-INF/LICENSE-notice.md"
         }
     }
 }
@@ -124,6 +126,7 @@ dependencies {
     // Android Testing
     androidTestImplementation(libs.runner)
     androidTestImplementation(libs.compose.ui.test.junit4)
+    androidTestImplementation(libs.mockk.android)
     debugImplementation(libs.compose.ui.test.manifest)
 
     // Firebase
