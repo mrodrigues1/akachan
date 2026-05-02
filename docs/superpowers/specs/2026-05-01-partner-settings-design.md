@@ -50,12 +50,20 @@ This avoids a new file and new route while keeping a single source of truth for 
 
 ### Disconnect action
 
-Tapping Disconnect in the Partner Access section:
-1. Calls `settingsRepository.setAppMode(AppMode.NONE)`
-2. Calls `settingsRepository.clearShareCode()`
-3. Navigates to onboarding if onboarding is not complete, otherwise to home — same logic as the existing `isDisconnected` flow in `PartnerDashboardScreen`
+Tapping Disconnect in the Partner Access section runs the suspend DataStore writes to completion before navigation, using the same `isDisconnected` UiState event pattern already used in `PartnerDashboardViewModel`:
 
-The disconnect callback flows: `SettingsViewModel.disconnect()` → `onDisconnect` lambda → `AppNavGraph` navigates to `Routes.ONBOARDING` or `Routes.HOME` with full back-stack pop.
+1. `SettingsViewModel.disconnect()` launches a coroutine that calls `setAppMode(NONE)` then `clearShareCode()`, then sets `uiState.isDisconnected = true`
+2. `SettingsScreen` observes `isDisconnected` via `LaunchedEffect` and calls `onDisconnect()` only after the flag is set — guaranteeing the DataStore writes complete before the back stack is popped and `SettingsViewModel` is cleared
+
+`AppNavGraph` wires `onDisconnect` to navigate to `Routes.ONBOARDING` or `Routes.HOME` with `popUpTo(0) { inclusive = true }`.
+
+### AppMode loading guard
+
+`SettingsUiState.appMode` defaults to `AppMode.NONE` while the repository `combine` flow loads. A PARTNER user opening Settings would briefly see the Baby Profile, Feeding Limits, and Notifications sections before the real app mode arrives. To prevent this, `appMode` is modelled as `AppMode?` (nullable) with a `null` default. Restricted sections are only rendered when `appMode` is known and not `PARTNER`; the Disconnect row is only rendered when `appMode == AppMode.PARTNER`.
+
+### Disconnect row button label
+
+`SettingsRow` hardcodes a trailing `TextButton` labelled `"Edit"`. The Disconnect row must not show `"Edit"`. `SettingsRow` gains an `actionLabel: String = "Edit"` parameter so callers can override the button text. The Disconnect row passes `actionLabel = "Disconnect"` and colours it with `MaterialTheme.colorScheme.error` to signal the destructive nature of the action.
 
 ---
 
@@ -84,27 +92,37 @@ The disconnect callback flows: `SettingsViewModel.disconnect()` → `onDisconnec
 ### `SettingsScreen.kt`
 
 - Add `onDisconnect: () -> Unit = {}` parameter
-- Wrap Baby Profile, Feeding Limits, and Notifications sections with `if (uiState.appMode != AppMode.PARTNER)`
+- Add `LaunchedEffect(uiState.isDisconnected)` that calls `onDisconnect()` when `isDisconnected == true`
+- Wrap Baby Profile, Feeding Limits, and Notifications sections with `if (uiState.appMode != null && uiState.appMode != AppMode.PARTNER)` — renders nothing while loading, hides for PARTNER
 - In the `AppMode.PARTNER` branch of the Partner Access section (currently `Unit`), add:
   ```kotlin
-  SettingsRow(
-      label = "Disconnect",
-      value = "Stop viewing as partner",
-      onClick = {
-          viewModel.disconnect()
-          onDisconnect()
-      },
-  )
+  if (uiState.appMode == AppMode.PARTNER) {
+      SettingsRow(
+          label = "Disconnect",
+          value = "Stop viewing as partner",
+          actionLabel = "Disconnect",
+          actionColor = MaterialTheme.colorScheme.error,
+          onClick = viewModel::disconnect,
+      )
+  }
   ```
+
+### `SettingsRow` (private composable in `SettingsScreen.kt`)
+
+- Add `actionLabel: String = "Edit"` and `actionColor: Color = MaterialTheme.colorScheme.primary` parameters
+- Replace hardcoded `Text("Edit")` with `Text(actionLabel, color = actionColor)`
 
 ### `SettingsViewModel.kt`
 
+- Change `appMode: AppMode = AppMode.NONE` → `appMode: AppMode? = null` in `SettingsUiState`
+- Add `isDisconnected: Boolean = false` to `SettingsUiState`
 - Add `disconnect()` function:
   ```kotlin
   fun disconnect() {
       viewModelScope.launch {
           settingsRepository.setAppMode(AppMode.NONE)
           settingsRepository.clearShareCode()
+          _uiState.update { it.copy(isDisconnected = true) }
       }
   }
   ```
@@ -126,8 +144,12 @@ SettingsScreen renders with appMode == PARTNER
         ↓
 Partner taps Disconnect
         ↓
-SettingsViewModel.disconnect()
-  → setAppMode(NONE) + clearShareCode()
+SettingsViewModel.disconnect() [coroutine]
+  → setAppMode(NONE)
+  → clearShareCode()
+  → uiState.isDisconnected = true
+        ↓
+SettingsScreen LaunchedEffect(isDisconnected) fires
         ↓
 onDisconnect() callback
         ↓
@@ -138,6 +160,7 @@ AppNavGraph navigates to HOME or ONBOARDING (full stack pop)
 
 ## Testing
 
-- **Unit**: `SettingsViewModelTest` — add test for `disconnect()` verifying `setAppMode(NONE)` and `clearShareCode()` are both called
+- **Unit**: `SettingsViewModelTest` — add test for `disconnect()` verifying `setAppMode(NONE)` and `clearShareCode()` are both called in order, and that `isDisconnected` becomes `true` only after both writes complete
+- **Unit**: `SettingsViewModelTest` — add test verifying `appMode` is `null` initially and emits the real value once the combine flow fires
 - **UI**: `PartnerDashboardScreen` — verify Settings `NavigationBarItem` is displayed; verify tapping it triggers `onNavigateToSettings`
-- **UI**: `SettingsScreen` (PARTNER mode) — verify Baby Profile, Feeding Limits, Notifications sections are absent; verify Disconnect row is present
+- **UI**: `SettingsScreen` (PARTNER mode) — verify Baby Profile, Feeding Limits, Notifications sections are absent; verify Disconnect row is present with "Disconnect" button label (not "Edit")
