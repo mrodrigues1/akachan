@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,7 +24,8 @@ data class SettingsUiState(
     val themeConfig: ThemeConfig = ThemeConfig.SYSTEM,
     val autoUpdateEnabled: Boolean = true,
     val richNotificationsEnabled: Boolean = true,
-    val appMode: AppMode = AppMode.NONE,
+    val appMode: AppMode? = null,
+    val isDisconnected: Boolean = false,
 )
 
 @HiltViewModel
@@ -63,7 +65,9 @@ class SettingsViewModel @Inject constructor(
                     richNotificationsEnabled = richNotifications,
                     appMode = appMode,
                 )
-            }.collect { _uiState.value = it }
+            }.collect { next ->
+                _uiState.update { current -> next.copy(isDisconnected = current.isDisconnected) }
+            }
         }
     }
 
@@ -89,5 +93,13 @@ class SettingsViewModel @Inject constructor(
 
     fun onRichNotificationsToggled(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.setRichNotificationsEnabled(enabled) }
+    }
+
+    fun disconnect() {
+        viewModelScope.launch {
+            settingsRepository.setAppMode(AppMode.NONE)
+            settingsRepository.clearShareCode()
+            _uiState.update { it.copy(isDisconnected = true) }
+        }
     }
 }
