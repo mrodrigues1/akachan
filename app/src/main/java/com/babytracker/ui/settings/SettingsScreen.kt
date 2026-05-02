@@ -40,6 +40,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +49,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -76,12 +78,17 @@ fun SettingsScreen(
     onNavigateToDesignSystem: () -> Unit = {},
     onNavigateToManageSharing: () -> Unit = {},
     onNavigateToConnectPartner: () -> Unit = {},
+    onDisconnect: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var activeSheet by rememberSaveable { mutableStateOf<SettingsSheet?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(uiState.isDisconnected) {
+        if (uiState.isDisconnected) onDisconnect()
+    }
 
     fun dismissSheet() {
         scope.launch { sheetState.hide() }.invokeOnCompletion { activeSheet = null }
@@ -108,98 +115,100 @@ fun SettingsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Baby Profile section
-            Text(
-                text = "Baby Profile",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-            )
+            if (uiState.appMode != null && uiState.appMode != AppMode.PARTNER) {
+                // Baby Profile section
+                Text(
+                    text = "Baby Profile",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                )
 
-            SettingsRow(
-                label = "Name",
-                value = uiState.baby?.name ?: "Not set",
-                onClick = { activeSheet = SettingsSheet.NAME }
-            )
-            HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+                SettingsRow(
+                    label = "Name",
+                    value = uiState.baby?.name ?: "Not set",
+                    onClick = { activeSheet = SettingsSheet.NAME }
+                )
+                HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
 
-            val dateFormatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
-            val birthDateText = uiState.baby?.let { baby ->
-                "${baby.birthDate.format(dateFormatter)} (${baby.ageInWeeks}w old)"
-            } ?: "Not set"
-            SettingsRow(
-                label = "Date of birth",
-                value = birthDateText,
-                onClick = { activeSheet = SettingsSheet.BIRTH_DATE }
-            )
-            HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+                val dateFormatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
+                val birthDateText = uiState.baby?.let { baby ->
+                    "${baby.birthDate.format(dateFormatter)} (${baby.ageInWeeks}w old)"
+                } ?: "Not set"
+                SettingsRow(
+                    label = "Date of birth",
+                    value = birthDateText,
+                    onClick = { activeSheet = SettingsSheet.BIRTH_DATE }
+                )
+                HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
 
-            // Allergies row with chips
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { activeSheet = SettingsSheet.ALLERGIES }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Allergies",
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    val allergies = uiState.baby?.allergies.orEmpty()
-                    if (allergies.isEmpty()) {
+                // Allergies row with chips
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { activeSheet = SettingsSheet.ALLERGIES }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "None",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = "Allergies",
+                            style = MaterialTheme.typography.bodyLarge,
                         )
-                    } else {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            allergies.forEach { allergy ->
-                                SuggestionChip(
-                                    onClick = { activeSheet = SettingsSheet.ALLERGIES },
-                                    label = { Text(allergy.label) },
-                                    colors = SuggestionChipDefaults.suggestionChipColors(
-                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                        labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    ),
-                                )
+                        val allergies = uiState.baby?.allergies.orEmpty()
+                        if (allergies.isEmpty()) {
+                            Text(
+                                text = "None",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                allergies.forEach { allergy ->
+                                    SuggestionChip(
+                                        onClick = { activeSheet = SettingsSheet.ALLERGIES },
+                                        label = { Text(allergy.label) },
+                                        colors = SuggestionChipDefaults.suggestionChipColors(
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        ),
+                                    )
+                                }
                             }
                         }
                     }
+                    TextButton(onClick = { activeSheet = SettingsSheet.ALLERGIES }) {
+                        Text("Edit")
+                    }
                 }
-                TextButton(onClick = { activeSheet = SettingsSheet.ALLERGIES }) {
-                    Text("Edit")
-                }
+
+                HorizontalDivider()
+
+                // Feeding Limits section
+                Text(
+                    text = "Feeding Limits",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                )
+
+                SettingsRow(
+                    label = "Max per breast",
+                    value = if (uiState.maxPerBreastMinutes > 0) "${uiState.maxPerBreastMinutes} min" else "Disabled",
+                    onClick = { activeSheet = SettingsSheet.MAX_PER_BREAST }
+                )
+                HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+
+                SettingsRow(
+                    label = "Max total feed",
+                    value = if (uiState.maxTotalFeedMinutes > 0) "${uiState.maxTotalFeedMinutes} min" else "Disabled",
+                    onClick = { activeSheet = SettingsSheet.MAX_TOTAL_FEED }
+                )
+
+                HorizontalDivider()
             }
 
-            HorizontalDivider()
-
-            // Feeding Limits section
-            Text(
-                text = "Feeding Limits",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-            )
-
-            SettingsRow(
-                label = "Max per breast",
-                value = if (uiState.maxPerBreastMinutes > 0) "${uiState.maxPerBreastMinutes} min" else "Disabled",
-                onClick = { activeSheet = SettingsSheet.MAX_PER_BREAST }
-            )
-            HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
-
-            SettingsRow(
-                label = "Max total feed",
-                value = if (uiState.maxTotalFeedMinutes > 0) "${uiState.maxTotalFeedMinutes} min" else "Disabled",
-                onClick = { activeSheet = SettingsSheet.MAX_TOTAL_FEED }
-            )
-
-            HorizontalDivider()
-            
             // App settings section
             Text(
                 text = "App Settings",
@@ -226,35 +235,37 @@ fun SettingsScreen(
                 onCheckedChange = viewModel::onAutoUpdateChanged,
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            Text(
-                text = "NOTIFICATIONS",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Rich notifications", style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        "Show progress bars and quick actions on notifications",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+            if (uiState.appMode != null && uiState.appMode != AppMode.PARTNER) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                Text(
+                    text = "NOTIFICATIONS",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Rich notifications", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Show progress bars and quick actions on notifications",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = uiState.richNotificationsEnabled,
+                        onCheckedChange = { viewModel.onRichNotificationsToggled(it) }
                     )
                 }
-                Switch(
-                    checked = uiState.richNotificationsEnabled,
-                    onCheckedChange = { viewModel.onRichNotificationsToggled(it) }
-                )
-            }
 
-            HorizontalDivider()
+                HorizontalDivider()
+            }
 
             Text(
                 text = "Partner Access",
@@ -281,7 +292,14 @@ fun SettingsScreen(
                     value = "Active",
                     onClick = onNavigateToManageSharing,
                 )
-                AppMode.PARTNER -> Unit
+                AppMode.PARTNER -> SettingsRow(
+                    label = "Disconnect",
+                    value = "Stop viewing as partner",
+                    actionLabel = "Disconnect",
+                    actionColor = MaterialTheme.colorScheme.error,
+                    onClick = viewModel::disconnect,
+                )
+                null -> Unit
             }
 
             HorizontalDivider()
@@ -407,6 +425,8 @@ private fun SettingsRow(
     label: String,
     value: String,
     onClick: () -> Unit,
+    actionLabel: String = "Edit",
+    actionColor: Color = MaterialTheme.colorScheme.primary,
 ) {
     Row(
         modifier = Modifier
@@ -425,7 +445,7 @@ private fun SettingsRow(
             )
         }
         TextButton(onClick = onClick) {
-            Text("Edit")
+            Text(actionLabel, color = actionColor)
         }
     }
 }
