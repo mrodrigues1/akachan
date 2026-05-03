@@ -98,7 +98,7 @@ fun ManageSharingScreen(
         }
     }
 
-    LaunchedEffect(Unit) { viewModel.refresh() }
+    LaunchedEffect(uiState.appMode, uiState.shareCode) { viewModel.refresh() }
 
     BackHandler(onBack = onNavigateBack)
 
