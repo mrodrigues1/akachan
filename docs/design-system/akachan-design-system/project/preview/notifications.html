@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Roboto', sans-serif;
+    min-height: 100vh;
+    display: flex;
+  }
+
+  /* ── Phone columns ── */
+  .phone-col {
+    flex: 1;
+    min-height: 100vh;
+    padding: 52px 14px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .phone-col.light-bg {
+    background:
+      radial-gradient(ellipse 80% 40% at 60% 10%, #f9c6d0 0%, transparent 55%),
+      radial-gradient(ellipse 60% 50% at 20% 60%, #c9e8ff 0%, transparent 55%),
+      #ede8e3;
+  }
+  .phone-col.dark-bg {
+    background:
+      radial-gradient(ellipse 70% 40% at 65% 12%, #5c1830 0%, transparent 55%),
+      radial-gradient(ellipse 60% 50% at 15% 65%, #0e1e40 0%, transparent 55%),
+      #111015;
+  }
+
+  .col-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; margin-bottom: 4px; padding-left: 2px;
+  }
+  .light-bg .col-label { color: rgba(0,0,0,0.35); }
+  .dark-bg  .col-label { color: rgba(255,255,255,0.3); }
+
+  .section-label {
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.12em; padding: 10px 2px 4px;
+  }
+  .light-bg .section-label { color: rgba(0,0,0,0.28); }
+  .dark-bg  .section-label { color: rgba(255,255,255,0.25); }
+
+  /* ═══════════════════════════════════════
+     NOTIFICATION GROUP (outer glass card)
+  ════════════════════════════════════════ */
+  .notif-group {
+    border-radius: 20px;
+    overflow: hidden;
+    backdrop-filter: blur(30px) saturate(1.5);
+    -webkit-backdrop-filter: blur(30px) saturate(1.5);
+  }
+  .light-bg .notif-group {
+    background: rgba(255,255,255,0.52);
+    border: 1px solid rgba(255,255,255,0.72);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.09);
+  }
+  .dark-bg .notif-group {
+    background: rgba(28,22,26,0.60);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 2px 16px rgba(0,0,0,0.45);
+  }
+
+  /* Group header row (app name) */
+  .group-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px 11px;
+  }
+  .group-app-icon {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+  .light-bg .group-app-icon { background: rgba(0,0,0,0.07); }
+  .dark-bg  .group-app-icon { background: rgba(255,255,255,0.09); }
+
+  .group-name {
+    font-size: 13px; font-weight: 600; flex: 1;
+  }
+  .light-bg .group-name { color: rgba(0,0,0,0.7); }
+  .dark-bg  .group-name { color: rgba(255,255,255,0.75); }
+
+  .group-chevron {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; flex-shrink: 0;
+  }
+  .light-bg .group-chevron { background: rgba(0,0,0,0.07); color: rgba(0,0,0,0.4); }
+  .dark-bg  .group-chevron { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.38); }
+
+  /* ── Sub-notification ── */
+  .notif-sub {
+    border-top: 1px solid;
+    padding: 0 13px 13px;
+  }
+  .light-bg .notif-sub { border-color: rgba(0,0,0,0.06); }
+  .dark-bg  .notif-sub { border-color: rgba(255,255,255,0.06); }
+
+  /* Sub header row: icon circle + elapsed + chevron */
+  .sub-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0 8px;
+  }
+  .sub-icon {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  /* Icon colors per theme */
+  .sub-icon.feeding { background: #C2185B; }
+  .dark-bg .sub-icon.feeding { background: #C2185B; }
+  .sub-icon.alert   { background: #b8860b; }
+  .dark-bg .sub-icon.alert { background: #9a6f00; }
+  .sub-icon.sleep   { background: #1565C0; }
+  .dark-bg .sub-icon.sleep { background: #1565C0; }
+
+  .sub-elapsed {
+    font-size: 13px; flex: 1;
+  }
+  .light-bg .sub-elapsed { color: rgba(0,0,0,0.55); }
+  .dark-bg  .sub-elapsed { color: rgba(255,255,255,0.55); }
+
+  /* Inner content card */
+  .notif-card {
+    padding: 0 0 2px;
+  }
+
+  .card-title {
+    font-size: 13px; font-weight: 700; margin-bottom: 2px;
+  }
+  .light-bg .card-title { color: rgba(0,0,0,0.87); }
+  .dark-bg  .card-title { color: rgba(255,255,255,0.92); }
+
+  .card-subtitle {
+    font-size: 11.5px; margin-bottom: 6px;
+  }
+  .light-bg .card-subtitle { color: rgba(0,0,0,0.5); }
+  .dark-bg  .card-subtitle { color: rgba(255,255,255,0.5); }
+
+  /* Large countdown timer */
+  .card-big-timer {
+    font-size: 28px; font-weight: 700;
+    letter-spacing: -0.02em; margin-bottom: 7px;
+    line-height: 1;
+  }
+  .light-bg .card-big-timer { color: rgba(0,0,0,0.87); }
+  .dark-bg  .card-big-timer { color: rgba(255,255,255,0.95); }
+
+  /* Progress bar row */
+  .card-bar-row {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-bar-track {
+    flex: 1; height: 3px; border-radius: 3px; overflow: hidden;
+  }
+  .light-bg .card-bar-track { background: rgba(0,0,0,0.09); }
+  .dark-bg  .card-bar-track { background: rgba(255,255,255,0.09); }
+
+  .card-bar-fill { height: 100%; border-radius: 3px; }
+  .card-bar-fill.feeding { background: #F48FB1; }
+  .card-bar-fill.alert   { background: #FFB300; }
+  .card-bar-fill.sleep   { background: #90CAF9; }
+
+  .card-bar-label {
+    font-size: 11px; white-space: nowrap;
+  }
+  .light-bg .card-bar-label { color: rgba(0,0,0,0.38); }
+  .dark-bg  .card-bar-label { color: rgba(255,255,255,0.35); }
+
+  /* Text-link action buttons */
+  .notif-actions {
+    display: flex; gap: 20px; padding: 10px 0 0;
+  }
+  .notif-btn {
+    font-size: 13px; font-weight: 600;
+    font-family: 'Roboto', sans-serif;
+    background: none; border: none; cursor: pointer; padding: 0;
+    letter-spacing: 0.01em;
+  }
+  /* Accent variants */
+  .notif-btn.feeding-accent { color: #F48FB1; }
+  .light-bg .notif-btn.feeding-accent { color: #C2185B; }
+
+  .notif-btn.alert-accent { color: #FFB300; }
+  .light-bg .notif-btn.alert-accent { color: #e65100; }
+
+  .notif-btn.sleep-accent { color: #90CAF9; }
+  .light-bg .notif-btn.sleep-accent { color: #1565C0; }
+
+  .notif-btn.muted { }
+  .light-bg .notif-btn.muted { color: rgba(0,0,0,0.35); }
+  .dark-bg  .notif-btn.muted { color: rgba(255,255,255,0.32); }
+
+  /* ═══════════════════════════════════════
+     COLLAPSED SINGLE NOTIFICATION
+     (no grouped header, no big timer)
+  ════════════════════════════════════════ */
+  .notif-collapsed {
+    border-radius: 18px;
+    overflow: hidden;
+    backdrop-filter: blur(30px) saturate(1.5);
+    -webkit-backdrop-filter: blur(30px) saturate(1.5);
+  }
+  .light-bg .notif-collapsed {
+    background: rgba(255,255,255,0.48);
+    border: 1px solid rgba(255,255,255,0.7);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.09);
+  }
+  .dark-bg .notif-collapsed {
+    background: rgba(28,22,26,0.58);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 2px 14px rgba(0,0,0,0.4);
+  }
+  .notif-collapsed-inner {
+    display: flex; align-items: center; gap: 11px;
+    padding: 11px 12px;
+  }
+  .icon-wrap { position: relative; flex-shrink: 0; }
+  .app-icon {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .light-bg .theme-feeding .app-icon { background: rgba(194,24,91,0.14); }
+  .dark-bg  .theme-feeding .app-icon { background: rgba(244,143,177,0.18); }
+  .light-bg .theme-sleep   .app-icon { background: rgba(25,118,210,0.13); }
+  .dark-bg  .theme-sleep   .app-icon { background: rgba(144,202,249,0.15); }
+  .light-bg .theme-alert   .app-icon { background: rgba(230,81,0,0.12); }
+  .dark-bg  .theme-alert   .app-icon { background: rgba(255,204,128,0.15); }
+
+  .accent-dot {
+    position: absolute; bottom: 0; right: 0;
+    width: 11px; height: 11px; border-radius: 50%;
+    border: 2px solid transparent;
+  }
+  .light-bg .accent-dot { border-color: rgba(255,255,255,0.55); }
+  .dark-bg  .accent-dot { border-color: rgba(28,22,26,0.7); }
+  .theme-feeding .accent-dot { background: #C2185B; }
+  .dark-bg .theme-feeding .accent-dot { background: #F48FB1; }
+  .theme-sleep .accent-dot { background: #1976D2; }
+  .dark-bg .theme-sleep .accent-dot { background: #90CAF9; }
+  .theme-alert .accent-dot { background: #E65100; }
+  .dark-bg .theme-alert .accent-dot { background: #FFCC80; }
+
+  .notif-text { flex: 1; min-width: 0; }
+  .notif-title-row {
+    display: flex; align-items: baseline; gap: 5px;
+    flex-wrap: nowrap; overflow: hidden;
+  }
+  .notif-title {
+    font-size: 13px; font-weight: 700;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .notif-timer { font-size: 11.5px; font-weight: 400; white-space: nowrap; flex-shrink: 0; }
+  .notif-subtitle { font-size: 11.5px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .notif-inline-progress { height: 2px; border-radius: 3px; overflow: hidden; margin: 5px 0 0; }
+  .light-bg .notif-inline-progress { background: rgba(0,0,0,0.08); }
+  .dark-bg  .notif-inline-progress { background: rgba(255,255,255,0.08); }
+  .notif-inline-fill { height: 100%; border-radius: 3px; }
+  .theme-feeding .notif-inline-fill { background: #C2185B; }
+  .dark-bg .theme-feeding .notif-inline-fill { background: #F48FB1; }
+  .theme-sleep .notif-inline-fill { background: #1976D2; }
+  .dark-bg .theme-sleep .notif-inline-fill { background: #90CAF9; }
+  .theme-alert .notif-inline-fill { background: #E65100; }
+  .dark-bg .theme-alert .notif-inline-fill { background: #FFCC80; }
+
+  /* ── Expanded body (individual) ── */
+  .notif-expanded-body {
+    padding: 0 13px 13px;
+    border-top: 1px solid;
+  }
+  .light-bg .notif-expanded-body { border-color: rgba(0,0,0,0.06); }
+  .dark-bg  .notif-expanded-body { border-color: rgba(255,255,255,0.06); }
+
+  .light-bg .notif-title    { color: rgba(0,0,0,0.87); }
+  .light-bg .notif-timer    { color: rgba(0,0,0,0.4); }
+  .light-bg .notif-subtitle { color: rgba(0,0,0,0.52); }
+  .dark-bg  .notif-title    { color: rgba(255,255,255,0.92); }
+  .dark-bg  .notif-timer    { color: rgba(255,255,255,0.38); }
+  .dark-bg  .notif-subtitle { color: rgba(255,255,255,0.52); }
+
+  .chevron {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 11px;
+  }
+  .light-bg .chevron { background: rgba(0,0,0,0.07); color: rgba(0,0,0,0.4); }
+  .dark-bg  .chevron { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.35); }
+</style>
+</head>
+<body>
+
+<!-- ══ LIGHT THEME ══ -->
+<div class="phone-col light-bg">
+  <div class="col-label">☀ Light theme</div>
+
+  <div class="section-label">Collapsed (single)</div>
+
+  <div class="notif-collapsed theme-feeding">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🍼</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Feeding session active</span>
+          <span class="notif-timer">· 00:28</span>
+        </div>
+        <div class="notif-inline-progress">
+          <div class="notif-inline-fill" style="width:45%"></div>
+        </div>
+        <div class="notif-subtitle">Left breast · Session in progress</div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+  </div>
+
+  <div class="notif-collapsed theme-sleep">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🌙</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Sleep session active</span>
+          <span class="notif-timer">· 9:32 PM</span>
+        </div>
+        <div class="notif-inline-progress">
+          <div class="notif-inline-fill" style="width:27%"></div>
+        </div>
+        <div class="notif-subtitle">Night sleep · 32 min elapsed</div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+  </div>
+
+  <div class="notif-collapsed theme-alert">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">⏱</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Feeding limit reached</span>
+          <span class="notif-timer">· now</span>
+        </div>
+        <div class="notif-inline-progress">
+          <div class="notif-inline-fill" style="width:100%"></div>
+        </div>
+        <div class="notif-subtitle">20 min session · Consider wrapping up</div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+  </div>
+
+  <div class="notif-collapsed theme-feeding">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🍼</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Time to switch sides</span>
+          <span class="notif-timer">· now</span>
+        </div>
+        <div class="notif-inline-progress">
+          <div class="notif-inline-fill" style="width:100%"></div>
+        </div>
+        <div class="notif-subtitle">Left breast: 1 min · Switch to the right</div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+  </div>
+
+  <div class="section-label">Expanded (individual)</div>
+
+  <!-- Individual expanded: Feeding active -->
+  <div class="notif-collapsed theme-feeding" style="border-radius:20px;">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🍼</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Feeding session active</span>
+          <span class="notif-timer">· 00:28</span>
+        </div>
+        <div class="notif-subtitle">Left breast · Session in progress</div>
+      </div>
+      <div class="chevron">▴</div>
+    </div>
+    <div class="notif-expanded-body theme-feeding">
+      <div class="card-big-timer">00:28</div>
+      <div class="card-bar-row" style="margin-bottom:4px;">
+        <div class="card-bar-track"><div class="card-bar-fill feeding" style="width:45%"></div></div>
+        <div class="card-bar-label">28 min</div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn feeding-accent">Pause</button>
+        <button class="notif-btn feeding-accent">Stop Session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Individual expanded: Sleep active -->
+  <div class="notif-collapsed theme-sleep" style="border-radius:20px;">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🌙</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Sleep session active</span>
+          <span class="notif-timer">· 9:32 PM</span>
+        </div>
+        <div class="notif-subtitle">Night sleep · 32 min elapsed</div>
+      </div>
+      <div class="chevron">▴</div>
+    </div>
+    <div class="notif-expanded-body theme-sleep">
+      <div class="card-big-timer">32:04</div>
+      <div class="card-bar-row" style="margin-bottom:4px;">
+        <div class="card-bar-track"><div class="card-bar-fill sleep" style="width:27%"></div></div>
+        <div class="card-bar-label">32 min</div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn sleep-accent">Stop Sleep</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Individual expanded: Alert -->
+  <div class="notif-collapsed theme-alert" style="border-radius:20px;">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">⏱</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Feeding limit reached</span>
+          <span class="notif-timer">· now</span>
+        </div>
+        <div class="notif-subtitle">20 min session · Consider wrapping up</div>
+      </div>
+      <div class="chevron">▴</div>
+    </div>
+    <div class="notif-expanded-body theme-alert">
+      <div class="card-bar-row" style="margin-bottom:4px;">
+        <div class="card-bar-track"><div class="card-bar-fill alert" style="width:100%"></div></div>
+        <div class="card-bar-label">20 min</div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn alert-accent">Stop Session</button>
+        <button class="notif-btn muted">Keep Going</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Individual expanded: Switch sides -->
+  <div class="notif-collapsed theme-feeding" style="border-radius:20px;">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🍼</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Time to switch sides</span>
+          <span class="notif-timer">· now</span>
+        </div>
+        <div class="notif-subtitle">Left breast: 1 min · Switch to the right</div>
+      </div>
+      <div class="chevron">▴</div>
+    </div>
+    <div class="notif-expanded-body theme-feeding">
+      <div class="card-bar-row" style="margin-bottom:4px;">
+        <div class="card-bar-track"><div class="card-bar-fill feeding" style="width:100%"></div></div>
+        <div class="card-bar-label">1 min</div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn feeding-accent">Switch Now</button>
+        <button class="notif-btn muted">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Expanded (grouped)</div>
+
+  <!-- GROUP: multiple expanded sub-notifications -->
+  <div class="notif-group">
+    <!-- App header -->
+    <div class="group-header">
+      <div class="group-app-icon">🪆</div>
+      <div class="group-name">Akachan</div>
+      <div class="group-chevron">▴</div>
+    </div>
+
+    <!-- Sub 1: Feeding active -->
+    <div class="notif-sub">
+      <div class="sub-header">
+        <div class="sub-icon feeding">🍼</div>
+        <div class="sub-elapsed">29:56</div>
+        <div class="group-chevron">▴</div>
+      </div>
+      <div class="notif-card">
+        <div class="card-title">🍼 Feeding session active</div>
+        <div class="card-subtitle">Left breast · Session in progress</div>
+        <div class="card-big-timer">29:56</div>
+        <div class="card-bar-row">
+          <div class="card-bar-track"><div class="card-bar-fill feeding" style="width:100%"></div></div>
+          <div class="card-bar-label">2 min</div>
+        </div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn feeding-accent">Pause</button>
+        <button class="notif-btn feeding-accent">Stop Session</button>
+      </div>
+    </div>
+
+    <!-- Sub 2: Feeding limit reached -->
+    <div class="notif-sub">
+      <div class="sub-header">
+        <div class="sub-icon alert">⏱</div>
+        <div class="sub-elapsed">27m</div>
+        <div class="group-chevron">▴</div>
+      </div>
+      <div class="notif-card">
+        <div class="card-title">⏱ Feeding limit reached</div>
+        <div class="card-subtitle">Session has reached 2 minutes. Consider wrapping up.</div>
+        <div class="card-bar-row" style="margin-top:8px">
+          <div class="card-bar-track"><div class="card-bar-fill alert" style="width:100%"></div></div>
+          <div class="card-bar-label">2 min</div>
+        </div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn alert-accent">Stop Session</button>
+        <button class="notif-btn muted">Keep Going</button>
+      </div>
+    </div>
+
+    <!-- Sub 3: Switch sides -->
+    <div class="notif-sub">
+      <div class="sub-header">
+        <div class="sub-icon feeding">🍼</div>
+        <div class="sub-elapsed">28m</div>
+        <div class="group-chevron">▴</div>
+      </div>
+      <div class="notif-card">
+        <div class="card-title">🍼 Time to switch sides</div>
+        <div class="card-subtitle">Left breast: 1 min · Switch to the right</div>
+        <div class="card-bar-row" style="margin-top:8px">
+          <div class="card-bar-track"><div class="card-bar-fill feeding" style="width:100%"></div></div>
+          <div class="card-bar-label">1 min</div>
+        </div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn feeding-accent">Switch Now</button>
+        <button class="notif-btn muted">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sleep group (single sub) -->
+  <div class="notif-group">
+    <div class="group-header">
+      <div class="group-app-icon">🪆</div>
+      <div class="group-name">Akachan</div>
+      <div class="group-chevron">▴</div>
+    </div>
+    <div class="notif-sub">
+      <div class="sub-header">
+        <div class="sub-icon sleep">🌙</div>
+        <div class="sub-elapsed">32m</div>
+        <div class="group-chevron">▴</div>
+      </div>
+      <div class="notif-card">
+        <div class="card-title">🌙 Sleep session active</div>
+        <div class="card-subtitle">Night sleep started at 9:00 PM</div>
+        <div class="card-big-timer">32:04</div>
+        <div class="card-bar-row">
+          <div class="card-bar-track"><div class="card-bar-fill sleep" style="width:40%"></div></div>
+          <div class="card-bar-label">32 min</div>
+        </div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn sleep-accent">Stop Sleep</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DARK THEME ══ -->
+<div class="phone-col dark-bg">
+  <div class="col-label">🌙 Dark theme</div>
+
+  <div class="section-label">Collapsed (single)</div>
+
+  <div class="notif-collapsed theme-feeding">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🍼</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Feeding session active</span>
+          <span class="notif-timer">· 00:28</span>
+        </div>
+        <div class="notif-inline-progress">
+          <div class="notif-inline-fill" style="width:45%"></div>
+        </div>
+        <div class="notif-subtitle">Left breast · Session in progress</div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+  </div>
+
+  <div class="notif-collapsed theme-sleep">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🌙</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Sleep session active</span>
+          <span class="notif-timer">· 9:32 PM</span>
+        </div>
+        <div class="notif-inline-progress">
+          <div class="notif-inline-fill" style="width:27%"></div>
+        </div>
+        <div class="notif-subtitle">Night sleep · 32 min elapsed</div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+  </div>
+
+  <div class="notif-collapsed theme-alert">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">⏱</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Feeding limit reached</span>
+          <span class="notif-timer">· now</span>
+        </div>
+        <div class="notif-inline-progress">
+          <div class="notif-inline-fill" style="width:100%"></div>
+        </div>
+        <div class="notif-subtitle">20 min session · Consider wrapping up</div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+  </div>
+
+  <div class="notif-collapsed theme-feeding">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🍼</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Time to switch sides</span>
+          <span class="notif-timer">· now</span>
+        </div>
+        <div class="notif-inline-progress">
+          <div class="notif-inline-fill" style="width:100%"></div>
+        </div>
+        <div class="notif-subtitle">Left breast: 1 min · Switch to the right</div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+  </div>
+
+  <div class="section-label">Expanded (individual)</div>
+
+  <!-- Individual expanded: Feeding active -->
+  <div class="notif-collapsed theme-feeding" style="border-radius:20px;">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🍼</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Feeding session active</span>
+          <span class="notif-timer">· 00:28</span>
+        </div>
+        <div class="notif-subtitle">Left breast · Session in progress</div>
+      </div>
+      <div class="chevron">▴</div>
+    </div>
+    <div class="notif-expanded-body theme-feeding">
+      <div class="card-big-timer">00:28</div>
+      <div class="card-bar-row" style="margin-bottom:4px;">
+        <div class="card-bar-track"><div class="card-bar-fill feeding" style="width:45%"></div></div>
+        <div class="card-bar-label">28 min</div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn feeding-accent">Pause</button>
+        <button class="notif-btn feeding-accent">Stop Session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Individual expanded: Sleep active -->
+  <div class="notif-collapsed theme-sleep" style="border-radius:20px;">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🌙</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Sleep session active</span>
+          <span class="notif-timer">· 9:32 PM</span>
+        </div>
+        <div class="notif-subtitle">Night sleep · 32 min elapsed</div>
+      </div>
+      <div class="chevron">▴</div>
+    </div>
+    <div class="notif-expanded-body theme-sleep">
+      <div class="card-big-timer">32:04</div>
+      <div class="card-bar-row" style="margin-bottom:4px;">
+        <div class="card-bar-track"><div class="card-bar-fill sleep" style="width:27%"></div></div>
+        <div class="card-bar-label">32 min</div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn sleep-accent">Stop Sleep</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Individual expanded: Alert -->
+  <div class="notif-collapsed theme-alert" style="border-radius:20px;">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">⏱</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Feeding limit reached</span>
+          <span class="notif-timer">· now</span>
+        </div>
+        <div class="notif-subtitle">20 min session · Consider wrapping up</div>
+      </div>
+      <div class="chevron">▴</div>
+    </div>
+    <div class="notif-expanded-body theme-alert">
+      <div class="card-bar-row" style="margin-bottom:4px;">
+        <div class="card-bar-track"><div class="card-bar-fill alert" style="width:100%"></div></div>
+        <div class="card-bar-label">20 min</div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn alert-accent">Stop Session</button>
+        <button class="notif-btn muted">Keep Going</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Individual expanded: Switch sides -->
+  <div class="notif-collapsed theme-feeding" style="border-radius:20px;">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🍼</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Time to switch sides</span>
+          <span class="notif-timer">· now</span>
+        </div>
+        <div class="notif-subtitle">Left breast: 1 min · Switch to the right</div>
+      </div>
+      <div class="chevron">▴</div>
+    </div>
+    <div class="notif-expanded-body theme-feeding">
+      <div class="card-bar-row" style="margin-bottom:4px;">
+        <div class="card-bar-track"><div class="card-bar-fill feeding" style="width:100%"></div></div>
+        <div class="card-bar-label">1 min</div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn feeding-accent">Switch Now</button>
+        <button class="notif-btn muted">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Expanded (grouped)</div>
+
+  <!-- GROUP: multiple expanded -->
+  <div class="notif-group">
+    <div class="group-header">
+      <div class="group-app-icon">🪆</div>
+      <div class="group-name">Akachan</div>
+      <div class="group-chevron">▴</div>
+    </div>
+
+    <!-- Sub 1: Feeding active -->
+    <div class="notif-sub">
+      <div class="sub-header">
+        <div class="sub-icon feeding">🍼</div>
+        <div class="sub-elapsed">29:56</div>
+        <div class="group-chevron">▴</div>
+      </div>
+      <div class="notif-card">
+        <div class="card-title">🍼 Feeding session active</div>
+        <div class="card-subtitle">Left breast · Session in progress</div>
+        <div class="card-big-timer">29:56</div>
+        <div class="card-bar-row">
+          <div class="card-bar-track"><div class="card-bar-fill feeding" style="width:100%"></div></div>
+          <div class="card-bar-label">2 min</div>
+        </div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn feeding-accent">Pause</button>
+        <button class="notif-btn feeding-accent">Stop Session</button>
+      </div>
+    </div>
+
+    <!-- Sub 2: Feeding limit -->
+    <div class="notif-sub">
+      <div class="sub-header">
+        <div class="sub-icon alert">⏱</div>
+        <div class="sub-elapsed">27m</div>
+        <div class="group-chevron">▴</div>
+      </div>
+      <div class="notif-card">
+        <div class="card-title">⏱ Feeding limit reached</div>
+        <div class="card-subtitle">Session has reached 2 minutes. Consider wrapping up.</div>
+        <div class="card-bar-row" style="margin-top:8px">
+          <div class="card-bar-track"><div class="card-bar-fill alert" style="width:100%"></div></div>
+          <div class="card-bar-label">2 min</div>
+        </div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn alert-accent">Stop Session</button>
+        <button class="notif-btn muted">Keep Going</button>
+      </div>
+    </div>
+
+    <!-- Sub 3: Switch sides -->
+    <div class="notif-sub">
+      <div class="sub-header">
+        <div class="sub-icon feeding">🍼</div>
+        <div class="sub-elapsed">28m</div>
+        <div class="group-chevron">▴</div>
+      </div>
+      <div class="notif-card">
+        <div class="card-title">🍼 Time to switch sides</div>
+        <div class="card-subtitle">Left breast: 1 min · Switch to the right</div>
+        <div class="card-bar-row" style="margin-top:8px">
+          <div class="card-bar-track"><div class="card-bar-fill feeding" style="width:100%"></div></div>
+          <div class="card-bar-label">1 min</div>
+        </div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn feeding-accent">Switch Now</button>
+        <button class="notif-btn muted">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sleep group -->
+  <div class="notif-group">
+    <div class="group-header">
+      <div class="group-app-icon">🪆</div>
+      <div class="group-name">Akachan</div>
+      <div class="group-chevron">▴</div>
+    </div>
+    <div class="notif-sub">
+      <div class="sub-header">
+        <div class="sub-icon sleep">🌙</div>
+        <div class="sub-elapsed">32m</div>
+        <div class="group-chevron">▴</div>
+      </div>
+      <div class="notif-card">
+        <div class="card-title">🌙 Sleep session active</div>
+        <div class="card-subtitle">Night sleep started at 9:00 PM</div>
+        <div class="card-big-timer">32:04</div>
+        <div class="card-bar-row">
+          <div class="card-bar-track"><div class="card-bar-fill sleep" style="width:40%"></div></div>
+          <div class="card-bar-label">32 min</div>
+        </div>
+      </div>
+      <div class="notif-actions">
+        <button class="notif-btn sleep-accent">Stop Sleep</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

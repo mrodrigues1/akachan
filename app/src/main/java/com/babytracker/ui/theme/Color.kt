@@ -3,7 +3,7 @@ package com.babytracker.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // ─── Raw palette — structured scale ─────────────────────────────
-// Mirrors design-System-handoff/akachan-design-system/project/colors_and_type.css.
+// Mirrors docs/design-System-handoff/akachan-design-system/project/colors_and_type.css.
 // 700 = primary action, 200 = container, 900 = on-container text, 100 = softest tone.
 
 // Feeding / Primary
@@ -45,7 +45,8 @@ val OnTertiaryContainerDarkGreen = Green900
 
 val SurfaceYellow = Color(0xFFFFFDE7)       // no scale equivalent
 val OnSurfaceDark = Color(0xFF1A1A1A)       // no scale equivalent
-val OnSurfaceVariantGrey = Color(0xFF757575) // no scale equivalent
+val OnSurfaceVariantGrey = Color(0xFF757575)     // no scale equivalent — light scheme
+val OnSurfaceVariantGreyDark = Color(0xFFCAC4D0) // no scale equivalent — dark scheme (matches CSS --color-on-surface-variant dark)
 
 // ─── Dark scheme semantic tokens ──────────────────────────────
 val PrimaryPinkDark = Color(0xFFF48FB1)     // no scale equivalent (brighter than Pink100)
@@ -62,8 +63,9 @@ val OnSurfaceDarkTheme = Color(0xFFE6E1E5)  // no scale equivalent
 val SurfaceVariantLight = Color(0xFFF0EDE0) // no scale equivalent
 
 // Outline — dividers and outlined-card borders (design-system-handoff canonical value)
-val OutlineLight = Color(0xFFCAC4D0)
-val OutlineVariantLight = Color(0xFFCAC4D0) // intentionally same as OutlineLight; may diverge in future
+// OutlineLight uses the M3 canonical dark-stroke value; OutlineVariantLight is the lighter separator.
+val OutlineLight = Color(0xFF79747E)
+val OutlineVariantLight = Color(0xFFCAC4D0)
 
 // Error (onError* omitted — not yet used in any screen)
 val ErrorLight = Color(0xFFB00020)          // no scale equivalent

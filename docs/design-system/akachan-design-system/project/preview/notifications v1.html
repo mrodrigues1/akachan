@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Roboto', sans-serif;
+    min-height: 100vh;
+    display: flex;
+  }
+
+  /* ── Phone columns ─────────────────────── */
+  .phone-col {
+    flex: 1;
+    min-height: 100vh;
+    padding: 52px 14px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Wallpaper backgrounds (simulating real lockscreen) */
+  .phone-col.light-bg {
+    background:
+      radial-gradient(ellipse 80% 40% at 60% 10%, #f9c6d0 0%, transparent 55%),
+      radial-gradient(ellipse 60% 50% at 20% 60%, #c9e8ff 0%, transparent 55%),
+      #ede8e3;
+  }
+  .phone-col.dark-bg {
+    background:
+      radial-gradient(ellipse 70% 40% at 65% 12%, #5c1830 0%, transparent 55%),
+      radial-gradient(ellipse 60% 50% at 15% 65%, #0e1e40 0%, transparent 55%),
+      #111015;
+  }
+
+  /* Column label */
+  .col-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+    padding-left: 2px;
+  }
+  .light-bg .col-label { color: rgba(0,0,0,0.35); }
+  .dark-bg  .col-label { color: rgba(255,255,255,0.3); }
+
+  /* Section divider label */
+  .section-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 12px 2px 4px;
+  }
+  .light-bg .section-label { color: rgba(0,0,0,0.28); }
+  .dark-bg  .section-label { color: rgba(255,255,255,0.25); }
+
+  /* ═══════════════════════════════════════
+     COLLAPSED NOTIFICATION
+  ════════════════════════════════════════ */
+  .notif-collapsed {
+    border-radius: 18px;
+    position: relative;
+    overflow: hidden;
+    /* Glass */
+    backdrop-filter: blur(30px) saturate(1.5);
+    -webkit-backdrop-filter: blur(30px) saturate(1.5);
+  }
+  .light-bg .notif-collapsed {
+    background: rgba(255,255,255,0.48);
+    border: 1px solid rgba(255,255,255,0.7);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.09);
+  }
+  .dark-bg .notif-collapsed {
+    background: rgba(28,22,26,0.58);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 2px 14px rgba(0,0,0,0.4);
+  }
+
+  /* Inner layout */
+  .notif-collapsed-inner {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 11px 12px 11px;
+  }
+
+  /* App icon + badge dot */
+  .icon-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .app-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  /* Accent dot — the "red dot" / live indicator */
+  .accent-dot {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 2px solid transparent; /* color set per theme below */
+  }
+  .light-bg .accent-dot {
+    border-color: rgba(255,255,255,0.55);
+  }
+  .dark-bg .accent-dot {
+    border-color: rgba(28,22,26,0.7);
+  }
+
+  /* Text block */
+  .notif-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .notif-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+  .notif-title {
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .notif-timer {
+    font-size: 11.5px;
+    font-weight: 400;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .notif-subtitle {
+    font-size: 11.5px;
+    font-weight: 400;
+    margin-top: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Inline progress bar — between title and subtitle */
+  .notif-inline-progress {
+    height: 2px;
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 5px 0 0;
+  }
+  .light-bg .notif-inline-progress { background: rgba(0,0,0,0.08); }
+  .dark-bg  .notif-inline-progress { background: rgba(255,255,255,0.08); }
+
+  .notif-inline-fill {
+    height: 100%;
+    border-radius: 3px;
+  }
+
+  /* text colors */
+  .light-bg .notif-title    { color: rgba(0,0,0,0.87); }
+  .light-bg .notif-timer    { color: rgba(0,0,0,0.4); }
+  .light-bg .notif-subtitle { color: rgba(0,0,0,0.52); }
+  .dark-bg  .notif-title    { color: rgba(255,255,255,0.92); }
+  .dark-bg  .notif-timer    { color: rgba(255,255,255,0.38); }
+  .dark-bg  .notif-subtitle { color: rgba(255,255,255,0.52); }
+
+  /* Chevron */
+  .chevron {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+  }
+  .light-bg .chevron {
+    background: rgba(0,0,0,0.07);
+    color: rgba(0,0,0,0.4);
+  }
+  .dark-bg .chevron {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.35);
+  }
+
+
+
+  /* ── Feeding theme ────────────────────── */
+  .theme-feeding .app-icon {
+    background: rgba(194,24,91,0.18);
+  }
+  .light-bg .theme-feeding .app-icon { background: rgba(194,24,91,0.14); }
+  .dark-bg  .theme-feeding .app-icon { background: rgba(244,143,177,0.18); }
+
+  .theme-feeding .accent-dot { background: #C2185B; }
+  .dark-bg .theme-feeding .accent-dot { background: #F48FB1; }
+
+  .theme-feeding .notif-inline-fill { background: #C2185B; }
+  .dark-bg .theme-feeding .notif-inline-fill { background: #F48FB1; }
+
+  /* ── Sleep theme ──────────────────────── */
+  .light-bg .theme-sleep .app-icon { background: rgba(25,118,210,0.13); }
+  .dark-bg  .theme-sleep .app-icon { background: rgba(144,202,249,0.15); }
+
+  .theme-sleep .accent-dot { background: #1976D2; }
+  .dark-bg .theme-sleep .accent-dot { background: #90CAF9; }
+
+  .theme-sleep .notif-inline-fill { background: #1976D2; }
+  .dark-bg .theme-sleep .notif-inline-fill { background: #90CAF9; }
+
+  /* ── Alert theme ──────────────────────── */
+  .light-bg .theme-alert .app-icon { background: rgba(230,81,0,0.12); }
+  .dark-bg  .theme-alert .app-icon { background: rgba(255,204,128,0.15); }
+
+  .theme-alert .accent-dot { background: #E65100; }
+  .dark-bg .theme-alert .accent-dot { background: #FFCC80; }
+
+  .theme-alert .notif-inline-fill { background: #E65100; }
+  .dark-bg .theme-alert .notif-inline-fill { background: #FFCC80; }
+
+
+  /* ═══════════════════════════════════════
+     EXPANDED NOTIFICATION (for comparison)
+  ════════════════════════════════════════ */
+  .notif-expanded {
+    border-radius: 18px;
+    overflow: hidden;
+    backdrop-filter: blur(30px) saturate(1.5);
+    -webkit-backdrop-filter: blur(30px) saturate(1.5);
+    position: relative;
+  }
+  .light-bg .notif-expanded {
+    background: rgba(255,255,255,0.48);
+    border: 1px solid rgba(255,255,255,0.7);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.09);
+  }
+  .dark-bg .notif-expanded {
+    background: rgba(28,22,26,0.58);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 2px 14px rgba(0,0,0,0.4);
+  }
+
+  .notif-exp-inner { padding: 13px 13px 14px; }
+
+  /* Expanded header row */
+  .exp-header {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 10px;
+  }
+  .exp-icon-wrap { position: relative; flex-shrink: 0; }
+  .exp-app-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .exp-header-text { flex: 1; }
+  .exp-app-name {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .exp-time { font-size: 11px; }
+  .light-bg .exp-app-name { color: rgba(0,0,0,0.45); }
+  .light-bg .exp-time     { color: rgba(0,0,0,0.32); }
+  .dark-bg  .exp-app-name { color: rgba(255,255,255,0.42); }
+  .dark-bg  .exp-time     { color: rgba(255,255,255,0.28); }
+
+  .exp-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .exp-body  { font-size: 12px; line-height: 1.4; }
+  .light-bg .exp-title { color: rgba(0,0,0,0.87); }
+  .light-bg .exp-body  { color: rgba(0,0,0,0.54); }
+  .dark-bg  .exp-title { color: rgba(255,255,255,0.92); }
+  .dark-bg  .exp-body  { color: rgba(255,255,255,0.55); }
+
+  .exp-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0;
+  }
+  .exp-bar {
+    flex: 1;
+    height: 4px;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .light-bg .exp-bar { background: rgba(0,0,0,0.09); }
+  .dark-bg  .exp-bar { background: rgba(255,255,255,0.1); }
+  .exp-bar-fill { height: 100%; border-radius: 3px; }
+  .exp-pct { font-size: 11px; font-weight: 700; white-space: nowrap; }
+
+  .exp-actions { display: flex; gap: 7px; }
+  .exp-btn {
+    border: none;
+    border-radius: 50px;
+    padding: 6px 15px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'Roboto', sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+  .exp-btn-ghost {
+    background: transparent;
+  }
+  .light-bg .exp-btn-ghost {
+    color: rgba(0,0,0,0.4);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.14);
+  }
+  .dark-bg .exp-btn-ghost {
+    color: rgba(255,255,255,0.4);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+  }
+
+  /* Expanded feeding accent */
+  .light-bg .exp-feeding .exp-app-icon { background: rgba(194,24,91,0.14); }
+  .dark-bg  .exp-feeding .exp-app-icon { background: rgba(244,143,177,0.18); }
+  .exp-feeding .accent-dot  { background: #C2185B; }
+  .dark-bg .exp-feeding .accent-dot { background: #F48FB1; }
+  .exp-feeding .exp-bar-fill { background: #C2185B; }
+  .dark-bg .exp-feeding .exp-bar-fill { background: #F48FB1; }
+  .light-bg .exp-feeding .exp-pct { color: #C2185B; }
+  .dark-bg  .exp-feeding .exp-pct { color: #F48FB1; }
+  .light-bg .exp-feeding .exp-btn-primary {
+    background: rgba(194,24,91,0.12);
+    color: #880E4F;
+    box-shadow: inset 0 0 0 1px rgba(194,24,91,0.28);
+  }
+  .dark-bg .exp-feeding .exp-btn-primary {
+    background: rgba(244,143,177,0.15);
+    color: #F8BBD0;
+    box-shadow: inset 0 0 0 1px rgba(244,143,177,0.22);
+  }
+
+  /* Expanded sleep accent */
+  .light-bg .exp-sleep .exp-app-icon { background: rgba(25,118,210,0.12); }
+  .dark-bg  .exp-sleep .exp-app-icon { background: rgba(144,202,249,0.15); }
+  .exp-sleep .accent-dot { background: #1976D2; }
+  .dark-bg .exp-sleep .accent-dot { background: #90CAF9; }
+  .exp-sleep .exp-bar-fill { background: #1976D2; }
+  .dark-bg .exp-sleep .exp-bar-fill { background: #90CAF9; }
+  .light-bg .exp-sleep .exp-btn-primary {
+    background: rgba(25,118,210,0.12);
+    color: #0D47A1;
+    box-shadow: inset 0 0 0 1px rgba(25,118,210,0.28);
+  }
+  .dark-bg .exp-sleep .exp-btn-primary {
+    background: rgba(144,202,249,0.15);
+    color: #B3E5FC;
+    box-shadow: inset 0 0 0 1px rgba(144,202,249,0.22);
+  }
+
+  /* Expanded alert accent */
+  .light-bg .exp-alert .exp-app-icon { background: rgba(230,81,0,0.12); }
+  .dark-bg  .exp-alert .exp-app-icon { background: rgba(255,204,128,0.15); }
+  .exp-alert .accent-dot { background: #E65100; }
+  .dark-bg .exp-alert .accent-dot { background: #FFCC80; }
+  .exp-alert .exp-bar-fill { background: #E65100; }
+  .dark-bg .exp-alert .exp-bar-fill { background: #FFCC80; }
+  .light-bg .exp-alert .exp-pct { color: #E65100; }
+  .dark-bg  .exp-alert .exp-pct { color: #FFCC80; }
+  .light-bg .exp-alert .exp-btn-primary {
+    background: rgba(230,81,0,0.12);
+    color: #7A3600;
+    box-shadow: inset 0 0 0 1px rgba(230,81,0,0.28);
+  }
+  .dark-bg .exp-alert .exp-btn-primary {
+    background: rgba(255,204,128,0.15);
+    color: #FFE0B2;
+    box-shadow: inset 0 0 0 1px rgba(255,204,128,0.22);
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ LIGHT THEME ══ -->
+<div class="phone-col light-bg">
+  <div class="col-label">☀ Light theme</div>
+
+  <div class="section-label">Collapsed</div>
+
+  <!-- Collapsed: feeding active -->
+  <div class="notif-collapsed theme-feeding">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🍼</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Feeding session active</span>
+          <span class="notif-timer">· 00:28</span>
+        </div>
+        <div class="notif-inline-progress">
+          <div class="notif-inline-fill" style="width:45%"></div>
+        </div>
+        <div class="notif-subtitle">Left breast · Session in progress</div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+  </div>
+
+  <!-- Collapsed: sleep active -->
+  <div class="notif-collapsed theme-sleep">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🌙</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Sleep session active</span>
+          <span class="notif-timer">· 9:32 PM</span>
+        </div>
+        <div class="notif-inline-progress">
+          <div class="notif-inline-fill" style="width:27%"></div>
+        </div>
+        <div class="notif-subtitle">Night sleep · 32 min elapsed</div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+  </div>
+
+  <!-- Collapsed: feeding limit (alert) -->
+  <div class="notif-collapsed theme-alert">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">⏱</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Feeding limit reached</span>
+          <span class="notif-timer">· now</span>
+        </div>
+        <div class="notif-inline-progress">
+          <div class="notif-inline-fill" style="width:100%"></div>
+        </div>
+        <div class="notif-subtitle">20 min session · Consider wrapping up</div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+  </div>
+
+  <div class="section-label">Expanded</div>
+
+  <!-- Expanded: feeding active -->
+  <div class="notif-expanded">
+    <div class="notif-exp-inner exp-feeding">
+      <div class="exp-header">
+        <div class="exp-icon-wrap">
+          <div class="exp-app-icon">🍼</div>
+          <div class="accent-dot"></div>
+        </div>
+        <div class="exp-header-text">
+          <div class="exp-app-name">Akachan · now</div>
+        </div>
+        <div class="chevron">▴</div>
+      </div>
+      <div class="exp-title">Time to switch sides</div>
+      <div class="exp-body">Left breast: 10 min · Try switching to the right</div>
+      <div class="exp-progress-row">
+        <div class="exp-bar"><div class="exp-bar-fill" style="width:67%"></div></div>
+        <div class="exp-pct">10 / 15 min</div>
+      </div>
+      <div class="exp-actions">
+        <button class="exp-btn exp-btn-primary">Switch Now</button>
+        <button class="exp-btn exp-btn-ghost">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expanded: sleep -->
+  <div class="notif-expanded">
+    <div class="notif-exp-inner exp-sleep">
+      <div class="exp-header">
+        <div class="exp-icon-wrap">
+          <div class="exp-app-icon">🌙</div>
+          <div class="accent-dot"></div>
+        </div>
+        <div class="exp-header-text">
+          <div class="exp-app-name">Akachan · 9:32 PM</div>
+        </div>
+        <div class="chevron">▴</div>
+      </div>
+      <div class="exp-title">Sleep session active</div>
+      <div class="exp-body">Night sleep started at 9:00 PM · 32 min elapsed</div>
+      <div class="exp-actions" style="margin-top:10px">
+        <button class="exp-btn exp-btn-primary">Stop Sleep</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expanded: feeding limit reached -->
+  <div class="notif-expanded">
+    <div class="notif-exp-inner exp-alert">
+      <div class="exp-header">
+        <div class="exp-icon-wrap">
+          <div class="exp-app-icon">⏱</div>
+          <div class="accent-dot"></div>
+        </div>
+        <div class="exp-header-text">
+          <div class="exp-app-name">Akachan · now</div>
+        </div>
+        <div class="chevron">▴</div>
+      </div>
+      <div class="exp-title">Feeding limit reached</div>
+      <div class="exp-body">Session has reached 20 minutes. Consider wrapping up.</div>
+      <div class="exp-progress-row">
+        <div class="exp-bar"><div class="exp-bar-fill" style="width:100%"></div></div>
+        <div class="exp-pct">20 / 20 min</div>
+      </div>
+      <div class="exp-actions">
+        <button class="exp-btn exp-btn-primary">Stop Session</button>
+        <button class="exp-btn exp-btn-ghost">Keep Going</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DARK THEME ══ -->
+<div class="phone-col dark-bg">
+  <div class="col-label">🌙 Dark theme</div>
+
+  <div class="section-label">Collapsed</div>
+
+  <!-- Collapsed: feeding active -->
+  <div class="notif-collapsed theme-feeding">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🍼</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Feeding session active</span>
+          <span class="notif-timer">· 00:28</span>
+        </div>
+        <div class="notif-inline-progress">
+          <div class="notif-inline-fill" style="width:45%"></div>
+        </div>
+        <div class="notif-subtitle">Left breast · Session in progress</div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+  </div>
+
+  <!-- Collapsed: sleep active -->
+  <div class="notif-collapsed theme-sleep">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">🌙</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Sleep session active</span>
+          <span class="notif-timer">· 9:32 PM</span>
+        </div>
+        <div class="notif-inline-progress">
+          <div class="notif-inline-fill" style="width:27%"></div>
+        </div>
+        <div class="notif-subtitle">Night sleep · 32 min elapsed</div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+  </div>
+
+  <!-- Collapsed: feeding limit (alert) -->
+  <div class="notif-collapsed theme-alert">
+    <div class="notif-collapsed-inner">
+      <div class="icon-wrap">
+        <div class="app-icon">⏱</div>
+        <div class="accent-dot"></div>
+      </div>
+      <div class="notif-text">
+        <div class="notif-title-row">
+          <span class="notif-title">Feeding limit reached</span>
+          <span class="notif-timer">· now</span>
+        </div>
+        <div class="notif-inline-progress">
+          <div class="notif-inline-fill" style="width:100%"></div>
+        </div>
+        <div class="notif-subtitle">20 min session · Consider wrapping up</div>
+      </div>
+      <div class="chevron">▾</div>
+    </div>
+  </div>
+
+  <div class="section-label">Expanded</div>
+
+  <!-- Expanded: feeding active -->
+  <div class="notif-expanded">
+    <div class="notif-exp-inner exp-feeding">
+      <div class="exp-header">
+        <div class="exp-icon-wrap">
+          <div class="exp-app-icon">🍼</div>
+          <div class="accent-dot"></div>
+        </div>
+        <div class="exp-header-text">
+          <div class="exp-app-name">Akachan · now</div>
+        </div>
+        <div class="chevron">▴</div>
+      </div>
+      <div class="exp-title">Time to switch sides</div>
+      <div class="exp-body">Left breast: 10 min · Try switching to the right</div>
+      <div class="exp-progress-row">
+        <div class="exp-bar"><div class="exp-bar-fill" style="width:67%"></div></div>
+        <div class="exp-pct">10 / 15 min</div>
+      </div>
+      <div class="exp-actions">
+        <button class="exp-btn exp-btn-primary">Switch Now</button>
+        <button class="exp-btn exp-btn-ghost">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expanded: sleep -->
+  <div class="notif-expanded">
+    <div class="notif-exp-inner exp-sleep">
+      <div class="exp-header">
+        <div class="exp-icon-wrap">
+          <div class="exp-app-icon">🌙</div>
+          <div class="accent-dot"></div>
+        </div>
+        <div class="exp-header-text">
+          <div class="exp-app-name">Akachan · 9:32 PM</div>
+        </div>
+        <div class="chevron">▴</div>
+      </div>
+      <div class="exp-title">Sleep session active</div>
+      <div class="exp-body">Night sleep started at 9:00 PM · 32 min elapsed</div>
+      <div class="exp-actions" style="margin-top:10px">
+        <button class="exp-btn exp-btn-primary">Stop Sleep</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expanded: feeding limit reached -->
+  <div class="notif-expanded">
+    <div class="notif-exp-inner exp-alert">
+      <div class="exp-header">
+        <div class="exp-icon-wrap">
+          <div class="exp-app-icon">⏱</div>
+          <div class="accent-dot"></div>
+        </div>
+        <div class="exp-header-text">
+          <div class="exp-app-name">Akachan · now</div>
+        </div>
+        <div class="chevron">▴</div>
+      </div>
+      <div class="exp-title">Feeding limit reached</div>
+      <div class="exp-body">Session has reached 20 minutes. Consider wrapping up.</div>
+      <div class="exp-progress-row">
+        <div class="exp-bar"><div class="exp-bar-fill" style="width:100%"></div></div>
+        <div class="exp-pct">20 / 20 min</div>
+      </div>
+      <div class="exp-actions">
+        <button class="exp-btn exp-btn-primary">Stop Session</button>
+        <button class="exp-btn exp-btn-ghost">Keep Going</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
