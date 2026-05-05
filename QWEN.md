@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Akachan** is a native Android baby tracker app that helps parents track breastfeeding sessions, sleep records, and baby's growth and health. All data is stored locally — no cloud sync, no remote APIs.
+**Akachan** is a native Android baby tracker app that helps parents track breastfeeding sessions, sleep records, and baby's growth and health. Core tracking data is stored locally. An optional partner-sharing feature syncs a read-only snapshot to Firebase Firestore via anonymous Firebase Auth.
 
 Built with **Jetpack Compose**, **Hilt** for dependency injection, **Room** for local database, and **DataStore** for preferences. Follows MVVM architecture with Clean Architecture principles (Use Cases, Repositories).
 
@@ -17,8 +17,11 @@ Built with **Jetpack Compose**, **Hilt** for dependency injection, **Room** for 
 | Async | Kotlin Coroutines 1.9.0 + Flow |
 | Local DB | Room 2.8.4 |
 | Preferences | DataStore 1.1.1 |
+| Sharing | Firebase BOM 33.7.0 (Firestore KTX, Auth KTX) |
 | Min SDK | 26 | Target SDK 35 | JVM 17 |
 | Testing | JUnit 5, MockK 1.13.13, Turbine 1.2.0, Compose UI Test |
+
+> Authoritative versions: `gradle/libs.versions.toml`.
 
 ## Project Structure
 
@@ -35,13 +38,20 @@ app/src/main/java/com/babytracker/
 ├── data/
 │   ├── local/                 # Room DB v2, DAOs, Entities, TypeConverters
 │   └── repository/            # Repository implementations
-├── manager/                   # NotificationScheduler interface + BreastfeedingNotificationManager impl
+├── manager/                   # NotificationScheduler + BreastfeedingNotificationManager,
+│                              #   SleepNotificationScheduler + SleepNotificationManager,
+│                              #   BreastfeedingSessionNotificationCoordinator
+├── receiver/                  # BreastfeedingActionReceiver, BreastfeedingNotificationReceiver,
+│                              #   SleepActionReceiver (@AndroidEntryPoint BroadcastReceivers)
+├── sharing/                   # Firebase sharing feature (data/, domain/, usecase/)
 ├── ui/                        # Compose screens + ViewModels
 │   ├── onboarding/
 │   ├── home/
 │   ├── breastfeeding/
 │   ├── sleep/
 │   ├── settings/
+│   ├── partner/               # PartnerDashboardScreen + VM
+│   ├── sharing/               # ConnectPartnerScreen + VM, ManageSharingScreen + VM
 │   ├── component/             # Reusable Compose components
 │   └── theme/                 # Theme.kt, Color.kt, Shape.kt, Type.kt
 └── util/                      # Extension functions (DateTime, Flow, NotificationHelper, UpdateChecker)
@@ -107,7 +117,7 @@ Data Layer     Repository Impls → Room DAOs / DataStore
 - Do not create Mapper classes — use extension functions on entity/domain types
 - Do not create BaseViewModel or BaseFragment
 - Do not wrap return values in `sealed class Result<T>` — let exceptions propagate or use nullable types
-- Do not add cloud sync, analytics, or remote API calls — local-only is by design
+- Do not add analytics SDKs or new remote API integrations beyond the existing Firebase sharing feature. Extend the partner-sharing feature only within `sharing/` and `di/SharingModule.kt`.
 - Do not use KAPT — KSP is configured for all annotation processing
 
 ## Naming Conventions
@@ -192,7 +202,7 @@ All commits follow the [Conventional Commits](https://www.conventionalcommits.or
 `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`, `revert`
 
 ### Scopes
-`breastfeeding`, `sleep`, `onboarding`, `settings`, `ui`, `db`, `repository`, `usecase`, `navigation`, `di`
+`breastfeeding`, `sleep`, `onboarding`, `settings`, `ui`, `db`, `repository`, `usecase`, `navigation`, `di`, `sharing`, `partner`, `notification`, `receiver`
 
 ### Branching Model
 
@@ -223,6 +233,16 @@ if there is any broken test: fix it, re-run tests and do it until all tests pass
 | `secondary` | `#1976D2` | Secondary actions, Sleep theme |
 | `tertiary` | `#388E3C` | Success states, Warning/Overtime in timers |
 | `surface` | `#FFFDE7` | Background, Cards |
+
+## Code Quality
+
+- This project uses **ktlint** for Kotlin formatting and **detekt** for static analysis.
+- Always write code that passes both tools before committing.
+- Run `./gradlew ktlintFormat` to auto-fix formatting, then `./gradlew detekt` to catch code smells.
+- **Never use `@Suppress` to silence a detekt rule** — fix the code instead.
+- A pre-commit hook is available at `scripts/pre-commit`.
+
+---
 
 ## Specifications
 

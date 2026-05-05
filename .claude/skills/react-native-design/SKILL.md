@@ -3,6 +3,8 @@ name: react-native-design
 description: Master React Native styling, navigation, and Reanimated animations for cross-platform mobile development. Use when building React Native apps, implementing navigation patterns, or creating performant animations.
 ---
 
+> **Project note:** This skill does not apply to the Akachan project, which is a native Android app built with Jetpack Compose. Use the `mobile-android-design` skill instead.
+
 # React Native Design
 
 Master React Native styling patterns, React Navigation, and Reanimated 3 to build performant, cross-platform mobile applications with native-quality user experiences.

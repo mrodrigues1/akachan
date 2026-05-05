@@ -3,6 +3,8 @@ name: web-component-design
 description: Master React, Vue, and Svelte component patterns including CSS-in-JS, composition strategies, and reusable component architecture. Use when building UI component libraries, designing component APIs, or implementing frontend design systems.
 ---
 
+> **Project note:** This skill does not apply to the Akachan project, which is a native Android app built with Jetpack Compose. Use the `mobile-android-design` skill instead.
+
 # Web Component Design
 
 Build reusable, maintainable UI components using modern frameworks with clean composition patterns and styling approaches.
