@@ -99,6 +99,29 @@ object NotificationHelper {
         }
     }
 
+    private fun buildCollapsedView(
+        context: Context,
+        layoutRes: Int,
+        title: String,
+        body: String,
+        progress: Int,
+        maxProgress: Int,
+        showProgress: Boolean
+    ): RemoteViews = RemoteViews(context.packageName, layoutRes).apply {
+        val safeMax = maxProgress.coerceAtLeast(1)
+        setTextViewText(R.id.notification_title, title)
+        setTextViewText(R.id.notification_body, body)
+        setViewVisibility(R.id.notification_progress, if (showProgress) View.VISIBLE else View.GONE)
+        if (showProgress) {
+            setProgressBar(
+                R.id.notification_progress,
+                safeMax,
+                progress.coerceIn(0, safeMax),
+                false
+            )
+        }
+    }
+
     private fun formatDurationCompact(totalSeconds: Int): String {
         val safeSeconds = totalSeconds.coerceAtLeast(0)
         val minutes = safeSeconds / SECONDS_PER_MINUTE
@@ -185,6 +208,17 @@ object NotificationHelper {
         if (richEnabled) {
             builder
                 .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomContentView(
+                    buildCollapsedView(
+                        context = context,
+                        layoutRes = R.layout.notification_collapsed_feeding,
+                        title = title,
+                        body = body,
+                        progress = 1,
+                        maxProgress = 1,
+                        showProgress = true
+                    )
+                )
                 .setCustomBigContentView(
                     buildProgressBigView(
                         context = context,
@@ -230,6 +264,17 @@ object NotificationHelper {
             val progressText = limitProgressText(maxTotalMinutes)
             builder
                 .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomContentView(
+                    buildCollapsedView(
+                        context = context,
+                        layoutRes = R.layout.notification_collapsed_warning,
+                        title = title,
+                        body = body,
+                        progress = maxTotalMinutes,
+                        maxProgress = maxTotalMinutes,
+                        showProgress = true
+                    )
+                )
                 .setCustomBigContentView(
                     buildProgressBigView(
                         context = context,
@@ -311,6 +356,17 @@ object NotificationHelper {
             .setShowWhen(!isPaused)
             .setWhen(content.sessionStartEpochMs + content.pausedDurationMs)
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+            .setCustomContentView(
+                buildCollapsedView(
+                    context = content.context,
+                    layoutRes = R.layout.notification_collapsed_feeding,
+                    title = content.title,
+                    body = content.body,
+                    progress = progress.current,
+                    maxProgress = progress.max,
+                    showProgress = progress.isEnabled
+                )
+            )
             .setCustomBigContentView(
                 buildProgressBigView(
                     context = content.context,
@@ -409,6 +465,17 @@ object NotificationHelper {
             builder
                 .setUsesChronometer(true)
                 .setWhen(startTimeEpochMs)
+                .setCustomContentView(
+                    buildCollapsedView(
+                        context = context,
+                        layoutRes = R.layout.notification_collapsed_sleep,
+                        title = title,
+                        body = body,
+                        progress = 0,
+                        maxProgress = 1,
+                        showProgress = false
+                    )
+                )
                 .setStyle(NotificationCompat.BigTextStyle().bigText(body))
                 .addAction(0, "Stop Sleep", sleepActionPi(context, sessionId, SleepActionReceiver.ACTION_STOP, RC_STOP_SLEEP))
         } else {
