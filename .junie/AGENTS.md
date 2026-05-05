@@ -11,11 +11,14 @@ The project is a standard Android application using Gradle (Kotlin DSL).
 - Android SDK (Compile SDK 35, Target SDK 35)
 
 ### Core Stack
-- **Language**: Kotlin 2.0.21
-- **UI**: Jetpack Compose (Material 3)
-- **DI**: Hilt 2.52 with KSP
-- **Database**: Room 2.6.1 with KSP (schema v2 — `breastfeeding_sessions` has `paused_at`, `paused_duration_ms` columns)
+- **Language**: Kotlin 2.3.20
+- **UI**: Jetpack Compose (BOM 2026.03.00, Material 3)
+- **DI**: Hilt 2.59 with KSP 2.3.6
+- **Database**: Room 2.8.4 with KSP (schema v2 — `breastfeeding_sessions` has `paused_at`, `paused_duration_ms` columns)
 - **Local Storage**: DataStore 1.1.1
+- **Sharing**: Firebase BOM 33.7.0 (Firestore KTX, Auth KTX) — used by the optional partner-sharing feature
+
+> Authoritative versions: `gradle/libs.versions.toml`.
 
 ### Build Commands
 ```bash
@@ -99,7 +102,9 @@ if there is any broken test: fix it, re-run tests and do it until all tests pass
 - **Use Cases**: Single responsibility, using `operator fun invoke`.
 - **Mappers**: No separate mapper classes. Use extension functions (e.g., `Entity.toDomain()`).
 - **DateTime**: Always use `java.time.Instant` for timestamps, stored as `Long` (epoch ms) in DB.
-- **DI**: Hilt is used for all dependency injection. Use `@Binds` in `RepositoryModule` for interface-to-implementation binding.
+- **DI**: Hilt is used for all dependency injection. Modules: `DatabaseModule`, `DataStoreModule`, `RepositoryModule`, `NotificationSchedulerModule`, `SharingModule`. Use `@Binds` for interface-to-implementation binding.
+- **Sharing**: The `sharing/` package contains the Firebase partner-sharing feature (`FirestoreSharingService`, `SharingRepository`, use cases). The `AppMode` enum (NONE/PRIMARY/PARTNER) in `sharing/domain/model/` controls which start destination `AppNavGraph` uses.
+- **Notifications**: `manager/` holds scheduler interfaces + impls; `BreastfeedingSessionNotificationCoordinator` orchestrates session notification lifecycle. `receiver/` holds `@AndroidEntryPoint` BroadcastReceivers that use `goAsync()` to call suspend use cases.
 
 ### Code Style
 - Follow standard Kotlin coding conventions.

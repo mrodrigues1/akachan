@@ -24,16 +24,18 @@ Expert accessibility specialist with deep knowledge of WCAG guidelines, assistiv
 - CVAA requirements for communication technologies
 - ACR (Accessibility Conformance Report) and VPAT documentation
 
-### Screen Reader Optimization
+### Screen Reader Optimization (Android / TalkBack)
 
-- ARIA (Accessible Rich Internet Applications) implementation
-- ARIA roles, states, and properties for custom components
-- Live regions for dynamic content announcements (aria-live, aria-atomic)
-- Screen reader testing: NVDA, JAWS, VoiceOver, TalkBack
-- Semantic HTML for proper document structure and navigation
-- Heading hierarchy and landmark region organization
-- Link and button text clarity and context
-- Image alt text strategies: decorative, informative, functional, complex
+- Jetpack Compose semantics API: `Modifier.semantics { contentDescription = "..." }`, `mergeDescendants = true`
+- Semantic roles: `Role.Button`, `Role.Checkbox`, `Role.Image`, `Role.Tab`
+- Live regions for dynamic content: `LiveRegionMode.Polite` / `LiveRegionMode.Assertive`
+- Custom accessibility actions: `customActions = listOf(CustomAccessibilityAction(...))`
+- Hiding decorative elements: `invisibleToUser()` in semantics block
+- TalkBack testing on real devices (emulator TalkBack support is unreliable)
+- `contentDescription` on `Icon()` — null for decorative, descriptive string for meaningful icons
+- Grouping: `mergeDescendants = true` on container to merge child semantics into one node
+
+For web contexts: ARIA roles, states, and properties; semantic HTML; NVDA/JAWS/VoiceOver testing.
 
 ### Keyboard Navigation & Focus Management
 
@@ -81,14 +83,17 @@ Expert accessibility specialist with deep knowledge of WCAG guidelines, assistiv
 
 ### Automated & Manual Testing
 
-- Automated testing tools: axe-core, WAVE, Lighthouse, Pa11y
+**Android (primary for this project):**
+- Google Accessibility Scanner — automated UI scan on-device
+- Android Studio Layout Inspector accessibility view — inspect semantic tree
+- Compose UI Test assertions: `hasContentDescription()`, `hasClickAction()`, `hasRole()`, `isNotFocusable()`
+- `adb shell uiautomator dump` — inspect TalkBack traversal order
+- Test on real devices with TalkBack enabled (not just emulator)
+
+**Web:**
+- Automated tools: axe-core, WAVE, Lighthouse, Pa11y
 - Integration testing with jest-axe, cypress-axe
-- Manual testing checklists and procedures
-- Screen reader testing methodology
-- Keyboard-only navigation testing
-- Color contrast analyzers and simulators
 - Accessibility tree inspection in browser DevTools
-- User testing with people with disabilities
 
 ### Remediation & Implementation
 

@@ -1,6 +1,6 @@
 # CLAUDE.md — BabyTracker (Akachan)
 
-A native Android baby tracking app for parents of infants (0–12 months). Tracks breastfeeding sessions, sleep patterns, and allergies. All data is stored locally — no cloud sync, no remote APIs.
+A native Android baby tracking app for parents of infants (0–12 months). Tracks breastfeeding sessions, sleep patterns, and allergies. Core tracking data is stored locally. An optional partner-sharing feature syncs a read-only snapshot to Firebase Firestore via anonymous Firebase Auth.
 
 ---
 
@@ -8,15 +8,18 @@ A native Android baby tracking app for parents of infants (0–12 months). Track
 
 | Layer | Technology |
 |-------|-----------|
-| Language | Kotlin 2.0.21 |
-| UI | Jetpack Compose (BOM 2024.12.01), Material 3 |
-| Navigation | Compose Navigation 2.8.5 |
-| DI | Hilt 2.52 (KSP 2.0.21-1.0.28) |
+| Language | Kotlin 2.3.20 |
+| UI | Jetpack Compose (BOM 2026.03.00), Material 3 |
+| Navigation | Compose Navigation 2.9.7 |
+| DI | Hilt 2.59 (KSP 2.3.6) |
 | Async | Kotlin Coroutines 1.9.0 + Flow |
-| Local DB | Room 2.6.1 |
+| Local DB | Room 2.8.4 |
 | Preferences | DataStore 1.1.1 |
+| Sharing | Firebase BOM 33.7.0 (Firestore KTX, Auth KTX) |
 | Min SDK | 26 | Target SDK 35 | JVM 17 |
 | Testing | JUnit 5, MockK 1.13.13, Turbine 1.2.0, Compose UI Test |
+
+> Authoritative versions: `gradle/libs.versions.toml`. Update this table whenever that file changes.
 
 ---
 
@@ -51,16 +54,20 @@ app/src/main/java/com/babytracker/
 ├── BabyTrackerApp.kt          # @HiltAndroidApp Application class
 ├── MainActivity.kt            # Single activity, edge-to-edge Compose host
 ├── navigation/
-│   └── AppNavGraph.kt         # 8 routes: onboarding, home, breastfeeding,
-│                              #   breastfeeding_history, sleep, sleep_history,
-│                              #   sleep_schedule, settings
+│   ├── AppNavGraph.kt         # 12 routes: onboarding, home, breastfeeding,
+│   │                          #   breastfeeding_history, sleep, sleep_history,
+│   │                          #   sleep_schedule, settings, design_system_preview,
+│   │                          #   connect_partner, partner_dashboard, manage_sharing
+│   └── Routes.kt              # Route string constants object
 ├── di/
 │   ├── DatabaseModule.kt      # Provides Room DB + DAOs
 │   ├── DataStoreModule.kt     # Provides DataStore<Preferences>
-│   └── RepositoryModule.kt    # Binds interfaces → implementations
+│   ├── RepositoryModule.kt    # Binds core interfaces → implementations
+│   ├── NotificationSchedulerModule.kt  # Binds notification schedulers → impls
+│   └── SharingModule.kt       # Binds SharingRepository; provides FirebaseFirestore + FirebaseAuth
 ├── domain/
 │   ├── model/                 # Pure data classes: Baby, BreastfeedingSession,
-│   │                          #   SleepRecord, SleepSchedule
+│   │                          #   SleepRecord, SleepSchedule, ThemeConfig, UpdateInfo
 │   │                          # Enums: AllergyType, BreastSide, SleepType
 │   ├── repository/            # Interfaces: BabyRepository, BreastfeedingRepository,
 │   │                          #   SleepRepository, SettingsRepository
@@ -78,14 +85,38 @@ app/src/main/java/com/babytracker/
 │   └── repository/            # BabyRepositoryImpl, BreastfeedingRepositoryImpl,
 │                              #   SleepRepositoryImpl, SettingsRepositoryImpl
 ├── manager/
-│   ├── NotificationScheduler.kt          # Interface: schedule/cancel AlarmManager alarms
-│   └── BreastfeedingNotificationManager.kt  # Impl: schedules max-time and per-breast alarms
+│   ├── NotificationScheduler.kt              # Interface: schedule/cancel AlarmManager alarms (breastfeeding)
+│   ├── BreastfeedingNotificationManager.kt   # Impl: schedules max-time and per-breast alarms
+│   ├── BreastfeedingSessionNotificationCoordinator.kt  # Orchestrates full session notification lifecycle
+│   ├── SleepNotificationScheduler.kt         # Interface: schedule/cancel sleep alarms
+│   └── SleepNotificationManager.kt           # Impl: schedules sleep limit alarms
+├── receiver/
+│   ├── BreastfeedingActionReceiver.kt   # @AndroidEntryPoint BroadcastReceiver for session actions
+│   ├── BreastfeedingNotificationReceiver.kt  # @AndroidEntryPoint BroadcastReceiver for alarm triggers
+│   └── SleepActionReceiver.kt           # @AndroidEntryPoint BroadcastReceiver for sleep actions
+├── sharing/
+│   ├── data/
+│   │   ├── firebase/          # FirestoreSharingService.kt (Firestore + Auth operations)
+│   │   └── repository/        # SharingRepositoryImpl.kt
+│   ├── domain/
+│   │   ├── model/             # AppMode.kt (enum: NONE/PRIMARY/PARTNER),
+│   │   │                      #   ShareSnapshot.kt, BabySnapshot.kt,
+│   │   │                      #   SessionSnapshot.kt, SleepSnapshot.kt,
+│   │   │                      #   PartnerInfo.kt, ShareCode.kt,
+│   │   │                      #   DomainToSnapshot.kt (extension fns)
+│   │   └── repository/        # SharingRepository.kt (interface)
+│   └── usecase/               # ConnectAsPartnerUseCase, FetchPartnerDataUseCase,
+│                              #   GenerateShareCodeUseCase, RevokePartnerUseCase,
+│                              #   SyncToFirestoreUseCase
 ├── ui/
 │   ├── onboarding/            # OnboardingScreen + OnboardingViewModel
+│   │   └── components/        # Reusable onboarding sub-composables
 │   ├── home/                  # HomeScreen + HomeViewModel
 │   ├── breastfeeding/         # BreastfeedingScreen, BreastfeedingHistoryScreen + VMs
 │   ├── sleep/                 # SleepTrackingScreen, SleepHistoryScreen, SleepScheduleScreen + VMs
 │   ├── settings/              # SettingsScreen + SettingsViewModel
+│   ├── partner/               # PartnerDashboardScreen + PartnerDashboardViewModel
+│   ├── sharing/               # ConnectPartnerScreen + VM, ManageSharingScreen + VM
 │   ├── component/             # Reusable: TimerDisplay, HistoryCard, SideSelector
 │   └── theme/                 # Theme.kt, Color.kt, Shape.kt, Type.kt,
 │                              #   DesignSystemPreviewScreen.kt (debug catalog)
@@ -273,6 +304,10 @@ Scopes identify the area of the codebase:
 - `usecase` — Use cases and business logic
 - `navigation` — Navigation graph and routing
 - `di` — Dependency injection and modules
+- `sharing` — Partner sharing feature, Firebase sync
+- `partner` — Partner dashboard UI
+- `notification` — Notification managers, schedulers, coordinators
+- `receiver` — BroadcastReceiver classes
 
 ### Examples
 
@@ -396,6 +431,100 @@ fun BreastfeedingSession.toEntity(): BreastfeedingEntity = ...
 
 ---
 
+## Sharing Feature
+
+The optional partner-sharing feature allows a primary user (parent) to share a read-only snapshot of their tracking data with a partner.
+
+### AppMode
+
+`sharing/domain/model/AppMode.kt` defines three modes:
+
+| Value | Meaning |
+|-------|---------|
+| `NONE` | Sharing not configured; normal app flow |
+| `PRIMARY` | This device is the sharing owner |
+| `PARTNER` | This device is the read-only partner viewer |
+
+`AppNavGraph` uses `AppMode` to choose the start destination: `PARTNER_DASHBOARD` for `PARTNER` mode, otherwise the normal onboarding/home flow.
+
+### Primary user flow
+
+1. `GenerateShareCodeUseCase` calls `FirestoreSharingService.signInAnonymously()` + `createShareDocument()`.
+2. Data changes are synced via `SyncToFirestoreUseCase` (sessions, sleep records, baby info) whenever the primary user completes an action.
+3. The share code is an 8-character uppercase alphanumeric string stored in `ShareCode`.
+
+### Partner user flow
+
+1. Partner enters the share code in `ConnectPartnerScreen`.
+2. `ConnectAsPartnerUseCase` validates the code and registers the partner UID in the Firestore document.
+3. `FetchPartnerDataUseCase` reads the `ShareSnapshot` from Firestore.
+4. `PartnerDashboardScreen` presents the data read-only; the partner cannot start or stop sessions.
+
+### Firebase patterns
+
+- `FirestoreSharingService` is `@Singleton`, injected via `SharingModule`.
+- Firestore document path: `shares/{shareCode}`. Partner UIDs are stored in a `partners/{uid}` sub-collection.
+- Both `FirebaseFirestore` and `FirebaseAuth` instances are provided by `SharingModule` (`@InstallIn(SingletonComponent::class)`).
+
+### Snapshot model
+
+Domain data is converted to the Firestore-friendly snapshot model via extension functions in `DomainToSnapshot.kt` (consistent with the "no Mapper classes" KISS principle):
+
+```kotlin
+fun BreastfeedingSession.toSessionSnapshot(): SessionSnapshot = ...
+fun SleepRecord.toSleepSnapshot(): SleepSnapshot = ...
+```
+
+### What NOT to do in the sharing feature
+
+- Never store raw `BreastfeedingEntity` / `SleepEntity` directly in Firestore — always go through the snapshot model.
+- Do not add authenticated (non-anonymous) sign-in without an explicit design decision.
+- Do not add sync logic outside of `SyncToFirestoreUseCase` and `FirestoreSharingService`.
+
+---
+
+## Notification Architecture
+
+Notifications are driven by a three-role pattern across `manager/` and `receiver/`.
+
+### Schedulers
+
+Interfaces + implementations that schedule and cancel `AlarmManager`-based alarms:
+
+| Interface | Implementation |
+|-----------|---------------|
+| `NotificationScheduler` | `BreastfeedingNotificationManager` |
+| `SleepNotificationScheduler` | `SleepNotificationManager` |
+
+Both are bound in `NotificationSchedulerModule` and scoped `@Singleton`.
+
+### Coordinator
+
+`BreastfeedingSessionNotificationCoordinator` orchestrates the full lifecycle of breastfeeding session notifications:
+
+- `scheduleInitial()` — called when a session starts
+- `showRunning()` / `showPaused()` — updates the ongoing notification
+- `rescheduleAfterResume()` — adjusts alarm timing after a pause
+- `cancelAllSessionNotifications()` — called on session stop
+
+It reads per-breast and total-feed time limits from `SettingsRepository`.
+
+### Receivers
+
+`receiver/` contains `@AndroidEntryPoint`-annotated `BroadcastReceiver` subclasses:
+
+- `BreastfeedingActionReceiver` — handles notification action intents (switch side, pause, resume, stop)
+- `BreastfeedingNotificationReceiver` — handles AlarmManager triggers for breastfeeding time limits
+- `SleepActionReceiver` — handles sleep notification action intents
+
+Receivers use `goAsync()` + a `CoroutineScope` so they can safely call `suspend` use cases without blocking the main thread.
+
+### NotificationHelper
+
+`util/NotificationHelper.kt` contains the notification builder logic, notification ID constants, and channel setup. It applies design-system-themed colors (accent `setColor()`) and per-type small icons.
+
+---
+
 ## Build & Run
 
 ```bash
@@ -418,11 +547,9 @@ Build variants: `debug` (default) and `release` (ProGuard minification enabled v
 
 ## Testing Conventions
 
-Create tests for new features, bug fixes, and edge cases.
-Follow the TDD pattern. Make sure the feature works as expected.
+Create tests for new features, bug fixes, and edge cases. You do not need to follow strict TDD (test-first); writing tests after the implementation is acceptable. All tests must pass before creating a PR.
 
-After the feature is complete, run all tests,
-if there is any broken test: fix it, re-run tests and do it until all tests pass.
+After the feature is complete, run all tests. If there are any broken tests, fix them and re-run until all pass.
 
 ### Unit Tests (`src/test/`)
 - Framework: JUnit 5 (`@Test`, `@BeforeEach`, `runTest`)
@@ -457,9 +584,11 @@ Hilt modules live in `di/`:
 
 - **`DatabaseModule`** (`@InstallIn(SingletonComponent::class)`) — provides `BabyTrackerDatabase`, `BreastfeedingDao`, `SleepDao`
 - **`DataStoreModule`** (`@InstallIn(SingletonComponent::class)`) — provides `DataStore<Preferences>`
-- **`RepositoryModule`** (`@InstallIn(SingletonComponent::class)`) — binds repository interfaces to implementations with `@Binds @Singleton`
+- **`RepositoryModule`** (`@InstallIn(SingletonComponent::class)`) — binds core repository interfaces to implementations with `@Binds @Singleton`
+- **`NotificationSchedulerModule`** (`@InstallIn(SingletonComponent::class)`) — binds `NotificationScheduler` → `BreastfeedingNotificationManager`, `SleepNotificationScheduler` → `SleepNotificationManager`
+- **`SharingModule`** (`@InstallIn(SingletonComponent::class)`) — binds `SharingRepository` → `SharingRepositoryImpl`; provides `FirebaseFirestore` and `FirebaseAuth` singletons
 
-All repository implementations are `@Singleton` scoped.
+All repository and service implementations are `@Singleton` scoped.
 
 ---
 
@@ -479,7 +608,7 @@ Read specs before implementing new features — they define the intended behavio
 - Do not create Mapper classes — use extension functions on entity/domain types
 - Do not create BaseViewModel or BaseFragment
 - Do not wrap return values in `sealed class Result<T>` — let exceptions propagate or use nullable types
-- Do not add cloud sync, analytics, or remote API calls — local-only is by design
+- Do not add analytics SDKs or new remote API integrations beyond the existing Firebase sharing feature. Extend the partner-sharing feature only within `sharing/` and `di/SharingModule.kt`.
 - Do not use KAPT — KSP is configured for all annotation processing (Hilt, Room)
 - Do not access warning tokens (`WarningAmber`, `WarningContainerAmber`, `OnWarningContainerAmber` and their `*Dark` pairs) through `MaterialTheme.colorScheme` — they are extended, non-M3 semantics and ship as top-level `val`s in `ui/theme/Color.kt`. Import them by name.
 

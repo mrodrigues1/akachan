@@ -431,3 +431,61 @@ fun ItemListCard(
 - **Theme Leaks**: Ensure `MaterialTheme` wraps all composables
 - **Navigation Crashes**: Handle back press and deep links properly
 - **Memory Leaks**: Cancel coroutines in `DisposableEffect`
+
+---
+
+## Akachan Design System Conventions
+
+This skill is used in the **Akachan** project (native Android baby tracker). Apply these project-specific conventions on top of the general Material 3 guidance above.
+
+### Palette Families
+
+Four hue families, each with a 4-stop scale:
+
+| Stop | Role |
+|------|------|
+| 700 | Primary action color |
+| 200 | Container / background tint |
+| 900 | On-container text (dark) |
+| 100 | Softest tone |
+
+| Family | Usage |
+|--------|-------|
+| Pink | Feeding/Breastfeeding — primary color role |
+| Blue | Sleep — secondary color role |
+| Green | Success / tertiary role |
+| Amber | Warnings (feeding overtime, etc.) |
+
+### Warning Token Rule
+
+`WarningAmber`, `WarningContainerAmber`, `OnWarningContainerAmber` (and their `Dark` variants) are top-level `val`s in `ui/theme/Color.kt`. **Do NOT** add them to `lightColorScheme` / `darkColorScheme` and do **NOT** access them via `MaterialTheme.colorScheme`. Import them by name:
+
+```kotlin
+import com.babytracker.ui.theme.WarningAmber
+import com.babytracker.ui.theme.WarningContainerAmber
+```
+
+### Shape Slots (`AkachanShapes`)
+
+| Slot | Radius | Usage |
+|------|--------|-------|
+| `extraSmall` | 4dp | Dense chips |
+| `small` | 8dp | Input fields, small cards |
+| `medium` | 16dp | Main cards |
+| `large` | 24dp | Bottom sheets, dialogs |
+| `extraLarge` | 50dp | Primary buttons (FAB-like) |
+
+### Typography Slots (`AkachanTypography`)
+
+Key custom roles: `displaySmall` (36sp ExtraBold — timer clock), `headlineLarge` (32sp Bold — screen titles), `titleLarge` (22sp SemiBold — TopAppBar), `labelMedium` (12sp Bold — UPPERCASE section headers), `labelSmall` (11sp Medium — chips).
+
+### Live Component Catalog
+
+`ui/theme/DesignSystemPreviewScreen.kt` — accessible from **Settings → Developer** in debug builds. Add new reusable components here after creation.
+
+### Existing Reusable Components (`ui/component/`)
+
+Check these before creating new ones:
+- `TimerDisplay` — elapsed time display using `displaySmall`
+- `HistoryCard` — session/sleep history card with themed colors
+- `SideSelector` — breast-side selector with Pink palette

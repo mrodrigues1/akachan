@@ -3,6 +3,8 @@ name: responsive-design
 description: Implement modern responsive layouts using container queries, fluid typography, CSS Grid, and mobile-first breakpoint strategies. Use when building adaptive interfaces, implementing fluid layouts, or creating component-level responsive behavior.
 ---
 
+> **Project note:** This skill does not apply to the Akachan project, which is a native Android app built with Jetpack Compose. For Android adaptive layouts, use the `mobile-android-design` skill instead.
+
 # Responsive Design
 
 Master modern responsive design techniques to create interfaces that adapt seamlessly across all screen sizes and device contexts.
