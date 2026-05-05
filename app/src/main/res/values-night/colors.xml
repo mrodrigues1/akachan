@@ -7,4 +7,6 @@
     <color name="notification_feeding_track">#4A2838</color>
     <color name="notification_warning_accent">#FFCC80</color>
     <color name="notification_warning_track">#4A2E14</color>
+    <color name="notification_sleep_accent">#90CAF9</color>
+    <color name="notification_sleep_track">#0D2440</color>
 </resources>
