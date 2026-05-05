@@ -154,47 +154,64 @@ class NotificationHelperTest {
         )
     }
 
-    @Test
-    fun `showBreastfeedingActive rich path wires setCustomContentView`() {
-        val source = notificationHelperSource()
-        val body = Regex("applyBreastfeedingActiveRichContent[\\s\\S]*?private fun breastfeedingActiveProgress")
-            .find(source)?.value ?: error("applyBreastfeedingActiveRichContent body not found")
-        assertTrue(
-            body.contains("setCustomContentView("),
-            "applyBreastfeedingActiveRichContent must call setCustomContentView for collapsed layout"
-        )
+    // Extracts the first setCustomContentView(...) call block (up to 500 chars) from a
+    // function body slice so assertions are scoped to the collapsed view only,
+    // not the setCustomBigContentView call that follows.
+    private fun extractCollapsedViewArgs(functionBody: String): String {
+        val start = functionBody.indexOf("setCustomContentView(")
+        require(start >= 0) { "setCustomContentView( not found in slice" }
+        return functionBody.substring(start, minOf(start + 500, functionBody.length))
     }
 
     @Test
-    fun `showFeedingLimit rich path wires setCustomContentView`() {
+    fun `showSwitchSide collapsed view uses feeding layout at 100 percent`() {
         val source = notificationHelperSource()
-        val body = Regex("fun showFeedingLimit[\\s\\S]*?fun showBreastfeedingActive")
-            .find(source)?.value ?: error("showFeedingLimit body not found")
-        assertTrue(
-            body.contains("setCustomContentView("),
-            "showFeedingLimit must call setCustomContentView for collapsed layout"
-        )
-    }
-
-    @Test
-    fun `showSwitchSide rich path wires setCustomContentView`() {
-        val source = notificationHelperSource()
-        val body = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
+        val functionBody = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
             .find(source)?.value ?: error("showSwitchSide body not found")
-        assertTrue(
-            body.contains("setCustomContentView("),
-            "showSwitchSide must call setCustomContentView for collapsed layout"
-        )
+        val collapsedCall = extractCollapsedViewArgs(functionBody)
+
+        assertTrue(collapsedCall.contains("notification_collapsed_feeding"), "wrong layout for switch-side collapsed view")
+        assertTrue(collapsedCall.contains("progress = 1"), "switch-side collapsed progress must be 1 (100%)")
+        assertTrue(collapsedCall.contains("maxProgress = 1"), "switch-side collapsed maxProgress must be 1")
+        assertTrue(collapsedCall.contains("showProgress = true"), "switch-side collapsed progress bar must be visible")
     }
 
     @Test
-    fun `showSleepActive rich path wires setCustomContentView`() {
+    fun `showFeedingLimit collapsed view uses warning layout at 100 percent`() {
         val source = notificationHelperSource()
-        val body = Regex("fun showSleepActive[\\s\\S]*?fun cancelNotification")
+        val functionBody = Regex("fun showFeedingLimit[\\s\\S]*?fun showBreastfeedingActive")
+            .find(source)?.value ?: error("showFeedingLimit body not found")
+        val collapsedCall = extractCollapsedViewArgs(functionBody)
+
+        assertTrue(collapsedCall.contains("notification_collapsed_warning"), "wrong layout for feeding-limit collapsed view")
+        assertTrue(collapsedCall.contains("progress = maxTotalMinutes"), "feeding-limit progress must equal maxTotalMinutes")
+        assertTrue(collapsedCall.contains("maxProgress = maxTotalMinutes"), "feeding-limit maxProgress must equal maxTotalMinutes")
+        assertTrue(collapsedCall.contains("showProgress = true"), "feeding-limit collapsed progress bar must be visible")
+    }
+
+    @Test
+    fun `showBreastfeedingActive collapsed view uses feeding layout with dynamic progress`() {
+        val source = notificationHelperSource()
+        val functionBody = Regex("applyBreastfeedingActiveRichContent[\\s\\S]*?private fun breastfeedingActiveProgress")
+            .find(source)?.value ?: error("applyBreastfeedingActiveRichContent body not found")
+        val collapsedCall = extractCollapsedViewArgs(functionBody)
+
+        assertTrue(collapsedCall.contains("notification_collapsed_feeding"), "wrong layout for active-feeding collapsed view")
+        assertTrue(collapsedCall.contains("progress = progress.current"), "active-feeding progress must be progress.current")
+        assertTrue(collapsedCall.contains("maxProgress = progress.max"), "active-feeding maxProgress must be progress.max")
+        assertTrue(collapsedCall.contains("showProgress = progress.isEnabled"), "active-feeding progress visibility must follow progress.isEnabled")
+    }
+
+    @Test
+    fun `showSleepActive collapsed view uses sleep layout with hidden progress`() {
+        val source = notificationHelperSource()
+        val functionBody = Regex("fun showSleepActive[\\s\\S]*?fun cancelNotification")
             .find(source)?.value ?: error("showSleepActive body not found")
-        assertTrue(
-            body.contains("setCustomContentView("),
-            "showSleepActive must call setCustomContentView for collapsed layout"
-        )
+        val collapsedCall = extractCollapsedViewArgs(functionBody)
+
+        assertTrue(collapsedCall.contains("notification_collapsed_sleep"), "wrong layout for sleep collapsed view")
+        assertTrue(collapsedCall.contains("progress = 0"), "sleep collapsed progress must be 0")
+        assertTrue(collapsedCall.contains("maxProgress = 1"), "sleep collapsed maxProgress must be 1")
+        assertTrue(collapsedCall.contains("showProgress = false"), "sleep collapsed progress bar must be hidden")
     }
 }
