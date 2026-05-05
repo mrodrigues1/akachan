@@ -122,4 +122,79 @@ class NotificationHelperTest {
 
         assertEquals(1, Regex("showProgress = false").findAll(showSwitchSideBody).count())
     }
+
+    @Test
+    fun `sleep progress drawable file exists`() {
+        val file = listOf(
+            java.io.File("src/main/res/drawable/notification_progress_sleep.xml"),
+            java.io.File("app/src/main/res/drawable/notification_progress_sleep.xml")
+        ).firstOrNull { it.exists() }
+        assertTrue(file != null, "notification_progress_sleep.xml must exist in drawable/")
+    }
+
+    @Test
+    fun `all three collapsed notification layout files exist`() {
+        fun layoutExists(name: String): Boolean =
+            listOf(
+                java.io.File("src/main/res/layout/$name"),
+                java.io.File("app/src/main/res/layout/$name")
+            ).any { it.exists() }
+
+        assertTrue(layoutExists("notification_collapsed_feeding.xml"), "feeding collapsed layout missing")
+        assertTrue(layoutExists("notification_collapsed_warning.xml"), "warning collapsed layout missing")
+        assertTrue(layoutExists("notification_collapsed_sleep.xml"), "sleep collapsed layout missing")
+    }
+
+    @Test
+    fun `buildCollapsedView function exists in NotificationHelper`() {
+        val source = notificationHelperSource()
+        assertTrue(
+            source.contains("fun buildCollapsedView("),
+            "buildCollapsedView must be defined in NotificationHelper"
+        )
+    }
+
+    @Test
+    fun `showBreastfeedingActive rich path wires setCustomContentView`() {
+        val source = notificationHelperSource()
+        val body = Regex("applyBreastfeedingActiveRichContent[\\s\\S]*?private fun breastfeedingActiveProgress")
+            .find(source)?.value ?: error("applyBreastfeedingActiveRichContent body not found")
+        assertTrue(
+            body.contains("setCustomContentView("),
+            "applyBreastfeedingActiveRichContent must call setCustomContentView for collapsed layout"
+        )
+    }
+
+    @Test
+    fun `showFeedingLimit rich path wires setCustomContentView`() {
+        val source = notificationHelperSource()
+        val body = Regex("fun showFeedingLimit[\\s\\S]*?fun showBreastfeedingActive")
+            .find(source)?.value ?: error("showFeedingLimit body not found")
+        assertTrue(
+            body.contains("setCustomContentView("),
+            "showFeedingLimit must call setCustomContentView for collapsed layout"
+        )
+    }
+
+    @Test
+    fun `showSwitchSide rich path wires setCustomContentView`() {
+        val source = notificationHelperSource()
+        val body = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
+            .find(source)?.value ?: error("showSwitchSide body not found")
+        assertTrue(
+            body.contains("setCustomContentView("),
+            "showSwitchSide must call setCustomContentView for collapsed layout"
+        )
+    }
+
+    @Test
+    fun `showSleepActive rich path wires setCustomContentView`() {
+        val source = notificationHelperSource()
+        val body = Regex("fun showSleepActive[\\s\\S]*?fun cancelNotification")
+            .find(source)?.value ?: error("showSleepActive body not found")
+        assertTrue(
+            body.contains("setCustomContentView("),
+            "showSleepActive must call setCustomContentView for collapsed layout"
+        )
+    }
 }
