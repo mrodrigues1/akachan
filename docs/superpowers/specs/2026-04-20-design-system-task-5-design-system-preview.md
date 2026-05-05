@@ -52,7 +52,7 @@ import androidx.compose.ui.unit.sp
  * Living design system spec. Open these Previews inside Android Studio
  * to see the palette + typography scale for the current theme.
  *
- * Source of truth: design-System-handoff/akachan-design-system/project/
+ * Source of truth: design-system/akachan-design-system/project/
  */
 
 // ─── Raw palette ────────────────────────────────────────────────

@@ -172,7 +172,7 @@ package com.babytracker.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // ─── Raw palette — structured scale ─────────────────────────────
-// Mirrors design-System-handoff/akachan-design-system/project/colors_and_type.css.
+// Mirrors design-system/akachan-design-system/project/colors_and_type.css.
 // 700 = primary action, 200 = container, 900 = on-container text, 100 = softest tone.
 
 // Feeding / Primary
