@@ -122,6 +122,28 @@ object NotificationHelper {
         }
     }
 
+    private fun buildFeedingActiveCollapsedView(
+        context: Context,
+        layoutRes: Int,
+        progress: Int,
+        maxProgress: Int,
+        showProgress: Boolean,
+        body: String,
+        timer: CollapsedTimerContent
+    ): RemoteViews = RemoteViews(context.packageName, layoutRes).apply {
+        val safeMax = maxProgress.coerceAtLeast(1)
+        setTextViewText(R.id.notification_title_prefix, "🍼 ")
+        setViewVisibility(R.id.notification_title_prefix, View.VISIBLE)
+        setTextViewText(R.id.notification_title, timer.titleSuffix)
+        setViewVisibility(R.id.notification_collapsed_timer, View.VISIBLE)
+        setChronometer(R.id.notification_collapsed_timer, timer.chronometerBaseElapsedMs, null, timer.chronometerRunning)
+        setTextViewText(R.id.notification_body, body)
+        setViewVisibility(R.id.notification_progress, if (showProgress) View.VISIBLE else View.GONE)
+        if (showProgress) {
+            setProgressBar(R.id.notification_progress, safeMax, progress.coerceIn(0, safeMax), false)
+        }
+    }
+
     private fun formatDurationCompact(totalSeconds: Int): String {
         val safeSeconds = totalSeconds.coerceAtLeast(0)
         val minutes = safeSeconds / SECONDS_PER_MINUTE
@@ -351,20 +373,25 @@ object NotificationHelper {
             ?.let { pausedElapsedSeconds(content.sessionStartEpochMs, content.pausedDurationMs, it) }
             ?: activeElapsedSeconds(content.sessionStartEpochMs, content.pausedDurationMs)
         val progress = breastfeedingActiveProgress(elapsedSeconds, content.maxTotalMinutes)
+        val chronometerBase = SystemClock.elapsedRealtime() - (elapsedSeconds * MILLIS_PER_SECOND)
 
         setUsesChronometer(!isPaused)
             .setShowWhen(!isPaused)
             .setWhen(content.sessionStartEpochMs + content.pausedDurationMs)
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setCustomContentView(
-                buildCollapsedView(
+                buildFeedingActiveCollapsedView(
                     context = content.context,
                     layoutRes = R.layout.notification_collapsed_feeding,
-                    title = content.title,
-                    body = content.body,
                     progress = progress.current,
                     maxProgress = progress.max,
-                    showProgress = progress.isEnabled
+                    showProgress = progress.isEnabled,
+                    body = content.body,
+                    timer = CollapsedTimerContent(
+                        titleSuffix = if (isPaused) "Feeding session paused" else "Feeding session active",
+                        chronometerBaseElapsedMs = chronometerBase,
+                        chronometerRunning = !isPaused
+                    )
                 )
             )
             .setCustomBigContentView(
@@ -376,7 +403,7 @@ object NotificationHelper {
                     progress = progress.current,
                     maxProgress = progress.max,
                     progressText = progress.label,
-                    chronometerBaseElapsedMs = SystemClock.elapsedRealtime() - (elapsedSeconds * MILLIS_PER_SECOND),
+                    chronometerBaseElapsedMs = chronometerBase,
                     chronometerRunning = !isPaused,
                     showProgress = progress.isEnabled
                 )
@@ -425,6 +452,12 @@ object NotificationHelper {
         val max: Int,
         val label: String,
         val isEnabled: Boolean
+    )
+
+    private data class CollapsedTimerContent(
+        val titleSuffix: String,
+        val chronometerBaseElapsedMs: Long,
+        val chronometerRunning: Boolean
     )
 
     private data class ActiveNotificationContent(

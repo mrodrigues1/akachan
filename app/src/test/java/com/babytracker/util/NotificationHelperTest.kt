@@ -160,7 +160,7 @@ class NotificationHelperTest {
     private fun extractCollapsedViewArgs(functionBody: String): String {
         val start = functionBody.indexOf("setCustomContentView(")
         require(start >= 0) { "setCustomContentView( not found in slice" }
-        return functionBody.substring(start, minOf(start + 500, functionBody.length))
+        return functionBody.substring(start, minOf(start + 750, functionBody.length))
     }
 
     @Test
@@ -200,6 +200,33 @@ class NotificationHelperTest {
         assertTrue(collapsedCall.contains("progress = progress.current"), "active-feeding progress must be progress.current")
         assertTrue(collapsedCall.contains("maxProgress = progress.max"), "active-feeding maxProgress must be progress.max")
         assertTrue(collapsedCall.contains("showProgress = progress.isEnabled"), "active-feeding progress visibility must follow progress.isEnabled")
+    }
+
+    @Test
+    fun `active breastfeeding collapsed view passes chronometer base for live timer`() {
+        val source = notificationHelperSource()
+        val functionBody = Regex("applyBreastfeedingActiveRichContent[\\s\\S]*?private fun breastfeedingActiveProgress")
+            .find(source)?.value ?: error("applyBreastfeedingActiveRichContent body not found")
+        val collapsedCall = extractCollapsedViewArgs(functionBody)
+
+        assertTrue(collapsedCall.contains("chronometerBaseElapsedMs"), "collapsed view must receive chronometerBaseElapsedMs for live timer")
+    }
+
+    @Test
+    fun `feeding collapsed layout includes chronometer view for live timer`() {
+        val file = listOf(
+            java.io.File("src/main/res/layout/notification_collapsed_feeding.xml"),
+            java.io.File("app/src/main/res/layout/notification_collapsed_feeding.xml")
+        ).first { it.exists() }.readText()
+
+        assertTrue(
+            file.contains("notification_collapsed_timer"),
+            "notification_collapsed_feeding.xml must contain a Chronometer with id notification_collapsed_timer"
+        )
+        assertTrue(
+            file.contains("notification_title_prefix"),
+            "notification_collapsed_feeding.xml must contain a prefix TextView with id notification_title_prefix"
+        )
     }
 
     @Test
