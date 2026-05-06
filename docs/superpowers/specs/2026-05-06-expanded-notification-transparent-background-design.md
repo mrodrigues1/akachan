@@ -16,6 +16,7 @@ Collapsed layouts and the sleep notification are unaffected — they already hav
 ## Goals
 
 - Expanded notification content fills the system notification tile naturally (transparent background).
+- Text and progress bar colors meet WCAG AA contrast (4.5:1 for normal text, 3:1 for large text/UI components) against the system-supplied tile surface in both light and dark notification shades.
 - All design-system color tokens, typography, progress bar drawables, and action button styles remain unchanged.
 - No changes to `NotificationHelper.kt` or any Kotlin notification logic.
 - Dark mode continues to work correctly via `values-night/colors.xml`.
@@ -23,9 +24,9 @@ Collapsed layouts and the sleep notification are unaffected — they already hav
 ## Non-Goals
 
 - Changing notification content, wording, or behavior.
-- Switching any notification to `BigTextStyle` or other native styles — all notifications keep `DecoratedCustomViewStyle` with custom layouts.
+- Switching breastfeeding or warning notifications to `BigTextStyle` or other native styles — they keep `DecoratedCustomViewStyle` with custom layouts. Sleep already uses `BigTextStyle` for its expanded view and is out of scope.
 - Modifying collapsed view layouts (`notification_collapsed_feeding.xml`, `notification_collapsed_warning.xml`, `notification_collapsed_sleep.xml`).
-- Modifying the sleep notification (`showSleepActive` already uses `BigTextStyle` for expanded and has no background issue).
+- Adjusting padding or spacing on the expanded layouts — internal padding (12dp start/end, 10dp top/bottom) is retained as-is. "Fills the tile" means no inner card background, not zero padding.
 
 ---
 
@@ -77,14 +78,38 @@ Remove the `notification_surface` color entry.
 - `notification_collapsed_feeding.xml`, `notification_collapsed_warning.xml`, `notification_collapsed_sleep.xml` — already transparent, no changes.
 - All `notification_progress_*.xml` drawables — progress bar colors stay as-is.
 - All `values/colors.xml` entries other than `notification_surface`.
-- `DecoratedCustomViewStyle` usage — all notifications keep custom view rendering.
+- `DecoratedCustomViewStyle` usage on breastfeeding and warning notifications.
 
 ---
 
 ## Testing
 
-- Trigger a breastfeeding session and expand the notification: content should sit flush in the tile with no inner card.
-- Trigger a breastfeeding session with a max time set and let the limit alarm fire: expanded warning notification should similarly have no inner card.
-- Trigger a side-switch alarm: expanded notification has no inner card.
-- Toggle system dark mode: colors and contrast should remain correct (no regression).
-- Verify no build warnings about unused resources.
+### Visual verification (on device or emulator, Android 12+)
+
+For each notification below, verify in **both system light mode and system dark mode** that:
+- No inner rounded card is visible inside the tile — content sits directly on the system tile surface.
+- Title text (`#1A1A1A` light / `#E6E1E5` dark) is clearly legible against the OEM tile background.
+- Body text (`#757575` light / `#CAC4D0` dark) is clearly legible.
+- Progress bar fill and track colors are clearly distinguishable.
+
+| Notification to trigger | How |
+|---|---|
+| Breastfeeding active — running | Start a feeding session |
+| Breastfeeding active — paused | Start then pause a feeding session |
+| Feeding limit reached | Set a short max time and wait for the alarm |
+| Time to switch sides | Set a short per-breast time and wait for the alarm |
+
+### Resource cleanup verification
+
+After the changes, run:
+
+```
+rg notification_surface app/src/main/res
+```
+
+Expected: zero matches. Any remaining match indicates an incomplete removal.
+
+### Regression check
+
+- Sleep active notification must be unaffected (expanded is system-rendered, collapsed has no background).
+- Collapsed breastfeeding, warning, and sleep views must be unaffected.
