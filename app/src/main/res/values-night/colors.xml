@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="notification_surface">#1C1B1F</color>
     <color name="notification_on_surface">#E6E1E5</color>
     <color name="notification_on_surface_variant">#BDB8C0</color>
     <color name="notification_feeding_accent">#F48FB1</color>
