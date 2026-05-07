@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.kover)
 }
 
 android {
@@ -139,4 +140,29 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+kover {
+    reports {
+        filters {
+            excludes {
+                classes(
+                    "*_HiltComponents*",
+                    "*_MembersInjector*",
+                    "*Hilt_*",
+                    "*.di.*",
+                    "*.BabyTrackerApp",
+                    "*.MainActivity",
+                    "*.BuildConfig",
+                )
+            }
+        }
+        verify {
+            rule("Minimum line coverage") {
+                bound {
+                    minValue = 60
+                }
+            }
+        }
+    }
 }
