@@ -1,0 +1,48 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:base", ":dependencyDashboard"],
+  "labels": ["dependencies"],
+  "assignees": ["mrodrigues1"],
+  "schedule": ["after 9am and before 5pm on Monday"],
+  "packageRules": [
+    {
+      "description": "Group all Firebase updates into one PR",
+      "matchPackagePrefixes": ["com.google.firebase"],
+      "groupName": "firebase"
+    },
+    {
+      "description": "Group Kotlin + KSP together (must stay in sync)",
+      "matchPackageNames": [
+        "org.jetbrains.kotlin:kotlin-gradle-plugin",
+        "com.google.devtools.ksp"
+      ],
+      "groupName": "kotlin and ksp"
+    },
+    {
+      "description": "Group all AndroidX / Jetpack updates",
+      "matchPackagePrefixes": ["androidx."],
+      "groupName": "androidX"
+    },
+    {
+      "description": "Group Compose BOM with all Compose dependencies",
+      "matchPackagePrefixes": ["androidx.compose"],
+      "groupName": "compose"
+    },
+    {
+      "description": "Group Hilt + Dagger together (must stay in sync)",
+      "matchPackagePrefixes": ["com.google.dagger"],
+      "groupName": "hilt and dagger"
+    },
+    {
+      "description": "Auto-merge patch updates for testing libraries",
+      "matchPackagePrefixes": [
+        "org.junit",
+        "io.mockk",
+        "app.cash.turbine"
+      ],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    }
+  ],
+  "ignorePaths": ["**/build/**"]
+}
