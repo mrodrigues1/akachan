@@ -68,6 +68,7 @@ import java.time.Instant
 @Composable
 fun ManageSharingScreen(
     onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: ManageSharingViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -103,6 +104,7 @@ fun ManageSharingScreen(
     BackHandler(onBack = onNavigateBack)
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text("Partner Sharing") },

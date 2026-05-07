@@ -67,7 +67,8 @@ import java.time.Instant
 fun BreastfeedingScreen(
     onNavigateToHistory: () -> Unit,
     onNavigateBack: () -> Unit,
-    viewModel: BreastfeedingViewModel = hiltViewModel()
+    modifier: Modifier = Modifier,
+    viewModel: BreastfeedingViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val activeSession = uiState.activeSession
@@ -107,6 +108,7 @@ fun BreastfeedingScreen(
     }
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text("Breastfeeding") },

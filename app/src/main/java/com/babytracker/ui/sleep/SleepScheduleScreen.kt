@@ -53,11 +53,13 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun SleepScheduleScreen(
     onNavigateBack: () -> Unit,
-    viewModel: SleepViewModel = hiltViewModel()
+    modifier: Modifier = Modifier,
+    viewModel: SleepViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text("Sleep Schedule") },

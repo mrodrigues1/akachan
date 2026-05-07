@@ -21,6 +21,7 @@ import com.babytracker.ui.onboarding.components.WelcomeStepContent
 @Composable
 fun OnboardingScreen(
     onOnboardingComplete: () -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -39,7 +40,7 @@ fun OnboardingScreen(
         viewModel.onPreviousStep()
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
+    Scaffold(modifier = modifier, snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         AnimatedContent(
             targetState = uiState.currentStep,
             label = "onboarding_step",

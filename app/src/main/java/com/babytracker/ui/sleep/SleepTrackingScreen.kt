@@ -67,7 +67,8 @@ fun SleepTrackingScreen(
     onNavigateToHistory: () -> Unit,
     onNavigateToSchedule: () -> Unit,
     onNavigateBack: () -> Unit,
-    viewModel: SleepViewModel = hiltViewModel()
+    modifier: Modifier = Modifier,
+    viewModel: SleepViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val history by viewModel.history.collectAsStateWithLifecycle()
@@ -150,6 +151,7 @@ fun SleepTrackingScreen(
     }
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text("Sleep") },

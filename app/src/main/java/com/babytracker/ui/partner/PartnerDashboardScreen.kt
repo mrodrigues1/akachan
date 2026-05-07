@@ -58,6 +58,7 @@ import java.time.Instant
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PartnerDashboardScreen(
+    modifier: Modifier = Modifier,
     onDisconnected: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     viewModel: PartnerDashboardViewModel = hiltViewModel(),
@@ -76,6 +77,7 @@ fun PartnerDashboardScreen(
     }
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text("Baby Tracker") },

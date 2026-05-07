@@ -75,6 +75,7 @@ private enum class SettingsSheet {
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier,
     onNavigateToDesignSystem: () -> Unit = {},
     onNavigateToManageSharing: () -> Unit = {},
     onNavigateToConnectPartner: () -> Unit = {},
@@ -95,6 +96,7 @@ fun SettingsScreen(
     }
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text("Settings") },

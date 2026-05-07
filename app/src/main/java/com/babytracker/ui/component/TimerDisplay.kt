@@ -43,11 +43,11 @@ import java.util.Locale
 fun TimerDisplay(
     startTimeMillis: Long,
     isRunning: Boolean,
+    modifier: Modifier = Modifier,
     maxDurationSeconds: Int = 0,
     ringColor: Color = Color.Unspecified,
     trackColor: Color = Color.Unspecified,
     frozenElapsedSeconds: Long? = null,
-    modifier: Modifier = Modifier
 ) {
     var elapsedSeconds by remember { mutableLongStateOf(frozenElapsedSeconds ?: 0L) }
 
@@ -63,27 +63,13 @@ fun TimerDisplay(
     }
 
     val timeText = formatElapsedAsMinutesSeconds(elapsedSeconds)
+    val hasRing = maxDurationSeconds > 0
 
-    if (maxDurationSeconds <= 0) {
-        Text(
-            text = timeText,
-            style = MaterialTheme.typography.displaySmall,
-            modifier = modifier
-        )
-        return
-    }
-
-    val progress = (elapsedSeconds.toFloat() / maxDurationSeconds).coerceIn(0f, 1f)
-    val isOverMax = elapsedSeconds >= maxDurationSeconds
-
+    val progress = if (hasRing) (elapsedSeconds.toFloat() / maxDurationSeconds).coerceIn(0f, 1f) else 0f
+    val isOverMax = hasRing && elapsedSeconds >= maxDurationSeconds
     val resolvedRingColor = if (ringColor == Color.Unspecified) MaterialTheme.colorScheme.primary else ringColor
     val resolvedTrackColor = if (trackColor == Color.Unspecified) MaterialTheme.colorScheme.primaryContainer else trackColor
-
-    val progressColor = if (isOverMax) {
-        MaterialTheme.colorScheme.tertiary
-    } else {
-        resolvedRingColor
-    }
+    val progressColor = if (isOverMax) MaterialTheme.colorScheme.tertiary else resolvedRingColor
 
     val infiniteTransition = rememberInfiniteTransition(label = "ring_pulse")
     val scale by if (isRunning) {
@@ -101,59 +87,62 @@ fun TimerDisplay(
     }
 
     Box(
-        modifier = modifier
-            .size(208.dp)
-            .scale(scale),
-        contentAlignment = Alignment.Center
+        modifier = modifier.then(if (hasRing) Modifier.size(208.dp).scale(scale) else Modifier),
+        contentAlignment = Alignment.Center,
     ) {
-        val strokeWidthDp = 16.dp
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val strokePx = strokeWidthDp.toPx()
-            val diameter = size.minDimension - strokePx
-            val topLeft = Offset(
-                x = (size.width - diameter) / 2,
-                y = (size.height - diameter) / 2
-            )
-            val arcSize = Size(diameter, diameter)
-            val stroke = Stroke(width = strokePx, cap = StrokeCap.Round)
+        if (hasRing) {
+            val strokeWidthDp = 16.dp
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val strokePx = strokeWidthDp.toPx()
+                val diameter = size.minDimension - strokePx
+                val topLeft = Offset(
+                    x = (size.width - diameter) / 2,
+                    y = (size.height - diameter) / 2
+                )
+                val arcSize = Size(diameter, diameter)
+                val stroke = Stroke(width = strokePx, cap = StrokeCap.Round)
 
-            // Background track
-            drawArc(
-                color = resolvedTrackColor,
-                startAngle = -90f,
-                sweepAngle = 360f,
-                useCenter = false,
-                topLeft = topLeft,
-                size = arcSize,
-                style = stroke
-            )
-            // Progress arc
-            if (progress > 0f) {
                 drawArc(
-                    color = progressColor,
+                    color = resolvedTrackColor,
                     startAngle = -90f,
-                    sweepAngle = 360f * progress,
+                    sweepAngle = 360f,
                     useCenter = false,
                     topLeft = topLeft,
                     size = arcSize,
                     style = stroke
                 )
+                if (progress > 0f) {
+                    drawArc(
+                        color = progressColor,
+                        startAngle = -90f,
+                        sweepAngle = 360f * progress,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = arcSize,
+                        style = stroke
+                    )
+                }
             }
-        }
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = timeText,
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                val percent = (progress * 100).toInt()
+                val maxMinutes = maxDurationSeconds / 60
+                Text(
+                    text = "$percent% of ${maxMinutes}m",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
             Text(
                 text = timeText,
                 style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            val percent = (progress * 100).toInt()
-            val maxMinutes = maxDurationSeconds / 60
-            Text(
-                text = "$percent% of ${maxMinutes}m",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
