@@ -125,6 +125,8 @@ dependencies {
     testImplementation(libs.coroutines.test)
     testImplementation(libs.room.testing)
 
+    detektPlugins(libs.detekt.compose.rules)
+
     // Android Testing
     androidTestImplementation(libs.runner)
     androidTestImplementation(libs.compose.ui.test.junit4)
