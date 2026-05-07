@@ -40,12 +40,14 @@ import java.time.Duration
 @Composable
 fun BreastfeedingHistoryScreen(
     onNavigateBack: () -> Unit,
-    viewModel: BreastfeedingViewModel = hiltViewModel()
+    modifier: Modifier = Modifier,
+    viewModel: BreastfeedingViewModel = hiltViewModel(),
 ) {
     val history by viewModel.history.collectAsStateWithLifecycle()
     val grouped = history.groupByLocalDate { it.startTime }
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text("Feeding History") },

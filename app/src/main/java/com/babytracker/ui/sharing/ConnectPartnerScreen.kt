@@ -42,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun ConnectPartnerScreen(
     onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier,
     onConnected: () -> Unit = {},
     viewModel: ConnectPartnerViewModel = hiltViewModel(),
 ) {
@@ -54,6 +55,7 @@ fun ConnectPartnerScreen(
     BackHandler(onBack = onNavigateBack)
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text("Connect as Partner") },

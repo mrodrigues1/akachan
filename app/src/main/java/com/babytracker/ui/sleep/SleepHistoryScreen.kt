@@ -40,12 +40,14 @@ import java.time.Duration
 @Composable
 fun SleepHistoryScreen(
     onNavigateBack: () -> Unit,
-    viewModel: SleepViewModel = hiltViewModel()
+    modifier: Modifier = Modifier,
+    viewModel: SleepViewModel = hiltViewModel(),
 ) {
     val history by viewModel.history.collectAsStateWithLifecycle()
     val grouped = history.groupByLocalDate { it.startTime }
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text("Sleep History") },
