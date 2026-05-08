@@ -10,14 +10,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import java.io.File
 import java.time.LocalDate
 
@@ -28,7 +28,7 @@ class BabyRepositoryImplTest {
     private lateinit var prefsFile: File
     private lateinit var repository: BabyRepositoryImpl
 
-    @Before
+    @BeforeEach
     fun setUp() {
         testScope = TestScope(UnconfinedTestDispatcher())
         val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -40,7 +40,7 @@ class BabyRepositoryImplTest {
         repository = BabyRepositoryImpl(dataStore)
     }
 
-    @After
+    @AfterEach
     fun tearDown() {
         testScope.cancel()
         prefsFile.delete()
