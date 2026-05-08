@@ -135,7 +135,9 @@ Analysis revealed 13 untested critical paths (42% of total). All ViewModels and 
 
 ### `BreastfeedingNotificationReceiverTest` — `test/`, JUnit 5, MockK + spyk
 
-**Strategy:** `spyk(receiver)` stubs `goAsync()` → relaxed mock `PendingResult`. Positive cases synchronize via `CountDownLatch(1)` on `NotificationHelper` mock. Negative cases use `runBlocking { delay(200) }`.
+**Strategy:** `spyk(receiver)` stubs `goAsync()` → relaxed mock `PendingResult`. All cases (positive and negative) synchronize via `CountDownLatch(1)` on `result.finish()` — `finish()` is called in the receiver's `finally{}` block unconditionally, making it a reliable coroutine-completion signal. After latch await, verify `NotificationHelper` call expectations. No fixed-time delays.
+
+**Rationale for keeping in `test/` (not `androidTest/`):** All other `@AndroidEntryPoint` receivers in this project (`BreastfeedingActionReceiver`, `SleepActionReceiver`) are JVM unit tests with manual dependency injection. Hilt injection correctness is compile-time verified by KSP. Moving only this receiver to androidTest creates inconsistency without eliminating the gap shared by all existing receiver tests.
 
 | Test | Verifies |
 |------|---------|
