@@ -25,6 +25,7 @@ firebaseBom = "33.7.0"
 konsist = "0.16.0"
 kover = "0.9.1"
 twitterComposeRules = "0.0.26"
+androidJunit5 = "2.0.1"
 
 [libraries]
 # Compose BOM
@@ -85,6 +86,8 @@ turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine
 runner = { group = "androidx.test", name = "runner", version.ref = "runner" }
 compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+mannodermaus-core = { group = "de.mannodermaus.junit5", name = "android-test-core", version.ref = "androidJunit5" }
+mannodermaus-runner = { group = "de.mannodermaus.junit5", name = "android-test-runner", version.ref = "androidJunit5" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -95,3 +98,4 @@ google-services = { id = "com.google.gms.google-services", version = "4.4.2" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintGradle" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+android-junit5 = { id = "de.mannodermaus.android-junit", version.ref = "androidJunit5" }
