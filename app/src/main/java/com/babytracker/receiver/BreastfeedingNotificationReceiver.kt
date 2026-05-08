@@ -26,13 +26,6 @@ class BreastfeedingNotificationReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        val notificationType = intent.getStringExtra("notification_type")
-        Log.d(TAG, "Broadcast received: type=$notificationType")
-        if (notificationType == null) {
-            Log.w(TAG, "No notification_type extra found")
-            return
-        }
-
         val result = goAsync()
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {
