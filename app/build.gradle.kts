@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
     alias(libs.plugins.kover)
+    alias(libs.plugins.android.junit5)
 }
 
 android {
@@ -132,6 +133,13 @@ dependencies {
     androidTestImplementation(libs.compose.ui.test.junit4)
     androidTestImplementation(libs.mockk.android)
     debugImplementation(libs.compose.ui.test.manifest)
+
+    // Android Testing — JUnit 5 support
+    androidTestImplementation(libs.junit5.api)
+    androidTestRuntimeOnly(libs.junit5.engine)
+    androidTestImplementation(libs.mannodermaus.core)
+    androidTestRuntimeOnly(libs.mannodermaus.runner)
+    androidTestImplementation(libs.coroutines.test)
 
     // Firebase
     implementation(platform(libs.firebase.bom))

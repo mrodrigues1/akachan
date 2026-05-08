@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.ktlint) apply false
     alias(libs.plugins.detekt) apply false
     alias(libs.plugins.kover) apply false
+    alias(libs.plugins.android.junit5) apply false
 }
 
 val ktlintVersion = libs.versions.ktlint.get()
