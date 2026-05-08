@@ -6,18 +6,18 @@ import com.babytracker.data.local.BabyTrackerDatabase
 import com.babytracker.data.local.entity.BreastfeedingEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 class BreastfeedingDaoTest {
 
     private lateinit var database: BabyTrackerDatabase
     private lateinit var dao: BreastfeedingDao
 
-    @Before
+    @BeforeEach
     fun setUp() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         database = Room.inMemoryDatabaseBuilder(context, BabyTrackerDatabase::class.java)
@@ -26,7 +26,7 @@ class BreastfeedingDaoTest {
         dao = database.breastfeedingDao()
     }
 
-    @After
+    @AfterEach
     fun tearDown() {
         database.close()
     }
