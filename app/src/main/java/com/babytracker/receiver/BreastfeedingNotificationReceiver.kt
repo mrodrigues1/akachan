@@ -36,30 +36,35 @@ class BreastfeedingNotificationReceiver : BroadcastReceiver() {
         val result = goAsync()
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {
-                val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
-                val sessionId = intent.getLongExtra("session_id", -1L)
-                val currentSide = intent.getStringExtra("current_side") ?: "LEFT"
-                val elapsedMinutes = intent.getIntExtra("elapsed_minutes", 0)
-                val maxTotalMinutes = intent.getIntExtra("max_total_minutes", 0)
-
-                when (notificationType) {
-                    NOTIFICATION_TYPE_SWITCH_SIDE -> {
-                        Log.i(TAG, "Triggering switch side notification (rich=$richEnabled)")
-                        NotificationHelper.showSwitchSide(
-                            context, sessionId, currentSide, elapsedMinutes, richEnabled
-                        )
-                    }
-                    NOTIFICATION_TYPE_MAX_TOTAL -> {
-                        Log.i(TAG, "Triggering feeding limit notification (rich=$richEnabled)")
-                        NotificationHelper.showFeedingLimit(
-                            context, sessionId, maxTotalMinutes, richEnabled
-                        )
-                    }
-                    else -> Log.w(TAG, "Unknown notification type: $notificationType")
-                }
+                handle(context, intent)
             } finally {
                 result.finish()
             }
+        }
+    }
+
+    internal suspend fun handle(context: Context, intent: Intent) {
+        val notificationType = intent.getStringExtra("notification_type") ?: return
+        val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
+        val sessionId = intent.getLongExtra("session_id", -1L)
+        val currentSide = intent.getStringExtra("current_side") ?: "LEFT"
+        val elapsedMinutes = intent.getIntExtra("elapsed_minutes", 0)
+        val maxTotalMinutes = intent.getIntExtra("max_total_minutes", 0)
+
+        when (notificationType) {
+            NOTIFICATION_TYPE_SWITCH_SIDE -> {
+                Log.i(TAG, "Triggering switch side notification (rich=$richEnabled)")
+                NotificationHelper.showSwitchSide(
+                    context, sessionId, currentSide, elapsedMinutes, richEnabled
+                )
+            }
+            NOTIFICATION_TYPE_MAX_TOTAL -> {
+                Log.i(TAG, "Triggering feeding limit notification (rich=$richEnabled)")
+                NotificationHelper.showFeedingLimit(
+                    context, sessionId, maxTotalMinutes, richEnabled
+                )
+            }
+            else -> Log.w(TAG, "Unknown notification type: $notificationType")
         }
     }
 }
