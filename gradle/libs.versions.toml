@@ -14,6 +14,7 @@ activityCompose = "1.9.3"
 coreKtx = "1.15.0"
 junit5 = "5.10.3"
 junitPlatform = "1.10.3"
+androidJunit5 = "2.0.1"
 mockk = "1.13.13"
 turbine = "1.2.0"
 runner = "1.6.2"
@@ -25,7 +26,6 @@ firebaseBom = "33.7.0"
 konsist = "0.16.0"
 kover = "0.9.1"
 twitterComposeRules = "0.0.26"
-androidJunit5 = "2.0.1"
 
 [libraries]
 # Compose BOM
@@ -86,6 +86,8 @@ turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine
 runner = { group = "androidx.test", name = "runner", version.ref = "runner" }
 compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+
+# Android JUnit 5 (instrumented tests)
 mannodermaus-core = { group = "de.mannodermaus.junit5", name = "android-test-core", version.ref = "androidJunit5" }
 mannodermaus-runner = { group = "de.mannodermaus.junit5", name = "android-test-runner", version.ref = "androidJunit5" }
 
