@@ -33,7 +33,7 @@ class SleepDaoTest {
     }
 
     @Test
-    fun insertRecord_returnsGeneratedId() = runTest {
+    fun insertRecordReturnsGeneratedId() = runTest {
         val entity = SleepEntity(startTime = System.currentTimeMillis(), sleepType = "NAP")
 
         val id = dao.insertRecord(entity)
@@ -42,7 +42,7 @@ class SleepDaoTest {
     }
 
     @Test
-    fun insertRecord_andGetAll_returnsRecord() = runTest {
+    fun insertRecordAndGetAllReturnsRecord() = runTest {
         val entity = SleepEntity(startTime = System.currentTimeMillis(), sleepType = "NAP")
 
         dao.insertRecord(entity)
@@ -53,7 +53,7 @@ class SleepDaoTest {
     }
 
     @Test
-    fun getAllRecords_orderedByStartTimeDesc() = runTest {
+    fun getAllRecordsOrderedByStartTimeDesc() = runTest {
         dao.insertRecord(SleepEntity(startTime = 1000L, sleepType = "NAP"))
         dao.insertRecord(SleepEntity(startTime = 2000L, sleepType = "NIGHT_SLEEP"))
 
@@ -64,14 +64,14 @@ class SleepDaoTest {
     }
 
     @Test
-    fun getAllRecords_emptyDb_returnsEmptyList() = runTest {
+    fun getAllRecordsEmptyDbReturnsEmptyList() = runTest {
         val records = dao.getAllRecords().first()
 
         assertEquals(0, records.size)
     }
 
     @Test
-    fun updateRecord_updatesEndTime() = runTest {
+    fun updateRecordUpdatesEndTime() = runTest {
         val entity = SleepEntity(startTime = System.currentTimeMillis(), sleepType = "NAP")
         val id = dao.insertRecord(entity)
         val endTime = System.currentTimeMillis() + 60_000L
@@ -83,7 +83,7 @@ class SleepDaoTest {
     }
 
     @Test
-    fun updateRecord_keepingNullEndTime_remainsNull() = runTest {
+    fun updateRecordKeepingNullEndTimeRemainsNull() = runTest {
         val entity = SleepEntity(startTime = System.currentTimeMillis(), sleepType = "NAP")
         val id = dao.insertRecord(entity)
 
@@ -94,7 +94,7 @@ class SleepDaoTest {
     }
 
     @Test
-    fun getCompletedRecordsSince_excludesInProgress() = runTest {
+    fun getCompletedRecordsSinceExcludesInProgress() = runTest {
         dao.insertRecord(SleepEntity(startTime = 2000L, sleepType = "NAP"))
 
         val results = dao.getCompletedRecordsSince(0L)
@@ -103,7 +103,7 @@ class SleepDaoTest {
     }
 
     @Test
-    fun getCompletedRecordsSince_excludesBeforeCutoff() = runTest {
+    fun getCompletedRecordsSinceExcludesBeforeCutoff() = runTest {
         dao.insertRecord(SleepEntity(startTime = 500L, endTime = 600L, sleepType = "NAP"))
 
         val results = dao.getCompletedRecordsSince(1000L)
@@ -112,7 +112,7 @@ class SleepDaoTest {
     }
 
     @Test
-    fun getCompletedRecordsSince_includesExactCutoffMs() = runTest {
+    fun getCompletedRecordsSinceIncludesExactCutoffMs() = runTest {
         dao.insertRecord(SleepEntity(startTime = 1000L, endTime = 2000L, sleepType = "NAP"))
 
         val results = dao.getCompletedRecordsSince(1000L)
@@ -121,14 +121,14 @@ class SleepDaoTest {
     }
 
     @Test
-    fun getCompletedRecordsSince_emptyDb_returnsEmpty() = runTest {
+    fun getCompletedRecordsSinceEmptyDbReturnsEmpty() = runTest {
         val results = dao.getCompletedRecordsSince(0L)
 
         assertEquals(0, results.size)
     }
 
     @Test
-    fun getRecentRecords_respectsLimit() = runTest {
+    fun getRecentRecordsRespectsLimit() = runTest {
         repeat(5) { i ->
             dao.insertRecord(SleepEntity(startTime = i.toLong() * 1000L, sleepType = "NAP"))
         }
@@ -139,7 +139,7 @@ class SleepDaoTest {
     }
 
     @Test
-    fun getRecentRecords_limitExceedsCount_returnsAll() = runTest {
+    fun getRecentRecordsLimitExceedsCountReturnsAll() = runTest {
         dao.insertRecord(SleepEntity(startTime = 1000L, sleepType = "NAP"))
         dao.insertRecord(SleepEntity(startTime = 2000L, sleepType = "NAP"))
 
@@ -149,7 +149,7 @@ class SleepDaoTest {
     }
 
     @Test
-    fun getRecentRecords_orderedByStartTimeDesc() = runTest {
+    fun getRecentRecordsOrderedByStartTimeDesc() = runTest {
         dao.insertRecord(SleepEntity(startTime = 1000L, sleepType = "NAP"))
         dao.insertRecord(SleepEntity(startTime = 2000L, sleepType = "NIGHT_SLEEP"))
 
