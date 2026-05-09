@@ -47,7 +47,7 @@ class BabyRepositoryImplTest {
     }
 
     @Test
-    fun saveThenGet_roundTrips() = testScope.runTest {
+    fun saveThenGetRoundTrips() = testScope.runTest {
         val baby = Baby(
             name = "Luna",
             birthDate = LocalDate.of(2025, 1, 15),
@@ -66,7 +66,7 @@ class BabyRepositoryImplTest {
     }
 
     @Test
-    fun isOnboardingComplete_afterSave_true() = testScope.runTest {
+    fun isOnboardingCompleteAfterSaveTrue() = testScope.runTest {
         val baby = Baby("Luna", LocalDate.now())
         repository.saveBabyProfile(baby)
 
@@ -76,13 +76,13 @@ class BabyRepositoryImplTest {
     }
 
     @Test
-    fun isOnboardingComplete_beforeSave_false() = testScope.runTest {
+    fun isOnboardingCompleteBeforeSaveFalse() = testScope.runTest {
         val result = repository.isOnboardingComplete().first()
         assertFalse(result)
     }
 
     @Test
-    fun saveTwice_overwritesPrevious() = testScope.runTest {
+    fun saveTwiceOverwritesPrevious() = testScope.runTest {
         val babyA = Baby("Luna", LocalDate.of(2025, 1, 1))
         val babyB = Baby("Stella", LocalDate.of(2025, 6, 1))
 
@@ -95,7 +95,7 @@ class BabyRepositoryImplTest {
     }
 
     @Test
-    fun getAllergies_multipleSelected_roundTrips() = testScope.runTest {
+    fun getAllergiesMultipleSelectedRoundTrips() = testScope.runTest {
         val allergies = listOf(AllergyType.CMPA, AllergyType.SOY, AllergyType.OTHER)
         val baby = Baby(
             name = "Luna",

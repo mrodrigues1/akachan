@@ -32,7 +32,7 @@ class BreastfeedingDaoTest {
     }
 
     @Test
-    fun insertSession_andGetAll_returnsInsertedSession() = runTest {
+    fun insertSessionAndGetAllReturnsInsertedSession() = runTest {
         val entity = BreastfeedingEntity(
             startTime = System.currentTimeMillis(),
             startingSide = "LEFT"
@@ -46,7 +46,7 @@ class BreastfeedingDaoTest {
     }
 
     @Test
-    fun getActiveSession_returnsSessionWithNullEndTime() = runTest {
+    fun getActiveSessionReturnsSessionWithNullEndTime() = runTest {
         val active = BreastfeedingEntity(
             startTime = System.currentTimeMillis(),
             startingSide = "LEFT"
@@ -66,7 +66,7 @@ class BreastfeedingDaoTest {
     }
 
     @Test
-    fun updateSession_updatesEndTime() = runTest {
+    fun updateSessionUpdatesEndTime() = runTest {
         val entity = BreastfeedingEntity(
             startTime = System.currentTimeMillis(),
             startingSide = "LEFT"
