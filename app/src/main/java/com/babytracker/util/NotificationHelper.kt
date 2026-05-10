@@ -491,7 +491,7 @@ object NotificationHelper {
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(false)
-            .setOngoing(false)
+            .setOngoing(true)
             .setContentIntent(tapPi)
 
         if (richEnabled) {
