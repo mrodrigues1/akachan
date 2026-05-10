@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -57,6 +58,7 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.SideSelector
 import com.babytracker.ui.component.TimerDisplay
+import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
 import java.time.Duration
@@ -415,6 +417,7 @@ private fun BreastSide.displayName(): String =
 
 @Composable
 private fun LastFeedingSummaryCard(summary: LastFeedingSummaryState.Populated) {
+    val isDark = LocalDarkTheme.current
     val session = summary.lastSession
     val secondSide = if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
 
@@ -422,7 +425,8 @@ private fun LastFeedingSummaryCard(summary: LastFeedingSummaryState.Populated) {
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = if (isDark) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
