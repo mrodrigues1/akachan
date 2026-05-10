@@ -25,9 +25,24 @@ Two distinct visibility problems in dark mode:
 
 No other tokens change. `OutlineDark` (`#938F99`) is already at 5.5:1 — left as-is. `SideSelector` unselected border uses `primaryContainer` (pink) — intentional branded design, left unchanged.
 
-### 2. Explicit dark-mode borders on cards
+### 2. `LocalDarkTheme` CompositionLocal — `Theme.kt`
 
-Cards that currently use elevation-only get a `BorderStroke(1.dp, outlineVariant)` when dark theme is active. Detected via `isSystemInDarkTheme()` at the call site.
+Add a `CompositionLocal<Boolean>` that exposes the **resolved** dark theme state (accounting for all three `ThemeConfig` modes: `SYSTEM`, `LIGHT`, `DARK`). Components consume this instead of `isSystemInDarkTheme()`.
+
+`isSystemInDarkTheme()` only reads the OS setting — it misses the case where the user picks `ThemeConfig.DARK` in Settings while the system is in light mode. `LocalDarkTheme` is set to the same `darkTheme` value that `BabyTrackerTheme` already resolves, so all three modes are covered correctly.
+
+```kotlin
+val LocalDarkTheme = compositionLocalOf { false }
+
+// Inside BabyTrackerTheme:
+CompositionLocalProvider(LocalDarkTheme provides darkTheme) {
+    MaterialTheme(...)
+}
+```
+
+### 3. Explicit dark-mode borders on cards
+
+Cards that currently use elevation-only get a `BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)` when `LocalDarkTheme.current` is true.
 
 | File | Cards affected |
 |------|---------------|
@@ -49,18 +64,29 @@ Cards that currently use elevation-only get a `BorderStroke(1.dp, outlineVariant
 ## Files touched
 
 1. `app/src/main/java/com/babytracker/ui/theme/Color.kt` — one token value
-2. `app/src/main/java/com/babytracker/ui/component/HistoryCard.kt` — add border param
-3. `app/src/main/java/com/babytracker/ui/home/HomeScreen.kt` — two cards
-4. `app/src/main/java/com/babytracker/ui/breastfeeding/BreastfeedingScreen.kt` — one card
+2. `app/src/main/java/com/babytracker/ui/theme/Theme.kt` — add `LocalDarkTheme`, provide it in `BabyTrackerTheme`
+3. `app/src/main/java/com/babytracker/ui/component/HistoryCard.kt` — consume `LocalDarkTheme`, add border
+4. `app/src/main/java/com/babytracker/ui/home/HomeScreen.kt` — consume `LocalDarkTheme`, two cards
+5. `app/src/main/java/com/babytracker/ui/breastfeeding/BreastfeedingScreen.kt` — consume `LocalDarkTheme`, one card
 
 ---
 
 ## Verification
 
-- Switch to dark mode in Settings
+All three `ThemeConfig` modes must be verified independently:
+
+| Mode | OS theme | Expected |
+|------|----------|----------|
+| Settings → System | OS dark | Borders visible |
+| Settings → System | OS light | Borders NOT visible |
+| Settings → Dark | OS light | Borders visible |
+| Settings → Dark | OS dark | Borders visible |
+| Settings → Light | OS dark | Borders NOT visible |
+| Settings → Light | OS light | Borders NOT visible |
+
+Per-screen checklist (in dark mode):
 - `BreastfeedingScreen`: Switch Side / Pause / Stop card borders clearly visible
 - `HomeScreen`: Breastfeeding and Sleep summary cards have visible outlines
 - `BreastfeedingScreen` (no active session): Last Feeding Summary card has visible outline
 - `BreastfeedingHistoryScreen` and `SleepHistoryScreen`: HistoryCard entries have visible outlines
-- Light mode: no visual regressions (borders only active in dark)
-- `SideSelector` unselected border stays pink in dark mode
+- `SideSelector` unselected border stays pink in dark mode (unchanged)
