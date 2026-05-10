@@ -551,5 +551,9 @@ style:
       - 'androidx.compose.ui.test.*'
 
 TwitterCompose:
+  CompositionLocalAllowlist:
+    active: true
+    allowedCompositionLocals:
+      - LocalDarkTheme
   UnstableCollections:
     active: false
