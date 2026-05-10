@@ -30,6 +30,7 @@ data class HomeUiState(
     val recentFeedings: List<BreastfeedingSession> = emptyList(),
     val recentSleepRecords: List<SleepRecord> = emptyList(),
     val activeSession: BreastfeedingSession? = null,
+    val activeSleepRecord: SleepRecord? = null,
     val nextRecommendedSide: BreastSide? = null,
     val lastNightSleepDuration: Duration? = null,
     val lastSessionStartTime: Instant? = null,
@@ -81,6 +82,7 @@ class HomeViewModel @Inject constructor(
             recentFeedings = feedings.take(3),
             recentSleepRecords = sleepRecords.take(3),
             activeSession = feedings.firstOrNull { it.isInProgress },
+            activeSleepRecord = sleepRecords.firstOrNull { it.isInProgress },
             nextRecommendedSide = nextRecommendedSide,
             lastNightSleepDuration = lastNightSleep,
             lastSessionStartTime = (feedings.firstOrNull { it.isInProgress }

@@ -3,6 +3,8 @@ package com.babytracker.ui.home
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.SleepRecord
+import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
@@ -165,6 +167,35 @@ class HomeViewModelTest {
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(completedSession.startTime, viewModel.uiState.value.lastSessionStartTime)
+    }
+
+    @Test
+    fun activeSleepRecord_isNull_whenNoInProgressSleepRecord() = runTest {
+        val completedSleep = SleepRecord(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(3600),
+            endTime = Instant.now().minusSeconds(1800),
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        every { getSleepHistory() } returns flowOf(listOf(completedSleep))
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.uiState.value.activeSleepRecord)
+    }
+
+    @Test
+    fun activeSleepRecord_isSet_whenInProgressSleepRecordExists() = runTest {
+        val inProgressSleep = SleepRecord(
+            id = 2L,
+            startTime = Instant.now().minusSeconds(600),
+            endTime = null,
+            sleepType = SleepType.NAP,
+        )
+        every { getSleepHistory() } returns flowOf(listOf(inProgressSleep))
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull(viewModel.uiState.value.activeSleepRecord)
+        assertEquals(inProgressSleep.id, viewModel.uiState.value.activeSleepRecord!!.id)
     }
 
     @Test

@@ -153,6 +153,10 @@ fun HomeScreen(
                     (now.toEpochMilli() - session.startTime.toEpochMilli() - session.pausedDurationMs) / 1000
                 }.coerceAtLeast(0L)
             }
+            val activeSleepRecord = uiState.activeSleepRecord
+            val sleepElapsedSeconds: Long? = activeSleepRecord?.let { record ->
+                ((now.toEpochMilli() - record.startTime.toEpochMilli()) / 1000).coerceAtLeast(0L)
+            }
 
             // Summary cards row
             Row(
@@ -236,6 +240,7 @@ fun HomeScreen(
                 }
 
                 // Sleep card
+                val isActiveSleep = activeSleepRecord != null
                 Card(
                     onClick = onNavigateToSleep,
                     modifier = Modifier
@@ -245,27 +250,69 @@ fun HomeScreen(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    elevation = CardDefaults.cardElevation(
+                        defaultElevation = if (isActiveSleep) 4.dp else 2.dp
+                    ),
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
-                        Text(text = "🌙", style = MaterialTheme.typography.headlineMedium)
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Text(text = "🌙", style = MaterialTheme.typography.headlineMedium)
+                            if (isActiveSleep) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    shape = MaterialTheme.shapes.extraLarge,
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.PlayArrow,
+                                            contentDescription = "Live",
+                                            tint = MaterialTheme.colorScheme.onSecondary,
+                                            modifier = Modifier.size(10.dp)
+                                        )
+                                        Text(
+                                            text = "Live",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSecondary,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Sleep",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                             fontWeight = FontWeight.Bold
                         )
-                        val sleepLabel = uiState.lastNightSleepDuration
-                            ?.formatDuration()
-                            ?.let { "$it last night" }
-                            ?: "${uiState.recentSleepRecords.size} records"
-                        Text(
-                            text = sleepLabel,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        if (isActiveSleep && sleepElapsedSeconds != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = sleepElapsedSeconds.formatMinutesSeconds(),
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                fontWeight = FontWeight.Bold
+                            )
+                        } else {
+                            val sleepLabel = uiState.lastNightSleepDuration
+                                ?.formatDuration()
+                                ?.let { "$it last night" }
+                                ?: "${uiState.recentSleepRecords.size} records"
+                            Text(
+                                text = sleepLabel,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
             }
