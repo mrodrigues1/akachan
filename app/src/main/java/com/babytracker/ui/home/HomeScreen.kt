@@ -3,6 +3,7 @@ package com.babytracker.ui.home
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -43,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatMinutesSeconds
@@ -158,7 +160,7 @@ fun HomeScreen(
                         }
                         OutlinedButton(
                             onClick = { viewModel.onStopActiveSession() },
-                            border = androidx.compose.foundation.BorderStroke(1.dp, bannerOnColor),
+                            border = BorderStroke(1.dp, bannerOnColor),
                             colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
                                 contentColor = bannerOnColor
                             )
@@ -185,6 +187,12 @@ fun HomeScreen(
                 }.coerceAtLeast(0L)
             }
 
+            val darkBorder = if (LocalDarkTheme.current) {
+                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            } else {
+                null
+            }
+
             // Summary cards row
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -198,7 +206,8 @@ fun HomeScreen(
                         .heightIn(min = 140.dp),
                     shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    border = darkBorder,
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(text = "🍼", style = MaterialTheme.typography.headlineMedium)
@@ -249,7 +258,8 @@ fun HomeScreen(
                         .heightIn(min = 140.dp),
                     shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    border = darkBorder,
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(text = "🌙", style = MaterialTheme.typography.headlineMedium)
