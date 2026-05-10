@@ -241,4 +241,16 @@ class NotificationHelperTest {
         assertTrue(collapsedCall.contains("maxProgress = 1"), "sleep collapsed maxProgress must be 1")
         assertTrue(collapsedCall.contains("showProgress = false"), "sleep collapsed progress bar must be hidden")
     }
+
+    @Test
+    fun `showSleepActive uses setOngoing true to prevent accidental dismissal`() {
+        val source = notificationHelperSource()
+        val functionBody = Regex("fun showSleepActive[\\s\\S]*?fun cancelNotification")
+            .find(source)?.value ?: error("showSleepActive body not found")
+
+        assertTrue(
+            functionBody.contains("setOngoing(true)"),
+            "showSleepActive must use setOngoing(true) — active sleep session must not be swipe-dismissible"
+        )
+    }
 }
