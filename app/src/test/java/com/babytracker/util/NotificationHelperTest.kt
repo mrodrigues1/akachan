@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.toArgb
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -251,6 +252,22 @@ class NotificationHelperTest {
         assertTrue(
             functionBody.contains("setOngoing(true)"),
             "showSleepActive must use setOngoing(true) — active sleep session must not be swipe-dismissible"
+        )
+    }
+
+    @Test
+    fun `showSleepActive rich path uses DecoratedCustomViewStyle not BigTextStyle`() {
+        val source = notificationHelperSource()
+        val functionBody = Regex("fun showSleepActive[\\s\\S]*?fun cancelNotification")
+            .find(source)?.value ?: error("showSleepActive body not found")
+
+        assertFalse(
+            functionBody.contains("BigTextStyle"),
+            "showSleepActive must not use BigTextStyle — it overrides setCustomContentView, breaking the rich layout"
+        )
+        assertTrue(
+            functionBody.contains("DecoratedCustomViewStyle"),
+            "showSleepActive rich path must use DecoratedCustomViewStyle so setCustomContentView renders"
         )
     }
 }
