@@ -6,9 +6,7 @@ import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
-import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
-import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coJustRun
@@ -37,8 +35,6 @@ class HomeViewModelTest {
     private lateinit var getBabyProfile: GetBabyProfileUseCase
     private lateinit var getBreastfeedingHistory: GetBreastfeedingHistoryUseCase
     private lateinit var getSleepHistory: GetSleepHistoryUseCase
-    private lateinit var stopBreastfeedingSession: StopBreastfeedingSessionUseCase
-    private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var viewModel: HomeViewModel
@@ -64,8 +60,6 @@ class HomeViewModelTest {
         getBabyProfile = mockk()
         getBreastfeedingHistory = mockk()
         getSleepHistory = mockk()
-        stopBreastfeedingSession = mockk()
-        notificationCoordinator = mockk()
         syncToFirestore = mockk()
         settingsRepository = mockk()
 
@@ -85,8 +79,6 @@ class HomeViewModelTest {
         getBabyProfile,
         getBreastfeedingHistory,
         getSleepHistory,
-        stopBreastfeedingSession,
-        notificationCoordinator,
         syncToFirestore,
         settingsRepository,
     )
@@ -173,34 +165,6 @@ class HomeViewModelTest {
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(completedSession.startTime, viewModel.uiState.value.lastSessionStartTime)
-    }
-
-    @Test
-    fun onStopActiveSession_callsStopUseCase() = runTest {
-        every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession))
-        coJustRun { stopBreastfeedingSession(any()) }
-        io.mockk.justRun { notificationCoordinator.cancelAllSessionNotifications() }
-        viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.onStopActiveSession()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        coVerify(exactly = 1) { stopBreastfeedingSession(inProgressSession) }
-    }
-
-    @Test
-    fun onStopActiveSession_cancelsAllNotifications() = runTest {
-        every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession))
-        coJustRun { stopBreastfeedingSession(any()) }
-        io.mockk.justRun { notificationCoordinator.cancelAllSessionNotifications() }
-        viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.onStopActiveSession()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        io.mockk.verify(exactly = 1) { notificationCoordinator.cancelAllSessionNotifications() }
     }
 
     @Test

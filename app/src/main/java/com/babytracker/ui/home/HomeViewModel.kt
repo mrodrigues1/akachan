@@ -10,9 +10,7 @@ import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
-import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
-import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,8 +41,6 @@ class HomeViewModel @Inject constructor(
     getBabyProfile: GetBabyProfileUseCase,
     getBreastfeedingHistory: GetBreastfeedingHistoryUseCase,
     getSleepHistory: GetSleepHistoryUseCase,
-    private val stopBreastfeedingSession: StopBreastfeedingSessionUseCase,
-    private val notificationCoordinator: BreastfeedingSessionNotificationCoordinator,
     private val syncToFirestore: SyncToFirestoreUseCase,
     settingsRepository: SettingsRepository,
 ) : ViewModel() {
@@ -99,15 +95,6 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { runCatching { syncToFirestore() } }
-    }
-
-    fun onStopActiveSession() {
-        val session = uiState.value.activeSession ?: return
-        viewModelScope.launch {
-            stopBreastfeedingSession(session)
-            notificationCoordinator.cancelAllSessionNotifications()
-            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
-        }
     }
 
 }

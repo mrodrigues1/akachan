@@ -1,8 +1,5 @@
 package com.babytracker.ui.home
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,8 +26,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -122,55 +119,6 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Active session banner
-            AnimatedVisibility(
-                visible = uiState.activeSession != null,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                val isFeeding = uiState.activeSession != null
-                val emoji = if (isFeeding) "🍼" else "🌙"
-                val label = if (isFeeding) "Feeding in progress" else "Sleep in progress"
-                val bannerColor = if (isFeeding) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
-                val bannerOnColor = if (isFeeding) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondary
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(containerColor = bannerColor)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = emoji, style = MaterialTheme.typography.titleLarge)
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 12.dp)
-                        ) {
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.titleSmall,
-                                color = bannerOnColor,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        OutlinedButton(
-                            onClick = { viewModel.onStopActiveSession() },
-                            border = BorderStroke(1.dp, bannerOnColor),
-                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                                contentColor = bannerOnColor
-                            )
-                        ) {
-                            Text("Stop")
-                        }
-                    }
-                }
-            }
-
             val now by produceState(initialValue = Instant.now()) {
                 while (true) {
                     value = Instant.now()
@@ -199,43 +147,74 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Breastfeeding card
+                val isActiveFeeding = activeSession != null
                 Card(
                     onClick = onNavigateToBreastfeeding,
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 140.dp),
                     shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    border = darkBorder,
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isActiveFeeding)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
+                            MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(
+                        defaultElevation = if (isActiveFeeding) 4.dp else 2.dp
+                    ),
+                    border = if (isActiveFeeding) null else darkBorder,
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
-                        Text(text = "🍼", style = MaterialTheme.typography.headlineMedium)
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Text(text = "🍼", style = MaterialTheme.typography.headlineMedium)
+                            if (isActiveFeeding && activeSession != null) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = MaterialTheme.shapes.extraLarge,
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = if (activeSession.isPaused) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                            contentDescription = if (activeSession.isPaused) "Paused" else "Live",
+                                            tint = MaterialTheme.colorScheme.onPrimary,
+                                            modifier = Modifier.size(10.dp)
+                                        )
+                                        Text(
+                                            text = if (activeSession.isPaused) "Paused" else "Live",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Breastfeeding",
                             style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = if (isActiveFeeding)
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            else
+                                MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
                         )
-                        if (activeSession != null && activeElapsedSeconds != null) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (activeSession.isPaused) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = activeElapsedSeconds.formatMinutesSeconds(),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
+                        if (isActiveFeeding && activeElapsedSeconds != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = activeElapsedSeconds.formatMinutesSeconds(),
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Bold
+                            )
                         } else {
                             val lastStart = uiState.lastSessionStartTime
                             if (lastStart != null) {
