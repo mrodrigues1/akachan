@@ -1,0 +1,313 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-10T00:00:00Z",
+  "title": "Design System: Akachan",
+  "extensions": {
+    "colorMeta": {
+      "carnation-pink": {
+        "role": "primary",
+        "displayName": "Carnation Pink",
+        "canonical": "oklch(46% 0.21 353)",
+        "tonalRamp": [
+          "oklch(20% 0.12 353)",
+          "oklch(30% 0.17 353)",
+          "oklch(38% 0.20 353)",
+          "oklch(46% 0.21 353)",
+          "oklch(58% 0.18 353)",
+          "oklch(71% 0.13 353)",
+          "oklch(82% 0.08 353)",
+          "oklch(94% 0.03 353)"
+        ]
+      },
+      "carnation-pink-container": {
+        "role": "primary-container",
+        "displayName": "Carnation Pink Container",
+        "canonical": "oklch(84% 0.07 353)",
+        "tonalRamp": [
+          "oklch(20% 0.12 353)",
+          "oklch(30% 0.17 353)",
+          "oklch(38% 0.20 353)",
+          "oklch(46% 0.21 353)",
+          "oklch(58% 0.18 353)",
+          "oklch(71% 0.13 353)",
+          "oklch(84% 0.07 353)",
+          "oklch(96% 0.02 353)"
+        ]
+      },
+      "sleep-blue": {
+        "role": "secondary",
+        "displayName": "Sleep Blue",
+        "canonical": "oklch(52% 0.18 255)",
+        "tonalRamp": [
+          "oklch(22% 0.12 255)",
+          "oklch(30% 0.16 255)",
+          "oklch(38% 0.17 255)",
+          "oklch(52% 0.18 255)",
+          "oklch(62% 0.16 255)",
+          "oklch(74% 0.12 255)",
+          "oklch(85% 0.07 255)",
+          "oklch(94% 0.03 255)"
+        ]
+      },
+      "threshold-green": {
+        "role": "tertiary",
+        "displayName": "Threshold Green",
+        "canonical": "oklch(54% 0.15 143)",
+        "tonalRamp": [
+          "oklch(22% 0.09 143)",
+          "oklch(32% 0.12 143)",
+          "oklch(42% 0.14 143)",
+          "oklch(54% 0.15 143)",
+          "oklch(65% 0.13 143)",
+          "oklch(76% 0.10 143)",
+          "oklch(86% 0.06 143)",
+          "oklch(95% 0.02 143)"
+        ]
+      },
+      "warning-amber": {
+        "role": "extended-warning",
+        "displayName": "Warning Amber",
+        "canonical": "oklch(54% 0.20 44)",
+        "note": "Non-M3 extended token. Import directly from Color.kt as WarningAmber — never through MaterialTheme.colorScheme.",
+        "tonalRamp": [
+          "oklch(22% 0.10 44)",
+          "oklch(32% 0.15 44)",
+          "oklch(40% 0.18 44)",
+          "oklch(54% 0.20 44)",
+          "oklch(67% 0.18 44)",
+          "oklch(78% 0.14 44)",
+          "oklch(88% 0.08 44)",
+          "oklch(95% 0.03 44)"
+        ]
+      },
+      "warm-cream": {
+        "role": "surface",
+        "displayName": "Warm Cream",
+        "canonical": "oklch(99% 0.02 93)",
+        "note": "The identity of the app surface. Never replaced with pure white.",
+        "tonalRamp": [
+          "oklch(15% 0.01 93)",
+          "oklch(28% 0.01 93)",
+          "oklch(42% 0.01 93)",
+          "oklch(57% 0.01 93)",
+          "oklch(70% 0.01 93)",
+          "oklch(82% 0.01 93)",
+          "oklch(92% 0.02 93)",
+          "oklch(99% 0.02 93)"
+        ]
+      },
+      "near-black": {
+        "role": "on-surface",
+        "displayName": "Near-Black",
+        "canonical": "oklch(18% 0.005 353)",
+        "tonalRamp": [
+          "oklch(10% 0.004 353)",
+          "oklch(18% 0.005 353)",
+          "oklch(30% 0.005 353)",
+          "oklch(45% 0.005 353)",
+          "oklch(60% 0.005 353)",
+          "oklch(75% 0.005 353)",
+          "oklch(88% 0.003 353)",
+          "oklch(97% 0.001 353)"
+        ]
+      },
+      "dark-surface": {
+        "role": "surface-dark",
+        "displayName": "Dark Surface",
+        "canonical": "oklch(14% 0.007 289)",
+        "note": "M3 baseline dark surface with purple undertone.",
+        "tonalRamp": [
+          "oklch(8% 0.005 289)",
+          "oklch(14% 0.007 289)",
+          "oklch(22% 0.007 289)",
+          "oklch(32% 0.007 289)",
+          "oklch(45% 0.006 289)",
+          "oklch(60% 0.005 289)",
+          "oklch(75% 0.004 289)",
+          "oklch(90% 0.002 289)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Timer Display",
+        "purpose": "Live elapsed-time readout inside TimerDisplay. Used nowhere else. ExtraBold 800 at 36sp with -1sp tracking is the hierarchy anchor."
+      },
+      "headline": {
+        "displayName": "Screen Headline",
+        "purpose": "Screen-level titles. Appears once per screen at most, never inside a card."
+      },
+      "title": {
+        "displayName": "TopAppBar Title",
+        "purpose": "Navigation-level orientation. The first text a user reads when they arrive at a screen."
+      },
+      "body": {
+        "displayName": "Body Copy",
+        "purpose": "Descriptions and supporting text. Normal weight keeps it recessive; let titles carry the hierarchy."
+      },
+      "label": {
+        "displayName": "Section Header / Button",
+        "purpose": "LabelMedium (12sp Bold, 0.8sp tracking) is UPPERCASE for day-group headers only. LabelLarge (14sp SemiBold) is used for button text and control labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "ambient-card",
+        "value": "0 1dp 3dp rgba(0,0,0,0.08), 0 1dp 2dp rgba(0,0,0,0.06)",
+        "elevation": "1dp",
+        "purpose": "Passive card lift. Applied to HistoryCard and content cards at rest. Swapped for a 1dp outlineVariant border in dark mode."
+      },
+      {
+        "name": "active-selection",
+        "value": "0 6dp 16dp rgba(0,0,0,0.16)",
+        "elevation": "6dp",
+        "purpose": "Active/selected state for SideSelector tiles. The step from 0 to 6dp is the committed-choice signal."
+      }
+    ],
+    "motion": [
+      {
+        "name": "timer-pulse",
+        "value": "scale 1.0→1.04→1.0",
+        "duration": "2500ms",
+        "easing": "ease-in-out",
+        "purpose": "TimerDisplay ring pulse while session is running. Stops immediately on pause. Communicates liveness without visual noise."
+      },
+      {
+        "name": "state-transition",
+        "value": "tween",
+        "duration": "300ms",
+        "easing": "FastOutSlowIn (cubic-bezier(0.4, 0.0, 0.2, 1))",
+        "purpose": "Default for state changes: idle→active session banners, SideSelector selection, card color transitions."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Full-width primary action. Pill shape. Appears as 'Start Session', 'Stop Session', and 'Start Tracking'.",
+      "html": "<button class=\"ds-btn-primary\">Start Session</button>",
+      "css": ".ds-btn-primary { display: block; width: 100%; background-color: #C2185B; color: #FFFFFF; padding: 16px 24px; border: none; border-radius: 50px; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; cursor: pointer; min-height: 48px; transition: background-color 0.2s ease; } .ds-btn-primary:hover { background-color: #A01648; } .ds-btn-primary:focus-visible { outline: 3px solid #F8BBD0; outline-offset: 2px; } .ds-btn-primary:active { background-color: #880E4F; transform: scale(0.98); }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary action with transparent fill and a 2dp border. Used for 'View History', 'Schedule', contextual secondary actions.",
+      "html": "<button class=\"ds-btn-outline\">View History</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; background-color: transparent; color: #1976D2; padding: 14px 24px; border: 2px solid #1976D2; border-radius: 50px; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; cursor: pointer; min-height: 48px; transition: background-color 0.2s ease, color 0.2s ease; } .ds-btn-outline:hover { background-color: #B3E5FC; } .ds-btn-outline:focus-visible { outline: 3px solid #90CAF9; outline-offset: 2px; }"
+    },
+    {
+      "name": "SideSelector — Selected",
+      "kind": "custom",
+      "refersTo": "side-selector-selected",
+      "description": "Active breast-side tile. 88dp tall, medium radius, Carnation Pink fill. Left arrow icon above label.",
+      "html": "<div class=\"ds-side-selected\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M15 18l-6-6 6-6\" stroke=\"#FFFFFF\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><span>Left</span></div>",
+      "css": ".ds-side-selected { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background-color: #C2185B; color: #FFFFFF; border-radius: 16px; height: 88px; width: 100%; box-shadow: 0 6px 16px rgba(0,0,0,0.16); font-size: 14px; font-weight: 600; letter-spacing: 0.1px; cursor: pointer; }"
+    },
+    {
+      "name": "SideSelector — Unselected",
+      "kind": "custom",
+      "refersTo": "side-selector-unselected",
+      "description": "Inactive breast-side tile. Warm Cream fill, 2dp Carnation Pink Container border, muted icon.",
+      "html": "<div class=\"ds-side-unselected\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M9 18l6-6-6-6\" stroke=\"rgba(26,26,26,0.4)\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><span>Right</span></div>",
+      "css": ".ds-side-unselected { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background-color: #FFFDE7; color: rgba(26,26,26,0.6); border: 2px solid #F8BBD0; border-radius: 16px; height: 88px; width: 100%; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; cursor: pointer; transition: border-color 0.15s ease; } .ds-side-unselected:hover { border-color: #C2185B; }"
+    },
+    {
+      "name": "HistoryCard",
+      "kind": "card",
+      "refersTo": "card-history",
+      "description": "Session history list item. Badge + title + subtitle + trailing duration. 1dp ambient shadow; border stroke in dark mode.",
+      "html": "<div class=\"ds-history-card\"><div class=\"ds-history-badge\">🍼</div><div class=\"ds-history-text\"><span class=\"ds-history-title\">Left side</span><span class=\"ds-history-subtitle\">08:42 AM</span></div><span class=\"ds-history-trailing\">14m</span></div>",
+      "css": ".ds-history-card { display: flex; align-items: center; gap: 12px; background-color: #FFFDE7; border-radius: 16px; padding: 12px 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin: 4px 0; } .ds-history-badge { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background-color: #F8BBD0; border-radius: 8px; font-size: 20px; flex-shrink: 0; } .ds-history-text { display: flex; flex-direction: column; flex: 1; } .ds-history-title { font-size: 14px; font-weight: 600; color: #1A1A1A; letter-spacing: 0.1px; } .ds-history-subtitle { font-size: 12px; font-weight: 400; color: #757575; letter-spacing: 0.4px; } .ds-history-trailing { font-size: 14px; font-weight: 400; color: #C2185B; flex-shrink: 0; }"
+    },
+    {
+      "name": "Allergy Chip",
+      "kind": "chip",
+      "refersTo": "chip-allergy",
+      "description": "Display-only allergy tag in Settings. Carnation Pink Container fill, Deep Carnation text.",
+      "html": "<span class=\"ds-chip-allergy\">Gluten</span>",
+      "css": ".ds-chip-allergy { display: inline-block; background-color: #F8BBD0; color: #880E4F; border-radius: 8px; padding: 4px 12px; font-size: 12px; font-weight: 600; letter-spacing: 0.1px; }"
+    },
+    {
+      "name": "Section Day Header",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "UPPERCASE section header for day groups in history lists. LabelMedium style: 12sp Bold, 0.8sp tracking.",
+      "html": "<p class=\"ds-day-header\">Today · 3 sessions · 36m total</p>",
+      "css": ".ds-day-header { font-size: 12px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #C2185B; padding: 8px 0 6px; margin: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Midnight Companion",
+    "overview": "Akachan is a tool for care, not performance. Its design language answers one question: what does a parent need when one arm is occupied and exhaustion has blurred the edges of thought? Everything else is secondary. The visual system is warm and legible first; it carries personality through restraint, not decoration.\n\nThe palette anchors on a soft cream surface (#FFFDE7) that reads like a familiar page, not a product interface. Carnation Pink identifies feeding. Sleep Blue identifies rest. These are deliberate semantic assignments, not aesthetic preferences. The system's warmth lives in the surface and the containment colors; the action colors are decisive, dark enough to read instantly against any background the eye lands on.\n\nThe system explicitly rejects the aesthetics it competes against: clinical white-and-teal apps that feel like patient intake forms, loud baby-brand UIs saturated with primary colors and bubble fonts, and fitness-tracker dashboards that treat care as a performance metric. Akachan does not count reps. It records moments.",
+    "keyCharacteristics": [
+      "Warm cream (#FFFDE7) as the single app surface — no alternating backgrounds",
+      "Semantic color assignment: Pink = Feeding, Blue = Sleep, Green = over-limit threshold",
+      "Generous touch targets (88dp interactive height for primary selectors; 48dp for buttons)",
+      "System font (Roboto on Android) set across all weights; personality through weight contrast",
+      "Elevation communicates state, not hierarchy; surfaces are flat at rest",
+      "Dark mode is a first-class citizen, tuned for 3am low-light legibility"
+    ],
+    "rules": [
+      {
+        "name": "The Semantic Assignment Rule",
+        "body": "Carnation Pink is the feeding color. Sleep Blue is the sleep color. They never appear as decorative interchangeables. If a screen handles both domains, the active domain's hue dominates; the other domain's color appears only in summarizing contexts.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Pure White Rule",
+        "body": "The app surface is always Warm Cream (#FFFDE7). Pure white (#FFFFFF) appears only as text on filled Carnation Pink or Sleep Blue buttons; it is not a background value.",
+        "section": "colors"
+      },
+      {
+        "name": "The Direct Import Rule",
+        "body": "Warning tokens (WarningAmber, WarningContainerAmber, OnWarningContainerAmber and their dark variants) must be imported by name from Color.kt. Never access them through MaterialTheme.colorScheme, which does not carry them.",
+        "section": "colors"
+      },
+      {
+        "name": "The ExtraBold Timer Rule",
+        "body": "displaySmall (36sp ExtraBold) is used exclusively for the live elapsed-time readout inside TimerDisplay. Assigning it to any other text element collapses the hierarchy at the moment a parent glances at an active session.",
+        "section": "typography"
+      },
+      {
+        "name": "The UPPERCASE Header Rule",
+        "body": "Day-group headers in history lists use labelMedium with uppercase text transformation. This is the only place uppercase text appears in the system.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Surfaces are flat at rest. Shadows appear only in response to user-initiated state change. A card that appears elevated before the user has touched it has confused decoration with state.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Dark Mode Swap Rule",
+        "body": "Ambient shadows (1dp) are not visible on dark surfaces. Swap them explicitly for an outlineVariant border stroke (1dp, #CAC4D0) in dark mode rather than increasing shadow opacity.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use Warm Cream (#FFFDE7) for all app backgrounds. It is the identity of the surface.",
+      "Do assign color by domain: Carnation Pink for feeding screens and states, Sleep Blue for sleep screens and states.",
+      "Do use the pill shape (50dp radius) for primary action buttons and the medium radius (16dp) for cards and interactive tiles.",
+      "Do give all primary interactive elements a minimum 48dp tap height. SideSelector-style toggle tiles should be 88dp.",
+      "Do replace ambient card shadows with outlineVariant border strokes (1dp) in dark mode.",
+      "Do use LabelMedium (12sp Bold, 0.8sp tracking) with uppercase text for day-group headers in history lists only.",
+      "Do communicate an active session visually at the screen level: a banner, status pill, or TimerDisplay must indicate 'something is running' at a glance.",
+      "Do access Warning tokens by importing them directly from Color.kt. Do not route them through MaterialTheme.colorScheme.",
+      "Do treat dark mode as a first-class requirement. Every new component needs explicit dark-mode color assignments."
+    ],
+    "donts": [
+      "Don't build clinical white or sterile layouts. Akachan is a family tool, not a hospital intake form.",
+      "Don't use oversaturated cartoon palettes, bubble fonts, or primary-color noise.",
+      "Don't treat tracking as a performance metric. No concentric stat rings, no hero metrics, no 'you hit your goal' SaaS patterns.",
+      "Don't use gradient text or background-clip decorative effects. All text is a single solid color.",
+      "Don't use side-stripe borders (a colored border-left or border-right wider than 1dp as an accent on cards or list items).",
+      "Don't reach for a modal dialog as the first editing solution. Use bottom sheets that reuse onboarding step composables.",
+      "Don't introduce shadows deeper than 6dp or multi-layer shadow compositions.",
+      "Don't use Carnation Pink and Sleep Blue interchangeably or on the same surface as stylistic choices.",
+      "Don't use displaySmall (36sp ExtraBold) for anything other than the live timer readout."
+    ]
+  }
+}
