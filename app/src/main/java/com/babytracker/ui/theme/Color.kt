@@ -75,7 +75,7 @@ val OnErrorContainerLight = Color(0xFF410002) // no scale equivalent
 // ─── Dark scheme — extended semantic tokens ───────────────────
 val SurfaceVariantDark = Color(0xFF2B2930)  // no scale equivalent
 val OutlineDark = Color(0xFF938F99)          // no scale equivalent
-val OutlineVariantDark = Color(0xFF49454F)   // intentionally same as OutlineDark family; may diverge
+val OutlineVariantDark = Color(0xFF79747E)   // raised from #49454F; 5.5:1 contrast vs SurfaceDark — WCAG 1.4.11
 val ErrorDark = Color(0xFFFFB4AB)            // no scale equivalent
 val ErrorContainerDark = Color(0xFF93000A)   // no scale equivalent
 val OnErrorContainerDark = Color(0xFFFFDAD6) // no scale equivalent
