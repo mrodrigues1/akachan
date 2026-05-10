@@ -1,6 +1,5 @@
 package com.babytracker.ui.home
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.sharing.domain.model.AppMode
-import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatMinutesSeconds
@@ -135,12 +133,6 @@ fun HomeScreen(
                 }.coerceAtLeast(0L)
             }
 
-            val darkBorder = if (LocalDarkTheme.current) {
-                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            } else {
-                null
-            }
-
             // Summary cards row
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -155,15 +147,11 @@ fun HomeScreen(
                         .heightIn(min = 140.dp),
                     shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isActiveFeeding)
-                            MaterialTheme.colorScheme.primaryContainer
-                        else
-                            MaterialTheme.colorScheme.surface
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
                     ),
                     elevation = CardDefaults.cardElevation(
                         defaultElevation = if (isActiveFeeding) 4.dp else 2.dp
                     ),
-                    border = if (isActiveFeeding) null else darkBorder,
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Row(
@@ -201,10 +189,7 @@ fun HomeScreen(
                         Text(
                             text = "Breastfeeding",
                             style = MaterialTheme.typography.titleMedium,
-                            color = if (isActiveFeeding)
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            else
-                                MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontWeight = FontWeight.Bold
                         )
                         if (isActiveFeeding && activeElapsedSeconds != null) {
@@ -221,7 +206,7 @@ fun HomeScreen(
                                 Text(
                                     text = Duration.between(lastStart, now).formatElapsedAgo(),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
@@ -236,9 +221,10 @@ fun HomeScreen(
                         .weight(1f)
                         .heightIn(min = 140.dp),
                     shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    border = darkBorder,
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(text = "🌙", style = MaterialTheme.typography.headlineMedium)
@@ -246,7 +232,7 @@ fun HomeScreen(
                         Text(
                             text = "Sleep",
                             style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.secondary,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
                             fontWeight = FontWeight.Bold
                         )
                         val sleepLabel = uiState.lastNightSleepDuration
@@ -256,7 +242,7 @@ fun HomeScreen(
                         Text(
                             text = sleepLabel,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.secondary,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
