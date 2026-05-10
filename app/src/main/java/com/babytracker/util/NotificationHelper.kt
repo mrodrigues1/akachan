@@ -509,7 +509,7 @@ object NotificationHelper {
                         showProgress = false
                     )
                 )
-                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                .setStyle(NotificationCompat.DecoratedCustomViewStyle())
                 .addAction(0, "Stop Sleep", sleepActionPi(context, sessionId, SleepActionReceiver.ACTION_STOP, RC_STOP_SLEEP))
         } else {
             builder.setContentText(body)
