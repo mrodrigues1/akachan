@@ -74,9 +74,9 @@ fun TimerDisplay(
     val resolvedTrackColor = if (trackColor == Color.Unspecified) MaterialTheme.colorScheme.primaryContainer else trackColor
     val progressColor = if (isOverMax) MaterialTheme.colorScheme.tertiary else resolvedRingColor
 
-    val infiniteTransition = rememberInfiniteTransition(label = "ring_pulse")
-    val scale by if (isRunning) {
-        infiniteTransition.animateFloat(
+    val scale = if (shouldAnimateTimerRing(hasRing, isRunning)) {
+        val infiniteTransition = rememberInfiniteTransition(label = "ring_pulse")
+        val animatedScale by infiniteTransition.animateFloat(
             initialValue = 1f,
             targetValue = 1.04f,
             animationSpec = infiniteRepeatable(
@@ -85,8 +85,9 @@ fun TimerDisplay(
             ),
             label = "ring_scale"
         )
+        animatedScale
     } else {
-        remember { androidx.compose.runtime.mutableFloatStateOf(1f) }
+        1f
     }
 
     val percent = if (hasRing) (progress * 100).toInt() else 0
@@ -165,3 +166,5 @@ internal fun formatElapsedAsMinutesSeconds(elapsedSeconds: Long): String {
     val seconds = elapsedSeconds % 60
     return String.format(Locale.US, "%02d:%02d", totalMinutes, seconds)
 }
+
+internal fun shouldAnimateTimerRing(hasRing: Boolean, isRunning: Boolean): Boolean = hasRing && isRunning

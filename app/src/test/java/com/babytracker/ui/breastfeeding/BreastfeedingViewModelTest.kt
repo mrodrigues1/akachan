@@ -795,6 +795,66 @@ class BreastfeedingViewModelTest {
     }
 
     @Test
+    fun `lastFeedingSummary subtracts paused duration from unswitched session`() = runTest {
+        val now = Instant.ofEpochSecond(1744545600L)
+        val startTime = Instant.ofEpochSecond(1744538400L)
+        val endTime = Instant.ofEpochSecond(1744540200L)
+
+        mockkStatic(Instant::class)
+        try {
+            every { Instant.now() } returns now
+
+            val session = BreastfeedingSession(
+                id = 1L,
+                startTime = startTime,
+                endTime = endTime,
+                startingSide = BreastSide.LEFT,
+                pausedDurationMs = Duration.ofMinutes(10).toMillis()
+            )
+            every { getHistory() } returns flowOf(listOf(session))
+            viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val summary = awaitLastFeedingSummaryPopulated()
+            assertEquals(Duration.ofMinutes(20), summary.firstSideDuration)
+            assertNull(summary.secondSideDuration)
+        } finally {
+            unmockkAll()
+        }
+    }
+
+    @Test
+    fun `lastFeedingSummary subtracts paused duration from second side after switch`() = runTest {
+        val now = Instant.ofEpochSecond(1744545600L)
+        val startTime = Instant.ofEpochSecond(1744538400L)
+        val switchTime = Instant.ofEpochSecond(1744539000L)
+        val endTime = Instant.ofEpochSecond(1744540200L)
+
+        mockkStatic(Instant::class)
+        try {
+            every { Instant.now() } returns now
+
+            val session = BreastfeedingSession(
+                id = 1L,
+                startTime = startTime,
+                endTime = endTime,
+                startingSide = BreastSide.LEFT,
+                switchTime = switchTime,
+                pausedDurationMs = Duration.ofMinutes(10).toMillis()
+            )
+            every { getHistory() } returns flowOf(listOf(session))
+            viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val summary = awaitLastFeedingSummaryPopulated()
+            assertEquals(Duration.ofMinutes(10), summary.firstSideDuration)
+            assertEquals(Duration.ofMinutes(10), summary.secondSideDuration)
+        } finally {
+            unmockkAll()
+        }
+    }
+
+    @Test
     fun `onStartSession triggers session sync`() = runTest {
         viewModel.onSideSelected(BreastSide.LEFT)
         val session = BreastfeedingSession(
