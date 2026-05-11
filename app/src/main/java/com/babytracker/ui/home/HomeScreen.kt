@@ -308,7 +308,7 @@ fun HomeScreen(
                         if (isActiveSleep && sleepElapsedSeconds != null) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = sleepElapsedSeconds.formatMinutesSeconds(),
+                                text = Duration.ofSeconds(sleepElapsedSeconds).formatDuration(),
                                 style = MaterialTheme.typography.titleLarge,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                                 fontWeight = FontWeight.Bold
