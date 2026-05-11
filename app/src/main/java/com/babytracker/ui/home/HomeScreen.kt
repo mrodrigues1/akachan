@@ -1,10 +1,13 @@
 package com.babytracker.ui.home
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,10 +18,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -37,13 +42,17 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.SleepRecord
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
@@ -52,6 +61,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,11 +74,11 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val now by produceState(initialValue = Instant.now()) {
-        while (true) {
-            value = Instant.now()
-            kotlinx.coroutines.delay(1_000L)
-        }
+    val todayLabel = remember {
+        Instant.now()
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+            .format(DateTimeFormatter.ofPattern("EEEE, MMM d"))
     }
 
     Scaffold(
@@ -82,8 +92,7 @@ fun HomeScreen(
                             style = MaterialTheme.typography.titleLarge
                         )
                         Text(
-                            text = now.atZone(ZoneId.systemDefault()).toLocalDate()
-                                .format(DateTimeFormatter.ofPattern("EEEE, MMM d")),
+                            text = todayLabel,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -114,7 +123,7 @@ fun HomeScreen(
                 ) {
                     Button(
                         onClick = onNavigateToBreastfeeding,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                         shape = MaterialTheme.shapes.extraLarge,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
@@ -125,7 +134,7 @@ fun HomeScreen(
                     }
                     Button(
                         onClick = onNavigateToSleep,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                         shape = MaterialTheme.shapes.extraLarge,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.secondary,
@@ -138,10 +147,15 @@ fun HomeScreen(
             }
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(padding),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = 600.dp)
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -149,18 +163,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             val activeSession = uiState.activeSession
-            val activeElapsedSeconds: Long? = activeSession?.let { session ->
-                if (session.isPaused) {
-                    val pausedAt = session.pausedAt!!
-                    (pausedAt.toEpochMilli() - session.startTime.toEpochMilli() - session.pausedDurationMs) / 1000
-                } else {
-                    (now.toEpochMilli() - session.startTime.toEpochMilli() - session.pausedDurationMs) / 1000
-                }.coerceAtLeast(0L)
-            }
             val activeSleepRecord = uiState.activeSleepRecord
-            val sleepElapsedSeconds: Long? = activeSleepRecord?.let { record ->
-                ((now.toEpochMilli() - record.startTime.toEpochMilli()) / 1000).coerceAtLeast(0L)
-            }
 
             // Summary cards row
             Row(
@@ -169,20 +172,29 @@ fun HomeScreen(
             ) {
                 // Breastfeeding card
                 val isActiveFeeding = activeSession != null
+                val feedingElevation by animateDpAsState(
+                    targetValue = if (isActiveFeeding) 4.dp else 1.dp,
+                    animationSpec = tween(durationMillis = 300),
+                    label = "feedingElevation",
+                )
                 Card(
                     onClick = onNavigateToBreastfeeding,
                     modifier = Modifier
                         .weight(1f)
-                        .heightIn(min = 140.dp),
+                        .heightIn(min = 140.dp)
+                        .semantics {
+                            contentDescription = if (isActiveFeeding)
+                                "Breastfeeding, session active. Open feeding screen."
+                            else
+                                "Breastfeeding. Open feeding screen."
+                        },
                     shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     ),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = if (isActiveFeeding) 4.dp else 2.dp
-                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = feedingElevation),
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
+                    Column(modifier = Modifier.padding(20.dp).animateContentSize(animationSpec = tween(200))) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -193,7 +205,7 @@ fun HomeScreen(
                                 style = MaterialTheme.typography.headlineMedium,
                                 modifier = Modifier.clearAndSetSemantics {},
                             )
-                            if (isActiveFeeding && activeSession != null) {
+                            if (activeSession != null) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.primary,
                                     shape = MaterialTheme.shapes.extraLarge,
@@ -223,25 +235,14 @@ fun HomeScreen(
                             text = "Breastfeeding",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Bold
                         )
-                        if (isActiveFeeding && activeElapsedSeconds != null) {
+                        if (activeSession != null) {
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = activeElapsedSeconds.formatMinutesSeconds(),
-                                style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Bold
-                            )
+                            ActiveFeedingTimer(session = activeSession)
                         } else {
                             val lastStart = uiState.lastSessionStartTime
                             if (lastStart != null) {
-                                Text(
-                                    text = Duration.between(lastStart, now).formatElapsedAgo(),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    fontWeight = FontWeight.SemiBold
-                                )
+                                LastFeedingAgoText(lastStart = lastStart)
                             }
                         }
                     }
@@ -249,20 +250,29 @@ fun HomeScreen(
 
                 // Sleep card
                 val isActiveSleep = activeSleepRecord != null
+                val sleepElevation by animateDpAsState(
+                    targetValue = if (isActiveSleep) 4.dp else 1.dp,
+                    animationSpec = tween(durationMillis = 300),
+                    label = "sleepElevation",
+                )
                 Card(
                     onClick = onNavigateToSleep,
                     modifier = Modifier
                         .weight(1f)
-                        .heightIn(min = 140.dp),
+                        .heightIn(min = 140.dp)
+                        .semantics {
+                            contentDescription = if (isActiveSleep)
+                                "Sleep, session active. Open sleep screen."
+                            else
+                                "Sleep. Open sleep screen."
+                        },
                     shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     ),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = if (isActiveSleep) 4.dp else 2.dp
-                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = sleepElevation),
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
+                    Column(modifier = Modifier.padding(20.dp).animateContentSize(animationSpec = tween(200))) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -303,16 +313,10 @@ fun HomeScreen(
                             text = "Sleep",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            fontWeight = FontWeight.Bold
                         )
-                        if (isActiveSleep && sleepElapsedSeconds != null) {
+                        if (activeSleepRecord != null) {
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = Duration.ofSeconds(sleepElapsedSeconds).formatDuration(),
-                                style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                fontWeight = FontWeight.Bold
-                            )
+                            ActiveSleepTimer(record = activeSleepRecord)
                         } else {
                             val sleepLabel = uiState.lastNightSleepDuration
                                 ?.formatDuration()
@@ -322,7 +326,6 @@ fun HomeScreen(
                                 text = sleepLabel,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
@@ -371,7 +374,11 @@ fun HomeScreen(
             ) {
                 Card(
                     onClick = onNavigateToConnectPartner,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics {
+                            contentDescription = "Partner View. Connect to see shared baby data."
+                        },
                     shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -384,22 +391,22 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = "👨‍👩‍👧",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.clearAndSetSemantics {},
+                        Icon(
+                            imageVector = Icons.Default.People,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp),
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Partner View",
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = "Connect to see shared baby data",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -408,5 +415,67 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
         }
+        }
     }
+}
+
+@Composable
+private fun ActiveFeedingTimer(session: BreastfeedingSession) {
+    val elapsedSeconds by produceState(
+        initialValue = computeFeedingElapsed(session, Instant.now()),
+        key1 = session,
+    ) {
+        if (session.isPaused) return@produceState
+        while (true) {
+            delay(1_000L)
+            value = computeFeedingElapsed(session, Instant.now())
+        }
+    }
+    Text(
+        text = elapsedSeconds.formatMinutesSeconds(),
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onPrimaryContainer,
+    )
+}
+
+private fun computeFeedingElapsed(session: BreastfeedingSession, now: Instant): Long {
+    return if (session.isPaused) {
+        val pausedAt = session.pausedAt!!
+        (pausedAt.toEpochMilli() - session.startTime.toEpochMilli() - session.pausedDurationMs) / 1000
+    } else {
+        (now.toEpochMilli() - session.startTime.toEpochMilli() - session.pausedDurationMs) / 1000
+    }.coerceAtLeast(0L)
+}
+
+@Composable
+private fun LastFeedingAgoText(lastStart: Instant) {
+    val now by produceState(initialValue = Instant.now(), key1 = lastStart) {
+        while (true) {
+            delay(60_000L)
+            value = Instant.now()
+        }
+    }
+    Text(
+        text = Duration.between(lastStart, now).formatElapsedAgo(),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onPrimaryContainer,
+    )
+}
+
+@Composable
+private fun ActiveSleepTimer(record: SleepRecord) {
+    val elapsedSeconds by produceState(
+        initialValue = ((Instant.now().toEpochMilli() - record.startTime.toEpochMilli()) / 1000).coerceAtLeast(0L),
+        key1 = record.startTime,
+    ) {
+        while (true) {
+            delay(1_000L)
+            value = ((Instant.now().toEpochMilli() - record.startTime.toEpochMilli()) / 1000).coerceAtLeast(0L)
+        }
+    }
+    Text(
+        text = Duration.ofSeconds(elapsedSeconds).formatDuration(),
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onSecondaryContainer,
+    )
 }
