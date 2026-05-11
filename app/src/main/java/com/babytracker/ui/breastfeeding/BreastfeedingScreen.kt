@@ -48,7 +48,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,8 +66,6 @@ import com.babytracker.ui.component.SideSelector
 import com.babytracker.ui.component.TimerDisplay
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
-import java.time.Duration
-import java.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,13 +86,6 @@ fun BreastfeedingScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         notificationPermissionGranted = granted
-    }
-
-    val now by produceState(initialValue = Instant.now(), key1 = activeSession?.id) {
-        while (true) {
-            kotlinx.coroutines.delay(1000L)
-            value = Instant.now()
-        }
     }
 
     LaunchedEffect(uiState.error) {
@@ -213,35 +203,16 @@ fun BreastfeedingScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Freeze per-side breakdown at pausedAt when session is paused.
-                    val effectiveNow: Instant = if (activeSession.isPaused) activeSession.pausedAt!! else now
-
-                    val firstSideDuration: Duration = activeSession.switchTime
-                        ?.let { Duration.between(activeSession.startTime, it) }
-                        ?: Duration.between(activeSession.startTime, effectiveNow)
-                            .minus(Duration.ofMillis(activeSession.pausedDurationMs))
-
-                    val secondSideDuration: Duration = activeSession.switchTime
-                        ?.let {
-                            Duration.between(it, effectiveNow)
-                                .minus(Duration.ofMillis(activeSession.pausedDurationMs))
-                        }
-                        ?: Duration.ZERO
-
-                    val currentSide: BreastSide = activeSession.switchTime?.let {
-                        if (activeSession.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
-                    } ?: activeSession.startingSide
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         listOf(BreastSide.LEFT, BreastSide.RIGHT).forEach { side ->
-                            val isCurrentSide = side == currentSide
+                            val isCurrentSide = side == (uiState.currentSide ?: activeSession.startingSide)
                             val duration = if (side == activeSession.startingSide) {
-                                firstSideDuration
+                                uiState.firstSideDuration
                             } else {
-                                secondSideDuration
+                                uiState.secondSideDuration
                             }
                             Card(
                                 modifier = Modifier.weight(1f),
