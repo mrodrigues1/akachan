@@ -91,10 +91,11 @@ fun TimerDisplay(
 
     val percent = if (hasRing) (progress * 100).toInt() else 0
     val maxMinutes = maxDurationSeconds / 60
+    val pausedSuffix = if (!isRunning) ", paused" else ""
     val timerDescription = if (hasRing) {
-        "Session timer: $timeText, $percent% of $maxMinutes minutes"
+        "Session timer: $timeText, $percent% of $maxMinutes minutes$pausedSuffix"
     } else {
-        "Session timer: $timeText"
+        "Session timer: $timeText$pausedSuffix"
     }
 
     Box(

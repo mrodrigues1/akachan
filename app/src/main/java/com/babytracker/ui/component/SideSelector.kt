@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
@@ -18,6 +18,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.displayName
@@ -41,7 +46,12 @@ fun SideSelector(
                 onClick = { onSideSelected(side) },
                 modifier = Modifier
                     .weight(1f)
-                    .height(88.dp),
+                    .heightIn(min = 88.dp)
+                    .semantics {
+                        role = Role.RadioButton
+                        selected = isSelected
+                        contentDescription = "$label${if (isSelected) ", selected" else ""}"
+                    },
                 shape = MaterialTheme.shapes.medium,
                 colors = CardDefaults.cardColors(
                     containerColor = if (isSelected) {
@@ -61,7 +71,7 @@ fun SideSelector(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(88.dp),
+                        .heightIn(min = 88.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {

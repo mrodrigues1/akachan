@@ -53,6 +53,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,12 +62,16 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.domain.model.BreastSide
+import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.displayName
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.SideSelector
 import com.babytracker.ui.component.TimerDisplay
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
+import kotlinx.coroutines.delay
+import java.time.Duration
+import java.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -142,7 +148,7 @@ fun BreastfeedingScreen(
                 ) {
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    val statusText = if (activeSession.isPaused) "Session paused" else "● Session in progress"
+                    val statusText = if (activeSession.isPaused) "Session paused" else "Session in progress"
                     Card(
                         shape = MaterialTheme.shapes.large,
                         colors = CardDefaults.cardColors(
@@ -203,6 +209,35 @@ fun BreastfeedingScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
+                    var sideDurations by remember(
+                        activeSession.id,
+                        activeSession.startTime,
+                        activeSession.switchTime,
+                        activeSession.pausedAt,
+                        activeSession.pausedDurationMs
+                    ) {
+                        mutableStateOf(
+                            activeSession.sideDurationsAt(
+                                activeSession.pausedAt ?: Instant.now()
+                            )
+                        )
+                    }
+
+                    LaunchedEffect(
+                        activeSession.id,
+                        activeSession.startTime,
+                        activeSession.switchTime,
+                        activeSession.pausedAt,
+                        activeSession.pausedDurationMs
+                    ) {
+                        while (true) {
+                            val now = activeSession.pausedAt ?: Instant.now()
+                            sideDurations = activeSession.sideDurationsAt(now)
+                            if (activeSession.isPaused) break
+                            delay(1_000L)
+                        }
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -210,9 +245,9 @@ fun BreastfeedingScreen(
                         listOf(BreastSide.LEFT, BreastSide.RIGHT).forEach { side ->
                             val isCurrentSide = side == (uiState.currentSide ?: activeSession.startingSide)
                             val duration = if (side == activeSession.startingSide) {
-                                uiState.firstSideDuration
+                                sideDurations.first
                             } else {
-                                uiState.secondSideDuration
+                                sideDurations.second
                             }
                             Card(
                                 modifier = Modifier.weight(1f),
@@ -230,7 +265,7 @@ fun BreastfeedingScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Text(
-                                        text = if (isCurrentSide) "● ${side.displayName()}" else side.displayName(),
+                                        text = side.displayName(),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = if (isCurrentSide) {
                                             MaterialTheme.colorScheme.onPrimaryContainer
@@ -331,7 +366,8 @@ fun BreastfeedingScreen(
 
                     Text(
                         text = "Start a feeding session",
-                        style = MaterialTheme.typography.headlineLarge
+                        style = MaterialTheme.typography.headlineLarge,
+                        modifier = Modifier.semantics { heading() }
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -365,7 +401,7 @@ fun BreastfeedingScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.extraLarge
                     ) {
-                        Text("Start Session", style = MaterialTheme.typography.titleSmall)
+                        Text("Start Session", style = MaterialTheme.typography.labelLarge)
                     }
 
                     if (summary is LastFeedingSummaryState.Populated) {
@@ -447,6 +483,18 @@ private fun isNotificationPermissionGranted(context: Context): Boolean {
         context,
         Manifest.permission.POST_NOTIFICATIONS
     ) == PackageManager.PERMISSION_GRANTED
+}
+
+private fun BreastfeedingSession.sideDurationsAt(now: Instant): Pair<Duration, Duration> {
+    val pausedDuration = Duration.ofMillis(pausedDurationMs)
+    val firstSideDuration = switchTime
+        ?.let { Duration.between(startTime, it) }
+        ?: Duration.between(startTime, now).minus(pausedDuration)
+    val secondSideDuration = switchTime
+        ?.let { Duration.between(it, now).minus(pausedDuration) }
+        ?: Duration.ZERO
+
+    return firstSideDuration to secondSideDuration
 }
 
 @Composable

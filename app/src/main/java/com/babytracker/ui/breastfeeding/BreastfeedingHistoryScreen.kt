@@ -22,8 +22,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -45,6 +48,19 @@ fun BreastfeedingHistoryScreen(
 ) {
     val history by viewModel.history.collectAsStateWithLifecycle()
     val grouped = history.groupByLocalDate { it.startTime }
+    val sortedGroups = remember(grouped) {
+        grouped.entries
+            .sortedByDescending { it.key }
+            .map { (date, sessions) ->
+                val totalDuration = sessions
+                    .filter { it.endTime != null }
+                    .mapNotNull { session ->
+                        session.endTime?.let { end -> Duration.between(session.startTime, end) }
+                    }
+                    .fold(Duration.ZERO) { acc, d -> acc + d }
+                Triple(date, sessions, totalDuration)
+            }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -75,7 +91,8 @@ fun BreastfeedingHistoryScreen(
                 Text(
                     text = "No sessions yet",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() }
                 )
                 Text(
                     text = "Sessions you track will appear here",
@@ -95,13 +112,7 @@ fun BreastfeedingHistoryScreen(
                     end = 16.dp
                 )
             ) {
-                grouped.entries.sortedByDescending { it.key }.forEach { (date, sessions) ->
-                    val totalDuration = sessions
-                        .filter { it.endTime != null }
-                        .mapNotNull { session ->
-                            session.endTime?.let { end -> Duration.between(session.startTime, end) }
-                        }
-                        .fold(Duration.ZERO) { acc, d -> acc + d }
+                sortedGroups.forEach { (date, sessions, totalDuration) ->
                     val totalLabel = if (totalDuration.isZero) "" else " · ${totalDuration.formatDuration()} total"
 
                     stickyHeader(key = date.toString()) {
@@ -124,11 +135,7 @@ fun BreastfeedingHistoryScreen(
                                 Duration.between(session.startTime, end).formatDuration()
                             } ?: "In progress",
                             badgeEmoji = "🍼",
-                            badgeColor = if (isLeft) {
-                                MaterialTheme.colorScheme.primaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.secondaryContainer
-                            }
+                            badgeColor = MaterialTheme.colorScheme.primaryContainer
                         )
                     }
                 }

@@ -52,8 +52,6 @@ data class BreastfeedingUiState(
     val lastFeedingSummary: LastFeedingSummaryState = LastFeedingSummaryState.Empty,
     val error: String? = null,
     val currentSide: BreastSide? = null,
-    val firstSideDuration: Duration = Duration.ZERO,
-    val secondSideDuration: Duration = Duration.ZERO
 )
 
 @HiltViewModel
@@ -83,7 +81,6 @@ class BreastfeedingViewModel @Inject constructor(
                 settingsRepository.getMaxPerBreastMinutes(),
                 settingsRepository.getMaxTotalFeedMinutes()
             ) { session, maxPerBreast, maxTotal ->
-                val sessionDurations = session?.let { computeSideDurations(it) }
                 BreastfeedingUiState(
                     activeSession = session,
                     selectedSide = _uiState.value.selectedSide,
@@ -91,9 +88,7 @@ class BreastfeedingViewModel @Inject constructor(
                     maxTotalFeedMinutes = maxTotal,
                     lastFeedingSummary = _uiState.value.lastFeedingSummary,
                     error = _uiState.value.error,
-                    currentSide = sessionDurations?.first,
-                    firstSideDuration = sessionDurations?.second ?: Duration.ZERO,
-                    secondSideDuration = sessionDurations?.third ?: Duration.ZERO
+                    currentSide = session?.currentSide(),
                 )
             }.collect { newState ->
                 _uiState.value = newState
@@ -133,20 +128,6 @@ class BreastfeedingViewModel @Inject constructor(
             }
         }
 
-        viewModelScope.launch {
-            while (true) {
-                kotlinx.coroutines.delay(1000L)
-                val session = _uiState.value.activeSession
-                if (session != null && !session.isPaused) {
-                    val (currentSide, firstSideDuration, secondSideDuration) = computeSideDurations(session)
-                    _uiState.value = _uiState.value.copy(
-                        currentSide = currentSide,
-                        firstSideDuration = firstSideDuration,
-                        secondSideDuration = secondSideDuration
-                    )
-                }
-            }
-        }
     }
 
     fun onSideSelected(side: BreastSide) {
@@ -227,23 +208,10 @@ class BreastfeedingViewModel @Inject constructor(
         }
     }
 
-    private fun computeSideDurations(session: BreastfeedingSession): Triple<BreastSide, Duration, Duration> {
-        val effectiveNow = if (session.isPaused) session.pausedAt!! else Instant.now()
-        val firstSideDuration = session.switchTime
-            ?.let { Duration.between(session.startTime, it) }
-            ?: Duration.between(session.startTime, effectiveNow)
-                .minus(Duration.ofMillis(session.pausedDurationMs))
-        val secondSideDuration = session.switchTime
-            ?.let {
-                Duration.between(it, effectiveNow)
-                    .minus(Duration.ofMillis(session.pausedDurationMs))
-            }
-            ?: Duration.ZERO
-        val currentSide = session.switchTime?.let {
-            if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
-        } ?: session.startingSide
-        return Triple(currentSide, firstSideDuration, secondSideDuration)
-    }
+    private fun BreastfeedingSession.currentSide(): BreastSide =
+        switchTime?.let {
+            if (startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
+        } ?: startingSide
 
     private fun buildLastFeedingSummary(lastSession: BreastfeedingSession?): LastFeedingSummaryState {
         if (lastSession == null) return LastFeedingSummaryState.Empty
