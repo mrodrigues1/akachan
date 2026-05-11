@@ -49,7 +49,8 @@ data class BreastfeedingUiState(
     val selectedSide: BreastSide? = null,
     val maxPerBreastMinutes: Int = 0,
     val maxTotalFeedMinutes: Int = 0,
-    val lastFeedingSummary: LastFeedingSummaryState = LastFeedingSummaryState.Empty
+    val lastFeedingSummary: LastFeedingSummaryState = LastFeedingSummaryState.Empty,
+    val error: String? = null
 )
 
 @HiltViewModel
@@ -132,7 +133,11 @@ class BreastfeedingViewModel @Inject constructor(
     fun onStartSession() {
         val side = _uiState.value.selectedSide ?: return
         viewModelScope.launch {
-            startSession(side)
+            val result = runCatching { startSession(side) }
+            if (result.isFailure) {
+                _uiState.value = _uiState.value.copy(error = "Could not start session. Please try again.")
+                return@launch
+            }
             repository.getActiveSession()
                 .first { it != null }
                 ?.let { session ->
@@ -146,11 +151,19 @@ class BreastfeedingViewModel @Inject constructor(
     fun onStopSession() {
         val session = _uiState.value.activeSession ?: return
         viewModelScope.launch {
-            stopSession(session)
+            val result = runCatching { stopSession(session) }
+            if (result.isFailure) {
+                _uiState.value = _uiState.value.copy(error = "Could not stop session. Please try again.")
+                return@launch
+            }
             notificationCoordinator.cancelAllSessionNotifications()
             _uiState.value = _uiState.value.copy(selectedSide = null)
             runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
         }
+    }
+
+    fun onErrorDismissed() {
+        _uiState.value = _uiState.value.copy(error = null)
     }
 
     fun onSwitchSide() {
