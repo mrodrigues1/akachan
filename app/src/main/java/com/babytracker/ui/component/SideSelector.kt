@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.BreastSide
+import com.babytracker.domain.model.displayName
 
 @Composable
 fun SideSelector(
@@ -33,7 +34,7 @@ fun SideSelector(
     ) {
         BreastSide.entries.forEach { side ->
             val isSelected = selectedSide == side
-            val label = if (side == BreastSide.LEFT) "Left" else "Right"
+            val label = side.displayName()
             val arrowIcon = if (side == BreastSide.LEFT) Icons.Filled.KeyboardArrowLeft else Icons.Filled.KeyboardArrowRight
 
             Card(
