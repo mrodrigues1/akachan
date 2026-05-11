@@ -1,5 +1,9 @@
 package com.babytracker.ui.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -45,7 +50,7 @@ import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatMinutesSeconds
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +64,12 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val now by produceState(initialValue = Instant.now()) {
+        while (true) {
+            value = Instant.now()
+            kotlinx.coroutines.delay(1_000L)
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -71,9 +82,8 @@ fun HomeScreen(
                             style = MaterialTheme.typography.titleLarge
                         )
                         Text(
-                            text = LocalDate.now().format(
-                                DateTimeFormatter.ofPattern("EEEE, MMM d")
-                            ),
+                            text = now.atZone(ZoneId.systemDefault()).toLocalDate()
+                                .format(DateTimeFormatter.ofPattern("EEEE, MMM d")),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -138,12 +148,6 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(4.dp))
 
-            val now by produceState(initialValue = Instant.now()) {
-                while (true) {
-                    value = Instant.now()
-                    kotlinx.coroutines.delay(1_000L)
-                }
-            }
             val activeSession = uiState.activeSession
             val activeElapsedSeconds: Long? = activeSession?.let { session ->
                 if (session.isPaused) {
@@ -184,7 +188,11 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.Top
                         ) {
-                            Text(text = "🍼", style = MaterialTheme.typography.headlineMedium)
+                            Text(
+                                text = "🍼",
+                                style = MaterialTheme.typography.headlineMedium,
+                                modifier = Modifier.clearAndSetSemantics {},
+                            )
                             if (isActiveFeeding && activeSession != null) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.primary,
@@ -197,7 +205,7 @@ fun HomeScreen(
                                     ) {
                                         Icon(
                                             imageVector = if (activeSession.isPaused) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                            contentDescription = if (activeSession.isPaused) "Paused" else "Live",
+                                            contentDescription = null,
                                             tint = MaterialTheme.colorScheme.onPrimary,
                                             modifier = Modifier.size(10.dp)
                                         )
@@ -260,7 +268,11 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.Top
                         ) {
-                            Text(text = "🌙", style = MaterialTheme.typography.headlineMedium)
+                            Text(
+                                text = "🌙",
+                                style = MaterialTheme.typography.headlineMedium,
+                                modifier = Modifier.clearAndSetSemantics {},
+                            )
                             if (isActiveSleep) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.secondary,
@@ -273,7 +285,7 @@ fun HomeScreen(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.PlayArrow,
-                                            contentDescription = "Live",
+                                            contentDescription = null,
                                             tint = MaterialTheme.colorScheme.onSecondary,
                                             modifier = Modifier.size(10.dp)
                                         )
@@ -331,15 +343,19 @@ fun HomeScreen(
                         modifier = Modifier.padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "✨", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = "✨",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.clearAndSetSemantics {},
+                        )
                         Column(modifier = Modifier.padding(start = 10.dp)) {
                             Text(
-                                text = "Tip",
+                                text = "TIP",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Text(
-                                text = "Try $nextSideName breast next — used less last session.",
+                                text = "Try $nextSideName breast next, used less last session.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
@@ -348,7 +364,11 @@ fun HomeScreen(
                 }
             }
 
-            if (uiState.appMode == AppMode.NONE) {
+            AnimatedVisibility(
+                visible = uiState.appMode == AppMode.NONE,
+                enter = fadeIn(animationSpec = tween(durationMillis = 200, delayMillis = 300)),
+                exit = fadeOut(animationSpec = tween(durationMillis = 150)),
+            ) {
                 Card(
                     onClick = onNavigateToConnectPartner,
                     modifier = Modifier.fillMaxWidth(),
@@ -364,7 +384,11 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(text = "👨‍👩‍👧", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = "👨‍👩‍👧",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.clearAndSetSemantics {},
+                        )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Partner View",
