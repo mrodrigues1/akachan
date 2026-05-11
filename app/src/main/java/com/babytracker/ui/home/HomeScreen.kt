@@ -2,10 +2,15 @@ package com.babytracker.ui.home
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -174,7 +179,7 @@ fun HomeScreen(
                 val isActiveFeeding = activeSession != null
                 val feedingElevation by animateDpAsState(
                     targetValue = if (isActiveFeeding) 4.dp else 1.dp,
-                    animationSpec = tween(durationMillis = 300),
+                    animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing),
                     label = "feedingElevation",
                 )
                 Card(
@@ -205,7 +210,11 @@ fun HomeScreen(
                                 style = MaterialTheme.typography.headlineMedium,
                                 modifier = Modifier.clearAndSetSemantics {},
                             )
-                            if (activeSession != null) {
+                            AnimatedVisibility(
+                                visible = activeSession != null,
+                                enter = fadeIn(tween(150)) + scaleIn(initialScale = 0.7f, animationSpec = tween(150)),
+                                exit = fadeOut(tween(100)) + scaleOut(targetScale = 0.7f, animationSpec = tween(100)),
+                            ) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.primary,
                                     shape = MaterialTheme.shapes.extraLarge,
@@ -216,13 +225,13 @@ fun HomeScreen(
                                         horizontalArrangement = Arrangement.spacedBy(3.dp)
                                     ) {
                                         Icon(
-                                            imageVector = if (activeSession.isPaused) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                            imageVector = if (activeSession?.isPaused == true) Icons.Default.Pause else Icons.Default.PlayArrow,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.onPrimary,
                                             modifier = Modifier.size(10.dp)
                                         )
                                         Text(
-                                            text = if (activeSession.isPaused) "Paused" else "Live",
+                                            text = if (activeSession?.isPaused == true) "Paused" else "Live",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onPrimary,
                                         )
@@ -252,7 +261,7 @@ fun HomeScreen(
                 val isActiveSleep = activeSleepRecord != null
                 val sleepElevation by animateDpAsState(
                     targetValue = if (isActiveSleep) 4.dp else 1.dp,
-                    animationSpec = tween(durationMillis = 300),
+                    animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing),
                     label = "sleepElevation",
                 )
                 Card(
@@ -283,7 +292,11 @@ fun HomeScreen(
                                 style = MaterialTheme.typography.headlineMedium,
                                 modifier = Modifier.clearAndSetSemantics {},
                             )
-                            if (isActiveSleep) {
+                            AnimatedVisibility(
+                                visible = isActiveSleep,
+                                enter = fadeIn(tween(150)) + scaleIn(initialScale = 0.7f, animationSpec = tween(150)),
+                                exit = fadeOut(tween(100)) + scaleOut(targetScale = 0.7f, animationSpec = tween(100)),
+                            ) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.secondary,
                                     shape = MaterialTheme.shapes.extraLarge,
@@ -333,8 +346,13 @@ fun HomeScreen(
             }
 
             // Tip card — suggests which side to try next (based on the less-used side last session)
-            uiState.nextRecommendedSide?.let { nextSide ->
-                val nextSideName = nextSide.name.lowercase().replaceFirstChar { it.uppercase() }
+            AnimatedVisibility(
+                visible = uiState.nextRecommendedSide != null,
+                enter = fadeIn(tween(200)) + expandVertically(tween(200)),
+                exit = fadeOut(tween(150)) + shrinkVertically(tween(150)),
+            ) {
+                val nextSideName = uiState.nextRecommendedSide
+                    ?.name?.lowercase()?.replaceFirstChar { it.uppercase() } ?: ""
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
