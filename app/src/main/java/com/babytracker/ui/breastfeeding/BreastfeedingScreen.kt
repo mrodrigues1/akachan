@@ -101,12 +101,20 @@ fun BreastfeedingScreen(
     }
 
     fun onStartSessionWithPermission() {
-        if (uiState.selectedSide == null) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !notificationPermissionGranted) {
-            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            return
+        when (
+            resolveStartSessionAction(
+                hasSelectedSide = uiState.selectedSide != null,
+                shouldRequestNotificationPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
+                notificationPermissionGranted = notificationPermissionGranted
+            )
+        ) {
+            StartSessionAction.NoOp -> return
+            StartSessionAction.RequestPermissionAndStart -> {
+                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                viewModel.onStartSession()
+            }
+            StartSessionAction.StartOnly -> viewModel.onStartSession()
         }
-        viewModel.onStartSession()
     }
 
     Scaffold(
@@ -217,7 +225,7 @@ fun BreastfeedingScreen(
                         activeSession.pausedDurationMs
                     ) {
                         mutableStateOf(
-                            activeSession.sideDurationsAt(
+                            activeSession.sideDurationsUntil(
                                 activeSession.pausedAt ?: Instant.now()
                             )
                         )
@@ -232,7 +240,7 @@ fun BreastfeedingScreen(
                     ) {
                         while (true) {
                             val now = activeSession.pausedAt ?: Instant.now()
-                            sideDurations = activeSession.sideDurationsAt(now)
+                            sideDurations = activeSession.sideDurationsUntil(now)
                             if (activeSession.isPaused) break
                             delay(1_000L)
                         }
@@ -247,7 +255,7 @@ fun BreastfeedingScreen(
                             val duration = if (side == activeSession.startingSide) {
                                 sideDurations.first
                             } else {
-                                sideDurations.second
+                                sideDurations.second ?: Duration.ZERO
                             }
                             Card(
                                 modifier = Modifier.weight(1f),
@@ -485,18 +493,6 @@ private fun isNotificationPermissionGranted(context: Context): Boolean {
     ) == PackageManager.PERMISSION_GRANTED
 }
 
-private fun BreastfeedingSession.sideDurationsAt(now: Instant): Pair<Duration, Duration> {
-    val pausedDuration = Duration.ofMillis(pausedDurationMs)
-    val firstSideDuration = switchTime
-        ?.let { Duration.between(startTime, it) }
-        ?: Duration.between(startTime, now).minus(pausedDuration)
-    val secondSideDuration = switchTime
-        ?.let { Duration.between(it, now).minus(pausedDuration) }
-        ?: Duration.ZERO
-
-    return firstSideDuration to secondSideDuration
-}
-
 @Composable
 private fun LastFeedingSummaryCard(summary: LastFeedingSummaryState.Populated) {
     val session = summary.lastSession
@@ -536,4 +532,20 @@ private fun LastFeedingSummaryCard(summary: LastFeedingSummaryState.Populated) {
             )
         }
     }
+}
+
+internal enum class StartSessionAction {
+    NoOp,
+    StartOnly,
+    RequestPermissionAndStart,
+}
+
+internal fun resolveStartSessionAction(
+    hasSelectedSide: Boolean,
+    shouldRequestNotificationPermission: Boolean,
+    notificationPermissionGranted: Boolean
+): StartSessionAction = when {
+    !hasSelectedSide -> StartSessionAction.NoOp
+    shouldRequestNotificationPermission && !notificationPermissionGranted -> StartSessionAction.RequestPermissionAndStart
+    else -> StartSessionAction.StartOnly
 }

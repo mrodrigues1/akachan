@@ -19,4 +19,19 @@ class TimerDisplayTest {
     fun formatElapsedAsMinutesSeconds_overOneHour_keepsTotalMinutes() {
         assertEquals("61:01", formatElapsedAsMinutesSeconds(3661))
     }
+
+    @Test
+    fun shouldAnimateTimerRing_runningWithRing_returnsTrue() {
+        assertEquals(true, shouldAnimateTimerRing(hasRing = true, isRunning = true))
+    }
+
+    @Test
+    fun shouldAnimateTimerRing_runningWithoutRing_returnsFalse() {
+        assertEquals(false, shouldAnimateTimerRing(hasRing = false, isRunning = true))
+    }
+
+    @Test
+    fun shouldAnimateTimerRing_pausedWithRing_returnsFalse() {
+        assertEquals(false, shouldAnimateTimerRing(hasRing = true, isRunning = false))
+    }
 }

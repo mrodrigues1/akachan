@@ -220,12 +220,9 @@ class BreastfeedingViewModel @Inject constructor(
         val elapsed = Duration.between(lastSession.startTime, Instant.now())
         val elapsedLabel = elapsed.formatElapsedAgo()
 
-        val firstSideDuration: Duration = lastSession.switchTime
-            ?.let { Duration.between(lastSession.startTime, it) }
-            ?: Duration.between(lastSession.startTime, endTime)
-
-        val secondSideDuration: Duration? = lastSession.switchTime
-            ?.let { Duration.between(it, endTime) }
+        val sideDurations = lastSession.sideDurationsUntil(endTime)
+        val firstSideDuration = sideDurations.first
+        val secondSideDuration = sideDurations.second
 
         val oppositeSide = if (lastSession.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
         val nextRecommendedSide = when {

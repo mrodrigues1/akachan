@@ -53,10 +53,7 @@ fun BreastfeedingHistoryScreen(
             .sortedByDescending { it.key }
             .map { (date, sessions) ->
                 val totalDuration = sessions
-                    .filter { it.endTime != null }
-                    .mapNotNull { session ->
-                        session.endTime?.let { end -> Duration.between(session.startTime, end) }
-                    }
+                    .mapNotNull { it.activeDuration }
                     .fold(Duration.ZERO) { acc, d -> acc + d }
                 Triple(date, sessions, totalDuration)
             }
@@ -131,9 +128,7 @@ fun BreastfeedingHistoryScreen(
                         HistoryCard(
                             title = if (isLeft) "Left side" else "Right side",
                             subtitle = session.startTime.formatTime12h(),
-                            trailing = session.endTime?.let { end ->
-                                Duration.between(session.startTime, end).formatDuration()
-                            } ?: "In progress",
+                            trailing = session.activeDuration?.formatDuration() ?: "In progress",
                             badgeEmoji = "🍼",
                             badgeColor = MaterialTheme.colorScheme.primaryContainer
                         )
