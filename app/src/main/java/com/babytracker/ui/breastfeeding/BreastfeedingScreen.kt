@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,14 +25,17 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -55,6 +59,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.domain.model.BreastSide
+import com.babytracker.domain.model.displayName
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.SideSelector
 import com.babytracker.ui.component.TimerDisplay
@@ -76,6 +81,7 @@ fun BreastfeedingScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var notificationPermissionGranted by remember { mutableStateOf(isNotificationPermissionGranted(context)) }
+    var showStopConfirmation by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -245,7 +251,7 @@ fun BreastfeedingScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Text(
-                                        text = if (isCurrentSide) "● ${side.name}" else side.name,
+                                        text = if (isCurrentSide) "● ${side.displayName()}" else side.displayName(),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = if (isCurrentSide) {
                                             MaterialTheme.colorScheme.onPrimaryContainer
@@ -272,21 +278,21 @@ fun BreastfeedingScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     if (activeSession.switchTime == null && !activeSession.isPaused) {
-                        val nextSide = if (activeSession.startingSide == BreastSide.LEFT) "Right" else "Left"
+                        val nextSide = if (activeSession.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
                         OutlinedButton(
                             onClick = viewModel::onSwitchSide,
                             modifier = Modifier.fillMaxWidth(),
                             shape = MaterialTheme.shapes.extraLarge
                         ) {
                             Text(
-                                text = "⇄  Switch to $nextSide",
+                                text = "⇄  Switch to ${nextSide.displayName()}",
                                 style = MaterialTheme.typography.labelLarge
                             )
                         }
                         Spacer(modifier = Modifier.height(12.dp))
                     }
 
-                    OutlinedButton(
+                    Button(
                         onClick = if (activeSession.isPaused) viewModel::onResumeSession else viewModel::onPauseSession,
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.extraLarge
@@ -305,10 +311,14 @@ fun BreastfeedingScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Button(
-                        onClick = viewModel::onStopSession,
+                    OutlinedButton(
+                        onClick = { showStopConfirmation = true },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.extraLarge
+                        shape = MaterialTheme.shapes.extraLarge,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
                     ) {
                         Icon(
                             imageVector = Icons.Default.Stop,
@@ -367,6 +377,67 @@ fun BreastfeedingScreen(
             }
         }
     }
+
+    if (showStopConfirmation) {
+        ModalBottomSheet(
+            onDismissRequest = { showStopConfirmation = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            shape = MaterialTheme.shapes.large,
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 8.dp, bottom = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Stop,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "End this session?",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Session will be saved to history.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = {
+                        showStopConfirmation = false
+                        viewModel.onStopSession()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.extraLarge,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text("End session", style = MaterialTheme.typography.labelLarge)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(
+                    onClick = { showStopConfirmation = false },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.extraLarge
+                ) {
+                    Text("Keep going", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+        }
+    }
 }
 
 private fun isNotificationPermissionGranted(context: Context): Boolean {
@@ -376,9 +447,6 @@ private fun isNotificationPermissionGranted(context: Context): Boolean {
         Manifest.permission.POST_NOTIFICATIONS
     ) == PackageManager.PERMISSION_GRANTED
 }
-
-private fun BreastSide.displayName(): String =
-    name.lowercase().replaceFirstChar { it.uppercase() }
 
 @Composable
 private fun LastFeedingSummaryCard(summary: LastFeedingSummaryState.Populated) {
