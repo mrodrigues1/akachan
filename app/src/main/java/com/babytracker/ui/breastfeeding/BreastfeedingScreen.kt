@@ -335,20 +335,37 @@ fun BreastfeedingScreen(
                     Spacer(modifier = Modifier.height(24.dp))
                 }
             } else {
+                val summary = uiState.lastFeedingSummary
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(modifier = Modifier.height(48.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
                     Text(
                         text = "Start a feeding session",
-                        style = MaterialTheme.typography.titleLarge
+                        style = MaterialTheme.typography.headlineLarge
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
+
+                    if (summary is LastFeedingSummaryState.Populated) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium,
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                text = "Start ${summary.nextRecommendedSide.displayName()} breast first",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
 
                     SideSelector(
                         selectedSide = uiState.selectedSide,
@@ -366,7 +383,6 @@ fun BreastfeedingScreen(
                         Text("Start Session", style = MaterialTheme.typography.titleSmall)
                     }
 
-                    val summary = uiState.lastFeedingSummary
                     if (summary is LastFeedingSummaryState.Populated) {
                         Spacer(modifier = Modifier.height(24.dp))
                         LastFeedingSummaryCard(summary = summary)
@@ -468,21 +484,6 @@ private fun LastFeedingSummaryCard(summary: LastFeedingSummaryState.Populated) {
         )
 
         Spacer(modifier = Modifier.height(12.dp))
-
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.small,
-            color = MaterialTheme.colorScheme.primaryContainer
-        ) {
-            Text(
-                text = "Start with: ${summary.nextRecommendedSide.displayName()} breast",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
 
         HistoryCard(
             title = "${session.startingSide.displayName()} breast",

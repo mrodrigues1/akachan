@@ -115,7 +115,12 @@ class BreastfeedingViewModel @Inject constructor(
             ) { lastSession, _ ->
                 buildLastFeedingSummary(lastSession)
             }.collect { summary ->
-                _uiState.value = _uiState.value.copy(lastFeedingSummary = summary)
+                val autoSide = if (summary is LastFeedingSummaryState.Populated && _uiState.value.selectedSide == null) {
+                    summary.nextRecommendedSide
+                } else {
+                    _uiState.value.selectedSide
+                }
+                _uiState.value = _uiState.value.copy(lastFeedingSummary = summary, selectedSide = autoSide)
             }
         }
     }
@@ -143,6 +148,7 @@ class BreastfeedingViewModel @Inject constructor(
         viewModelScope.launch {
             stopSession(session)
             notificationCoordinator.cancelAllSessionNotifications()
+            _uiState.value = _uiState.value.copy(selectedSide = null)
             runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
         }
     }
