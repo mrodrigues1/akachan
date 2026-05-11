@@ -26,6 +26,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -86,13 +89,23 @@ fun TimerDisplay(
         remember { androidx.compose.runtime.mutableFloatStateOf(1f) }
     }
 
+    val percent = if (hasRing) (progress * 100).toInt() else 0
+    val maxMinutes = maxDurationSeconds / 60
+    val timerDescription = if (hasRing) {
+        "Session timer: $timeText, $percent% of $maxMinutes minutes"
+    } else {
+        "Session timer: $timeText"
+    }
+
     Box(
-        modifier = modifier.then(if (hasRing) Modifier.size(208.dp).scale(scale) else Modifier),
+        modifier = modifier
+            .then(if (hasRing) Modifier.size(208.dp).scale(scale) else Modifier)
+            .semantics(mergeDescendants = true) { contentDescription = timerDescription },
         contentAlignment = Alignment.Center,
     ) {
         if (hasRing) {
             val strokeWidthDp = 16.dp
-            Canvas(modifier = Modifier.fillMaxSize()) {
+            Canvas(modifier = Modifier.fillMaxSize().clearAndSetSemantics {}) {
                 val strokePx = strokeWidthDp.toPx()
                 val diameter = size.minDimension - strokePx
                 val topLeft = Offset(
@@ -131,8 +144,6 @@ fun TimerDisplay(
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                val percent = (progress * 100).toInt()
-                val maxMinutes = maxDurationSeconds / 60
                 Text(
                     text = "$percent% of ${maxMinutes}m",
                     style = MaterialTheme.typography.labelMedium,
