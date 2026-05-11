@@ -199,7 +199,7 @@ fun HomeScreen(
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = feedingElevation),
                 ) {
-                    Column(modifier = Modifier.padding(20.dp).animateContentSize(animationSpec = tween(200))) {
+                    Column(modifier = Modifier.padding(20.dp).animateContentSize(animationSpec = tween(200, easing = LinearOutSlowInEasing))) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -281,7 +281,7 @@ fun HomeScreen(
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = sleepElevation),
                 ) {
-                    Column(modifier = Modifier.padding(20.dp).animateContentSize(animationSpec = tween(200))) {
+                    Column(modifier = Modifier.padding(20.dp).animateContentSize(animationSpec = tween(200, easing = LinearOutSlowInEasing))) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -354,7 +354,7 @@ fun HomeScreen(
                 val nextSideName = uiState.nextRecommendedSide
                     ?.name?.lowercase()?.replaceFirstChar { it.uppercase() } ?: ""
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
                     shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
