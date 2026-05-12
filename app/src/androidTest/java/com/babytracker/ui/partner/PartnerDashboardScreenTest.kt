@@ -126,7 +126,7 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithText("Quiet right now").assertIsDisplayed()
         composeRule.onNodeWithText("No active feeding was shared. Nothing needs attention.").assertIsDisplayed()
         composeRule.onNodeWithText("No feeding history shared").assertIsDisplayed()
-        composeRule.onNodeWithText("No sleep record shared").assertIsDisplayed()
+        composeRule.onNodeWithText("No sleep record shared").performScrollTo().assertIsDisplayed()
         composeRule.onAllNodesWithText("No allergies shared").assertCountEquals(2)
     }
 
@@ -170,7 +170,7 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithText("1 allergy shared").assertIsDisplayed()
         composeRule.onNodeWithText("15m 0s").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("2h 0m").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Cow's Milk Protein").assertIsDisplayed()
+        composeRule.onNodeWithText("Cow's Milk Protein").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("No shared records yet").assertDoesNotExist()
     }
 
@@ -265,6 +265,7 @@ class PartnerDashboardScreenTest {
         }
 
         composeRule.onNodeWithContentDescription("Allergy: Cow's Milk Protein")
+            .performScrollTo()
             .assertIsDisplayed()
             .assertHasNoClickAction()
     }
