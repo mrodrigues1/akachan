@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,6 +50,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -148,41 +150,50 @@ fun PartnerDashboardScreen(
             )
         },
     ) { padding ->
-        Box(
+        PullToRefreshBox(
+            isRefreshing = uiState.isLoading,
+            onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .semantics {
+                    contentDescription = "Pull down to check for shared updates"
+                },
         ) {
-            when {
-                uiState.isLoading && snapshot == null -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .semantics {
-                                contentDescription = "Loading shared partner data"
-                            },
-                    )
-                }
-                snapshot != null -> {
-                    DashboardContent(
-                        snapshot = snapshot,
-                        error = uiState.error,
-                        onClearError = viewModel::clearError,
-                        lastRefreshAt = uiState.lastRefreshAt,
-                        nowProvider = nowProvider,
-                    )
-                }
-                uiState.error != null -> {
-                    ErrorState(
-                        message = uiState.error!!,
-                        onRetry = viewModel::refresh,
-                    )
-                }
-                else -> {
-                    EmptyState(
-                        babyName = babyName,
-                        onRefresh = viewModel::refresh,
-                    )
+            Box(modifier = Modifier.fillMaxSize()) {
+                when {
+                    uiState.isLoading && snapshot == null -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .semantics {
+                                    contentDescription = "Loading shared partner data"
+                                },
+                        )
+                    }
+                    snapshot != null -> {
+                        DashboardContent(
+                            snapshot = snapshot,
+                            error = uiState.error,
+                            onClearError = viewModel::clearError,
+                            lastRefreshAt = uiState.lastRefreshAt,
+                            isLoading = uiState.isLoading,
+                            onRefresh = viewModel::refresh,
+                            nowProvider = nowProvider,
+                        )
+                    }
+                    uiState.error != null -> {
+                        ErrorState(
+                            message = uiState.error!!,
+                            onRetry = viewModel::refresh,
+                        )
+                    }
+                    else -> {
+                        EmptyState(
+                            babyName = babyName,
+                            onRefresh = viewModel::refresh,
+                        )
+                    }
                 }
             }
         }
@@ -221,6 +232,8 @@ private fun DashboardContent(
     error: String?,
     onClearError: () -> Unit,
     lastRefreshAt: Long,
+    isLoading: Boolean,
+    onRefresh: () -> Unit,
     nowProvider: () -> Long,
 ) {
     var nowMs by remember(snapshot.lastSyncAt) { mutableLongStateOf(nowProvider()) }
@@ -270,6 +283,14 @@ private fun DashboardContent(
             now = now,
         )
 
+        Spacer(modifier = Modifier.height(16.dp))
+        CareSummaryPanel(
+            lastFeeding = snapshot.sessions.firstOrNull { it.endTime != null },
+            lastSleep = lastSleep,
+            allergyCount = snapshot.baby.allergies.size,
+            now = now,
+        )
+
         if (!hasSharedRecords) {
             Spacer(modifier = Modifier.height(18.dp))
             SharedRecordsEmptyState(babyName = snapshot.baby.name.takeIf { it.isNotEmpty() })
@@ -306,6 +327,12 @@ private fun DashboardContent(
 
         Spacer(modifier = Modifier.height(24.dp))
         AllergySection(baby = snapshot.baby)
+
+        Spacer(modifier = Modifier.height(24.dp))
+        RefreshSharedUpdatesButton(
+            isLoading = isLoading,
+            onRefresh = onRefresh,
+        )
     }
 }
 
@@ -331,14 +358,14 @@ private fun PartnerStatusPanel(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
-    val stateText = if (isShareStale) "Stale shared data" else "Shared data current"
+    val stateText = if (isShareStale) "Shared update may be behind" else "Shared update is current"
     val statusDescription = buildString {
         append(stateText)
-        append(". Primary device last shared ")
-        append(lastSharedText)
+        append(". Shared ")
+        append(lastSharedText.lowercaseFirstChar())
         if (lastCheckedText != null) {
-            append(". Last checked ")
-            append(lastCheckedText)
+            append(". Checked ")
+            append(lastCheckedText.lowercaseFirstChar())
         }
     }
 
@@ -359,24 +386,6 @@ private fun PartnerStatusPanel(
                 .fillMaxWidth()
                 .padding(horizontal = 18.dp, vertical = 16.dp),
         ) {
-            Text(
-                text = "SHARED STATUS",
-                style = MaterialTheme.typography.labelMedium,
-                color = labelColor,
-            )
-            Text(
-                text = "Primary device last shared: $lastSharedText",
-                style = MaterialTheme.typography.bodySmall,
-                color = labelColor,
-            )
-            if (lastCheckedText != null) {
-                Text(
-                    text = "This device last checked: $lastCheckedText",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = labelColor,
-                )
-            }
-            Spacer(modifier = Modifier.height(14.dp))
             if (activeSession == null) {
                 NoActiveSessionStatus()
             } else {
@@ -386,6 +395,12 @@ private fun PartnerStatusPanel(
                     now = now,
                 )
             }
+            Spacer(modifier = Modifier.height(14.dp))
+            SharedUpdateMeta(
+                lastSharedText = lastSharedText,
+                lastCheckedText = lastCheckedText,
+                color = labelColor,
+            )
 
             if (isShareStale) {
                 Spacer(modifier = Modifier.height(14.dp))
@@ -409,15 +424,37 @@ private fun PartnerStatusPanel(
 private fun NoActiveSessionStatus() {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "No active feeding shared",
+            text = "Quiet right now",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = "Active feedings appear here when the primary device syncs.",
+            text = "No active feeding was shared. Nothing needs attention.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+@Composable
+private fun SharedUpdateMeta(
+    lastSharedText: String,
+    lastCheckedText: String?,
+    color: Color,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = "Shared ${lastSharedText.lowercaseFirstChar()}",
+            style = MaterialTheme.typography.bodySmall,
+            color = color,
+        )
+        if (lastCheckedText != null) {
+            Text(
+                text = "Checked ${lastCheckedText.lowercaseFirstChar()}",
+                style = MaterialTheme.typography.bodySmall,
+                color = color,
+            )
+        }
     }
 }
 
@@ -461,7 +498,7 @@ private fun ActiveSessionSummary(
             }
             Column {
                 Text(
-                    text = "ACTIVE WHEN LAST SHARED",
+                    text = "Feeding when shared",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -480,7 +517,7 @@ private fun ActiveSessionSummary(
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Read-only estimate from the primary device's last sync",
+            text = "Estimate from the last shared update",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
         )
@@ -553,6 +590,67 @@ private fun DashboardSection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SectionHeader(text = title, color = color)
         content()
+    }
+}
+
+@Composable
+private fun CareSummaryPanel(
+    lastFeeding: SessionSnapshot?,
+    lastSleep: SleepSnapshot?,
+    allergyCount: Int,
+    now: Instant,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.surface,
+                shape = MaterialTheme.shapes.medium,
+            )
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = "Latest care",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        SummaryLine(
+            label = lastFeeding?.let { "Fed ${it.feedingAgoText(now)}" } ?: "No feeding shared yet",
+            color = MaterialTheme.colorScheme.primary,
+        )
+        SummaryLine(
+            label = lastSleep?.let { "${it.sleepVerb()} ${it.sleepAgoText(now)}" } ?: "No sleep shared yet",
+            color = MaterialTheme.colorScheme.secondary,
+        )
+        SummaryLine(
+            label = allergySummaryText(allergyCount),
+            color = warningColors().accent,
+        )
+    }
+}
+
+@Composable
+private fun SummaryLine(
+    label: String,
+    color: Color,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .background(color = color, shape = MaterialTheme.shapes.extraSmall),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -687,6 +785,59 @@ private fun AllergyChip(
 }
 
 @Composable
+private fun RefreshSharedUpdatesButton(
+    isLoading: Boolean,
+    onRefresh: () -> Unit,
+) {
+    Button(
+        onClick = onRefresh,
+        enabled = !isLoading,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(18.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.onPrimary,
+            )
+            Spacer(modifier = Modifier.size(10.dp))
+            Text("Checking")
+        } else {
+            Icon(Icons.Default.Refresh, contentDescription = null)
+            Spacer(modifier = Modifier.size(10.dp))
+            Text("Check shared updates")
+        }
+    }
+}
+
+private fun SessionSnapshot.feedingAgoText(now: Instant): String =
+    Duration.between(Instant.ofEpochMilli(startTime), now)
+        .coerceAtLeast(Duration.ZERO)
+        .formatElapsedAgo()
+        .lowercaseFirstChar()
+
+private fun SleepSnapshot.sleepAgoText(now: Instant): String {
+    val time = endTime ?: startTime
+    return Duration.between(Instant.ofEpochMilli(time), now)
+        .coerceAtLeast(Duration.ZERO)
+        .formatElapsedAgo()
+        .lowercaseFirstChar()
+}
+
+private fun SleepSnapshot.sleepVerb(): String =
+    if (sleepType == "NAP") "Napped" else "Slept"
+
+private fun allergySummaryText(count: Int): String =
+    when (count) {
+        0 -> "No allergies shared"
+        1 -> "1 allergy shared"
+        else -> "$count allergies shared"
+    }
+
+private fun String.lowercaseFirstChar(): String =
+    replaceFirstChar { it.lowercase() }
+
+@Composable
 private fun EmptyState(
     babyName: String?,
     onRefresh: () -> Unit,
@@ -700,7 +851,7 @@ private fun EmptyState(
     ) {
         Text(
             text = "\uD83D\uDC76",
-            style = MaterialTheme.typography.displaySmall,
+            style = MaterialTheme.typography.headlineLarge,
             modifier = Modifier.clearAndSetSemantics {},
         )
         Spacer(modifier = Modifier.height(16.dp))

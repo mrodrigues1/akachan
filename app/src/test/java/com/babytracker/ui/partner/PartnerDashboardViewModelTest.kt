@@ -90,7 +90,7 @@ class PartnerDashboardViewModelTest {
         val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase)
 
         assertEquals(
-            "Couldn't check for shared updates. Check your connection and try again.",
+            "We couldn't check for shared updates. Pull down to try again.",
             viewModel.uiState.value.error,
         )
         assertFalse(viewModel.uiState.value.isDisconnected)
@@ -114,7 +114,7 @@ class PartnerDashboardViewModelTest {
 
         assertEquals(snapshot, viewModel.uiState.value.snapshot)
         assertEquals(
-            "Couldn't check for shared updates. Showing the last shared data.",
+            "We couldn't check just now. Showing the last shared update.",
             viewModel.uiState.value.error,
         )
         assertFalse(viewModel.uiState.value.isDisconnected)

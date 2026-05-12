@@ -11,6 +11,8 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.SessionSnapshot
@@ -18,6 +20,7 @@ import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -90,7 +93,7 @@ class PartnerDashboardScreenTest {
 
         composeRule.onNodeWithText("Mia").assertIsDisplayed()
         composeRule.onNodeWithText("5w old, read-only partner view").assertIsDisplayed()
-        composeRule.onNodeWithText("Primary device last shared:", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Shared just now").assertIsDisplayed()
         composeRule.onNodeWithText("No shared records yet").assertIsDisplayed()
         composeRule.onNodeWithText(
             "When the primary parent tracks Mia, shared feedings and sleep will appear here.",
@@ -105,8 +108,8 @@ class PartnerDashboardScreenTest {
             )
         }
 
-        composeRule.onNodeWithText("SHARED STATUS").assertIsDisplayed()
-        composeRule.onNodeWithText("No active feeding shared").assertIsDisplayed()
+        composeRule.onNodeWithText("Quiet right now").assertIsDisplayed()
+        composeRule.onNodeWithText("No active feeding was shared. Nothing needs attention.").assertIsDisplayed()
         composeRule.onNodeWithText("No feeding history shared").assertIsDisplayed()
         composeRule.onNodeWithText("No sleep record shared").assertIsDisplayed()
         composeRule.onNodeWithText("No allergies shared").assertIsDisplayed()
@@ -146,6 +149,10 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithText("RECENT FEEDINGS").assertIsDisplayed()
         composeRule.onNodeWithText("LAST SLEEP").assertIsDisplayed()
         composeRule.onNodeWithText("ALLERGIES").assertIsDisplayed()
+        composeRule.onNodeWithText("Latest care").assertIsDisplayed()
+        composeRule.onNodeWithText("Fed 25m ago").assertIsDisplayed()
+        composeRule.onNodeWithText("Napped 1h ago").assertIsDisplayed()
+        composeRule.onNodeWithText("1 allergy shared").assertIsDisplayed()
         composeRule.onNodeWithText("15m").assertIsDisplayed()
         composeRule.onNodeWithText("2h 0m").assertIsDisplayed()
         composeRule.onNodeWithText("Cow's Milk Protein").assertIsDisplayed()
@@ -178,15 +185,33 @@ class PartnerDashboardScreenTest {
 
         composeRule.onNodeWithText("This read-only view may be behind.", substring = true).assertIsDisplayed()
         composeRule.onNode(
-            hasContentDescription("Stale shared data", substring = true)
-                .and(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Stale shared data"))
+            hasContentDescription("Shared update may be behind", substring = true)
+                .and(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Shared update may be behind"))
                 .and(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite)),
         ).assertIsDisplayed()
-        composeRule.onNodeWithText("ACTIVE WHEN LAST SHARED").assertIsDisplayed()
+        composeRule.onNodeWithText("Feeding when shared").assertIsDisplayed()
         composeRule.onNodeWithText("1h 0m").assertIsDisplayed()
         composeRule.onNodeWithText(
-            "Read-only estimate from the primary device's last sync",
+            "Estimate from the last shared update",
         ).assertIsDisplayed()
+    }
+
+    @Test
+    fun pullDownRefreshChecksForSharedUpdates() {
+        val fetchUseCase = mockk<FetchPartnerDataUseCase>()
+        coEvery { fetchUseCase.invoke() } returns makeSnapshot()
+        val viewModel = PartnerDashboardViewModel(fetchUseCase)
+
+        composeRule.setContent {
+            PartnerDashboardScreen(viewModel = viewModel)
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Pull down to check for shared updates")
+            .performTouchInput { swipeDown() }
+        composeRule.waitForIdle()
+
+        coVerify(atLeast = 2) { fetchUseCase.invoke() }
     }
 
     @Test
