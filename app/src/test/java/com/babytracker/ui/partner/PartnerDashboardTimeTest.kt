@@ -14,4 +14,11 @@ class PartnerDashboardTimeTest {
 
         assertEquals(5, babyAgeWeeks(birthDateMs = birthDateMs, now = now))
     }
+
+    @Test
+    fun `baby age subtitle uses readable week copy`() {
+        assertEquals("Less than 1 week old, read-only partner view", babyAgeSubtitleText(0))
+        assertEquals("1 week old, read-only partner view", babyAgeSubtitleText(1))
+        assertEquals("5 weeks old, read-only partner view", babyAgeSubtitleText(5))
+    }
 }

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -111,7 +112,7 @@ fun PartnerDashboardScreen(
     }
 
     val snapshot = uiState.snapshot
-    val babyName = snapshot?.baby?.name?.takeIf { it.isNotEmpty() }
+    val babyName = snapshot?.baby?.name?.takeIf { it.isNotBlank() }
 
     Scaffold(
         modifier = modifier,
@@ -232,7 +233,7 @@ private fun BabyAgeSubtitle(
             )
         }
         Text(
-            text = "${ageWeeks}w old, read-only partner view",
+            text = babyAgeSubtitleText(ageWeeks),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -395,7 +396,7 @@ private fun CompactDashboardContent(
 
         if (!hasSharedRecords) {
             Spacer(modifier = Modifier.height(18.dp))
-            SharedRecordsEmptyState(babyName = snapshot.baby.name.takeIf { it.isNotEmpty() })
+            SharedRecordsEmptyState(babyName = snapshot.baby.name.takeIf { it.isNotBlank() })
         }
 
         Spacer(modifier = Modifier.height(28.dp))
@@ -457,7 +458,7 @@ private fun WideDashboardContent(
                 now = now,
             )
             if (!hasSharedRecords) {
-                SharedRecordsEmptyState(babyName = snapshot.baby.name.takeIf { it.isNotEmpty() })
+                SharedRecordsEmptyState(babyName = snapshot.baby.name.takeIf { it.isNotBlank() })
             }
             RefreshSharedUpdatesButton(
                 isLoading = isLoading,
@@ -1010,7 +1011,7 @@ private fun RefreshSharedUpdatesButton(
                 strokeWidth = 2.dp,
                 color = MaterialTheme.colorScheme.onPrimary,
             )
-            Spacer(modifier = Modifier.size(10.dp))
+            Spacer(modifier = Modifier.width(10.dp))
             Text(
                 text = "Checking",
                 maxLines = 2,
@@ -1018,7 +1019,7 @@ private fun RefreshSharedUpdatesButton(
             )
         } else {
             Icon(Icons.Default.Refresh, contentDescription = null)
-            Spacer(modifier = Modifier.size(10.dp))
+            Spacer(modifier = Modifier.width(10.dp))
             Text(
                 text = "Check shared updates",
                 maxLines = 2,
@@ -1096,6 +1097,8 @@ private fun EmptyState(
                 .fillMaxWidth()
                 .heightIn(min = 48.dp),
         ) {
+            Icon(Icons.Default.Refresh, contentDescription = null)
+            Spacer(modifier = Modifier.width(10.dp))
             Text(
                 text = "Check for shared updates",
                 maxLines = 2,
@@ -1127,7 +1130,11 @@ private fun ErrorState(
         Button(
             onClick = onRetry,
             modifier = Modifier.heightIn(min = 48.dp),
-        ) { Text("Check again") }
+        ) {
+            Icon(Icons.Default.Refresh, contentDescription = null)
+            Spacer(modifier = Modifier.width(10.dp))
+            Text("Check again")
+        }
     }
 }
 
@@ -1187,3 +1194,10 @@ internal fun babyAgeWeeks(
 
     return (ageDays / 7).toInt()
 }
+
+internal fun babyAgeSubtitleText(ageWeeks: Int): String =
+    when (ageWeeks) {
+        0 -> "Less than 1 week old, read-only partner view"
+        1 -> "1 week old, read-only partner view"
+        else -> "$ageWeeks weeks old, read-only partner view"
+    }
