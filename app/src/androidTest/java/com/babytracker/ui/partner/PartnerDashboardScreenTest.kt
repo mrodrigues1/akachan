@@ -25,14 +25,14 @@ class PartnerDashboardScreenTest {
     }
 
     @Test
-    fun settingsNavigationBarItemIsDisplayed() {
+    fun settingsIconButtonIsDisplayed() {
         composeRule.setContent {
             PartnerDashboardScreen(
                 onNavigateToSettings = {},
                 viewModel = buildViewModel(),
             )
         }
-        composeRule.onNodeWithText("Settings").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
     }
 
     @Test
@@ -44,7 +44,7 @@ class PartnerDashboardScreenTest {
                 viewModel = buildViewModel(),
             )
         }
-        composeRule.onNodeWithText("Settings").performClick()
+        composeRule.onNodeWithContentDescription("Settings").performClick()
         assertTrue(called)
     }
 }
