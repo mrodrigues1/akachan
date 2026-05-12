@@ -39,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -50,6 +51,7 @@ import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.theme.OnWarningContainerAmber
+import com.babytracker.ui.theme.WarningAmber
 import com.babytracker.ui.theme.WarningContainerAmber
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
@@ -92,25 +94,7 @@ fun PartnerDashboardScreen(
                             text = babyName ?: "Baby Tracker",
                             style = MaterialTheme.typography.titleLarge,
                         )
-                        if (babyName != null && snapshot != null) {
-                            val ageWeeks = remember(snapshot.baby.birthDateMs) {
-                                Duration.between(
-                                    Instant.ofEpochMilli(snapshot.baby.birthDateMs),
-                                    Instant.now(),
-                                ).toDays() / 7
-                            }
-                            Text(
-                                text = "${ageWeeks}w old, read-only partner view",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        } else {
-                            Text(
-                                text = "Read-only partner view",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                        BabyAgeSubtitle(snapshot = snapshot, babyName = babyName)
                     }
                 },
                 actions = {
@@ -174,6 +158,32 @@ fun PartnerDashboardScreen(
 }
 
 @Composable
+private fun BabyAgeSubtitle(
+    snapshot: ShareSnapshot?,
+    babyName: String?,
+) {
+    if (babyName != null && snapshot != null) {
+        val ageWeeks = remember(snapshot.baby.birthDateMs) {
+            Duration.between(
+                Instant.ofEpochMilli(snapshot.baby.birthDateMs),
+                Instant.now(),
+            ).toDays() / 7
+        }
+        Text(
+            text = "${ageWeeks}w old, read-only partner view",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    } else {
+        Text(
+            text = "Read-only partner view",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
 private fun DashboardContent(
     snapshot: ShareSnapshot,
     error: String?,
@@ -183,6 +193,7 @@ private fun DashboardContent(
     val activeSession = snapshot.sessions.firstOrNull { it.endTime == null }
     val completedSessions = snapshot.sessions.filter { it.endTime != null }.take(3)
     val lastSleep = snapshot.sleepRecords.firstOrNull()
+    val hasSharedRecords = snapshot.sessions.isNotEmpty() || snapshot.sleepRecords.isNotEmpty()
     val lastSharedText = remember(snapshot.lastSyncAt, lastRefreshAt) {
         Duration.between(snapshot.lastSyncAt, Instant.now()).formatElapsedAgo()
     }
@@ -197,66 +208,145 @@ private fun DashboardContent(
             .padding(horizontal = 16.dp)
             .padding(top = 8.dp, bottom = 24.dp),
     ) {
-        Text(
-            text = "Primary device last shared: $lastSharedText",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        PartnerStatusPanel(
+            activeSession = activeSession,
+            lastSharedText = lastSharedText,
+            isShareStale = isShareStale,
+            error = error,
+            onClearError = onClearError,
+            lastSyncAt = snapshot.lastSyncAt,
+            lastRefreshAt = lastRefreshAt,
         )
 
-        if (isShareStale) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "This read-only view may be behind. " +
-                    "Ask the primary parent to open Akachan if something is missing.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = OnWarningContainerAmber,
-            )
+        if (!hasSharedRecords) {
+            Spacer(modifier = Modifier.height(18.dp))
+            SharedRecordsEmptyState(babyName = snapshot.baby.name.takeIf { it.isNotEmpty() })
         }
 
-        if (error != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = error,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-            )
-            TextButton(onClick = onClearError) { Text("Dismiss") }
-        }
-
-        if (activeSession != null) {
-            Spacer(modifier = Modifier.height(16.dp))
-            ActiveSessionCard(
-                session = activeSession,
-                lastSyncAt = snapshot.lastSyncAt,
-                lastRefreshAt = lastRefreshAt,
-            )
-        }
-
-        if (completedSessions.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(24.dp))
-            SectionHeader(text = "RECENT FEEDINGS")
-            Spacer(modifier = Modifier.height(8.dp))
-            completedSessions.forEach { session ->
-                FeedingHistoryRow(session = session, lastRefreshAt = lastRefreshAt)
+        Spacer(modifier = Modifier.height(28.dp))
+        DashboardSection(title = "RECENT FEEDINGS") {
+            if (completedSessions.isEmpty()) {
+                EmptySectionMessage(
+                    title = "No feeding history shared",
+                    body = "Completed feedings from the primary device will appear here.",
+                )
+            } else {
+                completedSessions.forEach { session ->
+                    FeedingHistoryRow(session = session, lastRefreshAt = lastRefreshAt)
+                }
             }
         }
 
-        if (lastSleep != null) {
-            Spacer(modifier = Modifier.height(24.dp))
-            SectionHeader(text = "LAST SLEEP")
-            Spacer(modifier = Modifier.height(8.dp))
-            SleepHistoryRow(sleep = lastSleep, lastRefreshAt = lastRefreshAt)
+        Spacer(modifier = Modifier.height(24.dp))
+        DashboardSection(
+            title = "LAST SLEEP",
+            color = MaterialTheme.colorScheme.secondary,
+        ) {
+            if (lastSleep == null) {
+                EmptySectionMessage(
+                    title = "No sleep record shared",
+                    body = "The latest nap or night sleep will appear after the next sync.",
+                )
+            } else {
+                SleepHistoryRow(sleep = lastSleep, lastRefreshAt = lastRefreshAt)
+            }
         }
 
-        if (snapshot.baby.allergies.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(24.dp))
-            AllergySection(baby = snapshot.baby)
+        Spacer(modifier = Modifier.height(24.dp))
+        AllergySection(baby = snapshot.baby)
+    }
+}
+
+@Composable
+private fun PartnerStatusPanel(
+    activeSession: SessionSnapshot?,
+    lastSharedText: String,
+    isShareStale: Boolean,
+    error: String?,
+    onClearError: () -> Unit,
+    lastSyncAt: Instant,
+    lastRefreshAt: Long,
+) {
+    val hasActiveSession = activeSession != null
+    val containerColor = if (hasActiveSession) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+    val labelColor = if (hasActiveSession) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+        ) {
+            Text(
+                text = "SHARED STATUS",
+                style = MaterialTheme.typography.labelMedium,
+                color = labelColor,
+            )
+            Text(
+                text = "Primary device last shared: $lastSharedText",
+                style = MaterialTheme.typography.bodySmall,
+                color = labelColor,
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+            if (activeSession == null) {
+                NoActiveSessionStatus()
+            } else {
+                ActiveSessionSummary(
+                    session = activeSession,
+                    lastSyncAt = lastSyncAt,
+                    lastRefreshAt = lastRefreshAt,
+                )
+            }
+
+            if (isShareStale) {
+                Spacer(modifier = Modifier.height(14.dp))
+                SyncWarning()
+            }
+
+            if (error != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                TextButton(onClick = onClearError) { Text("Dismiss") }
+            }
         }
     }
 }
 
 @Composable
-private fun ActiveSessionCard(
+private fun NoActiveSessionStatus() {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = "No active feeding shared",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = "Active feedings appear here when the primary device syncs.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun ActiveSessionSummary(
     session: SessionSnapshot,
     lastSyncAt: Instant,
     lastRefreshAt: Long,
@@ -270,64 +360,145 @@ private fun ActiveSessionCard(
         val started = if (session.startingSide == "LEFT") "Left" else "Right"
         if (session.switchTime != null) {
             val current = if (session.startingSide == "LEFT") "Right" else "Left"
-            "$started → $current breast"
+            "$started to $current breast"
         } else {
             "$started breast"
         }
     }
 
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = MaterialTheme.shapes.medium,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text = "\uD83E\uDD31", style = MaterialTheme.typography.headlineSmall)
+            }
+            Column {
+                Text(
+                    text = "ACTIVE WHEN LAST SHARED",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = sideLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = elapsedAtLastSync.formatDuration(),
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Read-only estimate from the primary device's last sync",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+    }
+}
+
+@Composable
+private fun SyncWarning() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = WarningContainerAmber,
+                shape = MaterialTheme.shapes.small,
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Text(
+            text = "This read-only view may be behind. " +
+                "Ask the primary parent to open Akachan if something is missing.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = OnWarningContainerAmber,
+        )
+    }
+}
+
+@Composable
+private fun SharedRecordsEmptyState(babyName: String?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 18.dp),
+                .padding(horizontal = 18.dp, vertical = 18.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = MaterialTheme.shapes.medium,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(text = "🤱", style = MaterialTheme.typography.headlineSmall)
-                }
-                Column {
-                    Text(
-                        text = "ACTIVE WHEN LAST SHARED",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = sideLabel,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(14.dp))
             Text(
-                text = elapsedAtLastSync.formatDuration(),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                text = "No shared records yet",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Read-only estimate from the primary device's last sync",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                text = if (babyName != null) {
+                    "When the primary parent tracks $babyName, shared feedings and sleep will appear here."
+                } else {
+                    "When the primary parent tracks a feeding or sleep, it will appear here."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+@Composable
+private fun DashboardSection(
+    title: String,
+    color: Color = MaterialTheme.colorScheme.primary,
+    content: @Composable () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionHeader(text = title, color = color)
+        content()
+    }
+}
+
+@Composable
+private fun EmptySectionMessage(
+    title: String,
+    body: String,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.small,
+            )
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = body,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -347,7 +518,7 @@ private fun FeedingHistoryRow(session: SessionSnapshot, lastRefreshAt: Long) {
         val from = if (session.startingSide == "LEFT") "Left" else "Right"
         if (session.switchTime != null) {
             val to = if (session.startingSide == "LEFT") "Right" else "Left"
-            "$from → $to"
+            "$from to $to"
         } else {
             "$from breast"
         }
@@ -357,7 +528,7 @@ private fun FeedingHistoryRow(session: SessionSnapshot, lastRefreshAt: Long) {
         title = duration.formatDuration(),
         subtitle = sideText,
         trailing = timeAgo,
-        badgeEmoji = "🤱",
+        badgeEmoji = "\uD83E\uDD31",
         badgeColor = MaterialTheme.colorScheme.primaryContainer,
     )
 }
@@ -378,7 +549,7 @@ private fun SleepHistoryRow(sleep: SleepSnapshot, lastRefreshAt: Long) {
         title = duration?.formatDuration() ?: "In progress",
         subtitle = typeLabel,
         trailing = timeAgo ?: "",
-        badgeEmoji = "💤",
+        badgeEmoji = "\uD83D\uDCA4",
         badgeColor = MaterialTheme.colorScheme.secondaryContainer,
     )
 }
@@ -387,19 +558,26 @@ private fun SleepHistoryRow(sleep: SleepSnapshot, lastRefreshAt: Long) {
 @Composable
 private fun AllergySection(baby: BabySnapshot) {
     Column {
-        SectionHeader(text = "ALLERGIES")
+        SectionHeader(text = "ALLERGIES", color = WarningAmber)
         Spacer(modifier = Modifier.height(8.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            baby.allergies.forEach { allergyName ->
-                val label = AllergyType.entries.find { it.name == allergyName }?.label ?: allergyName
-                SuggestionChip(
-                    onClick = {},
-                    label = { Text(label) },
-                    colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = WarningContainerAmber,
-                        labelColor = OnWarningContainerAmber,
-                    ),
-                )
+        if (baby.allergies.isEmpty()) {
+            EmptySectionMessage(
+                title = "No allergies shared",
+                body = "Allergy notes from the primary device will appear here.",
+            )
+        } else {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                baby.allergies.forEach { allergyName ->
+                    val label = AllergyType.entries.find { it.name == allergyName }?.label ?: allergyName
+                    SuggestionChip(
+                        onClick = {},
+                        label = { Text(label) },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = WarningContainerAmber,
+                            labelColor = OnWarningContainerAmber,
+                        ),
+                    )
+                }
             }
         }
     }
@@ -418,7 +596,7 @@ private fun EmptyState(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = "👶",
+            text = "\uD83D\uDC76",
             style = MaterialTheme.typography.displaySmall,
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -467,10 +645,13 @@ private fun ErrorState(
 }
 
 @Composable
-private fun SectionHeader(text: String) {
+private fun SectionHeader(
+    text: String,
+    color: Color = MaterialTheme.colorScheme.primary,
+) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.primary,
+        color = color,
     )
 }
