@@ -6,28 +6,37 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.BabySnapshot
+import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
+import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
+import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.mockk
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalTime
 
 @RunWith(AndroidJUnit4::class)
 class PartnerDashboardScreenTest {
@@ -36,15 +45,21 @@ class PartnerDashboardScreenTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     private fun buildViewModel(): PartnerDashboardViewModel {
-        val fetchUseCase = mockk<FetchPartnerDataUseCase>()
-        coEvery { fetchUseCase.invoke() } throws RuntimeException("offline")
-        return PartnerDashboardViewModel(fetchUseCase)
+        return PartnerDashboardViewModel(buildFetchUseCase(snapshot = null))
     }
 
     private fun buildViewModel(snapshot: ShareSnapshot): PartnerDashboardViewModel {
-        val fetchUseCase = mockk<FetchPartnerDataUseCase>()
-        coEvery { fetchUseCase.invoke() } returns snapshot
-        return PartnerDashboardViewModel(fetchUseCase)
+        return PartnerDashboardViewModel(buildFetchUseCase(snapshot))
+    }
+
+    private fun buildFetchUseCase(
+        snapshot: ShareSnapshot?,
+        sharingRepository: FakeSharingRepository = FakeSharingRepository(snapshot),
+    ): FetchPartnerDataUseCase {
+        return FetchPartnerDataUseCase(
+            sharingRepository = sharingRepository,
+            settingsRepository = FakePartnerSettingsRepository(),
+        )
     }
 
     private fun makeSnapshot(
@@ -112,7 +127,7 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithText("No active feeding was shared. Nothing needs attention.").assertIsDisplayed()
         composeRule.onNodeWithText("No feeding history shared").assertIsDisplayed()
         composeRule.onNodeWithText("No sleep record shared").assertIsDisplayed()
-        composeRule.onNodeWithText("No allergies shared").assertIsDisplayed()
+        composeRule.onAllNodesWithText("No allergies shared").assertCountEquals(2)
     }
 
     @Test
@@ -151,10 +166,10 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithText("ALLERGIES").assertIsDisplayed()
         composeRule.onNodeWithText("Latest care").assertIsDisplayed()
         composeRule.onNodeWithText("Fed 25m ago").assertIsDisplayed()
-        composeRule.onNodeWithText("Napped 1h ago").assertIsDisplayed()
+        composeRule.onNodeWithText("Napped 1h 0m ago").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("1 allergy shared").assertIsDisplayed()
-        composeRule.onNodeWithText("15m").assertIsDisplayed()
-        composeRule.onNodeWithText("2h 0m").assertIsDisplayed()
+        composeRule.onNodeWithText("15m 0s").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("2h 0m").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Cow's Milk Protein").assertIsDisplayed()
         composeRule.onNodeWithText("No shared records yet").assertDoesNotExist()
     }
@@ -198,8 +213,8 @@ class PartnerDashboardScreenTest {
 
     @Test
     fun pullDownRefreshChecksForSharedUpdates() {
-        val fetchUseCase = mockk<FetchPartnerDataUseCase>()
-        coEvery { fetchUseCase.invoke() } returns makeSnapshot()
+        val sharingRepository = FakeSharingRepository(makeSnapshot())
+        val fetchUseCase = buildFetchUseCase(makeSnapshot(), sharingRepository)
         val viewModel = PartnerDashboardViewModel(fetchUseCase)
 
         composeRule.setContent {
@@ -211,7 +226,7 @@ class PartnerDashboardScreenTest {
             .performTouchInput { swipeDown() }
         composeRule.waitForIdle()
 
-        coVerify(atLeast = 2) { fetchUseCase.invoke() }
+        assertTrue(sharingRepository.fetchCount >= 2)
     }
 
     @Test
@@ -252,5 +267,81 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithContentDescription("Allergy: Cow's Milk Protein")
             .assertIsDisplayed()
             .assertHasNoClickAction()
+    }
+
+    private class FakeSharingRepository(
+        private val snapshot: ShareSnapshot?,
+    ) : SharingRepository {
+        var fetchCount = 0
+            private set
+
+        override suspend fun signInAnonymously(): String = "partner-uid"
+
+        override suspend fun createShareDocument(code: ShareCode, ownerUid: String) = Unit
+
+        override suspend fun isShareCodeValid(code: ShareCode): Boolean = true
+
+        override suspend fun syncFullSnapshot(code: ShareCode, snapshot: ShareSnapshot) = Unit
+
+        override suspend fun syncSessions(code: ShareCode, sessions: List<SessionSnapshot>) = Unit
+
+        override suspend fun syncSleepRecords(code: ShareCode, sleepRecords: List<SleepSnapshot>) = Unit
+
+        override suspend fun syncBaby(code: ShareCode, baby: BabySnapshot) = Unit
+
+        override suspend fun registerPartner(code: ShareCode, partnerUid: String) = Unit
+
+        override suspend fun fetchSnapshot(code: ShareCode): ShareSnapshot {
+            fetchCount += 1
+            return snapshot ?: throw RuntimeException("offline")
+        }
+
+        override suspend fun isPartnerConnected(code: ShareCode, partnerUid: String): Boolean = true
+
+        override suspend fun getPartners(code: ShareCode): List<PartnerInfo> = emptyList()
+
+        override suspend fun revokePartner(code: ShareCode, partnerUid: String) = Unit
+
+        override suspend fun deleteShareDocument(code: ShareCode) = Unit
+    }
+
+    private class FakePartnerSettingsRepository : SettingsRepository {
+        override fun getThemeConfig(): Flow<ThemeConfig> = flowOf(ThemeConfig.SYSTEM)
+
+        override suspend fun setThemeConfig(themeConfig: ThemeConfig) = Unit
+
+        override fun isOnboardingComplete(): Flow<Boolean> = flowOf(true)
+
+        override suspend fun setOnboardingComplete(complete: Boolean) = Unit
+
+        override fun getMaxPerBreastMinutes(): Flow<Int> = flowOf(0)
+
+        override suspend fun setMaxPerBreastMinutes(minutes: Int) = Unit
+
+        override fun getMaxTotalFeedMinutes(): Flow<Int> = flowOf(0)
+
+        override suspend fun setMaxTotalFeedMinutes(minutes: Int) = Unit
+
+        override fun getWakeTime(): Flow<LocalTime?> = flowOf(null)
+
+        override suspend fun setWakeTime(time: LocalTime) = Unit
+
+        override fun getAutoUpdateEnabled(): Flow<Boolean> = flowOf(true)
+
+        override suspend fun setAutoUpdateEnabled(enabled: Boolean) = Unit
+
+        override fun getRichNotificationsEnabled(): Flow<Boolean> = flowOf(true)
+
+        override suspend fun setRichNotificationsEnabled(enabled: Boolean) = Unit
+
+        override fun getAppMode(): Flow<AppMode> = flowOf(AppMode.PARTNER)
+
+        override suspend fun setAppMode(mode: AppMode) = Unit
+
+        override fun getShareCode(): Flow<String?> = flowOf("ABC12345")
+
+        override suspend fun setShareCode(code: String) = Unit
+
+        override suspend fun clearShareCode() = Unit
     }
 }
