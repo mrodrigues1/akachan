@@ -4,9 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -281,12 +283,91 @@ private fun DashboardContent(
         Duration.between(snapshot.lastSyncAt, now).toMinutes() >= STALE_SYNC_THRESHOLD_MINUTES
     }
 
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val isWideLayout = maxWidth >= 720.dp
+        val horizontalPadding = if (isWideLayout) 24.dp else 16.dp
+        val topPadding = if (isWideLayout) 12.dp else 8.dp
+        val bottomPadding = if (isWideLayout) 32.dp else 24.dp
+
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            if (isWideLayout) {
+                WideDashboardContent(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 1120.dp)
+                        .verticalScroll(rememberScrollState())
+                        .padding(
+                            horizontal = horizontalPadding,
+                            vertical = 0.dp,
+                        )
+                        .padding(top = topPadding, bottom = bottomPadding),
+                    activeSession = activeSession,
+                    completedSessions = completedSessions,
+                    lastSleep = lastSleep,
+                    hasSharedRecords = hasSharedRecords,
+                    snapshot = snapshot,
+                    lastSharedText = lastSharedText,
+                    lastCheckedText = lastCheckedText,
+                    isShareStale = isShareStale,
+                    error = error,
+                    onClearError = onClearError,
+                    isLoading = isLoading,
+                    onRefresh = onRefresh,
+                    now = now,
+                )
+            } else {
+                CompactDashboardContent(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = horizontalPadding,
+                        top = topPadding,
+                        end = horizontalPadding,
+                        bottom = bottomPadding,
+                    ),
+                    activeSession = activeSession,
+                    completedSessions = completedSessions,
+                    lastSleep = lastSleep,
+                    hasSharedRecords = hasSharedRecords,
+                    snapshot = snapshot,
+                    lastSharedText = lastSharedText,
+                    lastCheckedText = lastCheckedText,
+                    isShareStale = isShareStale,
+                    error = error,
+                    onClearError = onClearError,
+                    isLoading = isLoading,
+                    onRefresh = onRefresh,
+                    now = now,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactDashboardContent(
+    contentPadding: PaddingValues,
+    activeSession: SessionSnapshot?,
+    completedSessions: List<SessionSnapshot>,
+    lastSleep: SleepSnapshot?,
+    hasSharedRecords: Boolean,
+    snapshot: ShareSnapshot,
+    lastSharedText: String,
+    lastCheckedText: String?,
+    isShareStale: Boolean,
+    error: String?,
+    onClearError: () -> Unit,
+    isLoading: Boolean,
+    onRefresh: () -> Unit,
+    now: Instant,
+    modifier: Modifier = Modifier,
+) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = modifier
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
-            .padding(top = 8.dp, bottom = 24.dp),
+            .padding(contentPadding),
     ) {
         PartnerStatusPanel(
             activeSession = activeSession,
@@ -313,6 +394,94 @@ private fun DashboardContent(
         }
 
         Spacer(modifier = Modifier.height(28.dp))
+        DashboardTimelineSections(
+            completedSessions = completedSessions,
+            lastSleep = lastSleep,
+            baby = snapshot.baby,
+            now = now,
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+        RefreshSharedUpdatesButton(
+            isLoading = isLoading,
+            onRefresh = onRefresh,
+        )
+    }
+}
+
+@Composable
+private fun WideDashboardContent(
+    activeSession: SessionSnapshot?,
+    completedSessions: List<SessionSnapshot>,
+    lastSleep: SleepSnapshot?,
+    hasSharedRecords: Boolean,
+    snapshot: ShareSnapshot,
+    lastSharedText: String,
+    lastCheckedText: String?,
+    isShareStale: Boolean,
+    error: String?,
+    onClearError: () -> Unit,
+    isLoading: Boolean,
+    onRefresh: () -> Unit,
+    now: Instant,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(
+            modifier = Modifier.weight(0.9f),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            PartnerStatusPanel(
+                activeSession = activeSession,
+                lastSharedText = lastSharedText,
+                lastCheckedText = lastCheckedText,
+                isShareStale = isShareStale,
+                error = error,
+                onClearError = onClearError,
+                lastSyncAt = snapshot.lastSyncAt,
+                now = now,
+            )
+            CareSummaryPanel(
+                lastFeeding = snapshot.sessions.firstOrNull { it.endTime != null },
+                lastSleep = lastSleep,
+                allergyCount = snapshot.baby.allergies.size,
+                now = now,
+            )
+            if (!hasSharedRecords) {
+                SharedRecordsEmptyState(babyName = snapshot.baby.name.takeIf { it.isNotEmpty() })
+            }
+            RefreshSharedUpdatesButton(
+                isLoading = isLoading,
+                onRefresh = onRefresh,
+            )
+        }
+
+        DashboardTimelineSections(
+            modifier = Modifier.weight(1.1f),
+            completedSessions = completedSessions,
+            lastSleep = lastSleep,
+            baby = snapshot.baby,
+            now = now,
+        )
+    }
+}
+
+@Composable
+private fun DashboardTimelineSections(
+    completedSessions: List<SessionSnapshot>,
+    lastSleep: SleepSnapshot?,
+    baby: BabySnapshot,
+    now: Instant,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
         DashboardSection(title = "RECENT FEEDINGS") {
             if (completedSessions.isEmpty()) {
                 EmptySectionMessage(
@@ -326,7 +495,6 @@ private fun DashboardContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
         DashboardSection(
             title = "LAST SLEEP",
             color = MaterialTheme.colorScheme.secondary,
@@ -341,14 +509,7 @@ private fun DashboardContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-        AllergySection(baby = snapshot.baby)
-
-        Spacer(modifier = Modifier.height(24.dp))
-        RefreshSharedUpdatesButton(
-            isLoading = isLoading,
-            onRefresh = onRefresh,
-        )
+        AllergySection(baby = baby)
     }
 }
 
