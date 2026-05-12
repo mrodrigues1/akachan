@@ -17,6 +17,7 @@ data class PartnerDashboardUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isDisconnected: Boolean = false,
+    val lastRefreshAt: Long = 0L,
 )
 
 @HiltViewModel
@@ -36,11 +37,13 @@ class PartnerDashboardViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 val snapshot = fetchPartnerDataUseCase()
-                _uiState.update { it.copy(snapshot = snapshot, isLoading = false) }
+                _uiState.update { it.copy(snapshot = snapshot, isLoading = false, lastRefreshAt = System.currentTimeMillis()) }
             } catch (_: IllegalStateException) {
-                _uiState.update { it.copy(isLoading = false, isDisconnected = true) }
+                _uiState.update { it.copy(isLoading = false, isDisconnected = true, lastRefreshAt = System.currentTimeMillis()) }
             } catch (_: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = "Couldn't refresh. Check your connection.") }
+                _uiState.update {
+                    it.copy(isLoading = false, error = "Couldn't refresh. Check your connection.", lastRefreshAt = System.currentTimeMillis())
+                }
             }
         }
     }
