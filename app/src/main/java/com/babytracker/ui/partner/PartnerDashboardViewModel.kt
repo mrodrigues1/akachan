@@ -67,9 +67,9 @@ class PartnerDashboardViewModel @Inject constructor(
             } catch (_: Exception) {
                 _uiState.update {
                     val errorMessage = if (it.snapshot == null) {
-                        "Couldn't check for shared updates. Check your connection and try again."
+                        "We couldn't check for shared updates. Pull down to try again."
                     } else {
-                        "Couldn't check for shared updates. Showing the last shared data."
+                        "We couldn't check just now. Showing the last shared update."
                     }
                     it.copy(
                         isLoading = false,
