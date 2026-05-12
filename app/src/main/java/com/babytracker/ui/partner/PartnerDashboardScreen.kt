@@ -1,6 +1,7 @@
 package com.babytracker.ui.partner
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +12,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -389,10 +392,11 @@ private fun PartnerStatusPanel(
                 contentDescription = statusDescription
                 stateDescription = stateText
                 liveRegion = LiveRegionMode.Polite
-            },
+        },
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = dashboardPanelElevation()),
+        border = dashboardPanelBorder(),
     ) {
         Column(
             modifier = Modifier
@@ -573,7 +577,8 @@ private fun SharedRecordsEmptyState(babyName: String?) {
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = dashboardPanelElevation()),
+        border = dashboardPanelBorder(),
     ) {
         Column(
             modifier = Modifier
@@ -622,7 +627,7 @@ private fun CareSummaryPanel(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = MaterialTheme.shapes.medium,
             )
             .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -767,7 +772,11 @@ private fun AllergySection(baby: BabySnapshot) {
                 body = "Allergy notes from the primary device will appear here.",
             )
         } else {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 baby.allergies.forEach { allergyName ->
                     val label = AllergyType.entries.find { it.name == allergyName }?.label ?: allergyName
                     AllergyChip(
@@ -787,6 +796,7 @@ private fun AllergyChip(
 ) {
     Box(
         modifier = Modifier
+            .widthIn(max = 280.dp)
             .background(
                 color = colors.container,
                 shape = MaterialTheme.shapes.small,
@@ -816,6 +826,7 @@ private fun RefreshSharedUpdatesButton(
         enabled = !isLoading,
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 48.dp)
             .semantics {
                 stateDescription = if (isLoading) {
                     "Checking for shared updates"
@@ -914,7 +925,9 @@ private fun EmptyState(
         Spacer(modifier = Modifier.height(24.dp))
         Button(
             onClick = onRefresh,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp),
         ) {
             Text(
                 text = "Check for shared updates",
@@ -944,7 +957,10 @@ private fun ErrorState(
             color = MaterialTheme.colorScheme.error,
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRetry) { Text("Check again") }
+        Button(
+            onClick = onRetry,
+            modifier = Modifier.heightIn(min = 48.dp),
+        ) { Text("Check again") }
     }
 }
 
@@ -965,6 +981,17 @@ private fun SectionHeader(
 private fun warningColors(): PartnerWarningColors {
     return partnerWarningColors(isDark = LocalDarkTheme.current)
 }
+
+@Composable
+private fun dashboardPanelElevation() = if (LocalDarkTheme.current) 0.dp else 1.dp
+
+@Composable
+private fun dashboardPanelBorder() =
+    if (LocalDarkTheme.current) {
+        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    } else {
+        null
+    }
 
 internal fun partnerWarningColors(isDark: Boolean): PartnerWarningColors =
     if (isDark) {
