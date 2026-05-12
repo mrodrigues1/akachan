@@ -28,7 +28,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.babytracker.domain.model.SleepType
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
@@ -116,7 +115,6 @@ fun SleepHistoryScreen(
                     }
 
                     items(records, key = { it.id }) { record ->
-                        val isNap = record.sleepType == SleepType.NAP
                         HistoryCard(
                             title = record.sleepType.label,
                             subtitle = record.startTime.formatTime12h(),
@@ -124,11 +122,8 @@ fun SleepHistoryScreen(
                                 Duration.between(record.startTime, end).formatDuration()
                             } ?: "In progress",
                             badgeEmoji = record.sleepType.emoji,
-                            badgeColor = if (isNap) {
-                                MaterialTheme.colorScheme.primaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.secondaryContainer
-                            }
+                            badgeColor = MaterialTheme.colorScheme.secondaryContainer,
+                            trailingColor = MaterialTheme.colorScheme.secondary,
                         )
                     }
                 }

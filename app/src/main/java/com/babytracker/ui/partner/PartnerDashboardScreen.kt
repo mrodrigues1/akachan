@@ -756,6 +756,7 @@ private fun SleepHistoryRow(sleep: SleepSnapshot, now: Instant) {
         trailing = timeAgo ?: "",
         badgeEmoji = "\uD83D\uDCA4",
         badgeColor = MaterialTheme.colorScheme.secondaryContainer,
+        trailingColor = MaterialTheme.colorScheme.secondary,
     )
 }
 
