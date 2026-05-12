@@ -37,12 +37,33 @@ class PartnerDashboardViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 val snapshot = fetchPartnerDataUseCase()
-                _uiState.update { it.copy(snapshot = snapshot, isLoading = false, lastRefreshAt = System.currentTimeMillis()) }
+                _uiState.update {
+                    it.copy(
+                        snapshot = snapshot,
+                        isLoading = false,
+                        lastRefreshAt = System.currentTimeMillis(),
+                    )
+                }
             } catch (_: IllegalStateException) {
-                _uiState.update { it.copy(isLoading = false, isDisconnected = true, lastRefreshAt = System.currentTimeMillis()) }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isDisconnected = true,
+                        lastRefreshAt = System.currentTimeMillis(),
+                    )
+                }
             } catch (_: Exception) {
                 _uiState.update {
-                    it.copy(isLoading = false, error = "Couldn't refresh. Check your connection.", lastRefreshAt = System.currentTimeMillis())
+                    val errorMessage = if (it.snapshot == null) {
+                        "Couldn't check for shared updates. Check your connection and try again."
+                    } else {
+                        "Couldn't check for shared updates. Showing the last shared data."
+                    }
+                    it.copy(
+                        isLoading = false,
+                        error = errorMessage,
+                        lastRefreshAt = System.currentTimeMillis(),
+                    )
                 }
             }
         }

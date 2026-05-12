@@ -13,11 +13,11 @@ import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.io.IOException
 import java.time.Instant
 
 class PartnerDashboardViewModelTest {
@@ -70,7 +70,34 @@ class PartnerDashboardViewModelTest {
 
         val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase)
 
-        assertNotNull(viewModel.uiState.value.error)
+        assertEquals(
+            "Couldn't check for shared updates. Check your connection and try again.",
+            viewModel.uiState.value.error,
+        )
+        assertFalse(viewModel.uiState.value.isDisconnected)
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `refresh keeps snapshot and explains stale data when update fails`() = runTest {
+        var callCount = 0
+        val snapshot = makeSnapshot()
+        coEvery { fetchPartnerDataUseCase() } answers {
+            if (callCount++ == 0) {
+                snapshot
+            } else {
+                throw IOException("Network error")
+            }
+        }
+
+        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase)
+        viewModel.refresh()
+
+        assertEquals(snapshot, viewModel.uiState.value.snapshot)
+        assertEquals(
+            "Couldn't check for shared updates. Showing the last shared data.",
+            viewModel.uiState.value.error,
+        )
         assertFalse(viewModel.uiState.value.isDisconnected)
         assertFalse(viewModel.uiState.value.isLoading)
     }
