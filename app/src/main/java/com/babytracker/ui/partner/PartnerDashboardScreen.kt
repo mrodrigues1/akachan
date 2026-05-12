@@ -28,18 +28,26 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -50,15 +58,27 @@ import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.ui.component.HistoryCard
+import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
+import com.babytracker.ui.theme.OnWarningContainerAmberDark
 import com.babytracker.ui.theme.WarningAmber
+import com.babytracker.ui.theme.WarningAmberDark
 import com.babytracker.ui.theme.WarningContainerAmber
+import com.babytracker.ui.theme.WarningContainerAmberDark
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
+import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
 
 private const val STALE_SYNC_THRESHOLD_MINUTES = 30L
+private const val ONE_MINUTE_MS = 60_000L
+
+internal data class PartnerWarningColors(
+    val accent: Color,
+    val container: Color,
+    val onContainer: Color,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +86,7 @@ fun PartnerDashboardScreen(
     modifier: Modifier = Modifier,
     onDisconnected: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    nowProvider: () -> Long = System::currentTimeMillis,
     viewModel: PartnerDashboardViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -100,7 +121,11 @@ fun PartnerDashboardScreen(
                 actions = {
                     if (uiState.isLoading) {
                         Box(
-                            modifier = Modifier.size(48.dp),
+                            modifier = Modifier
+                                .size(48.dp)
+                                .semantics {
+                                    contentDescription = "Checking for shared updates"
+                                },
                             contentAlignment = Alignment.Center,
                         ) {
                             CircularProgressIndicator(
@@ -130,7 +155,13 @@ fun PartnerDashboardScreen(
         ) {
             when {
                 uiState.isLoading && snapshot == null -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .semantics {
+                                contentDescription = "Loading shared partner data"
+                            },
+                    )
                 }
                 snapshot != null -> {
                     DashboardContent(
@@ -138,6 +169,7 @@ fun PartnerDashboardScreen(
                         error = uiState.error,
                         onClearError = viewModel::clearError,
                         lastRefreshAt = uiState.lastRefreshAt,
+                        nowProvider = nowProvider,
                     )
                 }
                 uiState.error != null -> {
@@ -189,16 +221,35 @@ private fun DashboardContent(
     error: String?,
     onClearError: () -> Unit,
     lastRefreshAt: Long,
+    nowProvider: () -> Long,
 ) {
+    var nowMs by remember(snapshot.lastSyncAt) { mutableLongStateOf(nowProvider()) }
+    LaunchedEffect(snapshot.lastSyncAt) {
+        while (true) {
+            nowMs = nowProvider()
+            delay(ONE_MINUTE_MS)
+        }
+    }
+
+    val now = remember(nowMs) { Instant.ofEpochMilli(nowMs) }
     val activeSession = snapshot.sessions.firstOrNull { it.endTime == null }
     val completedSessions = snapshot.sessions.filter { it.endTime != null }.take(3)
     val lastSleep = snapshot.sleepRecords.firstOrNull()
     val hasSharedRecords = snapshot.sessions.isNotEmpty() || snapshot.sleepRecords.isNotEmpty()
-    val lastSharedText = remember(snapshot.lastSyncAt, lastRefreshAt) {
-        Duration.between(snapshot.lastSyncAt, Instant.now()).formatElapsedAgo()
+    val lastSharedText = remember(snapshot.lastSyncAt, nowMs) {
+        Duration.between(snapshot.lastSyncAt, now).coerceAtLeast(Duration.ZERO).formatElapsedAgo()
     }
-    val isShareStale = remember(snapshot.lastSyncAt, lastRefreshAt) {
-        Duration.between(snapshot.lastSyncAt, Instant.now()).toMinutes() >= STALE_SYNC_THRESHOLD_MINUTES
+    val lastCheckedText = remember(lastRefreshAt, nowMs) {
+        if (lastRefreshAt == 0L) {
+            null
+        } else {
+            Duration.between(Instant.ofEpochMilli(lastRefreshAt), now)
+                .coerceAtLeast(Duration.ZERO)
+                .formatElapsedAgo()
+        }
+    }
+    val isShareStale = remember(snapshot.lastSyncAt, nowMs) {
+        Duration.between(snapshot.lastSyncAt, now).toMinutes() >= STALE_SYNC_THRESHOLD_MINUTES
     }
 
     Column(
@@ -211,11 +262,12 @@ private fun DashboardContent(
         PartnerStatusPanel(
             activeSession = activeSession,
             lastSharedText = lastSharedText,
+            lastCheckedText = lastCheckedText,
             isShareStale = isShareStale,
             error = error,
             onClearError = onClearError,
             lastSyncAt = snapshot.lastSyncAt,
-            lastRefreshAt = lastRefreshAt,
+            now = now,
         )
 
         if (!hasSharedRecords) {
@@ -232,7 +284,7 @@ private fun DashboardContent(
                 )
             } else {
                 completedSessions.forEach { session ->
-                    FeedingHistoryRow(session = session, lastRefreshAt = lastRefreshAt)
+                    FeedingHistoryRow(session = session, now = now)
                 }
             }
         }
@@ -248,7 +300,7 @@ private fun DashboardContent(
                     body = "The latest nap or night sleep will appear after the next sync.",
                 )
             } else {
-                SleepHistoryRow(sleep = lastSleep, lastRefreshAt = lastRefreshAt)
+                SleepHistoryRow(sleep = lastSleep, now = now)
             }
         }
 
@@ -261,11 +313,12 @@ private fun DashboardContent(
 private fun PartnerStatusPanel(
     activeSession: SessionSnapshot?,
     lastSharedText: String,
+    lastCheckedText: String?,
     isShareStale: Boolean,
     error: String?,
     onClearError: () -> Unit,
     lastSyncAt: Instant,
-    lastRefreshAt: Long,
+    now: Instant,
 ) {
     val hasActiveSession = activeSession != null
     val containerColor = if (hasActiveSession) {
@@ -278,9 +331,25 @@ private fun PartnerStatusPanel(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
+    val stateText = if (isShareStale) "Stale shared data" else "Shared data current"
+    val statusDescription = buildString {
+        append(stateText)
+        append(". Primary device last shared ")
+        append(lastSharedText)
+        if (lastCheckedText != null) {
+            append(". Last checked ")
+            append(lastCheckedText)
+        }
+    }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = statusDescription
+                stateDescription = stateText
+                liveRegion = LiveRegionMode.Polite
+            },
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = containerColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -300,6 +369,13 @@ private fun PartnerStatusPanel(
                 style = MaterialTheme.typography.bodySmall,
                 color = labelColor,
             )
+            if (lastCheckedText != null) {
+                Text(
+                    text = "This device last checked: $lastCheckedText",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = labelColor,
+                )
+            }
             Spacer(modifier = Modifier.height(14.dp))
             if (activeSession == null) {
                 NoActiveSessionStatus()
@@ -307,7 +383,7 @@ private fun PartnerStatusPanel(
                 ActiveSessionSummary(
                     session = activeSession,
                     lastSyncAt = lastSyncAt,
-                    lastRefreshAt = lastRefreshAt,
+                    now = now,
                 )
             }
 
@@ -349,12 +425,12 @@ private fun NoActiveSessionStatus() {
 private fun ActiveSessionSummary(
     session: SessionSnapshot,
     lastSyncAt: Instant,
-    lastRefreshAt: Long,
+    now: Instant,
 ) {
-    val elapsedAtLastSync = remember(session.startTime, session.pausedDurationMs, lastSyncAt, lastRefreshAt) {
+    val elapsedAtLastSync = remember(session.startTime, session.pausedDurationMs, lastSyncAt, now) {
         Duration.between(Instant.ofEpochMilli(session.startTime), lastSyncAt)
             .minusMillis(session.pausedDurationMs)
-            .let { if (it.isNegative) Duration.ZERO else it }
+            .coerceAtLeast(Duration.ZERO)
     }
     val sideLabel = remember(session.startingSide, session.switchTime) {
         val started = if (session.startingSide == "LEFT") "Left" else "Right"
@@ -374,6 +450,7 @@ private fun ActiveSessionSummary(
             Box(
                 modifier = Modifier
                     .size(52.dp)
+                    .clearAndSetSemantics {}
                     .background(
                         color = MaterialTheme.colorScheme.primary,
                         shape = MaterialTheme.shapes.medium,
@@ -412,11 +489,16 @@ private fun ActiveSessionSummary(
 
 @Composable
 private fun SyncWarning() {
+    val warningColors = warningColors()
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .semantics {
+                contentDescription = "Stale shared data warning. This read-only view may be behind. " +
+                    "Ask the primary parent to open Akachan if something is missing."
+            }
             .background(
-                color = WarningContainerAmber,
+                color = warningColors.container,
                 shape = MaterialTheme.shapes.small,
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -425,7 +507,7 @@ private fun SyncWarning() {
             text = "This read-only view may be behind. " +
                 "Ask the primary parent to open Akachan if something is missing.",
             style = MaterialTheme.typography.bodyMedium,
-            color = OnWarningContainerAmber,
+            color = warningColors.onContainer,
         )
     }
 }
@@ -503,16 +585,16 @@ private fun EmptySectionMessage(
 }
 
 @Composable
-private fun FeedingHistoryRow(session: SessionSnapshot, lastRefreshAt: Long) {
+private fun FeedingHistoryRow(session: SessionSnapshot, now: Instant) {
     val startInstant = Instant.ofEpochMilli(session.startTime)
     val endInstant = Instant.ofEpochMilli(session.endTime!!)
     val duration = remember(session.startTime, session.endTime, session.pausedDurationMs) {
         Duration.between(startInstant, endInstant)
             .minusMillis(session.pausedDurationMs)
-            .let { if (it.isNegative) Duration.ZERO else it }
+            .coerceAtLeast(Duration.ZERO)
     }
-    val timeAgo = remember(session.startTime, lastRefreshAt) {
-        Duration.between(startInstant, Instant.now()).formatElapsedAgo()
+    val timeAgo = remember(session.startTime, now) {
+        Duration.between(startInstant, now).coerceAtLeast(Duration.ZERO).formatElapsedAgo()
     }
     val sideText = remember(session.startingSide, session.switchTime) {
         val from = if (session.startingSide == "LEFT") "Left" else "Right"
@@ -534,14 +616,14 @@ private fun FeedingHistoryRow(session: SessionSnapshot, lastRefreshAt: Long) {
 }
 
 @Composable
-private fun SleepHistoryRow(sleep: SleepSnapshot, lastRefreshAt: Long) {
+private fun SleepHistoryRow(sleep: SleepSnapshot, now: Instant) {
     val startInstant = Instant.ofEpochMilli(sleep.startTime)
     val endInstant = sleep.endTime?.let { Instant.ofEpochMilli(it) }
     val duration = remember(sleep.startTime, sleep.endTime) {
         endInstant?.let { Duration.between(startInstant, it) }
     }
-    val timeAgo = remember(sleep.endTime, lastRefreshAt) {
-        endInstant?.let { Duration.between(it, Instant.now()).formatElapsedAgo() }
+    val timeAgo = remember(sleep.endTime, now) {
+        endInstant?.let { Duration.between(it, now).coerceAtLeast(Duration.ZERO).formatElapsedAgo() }
     }
     val typeLabel = if (sleep.sleepType == "NAP") "Nap" else "Night sleep"
 
@@ -557,8 +639,9 @@ private fun SleepHistoryRow(sleep: SleepSnapshot, lastRefreshAt: Long) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AllergySection(baby: BabySnapshot) {
+    val warningColors = warningColors()
     Column {
-        SectionHeader(text = "ALLERGIES", color = WarningAmber)
+        SectionHeader(text = "ALLERGIES", color = warningColors.accent)
         Spacer(modifier = Modifier.height(8.dp))
         if (baby.allergies.isEmpty()) {
             EmptySectionMessage(
@@ -569,17 +652,37 @@ private fun AllergySection(baby: BabySnapshot) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 baby.allergies.forEach { allergyName ->
                     val label = AllergyType.entries.find { it.name == allergyName }?.label ?: allergyName
-                    SuggestionChip(
-                        onClick = {},
-                        label = { Text(label) },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = WarningContainerAmber,
-                            labelColor = OnWarningContainerAmber,
-                        ),
+                    AllergyChip(
+                        label = label,
+                        colors = warningColors,
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AllergyChip(
+    label: String,
+    colors: PartnerWarningColors,
+) {
+    Box(
+        modifier = Modifier
+            .background(
+                color = colors.container,
+                shape = MaterialTheme.shapes.small,
+            )
+            .semantics {
+                contentDescription = "Allergy: $label"
+            }
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = colors.onContainer,
+        )
     }
 }
 
@@ -598,6 +701,7 @@ private fun EmptyState(
         Text(
             text = "\uD83D\uDC76",
             style = MaterialTheme.typography.displaySmall,
+            modifier = Modifier.clearAndSetSemantics {},
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
@@ -653,5 +757,26 @@ private fun SectionHeader(
         text = text,
         style = MaterialTheme.typography.labelMedium,
         color = color,
+        modifier = Modifier.semantics { heading() },
     )
 }
+
+@Composable
+private fun warningColors(): PartnerWarningColors {
+    return partnerWarningColors(isDark = LocalDarkTheme.current)
+}
+
+internal fun partnerWarningColors(isDark: Boolean): PartnerWarningColors =
+    if (isDark) {
+        PartnerWarningColors(
+            accent = WarningAmberDark,
+            container = WarningContainerAmberDark,
+            onContainer = OnWarningContainerAmberDark,
+        )
+    } else {
+        PartnerWarningColors(
+            accent = WarningAmber,
+            container = WarningContainerAmber,
+            onContainer = OnWarningContainerAmber,
+        )
+    }

@@ -1,8 +1,16 @@
 package com.babytracker.ui.partner
 
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.SessionSnapshot
@@ -169,10 +177,55 @@ class PartnerDashboardScreenTest {
         }
 
         composeRule.onNodeWithText("This read-only view may be behind.", substring = true).assertIsDisplayed()
+        composeRule.onNode(
+            hasContentDescription("Stale shared data", substring = true)
+                .and(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Stale shared data"))
+                .and(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite)),
+        ).assertIsDisplayed()
         composeRule.onNodeWithText("ACTIVE WHEN LAST SHARED").assertIsDisplayed()
         composeRule.onNodeWithText("1h 0m").assertIsDisplayed()
         composeRule.onNodeWithText(
             "Read-only estimate from the primary device's last sync",
         ).assertIsDisplayed()
+    }
+
+    @Test
+    fun staleWarningAppearsWhenVisibleDashboardCrossesThreshold() {
+        val initialNow = Instant.parse("2026-05-12T06:00:00Z")
+        var currentTimeMs = initialNow.toEpochMilli()
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            PartnerDashboardScreen(
+                nowProvider = { currentTimeMs },
+                viewModel = buildViewModel(
+                    makeSnapshot(lastSyncAt = initialNow.minus(Duration.ofMinutes(29))),
+                ),
+            )
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("This read-only view may be behind.", substring = true).assertDoesNotExist()
+
+        currentTimeMs += Duration.ofMinutes(2).toMillis()
+        composeRule.mainClock.advanceTimeBy(60_001L)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("This read-only view may be behind.", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun allergyChipsAreReadOnlyForAccessibility() {
+        composeRule.setContent {
+            PartnerDashboardScreen(
+                viewModel = buildViewModel(
+                    makeSnapshot(allergies = listOf("CMPA")),
+                ),
+            )
+        }
+
+        composeRule.onNodeWithContentDescription("Allergy: Cow's Milk Protein")
+            .assertIsDisplayed()
+            .assertHasNoClickAction()
     }
 }

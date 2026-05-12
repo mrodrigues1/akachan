@@ -4,8 +4,11 @@ import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -20,6 +23,7 @@ import org.junit.jupiter.api.Test
 import java.io.IOException
 import java.time.Instant
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PartnerDashboardViewModelTest {
 
     private lateinit var fetchPartnerDataUseCase: FetchPartnerDataUseCase
@@ -61,6 +65,21 @@ class PartnerDashboardViewModelTest {
         val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase)
 
         assertTrue(viewModel.uiState.value.isDisconnected)
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `successful refresh clears disconnected state`() = runTest {
+        val snapshot = makeSnapshot()
+        coEvery { fetchPartnerDataUseCase() }
+            .throws(IllegalStateException("Partner access revoked"))
+            .andThen(snapshot)
+
+        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase)
+        viewModel.refresh()
+
+        assertEquals(snapshot, viewModel.uiState.value.snapshot)
+        assertFalse(viewModel.uiState.value.isDisconnected)
         assertFalse(viewModel.uiState.value.isLoading)
     }
 
@@ -112,6 +131,25 @@ class PartnerDashboardViewModelTest {
         viewModel.refresh()
 
         assertEquals(snapshot2, viewModel.uiState.value.snapshot)
+    }
+
+    @Test
+    fun `refresh ignores duplicate request while loading`() = runTest {
+        val fetchStarted = CompletableDeferred<Unit>()
+        val releaseFetch = CompletableDeferred<Unit>()
+        coEvery { fetchPartnerDataUseCase() } coAnswers {
+            fetchStarted.complete(Unit)
+            releaseFetch.await()
+            makeSnapshot()
+        }
+
+        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase)
+        fetchStarted.await()
+
+        viewModel.refresh()
+
+        coVerify(exactly = 1) { fetchPartnerDataUseCase() }
+        releaseFetch.complete(Unit)
     }
 
     @Test
