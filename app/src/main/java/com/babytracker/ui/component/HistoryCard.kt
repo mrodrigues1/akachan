@@ -31,6 +31,7 @@ fun HistoryCard(
     badgeEmoji: String,
     badgeColor: Color,
     modifier: Modifier = Modifier,
+    trailingColor: Color = MaterialTheme.colorScheme.primary,
 ) {
     val isDark = LocalDarkTheme.current
     Card(
@@ -81,7 +82,7 @@ fun HistoryCard(
             Text(
                 text = trailing,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = trailingColor,
             )
         }
     }

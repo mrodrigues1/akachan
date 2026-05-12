@@ -381,7 +381,6 @@ private fun TodayEmptyState() {
 
 @Composable
 private fun SleepEntryCard(record: SleepRecord) {
-    val isNap = record.sleepType == SleepType.NAP
     HistoryCard(
         title = record.sleepType.label,
         subtitle = buildString {
@@ -392,11 +391,8 @@ private fun SleepEntryCard(record: SleepRecord) {
             Duration.between(record.startTime, end).formatDuration()
         } ?: "In progress",
         badgeEmoji = record.sleepType.emoji,
-        badgeColor = if (isNap) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.secondaryContainer
-        }
+        badgeColor = MaterialTheme.colorScheme.secondaryContainer,
+        trailingColor = MaterialTheme.colorScheme.secondary,
     )
 }
 
