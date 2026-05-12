@@ -1,20 +1,25 @@
 package com.babytracker.ui.settings
 
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.test.*
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import com.babytracker.sharing.domain.model.AppMode
-import io.mockk.every
-import io.mockk.mockk
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.LocalTime
 
 @RunWith(AndroidJUnit4::class)
 class SettingsScreenTest {
@@ -23,18 +28,13 @@ class SettingsScreenTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     private fun buildPartnerViewModel(): SettingsViewModel {
-        val getBabyProfile = mockk<GetBabyProfileUseCase>()
-        every { getBabyProfile() } returns flowOf(null)
-
-        val settingsRepository = mockk<SettingsRepository>()
-        every { settingsRepository.getMaxPerBreastMinutes() } returns flowOf(0)
-        every { settingsRepository.getMaxTotalFeedMinutes() } returns flowOf(0)
-        every { settingsRepository.getThemeConfig() } returns flowOf(ThemeConfig.SYSTEM)
-        every { settingsRepository.getAutoUpdateEnabled() } returns flowOf(true)
-        every { settingsRepository.getRichNotificationsEnabled() } returns flowOf(true)
-        every { settingsRepository.getAppMode() } returns flowOf(AppMode.PARTNER)
-
-        return SettingsViewModel(getBabyProfile, settingsRepository, mockk<SaveBabyProfileUseCase>())
+        val babyRepository = FakeBabyRepository()
+        val settingsRepository = FakeSettingsRepository()
+        return SettingsViewModel(
+            getBabyProfile = GetBabyProfileUseCase(babyRepository),
+            settingsRepository = settingsRepository,
+            saveBabyProfile = SaveBabyProfileUseCase(babyRepository),
+        )
     }
 
     @Test
@@ -70,8 +70,6 @@ class SettingsScreenTest {
             SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel())
         }
         composeRule.waitForIdle()
-        // The Disconnect SettingsRow renders both a label Text("Disconnect")
-        // and a button Text("Disconnect") — asserting the first is enough.
         composeRule.onAllNodesWithText("Disconnect")[0].assertIsDisplayed()
     }
 
@@ -81,9 +79,54 @@ class SettingsScreenTest {
             SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel())
         }
         composeRule.waitForIdle()
-        // Both the label Text and the TextButton Text render "Disconnect".
-        // assertCountEquals(2) verifies actionLabel = "Disconnect" was applied — if it
-        // defaulted to "Edit", the button would show "Edit" and this count would be 1.
         composeRule.onAllNodesWithText("Disconnect").assertCountEquals(2)
+    }
+
+    private class FakeBabyRepository : BabyRepository {
+        override fun getBabyProfile(): Flow<Baby?> = flowOf(null)
+
+        override suspend fun saveBabyProfile(baby: Baby) = Unit
+
+        override fun isOnboardingComplete(): Flow<Boolean> = flowOf(true)
+    }
+
+    private class FakeSettingsRepository : SettingsRepository {
+        override fun getThemeConfig(): Flow<ThemeConfig> = flowOf(ThemeConfig.SYSTEM)
+
+        override suspend fun setThemeConfig(themeConfig: ThemeConfig) = Unit
+
+        override fun isOnboardingComplete(): Flow<Boolean> = flowOf(true)
+
+        override suspend fun setOnboardingComplete(complete: Boolean) = Unit
+
+        override fun getMaxPerBreastMinutes(): Flow<Int> = flowOf(0)
+
+        override suspend fun setMaxPerBreastMinutes(minutes: Int) = Unit
+
+        override fun getMaxTotalFeedMinutes(): Flow<Int> = flowOf(0)
+
+        override suspend fun setMaxTotalFeedMinutes(minutes: Int) = Unit
+
+        override fun getWakeTime(): Flow<LocalTime?> = flowOf(null)
+
+        override suspend fun setWakeTime(time: LocalTime) = Unit
+
+        override fun getAutoUpdateEnabled(): Flow<Boolean> = flowOf(true)
+
+        override suspend fun setAutoUpdateEnabled(enabled: Boolean) = Unit
+
+        override fun getRichNotificationsEnabled(): Flow<Boolean> = flowOf(true)
+
+        override suspend fun setRichNotificationsEnabled(enabled: Boolean) = Unit
+
+        override fun getAppMode(): Flow<AppMode> = flowOf(AppMode.PARTNER)
+
+        override suspend fun setAppMode(mode: AppMode) = Unit
+
+        override fun getShareCode(): Flow<String?> = flowOf("ABC12345")
+
+        override suspend fun setShareCode(code: String) = Unit
+
+        override suspend fun clearShareCode() = Unit
     }
 }
