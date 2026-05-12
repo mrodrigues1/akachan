@@ -33,14 +33,26 @@ class PartnerDashboardViewModel @Inject constructor(
     }
 
     fun refresh() {
+        var shouldRefresh = false
+        _uiState.update { state ->
+            if (state.isLoading) {
+                state
+            } else {
+                shouldRefresh = true
+                state.copy(isLoading = true, error = null)
+            }
+        }
+
+        if (!shouldRefresh) return
+
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 val snapshot = fetchPartnerDataUseCase()
                 _uiState.update {
                     it.copy(
                         snapshot = snapshot,
                         isLoading = false,
+                        isDisconnected = false,
                         lastRefreshAt = System.currentTimeMillis(),
                     )
                 }
