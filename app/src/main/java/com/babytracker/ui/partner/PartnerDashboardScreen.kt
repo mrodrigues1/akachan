@@ -80,6 +80,7 @@ internal data class PartnerWarningColors(
     val accent: Color,
     val container: Color,
     val onContainer: Color,
+    val onSurfaceAccent: Color,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -116,6 +117,7 @@ fun PartnerDashboardScreen(
                         Text(
                             text = babyName ?: "Baby Tracker",
                             style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.semantics { heading() },
                         )
                         BabyAgeSubtitle(snapshot = snapshot, babyName = babyName)
                     }
@@ -127,6 +129,8 @@ fun PartnerDashboardScreen(
                                 .size(48.dp)
                                 .semantics {
                                     contentDescription = "Checking for shared updates"
+                                    stateDescription = "Checking"
+                                    liveRegion = LiveRegionMode.Polite
                                 },
                             contentAlignment = Alignment.Center,
                         ) {
@@ -354,7 +358,7 @@ private fun PartnerStatusPanel(
         MaterialTheme.colorScheme.surfaceVariant
     }
     val labelColor = if (hasActiveSession) {
-        MaterialTheme.colorScheme.primary
+        MaterialTheme.colorScheme.onPrimaryContainer
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
@@ -413,6 +417,9 @@ private fun PartnerStatusPanel(
                     text = error,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.semantics {
+                        liveRegion = LiveRegionMode.Assertive
+                    },
                 )
                 TextButton(onClick = onClearError) { Text("Dismiss") }
             }
@@ -500,7 +507,7 @@ private fun ActiveSessionSummary(
                 Text(
                     text = "Feeding when shared",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Text(
                     text = sideLabel,
@@ -739,7 +746,7 @@ private fun SleepHistoryRow(sleep: SleepSnapshot, now: Instant) {
 private fun AllergySection(baby: BabySnapshot) {
     val warningColors = warningColors()
     Column {
-        SectionHeader(text = "ALLERGIES", color = warningColors.accent)
+        SectionHeader(text = "ALLERGIES", color = warningColors.onSurfaceAccent)
         Spacer(modifier = Modifier.height(8.dp))
         if (baby.allergies.isEmpty()) {
             EmptySectionMessage(
@@ -792,11 +799,21 @@ private fun RefreshSharedUpdatesButton(
     Button(
         onClick = onRefresh,
         enabled = !isLoading,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                stateDescription = if (isLoading) {
+                    "Checking for shared updates"
+                } else {
+                    "Ready to check shared updates"
+                }
+            },
     ) {
         if (isLoading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier
+                    .size(18.dp)
+                    .clearAndSetSemantics {},
                 strokeWidth = 2.dp,
                 color = MaterialTheme.colorScheme.onPrimary,
             )
@@ -923,11 +940,13 @@ internal fun partnerWarningColors(isDark: Boolean): PartnerWarningColors =
             accent = WarningAmberDark,
             container = WarningContainerAmberDark,
             onContainer = OnWarningContainerAmberDark,
+            onSurfaceAccent = OnWarningContainerAmberDark,
         )
     } else {
         PartnerWarningColors(
             accent = WarningAmber,
             container = WarningContainerAmber,
             onContainer = OnWarningContainerAmber,
+            onSurfaceAccent = OnWarningContainerAmber,
         )
     }

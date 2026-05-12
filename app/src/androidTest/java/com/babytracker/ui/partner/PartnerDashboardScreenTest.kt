@@ -1,7 +1,6 @@
 package com.babytracker.ui.partner
 
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -9,6 +8,8 @@ import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -19,8 +20,8 @@ import androidx.compose.ui.test.swipeDown
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
@@ -113,6 +114,28 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithText(
             "When the primary parent tracks Mia, shared feedings and sleep will appear here.",
         ).assertIsDisplayed()
+    }
+
+    @Test
+    fun titleAndSectionsExposeHeadingsForTalkBackNavigation() {
+        composeRule.setContent {
+            PartnerDashboardScreen(
+                viewModel = buildViewModel(makeSnapshot()),
+            )
+        }
+
+        composeRule.onNode(
+            hasText("Mia")
+                .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)),
+        ).assertIsDisplayed()
+        composeRule.onNode(
+            hasText("RECENT FEEDINGS")
+                .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)),
+        ).assertIsDisplayed()
+        composeRule.onNode(
+            hasText("LAST SLEEP")
+                .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)),
+        ).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -209,6 +232,25 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithText(
             "Estimate from the last shared update",
         ).assertIsDisplayed()
+    }
+
+    @Test
+    fun refreshButtonExposesCurrentStateForAccessibility() {
+        composeRule.setContent {
+            PartnerDashboardScreen(
+                viewModel = buildViewModel(makeSnapshot()),
+            )
+        }
+
+        composeRule.onNode(
+            hasText("Check shared updates")
+                .and(
+                    SemanticsMatcher.expectValue(
+                        SemanticsProperties.StateDescription,
+                        "Ready to check shared updates",
+                    ),
+                ),
+        ).performScrollTo().assertIsDisplayed()
     }
 
     @Test
