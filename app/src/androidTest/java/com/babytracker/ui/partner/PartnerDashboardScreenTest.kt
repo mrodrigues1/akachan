@@ -122,7 +122,7 @@ class PartnerDashboardScreenTest {
         }
 
         composeRule.onNodeWithText("Mia").assertIsDisplayed()
-        composeRule.onNodeWithText("5w old, read-only partner view").assertIsDisplayed()
+        composeRule.onNodeWithText("5 weeks old, read-only partner view").assertIsDisplayed()
         composeRule.onNodeWithText("Shared just now").assertIsDisplayed()
         composeRule.onNodeWithText("No shared records yet").assertIsDisplayed()
         composeRule.onNodeWithText(
