@@ -145,6 +145,7 @@ fun PartnerDashboardScreen(
                         snapshot = snapshot,
                         error = uiState.error,
                         onClearError = viewModel::clearError,
+                        lastRefreshAt = uiState.lastRefreshAt,
                     )
                 }
                 uiState.error != null -> {
@@ -169,11 +170,12 @@ private fun DashboardContent(
     snapshot: ShareSnapshot,
     error: String?,
     onClearError: () -> Unit,
+    lastRefreshAt: Long,
 ) {
     val activeSession = snapshot.sessions.firstOrNull { it.endTime == null }
     val completedSessions = snapshot.sessions.filter { it.endTime != null }.take(3)
     val lastSleep = snapshot.sleepRecords.firstOrNull()
-    val lastUpdatedText = remember(snapshot.lastSyncAt) {
+    val lastUpdatedText = remember(snapshot.lastSyncAt, lastRefreshAt) {
         Duration.between(snapshot.lastSyncAt, Instant.now()).formatElapsedAgo()
     }
 
@@ -202,7 +204,7 @@ private fun DashboardContent(
 
         if (activeSession != null) {
             Spacer(modifier = Modifier.height(16.dp))
-            ActiveSessionCard(session = activeSession)
+            ActiveSessionCard(session = activeSession, lastRefreshAt = lastRefreshAt)
         }
 
         if (completedSessions.isNotEmpty()) {
@@ -210,7 +212,7 @@ private fun DashboardContent(
             SectionHeader(text = "RECENT FEEDINGS")
             Spacer(modifier = Modifier.height(8.dp))
             completedSessions.forEach { session ->
-                FeedingHistoryRow(session = session)
+                FeedingHistoryRow(session = session, lastRefreshAt = lastRefreshAt)
             }
         }
 
@@ -218,7 +220,7 @@ private fun DashboardContent(
             Spacer(modifier = Modifier.height(24.dp))
             SectionHeader(text = "LAST SLEEP")
             Spacer(modifier = Modifier.height(8.dp))
-            SleepHistoryRow(sleep = lastSleep)
+            SleepHistoryRow(sleep = lastSleep, lastRefreshAt = lastRefreshAt)
         }
 
         if (snapshot.baby.allergies.isNotEmpty()) {
@@ -229,8 +231,8 @@ private fun DashboardContent(
 }
 
 @Composable
-private fun ActiveSessionCard(session: SessionSnapshot) {
-    val elapsed = remember(session.startTime, session.pausedDurationMs) {
+private fun ActiveSessionCard(session: SessionSnapshot, lastRefreshAt: Long) {
+    val elapsed = remember(session.startTime, session.pausedDurationMs, lastRefreshAt) {
         Duration.between(Instant.ofEpochMilli(session.startTime), Instant.now())
             .minusMillis(session.pausedDurationMs)
             .let { if (it.isNegative) Duration.ZERO else it }
@@ -295,7 +297,7 @@ private fun ActiveSessionCard(session: SessionSnapshot) {
 }
 
 @Composable
-private fun FeedingHistoryRow(session: SessionSnapshot) {
+private fun FeedingHistoryRow(session: SessionSnapshot, lastRefreshAt: Long) {
     val startInstant = Instant.ofEpochMilli(session.startTime)
     val endInstant = Instant.ofEpochMilli(session.endTime!!)
     val duration = remember(session.startTime, session.endTime, session.pausedDurationMs) {
@@ -303,7 +305,7 @@ private fun FeedingHistoryRow(session: SessionSnapshot) {
             .minusMillis(session.pausedDurationMs)
             .let { if (it.isNegative) Duration.ZERO else it }
     }
-    val timeAgo = remember(session.startTime) {
+    val timeAgo = remember(session.startTime, lastRefreshAt) {
         Duration.between(startInstant, Instant.now()).formatElapsedAgo()
     }
     val sideText = remember(session.startingSide, session.switchTime) {
@@ -326,13 +328,13 @@ private fun FeedingHistoryRow(session: SessionSnapshot) {
 }
 
 @Composable
-private fun SleepHistoryRow(sleep: SleepSnapshot) {
+private fun SleepHistoryRow(sleep: SleepSnapshot, lastRefreshAt: Long) {
     val startInstant = Instant.ofEpochMilli(sleep.startTime)
     val endInstant = sleep.endTime?.let { Instant.ofEpochMilli(it) }
     val duration = remember(sleep.startTime, sleep.endTime) {
         endInstant?.let { Duration.between(startInstant, it) }
     }
-    val timeAgo = remember(sleep.endTime) {
+    val timeAgo = remember(sleep.endTime, lastRefreshAt) {
         endInstant?.let { Duration.between(it, Instant.now()).formatElapsedAgo() }
     }
     val typeLabel = if (sleep.sleepType == "NAP") "Nap" else "Night sleep"
