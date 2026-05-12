@@ -35,6 +35,7 @@ import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
+import com.babytracker.ui.theme.BabyTrackerTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertTrue
@@ -50,6 +51,9 @@ class PartnerDashboardScreenTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+    private val fixedNow = Instant.parse("2026-05-12T06:00:00Z")
+    private val fixedNowProvider = { fixedNow.toEpochMilli() }
 
     private fun buildViewModel(): PartnerDashboardViewModel {
         return PartnerDashboardViewModel(buildFetchUseCase(snapshot = null))
@@ -70,14 +74,14 @@ class PartnerDashboardScreenTest {
     }
 
     private fun makeSnapshot(
-        lastSyncAt: Instant = Instant.now(),
+        lastSyncAt: Instant = fixedNow,
         babyName: String = "Mia",
         allergies: List<String> = emptyList(),
         sessions: List<SessionSnapshot> = emptyList(),
         sleepRecords: List<SleepSnapshot> = emptyList(),
     ) = ShareSnapshot(
         lastSyncAt = lastSyncAt,
-        baby = BabySnapshot(babyName, Instant.now().minus(Duration.ofDays(35)).toEpochMilli(), allergies),
+        baby = BabySnapshot(babyName, fixedNow.minus(Duration.ofDays(35)).toEpochMilli(), allergies),
         sessions = sessions,
         sleepRecords = sleepRecords,
     )
@@ -87,6 +91,7 @@ class PartnerDashboardScreenTest {
         composeRule.setContent {
             PartnerDashboardScreen(
                 onNavigateToSettings = {},
+                nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(),
             )
         }
@@ -99,6 +104,7 @@ class PartnerDashboardScreenTest {
         composeRule.setContent {
             PartnerDashboardScreen(
                 onNavigateToSettings = { called = true },
+                nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(),
             )
         }
@@ -110,6 +116,7 @@ class PartnerDashboardScreenTest {
     fun dashboardLabelsDataAsReadOnlyAndSharedFromPrimaryDevice() {
         composeRule.setContent {
             PartnerDashboardScreen(
+                nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(makeSnapshot()),
             )
         }
@@ -127,6 +134,7 @@ class PartnerDashboardScreenTest {
     fun titleAndSectionsExposeHeadingsForTalkBackNavigation() {
         composeRule.setContent {
             PartnerDashboardScreen(
+                nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(makeSnapshot()),
             )
         }
@@ -149,6 +157,7 @@ class PartnerDashboardScreenTest {
     fun emptySnapshotShowsStatusAndSectionEmptyStates() {
         composeRule.setContent {
             PartnerDashboardScreen(
+                nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(makeSnapshot()),
             )
         }
@@ -164,8 +173,8 @@ class PartnerDashboardScreenTest {
     fun snapshotWithSharedRecordsShowsSectionsWithoutGlobalEmptyState() {
         val completedSession = SessionSnapshot(
             id = 1L,
-            startTime = Instant.now().minus(Duration.ofMinutes(25)).toEpochMilli(),
-            endTime = Instant.now().minus(Duration.ofMinutes(10)).toEpochMilli(),
+            startTime = fixedNow.minus(Duration.ofMinutes(25)).toEpochMilli(),
+            endTime = fixedNow.minus(Duration.ofMinutes(10)).toEpochMilli(),
             startingSide = "LEFT",
             switchTime = null,
             pausedDurationMs = 0L,
@@ -173,14 +182,15 @@ class PartnerDashboardScreenTest {
         )
         val sleepRecord = SleepSnapshot(
             id = 2L,
-            startTime = Instant.now().minus(Duration.ofHours(3)).toEpochMilli(),
-            endTime = Instant.now().minus(Duration.ofHours(1)).toEpochMilli(),
+            startTime = fixedNow.minus(Duration.ofHours(3)).toEpochMilli(),
+            endTime = fixedNow.minus(Duration.ofHours(1)).toEpochMilli(),
             sleepType = "NAP",
             notes = null,
         )
 
         composeRule.setContent {
             PartnerDashboardScreen(
+                nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(
                     makeSnapshot(
                         allergies = listOf("CMPA"),
@@ -206,7 +216,7 @@ class PartnerDashboardScreenTest {
 
     @Test
     fun staleActiveSessionCopyDoesNotPresentSharedDataAsLive() {
-        val lastSyncAt = Instant.now().minus(Duration.ofMinutes(31))
+        val lastSyncAt = fixedNow.minus(Duration.ofMinutes(31))
         val activeSession = SessionSnapshot(
             id = 1L,
             startTime = lastSyncAt.minus(Duration.ofHours(1)).toEpochMilli(),
@@ -219,6 +229,7 @@ class PartnerDashboardScreenTest {
 
         composeRule.setContent {
             PartnerDashboardScreen(
+                nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(
                     makeSnapshot(
                         lastSyncAt = lastSyncAt,
@@ -245,6 +256,7 @@ class PartnerDashboardScreenTest {
     fun refreshButtonExposesCurrentStateForAccessibility() {
         composeRule.setContent {
             PartnerDashboardScreen(
+                nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(makeSnapshot()),
             )
         }
@@ -267,7 +279,10 @@ class PartnerDashboardScreenTest {
         val viewModel = PartnerDashboardViewModel(fetchUseCase)
 
         composeRule.setContent {
-            PartnerDashboardScreen(viewModel = viewModel)
+            PartnerDashboardScreen(
+                nowProvider = fixedNowProvider,
+                viewModel = viewModel,
+            )
         }
         composeRule.waitForIdle()
 
@@ -301,12 +316,14 @@ class PartnerDashboardScreenTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("This read-only view may be behind.", substring = true).assertIsDisplayed()
+        composeRule.mainClock.autoAdvance = true
     }
 
     @Test
     fun allergyChipsAreReadOnlyForAccessibility() {
         composeRule.setContent {
             PartnerDashboardScreen(
+                nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(
                     makeSnapshot(allergies = listOf("CMPA")),
                 ),
@@ -325,10 +342,10 @@ class PartnerDashboardScreenTest {
         val longAllergy = "VeryLongAllergyNameFromPrimaryDevice"
         val session = SessionSnapshot(
             id = 1L,
-            startTime = Instant.now().minus(Duration.ofMinutes(25)).toEpochMilli(),
-            endTime = Instant.now().minus(Duration.ofMinutes(10)).toEpochMilli(),
+            startTime = fixedNow.minus(Duration.ofMinutes(25)).toEpochMilli(),
+            endTime = fixedNow.minus(Duration.ofMinutes(10)).toEpochMilli(),
             startingSide = "LEFT",
-            switchTime = Instant.now().minus(Duration.ofMinutes(18)).toEpochMilli(),
+            switchTime = fixedNow.minus(Duration.ofMinutes(18)).toEpochMilli(),
             pausedDurationMs = 0L,
             notes = null,
         )
@@ -337,6 +354,7 @@ class PartnerDashboardScreenTest {
             CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
                 PartnerDashboardScreen(
                     modifier = Modifier.requiredWidth(320.dp),
+                    nowProvider = fixedNowProvider,
                     viewModel = buildViewModel(
                         makeSnapshot(
                             babyName = longName,
@@ -354,6 +372,39 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithContentDescription("Allergy: $longAllergy")
             .performScrollTo()
             .assertIsDisplayed()
+        composeRule.onNodeWithText("Check shared updates").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun darkThemeDashboardShowsPartnerStatusAndWarning() {
+        val lastSyncAt = fixedNow.minus(Duration.ofMinutes(31))
+        val activeSession = SessionSnapshot(
+            id = 1L,
+            startTime = lastSyncAt.minus(Duration.ofMinutes(20)).toEpochMilli(),
+            endTime = null,
+            startingSide = "RIGHT",
+            switchTime = null,
+            pausedDurationMs = 0L,
+            notes = null,
+        )
+
+        composeRule.setContent {
+            BabyTrackerTheme(darkTheme = true) {
+                PartnerDashboardScreen(
+                    nowProvider = fixedNowProvider,
+                    viewModel = buildViewModel(
+                        makeSnapshot(
+                            lastSyncAt = lastSyncAt,
+                            sessions = listOf(activeSession),
+                        ),
+                    ),
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Mia").assertIsDisplayed()
+        composeRule.onNodeWithText("Feeding when shared").assertIsDisplayed()
+        composeRule.onNodeWithText("This read-only view may be behind.", substring = true).assertIsDisplayed()
         composeRule.onNodeWithText("Check shared updates").performScrollTo().assertIsDisplayed()
     }
 
