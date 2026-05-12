@@ -1,6 +1,10 @@
 package com.babytracker.ui.partner
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -17,6 +21,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.SettingsRepository
@@ -65,12 +71,13 @@ class PartnerDashboardScreenTest {
 
     private fun makeSnapshot(
         lastSyncAt: Instant = Instant.now(),
+        babyName: String = "Mia",
         allergies: List<String> = emptyList(),
         sessions: List<SessionSnapshot> = emptyList(),
         sleepRecords: List<SleepSnapshot> = emptyList(),
     ) = ShareSnapshot(
         lastSyncAt = lastSyncAt,
-        baby = BabySnapshot("Mia", Instant.now().minus(Duration.ofDays(35)).toEpochMilli(), allergies),
+        baby = BabySnapshot(babyName, Instant.now().minus(Duration.ofDays(35)).toEpochMilli(), allergies),
         sessions = sessions,
         sleepRecords = sleepRecords,
     )
@@ -310,6 +317,44 @@ class PartnerDashboardScreenTest {
             .performScrollTo()
             .assertIsDisplayed()
             .assertHasNoClickAction()
+    }
+
+    @Test
+    fun narrowLargeFontDashboardKeepsLongTextUsable() {
+        val longName = "Mia Sophia Isabelle Charlotte"
+        val longAllergy = "VeryLongAllergyNameFromPrimaryDevice"
+        val session = SessionSnapshot(
+            id = 1L,
+            startTime = Instant.now().minus(Duration.ofMinutes(25)).toEpochMilli(),
+            endTime = Instant.now().minus(Duration.ofMinutes(10)).toEpochMilli(),
+            startingSide = "LEFT",
+            switchTime = Instant.now().minus(Duration.ofMinutes(18)).toEpochMilli(),
+            pausedDurationMs = 0L,
+            notes = null,
+        )
+
+        composeRule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+                PartnerDashboardScreen(
+                    modifier = Modifier.requiredWidth(320.dp),
+                    viewModel = buildViewModel(
+                        makeSnapshot(
+                            babyName = longName,
+                            allergies = listOf(longAllergy),
+                            sessions = listOf(session),
+                        ),
+                    ),
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(longName).assertIsDisplayed()
+        composeRule.onNodeWithText("Latest care").assertIsDisplayed()
+        composeRule.onNodeWithText("Left to Right").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Allergy: $longAllergy")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("Check shared updates").performScrollTo().assertIsDisplayed()
     }
 
     private class FakeSharingRepository(

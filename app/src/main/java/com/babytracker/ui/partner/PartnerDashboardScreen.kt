@@ -113,11 +113,16 @@ fun PartnerDashboardScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column(verticalArrangement = Arrangement.Center) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
                         Text(
                             text = babyName ?: "Baby Tracker",
                             style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier.semantics { heading() },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                         BabyAgeSubtitle(snapshot = snapshot, babyName = babyName)
                     }
@@ -220,12 +225,16 @@ private fun BabyAgeSubtitle(
             text = "${ageWeeks}w old, read-only partner view",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     } else {
         Text(
             text = "Read-only partner view",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -503,7 +512,7 @@ private fun ActiveSessionSummary(
             ) {
                 Text(text = "\uD83E\uDD31", style = MaterialTheme.typography.headlineSmall)
             }
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Feeding when shared",
                     style = MaterialTheme.typography.labelMedium,
@@ -513,6 +522,8 @@ private fun ActiveSessionSummary(
                     text = sideLabel,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -643,6 +654,7 @@ private fun SummaryLine(
     color: Color,
 ) {
     Row(
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -653,9 +665,10 @@ private fun SummaryLine(
         )
         Text(
             text = label,
+            modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
     }
@@ -787,6 +800,8 @@ private fun AllergyChip(
             text = label,
             style = MaterialTheme.typography.labelLarge,
             color = colors.onContainer,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -818,11 +833,19 @@ private fun RefreshSharedUpdatesButton(
                 color = MaterialTheme.colorScheme.onPrimary,
             )
             Spacer(modifier = Modifier.size(10.dp))
-            Text("Checking")
+            Text(
+                text = "Checking",
+                maxLines = 2,
+                textAlign = TextAlign.Center,
+            )
         } else {
             Icon(Icons.Default.Refresh, contentDescription = null)
             Spacer(modifier = Modifier.size(10.dp))
-            Text("Check shared updates")
+            Text(
+                text = "Check shared updates",
+                maxLines = 2,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
@@ -889,7 +912,16 @@ private fun EmptyState(
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onRefresh) { Text("Check for shared updates") }
+        Button(
+            onClick = onRefresh,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = "Check for shared updates",
+                maxLines = 2,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 
