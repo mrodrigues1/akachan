@@ -129,7 +129,11 @@ fun PartnerDashboardScreen(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        BabyAgeSubtitle(snapshot = snapshot, babyName = babyName)
+                        BabyAgeSubtitle(
+                            snapshot = snapshot,
+                            babyName = babyName,
+                            now = Instant.ofEpochMilli(nowProvider()),
+                        )
                     }
                 },
                 actions = {
@@ -218,13 +222,14 @@ fun PartnerDashboardScreen(
 private fun BabyAgeSubtitle(
     snapshot: ShareSnapshot?,
     babyName: String?,
+    now: Instant,
 ) {
     if (babyName != null && snapshot != null) {
-        val ageWeeks = remember(snapshot.baby.birthDateMs) {
-            Duration.between(
-                Instant.ofEpochMilli(snapshot.baby.birthDateMs),
-                Instant.now(),
-            ).toDays() / 7
+        val ageWeeks = remember(snapshot.baby.birthDateMs, now) {
+            babyAgeWeeks(
+                birthDateMs = snapshot.baby.birthDateMs,
+                now = now,
+            )
         }
         Text(
             text = "${ageWeeks}w old, read-only partner view",
@@ -1171,3 +1176,14 @@ internal fun partnerWarningColors(isDark: Boolean): PartnerWarningColors =
             onSurfaceAccent = OnWarningContainerAmber,
         )
     }
+
+internal fun babyAgeWeeks(
+    birthDateMs: Long,
+    now: Instant,
+): Int {
+    val ageDays = Duration.between(Instant.ofEpochMilli(birthDateMs), now)
+        .toDays()
+        .coerceAtLeast(0L)
+
+    return (ageDays / 7).toInt()
+}
