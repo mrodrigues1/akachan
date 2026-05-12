@@ -56,6 +56,8 @@ import com.babytracker.util.formatElapsedAgo
 import java.time.Duration
 import java.time.Instant
 
+private const val STALE_SYNC_THRESHOLD_MINUTES = 30L
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PartnerDashboardScreen(
@@ -69,10 +71,10 @@ fun PartnerDashboardScreen(
     if (uiState.isDisconnected) {
         AlertDialog(
             onDismissRequest = {},
-            title = { Text("You've been disconnected") },
-            text = { Text("Ask your partner for a new code to reconnect.") },
+            title = { Text("Partner access ended") },
+            text = { Text("Ask the primary parent for a new sharing code to reconnect.") },
             confirmButton = {
-                TextButton(onClick = onDisconnected) { Text("OK") }
+                TextButton(onClick = onDisconnected) { Text("Go to settings") }
             },
         )
     }
@@ -98,7 +100,13 @@ fun PartnerDashboardScreen(
                                 ).toDays() / 7
                             }
                             Text(
-                                text = "${ageWeeks}w old",
+                                text = "${ageWeeks}w old, read-only partner view",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            Text(
+                                text = "Read-only partner view",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -118,7 +126,7 @@ fun PartnerDashboardScreen(
                         }
                     } else {
                         IconButton(onClick = viewModel::refresh) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                            Icon(Icons.Default.Refresh, contentDescription = "Check for shared updates")
                         }
                     }
                     IconButton(onClick = onNavigateToSettings) {
@@ -175,8 +183,11 @@ private fun DashboardContent(
     val activeSession = snapshot.sessions.firstOrNull { it.endTime == null }
     val completedSessions = snapshot.sessions.filter { it.endTime != null }.take(3)
     val lastSleep = snapshot.sleepRecords.firstOrNull()
-    val lastUpdatedText = remember(snapshot.lastSyncAt, lastRefreshAt) {
+    val lastSharedText = remember(snapshot.lastSyncAt, lastRefreshAt) {
         Duration.between(snapshot.lastSyncAt, Instant.now()).formatElapsedAgo()
+    }
+    val isShareStale = remember(snapshot.lastSyncAt, lastRefreshAt) {
+        Duration.between(snapshot.lastSyncAt, Instant.now()).toMinutes() >= STALE_SYNC_THRESHOLD_MINUTES
     }
 
     Column(
@@ -187,10 +198,20 @@ private fun DashboardContent(
             .padding(top = 8.dp, bottom = 24.dp),
     ) {
         Text(
-            text = "Updated $lastUpdatedText",
+            text = "Primary device last shared: $lastSharedText",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        if (isShareStale) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "This read-only view may be behind. " +
+                    "Ask the primary parent to open Akachan if something is missing.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = OnWarningContainerAmber,
+            )
+        }
 
         if (error != null) {
             Spacer(modifier = Modifier.height(8.dp))
@@ -204,7 +225,11 @@ private fun DashboardContent(
 
         if (activeSession != null) {
             Spacer(modifier = Modifier.height(16.dp))
-            ActiveSessionCard(session = activeSession, lastRefreshAt = lastRefreshAt)
+            ActiveSessionCard(
+                session = activeSession,
+                lastSyncAt = snapshot.lastSyncAt,
+                lastRefreshAt = lastRefreshAt,
+            )
         }
 
         if (completedSessions.isNotEmpty()) {
@@ -231,9 +256,13 @@ private fun DashboardContent(
 }
 
 @Composable
-private fun ActiveSessionCard(session: SessionSnapshot, lastRefreshAt: Long) {
-    val elapsed = remember(session.startTime, session.pausedDurationMs, lastRefreshAt) {
-        Duration.between(Instant.ofEpochMilli(session.startTime), Instant.now())
+private fun ActiveSessionCard(
+    session: SessionSnapshot,
+    lastSyncAt: Instant,
+    lastRefreshAt: Long,
+) {
+    val elapsedAtLastSync = remember(session.startTime, session.pausedDurationMs, lastSyncAt, lastRefreshAt) {
+        Duration.between(Instant.ofEpochMilli(session.startTime), lastSyncAt)
             .minusMillis(session.pausedDurationMs)
             .let { if (it.isNegative) Duration.ZERO else it }
     }
@@ -275,7 +304,7 @@ private fun ActiveSessionCard(session: SessionSnapshot, lastRefreshAt: Long) {
                 }
                 Column {
                     Text(
-                        text = "FEEDING IN PROGRESS",
+                        text = "ACTIVE WHEN LAST SHARED",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -288,8 +317,14 @@ private fun ActiveSessionCard(session: SessionSnapshot, lastRefreshAt: Long) {
             }
             Spacer(modifier = Modifier.height(14.dp))
             Text(
-                text = elapsed.formatDuration(),
+                text = elapsedAtLastSync.formatDuration(),
                 style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Read-only estimate from the primary device's last sync",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
@@ -388,23 +423,23 @@ private fun EmptyState(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Nothing tracked yet",
+            text = "No shared records yet",
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = if (babyName != null) {
-                "Ask your partner to open the app and start tracking $babyName."
+                "When the primary parent tracks $babyName, shared feedings and sleep will appear here."
             } else {
-                "Ask your partner to open the app and start a session."
+                "When the primary parent tracks a feeding or sleep, it will appear here."
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onRefresh) { Text("Refresh") }
+        Button(onClick = onRefresh) { Text("Check for shared updates") }
     }
 }
 
@@ -427,7 +462,7 @@ private fun ErrorState(
             color = MaterialTheme.colorScheme.error,
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRetry) { Text("Retry") }
+        Button(onClick = onRetry) { Text("Check again") }
     }
 }
 
