@@ -19,7 +19,12 @@ import javax.inject.Inject
 
 enum class OnboardingStep { WELCOME, BABY_INFO, ALLERGIES }
 
+const val MAX_BABY_NAME_LENGTH = 50
+const val MAX_CUSTOM_ALLERGY_NOTE_LENGTH = 100
+const val MAX_CUSTOM_ALLERGY_NOTE_LINES = 3
+
 private const val BABY_NAME_REQUIRED_ERROR = "Enter a name to continue."
+private val LINE_BREAK_REGEX = Regex("[\\r\\n]+")
 
 data class OnboardingUiState(
     val currentStep: OnboardingStep = OnboardingStep.WELCOME,
@@ -46,7 +51,7 @@ class OnboardingViewModel @Inject constructor(
     val isNextEnabled: Boolean
         get() = when (_uiState.value.currentStep) {
             OnboardingStep.WELCOME -> true
-            OnboardingStep.BABY_INFO -> _uiState.value.isBabyInfoValid()
+            OnboardingStep.BABY_INFO -> _uiState.value.birthDateError == null
             OnboardingStep.ALLERGIES -> true
         }
 
@@ -101,9 +106,11 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun onCustomAllergyNoteChanged(note: String) {
-        if (note.length <= 100) {
-            _uiState.update { it.copy(customAllergyNote = note) }
-        }
+        val sanitizedNote = note
+            .normalizeLineBreaks()
+            .takeLines(MAX_CUSTOM_ALLERGY_NOTE_LINES)
+            .takeCodePoints(MAX_CUSTOM_ALLERGY_NOTE_LENGTH)
+        _uiState.update { it.copy(customAllergyNote = sanitizedNote) }
     }
 
     fun onNextStep() {
@@ -127,6 +134,14 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun onFinish() {
+        if (!_uiState.value.isBabyInfoValid()) {
+            _uiState.update {
+                it.withBabyInfoValidationErrors()
+                    .copy(currentStep = OnboardingStep.BABY_INFO)
+            }
+            return
+        }
+
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, savingError = false) }
             val state = _uiState.value
@@ -152,9 +167,7 @@ class OnboardingViewModel @Inject constructor(
 
     private companion object {
         const val TAG = "OnboardingViewModel"
-        const val MAX_BABY_NAME_LENGTH = 50
         const val FUTURE_BIRTH_DATE_ERROR = "Birth date cannot be in the future."
-        val LINE_BREAK_REGEX = Regex("[\\r\\n]+")
     }
 }
 
@@ -169,12 +182,21 @@ private fun OnboardingUiState.nextFromBabyInfo(): OnboardingUiState =
             birthDateError = null,
         )
     } else {
-        copy(
-            babyNameError = if (babyName.isBlank()) BABY_NAME_REQUIRED_ERROR else babyNameError,
-        )
+        withBabyInfoValidationErrors()
     }
+
+private fun OnboardingUiState.withBabyInfoValidationErrors(): OnboardingUiState =
+    copy(
+        babyNameError = if (babyName.isBlank()) BABY_NAME_REQUIRED_ERROR else babyNameError,
+    )
 
 private fun String.takeCodePoints(maxCodePoints: Int): String {
     if (codePointCount(0, length) <= maxCodePoints) return this
     return substring(0, offsetByCodePoints(0, maxCodePoints))
 }
+
+private fun String.normalizeLineBreaks(): String =
+    replace(LINE_BREAK_REGEX, "\n")
+
+private fun String.takeLines(maxLines: Int): String =
+    lineSequence().take(maxLines).joinToString("\n")
