@@ -382,7 +382,6 @@ private fun CompactDashboardContent(
             isShareStale = isShareStale,
             error = error,
             onClearError = onClearError,
-            lastSyncAt = snapshot.lastSyncAt,
             now = now,
         )
 
@@ -448,7 +447,6 @@ private fun WideDashboardContent(
                 isShareStale = isShareStale,
                 error = error,
                 onClearError = onClearError,
-                lastSyncAt = snapshot.lastSyncAt,
                 now = now,
             )
             CareSummaryPanel(
@@ -527,7 +525,6 @@ private fun PartnerStatusPanel(
     isShareStale: Boolean,
     error: String?,
     onClearError: () -> Unit,
-    lastSyncAt: Instant,
     now: Instant,
 ) {
     val hasActiveSession = activeSession != null
@@ -575,7 +572,6 @@ private fun PartnerStatusPanel(
             } else {
                 ActiveSessionSummary(
                     session = activeSession,
-                    lastSyncAt = lastSyncAt,
                     now = now,
                 )
             }
@@ -648,13 +644,10 @@ private fun SharedUpdateMeta(
 @Composable
 private fun ActiveSessionSummary(
     session: SessionSnapshot,
-    lastSyncAt: Instant,
     now: Instant,
 ) {
-    val elapsedAtLastSync = remember(session.startTime, session.pausedDurationMs, lastSyncAt, now) {
-        Duration.between(Instant.ofEpochMilli(session.startTime), lastSyncAt)
-            .minusMillis(session.pausedDurationMs)
-            .coerceAtLeast(Duration.ZERO)
+    val elapsed = remember(session.startTime, session.pausedDurationMs, now) {
+        activeSessionElapsedDuration(session = session, now = now)
     }
     val sideLabel = remember(session.startingSide, session.switchTime) {
         val started = if (session.startingSide == "LEFT") "Left" else "Right"
@@ -700,13 +693,13 @@ private fun ActiveSessionSummary(
         }
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = elapsedAtLastSync.formatDuration(),
+            text = elapsed.formatDuration(),
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Estimate from the last shared update",
+            text = "Estimate from the shared start time",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
         )
@@ -1194,6 +1187,14 @@ internal fun babyAgeWeeks(
 
     return (ageDays / 7).toInt()
 }
+
+internal fun activeSessionElapsedDuration(
+    session: SessionSnapshot,
+    now: Instant,
+): Duration =
+    Duration.between(Instant.ofEpochMilli(session.startTime), now)
+        .minusMillis(session.pausedDurationMs)
+        .coerceAtLeast(Duration.ZERO)
 
 internal fun babyAgeSubtitleText(ageWeeks: Int): String =
     when (ageWeeks) {
