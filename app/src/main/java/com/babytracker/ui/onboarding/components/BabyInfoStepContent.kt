@@ -36,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -68,6 +69,7 @@ fun BabyInfoStepContent(
     modifier: Modifier = Modifier,
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
     val formatter = remember { DateTimeFormatter.ofPattern("MMMM d, yyyy") }
     val nameLength = remember(name) { name.codePointCount(0, name.length) }
     val ageText = remember(selectedDate) { selectedDate.toAgeLabel() }
@@ -100,7 +102,7 @@ fun BabyInfoStepContent(
         ) {
             OnboardingHeroStrip(
                 title = "Baby profile",
-                stepLabel = "STEP 2 OF 3",
+                stepLabel = "Step 2 of 3",
                 progress = 0.66f,
                 accentColor = MaterialTheme.colorScheme.primary,
                 accentContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -134,10 +136,10 @@ fun BabyInfoStepContent(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
-                        imeAction = ImeAction.Next,
+                        imeAction = ImeAction.Done,
                     ),
                     keyboardActions = KeyboardActions(
-                        onNext = { onNext() },
+                        onDone = { focusManager.clearFocus() },
                     ),
                     isError = nameError != null,
                     supportingText = nameSupportingText(
@@ -187,7 +189,7 @@ fun BabyInfoStepContent(
                         showDatePicker = false
                     },
                 ) {
-                    Text("OK")
+                    Text("Use date")
                 }
             },
             dismissButton = {

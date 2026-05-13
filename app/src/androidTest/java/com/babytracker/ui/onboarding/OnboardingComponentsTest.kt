@@ -169,7 +169,7 @@ class OnboardingComponentsTest {
             }
         }
 
-        composeRule.onNodeWithText("STEP 2 OF 3").assertIsDisplayed()
+        composeRule.onNodeWithText("Step 2 of 3").assertIsDisplayed()
         composeRule.onNodeWithText("Baby profile").assertIsDisplayed()
         composeRule.onNodeWithText("Start with the basics").assertIsDisplayed()
         composeRule.onNodeWithText("1 year, 2 months old").assertIsDisplayed()
@@ -332,11 +332,11 @@ class OnboardingComponentsTest {
             }
         }
 
-        composeRule.onNodeWithText("STEP 3 OF 3").assertIsDisplayed()
+        composeRule.onNodeWithText("Step 3 of 3").assertIsDisplayed()
         composeRule.onNodeWithText("Allergies").assertIsDisplayed()
         composeRule.onNodeWithText("Any known allergies?").assertIsDisplayed()
         composeRule.onNodeWithText("No known allergies").assertIsDisplayed()
-        composeRule.onNodeWithText("Ready to save: no known allergies.").assertIsDisplayed()
+        composeRule.onNodeWithText("Ready to save with no known allergies.").assertIsDisplayed()
         composeRule.onNodeWithText("Finish setup").assertIsDisplayed()
         composeRule.onNodeWithText("ALLERGIES").assertDoesNotExist()
     }
@@ -363,7 +363,7 @@ class OnboardingComponentsTest {
 
         composeRule.onNodeWithText("Any known allergies?").assertIsDisplayed()
         composeRule.onNodeWithText("Describe the allergy").assertIsDisplayed()
-        composeRule.onNodeWithText("STEP 3 OF 3").assertDoesNotExist()
+        composeRule.onNodeWithText("Step 3 of 3").assertDoesNotExist()
         composeRule.onNodeWithText("Finish setup").assertDoesNotExist()
     }
 
@@ -432,7 +432,7 @@ class OnboardingComponentsTest {
         composeRule.onNodeWithText("No known allergies").performClick()
         composeRule.mainClock.advanceTimeBy(500)
 
-        composeRule.onNodeWithText("Ready to save: no known allergies.").assertIsDisplayed()
+        composeRule.onNodeWithText("Ready to save with no known allergies.").assertIsDisplayed()
         composeRule.onNodeWithText("Describe the allergy").assertDoesNotExist()
     }
 }
