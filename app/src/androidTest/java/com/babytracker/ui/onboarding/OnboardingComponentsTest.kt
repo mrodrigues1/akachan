@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.ThemeConfig
@@ -11,6 +12,7 @@ import com.babytracker.ui.onboarding.components.AllergiesStepContent
 import com.babytracker.ui.onboarding.components.BabyInfoStepContent
 import com.babytracker.ui.onboarding.components.WelcomeStepContent
 import com.babytracker.ui.theme.BabyTrackerTheme
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,7 +45,9 @@ class OnboardingComponentsTest {
             BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
                 BabyInfoStepContent(
                     name = "Luna",
+                    nameError = null,
                     selectedDate = LocalDate.now().minusMonths(14),
+                    birthDateError = null,
                     showAgeWarning = true,
                     isNextEnabled = true,
                     onNameChanged = {},
@@ -57,9 +61,33 @@ class OnboardingComponentsTest {
         composeRule.onNodeWithText("STEP 2 OF 3").assertIsDisplayed()
         composeRule.onNodeWithText("Baby profile").assertIsDisplayed()
         composeRule.onNodeWithText("Start with the basics").assertIsDisplayed()
+        composeRule.onNodeWithText("1 year, 2 months old").assertIsDisplayed()
         composeRule.onNodeWithText("Akachan is designed for babies 0-12 months.").assertIsDisplayed()
         composeRule.onNodeWithText("Continue").assertIsDisplayed()
         composeRule.onNodeWithText("BABY INFO").assertDoesNotExist()
+    }
+
+    @Test
+    fun babyInfoStepShowsValidationErrors() {
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                BabyInfoStepContent(
+                    name = "",
+                    nameError = "Enter a name to continue.",
+                    selectedDate = LocalDate.now(),
+                    birthDateError = "Birth date cannot be in the future.",
+                    showAgeWarning = false,
+                    isNextEnabled = false,
+                    onNameChanged = {},
+                    onDateSelected = {},
+                    onBack = {},
+                    onNext = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Enter a name to continue.").assertIsDisplayed()
+        composeRule.onNodeWithText("Birth date cannot be in the future.").assertIsDisplayed()
     }
 
     @Test
@@ -72,6 +100,7 @@ class OnboardingComponentsTest {
                     customNote = "",
                     isSaving = false,
                     onAllergyToggled = {},
+                    onAllergiesCleared = {},
                     onCustomNoteChanged = {},
                     onBack = {},
                     onFinish = {},
@@ -82,7 +111,8 @@ class OnboardingComponentsTest {
         composeRule.onNodeWithText("STEP 3 OF 3").assertIsDisplayed()
         composeRule.onNodeWithText("Allergies").assertIsDisplayed()
         composeRule.onNodeWithText("Any known allergies?").assertIsDisplayed()
-        composeRule.onNodeWithText("No known allergies selected.").assertIsDisplayed()
+        composeRule.onNodeWithText("No known allergies").assertIsDisplayed()
+        composeRule.onNodeWithText("Ready to save: no known allergies.").assertIsDisplayed()
         composeRule.onNodeWithText("Finish setup").assertIsDisplayed()
         composeRule.onNodeWithText("ALLERGIES").assertDoesNotExist()
     }
@@ -97,6 +127,7 @@ class OnboardingComponentsTest {
                     customNote = "Pears",
                     isSaving = false,
                     onAllergyToggled = {},
+                    onAllergiesCleared = {},
                     onCustomNoteChanged = {},
                     onBack = {},
                     onFinish = {},
@@ -110,5 +141,31 @@ class OnboardingComponentsTest {
         composeRule.onNodeWithText("Describe the allergy").assertIsDisplayed()
         composeRule.onNodeWithText("STEP 3 OF 3").assertDoesNotExist()
         composeRule.onNodeWithText("Finish setup").assertDoesNotExist()
+    }
+
+    @Test
+    fun allergiesStepClearOptionCallsClearHandler() {
+        var clearClicked = false
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                AllergiesStepContent(
+                    babyName = "Luna",
+                    selectedAllergies = setOf(AllergyType.CMPA),
+                    customNote = "",
+                    isSaving = false,
+                    onAllergyToggled = {},
+                    onAllergiesCleared = { clearClicked = true },
+                    onCustomNoteChanged = {},
+                    onBack = {},
+                    onFinish = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("No known allergies").performClick()
+
+        composeRule.runOnIdle {
+            assertTrue(clearClicked)
+        }
     }
 }

@@ -54,7 +54,9 @@ fun OnboardingScreen(
                 )
                 OnboardingStep.BABY_INFO -> BabyInfoStepContent(
                     name = uiState.babyName,
+                    nameError = uiState.babyNameError,
                     selectedDate = uiState.birthDate,
+                    birthDateError = uiState.birthDateError,
                     showAgeWarning = uiState.showAgeWarning,
                     isNextEnabled = viewModel.isNextEnabled,
                     onNameChanged = viewModel::onNameChanged,
@@ -68,6 +70,7 @@ fun OnboardingScreen(
                     customNote = uiState.customAllergyNote,
                     isSaving = uiState.isSaving,
                     onAllergyToggled = viewModel::onAllergyToggled,
+                    onAllergiesCleared = viewModel::onAllergiesCleared,
                     onCustomNoteChanged = viewModel::onCustomAllergyNoteChanged,
                     onBack = viewModel::onPreviousStep,
                     onFinish = viewModel::onFinish,

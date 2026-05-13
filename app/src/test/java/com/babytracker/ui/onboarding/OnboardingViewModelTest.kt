@@ -58,6 +58,7 @@ class OnboardingViewModelTest {
     @Test
     fun `onNextStep from baby info moves to allergies`() {
         viewModel.onNextStep() // WELCOME -> BABY_INFO
+        viewModel.onNameChanged("Luna")
         viewModel.onNextStep() // BABY_INFO -> ALLERGIES
         assertEquals(OnboardingStep.ALLERGIES, viewModel.uiState.value.currentStep)
     }
@@ -65,6 +66,7 @@ class OnboardingViewModelTest {
     @Test
     fun `onNextStep from allergies stays on allergies`() {
         viewModel.onNextStep()
+        viewModel.onNameChanged("Luna")
         viewModel.onNextStep()
         viewModel.onNextStep()
         assertEquals(OnboardingStep.ALLERGIES, viewModel.uiState.value.currentStep)
@@ -86,6 +88,7 @@ class OnboardingViewModelTest {
     @Test
     fun `onPreviousStep from allergies moves to baby info`() {
         viewModel.onNextStep()
+        viewModel.onNameChanged("Luna")
         viewModel.onNextStep()
         viewModel.onPreviousStep()
         assertEquals(OnboardingStep.BABY_INFO, viewModel.uiState.value.currentStep)
@@ -98,9 +101,35 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `onNameChanged exceeds 50 chars is ignored`() {
+    fun `onNameChanged limits typed names to 50 characters`() {
         viewModel.onNameChanged("A".repeat(51))
-        assertEquals("", viewModel.uiState.value.babyName)
+        assertEquals("A".repeat(50), viewModel.uiState.value.babyName)
+    }
+
+    @Test
+    fun `onNameChanged replaces pasted line breaks with spaces`() {
+        viewModel.onNameChanged("Luna\nRose")
+        assertEquals("Luna Rose", viewModel.uiState.value.babyName)
+    }
+
+    @Test
+    fun `onNextStep from baby info with blank name stays on baby info and shows error`() {
+        viewModel.onNextStep()
+        viewModel.onNextStep()
+
+        assertEquals(OnboardingStep.BABY_INFO, viewModel.uiState.value.currentStep)
+        assertEquals("Enter a name to continue.", viewModel.uiState.value.babyNameError)
+    }
+
+    @Test
+    fun `onNameChanged clears baby name error once name is valid`() {
+        viewModel.onNextStep()
+        viewModel.onNextStep()
+        assertEquals("Enter a name to continue.", viewModel.uiState.value.babyNameError)
+
+        viewModel.onNameChanged("Luna")
+
+        assertEquals(null, viewModel.uiState.value.babyNameError)
     }
 
     @Test
@@ -131,6 +160,7 @@ class OnboardingViewModelTest {
     @Test
     fun `isNextEnabled on allergies is always true`() {
         viewModel.onNextStep()
+        viewModel.onNameChanged("Luna")
         viewModel.onNextStep()
         assertTrue(viewModel.isNextEnabled)
     }
@@ -150,11 +180,43 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun `onBirthDateSelected future date keeps current date and shows error`() {
+        val initialDate = viewModel.uiState.value.birthDate
+        viewModel.onBirthDateSelected(LocalDate.now().plusDays(1))
+
+        assertEquals(initialDate, viewModel.uiState.value.birthDate)
+        assertEquals("Birth date cannot be in the future.", viewModel.uiState.value.birthDateError)
+    }
+
+    @Test
     fun `onAllergyToggled adds and removes`() {
         viewModel.onAllergyToggled(AllergyType.CMPA)
         assertTrue(AllergyType.CMPA in viewModel.uiState.value.selectedAllergies)
         viewModel.onAllergyToggled(AllergyType.CMPA)
         assertFalse(AllergyType.CMPA in viewModel.uiState.value.selectedAllergies)
+    }
+
+    @Test
+    fun `onAllergyToggled clears custom note when other is removed`() {
+        viewModel.onAllergyToggled(AllergyType.OTHER)
+        viewModel.onCustomAllergyNoteChanged("Pears")
+
+        viewModel.onAllergyToggled(AllergyType.OTHER)
+
+        assertFalse(AllergyType.OTHER in viewModel.uiState.value.selectedAllergies)
+        assertEquals("", viewModel.uiState.value.customAllergyNote)
+    }
+
+    @Test
+    fun `onAllergiesCleared clears selected allergies and custom note`() {
+        viewModel.onAllergyToggled(AllergyType.CMPA)
+        viewModel.onAllergyToggled(AllergyType.OTHER)
+        viewModel.onCustomAllergyNoteChanged("Pears")
+
+        viewModel.onAllergiesCleared()
+
+        assertEquals(emptySet<AllergyType>(), viewModel.uiState.value.selectedAllergies)
+        assertEquals("", viewModel.uiState.value.customAllergyNote)
     }
 
     @Test
