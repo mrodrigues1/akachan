@@ -643,6 +643,13 @@ private fun AllergiesEditSheet(
                 } else {
                     selectedAllergies + allergy
                 }
+                if (allergy == AllergyType.OTHER && allergy !in selectedAllergies) {
+                    customNote = ""
+                }
+            },
+            onAllergiesCleared = {
+                selectedAllergies = emptySet()
+                customNote = ""
             },
             onCustomNoteChanged = { customNote = it },
             onBack = {},

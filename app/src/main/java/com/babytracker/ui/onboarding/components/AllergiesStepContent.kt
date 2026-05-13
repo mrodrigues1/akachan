@@ -5,10 +5,14 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +22,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -32,7 +37,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.AllergyType
 
@@ -44,6 +51,7 @@ fun AllergiesStepContent(
     customNote: String,
     isSaving: Boolean,
     onAllergyToggled: (AllergyType) -> Unit,
+    onAllergiesCleared: () -> Unit,
     onCustomNoteChanged: (String) -> Unit,
     onBack: () -> Unit,
     onFinish: () -> Unit,
@@ -111,11 +119,22 @@ fun AllergiesStepContent(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Select what applies to $babyLabel. You can update this anytime.",
+                    text = "Choose only what you already know about $babyLabel. If nothing is known yet, keep none selected.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.height(22.dp))
+                NoKnownAllergiesOption(
+                    selected = selectedAllergies.isEmpty(),
+                    onClick = onAllergiesCleared,
+                )
+                Spacer(modifier = Modifier.height(18.dp))
+                Text(
+                    text = "Known allergies",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(modifier = Modifier.height(10.dp))
                 AllergyChipGrid(
                     selectedAllergies = selectedAllergies,
                     onAllergyToggled = onAllergyToggled,
@@ -166,6 +185,101 @@ fun AllergiesStepContent(
     }
 }
 
+@Composable
+private fun NoKnownAllergiesOption(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val containerColor = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+    val contentColor = if (selected) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outlineVariant
+    }
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(
+                role = Role.Button,
+                onClick = onClick,
+            ),
+        shape = MaterialTheme.shapes.medium,
+        color = containerColor,
+        contentColor = contentColor,
+        border = BorderStroke(1.dp, borderColor),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SelectionMark(selected = selected)
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "No known allergies",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = "Start here if nothing has been identified.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (selected) contentColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectionMark(
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val containerColor = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    val contentColor = if (selected) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outline
+    }
+
+    Surface(
+        modifier = modifier.size(32.dp),
+        shape = CircleShape,
+        color = containerColor,
+        contentColor = contentColor,
+        border = BorderStroke(1.dp, borderColor),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            if (selected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AllergyChipGrid(
@@ -210,9 +324,9 @@ private fun AllergySelectionSummary(
     modifier: Modifier = Modifier,
 ) {
     val summary = if (selectedAllergies.isEmpty()) {
-        "No known allergies selected."
+        "Ready to save: no known allergies."
     } else {
-        "${selectedAllergies.size} selected."
+        selectedAllergies.joinToString(prefix = "Selected: ") { it.label }
     }
 
     Surface(

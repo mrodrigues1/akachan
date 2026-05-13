@@ -1,6 +1,10 @@
 package com.babytracker.ui.onboarding
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -167,5 +171,48 @@ class OnboardingComponentsTest {
         composeRule.runOnIdle {
             assertTrue(clearClicked)
         }
+    }
+
+    @Test
+    fun allergiesStepNoKnownAllergiesClearsSelectionAndHidesOtherNote() {
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            var selectedAllergies by remember {
+                mutableStateOf(setOf(AllergyType.CMPA, AllergyType.OTHER))
+            }
+            var customNote by remember { mutableStateOf("Pears") }
+
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                AllergiesStepContent(
+                    babyName = "Luna",
+                    selectedAllergies = selectedAllergies,
+                    customNote = customNote,
+                    isSaving = false,
+                    onAllergyToggled = { allergy ->
+                        selectedAllergies = if (allergy in selectedAllergies) {
+                            selectedAllergies - allergy
+                        } else {
+                            selectedAllergies + allergy
+                        }
+                    },
+                    onAllergiesCleared = {
+                        selectedAllergies = emptySet()
+                        customNote = ""
+                    },
+                    onCustomNoteChanged = { customNote = it },
+                    onBack = {},
+                    onFinish = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Selected: Cow's Milk Protein, Other").assertIsDisplayed()
+        composeRule.onNodeWithText("Describe the allergy").assertIsDisplayed()
+
+        composeRule.onNodeWithText("No known allergies").performClick()
+        composeRule.mainClock.advanceTimeBy(500)
+
+        composeRule.onNodeWithText("Ready to save: no known allergies.").assertIsDisplayed()
+        composeRule.onNodeWithText("Describe the allergy").assertDoesNotExist()
     }
 }
