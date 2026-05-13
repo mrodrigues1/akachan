@@ -1,54 +1,119 @@
 package com.babytracker.ui.onboarding.components
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun OnboardingHeroStrip(
     title: String,
-    gradientColors: List<Color>,
-    labelColor: Color,
+    stepLabel: String,
+    progress: Float,
+    accentColor: Color,
+    accentContainerColor: Color,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    require(gradientColors.size >= 2) {
-        "OnboardingHeroStrip requires at least 2 gradient colors, got ${gradientColors.size}"
-    }
-    Box(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .height(88.dp)
-            .background(Brush.linearGradient(gradientColors)),
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.align(Alignment.CenterStart),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = labelColor,
+            Surface(
+                shape = CircleShape,
+                color = accentContainerColor,
+                contentColor = accentColor,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = stepLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            StepBadge(
+                progress = progress,
+                accentColor = accentColor,
+                accentContainerColor = accentContainerColor,
             )
         }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            color = labelColor,
-            modifier = Modifier.align(Alignment.Center),
+
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.extraSmall),
+            color = accentColor,
+            trackColor = MaterialTheme.colorScheme.outlineVariant,
         )
+    }
+}
+
+@Composable
+private fun StepBadge(
+    progress: Float,
+    accentColor: Color,
+    accentContainerColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    val stepNumber = when {
+        progress >= 1f -> "3"
+        progress >= 0.5f -> "2"
+        else -> "1"
+    }
+
+    Surface(
+        modifier = modifier.size(40.dp),
+        shape = CircleShape,
+        color = accentContainerColor,
+        contentColor = accentColor,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = stepNumber,
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
     }
 }

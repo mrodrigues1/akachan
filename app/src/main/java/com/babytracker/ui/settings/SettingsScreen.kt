@@ -647,6 +647,8 @@ private fun AllergiesEditSheet(
             onCustomNoteChanged = { customNote = it },
             onBack = {},
             onFinish = {},
+            showHeader = false,
+            showActions = false,
         )
         Spacer(modifier = Modifier.height(24.dp))
         Row(
