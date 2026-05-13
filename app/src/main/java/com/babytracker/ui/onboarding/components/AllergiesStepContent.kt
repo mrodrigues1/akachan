@@ -102,6 +102,7 @@ fun AllergiesStepContent(
                     progress = 1f,
                     accentColor = MaterialTheme.colorScheme.primary,
                     accentContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    accentContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     onBack = onBack,
                 )
             }
