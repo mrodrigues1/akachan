@@ -101,7 +101,7 @@ fun OnboardingHeroStrip(
                     contentDescription = "$stepDescription progress"
                 },
             color = accentColor,
-            trackColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            trackColor = accentContainerColor,
         )
     }
 }

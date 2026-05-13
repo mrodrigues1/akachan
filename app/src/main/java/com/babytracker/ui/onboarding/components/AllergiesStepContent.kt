@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -46,6 +47,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.AllergyType
 
@@ -98,7 +100,7 @@ fun AllergiesStepContent(
             if (showHeader) {
                 OnboardingHeroStrip(
                     title = "Allergies",
-                    stepLabel = "STEP 3 OF 3",
+                    stepLabel = "Step 3 of 3",
                     progress = 1f,
                     accentColor = MaterialTheme.colorScheme.primary,
                     accentContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -127,7 +129,7 @@ fun AllergiesStepContent(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Choose only what you already know about $babyLabel. If nothing is known yet, keep none selected.",
+                    text = "Choose only what you already know about $babyLabel. You can leave this empty and update it later.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -161,6 +163,7 @@ fun AllergiesStepContent(
                             label = { Text("Describe the allergy") },
                             singleLine = false,
                             maxLines = 3,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                             supportingText = { Text("${customNote.length}/100") },
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -189,15 +192,21 @@ fun AllergiesStepContent(
                     shape = MaterialTheme.shapes.extraLarge,
                 ) {
                     if (isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .size(20.dp)
-                                .semantics {
-                                    contentDescription = "Saving setup"
-                                },
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp,
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .semantics {
+                                        contentDescription = "Saving setup"
+                                    },
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp,
+                            )
+                            Text("Saving")
+                        }
                     } else {
                         Text("Finish setup")
                     }
@@ -257,7 +266,7 @@ private fun NoKnownAllergiesOption(
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
-                    text = "Start here if nothing has been identified.",
+                    text = "Use this if nothing has come up yet.",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (selected) contentColor else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -353,7 +362,7 @@ private fun AllergySelectionSummary(
     modifier: Modifier = Modifier,
 ) {
     val summary = if (selectedAllergies.isEmpty()) {
-        "Ready to save: no known allergies."
+        "Ready to save with no known allergies."
     } else {
         selectedAllergies.joinToString(prefix = "Selected: ") { it.label }
     }
