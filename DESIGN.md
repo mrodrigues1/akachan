@@ -18,7 +18,7 @@ colors:
   warm-cream: "#FFFDE7"
   cream-variant: "#F0EDE0"
   near-black: "#1A1A1A"
-  muted-grey: "#757575"
+  muted-grey: "#6D6A64"
   outline: "#79747E"
   outline-variant: "#CAC4D0"
   error: "#B00020"
@@ -149,7 +149,7 @@ Three hue families with fixed semantic roles, plus a warm cream surface that is 
 - **Warm Cream** (#FFFDE7): The app surface and background. A yellow-tinted white that reads as domestic and familiar. Never replaced with pure white.
 - **Cream Variant** (#F0EDE0): Inactive containers, grouping zones. The slightly cooler companion to Warm Cream for unselected or secondary surfaces.
 - **Near-Black** (#1A1A1A): Primary text on light surfaces. Warm-tinted dark, not pure black.
-- **Muted Grey** (#757575): Secondary text, captions, on-surface-variant in light mode.
+- **Muted Grey** (#6D6A64): Secondary text, captions, on-surface-variant in light mode. Tuned to keep AA contrast on warm cream surfaces.
 - **Outline** (#79747E): Dividers and inactive card borders.
 - **Outline Variant** (#CAC4D0): Softer separators; dark-mode HistoryCard border stroke.
 
@@ -231,7 +231,7 @@ A row-layout list item for session history entries.
 - **Badge:** 44dp × 44dp box with small radius (8dp). Fill is the domain's container color (Carnation Pink Container for feeding, Sleep Blue Container for sleep). Contains an emoji at 20sp.
 - **Row layout:** Badge, 12dp gap, text column (title + subtitle), 8dp gap, trailing duration.
 - **Title:** TitleSmall (14sp SemiBold), near-black (#1A1A1A).
-- **Subtitle:** BodySmall (12sp Normal), muted grey (#757575).
+- **Subtitle:** BodySmall (12sp Normal), muted grey (#6D6A64).
 - **Trailing:** BodyMedium (14sp Normal), Carnation Pink (#C2185B).
 - **Outer padding:** 14dp horizontal, 12dp vertical. 4dp vertical margin between cards.
 
@@ -243,7 +243,7 @@ Allergy tags in the Settings Baby Profile section.
 ### Navigation Bar
 Bottom NavigationBar spanning the full screen width.
 - **Active item:** Carnation Pink indicator pill behind icon; icon and label at full opacity.
-- **Inactive item:** Muted grey (#757575) icon and label at reduced opacity.
+- **Inactive item:** Muted grey (#6D6A64) icon and label at reduced opacity.
 - **Surface:** Warm Cream background; no elevated container, no shadow. The bar sits flush on the same surface as the screen body.
 
 ## 6. Do's and Don'ts

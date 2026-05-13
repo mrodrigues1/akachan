@@ -103,6 +103,7 @@ fun BabyInfoStepContent(
                 progress = 0.66f,
                 accentColor = MaterialTheme.colorScheme.primary,
                 accentContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                accentContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 onBack = onBack,
             )
             Column(

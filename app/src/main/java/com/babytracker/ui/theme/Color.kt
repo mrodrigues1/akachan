@@ -45,7 +45,7 @@ val OnTertiaryContainerDarkGreen = Green900
 
 val SurfaceYellow = Color(0xFFFFFDE7)       // no scale equivalent
 val OnSurfaceDark = Color(0xFF1A1A1A)       // no scale equivalent
-val OnSurfaceVariantGrey = Color(0xFF757575)     // no scale equivalent — light scheme
+val OnSurfaceVariantGrey = Color(0xFF6D6A64)     // no scale equivalent — light scheme, 5.25:1 vs SurfaceYellow
 val OnSurfaceVariantGreyDark = Color(0xFFCAC4D0) // no scale equivalent — dark scheme (matches CSS --color-on-surface-variant dark)
 
 // ─── Dark scheme semantic tokens ──────────────────────────────

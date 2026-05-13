@@ -35,6 +35,7 @@ fun OnboardingHeroStrip(
     progress: Float,
     accentColor: Color,
     accentContainerColor: Color,
+    accentContentColor: Color,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -57,7 +58,7 @@ fun OnboardingHeroStrip(
             Surface(
                 shape = CircleShape,
                 color = accentContainerColor,
-                contentColor = accentColor,
+                contentColor = accentContentColor,
             ) {
                 IconButton(onClick = onBack) {
                     Icon(
@@ -86,8 +87,8 @@ fun OnboardingHeroStrip(
             }
             StepBadge(
                 progress = progress,
-                accentColor = accentColor,
                 accentContainerColor = accentContainerColor,
+                accentContentColor = accentContentColor,
             )
         }
 
@@ -100,7 +101,7 @@ fun OnboardingHeroStrip(
                     contentDescription = "$stepDescription progress"
                 },
             color = accentColor,
-            trackColor = MaterialTheme.colorScheme.outlineVariant,
+            trackColor = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -113,8 +114,8 @@ private fun formatStepDescription(stepLabel: String): String =
 @Composable
 private fun StepBadge(
     progress: Float,
-    accentColor: Color,
     accentContainerColor: Color,
+    accentContentColor: Color,
     modifier: Modifier = Modifier,
 ) {
     val stepNumber = when {
@@ -127,7 +128,7 @@ private fun StepBadge(
         modifier = modifier.size(40.dp),
         shape = CircleShape,
         color = accentContainerColor,
-        contentColor = accentColor,
+        contentColor = accentContentColor,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(

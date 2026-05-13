@@ -178,7 +178,7 @@ Surface grays and yellows have no scale equivalent:
 | `onTertiaryContainer` | `Green900` | `#1B5E20` |
 | `surface` / `background` | `SurfaceYellow` | `#FFFDE7` |
 | `onSurface` | `OnSurfaceDark` | `#1A1A1A` |
-| `onSurfaceVariant` | `OnSurfaceVariantGrey` | `#757575` |
+| `onSurfaceVariant` | `OnSurfaceVariantGrey` | `#6D6A64` |
 | `surfaceVariant` | `SurfaceVariantLight` | `#F0EDE0` |
 | `outline` | `OutlineLight` | `#CAC4D0` |
 | `outlineVariant` | `OutlineVariantLight` | `#CAC4D0` |
