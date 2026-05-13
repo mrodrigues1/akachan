@@ -382,6 +382,7 @@ private fun CompactDashboardContent(
             isShareStale = isShareStale,
             error = error,
             onClearError = onClearError,
+            lastSyncAt = snapshot.lastSyncAt,
             now = now,
         )
 
@@ -447,6 +448,7 @@ private fun WideDashboardContent(
                 isShareStale = isShareStale,
                 error = error,
                 onClearError = onClearError,
+                lastSyncAt = snapshot.lastSyncAt,
                 now = now,
             )
             CareSummaryPanel(
@@ -525,6 +527,7 @@ private fun PartnerStatusPanel(
     isShareStale: Boolean,
     error: String?,
     onClearError: () -> Unit,
+    lastSyncAt: Instant,
     now: Instant,
 ) {
     val hasActiveSession = activeSession != null
@@ -572,6 +575,7 @@ private fun PartnerStatusPanel(
             } else {
                 ActiveSessionSummary(
                     session = activeSession,
+                    lastSyncAt = lastSyncAt,
                     now = now,
                 )
             }
@@ -644,10 +648,15 @@ private fun SharedUpdateMeta(
 @Composable
 private fun ActiveSessionSummary(
     session: SessionSnapshot,
+    lastSyncAt: Instant,
     now: Instant,
 ) {
-    val elapsed = remember(session.startTime, session.pausedDurationMs, now) {
-        activeSessionElapsedDuration(session = session, now = now)
+    val elapsed = remember(session.startTime, session.pausedDurationMs, lastSyncAt, now) {
+        activeSessionElapsedDuration(
+            session = session,
+            lastSyncAt = lastSyncAt,
+            now = now,
+        )
     }
     val sideLabel = remember(session.startingSide, session.switchTime) {
         val started = if (session.startingSide == "LEFT") "Left" else "Right"
@@ -699,7 +708,7 @@ private fun ActiveSessionSummary(
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Estimate from the shared start time",
+            text = "Estimate from the last shared update",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
         )
@@ -1190,11 +1199,25 @@ internal fun babyAgeWeeks(
 
 internal fun activeSessionElapsedDuration(
     session: SessionSnapshot,
+    lastSyncAt: Instant,
     now: Instant,
 ): Duration =
-    Duration.between(Instant.ofEpochMilli(session.startTime), now)
+    Duration.between(
+        Instant.ofEpochMilli(session.startTime),
+        activeSessionReferenceTime(lastSyncAt = lastSyncAt, now = now),
+    )
         .minusMillis(session.pausedDurationMs)
         .coerceAtLeast(Duration.ZERO)
+
+private fun activeSessionReferenceTime(
+    lastSyncAt: Instant,
+    now: Instant,
+): Instant =
+    if (Duration.between(lastSyncAt, now).toMinutes() >= STALE_SYNC_THRESHOLD_MINUTES) {
+        lastSyncAt
+    } else {
+        now
+    }
 
 internal fun babyAgeSubtitleText(ageWeeks: Int): String =
     when (ageWeeks) {
