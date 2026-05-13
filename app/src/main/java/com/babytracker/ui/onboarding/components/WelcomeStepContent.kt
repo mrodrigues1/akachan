@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -81,7 +82,9 @@ fun WelcomeStepContent(
 @Composable
 private fun WelcomeCarePreview(modifier: Modifier = Modifier) {
     Surface(
-        modifier = modifier.height(224.dp),
+        modifier = modifier
+            .height(224.dp)
+            .clearAndSetSemantics {},
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
