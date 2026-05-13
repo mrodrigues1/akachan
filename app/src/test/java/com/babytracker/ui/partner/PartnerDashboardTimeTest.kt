@@ -37,6 +37,37 @@ class PartnerDashboardTimeTest {
             notes = null,
         )
 
-        assertEquals(Duration.ofMinutes(3).plusSeconds(6), activeSessionElapsedDuration(session, now))
+        assertEquals(
+            Duration.ofMinutes(3).plusSeconds(6),
+            activeSessionElapsedDuration(
+                session = session,
+                lastSyncAt = startedAt,
+                now = now,
+            ),
+        )
+    }
+
+    @Test
+    fun `stale active feeding duration stays frozen at last shared update`() {
+        val lastSyncAt = Instant.parse("2026-05-12T20:00:00Z")
+        val now = Instant.parse("2026-05-12T20:31:00Z")
+        val session = SessionSnapshot(
+            id = 1L,
+            startTime = lastSyncAt.minus(Duration.ofHours(1)).toEpochMilli(),
+            endTime = null,
+            startingSide = "LEFT",
+            switchTime = null,
+            pausedDurationMs = 0L,
+            notes = null,
+        )
+
+        assertEquals(
+            Duration.ofHours(1),
+            activeSessionElapsedDuration(
+                session = session,
+                lastSyncAt = lastSyncAt,
+                now = now,
+            ),
+        )
     }
 }
