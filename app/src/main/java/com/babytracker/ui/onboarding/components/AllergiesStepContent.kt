@@ -1,9 +1,11 @@
 package com.babytracker.ui.onboarding.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -11,10 +13,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -23,15 +27,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.AllergyType
 
@@ -47,113 +48,107 @@ fun AllergiesStepContent(
     onBack: () -> Unit,
     onFinish: () -> Unit,
     modifier: Modifier = Modifier,
+    showHeader: Boolean = true,
+    showActions: Boolean = true,
 ) {
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val stripHeight = 88.dp
-        val cardHeight = maxHeight - stripHeight + 16.dp
+    val rootModifier = if (showHeader || showActions) {
+        modifier.fillMaxSize()
+    } else {
+        modifier.fillMaxWidth()
+    }
+    val babyLabel = babyName.trim().takeIf { it.isNotEmpty() } ?: "your baby"
 
-        // Blue hero strip — secondary color distinguishes this step from Baby Info
-        OnboardingHeroStrip(
-            title = "ALLERGIES",
-            gradientColors = listOf(
-                MaterialTheme.colorScheme.secondaryContainer,
-                MaterialTheme.colorScheme.surface,
-            ),
-            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            onBack = onBack,
-            modifier = Modifier.align(Alignment.TopCenter),
-        )
+    Surface(
+        modifier = rootModifier,
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        val columnSizeModifier = if (showHeader || showActions) {
+            Modifier.fillMaxSize()
+        } else {
+            Modifier.fillMaxWidth()
+        }
+        val insetModifier = if (showHeader || showActions) {
+            Modifier
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
+        } else {
+            Modifier
+        }
 
-        Surface(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(cardHeight)
-                .align(Alignment.BottomCenter),
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            shadowElevation = 4.dp,
-            color = MaterialTheme.colorScheme.surface,
+                .then(columnSizeModifier)
+                .then(insetModifier),
         ) {
+            if (showHeader) {
+                OnboardingHeroStrip(
+                    title = "Allergies",
+                    stepLabel = "STEP 3 OF 3",
+                    progress = 1f,
+                    accentColor = MaterialTheme.colorScheme.primary,
+                    accentContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    onBack = onBack,
+                )
+            }
+            val contentSizeModifier = if (showActions) {
+                Modifier.weight(1f)
+            } else {
+                Modifier.fillMaxWidth()
+            }
+
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp)
-                    .padding(top = 16.dp, bottom = 32.dp),
+                    .then(contentSizeModifier)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = if (showHeader || showActions) 24.dp else 0.dp),
             ) {
-                LinearProgressIndicator(
-                    progress = { 1.0f },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    trackColor = MaterialTheme.colorScheme.outlineVariant,
+                Spacer(modifier = Modifier.height(if (showHeader) 12.dp else 0.dp))
+                Text(
+                    text = "Any known allergies?",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState()),
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Select what applies to $babyLabel. You can update this anytime.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(22.dp))
+                AllergyChipGrid(
+                    selectedAllergies = selectedAllergies,
+                    onAllergyToggled = onAllergyToggled,
+                )
+                AnimatedVisibility(
+                    visible = AllergyType.OTHER in selectedAllergies,
+                    enter = fadeIn() + expandVertically(),
+                    exit = shrinkVertically() + fadeOut(),
                 ) {
-                    Text(
-                        text = "Does $babyName have any known allergies?",
-                        style = MaterialTheme.typography.headlineSmall,
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    FlowRow(modifier = Modifier.fillMaxWidth()) {
-                        AllergyType.entries.forEach { allergy ->
-                            val selected = allergy in selectedAllergies
-                            FilterChip(
-                                selected = selected,
-                                onClick = { onAllergyToggled(allergy) },
-                                label = { Text(allergy.label) },
-                                leadingIcon = if (selected) {
-                                    {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                        )
-                                    }
-                                } else null,
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                ),
-                                modifier = Modifier.padding(end = 8.dp, bottom = 8.dp),
-                            )
-                        }
-                    }
-                    AnimatedVisibility(
-                        visible = AllergyType.OTHER in selectedAllergies,
-                        enter = slideInVertically(),
-                        exit = slideOutVertically(),
-                    ) {
-                        Column {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            OutlinedTextField(
-                                value = customNote,
-                                onValueChange = onCustomNoteChanged,
-                                label = { Text("Describe the allergy") },
-                                singleLine = false,
-                                maxLines = 3,
-                                supportingText = { Text("${customNote.length}/100") },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    }
-                    if (selectedAllergies.isEmpty()) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "You can always update this later in Settings.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Column {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = customNote,
+                            onValueChange = onCustomNoteChanged,
+                            label = { Text("Describe the allergy") },
+                            singleLine = false,
+                            maxLines = 3,
+                            supportingText = { Text("${customNote.length}/100") },
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(18.dp))
+                AllergySelectionSummary(selectedAllergies = selectedAllergies)
+            }
+            if (showActions) {
                 Button(
                     onClick = onFinish,
                     enabled = !isSaving,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .padding(bottom = 24.dp),
                     shape = MaterialTheme.shapes.extraLarge,
                 ) {
                     if (isSaving) {
@@ -163,10 +158,73 @@ fun AllergiesStepContent(
                             strokeWidth = 2.dp,
                         )
                     } else {
-                        Text("Get Started")
+                        Text("Finish setup")
                     }
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AllergyChipGrid(
+    selectedAllergies: Set<AllergyType>,
+    onAllergyToggled: (AllergyType) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        AllergyType.entries.forEach { allergy ->
+            val selected = allergy in selectedAllergies
+            FilterChip(
+                selected = selected,
+                onClick = { onAllergyToggled(allergy) },
+                label = { Text(allergy.label) },
+                leadingIcon = if (selected) {
+                    {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                        )
+                    }
+                } else {
+                    null
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun AllergySelectionSummary(
+    selectedAllergies: Set<AllergyType>,
+    modifier: Modifier = Modifier,
+) {
+    val summary = if (selectedAllergies.isEmpty()) {
+        "No known allergies selected."
+    } else {
+        "${selectedAllergies.size} selected."
+    }
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        Text(
+            text = summary,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(16.dp),
+        )
     }
 }
