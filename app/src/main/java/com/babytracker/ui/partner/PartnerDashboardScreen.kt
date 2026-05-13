@@ -113,6 +113,7 @@ fun PartnerDashboardScreen(
 
     val snapshot = uiState.snapshot
     val babyName = snapshot?.baby?.name?.takeIf { it.isNotBlank() }
+    val isRefreshingExistingDashboard = uiState.isLoading && snapshot != null
 
     Scaffold(
         modifier = modifier,
@@ -138,7 +139,7 @@ fun PartnerDashboardScreen(
                     }
                 },
                 actions = {
-                    if (uiState.isLoading) {
+                    if (isRefreshingExistingDashboard) {
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
@@ -155,7 +156,10 @@ fun PartnerDashboardScreen(
                             )
                         }
                     } else {
-                        IconButton(onClick = viewModel::refresh) {
+                        IconButton(
+                            onClick = viewModel::refresh,
+                            enabled = !uiState.isLoading,
+                        ) {
                             Icon(Icons.Default.Refresh, contentDescription = "Check for shared updates")
                         }
                     }
@@ -170,7 +174,7 @@ fun PartnerDashboardScreen(
         },
     ) { padding ->
         PullToRefreshBox(
-            isRefreshing = uiState.isLoading,
+            isRefreshing = false,
             onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
@@ -1005,29 +1009,13 @@ private fun RefreshSharedUpdatesButton(
                 }
             },
     ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .size(18.dp)
-                    .clearAndSetSemantics {},
-                strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.onPrimary,
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = "Checking",
-                maxLines = 2,
-                textAlign = TextAlign.Center,
-            )
-        } else {
-            Icon(Icons.Default.Refresh, contentDescription = null)
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = "Check shared updates",
-                maxLines = 2,
-                textAlign = TextAlign.Center,
-            )
-        }
+        Icon(Icons.Default.Refresh, contentDescription = null)
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = "Check shared updates",
+            maxLines = 2,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
