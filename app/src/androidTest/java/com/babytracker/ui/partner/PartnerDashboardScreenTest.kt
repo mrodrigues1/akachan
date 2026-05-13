@@ -36,6 +36,7 @@ import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
 import com.babytracker.ui.theme.BabyTrackerTheme
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertTrue
@@ -294,6 +295,39 @@ class PartnerDashboardScreenTest {
     }
 
     @Test
+    fun refreshingExistingDashboardShowsOneProgressSignal() {
+        val releaseRefresh = CompletableDeferred<Unit>()
+        val sharingRepository = FakeSharingRepository(
+            snapshot = makeSnapshot(),
+            beforeFetchReturns = { fetchCount ->
+                if (fetchCount == 2) {
+                    releaseRefresh.await()
+                }
+            },
+        )
+        val viewModel = PartnerDashboardViewModel(buildFetchUseCase(makeSnapshot(), sharingRepository))
+
+        composeRule.setContent {
+            PartnerDashboardScreen(
+                nowProvider = fixedNowProvider,
+                viewModel = viewModel,
+            )
+        }
+        composeRule.waitUntil { viewModel.uiState.value.snapshot != null }
+
+        composeRule.runOnUiThread { viewModel.refresh() }
+        composeRule.waitUntil { viewModel.uiState.value.isLoading }
+
+        composeRule.onAllNodes(
+            SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo),
+            useUnmergedTree = true,
+        ).assertCountEquals(1)
+        composeRule.onNodeWithText("Checking").assertDoesNotExist()
+
+        releaseRefresh.complete(Unit)
+    }
+
+    @Test
     fun staleWarningAppearsWhenVisibleDashboardCrossesThreshold() {
         val initialNow = Instant.parse("2026-05-12T06:00:00Z")
         var currentTimeMs = initialNow.toEpochMilli()
@@ -410,6 +444,7 @@ class PartnerDashboardScreenTest {
 
     private class FakeSharingRepository(
         private val snapshot: ShareSnapshot?,
+        private val beforeFetchReturns: suspend (Int) -> Unit = {},
     ) : SharingRepository {
         var fetchCount = 0
             private set
@@ -432,6 +467,7 @@ class PartnerDashboardScreenTest {
 
         override suspend fun fetchSnapshot(code: ShareCode): ShareSnapshot {
             fetchCount += 1
+            beforeFetchReturns(fetchCount)
             return snapshot ?: throw RuntimeException("offline")
         }
 
