@@ -5,7 +5,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -41,6 +46,63 @@ class OnboardingComponentsTest {
             .assertIsDisplayed()
         composeRule.onNodeWithText("Set up baby profile").assertIsDisplayed()
         composeRule.onNodeWithText("Welcome to Baby Tracker").assertDoesNotExist()
+    }
+
+    @Test
+    fun onboardingTextExposesHeadingsForTalkBackNavigation() {
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                AllergiesStepContent(
+                    babyName = "Luna",
+                    selectedAllergies = emptySet(),
+                    customNote = "",
+                    isSaving = false,
+                    onAllergyToggled = {},
+                    onAllergiesCleared = {},
+                    onCustomNoteChanged = {},
+                    onBack = {},
+                    onFinish = {},
+                )
+            }
+        }
+
+        composeRule.onNode(
+            hasText("Allergies")
+                .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)),
+        ).assertIsDisplayed()
+        composeRule.onNode(
+            hasText("Any known allergies?")
+                .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)),
+        ).assertIsDisplayed()
+        composeRule.onNode(
+            hasText("Known allergies")
+                .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)),
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun onboardingStepHeaderAnnouncesStepChangesPolitely() {
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                BabyInfoStepContent(
+                    name = "Luna",
+                    nameError = null,
+                    selectedDate = LocalDate.now(),
+                    birthDateError = null,
+                    showAgeWarning = false,
+                    isNextEnabled = true,
+                    onNameChanged = {},
+                    onDateSelected = {},
+                    onBack = {},
+                    onNext = {},
+                )
+            }
+        }
+
+        composeRule.onNode(
+            hasContentDescription("Step 2 of 3, Baby profile")
+                .and(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite)),
+        ).assertIsDisplayed()
     }
 
     @Test
@@ -92,6 +154,61 @@ class OnboardingComponentsTest {
 
         composeRule.onNodeWithText("Enter a name to continue.").assertIsDisplayed()
         composeRule.onNodeWithText("Birth date cannot be in the future.").assertIsDisplayed()
+    }
+
+    @Test
+    fun noKnownAllergiesOptionExposesSelectedState() {
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                AllergiesStepContent(
+                    babyName = "Luna",
+                    selectedAllergies = emptySet(),
+                    customNote = "",
+                    isSaving = false,
+                    onAllergyToggled = {},
+                    onAllergiesCleared = {},
+                    onCustomNoteChanged = {},
+                    onBack = {},
+                    onFinish = {},
+                )
+            }
+        }
+
+        composeRule.onNode(
+            hasText("No known allergies")
+                .and(SemanticsMatcher.expectValue(SemanticsProperties.Selected, true))
+                .and(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Selected")),
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun finishButtonExposesSavingStateForAccessibility() {
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                AllergiesStepContent(
+                    babyName = "Luna",
+                    selectedAllergies = emptySet(),
+                    customNote = "",
+                    isSaving = true,
+                    onAllergyToggled = {},
+                    onAllergiesCleared = {},
+                    onCustomNoteChanged = {},
+                    onBack = {},
+                    onFinish = {},
+                )
+            }
+        }
+
+        composeRule.onNode(
+            hasContentDescription("Saving setup")
+                .and(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Saving"))
+                .and(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite)),
+        ).assertIsDisplayed()
+        composeRule.onNode(
+            hasContentDescription("Saving setup")
+                .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo)),
+            useUnmergedTree = true,
+        ).assertIsDisplayed()
     }
 
     @Test

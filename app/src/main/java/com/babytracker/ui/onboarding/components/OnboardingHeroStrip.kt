@@ -21,6 +21,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -33,10 +38,16 @@ fun OnboardingHeroStrip(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val stepDescription = formatStepDescription(stepLabel)
+
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .semantics {
+                contentDescription = "$stepDescription, $title"
+                liveRegion = LiveRegionMode.Polite
+            },
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Row(
@@ -70,6 +81,7 @@ fun OnboardingHeroStrip(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() },
                 )
             }
             StepBadge(
@@ -83,12 +95,20 @@ fun OnboardingHeroStrip(
             progress = { progress },
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(MaterialTheme.shapes.extraSmall),
+                .clip(MaterialTheme.shapes.extraSmall)
+                .semantics {
+                    contentDescription = "$stepDescription progress"
+                },
             color = accentColor,
             trackColor = MaterialTheme.colorScheme.outlineVariant,
         )
     }
 }
+
+private fun formatStepDescription(stepLabel: String): String =
+    stepLabel.lowercase().replaceFirstChar { first ->
+        if (first.isLowerCase()) first.titlecase() else first.toString()
+    }
 
 @Composable
 private fun StepBadge(

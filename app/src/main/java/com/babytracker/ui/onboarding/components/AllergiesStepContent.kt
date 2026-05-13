@@ -6,7 +6,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -39,7 +39,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.AllergyType
 
@@ -116,6 +122,7 @@ fun AllergiesStepContent(
                     text = "Any known allergies?",
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() },
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -133,6 +140,7 @@ fun AllergiesStepContent(
                     text = "Known allergies",
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() },
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 AllergyChipGrid(
@@ -161,18 +169,31 @@ fun AllergiesStepContent(
                 AllergySelectionSummary(selectedAllergies = selectedAllergies)
             }
             if (showActions) {
+                val finishButtonModifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 24.dp)
+                    .semantics {
+                        if (isSaving) {
+                            contentDescription = "Saving setup"
+                            stateDescription = "Saving"
+                            liveRegion = LiveRegionMode.Polite
+                        }
+                    }
+
                 Button(
                     onClick = onFinish,
                     enabled = !isSaving,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .padding(bottom = 24.dp),
+                    modifier = finishButtonModifier,
                     shape = MaterialTheme.shapes.extraLarge,
                 ) {
                     if (isSaving) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier
+                                .size(20.dp)
+                                .semantics {
+                                    contentDescription = "Saving setup"
+                                },
                             color = MaterialTheme.colorScheme.onPrimary,
                             strokeWidth = 2.dp,
                         )
@@ -210,10 +231,14 @@ private fun NoKnownAllergiesOption(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(
-                role = Role.Button,
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
                 onClick = onClick,
-            ),
+            )
+            .semantics(mergeDescendants = true) {
+                stateDescription = if (selected) "Selected" else "Not selected"
+            },
         shape = MaterialTheme.shapes.medium,
         color = containerColor,
         contentColor = contentColor,
@@ -298,6 +323,9 @@ private fun AllergyChipGrid(
                 selected = selected,
                 onClick = { onAllergyToggled(allergy) },
                 label = { Text(allergy.label) },
+                modifier = Modifier.semantics {
+                    stateDescription = if (selected) "Selected" else "Not selected"
+                },
                 leadingIcon = if (selected) {
                     {
                         Icon(
