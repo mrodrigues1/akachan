@@ -36,6 +36,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
@@ -49,7 +54,9 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun BabyInfoStepContent(
     name: String,
+    nameError: String?,
     selectedDate: LocalDate,
+    birthDateError: String?,
     showAgeWarning: Boolean,
     isNextEnabled: Boolean,
     onNameChanged: (String) -> Unit,
@@ -60,6 +67,7 @@ fun BabyInfoStepContent(
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     val formatter = remember { DateTimeFormatter.ofPattern("MMMM d, yyyy") }
+    val nameLength = remember(name) { name.codePointCount(0, name.length) }
     val ageText = remember(selectedDate) { selectedDate.toAgeLabel() }
     val todayMillis = remember {
         LocalDate.now().atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
@@ -125,18 +133,19 @@ fun BabyInfoStepContent(
                         imeAction = ImeAction.Next,
                     ),
                     keyboardActions = KeyboardActions(
-                        onNext = { if (name.isNotBlank()) onNext() },
+                        onNext = { onNext() },
                     ),
-                    supportingText = if (name.length > 40) {
-                        { Text("${name.length}/50") }
-                    } else {
-                        null
-                    },
+                    isError = nameError != null,
+                    supportingText = nameSupportingText(
+                        error = nameError,
+                        length = nameLength,
+                    ),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 DateOfBirthField(
                     value = selectedDate.format(formatter),
+                    error = birthDateError,
                     onClick = { showDatePicker = true },
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -191,15 +200,34 @@ fun BabyInfoStepContent(
 @Composable
 private fun DateOfBirthField(
     value: String,
+    error: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier.fillMaxWidth()) {
+    val accessibilityLabel = if (error == null) {
+        "Date of birth, $value"
+    } else {
+        "Date of birth, $value. $error"
+    }
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                contentDescription = accessibilityLabel
+                onClick(label = "Change date of birth") {
+                    onClick()
+                    true
+                }
+            },
+    ) {
         OutlinedTextField(
             value = value,
             onValueChange = {},
             readOnly = true,
             label = { Text("Date of birth") },
+            isError = error != null,
+            supportingText = error?.let { { Text(it) } },
             trailingIcon = {
                 Icon(
                     imageVector = Icons.Default.DateRange,
@@ -211,7 +239,11 @@ private fun DateOfBirthField(
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .clickable(onClick = onClick),
+                .clickable(
+                    onClickLabel = "Change date of birth",
+                    role = Role.Button,
+                    onClick = onClick,
+                ),
         )
     }
 }
@@ -262,10 +294,29 @@ private fun LocalDate.toAgeLabel(): String {
     }
 
     val period = Period.between(this, today)
-    return buildString {
-        if (period.months > 0) {
-            append("${period.months} month${if (period.months != 1) "s" else ""}, ")
-        }
-        append("${period.days} day${if (period.days != 1) "s" else ""} old")
+    val parts = buildList {
+        if (period.years > 0) add(period.years.toAgePart("year"))
+        if (period.months > 0) add(period.months.toAgePart("month"))
+        if (period.years == 0) add(period.days.toAgePart("day"))
     }
+    return "${parts.joinToString(", ")} old"
 }
+
+private fun nameSupportingText(
+    error: String?,
+    length: Int,
+): (@Composable () -> Unit)? = when {
+    error != null -> {
+        { Text(error) }
+    }
+    length > COUNT_WARNING_THRESHOLD -> {
+        { Text("$length/$MAX_BABY_NAME_LENGTH") }
+    }
+    else -> null
+}
+
+private fun Int.toAgePart(unit: String): String =
+    "$this $unit${if (this != 1) "s" else ""}"
+
+private const val MAX_BABY_NAME_LENGTH = 50
+private const val COUNT_WARNING_THRESHOLD = 40

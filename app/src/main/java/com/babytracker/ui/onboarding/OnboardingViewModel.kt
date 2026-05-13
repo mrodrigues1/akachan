@@ -19,10 +19,14 @@ import javax.inject.Inject
 
 enum class OnboardingStep { WELCOME, BABY_INFO, ALLERGIES }
 
+private const val BABY_NAME_REQUIRED_ERROR = "Enter a name to continue."
+
 data class OnboardingUiState(
     val currentStep: OnboardingStep = OnboardingStep.WELCOME,
     val babyName: String = "",
+    val babyNameError: String? = null,
     val birthDate: LocalDate = LocalDate.now(),
+    val birthDateError: String? = null,
     val selectedAllergies: Set<AllergyType> = emptySet(),
     val customAllergyNote: String = "",
     val showAgeWarning: Boolean = false,
@@ -42,28 +46,57 @@ class OnboardingViewModel @Inject constructor(
     val isNextEnabled: Boolean
         get() = when (_uiState.value.currentStep) {
             OnboardingStep.WELCOME -> true
-            OnboardingStep.BABY_INFO -> _uiState.value.babyName.isNotBlank()
+            OnboardingStep.BABY_INFO -> _uiState.value.isBabyInfoValid()
             OnboardingStep.ALLERGIES -> true
         }
 
     fun onNameChanged(name: String) {
-        if (name.length <= 50) {
-            _uiState.update { it.copy(babyName = name) }
+        val sanitizedName = name
+            .replace(LINE_BREAK_REGEX, " ")
+            .takeCodePoints(MAX_BABY_NAME_LENGTH)
+        _uiState.update {
+            it.copy(
+                babyName = sanitizedName,
+                babyNameError = if (sanitizedName.isNotBlank()) null else it.babyNameError,
+            )
         }
     }
 
     fun onBirthDateSelected(date: LocalDate) {
-        val monthsAgo = Period.between(date, LocalDate.now()).toTotalMonths()
+        val today = LocalDate.now()
+        if (date.isAfter(today)) {
+            _uiState.update { it.copy(birthDateError = FUTURE_BIRTH_DATE_ERROR) }
+            return
+        }
+
+        val monthsAgo = Period.between(date, today).toTotalMonths()
         _uiState.update {
-            it.copy(birthDate = date, showAgeWarning = monthsAgo > 12)
+            it.copy(
+                birthDate = date,
+                birthDateError = null,
+                showAgeWarning = monthsAgo > 12,
+            )
         }
     }
 
     fun onAllergyToggled(allergy: AllergyType) {
         _uiState.update { state ->
             val updated = state.selectedAllergies.toMutableSet()
+            val removingOther = allergy == AllergyType.OTHER && allergy in updated
             if (allergy in updated) updated.remove(allergy) else updated.add(allergy)
-            state.copy(selectedAllergies = updated)
+            state.copy(
+                selectedAllergies = updated,
+                customAllergyNote = if (removingOther) "" else state.customAllergyNote,
+            )
+        }
+    }
+
+    fun onAllergiesCleared() {
+        _uiState.update {
+            it.copy(
+                selectedAllergies = emptySet(),
+                customAllergyNote = "",
+            )
         }
     }
 
@@ -77,7 +110,7 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { state ->
             when (state.currentStep) {
                 OnboardingStep.WELCOME -> state.copy(currentStep = OnboardingStep.BABY_INFO)
-                OnboardingStep.BABY_INFO -> state.copy(currentStep = OnboardingStep.ALLERGIES)
+                OnboardingStep.BABY_INFO -> state.nextFromBabyInfo()
                 OnboardingStep.ALLERGIES -> state
             }
         }
@@ -119,5 +152,29 @@ class OnboardingViewModel @Inject constructor(
 
     private companion object {
         const val TAG = "OnboardingViewModel"
+        const val MAX_BABY_NAME_LENGTH = 50
+        const val FUTURE_BIRTH_DATE_ERROR = "Birth date cannot be in the future."
+        val LINE_BREAK_REGEX = Regex("[\\r\\n]+")
     }
+}
+
+private fun OnboardingUiState.isBabyInfoValid(): Boolean =
+    babyName.isNotBlank() && birthDateError == null
+
+private fun OnboardingUiState.nextFromBabyInfo(): OnboardingUiState =
+    if (isBabyInfoValid()) {
+        copy(
+            currentStep = OnboardingStep.ALLERGIES,
+            babyNameError = null,
+            birthDateError = null,
+        )
+    } else {
+        copy(
+            babyNameError = if (babyName.isBlank()) BABY_NAME_REQUIRED_ERROR else babyNameError,
+        )
+    }
+
+private fun String.takeCodePoints(maxCodePoints: Int): String {
+    if (codePointCount(0, length) <= maxCodePoints) return this
+    return substring(0, offsetByCodePoints(0, maxCodePoints))
 }
