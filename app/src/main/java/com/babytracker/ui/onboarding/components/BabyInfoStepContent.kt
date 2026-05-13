@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
@@ -234,7 +235,7 @@ private fun DateOfBirthField(
             trailingIcon = {
                 Icon(
                     imageVector = Icons.Default.DateRange,
-                    contentDescription = "Select date",
+                    contentDescription = null,
                 )
             },
             modifier = Modifier.fillMaxWidth(),
@@ -246,7 +247,8 @@ private fun DateOfBirthField(
                     onClickLabel = "Change date of birth",
                     role = Role.Button,
                     onClick = onClick,
-                ),
+                )
+                .clearAndSetSemantics {},
         )
     }
 }
