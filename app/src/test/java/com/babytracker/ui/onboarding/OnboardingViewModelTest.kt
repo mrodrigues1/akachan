@@ -107,6 +107,13 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun `onNameChanged limits names by code point so emoji are not split`() {
+        val babyEmoji = "\uD83D\uDC76"
+        viewModel.onNameChanged(babyEmoji.repeat(51))
+        assertEquals(babyEmoji.repeat(50), viewModel.uiState.value.babyName)
+    }
+
+    @Test
     fun `onNameChanged replaces pasted line breaks with spaces`() {
         viewModel.onNameChanged("Luna\nRose")
         assertEquals("Luna Rose", viewModel.uiState.value.babyName)
@@ -138,16 +145,16 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `isNextEnabled on baby info with blank name is false`() {
+    fun `isNextEnabled on baby info with blank name is true`() {
         viewModel.onNextStep() // move to BABY_INFO
-        assertFalse(viewModel.isNextEnabled)
+        assertTrue(viewModel.isNextEnabled)
     }
 
     @Test
-    fun `isNextEnabled on baby info with whitespace only name is false`() {
+    fun `isNextEnabled on baby info with whitespace only name is true`() {
         viewModel.onNextStep() // move to BABY_INFO
         viewModel.onNameChanged("   ")
-        assertFalse(viewModel.isNextEnabled)
+        assertTrue(viewModel.isNextEnabled)
     }
 
     @Test
@@ -208,6 +215,19 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun `onCustomAllergyNoteChanged limits note by code point`() {
+        val pearEmoji = "\uD83C\uDF50"
+        viewModel.onCustomAllergyNoteChanged(pearEmoji.repeat(101))
+        assertEquals(pearEmoji.repeat(100), viewModel.uiState.value.customAllergyNote)
+    }
+
+    @Test
+    fun `onCustomAllergyNoteChanged limits pasted note to three lines`() {
+        viewModel.onCustomAllergyNoteChanged("one\ntwo\nthree\nfour")
+        assertEquals("one\ntwo\nthree", viewModel.uiState.value.customAllergyNote)
+    }
+
+    @Test
     fun `onAllergiesCleared clears selected allergies and custom note`() {
         viewModel.onAllergyToggled(AllergyType.CMPA)
         viewModel.onAllergyToggled(AllergyType.OTHER)
@@ -232,6 +252,16 @@ class OnboardingViewModelTest {
         assertEquals("Luna", babySlot.captured.name)
         assertTrue(viewModel.uiState.value.navigationComplete)
         assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun `onFinish with blank name returns to baby info and does not save`() = runTest {
+        viewModel.onFinish()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { saveBabyProfile(any()) }
+        assertEquals(OnboardingStep.BABY_INFO, viewModel.uiState.value.currentStep)
+        assertEquals("Enter a name to continue.", viewModel.uiState.value.babyNameError)
     }
 
     @Test

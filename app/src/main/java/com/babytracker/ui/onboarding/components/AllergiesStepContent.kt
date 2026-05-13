@@ -21,9 +21,9 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -50,6 +50,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.AllergyType
+import com.babytracker.ui.onboarding.MAX_CUSTOM_ALLERGY_NOTE_LENGTH
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -73,6 +74,7 @@ fun AllergiesStepContent(
         modifier.fillMaxWidth()
     }
     val babyLabel = babyName.trim().takeIf { it.isNotEmpty() } ?: "your baby"
+    val customNoteLength = customNote.codePointCount(0, customNote.length)
 
     Surface(
         modifier = rootModifier,
@@ -164,7 +166,9 @@ fun AllergiesStepContent(
                             singleLine = false,
                             maxLines = 3,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                            supportingText = { Text("${customNote.length}/100") },
+                            supportingText = {
+                                Text("$customNoteLength/$MAX_CUSTOM_ALLERGY_NOTE_LENGTH")
+                            },
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }

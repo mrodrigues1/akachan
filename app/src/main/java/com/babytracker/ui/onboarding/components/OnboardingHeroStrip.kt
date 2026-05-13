@@ -1,5 +1,6 @@
 package com.babytracker.ui.onboarding.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.babytracker.ui.theme.LocalDarkTheme
 
 @Composable
 fun OnboardingHeroStrip(
@@ -40,6 +42,11 @@ fun OnboardingHeroStrip(
     modifier: Modifier = Modifier,
 ) {
     val stepDescription = formatStepDescription(stepLabel)
+    val containerBorder = if (LocalDarkTheme.current) {
+        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    } else {
+        null
+    }
 
     Column(
         modifier = modifier
@@ -59,6 +66,7 @@ fun OnboardingHeroStrip(
                 shape = CircleShape,
                 color = accentContainerColor,
                 contentColor = accentContentColor,
+                border = containerBorder,
             ) {
                 IconButton(onClick = onBack) {
                     Icon(
@@ -89,6 +97,7 @@ fun OnboardingHeroStrip(
                 progress = progress,
                 accentContainerColor = accentContainerColor,
                 accentContentColor = accentContentColor,
+                border = containerBorder,
             )
         }
 
@@ -116,6 +125,7 @@ private fun StepBadge(
     progress: Float,
     accentContainerColor: Color,
     accentContentColor: Color,
+    border: BorderStroke?,
     modifier: Modifier = Modifier,
 ) {
     val stepNumber = when {
@@ -129,6 +139,7 @@ private fun StepBadge(
         shape = CircleShape,
         color = accentContainerColor,
         contentColor = accentContentColor,
+        border = border,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(

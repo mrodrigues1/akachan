@@ -1,5 +1,6 @@
 package com.babytracker.ui.onboarding.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,8 +13,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +28,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.babytracker.ui.theme.LocalDarkTheme
 
 @Composable
 fun WelcomeStepContent(
@@ -81,6 +83,12 @@ fun WelcomeStepContent(
 
 @Composable
 private fun WelcomeCarePreview(modifier: Modifier = Modifier) {
+    val darkModeBorder = if (LocalDarkTheme.current) {
+        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    } else {
+        null
+    }
+
     Surface(
         modifier = modifier
             .height(224.dp)
@@ -100,6 +108,7 @@ private fun WelcomeCarePreview(modifier: Modifier = Modifier) {
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                border = darkModeBorder,
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
@@ -113,18 +122,21 @@ private fun WelcomeCarePreview(modifier: Modifier = Modifier) {
                 modifier = Modifier.align(Alignment.TopStart),
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                border = darkModeBorder,
             )
             PreviewPill(
                 label = "Sleep",
                 modifier = Modifier.align(Alignment.BottomEnd),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                border = darkModeBorder,
             )
             PreviewPill(
                 label = "Allergies",
                 modifier = Modifier.align(Alignment.BottomStart),
                 containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             )
         }
     }
@@ -136,6 +148,7 @@ private fun PreviewPill(
     containerColor: Color,
     contentColor: Color,
     modifier: Modifier = Modifier,
+    border: BorderStroke? = null,
 ) {
     Surface(
         modifier = modifier,
@@ -143,6 +156,7 @@ private fun PreviewPill(
         color = containerColor,
         contentColor = contentColor,
         tonalElevation = 0.dp,
+        border = border,
     ) {
         Text(
             text = label,

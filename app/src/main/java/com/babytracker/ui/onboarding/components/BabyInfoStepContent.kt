@@ -30,12 +30,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -47,6 +50,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import com.babytracker.ui.onboarding.MAX_BABY_NAME_LENGTH
 import java.time.Instant
 import java.time.LocalDate
 import java.time.Period
@@ -70,6 +74,7 @@ fun BabyInfoStepContent(
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
+    val nameFocusRequester = remember { FocusRequester() }
     val formatter = remember { DateTimeFormatter.ofPattern("MMMM d, yyyy") }
     val nameLength = remember(name) { name.codePointCount(0, name.length) }
     val ageText = remember(selectedDate) { selectedDate.toAgeLabel() }
@@ -87,6 +92,12 @@ fun BabyInfoStepContent(
                     utcTimeMillis <= todayMillis
             },
         )
+    }
+
+    LaunchedEffect(nameError) {
+        if (nameError != null) {
+            nameFocusRequester.requestFocus()
+        }
     }
 
     Surface(
@@ -139,14 +150,19 @@ fun BabyInfoStepContent(
                         imeAction = ImeAction.Done,
                     ),
                     keyboardActions = KeyboardActions(
-                        onDone = { focusManager.clearFocus() },
+                        onDone = {
+                            focusManager.clearFocus()
+                            onNext()
+                        },
                     ),
                     isError = nameError != null,
                     supportingText = nameSupportingText(
                         error = nameError,
                         length = nameLength,
                     ),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(nameFocusRequester),
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 DateOfBirthField(
@@ -325,5 +341,4 @@ private fun nameSupportingText(
 private fun Int.toAgePart(unit: String): String =
     "$this $unit${if (this != 1) "s" else ""}"
 
-private const val MAX_BABY_NAME_LENGTH = 50
 private const val COUNT_WARNING_THRESHOLD = 40
