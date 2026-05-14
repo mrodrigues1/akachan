@@ -3,9 +3,9 @@
     <color name="notification_on_surface">#E6E1E5</color>
     <color name="notification_on_surface_variant">#BDB8C0</color>
     <color name="notification_feeding_accent">#F48FB1</color>
-    <color name="notification_feeding_track">#4A2838</color>
+    <color name="notification_feeding_track">#880E4F</color>
     <color name="notification_warning_accent">#FFCC80</color>
-    <color name="notification_warning_track">#4A2E14</color>
+    <color name="notification_warning_track">#7A4800</color>
     <color name="notification_sleep_accent">#90CAF9</color>
-    <color name="notification_sleep_track">#0D2440</color>
+    <color name="notification_sleep_track">#0D47A1</color>
 </resources>

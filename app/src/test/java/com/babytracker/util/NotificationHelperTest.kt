@@ -87,11 +87,11 @@ class NotificationHelperTest {
     }
 
     @Test
-    fun `active notification refresh interval is five seconds`() {
+    fun `active notification refresh interval is thirty seconds`() {
         val field = NotificationHelper::class.java.getDeclaredField("ACTIVE_REFRESH_INTERVAL_MS")
         field.isAccessible = true
 
-        assertEquals(5_000L, field.getLong(NotificationHelper))
+        assertEquals(30_000L, field.getLong(NotificationHelper))
     }
 
     @Test
@@ -516,5 +516,160 @@ class NotificationHelperTest {
             "notification_collapsed_sleep body must be 12sp (labelSmall token) — 11.5sp is non-standard and not in the type scale"
         )
         assertFalse(block.contains("11.5sp"), "non-standard 11.5sp must not appear in collapsed sleep layout")
+    }
+
+    // --- lock screen privacy tests ---
+
+    @Test
+    fun `applyDesignSystem defaults to VISIBILITY_PRIVATE`() {
+        val source = notificationHelperSource()
+        assertTrue(
+            source.contains("VISIBILITY_PRIVATE"),
+            "applyDesignSystem must default to VISIBILITY_PRIVATE — session timing data must not appear verbatim on lock screen"
+        )
+        assertTrue(
+            source.contains("setVisibility"),
+            "applyDesignSystem must call setVisibility"
+        )
+    }
+
+    @Test
+    fun `no notification builder overrides visibility to PUBLIC`() {
+        val source = notificationHelperSource()
+        assertFalse(
+            source.contains("VISIBILITY_PUBLIC"),
+            "no show*() builder must set VISIBILITY_PUBLIC — feeding and sleep session data is sensitive"
+        )
+    }
+
+    // --- refresh alarm quality tests ---
+
+    @Test
+    fun `scheduleBreastfeedingActiveRefresh guards exact alarm with canScheduleExactAlarms`() {
+        val source = notificationHelperSource()
+        val body = Regex("fun scheduleBreastfeedingActiveRefresh[\\s\\S]*?private fun sleepActionPi")
+            .find(source)?.value ?: error("scheduleBreastfeedingActiveRefresh body not found")
+
+        assertTrue(
+            body.contains("canScheduleExactAlarms()"),
+            "refresh alarm must check canScheduleExactAlarms() — on API 31+ exact alarms require explicit permission"
+        )
+        assertTrue(
+            body.contains("setExactAndAllowWhileIdle"),
+            "refresh alarm must use setExactAndAllowWhileIdle when exact alarms are permitted"
+        )
+        assertTrue(
+            body.contains("setAndAllowWhileIdle"),
+            "refresh alarm must fall back to setAndAllowWhileIdle when exact alarms are not available"
+        )
+    }
+
+    // --- notification group key tests ---
+
+    @Test
+    fun `BREASTFEEDING_GROUP_KEY is fully qualified`() {
+        assertEquals(
+            "com.babytracker.notifications.breastfeeding",
+            NotificationHelper.BREASTFEEDING_GROUP_KEY
+        )
+    }
+
+    @Test
+    fun `SLEEP_GROUP_KEY is fully qualified`() {
+        assertEquals(
+            "com.babytracker.notifications.sleep",
+            NotificationHelper.SLEEP_GROUP_KEY
+        )
+    }
+
+    @Test
+    fun `breastfeeding group key and sleep group key are distinct`() {
+        assertFalse(
+            NotificationHelper.BREASTFEEDING_GROUP_KEY == NotificationHelper.SLEEP_GROUP_KEY,
+            "group keys must differ so breastfeeding and sleep notifications do not merge into the same group"
+        )
+    }
+
+    @Test
+    fun `showSwitchSide calls setGroup with BREASTFEEDING_GROUP_KEY`() {
+        val source = notificationHelperSource()
+        val body = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
+            .find(source)?.value ?: error("showSwitchSide body not found")
+
+        assertTrue(
+            body.contains("setGroup(BREASTFEEDING_GROUP_KEY)"),
+            "showSwitchSide must call setGroup(BREASTFEEDING_GROUP_KEY) so the OS groups it with other breastfeeding notifications"
+        )
+    }
+
+    @Test
+    fun `showFeedingLimit calls setGroup with BREASTFEEDING_GROUP_KEY`() {
+        val source = notificationHelperSource()
+        val body = Regex("fun showFeedingLimit[\\s\\S]*?fun showBreastfeedingActive")
+            .find(source)?.value ?: error("showFeedingLimit body not found")
+
+        assertTrue(
+            body.contains("setGroup(BREASTFEEDING_GROUP_KEY)"),
+            "showFeedingLimit must call setGroup(BREASTFEEDING_GROUP_KEY)"
+        )
+    }
+
+    @Test
+    fun `showBreastfeedingActive calls setGroup with BREASTFEEDING_GROUP_KEY`() {
+        val source = notificationHelperSource()
+        val body = Regex("fun showBreastfeedingActive[\\s\\S]*?private fun NotificationCompat")
+            .find(source)?.value ?: error("showBreastfeedingActive body not found")
+
+        assertTrue(
+            body.contains("setGroup(BREASTFEEDING_GROUP_KEY)"),
+            "showBreastfeedingActive must call setGroup(BREASTFEEDING_GROUP_KEY)"
+        )
+    }
+
+    @Test
+    fun `showSleepActive calls setGroup with SLEEP_GROUP_KEY`() {
+        val source = notificationHelperSource()
+        val body = Regex("fun showSleepActive[\\s\\S]*?fun cancelNotification")
+            .find(source)?.value ?: error("showSleepActive body not found")
+
+        assertTrue(
+            body.contains("setGroup(SLEEP_GROUP_KEY)"),
+            "showSleepActive must call setGroup(SLEEP_GROUP_KEY)"
+        )
+    }
+
+    // --- dark track color regression tests ---
+
+    private fun nightColorsSource(): String =
+        listOf(
+            java.io.File("src/main/res/values-night/colors.xml"),
+            java.io.File("app/src/main/res/values-night/colors.xml")
+        ).first { it.exists() }.readText()
+
+    @Test
+    fun `dark feeding track maps to Pink900 design-system container token`() {
+        assertTrue(
+            nightColorsSource().contains("""name="notification_feeding_track">#880E4F"""),
+            "dark notification_feeding_track must be #880E4F (Pink900 = dark primaryContainer) — " +
+                "custom dark values like #4A2838 have no design-system traceability"
+        )
+    }
+
+    @Test
+    fun `dark warning track maps to Amber800 design-system container token`() {
+        assertTrue(
+            nightColorsSource().contains("""name="notification_warning_track">#7A4800"""),
+            "dark notification_warning_track must be #7A4800 (Amber800 = dark warningContainer) — " +
+                "matches WarningContainerAmberDark in Color.kt"
+        )
+    }
+
+    @Test
+    fun `dark sleep track maps to Blue900 design-system container token`() {
+        assertTrue(
+            nightColorsSource().contains("""name="notification_sleep_track">#0D47A1"""),
+            "dark notification_sleep_track must be #0D47A1 (Blue900 = dark secondaryContainer) — " +
+                "custom dark values like #0D2440 have no design-system traceability"
+        )
     }
 }
