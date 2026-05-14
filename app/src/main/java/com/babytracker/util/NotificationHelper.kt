@@ -238,7 +238,7 @@ object NotificationHelper {
                         body = body,
                         progress = 1,
                         maxProgress = 1,
-                        showProgress = true
+                        showProgress = false
                     )
                 )
                 .setCustomBigContentView(
