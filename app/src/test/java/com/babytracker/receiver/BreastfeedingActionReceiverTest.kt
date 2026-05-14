@@ -19,9 +19,12 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkAll
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -257,6 +260,15 @@ class BreastfeedingActionReceiverTest {
     }
 
     @Test
+    fun `ACTION_REFRESH_ACTIVE collects active notification settings in parallel`() = runTest {
+        stubActiveNotificationSettingsAwaitingParallelCollection()
+
+        withTimeout(1_000L) {
+            receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_REFRESH_ACTIVE, 42L))
+        }
+    }
+
+    @Test
     fun `ACTION_REFRESH_ACTIVE ignores wrong session id`() = runTest {
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_REFRESH_ACTIVE, 999L))
 
@@ -291,5 +303,21 @@ class BreastfeedingActionReceiverTest {
     private fun intent(action: String, sessionId: Long) = mockk<Intent>(relaxed = true).also {
         every { it.getStringExtra(BreastfeedingActionReceiver.EXTRA_ACTION) } returns action
         every { it.getLongExtra(BreastfeedingActionReceiver.EXTRA_SESSION_ID, -1L) } returns sessionId
+    }
+
+    private fun stubActiveNotificationSettingsAwaitingParallelCollection() {
+        val maxTotalStarted = CompletableDeferred<Unit>()
+        val richNotificationsStarted = CompletableDeferred<Unit>()
+
+        every { settingsRepository.getMaxTotalFeedMinutes() } returns flow {
+            maxTotalStarted.complete(Unit)
+            richNotificationsStarted.await()
+            emit(30)
+        }
+        every { settingsRepository.getRichNotificationsEnabled() } returns flow {
+            richNotificationsStarted.complete(Unit)
+            maxTotalStarted.await()
+            emit(false)
+        }
     }
 }

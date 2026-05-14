@@ -10,8 +10,11 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkAll
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -86,6 +89,15 @@ class BreastfeedingSessionNotificationCoordinatorTest {
     }
 
     @Test
+    fun `scheduleInitial collects schedule settings in parallel`() = runTest {
+        stubScheduleSettingsAwaitingParallelCollection()
+
+        withTimeout(1_000L) {
+            coordinator.scheduleInitial(session)
+        }
+    }
+
+    @Test
     fun `showRunning posts running active notification`() = runTest {
         coordinator.showRunning(session)
 
@@ -100,6 +112,15 @@ class BreastfeedingSessionNotificationCoordinatorTest {
                 maxTotalMinutes = 30,
                 pausedAtEpochMs = null
             )
+        }
+    }
+
+    @Test
+    fun `showRunning collects active notification settings in parallel`() = runTest {
+        stubActiveNotificationSettingsAwaitingParallelCollection()
+
+        withTimeout(1_000L) {
+            coordinator.showRunning(session)
         }
     }
 
@@ -177,5 +198,37 @@ class BreastfeedingSessionNotificationCoordinatorTest {
         verify { NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID) }
         verify { NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID) }
         verify { NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID) }
+    }
+
+    private fun stubActiveNotificationSettingsAwaitingParallelCollection() {
+        val maxTotalStarted = CompletableDeferred<Unit>()
+        val richNotificationsStarted = CompletableDeferred<Unit>()
+
+        every { settingsRepository.getMaxTotalFeedMinutes() } returns flow {
+            maxTotalStarted.complete(Unit)
+            richNotificationsStarted.await()
+            emit(30)
+        }
+        every { settingsRepository.getRichNotificationsEnabled() } returns flow {
+            richNotificationsStarted.complete(Unit)
+            maxTotalStarted.await()
+            emit(false)
+        }
+    }
+
+    private fun stubScheduleSettingsAwaitingParallelCollection() {
+        val maxPerBreastStarted = CompletableDeferred<Unit>()
+        val maxTotalStarted = CompletableDeferred<Unit>()
+
+        every { settingsRepository.getMaxPerBreastMinutes() } returns flow {
+            maxPerBreastStarted.complete(Unit)
+            maxTotalStarted.await()
+            emit(15)
+        }
+        every { settingsRepository.getMaxTotalFeedMinutes() } returns flow {
+            maxTotalStarted.complete(Unit)
+            maxPerBreastStarted.await()
+            emit(30)
+        }
     }
 }
