@@ -35,6 +35,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
+        android:contentDescription="@string/notif_timer_sleep_description"
         android:fontFamily="sans-serif"
         android:textColor="@color/notification_sleep_accent"
         android:textSize="22sp"

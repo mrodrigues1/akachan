@@ -10,8 +10,10 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -29,7 +31,11 @@ class BreastfeedingNotificationReceiver : BroadcastReceiver() {
         val result = goAsync()
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {
-                handle(context, intent)
+                withTimeout(10_000L) {
+                    handle(context, intent)
+                }
+            } catch (e: TimeoutCancellationException) {
+                Log.e(TAG, "onReceive timed out", e)
             } finally {
                 result.finish()
             }

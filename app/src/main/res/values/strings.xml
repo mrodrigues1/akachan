@@ -1,4 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Akachan</string>
+
+    <!-- Notification channel names and descriptions -->
+    <string name="notif_channel_breastfeeding_name">Breastfeeding Reminders</string>
+    <string name="notif_channel_breastfeeding_description">Notifications for breastfeeding session timers</string>
+    <string name="notif_channel_sleep_name">Sleep Reminders</string>
+    <string name="notif_channel_sleep_description">Notifications for active sleep sessions</string>
+
+    <!-- Notification action labels -->
+    <string name="notif_action_switch_now">Switch now</string>
+    <string name="notif_action_not_yet">Not yet</string>
+    <string name="notif_action_stop_feeding">Stop feeding</string>
+    <string name="notif_action_continue">Continue</string>
+    <string name="notif_action_end_sleep">End sleep</string>
+    <string name="notif_action_pause">Pause</string>
+    <string name="notif_action_resume">Resume</string>
+
+    <!-- Notification titles -->
+    <string name="notif_title_switch_sides">🍼 Time to switch sides</string>
+    <string name="notif_title_feeding_limit">⏱ Feeding limit reached</string>
+    <string name="notif_title_feeding_paused">🍼 Feeding paused</string>
+    <string name="notif_title_feeding_active">🍼 Feeding active</string>
+    <string name="notif_title_sleep_active">🌙 Sleep active</string>
+
+    <!-- Notification body format strings -->
+    <!-- Args: 1=side label, 2=elapsed minutes, 3=other side label -->
+    <string name="notif_body_switch_sides">%1$s breast &#183; %2$dm &#183; Switch to the %3$s</string>
+    <!-- Args: 1=max total minutes -->
+    <string name="notif_body_feeding_limit">%1$d-min session. Tap Stop or Continue.</string>
+    <!-- Args: 1=side label -->
+    <string name="notif_body_feeding_paused">%1$s breast &#183; paused</string>
+    <string name="notif_body_feeding_active">%1$s breast &#183; in progress</string>
+    <!-- Args: 1=sleep type label, 2=formatted start time -->
+    <string name="notif_body_sleep_active">%1$s &#183; started at %2$s</string>
+
+    <!-- Collapsed notification status text (no emoji) -->
+    <string name="notif_status_feeding_paused">Feeding paused</string>
+    <string name="notif_status_feeding_active">Feeding active</string>
+
+    <!-- Side labels for notification body text -->
+    <string name="notif_side_left">Left</string>
+    <string name="notif_side_right">Right</string>
+
+    <!-- Sleep type labels for notification body text -->
+    <string name="notif_sleep_type_night">Night sleep</string>
+    <string name="notif_sleep_type_nap">Nap</string>
+
+    <!-- Chronometer accessibility descriptions -->
+    <string name="notif_timer_feeding_description">Elapsed feeding time</string>
+    <string name="notif_timer_sleep_description">Elapsed sleep time</string>
 </resources>

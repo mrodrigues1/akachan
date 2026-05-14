@@ -186,9 +186,9 @@ object NotificationHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 BREASTFEEDING_CHANNEL_ID,
-                "Breastfeeding Reminders",
+                context.getString(R.string.notif_channel_breastfeeding_name),
                 NotificationManager.IMPORTANCE_HIGH
-            ).apply { description = "Notifications for breastfeeding session timers" }
+            ).apply { description = context.getString(R.string.notif_channel_breastfeeding_description) }
             context.getSystemService(NotificationManager::class.java)
                 .createNotificationChannel(channel)
             Log.d(TAG, "Channel created: $BREASTFEEDING_CHANNEL_ID")
@@ -199,9 +199,9 @@ object NotificationHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 SLEEP_CHANNEL_ID,
-                "Sleep Reminders",
+                context.getString(R.string.notif_channel_sleep_name),
                 NotificationManager.IMPORTANCE_DEFAULT
-            ).apply { description = "Notifications for active sleep sessions" }
+            ).apply { description = context.getString(R.string.notif_channel_sleep_description) }
             context.getSystemService(NotificationManager::class.java)
                 .createNotificationChannel(channel)
             Log.d(TAG, "Channel created: $SLEEP_CHANNEL_ID")
@@ -215,10 +215,10 @@ object NotificationHelper {
         elapsedMinutes: Int,
         richEnabled: Boolean
     ) {
-        val otherSide = if (currentSide == "LEFT") "Right" else "Left"
-        val sideLabel = if (currentSide == "LEFT") "Left" else "Right"
-        val title = "\uD83C\uDF7C Time to switch sides"
-        val body = "$sideLabel breast \u00B7 ${elapsedMinutes}m \u00B7 Switch to the $otherSide"
+        val otherSide = if (currentSide == "LEFT") context.getString(R.string.notif_side_right) else context.getString(R.string.notif_side_left)
+        val sideLabel = if (currentSide == "LEFT") context.getString(R.string.notif_side_left) else context.getString(R.string.notif_side_right)
+        val title = context.getString(R.string.notif_title_switch_sides)
+        val body = context.getString(R.string.notif_body_switch_sides, sideLabel, elapsedMinutes, otherSide)
         val tapPi = mainActivityPendingIntent(context)
         val accent = resolveAccent(context, Pink700, PrimaryPinkDark)
         val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
@@ -259,8 +259,8 @@ object NotificationHelper {
                         showProgress = false
                     )
                 )
-                .addAction(0, "Switch now", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_SWITCH, RC_SWITCH_NOW))
-                .addAction(0, "Not yet", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_DISMISS, RC_BF_DISMISS))
+                .addAction(0, context.getString(R.string.notif_action_switch_now), breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_SWITCH, RC_SWITCH_NOW))
+                .addAction(0, context.getString(R.string.notif_action_not_yet), breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_DISMISS, RC_BF_DISMISS))
         } else {
             builder.setContentText(body)
         }
@@ -276,8 +276,8 @@ object NotificationHelper {
         maxTotalMinutes: Int,
         richEnabled: Boolean
     ) {
-        val title = "\u23F1 Feeding limit reached"
-        val body = "$maxTotalMinutes-min session. Tap Stop or Continue."
+        val title = context.getString(R.string.notif_title_feeding_limit)
+        val body = context.getString(R.string.notif_body_feeding_limit, maxTotalMinutes)
         val tapPi = mainActivityPendingIntent(context)
         val accent = resolveAccent(context, WarningAmber, WarningAmberDark)
         val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
@@ -316,8 +316,8 @@ object NotificationHelper {
                         progressText = progressText
                     )
                 )
-                .addAction(0, "Stop feeding", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_STOP, RC_STOP_SESSION))
-                .addAction(0, "Continue", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_KEEP_GOING, RC_KEEP_GOING))
+                .addAction(0, context.getString(R.string.notif_action_stop_feeding), breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_STOP, RC_STOP_SESSION))
+                .addAction(0, context.getString(R.string.notif_action_continue), breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_KEEP_GOING, RC_KEEP_GOING))
         } else {
             builder.setContentText(body)
         }
@@ -337,10 +337,10 @@ object NotificationHelper {
         maxTotalMinutes: Int = 0,
         pausedAtEpochMs: Long? = null
     ) {
-        val sideLabel = if (currentSide == "LEFT") "Left" else "Right"
+        val sideLabel = if (currentSide == "LEFT") context.getString(R.string.notif_side_left) else context.getString(R.string.notif_side_right)
         val isPaused = pausedAtEpochMs != null
-        val title = if (isPaused) "\uD83C\uDF7C Feeding paused" else "\uD83C\uDF7C Feeding active"
-        val body = if (isPaused) "$sideLabel breast \u00B7 paused" else "$sideLabel breast \u00B7 in progress"
+        val title = context.getString(if (isPaused) R.string.notif_title_feeding_paused else R.string.notif_title_feeding_active)
+        val body = context.getString(if (isPaused) R.string.notif_body_feeding_paused else R.string.notif_body_feeding_active, sideLabel)
         val tapPi = mainActivityPendingIntent(context)
         val accent = resolveAccent(context, Pink700, PrimaryPinkDark)
         val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
@@ -398,7 +398,9 @@ object NotificationHelper {
                     showProgress = progress.isEnabled,
                     body = content.body,
                     timer = CollapsedTimerContent(
-                        titleSuffix = if (isPaused) "Feeding paused" else "Feeding active",
+                        titleSuffix = content.context.getString(
+                            if (isPaused) R.string.notif_status_feeding_paused else R.string.notif_status_feeding_active
+                        ),
                         chronometerBaseElapsedMs = chronometerBase,
                         chronometerRunning = !isPaused
                     )
@@ -418,10 +420,10 @@ object NotificationHelper {
                     showProgress = progress.isEnabled
                 )
             )
-            .addAction(0, pauseResumeLabel(isPaused), pauseResumePendingIntent(content.context, content.sessionId, isPaused))
+            .addAction(0, pauseResumeLabel(content.context, isPaused), pauseResumePendingIntent(content.context, content.sessionId, isPaused))
             .addAction(
                 0,
-                "Stop feeding",
+                content.context.getString(R.string.notif_action_stop_feeding),
                 breastfeedingActionPi(
                     content.context,
                     content.sessionId,
@@ -446,8 +448,8 @@ object NotificationHelper {
         )
     }
 
-    private fun pauseResumeLabel(isPaused: Boolean): String =
-        if (isPaused) "Resume" else "Pause"
+    private fun pauseResumeLabel(context: Context, isPaused: Boolean): String =
+        context.getString(if (isPaused) R.string.notif_action_resume else R.string.notif_action_pause)
 
     private fun pauseResumePendingIntent(context: Context, sessionId: Long, isPaused: Boolean): PendingIntent =
         breastfeedingActionPi(
@@ -488,12 +490,12 @@ object NotificationHelper {
         startTimeEpochMs: Long,
         richEnabled: Boolean
     ) {
-        val typeLabel = if (sleepType == "NIGHT_SLEEP") "Night sleep" else "Nap"
+        val typeLabel = context.getString(if (sleepType == "NIGHT_SLEEP") R.string.notif_sleep_type_night else R.string.notif_sleep_type_nap)
         val startFormatted = java.time.Instant.ofEpochMilli(startTimeEpochMs)
             .atZone(ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("h:mm a"))
-        val title = "\uD83C\uDF19 Sleep active"
-        val body = "$typeLabel \u00B7 started at $startFormatted"
+        val title = context.getString(R.string.notif_title_sleep_active)
+        val body = context.getString(R.string.notif_body_sleep_active, typeLabel, startFormatted)
         val tapPi = mainActivityPendingIntent(context)
         val accent = resolveAccent(context, Blue700, SecondaryBlueDark)
         val builder = NotificationCompat.Builder(context, SLEEP_CHANNEL_ID)
@@ -540,7 +542,7 @@ object NotificationHelper {
                     )
                 )
                 .setStyle(NotificationCompat.DecoratedCustomViewStyle())
-                .addAction(0, "End sleep", sleepActionPi(context, sessionId, SleepActionReceiver.ACTION_STOP, RC_STOP_SLEEP))
+                .addAction(0, context.getString(R.string.notif_action_end_sleep), sleepActionPi(context, sessionId, SleepActionReceiver.ACTION_STOP, RC_STOP_SLEEP))
         } else {
             builder.setContentText(body)
         }
