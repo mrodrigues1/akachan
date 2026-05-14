@@ -16,28 +16,37 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.AllergyType
+import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.repository.BabyRepository
+import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import com.babytracker.ui.onboarding.components.AllergiesStepContent
 import com.babytracker.ui.onboarding.components.BabyInfoStepContent
 import com.babytracker.ui.onboarding.components.WelcomeStepContent
 import com.babytracker.ui.theme.BabyTrackerTheme
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.IOException
 import java.time.LocalDate
 
 @RunWith(AndroidJUnit4::class)
@@ -74,7 +83,7 @@ class OnboardingComponentsTest {
             }
         }
 
-        composeRule.onNodeWithText("Welcome to Akachan").assertIsDisplayed()
+        composeRule.onNodeWithText("Welcome to Akachan").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Optional partner view").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Set up baby profile").assertIsDisplayed()
         composeRule.onNode(
@@ -95,7 +104,7 @@ class OnboardingComponentsTest {
             }
         }
 
-        composeRule.onNodeWithText("Welcome to Akachan").assertIsDisplayed()
+        composeRule.onNodeWithText("Welcome to Akachan").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Optional partner view").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Set up baby profile").assertIsDisplayed()
     }
@@ -111,6 +120,83 @@ class OnboardingComponentsTest {
         composeRule.onAllNodesWithText("Care").assertCountEquals(0)
         composeRule.onAllNodesWithText("Feeding").assertCountEquals(0)
         composeRule.onAllNodesWithText("Sleep").assertCountEquals(0)
+    }
+
+    @Test
+    fun welcomePrimaryActionKeepsMinimumTouchHeight() {
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                WelcomeStepContent(onGetStarted = {})
+            }
+        }
+
+        composeRule.onNodeWithTag("onboarding_welcome_primary_action").assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test
+    fun babyInfoPrimaryActionKeepsMinimumTouchHeight() {
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                BabyInfoStepContent(
+                    name = "Luna",
+                    nameError = null,
+                    selectedDate = LocalDate.now(),
+                    birthDateError = null,
+                    showAgeWarning = false,
+                    isNextEnabled = true,
+                    onNameChanged = {},
+                    onDateSelected = {},
+                    onBack = {},
+                    onNext = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("onboarding_baby_info_primary_action").assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test
+    fun allergiesPrimaryActionKeepsMinimumTouchHeight() {
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                AllergiesStepContent(
+                    babyName = "Luna",
+                    selectedAllergies = emptySet(),
+                    customNote = "",
+                    isSaving = false,
+                    onAllergyToggled = {},
+                    onAllergiesCleared = {},
+                    onCustomNoteChanged = {},
+                    onBack = {},
+                    onFinish = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("onboarding_allergies_primary_action").assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test
+    fun onboardingScreenShowsSaveFailureSnackbar() {
+        val viewModel = OnboardingViewModel(
+            SaveBabyProfileUseCase(FailingBabyRepository()),
+        )
+
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                OnboardingScreen(
+                    onOnboardingComplete = {},
+                    viewModel = viewModel,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Set up baby profile").performClick()
+        composeRule.onNodeWithText("Baby's name").performTextInput("Luna")
+        composeRule.onNodeWithText("Continue").performClick()
+        composeRule.onNodeWithText("Finish setup").performClick()
+
+        composeRule.onNodeWithText("Could not save. Please try again.").assertIsDisplayed()
     }
 
     @Test
@@ -410,7 +496,7 @@ class OnboardingComponentsTest {
         }
 
         composeRule.onNodeWithText("Allergy notes").assertIsDisplayed()
-        composeRule.onNodeWithText("Describe other allergy").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Describe other allergy").performScrollTo().assertExists()
         composeRule.onNodeWithText("Finish setup").assertIsDisplayed()
     }
 
@@ -507,5 +593,15 @@ class OnboardingComponentsTest {
 
         composeRule.onNodeWithText("No allergies will be saved yet.").assertIsDisplayed()
         composeRule.onNodeWithText("Describe other allergy").assertDoesNotExist()
+    }
+
+    private class FailingBabyRepository : BabyRepository {
+        override fun getBabyProfile(): Flow<Baby?> = flowOf(null)
+
+        override suspend fun saveBabyProfile(baby: Baby) {
+            throw IOException("storage error")
+        }
+
+        override fun isOnboardingComplete(): Flow<Boolean> = flowOf(false)
     }
 }
