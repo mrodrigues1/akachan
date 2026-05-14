@@ -4,7 +4,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -57,6 +57,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -235,7 +236,9 @@ fun SleepTrackingScreen(
             item {
                 OutlinedButton(
                     onClick = viewModel::onAddEntryClick,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp),
                     shape = MaterialTheme.shapes.extraLarge,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
                     colors = ButtonDefaults.outlinedButtonColors(
@@ -272,10 +275,11 @@ internal fun SwipeableSleepEntry(
     ) {
         Box(
             modifier = Modifier.combinedClickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                role = Role.Button,
+                onClickLabel = "Edit sleep entry",
+                onLongClickLabel = "Edit sleep entry",
                 onLongClick = { onEditRecord(record) },
-                onClick = {}
+                onClick = { onEditRecord(record) }
             )
         ) {
             SleepEntryCard(record = record)
@@ -286,10 +290,11 @@ internal fun SwipeableSleepEntry(
 @Composable
 private fun SleepEntryDeleteBackground(targetValue: SwipeToDismissBoxValue) {
     val color by animateColorAsState(
-        targetValue = if (targetValue == SwipeToDismissBoxValue.EndToStart)
+        targetValue = if (targetValue == SwipeToDismissBoxValue.EndToStart) {
             MaterialTheme.colorScheme.errorContainer
-        else
-            Color.Transparent,
+        } else {
+            Color.Transparent
+        },
         label = "deleteBackground"
     )
     Box(
@@ -337,9 +342,13 @@ private fun WakeTimeChip(wakeTime: LocalTime?, onClick: () -> Unit) {
     if (wakeTime != null) {
         Card(
             onClick = onClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp),
             shape = MaterialTheme.shapes.extraLarge,
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
             )
         ) {
             Row(
@@ -352,7 +361,8 @@ private fun WakeTimeChip(wakeTime: LocalTime?, onClick: () -> Unit) {
                 Text(
                     text = "🌅 Woke at ${wakeTime.format(formatter)}",
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 Icon(
                     imageVector = Icons.Default.Edit,
@@ -365,7 +375,15 @@ private fun WakeTimeChip(wakeTime: LocalTime?, onClick: () -> Unit) {
     } else {
         OutlinedCard(
             onClick = onClick,
-            shape = MaterialTheme.shapes.extraLarge
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp),
+            shape = MaterialTheme.shapes.extraLarge,
+            colors = CardDefaults.outlinedCardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.secondary
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
         ) {
             Row(
                 modifier = Modifier
@@ -410,33 +428,45 @@ private fun SleepSummaryRow(
         ) {
             SummaryStatColumn(
                 label = "Sleep today",
-                value = if (totalSleep.isZero) "—" else totalSleep.formatDuration()
+                value = if (totalSleep.isZero) "—" else totalSleep.formatDuration(),
+                modifier = Modifier.weight(1f)
             )
             SummaryStatColumn(
                 label = "Naps",
-                value = if (napCount == 0) "—" else napCount.toString()
+                value = if (napCount == 0) "—" else napCount.toString(),
+                modifier = Modifier.weight(1f)
             )
             SummaryStatColumn(
                 label = "Night sleep",
-                value = if (nightSleep.isZero) "—" else nightSleep.formatDuration()
+                value = if (nightSleep.isZero) "—" else nightSleep.formatDuration(),
+                modifier = Modifier.weight(1f)
             )
         }
     }
 }
 
 @Composable
-private fun SummaryStatColumn(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun SummaryStatColumn(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Text(
             text = value,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.secondary
+            color = MaterialTheme.colorScheme.secondary,
+            textAlign = TextAlign.Center
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
         )
     }
 }
@@ -475,23 +505,35 @@ private fun SleepQuickStartRow(
     ) {
         Button(
             onClick = onStartNap,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 56.dp),
             shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondary
             )
         ) {
-            Text("😴 Start Nap", style = MaterialTheme.typography.labelLarge)
+            Text(
+                text = "😴 Start Nap",
+                style = MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.Center
+            )
         }
         Button(
             onClick = onStartNightSleep,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 56.dp),
             shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondary
             )
         ) {
-            Text("🌙 Start Night Sleep", style = MaterialTheme.typography.labelLarge)
+            Text(
+                text = "🌙 Start Night Sleep",
+                style = MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
@@ -526,7 +568,9 @@ private fun ActiveSleepCard(record: SleepRecord, onStop: () -> Unit) {
             )
             Button(
                 onClick = onStop,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp),
                 shape = MaterialTheme.shapes.extraLarge,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.secondary
@@ -609,7 +653,10 @@ internal fun AddSleepEntrySheetContent(
                 )
                 OutlinedCard(
                     onClick = onStartTimeClick,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text(
                         text = uiState.entryStartTime.format(formatter),
@@ -630,7 +677,10 @@ internal fun AddSleepEntrySheetContent(
                 )
                 OutlinedCard(
                     onClick = onEndTimeClick,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text(
                         text = uiState.entryEndTime.format(formatter),
@@ -693,7 +743,9 @@ internal fun AddSleepEntrySheetContent(
         }
         Button(
             onClick = onSave,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp),
             shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondary

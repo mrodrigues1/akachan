@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -130,6 +131,7 @@ fun SleepHistoryScreen(
                 Spacer(modifier = Modifier.height(20.dp))
                 OutlinedButton(
                     onClick = onNavigateBack,
+                    modifier = Modifier.heightIn(min = 48.dp),
                     shape = MaterialTheme.shapes.extraLarge,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
                     colors = ButtonDefaults.outlinedButtonColors(

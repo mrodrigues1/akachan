@@ -1,5 +1,6 @@
 package com.babytracker.ui.sleep
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -155,7 +157,7 @@ private fun ScheduleContent(
             Text(
                 text = "DAILY SCHEDULE",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
@@ -332,10 +334,13 @@ private fun WakeWindowIndicator(duration: Duration?) {
 
 @Composable
 private fun NapCard(entry: ScheduleEntry) {
+    val isDark = LocalDarkTheme.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 1.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = if (isDark) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null
     ) {
         Row(
             modifier = Modifier
@@ -344,7 +349,10 @@ private fun NapCard(entry: ScheduleEntry) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
                     text = entry.emoji,
                     style = MaterialTheme.typography.titleLarge
@@ -377,7 +385,8 @@ private fun NapCard(entry: ScheduleEntry) {
                 text = entry.duration.formatDuration(),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.secondary
+                color = MaterialTheme.colorScheme.secondary,
+                textAlign = TextAlign.End
             )
         }
     }
@@ -399,7 +408,10 @@ private fun BedtimeCard(bedtime: LocalTime, bedtimeWindow: ClosedRange<LocalTime
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
                     text = "\uD83C\uDF19",
                     style = MaterialTheme.typography.titleLarge
@@ -422,7 +434,8 @@ private fun BedtimeCard(bedtime: LocalTime, bedtimeWindow: ClosedRange<LocalTime
             Text(
                 text = "${formatLocalTime(bedtimeWindow.start)} - ${formatLocalTime(bedtimeWindow.endInclusive)}",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.7f),
+                textAlign = TextAlign.End
             )
         }
     }
@@ -430,10 +443,13 @@ private fun BedtimeCard(bedtime: LocalTime, bedtimeWindow: ClosedRange<LocalTime
 
 @Composable
 private fun SleepSummaryCard(schedule: SleepSchedule) {
+    val isDark = LocalDarkTheme.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 1.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = if (isDark) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -483,12 +499,15 @@ private fun SummaryRow(label: String, value: String) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
         )
+        Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.End
         )
     }
 }
