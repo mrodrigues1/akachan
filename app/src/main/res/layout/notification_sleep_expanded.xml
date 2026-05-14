@@ -36,11 +36,12 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:fontFamily="sans-serif"
-        android:textColor="@color/notification_on_surface"
+        android:textColor="@color/notification_sleep_accent"
         android:textSize="22sp"
         android:textStyle="bold"
         android:visibility="gone" />
 
+    <!-- Required by buildProgressBigView; always hidden for sleep -->
     <ProgressBar
         android:id="@+id/notification_progress"
         style="?android:attr/progressBarStyleHorizontal"
@@ -48,7 +49,8 @@
         android:layout_height="6dp"
         android:layout_marginTop="10dp"
         android:indeterminate="false"
-        android:progressDrawable="@drawable/notification_progress_breastfeeding" />
+        android:progressDrawable="@drawable/notification_progress_sleep"
+        android:visibility="gone" />
 
     <TextView
         android:id="@+id/notification_progress_label"
@@ -57,7 +59,9 @@
         android:layout_marginTop="4dp"
         android:fontFamily="sans-serif"
         android:gravity="end"
-        android:textColor="@color/notification_feeding_accent"
+        android:textColor="@color/notification_sleep_accent"
         android:textSize="12sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        android:visibility="gone" />
+
 </LinearLayout>

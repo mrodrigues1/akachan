@@ -214,7 +214,7 @@ object NotificationHelper {
         val otherSide = if (currentSide == "LEFT") "right" else "left"
         val sideLabel = if (currentSide == "LEFT") "Left" else "Right"
         val title = "\uD83C\uDF7C Time to switch sides"
-        val body = "$sideLabel breast: $elapsedMinutes min \u00B7 Switch to the $otherSide"
+        val body = "$sideLabel breast \u00B7 ${elapsedMinutes}m \u00B7 Switch to the $otherSide"
         val tapPi = mainActivityPendingIntent(context)
         val accent = resolveAccent(context, Pink700, PrimaryPinkDark)
         val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
@@ -271,7 +271,7 @@ object NotificationHelper {
         richEnabled: Boolean
     ) {
         val title = "\u23F1 Feeding limit reached"
-        val body = "Session has reached $maxTotalMinutes minutes. Consider wrapping up."
+        val body = "$maxTotalMinutes min limit reached."
         val tapPi = mainActivityPendingIntent(context)
         val accent = resolveAccent(context, WarningAmber, WarningAmberDark)
         val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
@@ -331,8 +331,8 @@ object NotificationHelper {
     ) {
         val sideLabel = if (currentSide == "LEFT") "Left" else "Right"
         val isPaused = pausedAtEpochMs != null
-        val title = if (isPaused) "\uD83C\uDF7C Feeding session paused" else "\uD83C\uDF7C Feeding session active"
-        val body = if (isPaused) "$sideLabel breast \u00B7 Session paused" else "$sideLabel breast \u00B7 Session in progress"
+        val title = if (isPaused) "\uD83C\uDF7C Feeding paused" else "\uD83C\uDF7C Feeding active"
+        val body = if (isPaused) "$sideLabel breast \u00B7 paused" else "$sideLabel breast \u00B7 in progress"
         val tapPi = mainActivityPendingIntent(context)
         val accent = resolveAccent(context, Pink700, PrimaryPinkDark)
         val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
@@ -388,7 +388,7 @@ object NotificationHelper {
                     showProgress = progress.isEnabled,
                     body = content.body,
                     timer = CollapsedTimerContent(
-                        titleSuffix = if (isPaused) "Feeding session paused" else "Feeding session active",
+                        titleSuffix = if (isPaused) "Feeding paused" else "Feeding active",
                         chronometerBaseElapsedMs = chronometerBase,
                         chronometerRunning = !isPaused
                     )
@@ -482,7 +482,7 @@ object NotificationHelper {
         val startFormatted = java.time.Instant.ofEpochMilli(startTimeEpochMs)
             .atZone(ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("h:mm a"))
-        val title = "\uD83C\uDF19 Sleep session active"
+        val title = "\uD83C\uDF19 Sleep active"
         val body = "$typeLabel \u00B7 started at $startFormatted"
         val tapPi = mainActivityPendingIntent(context)
         val accent = resolveAccent(context, Blue700, SecondaryBlueDark)
@@ -495,6 +495,8 @@ object NotificationHelper {
             .setContentIntent(tapPi)
 
         if (richEnabled) {
+            val elapsedMs = System.currentTimeMillis() - startTimeEpochMs
+            val chronometerBase = SystemClock.elapsedRealtime() - elapsedMs
             builder
                 .setUsesChronometer(true)
                 .setWhen(startTimeEpochMs)
@@ -506,6 +508,20 @@ object NotificationHelper {
                         body = body,
                         progress = 0,
                         maxProgress = 1,
+                        showProgress = false
+                    )
+                )
+                .setCustomBigContentView(
+                    buildProgressBigView(
+                        context = context,
+                        layoutRes = R.layout.notification_sleep_expanded,
+                        title = title,
+                        body = body,
+                        progress = 0,
+                        maxProgress = 1,
+                        progressText = "",
+                        chronometerBaseElapsedMs = chronometerBase,
+                        chronometerRunning = true,
                         showProgress = false
                     )
                 )
