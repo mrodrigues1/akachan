@@ -153,4 +153,14 @@ class SleepRepositoryImplTest {
         assertEquals(endEpoch, slot.captured.endTime)
         assertEquals(1L, slot.captured.id)
     }
+
+    @Test
+    fun deleteRecordPassesIdToDao() = runTest {
+        val slot = slot<Long>()
+        coJustRun { dao.deleteRecord(capture(slot)) }
+
+        repository.deleteRecord(42L)
+
+        assertEquals(42L, slot.captured)
+    }
 }

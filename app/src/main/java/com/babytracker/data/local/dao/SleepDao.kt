@@ -23,4 +23,7 @@ interface SleepDao {
 
     @Update
     suspend fun updateRecord(entity: SleepEntity)
+
+    @Query("DELETE FROM sleep_records WHERE id = :id")
+    suspend fun deleteRecord(id: Long)
 }

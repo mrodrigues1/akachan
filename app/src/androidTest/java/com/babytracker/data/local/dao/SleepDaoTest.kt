@@ -158,4 +158,26 @@ class SleepDaoTest {
         assertEquals("NIGHT_SLEEP", results[0].sleepType)
         assertEquals("NAP", results[1].sleepType)
     }
+
+    @Test
+    fun deleteRecordRemovesItFromAllRecords() = runTest {
+        val id = dao.insertRecord(SleepEntity(startTime = 1000L, sleepType = "NAP"))
+
+        dao.deleteRecord(id)
+        val records = dao.getAllRecords().first()
+
+        assertEquals(0, records.size)
+    }
+
+    @Test
+    fun deleteRecordLeavesOtherRecordsIntact() = runTest {
+        val idToDelete = dao.insertRecord(SleepEntity(startTime = 1000L, sleepType = "NAP"))
+        dao.insertRecord(SleepEntity(startTime = 2000L, sleepType = "NIGHT_SLEEP"))
+
+        dao.deleteRecord(idToDelete)
+        val records = dao.getAllRecords().first()
+
+        assertEquals(1, records.size)
+        assertEquals("NIGHT_SLEEP", records[0].sleepType)
+    }
 }

@@ -29,4 +29,7 @@ class SleepRepositoryImpl @Inject constructor(
 
     override suspend fun updateRecord(record: SleepRecord) =
         dao.updateRecord(record.toEntity())
+
+    override suspend fun deleteRecord(id: Long) =
+        dao.deleteRecord(id)
 }
