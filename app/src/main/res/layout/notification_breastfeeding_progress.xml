@@ -36,7 +36,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:fontFamily="sans-serif"
-        android:textColor="@color/notification_on_surface"
+        android:textColor="@color/notification_feeding_accent"
         android:textSize="22sp"
         android:textStyle="bold"
         android:visibility="gone" />

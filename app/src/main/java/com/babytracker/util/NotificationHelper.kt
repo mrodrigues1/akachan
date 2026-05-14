@@ -211,7 +211,7 @@ object NotificationHelper {
         elapsedMinutes: Int,
         richEnabled: Boolean
     ) {
-        val otherSide = if (currentSide == "LEFT") "right" else "left"
+        val otherSide = if (currentSide == "LEFT") "Right" else "Left"
         val sideLabel = if (currentSide == "LEFT") "Left" else "Right"
         val title = "\uD83C\uDF7C Time to switch sides"
         val body = "$sideLabel breast \u00B7 ${elapsedMinutes}m \u00B7 Switch to the $otherSide"
@@ -253,7 +253,7 @@ object NotificationHelper {
                         showProgress = false
                     )
                 )
-                .addAction(0, "Switch Now", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_SWITCH, RC_SWITCH_NOW))
+                .addAction(0, "Switch now", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_SWITCH, RC_SWITCH_NOW))
                 .addAction(0, "Not yet", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_DISMISS, RC_BF_DISMISS))
         } else {
             builder.setContentText(body)
@@ -271,7 +271,7 @@ object NotificationHelper {
         richEnabled: Boolean
     ) {
         val title = "\u23F1 Feeding limit reached"
-        val body = "$maxTotalMinutes-min session. Tap Stop or continue."
+        val body = "$maxTotalMinutes-min session. Tap Stop or Continue."
         val tapPi = mainActivityPendingIntent(context)
         val accent = resolveAccent(context, WarningAmber, WarningAmberDark)
         val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
