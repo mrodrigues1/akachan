@@ -1,5 +1,6 @@
 package com.babytracker.ui.sleep
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -109,6 +110,7 @@ fun SleepHistoryScreen(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier
+                                .background(MaterialTheme.colorScheme.surface)
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp)
                         )
@@ -117,7 +119,10 @@ fun SleepHistoryScreen(
                     items(records, key = { it.id }) { record ->
                         HistoryCard(
                             title = record.sleepType.label,
-                            subtitle = record.startTime.formatTime12h(),
+                            subtitle = buildString {
+                                append(record.startTime.formatTime12h())
+                                record.endTime?.let { append(" – ${it.formatTime12h()}") }
+                            },
                             trailing = record.endTime?.let { end ->
                                 Duration.between(record.startTime, end).formatDuration()
                             } ?: "In progress",

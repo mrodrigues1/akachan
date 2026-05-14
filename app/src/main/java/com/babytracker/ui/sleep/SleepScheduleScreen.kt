@@ -42,6 +42,11 @@ import com.babytracker.domain.model.RegressionInfo
 import com.babytracker.domain.model.ScheduleEntry
 import com.babytracker.domain.model.ScheduleMode
 import com.babytracker.domain.model.SleepSchedule
+import com.babytracker.ui.theme.LocalDarkTheme
+import com.babytracker.ui.theme.OnWarningContainerAmber
+import com.babytracker.ui.theme.OnWarningContainerAmberDark
+import com.babytracker.ui.theme.WarningContainerAmber
+import com.babytracker.ui.theme.WarningContainerAmberDark
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
 import java.time.Duration
@@ -229,12 +234,13 @@ private fun ModeBadge(mode: ScheduleMode) {
 
 @Composable
 private fun RegressionWarningCard(info: RegressionInfo) {
+    val isDark = LocalDarkTheme.current
+    val containerColor = if (isDark) WarningContainerAmberDark else WarningContainerAmber
+    val onContainerColor = if (isDark) OnWarningContainerAmberDark else OnWarningContainerAmber
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-        )
+        colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -242,21 +248,21 @@ private fun RegressionWarningCard(info: RegressionInfo) {
                     text = info.name,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                    color = onContainerColor
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = info.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
+                color = onContainerColor
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Typical duration: ${info.durationWeeks}",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                color = onContainerColor.copy(alpha = 0.7f)
             )
         }
     }
@@ -455,7 +461,7 @@ private fun NapTransitionCard(suggestion: String) {
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -463,13 +469,13 @@ private fun NapTransitionCard(suggestion: String) {
                 text = "Nap Transition",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = suggestion,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
