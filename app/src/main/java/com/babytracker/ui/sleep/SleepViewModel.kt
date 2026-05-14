@@ -112,14 +112,15 @@ class SleepViewModel @Inject constructor(
     }
 
     fun onAddEntryClick() {
-        val now = LocalTime.now()
+        val end = LocalTime.now()
+        val start = end.minusHours(1)
         _uiState.value = _uiState.value.copy(
             showEntrySheet = true,
             editingRecord = null,
-            entryStartTime = now,
-            entryEndTime = now,
+            entryStartTime = start,
+            entryEndTime = end,
             entryError = null,
-            entryDurationPreview = null
+            entryDurationPreview = computeDurationPreview(start, end)
         )
     }
 
@@ -183,7 +184,9 @@ class SleepViewModel @Inject constructor(
             startInstant = state.entryStartTime.atDate(referenceDate.minusDays(1)).atZone(zone).toInstant()
         }
         if (endInstant <= startInstant) {
-            _uiState.value = state.copy(entryError = "End time must be after start time")
+            _uiState.value = state.copy(
+                entryError = "End time needs to be after start time. Adjust one time to save this sleep."
+            )
             return
         }
         viewModelScope.launch {

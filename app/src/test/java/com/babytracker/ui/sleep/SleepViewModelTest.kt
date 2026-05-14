@@ -173,6 +173,32 @@ class SleepViewModelTest {
     }
 
     @Test
+    fun `onSaveEntry explains how to fix matching start and end times`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAddEntryClick()
+        viewModel.onEntryStartTimeChanged(LocalTime.of(20, 0))
+        viewModel.onEntryEndTimeChanged(LocalTime.of(20, 0))
+        viewModel.onSaveEntry()
+
+        assertEquals(
+            "End time needs to be after start time. Adjust one time to save this sleep.",
+            viewModel.uiState.value.entryError
+        )
+    }
+
+    @Test
+    fun `onAddEntryClick starts with a one hour sleep duration ready to save`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAddEntryClick()
+
+        assertEquals(java.time.Duration.ofHours(1), viewModel.uiState.value.entryDurationPreview)
+    }
+
+    @Test
     fun `activeSleepSession is null when all records are completed`() = runTest {
         val completed = SleepRecord(
             id = 1L,
