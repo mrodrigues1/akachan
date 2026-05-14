@@ -53,6 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.ui.component.HistoryCard
+import com.babytracker.ui.component.TimerDisplay
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
 import java.time.Duration
@@ -72,12 +73,13 @@ fun SleepTrackingScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val history by viewModel.history.collectAsStateWithLifecycle()
+    val activeSleepSession by viewModel.activeSleepSession.collectAsStateWithLifecycle()
 
     val zone = ZoneId.systemDefault()
     val todayEntries = remember(history) {
         val today = LocalDate.now()
         history
-            .filter { it.startTime.atZone(zone).toLocalDate() == today }
+            .filter { it.startTime.atZone(zone).toLocalDate() == today && it.endTime != null }
             .sortedByDescending { it.startTime }
     }
     val totalSleepToday = remember(todayEntries) {
@@ -179,6 +181,14 @@ fun SleepTrackingScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(bottom = 16.dp, top = 8.dp)
         ) {
+            if (activeSleepSession != null) {
+                item {
+                    ActiveSleepCard(
+                        record = activeSleepSession!!,
+                        onStop = viewModel::onStopRecord
+                    )
+                }
+            }
             item {
                 Text(
                     text = "TODAY'S WAKE TIME",
@@ -292,13 +302,13 @@ private fun WakeTimeChip(wakeTime: LocalTime?, onClick: () -> Unit) {
                 Text(
                     text = "\uD83C\uDF05 Tap to set today's wake time",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.tertiary
+                    color = MaterialTheme.colorScheme.secondary
                 )
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Set wake time",
                     modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.tertiary
+                    tint = MaterialTheme.colorScheme.secondary
                 )
             }
         }
@@ -314,7 +324,7 @@ private fun SleepSummaryRow(
     Card(
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Row(
@@ -380,6 +390,48 @@ private fun TodayEmptyState() {
 }
 
 @Composable
+private fun ActiveSleepCard(record: SleepRecord, onStop: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "${record.sleepType.emoji} ${record.sleepType.label} in progress",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            TimerDisplay(
+                startTimeMillis = record.startTime.toEpochMilli(),
+                isRunning = true,
+                ringColor = MaterialTheme.colorScheme.secondary,
+                trackColor = MaterialTheme.colorScheme.secondaryContainer
+            )
+            Button(
+                onClick = onStop,
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
+                )
+            ) {
+                Text("Stop Session", style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    }
+}
+
+@Composable
 private fun SleepEntryCard(record: SleepRecord) {
     HistoryCard(
         title = record.sleepType.label,
@@ -433,10 +485,7 @@ private fun AddSleepEntrySheetContent(
                     label = { Text("${type.emoji} ${type.label}") },
                     modifier = Modifier.weight(1f),
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = if (type == SleepType.NAP)
-                            MaterialTheme.colorScheme.primaryContainer
-                        else
-                            MaterialTheme.colorScheme.secondaryContainer
+                        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
                     )
                 )
             }
@@ -542,10 +591,7 @@ private fun AddSleepEntrySheetContent(
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (uiState.entryType == SleepType.NAP)
-                    MaterialTheme.colorScheme.primary
-                else
-                    MaterialTheme.colorScheme.secondary
+                containerColor = MaterialTheme.colorScheme.secondary
             )
         ) {
             Text(saveLabel, style = MaterialTheme.typography.titleSmall)

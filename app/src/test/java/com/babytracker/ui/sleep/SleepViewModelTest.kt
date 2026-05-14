@@ -16,8 +16,10 @@ import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -25,6 +27,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -155,5 +159,95 @@ class SleepViewModelTest {
 
         coVerify(exactly = 0) { saveSleepEntry(any(), any(), any()) }
         coVerify(exactly = 0) { syncToFirestore(any()) }
+    }
+
+    @Test
+    fun `activeSleepSession is null when all records are completed`() = runTest {
+        val completed = SleepRecord(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(3600),
+            endTime = Instant.now(),
+            sleepType = SleepType.NAP,
+        )
+        every { getSleepHistory() } returns flowOf(listOf(completed))
+        viewModel = createViewModel()
+
+        viewModel.activeSleepSession.test {
+            testDispatcher.scheduler.advanceUntilIdle()
+            assertNull(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `activeSleepSession returns in-progress record when endTime is null`() = runTest {
+        val inProgress = SleepRecord(
+            id = 2L,
+            startTime = Instant.now().minusSeconds(1800),
+            endTime = null,
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        every { getSleepHistory() } returns flowOf(listOf(inProgress))
+        viewModel = createViewModel()
+
+        viewModel.activeSleepSession.test {
+            assertNull(awaitItem()) // StateFlow emits initial null synchronously on subscribe
+            testDispatcher.scheduler.advanceUntilIdle() // history chain runs, activeSleepSession updates
+            val session = awaitItem()
+            assertEquals(2L, session?.id)
+            assertEquals(SleepType.NIGHT_SLEEP, session?.sleepType)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `activeSleepSession returns in-progress record when mixed with completed records`() = runTest {
+        val completed = SleepRecord(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(7200),
+            endTime = Instant.now().minusSeconds(3600),
+            sleepType = SleepType.NAP,
+        )
+        val inProgress = SleepRecord(
+            id = 2L,
+            startTime = Instant.now().minusSeconds(600),
+            endTime = null,
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        every { getSleepHistory() } returns flowOf(listOf(completed, inProgress))
+        viewModel = createViewModel()
+
+        viewModel.activeSleepSession.test {
+            assertNull(awaitItem()) // initial null before history chain runs
+            testDispatcher.scheduler.advanceUntilIdle()
+            assertEquals(2L, awaitItem()?.id)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `activeSleepSession updates reactively when session transitions from in-progress to complete`() = runTest {
+        val inProgress = SleepRecord(
+            id = 3L,
+            startTime = Instant.now().minusSeconds(1800),
+            endTime = null,
+            sleepType = SleepType.NAP,
+        )
+        val completed = inProgress.copy(endTime = Instant.now())
+        val historyFlow = MutableStateFlow(listOf(inProgress))
+        every { getSleepHistory() } returns historyFlow
+        viewModel = createViewModel()
+
+        viewModel.activeSleepSession.test {
+            assertNull(awaitItem()) // initial null before history chain runs
+            testDispatcher.scheduler.advanceUntilIdle()
+            assertEquals(3L, awaitItem()?.id)
+
+            historyFlow.value = listOf(completed)
+            testDispatcher.scheduler.advanceUntilIdle()
+            assertNull(awaitItem())
+
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }
