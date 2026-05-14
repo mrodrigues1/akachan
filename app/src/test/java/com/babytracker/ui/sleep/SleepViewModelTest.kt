@@ -411,6 +411,35 @@ class SleepViewModelTest {
     }
 
     @Test
+    fun `isRegressionExpanded defaults to true`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(true, viewModel.uiState.value.isRegressionExpanded)
+    }
+
+    @Test
+    fun `onToggleRegression flips isRegressionExpanded from true to false`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onToggleRegression()
+
+        assertEquals(false, viewModel.uiState.value.isRegressionExpanded)
+    }
+
+    @Test
+    fun `onToggleRegression twice restores isRegressionExpanded to true`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onToggleRegression()
+        viewModel.onToggleRegression()
+
+        assertEquals(true, viewModel.uiState.value.isRegressionExpanded)
+    }
+
+    @Test
     fun `onDismissSheet clears editingRecord`() = runTest {
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()

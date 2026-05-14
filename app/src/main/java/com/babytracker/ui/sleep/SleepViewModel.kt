@@ -43,6 +43,7 @@ data class SleepUiState(
     val entryDurationPreview: Duration? = null,
     val pendingDeleteRecord: SleepRecord? = null,
     val editingRecord: SleepRecord? = null,
+    val isRegressionExpanded: Boolean = true,
 )
 
 @HiltViewModel
@@ -191,6 +192,10 @@ class SleepViewModel @Inject constructor(
 
     fun refreshSchedule() {
         loadSchedule()
+    }
+
+    fun onToggleRegression() {
+        _uiState.value = _uiState.value.copy(isRegressionExpanded = !_uiState.value.isRegressionExpanded)
     }
 
     private fun computeDurationPreview(start: LocalTime, end: LocalTime): Duration? {
