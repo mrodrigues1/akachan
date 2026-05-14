@@ -188,6 +188,9 @@ fun SleepTrackingScreen(
                     TextButton(onClick = onNavigateToHistory) {
                         Text("History", color = MaterialTheme.colorScheme.secondary)
                     }
+                    TextButton(onClick = onNavigateToSchedule) {
+                        Text("Schedule", color = MaterialTheme.colorScheme.secondary)
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
@@ -265,23 +268,6 @@ fun SleepTrackingScreen(
                     )
                 ) {
                     Text("Log Past Sleep", style = MaterialTheme.typography.titleSmall)
-                }
-            }
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = onNavigateToHistory,
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.extraLarge
-                    ) { Text("History") }
-                    OutlinedButton(
-                        onClick = onNavigateToSchedule,
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.extraLarge
-                    ) { Text("Schedule") }
                 }
             }
         }
