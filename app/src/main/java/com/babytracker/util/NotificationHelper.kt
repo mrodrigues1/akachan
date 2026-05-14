@@ -197,11 +197,11 @@ object NotificationHelper {
     private fun formatMaxTimeLabel(maxMinutes: Int): String =
         "${maxMinutes.coerceAtLeast(0)} min"
 
-    private fun activeProgressText(maxTotalMinutes: Int): String =
-        formatMaxTimeLabel(maxTotalMinutes)
+    private fun activeProgressText(elapsedSeconds: Int, maxTotalMinutes: Int): String =
+        "${formatDurationCompact(elapsedSeconds)} of ${formatMaxTimeLabel(maxTotalMinutes)}"
 
     private fun limitProgressText(maxTotalMinutes: Int): String =
-        formatMaxTimeLabel(maxTotalMinutes)
+        "${formatMaxTimeLabel(maxTotalMinutes)} reached"
 
     private fun activeElapsedSeconds(sessionStartEpochMs: Long, pausedDurationMs: Long): Int =
         ((System.currentTimeMillis() - sessionStartEpochMs - pausedDurationMs).coerceAtLeast(0L) / 1000L)
@@ -482,7 +482,7 @@ object NotificationHelper {
         return ActiveProgress(
             current = if (progressEnabled) elapsedSeconds else 0,
             max = if (progressEnabled) maxSeconds else 1,
-            label = if (progressEnabled) activeProgressText(maxTotalMinutes) else formatDurationCompact(elapsedSeconds),
+            label = if (progressEnabled) activeProgressText(elapsedSeconds, maxTotalMinutes) else formatDurationCompact(elapsedSeconds),
             isEnabled = progressEnabled
         )
     }
