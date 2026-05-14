@@ -638,6 +638,101 @@ class NotificationHelperTest {
         )
     }
 
+    // --- polish regression tests (2025-05 audit) ---
+
+    @Test
+    fun `warning expanded Chronometer uses warning accent color not surface color`() {
+        val file = listOf(
+            java.io.File("src/main/res/layout/notification_warning_progress.xml"),
+            java.io.File("app/src/main/res/layout/notification_warning_progress.xml")
+        ).first { it.exists() }.readText()
+
+        val chronometerBlock = Regex("<Chronometer[\\s\\S]*?/>")
+            .find(file)?.value ?: error("Chronometer not found in notification_warning_progress.xml")
+
+        assertTrue(
+            chronometerBlock.contains("notification_warning_accent"),
+            "warning expanded Chronometer must use @color/notification_warning_accent — " +
+                "notification_on_surface is a neutral surface color that ignores the amber warning theme"
+        )
+        assertFalse(
+            chronometerBlock.contains("notification_on_surface\""),
+            "warning expanded Chronometer must not fall back to notification_on_surface — " +
+                "that breaks the semantic pairing: feeding uses notification_feeding_accent, sleep uses notification_sleep_accent"
+        )
+    }
+
+    @Test
+    fun `collapsed feeding layout has symmetric top padding`() {
+        val file = listOf(
+            java.io.File("src/main/res/layout/notification_collapsed_feeding.xml"),
+            java.io.File("app/src/main/res/layout/notification_collapsed_feeding.xml")
+        ).first { it.exists() }.readText()
+
+        assertTrue(
+            file.contains("android:paddingTop=\"2dp\""),
+            "notification_collapsed_feeding.xml root must declare android:paddingTop=\"2dp\" — " +
+                "without it the top edge is flush while bottom has 2dp, making the content visually off-center"
+        )
+    }
+
+    @Test
+    fun `showSleepActive sets priority default`() {
+        val source = notificationHelperSource()
+        val functionBody = Regex("fun showSleepActive[\\s\\S]*?fun cancelNotification")
+            .find(source)?.value ?: error("showSleepActive body not found")
+
+        assertTrue(
+            functionBody.contains("PRIORITY_DEFAULT"),
+            "showSleepActive must call setPriority(NotificationCompat.PRIORITY_DEFAULT) — " +
+                "sleep is ambient state, not an actionable alert; PRIORITY_HIGH would elevate it above feeding alerts"
+        )
+    }
+
+    @Test
+    fun `showSleepActive sets category status`() {
+        val source = notificationHelperSource()
+        val functionBody = Regex("fun showSleepActive[\\s\\S]*?fun cancelNotification")
+            .find(source)?.value ?: error("showSleepActive body not found")
+
+        assertTrue(
+            functionBody.contains("CATEGORY_STATUS"),
+            "showSleepActive must call setCategory(NotificationCompat.CATEGORY_STATUS) — " +
+                "CATEGORY_STATUS tells the OS this is ongoing informational state, affecting DND bypass and lock-screen grouping"
+        )
+    }
+
+    @Test
+    fun `all show functions call setTicker for accessibility`() {
+        val source = notificationHelperSource()
+
+        val switchSideBody = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
+            .find(source)?.value ?: error("showSwitchSide body not found")
+        val feedingLimitBody = Regex("fun showFeedingLimit[\\s\\S]*?fun showBreastfeedingActive")
+            .find(source)?.value ?: error("showFeedingLimit body not found")
+        val bfActiveBody = Regex("fun showBreastfeedingActive[\\s\\S]*?private fun NotificationCompat")
+            .find(source)?.value ?: error("showBreastfeedingActive body not found")
+        val sleepActiveBody = Regex("fun showSleepActive[\\s\\S]*?fun cancelNotification")
+            .find(source)?.value ?: error("showSleepActive body not found")
+
+        assertTrue(
+            switchSideBody.contains("setTicker("),
+            "showSwitchSide must call setTicker() — status-bar marquee text and TalkBack use this on pre-API-21 and assistive tech"
+        )
+        assertTrue(
+            feedingLimitBody.contains("setTicker("),
+            "showFeedingLimit must call setTicker()"
+        )
+        assertTrue(
+            bfActiveBody.contains("setTicker("),
+            "showBreastfeedingActive must call setTicker()"
+        )
+        assertTrue(
+            sleepActiveBody.contains("setTicker("),
+            "showSleepActive must call setTicker()"
+        )
+    }
+
     // --- dark track color regression tests ---
 
     private fun nightColorsSource(): String =
