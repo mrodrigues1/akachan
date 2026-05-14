@@ -181,14 +181,14 @@ class NotificationHelperTest {
     }
 
     @Test
-    fun `switch side rich notification hides custom progress row`() {
+    fun `switch side rich notification hides custom progress row in both collapsed and expanded views`() {
         val source = notificationHelperSource()
         val showSwitchSideBody = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
             .find(source)
             ?.value
             ?: error("showSwitchSide body not found")
 
-        assertEquals(1, Regex("showProgress = false").findAll(showSwitchSideBody).count())
+        assertEquals(2, Regex("showProgress = false").findAll(showSwitchSideBody).count())
     }
 
     @Test
@@ -241,7 +241,7 @@ class NotificationHelperTest {
         assertTrue(collapsedCall.contains("notification_collapsed_feeding"), "wrong layout for switch-side collapsed view")
         assertTrue(collapsedCall.contains("progress = 1"), "switch-side collapsed progress must be 1 (100%)")
         assertTrue(collapsedCall.contains("maxProgress = 1"), "switch-side collapsed maxProgress must be 1")
-        assertTrue(collapsedCall.contains("showProgress = true"), "switch-side collapsed progress bar must be visible")
+        assertTrue(collapsedCall.contains("showProgress = false"), "switch-side collapsed progress bar must be hidden")
     }
 
     @Test
@@ -294,6 +294,21 @@ class NotificationHelperTest {
         assertTrue(
             file.contains("notification_title_prefix"),
             "notification_collapsed_feeding.xml must contain a prefix TextView with id notification_title_prefix"
+        )
+    }
+
+    @Test
+    fun `feeding collapsed chronometer has minimum width to prevent layout jumps`() {
+        val file = listOf(
+            java.io.File("src/main/res/layout/notification_collapsed_feeding.xml"),
+            java.io.File("app/src/main/res/layout/notification_collapsed_feeding.xml")
+        ).first { it.exists() }.readText()
+
+        assertTrue(
+            file.contains("android:minWidth=\"52dp\""),
+            "notification_collapsed_timer must declare android:minWidth=\"52dp\" — " +
+                "without it the chronometer collapses to zero as seconds tick from narrow (7s) to wide (1m 00s) " +
+                "and the adjacent title TextView jumps"
         )
     }
 
