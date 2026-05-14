@@ -67,6 +67,17 @@ class SleepViewModel @Inject constructor(
     val history: StateFlow<List<SleepRecord>> = getSleepHistory()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val historyByDateDesc: StateFlow<List<Pair<LocalDate, List<SleepRecord>>>> = history
+        .map { records ->
+            val zone = ZoneId.systemDefault()
+            records
+                .groupBy { it.startTime.atZone(zone).toLocalDate() }
+                .entries
+                .sortedByDescending { it.key }
+                .map { (date, recs) -> date to recs }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val activeSleepSession: StateFlow<SleepRecord?> = history
         .map { records -> records.find { it.isInProgress } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
