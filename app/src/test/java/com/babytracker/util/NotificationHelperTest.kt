@@ -49,13 +49,6 @@ class NotificationHelperTest {
         return method.invoke(NotificationHelper, value) as String
     }
 
-    private fun invokePrivateStringMethod(name: String, first: Int, second: Int): String {
-        val method = NotificationHelper::class.java.declaredMethods
-            .first { it.name == name }
-        method.isAccessible = true
-        return method.invoke(NotificationHelper, first, second) as String
-    }
-
     private fun notificationHelperSource(): String =
         listOf(
             java.io.File("src/main/java/com/babytracker/util/NotificationHelper.kt"),
@@ -94,8 +87,8 @@ class NotificationHelperTest {
     }
 
     @Test
-    fun `activeProgressText shows elapsed and max feeding time`() {
-        assertEquals("1 min 30s of 2 min", invokePrivateStringMethod("activeProgressText", 90, 2))
+    fun `activeProgressText shows only max feeding time`() {
+        assertEquals("2 min", invokePrivateStringMethod("activeProgressText", 2))
     }
 
     @Test
