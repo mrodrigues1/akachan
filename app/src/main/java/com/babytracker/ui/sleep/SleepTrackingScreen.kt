@@ -1,6 +1,7 @@
 package com.babytracker.ui.sleep
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -202,11 +203,16 @@ fun SleepTrackingScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(bottom = 16.dp, top = 8.dp)
         ) {
-            if (activeSleepSession != null) {
-                item {
+            item {
+                if (activeSleepSession != null) {
                     ActiveSleepCard(
                         record = activeSleepSession!!,
                         onStop = viewModel::onStopRecord
+                    )
+                } else {
+                    SleepQuickStartRow(
+                        onStartNap = { viewModel.onStartRecord(SleepType.NAP) },
+                        onStartNightSleep = { viewModel.onStartRecord(SleepType.NIGHT_SLEEP) }
                     )
                 }
             }
@@ -249,15 +255,16 @@ fun SleepTrackingScreen(
                 }
             }
             item {
-                Button(
+                OutlinedButton(
                     onClick = viewModel::onAddEntryClick,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.extraLarge,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.secondary
                     )
                 ) {
-                    Text("+ Add Sleep Entry", style = MaterialTheme.typography.titleSmall)
+                    Text("Log Past Sleep", style = MaterialTheme.typography.titleSmall)
                 }
             }
             item {
@@ -489,10 +496,42 @@ private fun TodayEmptyState() {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "Tap below to add one",
+            text = "Tap below to log a past sleep",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@Composable
+private fun SleepQuickStartRow(
+    onStartNap: () -> Unit,
+    onStartNightSleep: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Button(
+            onClick = onStartNap,
+            modifier = Modifier.weight(1f),
+            shape = MaterialTheme.shapes.extraLarge,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary
+            )
+        ) {
+            Text("😴 Start Nap", style = MaterialTheme.typography.labelLarge)
+        }
+        Button(
+            onClick = onStartNightSleep,
+            modifier = Modifier.weight(1f),
+            shape = MaterialTheme.shapes.extraLarge,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary
+            )
+        ) {
+            Text("🌙 Start Night Sleep", style = MaterialTheme.typography.labelLarge)
+        }
     }
 }
 

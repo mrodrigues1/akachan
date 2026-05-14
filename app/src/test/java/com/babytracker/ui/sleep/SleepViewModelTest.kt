@@ -343,6 +343,74 @@ class SleepViewModelTest {
     }
 
     @Test
+    fun `onStartRecord with NAP type calls startRecord with NAP`() = runTest {
+        val record = SleepRecord(id = 1L, startTime = Instant.now(), sleepType = SleepType.NAP)
+        coEvery { startRecord(SleepType.NAP) } returns record
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onStartRecord(SleepType.NAP)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { startRecord(SleepType.NAP) }
+        coVerify(exactly = 0) { startRecord(SleepType.NIGHT_SLEEP) }
+    }
+
+    @Test
+    fun `onStartRecord with NIGHT_SLEEP type calls startRecord with NIGHT_SLEEP`() = runTest {
+        val record = SleepRecord(id = 2L, startTime = Instant.now(), sleepType = SleepType.NIGHT_SLEEP)
+        coEvery { startRecord(SleepType.NIGHT_SLEEP) } returns record
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onStartRecord(SleepType.NIGHT_SLEEP)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { startRecord(SleepType.NIGHT_SLEEP) }
+        coVerify(exactly = 0) { startRecord(SleepType.NAP) }
+    }
+
+    @Test
+    fun `onStartRecord schedules notification with record data`() = runTest {
+        val record = SleepRecord(id = 3L, startTime = Instant.now(), sleepType = SleepType.NAP)
+        coEvery { startRecord(SleepType.NAP) } returns record
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onStartRecord(SleepType.NAP)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { sleepNotificationScheduler.show(record.id, record.sleepType, record.startTime) }
+    }
+
+    @Test
+    fun `onStartRecord NIGHT_SLEEP triggers sleep records sync`() = runTest {
+        val record = SleepRecord(id = 4L, startTime = Instant.now(), sleepType = SleepType.NIGHT_SLEEP)
+        coEvery { startRecord(SleepType.NIGHT_SLEEP) } returns record
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onStartRecord(SleepType.NIGHT_SLEEP)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
+    }
+
+    @Test
+    fun `onAddEntryClick opens sheet with no editing record and does not start a live session`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAddEntryClick()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(true, state.showEntrySheet)
+        assertNull(state.editingRecord)
+        coVerify(exactly = 0) { startRecord(any()) }
+    }
+
+    @Test
     fun `onDismissSheet clears editingRecord`() = runTest {
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
