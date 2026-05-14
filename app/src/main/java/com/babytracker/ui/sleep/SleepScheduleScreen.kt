@@ -346,7 +346,7 @@ private fun NapCard(entry: ScheduleEntry) {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "\uD83D\uDE34",
+                    text = entry.emoji,
                     style = MaterialTheme.typography.titleLarge
                 )
                 Spacer(modifier = Modifier.width(12.dp))
@@ -525,9 +525,10 @@ private val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
 private fun formatLocalTime(time: LocalTime): String = time.format(timeFormatter)
 
-private fun formatAge(ageInWeeks: Int): String {
-    val months = ageInWeeks / 4
-    val remainingWeeks = ageInWeeks % 4
+internal fun formatAge(ageInWeeks: Int): String {
+    val totalDays = ageInWeeks * 7
+    val months = totalDays / 30
+    val remainingWeeks = (totalDays - months * 30) / 7
     return when {
         months == 0 -> "$ageInWeeks weeks old"
         remainingWeeks == 0 -> "$months months old"

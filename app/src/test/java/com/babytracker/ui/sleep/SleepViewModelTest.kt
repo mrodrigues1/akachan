@@ -520,6 +520,92 @@ class SleepViewModelTest {
     }
 
     @Test
+    fun `activeTimePicker defaults to null`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.activeTimePicker)
+    }
+
+    @Test
+    fun `onShowTimePicker WAKE sets activeTimePicker to WAKE`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onShowTimePicker(SleepTimePickerTarget.WAKE)
+
+        assertEquals(SleepTimePickerTarget.WAKE, viewModel.uiState.value.activeTimePicker)
+    }
+
+    @Test
+    fun `onDismissTimePicker clears activeTimePicker`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onDismissTimePicker()
+
+        assertNull(viewModel.uiState.value.activeTimePicker)
+    }
+
+    @Test
+    fun `onConfirmTimePicker WAKE applies wake time and dismisses`() = runTest {
+        coJustRun { settingsRepository.setWakeTime(any()) }
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onShowTimePicker(SleepTimePickerTarget.WAKE)
+        viewModel.onConfirmTimePicker(LocalTime.of(7, 30))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.activeTimePicker)
+        coVerify { settingsRepository.setWakeTime(LocalTime.of(7, 30)) }
+    }
+
+    @Test
+    fun `onConfirmTimePicker ENTRY_START updates entryStartTime and dismisses`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAddEntryClick()
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(13, 15))
+
+        val state = viewModel.uiState.value
+        assertNull(state.activeTimePicker)
+        assertEquals(LocalTime.of(13, 15), state.entryStartTime)
+    }
+
+    @Test
+    fun `onConfirmTimePicker ENTRY_END updates entryEndTime and dismisses`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAddEntryClick()
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(14, 45))
+
+        val state = viewModel.uiState.value
+        assertNull(state.activeTimePicker)
+        assertEquals(LocalTime.of(14, 45), state.entryEndTime)
+    }
+
+    @Test
+    fun `onConfirmTimePicker is a no-op when no picker is active`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val initialStart = viewModel.uiState.value.entryStartTime
+        val initialEnd = viewModel.uiState.value.entryEndTime
+
+        viewModel.onConfirmTimePicker(LocalTime.of(3, 0))
+
+        val state = viewModel.uiState.value
+        assertEquals(initialStart, state.entryStartTime)
+        assertEquals(initialEnd, state.entryEndTime)
+        coVerify(exactly = 0) { settingsRepository.setWakeTime(any()) }
+    }
+
+    @Test
     fun `onDismissSheet clears editingRecord`() = runTest {
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()

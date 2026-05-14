@@ -31,6 +31,8 @@ import java.time.LocalTime
 import java.time.ZoneId
 import javax.inject.Inject
 
+enum class SleepTimePickerTarget { WAKE, ENTRY_START, ENTRY_END }
+
 data class SleepUiState(
     val schedule: SleepSchedule? = null,
     val isLoading: Boolean = false,
@@ -44,6 +46,7 @@ data class SleepUiState(
     val pendingDeleteRecord: SleepRecord? = null,
     val editingRecord: SleepRecord? = null,
     val isRegressionExpanded: Boolean = true,
+    val activeTimePicker: SleepTimePickerTarget? = null,
 )
 
 @HiltViewModel
@@ -198,6 +201,45 @@ class SleepViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.setWakeTime(time)
             loadSchedule()
+        }
+    }
+
+    fun onShowTimePicker(target: SleepTimePickerTarget) {
+        _uiState.value = _uiState.value.copy(activeTimePicker = target)
+    }
+
+    fun onDismissTimePicker() {
+        _uiState.value = _uiState.value.copy(activeTimePicker = null)
+    }
+
+    fun onConfirmTimePicker(time: LocalTime) {
+        val current = _uiState.value
+        when (current.activeTimePicker) {
+            SleepTimePickerTarget.WAKE -> {
+                _uiState.value = current.copy(activeTimePicker = null)
+                onSetWakeTime(time)
+            }
+            SleepTimePickerTarget.ENTRY_START -> {
+                val base = current.copy(
+                    entryStartTime = time,
+                    entryError = null,
+                    activeTimePicker = null
+                )
+                _uiState.value = base.copy(
+                    entryDurationPreview = computeDurationPreview(time, base.entryEndTime)
+                )
+            }
+            SleepTimePickerTarget.ENTRY_END -> {
+                val base = current.copy(
+                    entryEndTime = time,
+                    entryError = null,
+                    activeTimePicker = null
+                )
+                _uiState.value = base.copy(
+                    entryDurationPreview = computeDurationPreview(base.entryStartTime, time)
+                )
+            }
+            null -> Unit
         }
     }
 
