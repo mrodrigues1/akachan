@@ -2,6 +2,7 @@ package com.babytracker.ui.onboarding.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -104,88 +105,95 @@ fun BabyInfoStepContent(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.surface,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .imePadding(),
-        ) {
-            OnboardingHeroStrip(
-                title = "Baby profile",
-                stepLabel = "Step 2 of 3",
-                progress = 0.66f,
-                accentColor = MaterialTheme.colorScheme.primary,
-                accentContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                accentContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                onBack = onBack,
-            )
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val isCompactHeight = maxHeight < 560.dp || maxWidth > maxHeight
+            val horizontalPadding = if (isCompactHeight) 20.dp else 24.dp
+            val buttonBottomPadding = if (isCompactHeight) 16.dp else 24.dp
+
             Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp),
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .imePadding(),
             ) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Start with the basics",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.semantics { heading() },
+                OnboardingHeroStrip(
+                    title = "Baby profile",
+                    stepLabel = "Step 2 of 3",
+                    progress = 0.66f,
+                    accentColor = MaterialTheme.colorScheme.primary,
+                    accentContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    accentContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    onBack = onBack,
+                    isCompactHeight = isCompactHeight,
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "This helps keep ages and records clear across feeding and sleep history.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = onNameChanged,
-                    label = { Text("Baby's name") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Words,
-                        imeAction = ImeAction.Done,
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            focusManager.clearFocus()
-                            onNext()
-                        },
-                    ),
-                    isError = nameError != null,
-                    supportingText = nameSupportingText(
-                        error = nameError,
-                        length = nameLength,
-                    ),
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = horizontalPadding),
+                ) {
+                    Spacer(modifier = Modifier.height(if (isCompactHeight) 8.dp else 12.dp))
+                    Text(
+                        text = "Start with the basics",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "This helps keep ages and records clear across feeding and sleep history.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(if (isCompactHeight) 16.dp else 24.dp))
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = onNameChanged,
+                        label = { Text("Baby's name") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Words,
+                            imeAction = ImeAction.Done,
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                focusManager.clearFocus()
+                                onNext()
+                            },
+                        ),
+                        isError = nameError != null,
+                        supportingText = nameSupportingText(
+                            error = nameError,
+                            length = nameLength,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(nameFocusRequester),
+                    )
+                    Spacer(modifier = Modifier.height(if (isCompactHeight) 12.dp else 16.dp))
+                    DateOfBirthField(
+                        value = selectedDate.format(formatter),
+                        error = birthDateError,
+                        onClick = { showDatePicker = true },
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    BabyAgeSummary(
+                        ageText = ageText,
+                        showAgeWarning = showAgeWarning,
+                    )
+                }
+                Button(
+                    onClick = onNext,
+                    enabled = isNextEnabled,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .focusRequester(nameFocusRequester),
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                DateOfBirthField(
-                    value = selectedDate.format(formatter),
-                    error = birthDateError,
-                    onClick = { showDatePicker = true },
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                BabyAgeSummary(
-                    ageText = ageText,
-                    showAgeWarning = showAgeWarning,
-                )
-            }
-            Button(
-                onClick = onNext,
-                enabled = isNextEnabled,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .padding(bottom = 24.dp),
-                shape = MaterialTheme.shapes.extraLarge,
-            ) {
-                Text("Continue")
+                        .padding(horizontal = horizontalPadding)
+                        .padding(bottom = buttonBottomPadding),
+                    shape = MaterialTheme.shapes.extraLarge,
+                ) {
+                    Text("Continue")
+                }
             }
         }
     }

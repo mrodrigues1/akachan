@@ -8,6 +8,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -22,7 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -93,126 +94,136 @@ fun AllergiesStepContent(
         } else {
             Modifier
         }
-
-        Column(
-            modifier = Modifier
-                .then(columnSizeModifier)
-                .then(insetModifier),
-        ) {
-            if (showHeader) {
-                OnboardingHeroStrip(
-                    title = "Allergies",
-                    stepLabel = "Step 3 of 3",
-                    progress = 1f,
-                    accentColor = MaterialTheme.colorScheme.primary,
-                    accentContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    accentContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    onBack = onBack,
-                )
+        BoxWithConstraints(modifier = columnSizeModifier) {
+            val isCompactHeight = (showHeader || showActions) && (maxHeight < 560.dp || maxWidth > maxHeight)
+            val horizontalPadding = when {
+                showHeader || showActions -> if (isCompactHeight) 20.dp else 24.dp
+                else -> 0.dp
             }
-            val contentSizeModifier = if (showActions) {
-                Modifier.weight(1f)
-            } else {
-                Modifier.fillMaxWidth()
-            }
+            val buttonBottomPadding = if (isCompactHeight) 16.dp else 24.dp
 
             Column(
                 modifier = Modifier
-                    .then(contentSizeModifier)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = if (showHeader || showActions) 24.dp else 0.dp),
+                    .then(columnSizeModifier)
+                    .then(insetModifier),
             ) {
-                Spacer(modifier = Modifier.height(if (showHeader) 12.dp else 0.dp))
-                Text(
-                    text = "Any known allergies?",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Choose only what you already know about $babyLabel. You can leave this empty and update it later.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.height(22.dp))
-                NoKnownAllergiesOption(
-                    selected = selectedAllergies.isEmpty(),
-                    onClick = onAllergiesCleared,
-                )
-                Spacer(modifier = Modifier.height(18.dp))
-                Text(
-                    text = "Known allergies",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                AllergyChipGrid(
-                    selectedAllergies = selectedAllergies,
-                    onAllergyToggled = onAllergyToggled,
-                )
-                AnimatedVisibility(
-                    visible = AllergyType.OTHER in selectedAllergies,
-                    enter = fadeIn() + expandVertically(),
-                    exit = shrinkVertically() + fadeOut(),
-                ) {
-                    Column {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        OutlinedTextField(
-                            value = customNote,
-                            onValueChange = onCustomNoteChanged,
-                            label = { Text("Describe the allergy") },
-                            singleLine = false,
-                            maxLines = 3,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                            supportingText = {
-                                Text("$customNoteLength/$MAX_CUSTOM_ALLERGY_NOTE_LENGTH")
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
+                if (showHeader) {
+                    OnboardingHeroStrip(
+                        title = "Allergy notes",
+                        stepLabel = "Step 3 of 3",
+                        progress = 1f,
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        accentContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        accentContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        onBack = onBack,
+                        isCompactHeight = isCompactHeight,
+                    )
                 }
-                Spacer(modifier = Modifier.height(18.dp))
-                AllergySelectionSummary(selectedAllergies = selectedAllergies)
-            }
-            if (showActions) {
-                val finishButtonModifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .padding(bottom = 24.dp)
-                    .semantics {
-                        if (isSaving) {
-                            contentDescription = "Saving setup"
-                            stateDescription = "Saving"
-                            liveRegion = LiveRegionMode.Polite
+                val contentSizeModifier = if (showActions) {
+                    Modifier.weight(1f)
+                } else {
+                    Modifier.fillMaxWidth()
+                }
+
+                Column(
+                    modifier = Modifier
+                        .then(contentSizeModifier)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = horizontalPadding),
+                ) {
+                    Spacer(modifier = Modifier.height(if (showHeader && !isCompactHeight) 12.dp else 0.dp))
+                    Text(
+                        text = "Any allergies to note?",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Add only allergies you already know about for $babyLabel. " +
+                            "If nothing is known yet, keep this empty and update it later.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(if (isCompactHeight) 16.dp else 22.dp))
+                    NoKnownAllergiesOption(
+                        selected = selectedAllergies.isEmpty(),
+                        onClick = onAllergiesCleared,
+                    )
+                    Spacer(modifier = Modifier.height(if (isCompactHeight) 14.dp else 18.dp))
+                    Text(
+                        text = "Add known allergies",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    AllergyChipGrid(
+                        selectedAllergies = selectedAllergies,
+                        onAllergyToggled = onAllergyToggled,
+                    )
+                    AnimatedVisibility(
+                        visible = AllergyType.OTHER in selectedAllergies,
+                        enter = fadeIn() + expandVertically(),
+                        exit = shrinkVertically() + fadeOut(),
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = customNote,
+                                onValueChange = onCustomNoteChanged,
+                                label = { Text("Describe other allergy") },
+                                singleLine = false,
+                                maxLines = if (isCompactHeight) 1 else 3,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                supportingText = {
+                                    Text("$customNoteLength/$MAX_CUSTOM_ALLERGY_NOTE_LENGTH")
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
                         }
                     }
-
-                Button(
-                    onClick = onFinish,
-                    enabled = !isSaving,
-                    modifier = finishButtonModifier,
-                    shape = MaterialTheme.shapes.extraLarge,
-                ) {
-                    if (isSaving) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .semantics {
-                                        contentDescription = "Saving setup"
-                                    },
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                strokeWidth = 2.dp,
-                            )
-                            Text("Saving")
+                    Spacer(modifier = Modifier.height(if (isCompactHeight) 14.dp else 18.dp))
+                    AllergySelectionSummary(selectedAllergies = selectedAllergies)
+                }
+                if (showActions) {
+                    val finishButtonModifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = horizontalPadding)
+                        .padding(bottom = buttonBottomPadding)
+                        .semantics {
+                            if (isSaving) {
+                                contentDescription = "Saving setup"
+                                stateDescription = "Saving"
+                                liveRegion = LiveRegionMode.Polite
+                            }
                         }
-                    } else {
-                        Text("Finish setup")
+
+                    Button(
+                        onClick = onFinish,
+                        enabled = !isSaving,
+                        modifier = finishButtonModifier,
+                        shape = MaterialTheme.shapes.extraLarge,
+                    ) {
+                        if (isSaving) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .semantics {
+                                            contentDescription = "Saving setup"
+                                        },
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp,
+                                )
+                                Text("Saving")
+                            }
+                        } else {
+                            Text("Finish setup")
+                        }
                     }
                 }
             }
@@ -245,13 +256,13 @@ private fun NoKnownAllergiesOption(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .selectable(
-                selected = selected,
-                role = Role.RadioButton,
-                onClick = onClick,
+            .toggleable(
+                value = selected,
+                role = Role.Checkbox,
+                onValueChange = { onClick() },
             )
             .semantics(mergeDescendants = true) {
-                stateDescription = if (selected) "Selected" else "Not selected"
+                stateDescription = if (selected) "No known allergies selected" else "Known allergies selected"
             },
         shape = MaterialTheme.shapes.medium,
         color = containerColor,
@@ -266,11 +277,11 @@ private fun NoKnownAllergiesOption(
             SelectionMark(selected = selected)
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "No known allergies",
+                    text = "None known yet",
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
-                    text = "Use this if nothing has come up yet.",
+                    text = "Keeps allergy notes empty for now.",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (selected) contentColor else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -366,9 +377,9 @@ private fun AllergySelectionSummary(
     modifier: Modifier = Modifier,
 ) {
     val summary = if (selectedAllergies.isEmpty()) {
-        "Ready to save with no known allergies."
+        "No allergies will be saved yet."
     } else {
-        selectedAllergies.joinToString(prefix = "Selected: ") { it.label }
+        selectedAllergies.joinToString(prefix = "Will save: ") { it.label }
     }
 
     Surface(

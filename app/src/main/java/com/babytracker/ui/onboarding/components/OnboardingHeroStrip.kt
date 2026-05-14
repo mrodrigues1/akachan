@@ -40,6 +40,7 @@ fun OnboardingHeroStrip(
     accentContentColor: Color,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    isCompactHeight: Boolean = false,
 ) {
     val stepDescription = formatStepDescription(stepLabel)
     val containerBorder = if (LocalDarkTheme.current) {
@@ -47,16 +48,19 @@ fun OnboardingHeroStrip(
     } else {
         null
     }
+    val horizontalPadding = if (isCompactHeight) 16.dp else 20.dp
+    val verticalPadding = if (isCompactHeight) 10.dp else 16.dp
+    val contentSpacing = if (isCompactHeight) 10.dp else 14.dp
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = horizontalPadding, vertical = verticalPadding)
             .semantics {
                 contentDescription = "$stepDescription, $title"
                 liveRegion = LiveRegionMode.Polite
             },
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(contentSpacing),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -98,6 +102,7 @@ fun OnboardingHeroStrip(
                 accentContainerColor = accentContainerColor,
                 accentContentColor = accentContentColor,
                 border = containerBorder,
+                isCompactHeight = isCompactHeight,
             )
         }
 
@@ -127,6 +132,7 @@ private fun StepBadge(
     accentContentColor: Color,
     border: BorderStroke?,
     modifier: Modifier = Modifier,
+    isCompactHeight: Boolean = false,
 ) {
     val stepNumber = when {
         progress >= 1f -> "3"
@@ -135,7 +141,7 @@ private fun StepBadge(
     }
 
     Surface(
-        modifier = modifier.size(40.dp),
+        modifier = modifier.size(if (isCompactHeight) 36.dp else 40.dp),
         shape = CircleShape,
         color = accentContainerColor,
         contentColor = accentContentColor,
