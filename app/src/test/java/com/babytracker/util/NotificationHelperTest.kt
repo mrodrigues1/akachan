@@ -55,6 +55,16 @@ class NotificationHelperTest {
             java.io.File("app/src/main/java/com/babytracker/util/NotificationHelper.kt")
         ).first { it.exists() }.readText()
 
+    private fun notificationStringsXml(): String =
+        listOf(
+            java.io.File("src/main/res/values/strings.xml"),
+            java.io.File("app/src/main/res/values/strings.xml")
+        ).first { it.exists() }.readText()
+
+    private fun stringsXmlValue(strings: String, name: String): String =
+        Regex("""name="$name"[^>]*>\s*([^<]+?)\s*<""")
+            .find(strings)?.groupValues?.get(1) ?: error("String '$name' not found in strings.xml")
+
     @Test
     fun `resolveAccent returns dark color when uiMode is night`() {
         val context = contextWithUiMode(Configuration.UI_MODE_NIGHT_YES)
@@ -105,22 +115,24 @@ class NotificationHelperTest {
     @Test
     fun `active breastfeeding notification exposes pause and resume actions`() {
         val source = notificationHelperSource()
+        val strings = notificationStringsXml()
 
         assertTrue(source.contains("ACTION_PAUSE"))
         assertTrue(source.contains("ACTION_RESUME"))
-        assertTrue(source.contains("\"Pause\""))
-        assertTrue(source.contains("\"Resume\""))
-        assertTrue(source.contains("\"Stop feeding\""))
+        assertTrue(source.contains("notif_action_pause"))
+        assertTrue(source.contains("notif_action_resume"))
+        assertTrue(source.contains("notif_action_stop_feeding"))
+        assertEquals("Pause", stringsXmlValue(strings, "notif_action_pause"))
+        assertEquals("Resume", stringsXmlValue(strings, "notif_action_resume"))
+        assertEquals("Stop feeding", stringsXmlValue(strings, "notif_action_stop_feeding"))
     }
 
     // --- copy regression tests ---
 
     @Test
     fun `feeding limit body uses dash-joined duration and both-paths guidance`() {
-        val source = notificationHelperSource()
-        val body = Regex("""val body = "(.+?)"""")
-            .findAll(Regex("fun showFeedingLimit[\\s\\S]*?fun showBreastfeedingActive").find(source)!!.value)
-            .first().groupValues[1]
+        val strings = notificationStringsXml()
+        val body = stringsXmlValue(strings, "notif_body_feeding_limit")
 
         assertTrue(body.contains("-min session"), "body must use dash-joined duration: got '$body'")
         assertTrue(body.contains("Tap Stop or Continue"), "body must state both paths with capital C on Continue: got '$body'")
@@ -130,11 +142,14 @@ class NotificationHelperTest {
     @Test
     fun `feeding limit action labels are warm-functional`() {
         val source = notificationHelperSource()
+        val strings = notificationStringsXml()
         val functionBody = Regex("fun showFeedingLimit[\\s\\S]*?fun showBreastfeedingActive")
             .find(source)?.value ?: error("showFeedingLimit body not found")
 
-        assertTrue(functionBody.contains("\"Stop feeding\""), "feeding-limit stop action must be 'Stop feeding'")
-        assertTrue(functionBody.contains("\"Continue\""), "feeding-limit keep-going action must be 'Continue'")
+        assertTrue(functionBody.contains("notif_action_stop_feeding"), "feeding-limit stop action must reference R.string.notif_action_stop_feeding")
+        assertTrue(functionBody.contains("notif_action_continue"), "feeding-limit keep-going action must reference R.string.notif_action_continue")
+        assertEquals("Stop feeding", stringsXmlValue(strings, "notif_action_stop_feeding"), "notif_action_stop_feeding must be 'Stop feeding'")
+        assertEquals("Continue", stringsXmlValue(strings, "notif_action_continue"), "notif_action_continue must be 'Continue'")
         assertFalse(functionBody.contains("\"Stop Session\""), "stale 'Stop Session' must not appear in showFeedingLimit")
         assertFalse(functionBody.contains("\"Keep Going\""), "stale 'Keep Going' must not appear in showFeedingLimit")
     }
@@ -142,30 +157,36 @@ class NotificationHelperTest {
     @Test
     fun `switch side dismiss action is not yet`() {
         val source = notificationHelperSource()
+        val strings = notificationStringsXml()
         val functionBody = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
             .find(source)?.value ?: error("showSwitchSide body not found")
 
-        assertTrue(functionBody.contains("\"Not yet\""), "switch-side dismiss must be 'Not yet'")
+        assertTrue(functionBody.contains("notif_action_not_yet"), "switch-side dismiss must reference R.string.notif_action_not_yet")
+        assertEquals("Not yet", stringsXmlValue(strings, "notif_action_not_yet"), "notif_action_not_yet must be 'Not yet'")
         assertFalse(functionBody.contains("\"Dismiss\""), "stale 'Dismiss' must not appear in showSwitchSide")
     }
 
     @Test
     fun `active breastfeeding stop action is stop feeding`() {
         val source = notificationHelperSource()
+        val strings = notificationStringsXml()
         val functionBody = Regex("applyBreastfeedingActiveRichContent[\\s\\S]*?private fun breastfeedingActiveProgress")
             .find(source)?.value ?: error("applyBreastfeedingActiveRichContent body not found")
 
-        assertTrue(functionBody.contains("\"Stop feeding\""), "active feeding stop action must be 'Stop feeding'")
+        assertTrue(functionBody.contains("notif_action_stop_feeding"), "active feeding stop action must reference R.string.notif_action_stop_feeding")
+        assertEquals("Stop feeding", stringsXmlValue(strings, "notif_action_stop_feeding"), "notif_action_stop_feeding must be 'Stop feeding'")
         assertFalse(functionBody.contains("\"Stop Session\""), "stale 'Stop Session' must not appear in active feeding")
     }
 
     @Test
     fun `sleep stop action is end sleep`() {
         val source = notificationHelperSource()
+        val strings = notificationStringsXml()
         val functionBody = Regex("fun showSleepActive[\\s\\S]*?fun cancelNotification")
             .find(source)?.value ?: error("showSleepActive body not found")
 
-        assertTrue(functionBody.contains("\"End sleep\""), "sleep stop action must be 'End sleep'")
+        assertTrue(functionBody.contains("notif_action_end_sleep"), "sleep stop action must reference R.string.notif_action_end_sleep")
+        assertEquals("End sleep", stringsXmlValue(strings, "notif_action_end_sleep"), "notif_action_end_sleep must be 'End sleep'")
         assertFalse(functionBody.contains("\"Stop Sleep\""), "stale 'Stop Sleep' must not appear in showSleepActive")
     }
 
@@ -412,42 +433,44 @@ class NotificationHelperTest {
     @Test
     fun `switch side body uses capitalized side label for the target breast`() {
         val source = notificationHelperSource()
+        val strings = notificationStringsXml()
         val functionBody = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
             .find(source)?.value ?: error("showSwitchSide body not found")
 
-        assertFalse(
-            functionBody.contains("\"right\"") || functionBody.contains("\"left\""),
-            "otherSide variable must be capitalized ('Right'/'Left') to match sideLabel casing in the same body string"
-        )
         assertTrue(
-            functionBody.contains("\"Right\"") && functionBody.contains("\"Left\""),
-            "otherSide must produce 'Right' for LEFT current side and 'Left' for RIGHT current side"
+            functionBody.contains("notif_side_right") && functionBody.contains("notif_side_left"),
+            "otherSide and sideLabel must be looked up via R.string.notif_side_right / notif_side_left"
         )
+        assertEquals("Right", stringsXmlValue(strings, "notif_side_right"), "notif_side_right must be capitalized 'Right'")
+        assertEquals("Left", stringsXmlValue(strings, "notif_side_left"), "notif_side_left must be capitalized 'Left'")
     }
 
     @Test
     fun `switch side primary action uses sentence case`() {
         val source = notificationHelperSource()
+        val strings = notificationStringsXml()
         val functionBody = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
             .find(source)?.value ?: error("showSwitchSide body not found")
 
         assertTrue(
-            functionBody.contains("\"Switch now\""),
-            "switch-side primary action must be 'Switch now' (sentence case) — 'Switch Now' (title case) is inconsistent with all other action labels"
+            functionBody.contains("notif_action_switch_now"),
+            "switch-side primary action must reference R.string.notif_action_switch_now"
+        )
+        assertEquals(
+            "Switch now",
+            stringsXmlValue(strings, "notif_action_switch_now"),
+            "notif_action_switch_now must be 'Switch now' (sentence case) — 'Switch Now' (title case) is inconsistent with all other action labels"
         )
         assertFalse(
-            functionBody.contains("\"Switch Now\""),
-            "stale title-case 'Switch Now' must not appear in showSwitchSide"
+            strings.contains(">Switch Now<"),
+            "stale title-case 'Switch Now' must not appear in strings.xml"
         )
     }
 
     @Test
     fun `feeding limit body capitalises Continue to match action button label`() {
-        val source = notificationHelperSource()
-        val functionBody = Regex("fun showFeedingLimit[\\s\\S]*?fun showBreastfeedingActive")
-            .find(source)?.value ?: error("showFeedingLimit body not found")
-        val body = Regex("""val body = "(.+?)"""")
-            .findAll(functionBody).first().groupValues[1]
+        val strings = notificationStringsXml()
+        val body = stringsXmlValue(strings, "notif_body_feeding_limit")
 
         assertTrue(
             body.contains("Continue"),
