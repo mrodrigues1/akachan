@@ -352,4 +352,58 @@ class NotificationHelperTest {
             "showSleepActive rich path must use DecoratedCustomViewStyle so setCustomContentView renders"
         )
     }
+
+    // --- color token regression tests ---
+
+    @Test
+    fun `notification_on_surface_variant is warm muted grey not neutral grey`() {
+        val file = listOf(
+            java.io.File("src/main/res/values/colors.xml"),
+            java.io.File("app/src/main/res/values/colors.xml")
+        ).first { it.exists() }.readText()
+
+        assertTrue(
+            file.contains("name=\"notification_on_surface_variant\">#6D6A64"),
+            "notification_on_surface_variant must be #6D6A64 (Akachan muted-grey token) — " +
+                "#757575 is a neutral grey that ignores the warm surface tint"
+        )
+    }
+
+    // --- collapsed ProgressBar height regression tests ---
+
+    private fun collapsedLayoutProgressBarHeight(name: String): String {
+        val file = listOf(
+            java.io.File("src/main/res/layout/$name"),
+            java.io.File("app/src/main/res/layout/$name")
+        ).first { it.exists() }.readText()
+        return Regex("<ProgressBar[\\s\\S]*?/>")
+            .find(file)?.value ?: error("ProgressBar not found in $name")
+    }
+
+    @Test
+    fun `collapsed feeding progress bar height is 4dp`() {
+        val block = collapsedLayoutProgressBarHeight("notification_collapsed_feeding.xml")
+        assertTrue(
+            block.contains("android:layout_height=\"4dp\""),
+            "collapsed feeding ProgressBar must be 4dp tall — 2dp is too thin to read at a glance"
+        )
+    }
+
+    @Test
+    fun `collapsed warning progress bar height is 4dp`() {
+        val block = collapsedLayoutProgressBarHeight("notification_collapsed_warning.xml")
+        assertTrue(
+            block.contains("android:layout_height=\"4dp\""),
+            "collapsed warning ProgressBar must be 4dp tall — 2dp is too thin to read at a glance"
+        )
+    }
+
+    @Test
+    fun `collapsed sleep progress bar height is 4dp`() {
+        val block = collapsedLayoutProgressBarHeight("notification_collapsed_sleep.xml")
+        assertTrue(
+            block.contains("android:layout_height=\"4dp\""),
+            "collapsed sleep ProgressBar must be 4dp tall — 2dp is too thin to read at a glance"
+        )
+    }
 }
