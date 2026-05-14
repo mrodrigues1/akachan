@@ -596,6 +596,8 @@ internal fun SleepEntryCard(record: SleepRecord) {
         badgeEmoji = record.sleepType.emoji,
         badgeColor = MaterialTheme.colorScheme.secondaryContainer,
         trailingColor = MaterialTheme.colorScheme.secondary,
+        trailingIcon = Icons.Default.Edit,
+        trailingIconDescription = "Edit sleep entry",
     )
 }
 
@@ -695,6 +697,8 @@ internal fun AddSleepEntrySheetContent(
             }
         }
 
+        val canSave = uiState.entryDurationPreview != null && uiState.entryError == null
+
         when {
             uiState.entryError != null -> {
                 Card(
@@ -714,7 +718,25 @@ internal fun AddSleepEntrySheetContent(
                     )
                 }
             }
-            uiState.entryDurationPreview != null -> {
+            uiState.entryDurationPreview == null -> {
+                Card(
+                    shape = MaterialTheme.shapes.small,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Text(
+                        text = "Pick different start and end times to save this sleep.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                    )
+                }
+            }
+            else -> {
                 Card(
                     shape = MaterialTheme.shapes.small,
                     colors = CardDefaults.cardColors(
@@ -743,6 +765,7 @@ internal fun AddSleepEntrySheetContent(
         }
         Button(
             onClick = onSave,
+            enabled = canSave,
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 48.dp),

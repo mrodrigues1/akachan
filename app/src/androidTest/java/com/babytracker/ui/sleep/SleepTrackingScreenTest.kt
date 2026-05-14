@@ -3,9 +3,11 @@ package com.babytracker.ui.sleep
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
@@ -55,6 +57,29 @@ class SleepTrackingScreenTest {
     }
 
     @Test
+    fun sleepEntryShowsEditAffordance() {
+        val record = SleepRecord(
+            id = 10L,
+            startTime = Instant.parse("2024-01-01T12:00:00Z"),
+            endTime = Instant.parse("2024-01-01T13:00:00Z"),
+            sleepType = SleepType.NAP,
+        )
+
+        composeRule.setContent {
+            BabyTrackerTheme {
+                SwipeableSleepEntry(
+                    record = record,
+                    onDeleteRequest = {},
+                    onEditRecord = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Edit sleep entry")
+            .assertIsDisplayed()
+    }
+
+    @Test
     fun addSleepEntrySheetPrimaryActionKeepsMinimumTouchTarget() {
         composeRule.setContent {
             BabyTrackerTheme {
@@ -91,6 +116,29 @@ class SleepTrackingScreenTest {
         composeRule.onNodeWithText("Update Nap")
             .assertIsDisplayed()
             .assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test
+    fun addSleepEntrySheetDisablesSaveWhenTimesNeedFixing() {
+        composeRule.setContent {
+            BabyTrackerTheme {
+                AddSleepEntrySheetContent(
+                    uiState = sheetState(SleepType.NAP).copy(
+                        entryDurationPreview = null,
+                        entryError = "End time needs to be after start time. Adjust one time to save this sleep.",
+                    ),
+                    onTypeChanged = {},
+                    onStartTimeClick = {},
+                    onEndTimeClick = {},
+                    onSave = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("End time needs to be after start time. Adjust one time to save this sleep.")
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("Save Nap")
+            .assertIsNotEnabled()
     }
 
     private fun sheetState(sleepType: SleepType) = SleepUiState(
