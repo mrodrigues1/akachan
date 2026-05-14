@@ -103,6 +103,41 @@ object NotificationHelper {
         }
     }
 
+    private fun buildProgressOnlyBigView(
+        context: Context,
+        layoutRes: Int,
+        title: String,
+        body: String,
+        progress: Int,
+        maxProgress: Int,
+        progressText: String
+    ): RemoteViews = RemoteViews(context.packageName, layoutRes).apply {
+        val safeMax = maxProgress.coerceAtLeast(1)
+
+        setTextViewText(R.id.notification_title, title)
+        setTextViewText(R.id.notification_body, body)
+        setTextViewText(R.id.notification_progress_label, progressText)
+        setProgressBar(
+            R.id.notification_progress,
+            safeMax,
+            progress.coerceIn(0, safeMax),
+            false
+        )
+    }
+
+    private fun buildChronometerBigView(
+        context: Context,
+        layoutRes: Int,
+        title: String,
+        body: String,
+        chronometerBaseElapsedMs: Long,
+        chronometerRunning: Boolean
+    ): RemoteViews = RemoteViews(context.packageName, layoutRes).apply {
+        setTextViewText(R.id.notification_title, title)
+        setTextViewText(R.id.notification_body, body)
+        setChronometer(R.id.notification_timer, chronometerBaseElapsedMs, null, chronometerRunning)
+    }
+
     private fun buildCollapsedView(
         context: Context,
         layoutRes: Int,
@@ -310,7 +345,7 @@ object NotificationHelper {
                     )
                 )
                 .setCustomBigContentView(
-                    buildProgressBigView(
+                    buildProgressOnlyBigView(
                         context = context,
                         layoutRes = R.layout.notification_warning_progress,
                         title = title,
@@ -396,7 +431,7 @@ object NotificationHelper {
             .setCustomContentView(
                 buildFeedingActiveCollapsedView(
                     context = content.context,
-                    layoutRes = R.layout.notification_collapsed_feeding,
+                    layoutRes = R.layout.notification_collapsed_feeding_active,
                     progress = progress.current,
                     maxProgress = progress.max,
                     showProgress = progress.isEnabled,
@@ -532,17 +567,13 @@ object NotificationHelper {
                     )
                 )
                 .setCustomBigContentView(
-                    buildProgressBigView(
+                    buildChronometerBigView(
                         context = context,
                         layoutRes = R.layout.notification_sleep_expanded,
                         title = title,
                         body = body,
-                        progress = 0,
-                        maxProgress = 1,
-                        progressText = "",
                         chronometerBaseElapsedMs = chronometerBase,
-                        chronometerRunning = true,
-                        showProgress = false
+                        chronometerRunning = true
                     )
                 )
                 .setStyle(NotificationCompat.DecoratedCustomViewStyle())

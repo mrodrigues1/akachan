@@ -239,7 +239,7 @@ class NotificationHelperTest {
     }
 
     @Test
-    fun `all three collapsed notification layout files exist`() {
+    fun `collapsed notification layout files exist`() {
         fun layoutExists(name: String): Boolean =
             listOf(
                 java.io.File("src/main/res/layout/$name"),
@@ -247,6 +247,7 @@ class NotificationHelperTest {
             ).any { it.exists() }
 
         assertTrue(layoutExists("notification_collapsed_feeding.xml"), "feeding collapsed layout missing")
+        assertTrue(layoutExists("notification_collapsed_feeding_active.xml"), "active feeding collapsed layout missing")
         assertTrue(layoutExists("notification_collapsed_warning.xml"), "warning collapsed layout missing")
         assertTrue(layoutExists("notification_collapsed_sleep.xml"), "sleep collapsed layout missing")
     }
@@ -302,7 +303,7 @@ class NotificationHelperTest {
             .find(source)?.value ?: error("applyBreastfeedingActiveRichContent body not found")
         val collapsedCall = extractCollapsedViewArgs(functionBody)
 
-        assertTrue(collapsedCall.contains("notification_collapsed_feeding"), "wrong layout for active-feeding collapsed view")
+        assertTrue(collapsedCall.contains("notification_collapsed_feeding_active"), "wrong layout for active-feeding collapsed view")
         assertTrue(collapsedCall.contains("progress = progress.current"), "active-feeding progress must be progress.current")
         assertTrue(collapsedCall.contains("maxProgress = progress.max"), "active-feeding maxProgress must be progress.max")
         assertTrue(collapsedCall.contains("showProgress = progress.isEnabled"), "active-feeding progress visibility must follow progress.isEnabled")
@@ -319,27 +320,38 @@ class NotificationHelperTest {
     }
 
     @Test
-    fun `feeding collapsed layout includes chronometer view for live timer`() {
+    fun `active feeding collapsed layout includes chronometer view for live timer`() {
+        val file = listOf(
+            java.io.File("src/main/res/layout/notification_collapsed_feeding_active.xml"),
+            java.io.File("app/src/main/res/layout/notification_collapsed_feeding_active.xml")
+        ).first { it.exists() }.readText()
+
+        assertTrue(
+            file.contains("notification_collapsed_timer"),
+            "notification_collapsed_feeding_active.xml must contain a Chronometer with id notification_collapsed_timer"
+        )
+        assertTrue(
+            file.contains("notification_title_prefix"),
+            "notification_collapsed_feeding_active.xml must contain a prefix TextView with id notification_title_prefix"
+        )
+    }
+
+    @Test
+    fun `simple feeding collapsed layout has no active-session timer views`() {
         val file = listOf(
             java.io.File("src/main/res/layout/notification_collapsed_feeding.xml"),
             java.io.File("app/src/main/res/layout/notification_collapsed_feeding.xml")
         ).first { it.exists() }.readText()
 
-        assertTrue(
-            file.contains("notification_collapsed_timer"),
-            "notification_collapsed_feeding.xml must contain a Chronometer with id notification_collapsed_timer"
-        )
-        assertTrue(
-            file.contains("notification_title_prefix"),
-            "notification_collapsed_feeding.xml must contain a prefix TextView with id notification_title_prefix"
-        )
+        assertFalse(file.contains("notification_collapsed_timer"), "simple feeding collapsed layout must not contain active timer")
+        assertFalse(file.contains("notification_title_prefix"), "simple feeding collapsed layout must not contain active title prefix")
     }
 
     @Test
     fun `feeding collapsed chronometer has minimum width to prevent layout jumps`() {
         val file = listOf(
-            java.io.File("src/main/res/layout/notification_collapsed_feeding.xml"),
-            java.io.File("app/src/main/res/layout/notification_collapsed_feeding.xml")
+            java.io.File("src/main/res/layout/notification_collapsed_feeding_active.xml"),
+            java.io.File("app/src/main/res/layout/notification_collapsed_feeding_active.xml")
         ).first { it.exists() }.readText()
 
         assertTrue(
@@ -424,6 +436,15 @@ class NotificationHelperTest {
         assertTrue(
             block.contains("android:layout_height=\"4dp\""),
             "collapsed feeding ProgressBar must be 4dp tall — 2dp is too thin to read at a glance"
+        )
+    }
+
+    @Test
+    fun `collapsed active feeding progress bar height is 4dp`() {
+        val block = collapsedLayoutProgressBarHeight("notification_collapsed_feeding_active.xml")
+        assertTrue(
+            block.contains("android:layout_height=\"4dp\""),
+            "active collapsed feeding ProgressBar must be 4dp tall"
         )
     }
 
@@ -681,25 +702,24 @@ class NotificationHelperTest {
     // --- polish regression tests (2025-05 audit) ---
 
     @Test
-    fun `warning expanded Chronometer uses warning accent color not surface color`() {
+    fun `warning expanded layout has no dead Chronometer`() {
         val file = listOf(
             java.io.File("src/main/res/layout/notification_warning_progress.xml"),
             java.io.File("app/src/main/res/layout/notification_warning_progress.xml")
         ).first { it.exists() }.readText()
 
-        val chronometerBlock = Regex("<Chronometer[\\s\\S]*?/>")
-            .find(file)?.value ?: error("Chronometer not found in notification_warning_progress.xml")
+        assertFalse(file.contains("<Chronometer"), "warning expanded layout must not keep an unused Chronometer")
+    }
 
-        assertTrue(
-            chronometerBlock.contains("notification_warning_accent"),
-            "warning expanded Chronometer must use @color/notification_warning_accent — " +
-                "notification_on_surface is a neutral surface color that ignores the amber warning theme"
-        )
-        assertFalse(
-            chronometerBlock.contains("notification_on_surface\""),
-            "warning expanded Chronometer must not fall back to notification_on_surface — " +
-                "that breaks the semantic pairing: feeding uses notification_feeding_accent, sleep uses notification_sleep_accent"
-        )
+    @Test
+    fun `sleep expanded layout has no dead progress views`() {
+        val file = listOf(
+            java.io.File("src/main/res/layout/notification_sleep_expanded.xml"),
+            java.io.File("app/src/main/res/layout/notification_sleep_expanded.xml")
+        ).first { it.exists() }.readText()
+
+        assertFalse(file.contains("<ProgressBar"), "sleep expanded layout must not keep an unused ProgressBar")
+        assertFalse(file.contains("notification_progress_label"), "sleep expanded layout must not keep an unused progress label")
     }
 
     @Test
