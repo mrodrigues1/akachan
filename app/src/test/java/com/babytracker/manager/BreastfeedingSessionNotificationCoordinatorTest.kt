@@ -136,6 +136,30 @@ class BreastfeedingSessionNotificationCoordinatorTest {
     }
 
     @Test
+    fun `rearmAfterKeepGoing schedules total-time alarm 600 seconds out`() = runTest {
+        coordinator.rearmAfterKeepGoing(sessionId = 42L, currentSide = "LEFT")
+
+        verify {
+            notificationScheduler.scheduleMaxTotalTimeNotificationAt(
+                triggerTime = any(),
+                sessionId = 42L,
+                maxTotalMinutes = 30,
+                currentSide = "LEFT",
+                maxPerBreastMinutes = 15
+            )
+        }
+    }
+
+    @Test
+    fun `rearmAfterKeepGoing skips scheduling when maxTotalFeedMinutes is zero`() = runTest {
+        every { settingsRepository.getMaxTotalFeedMinutes() } returns flowOf(0)
+
+        coordinator.rearmAfterKeepGoing(sessionId = 42L, currentSide = "LEFT")
+
+        verify(exactly = 0) { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
     fun `cancelPostedSessionNotifications cancels all breastfeeding notifications without cancelling alarms`() {
         coordinator.cancelPostedSessionNotifications()
 

@@ -74,6 +74,7 @@ class BreastfeedingActionReceiverTest {
         coEvery { notificationCoordinator.showPaused(any(), any()) } returns Unit
         coEvery { notificationCoordinator.showRunning(any(), any()) } returns Unit
         coEvery { notificationCoordinator.rescheduleAfterResume(any(), any()) } returns 60_000L
+        coEvery { notificationCoordinator.rearmAfterKeepGoing(any(), any()) } returns Unit
         mockkObject(NotificationHelper)
         every { NotificationHelper.cancelNotification(any(), any()) } returns Unit
         every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any(), any()) } returns Unit
@@ -212,13 +213,30 @@ class BreastfeedingActionReceiverTest {
     }
 
     @Test
-    fun `ACTION_KEEP_GOING cancels only feeding-limit notification without touching repository`() = runTest {
+    fun `ACTION_KEEP_GOING cancels feeding-limit notification and rearms alarm for matching session`() = runTest {
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_KEEP_GOING, 42L))
 
-        coVerify(exactly = 0) { switchSide(any()) }
-        coVerify(exactly = 0) { stopSession(any()) }
         verify { NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID) }
         verify(exactly = 0) { NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID) }
+        coVerify { notificationCoordinator.rearmAfterKeepGoing(42L, "LEFT") }
+    }
+
+    @Test
+    fun `ACTION_KEEP_GOING skips rearm for wrong session id`() = runTest {
+        receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_KEEP_GOING, 999L))
+
+        verify { NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID) }
+        coVerify(exactly = 0) { notificationCoordinator.rearmAfterKeepGoing(any(), any()) }
+    }
+
+    @Test
+    fun `ACTION_KEEP_GOING skips rearm when no active session`() = runTest {
+        coEvery { repository.getActiveSession() } returns flowOf(null)
+
+        receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_KEEP_GOING, 42L))
+
+        verify { NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID) }
+        coVerify(exactly = 0) { notificationCoordinator.rearmAfterKeepGoing(any(), any()) }
     }
 
     @Test
