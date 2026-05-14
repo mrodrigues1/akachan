@@ -28,9 +28,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -52,28 +49,16 @@ fun SleepHistoryScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val groupedByDateDesc by viewModel.historyByDateDesc.collectAsStateWithLifecycle()
 
-    var showStartTimePicker by remember { mutableStateOf(false) }
-    var showEndTimePicker by remember { mutableStateOf(false) }
-
-    if (showStartTimePicker) {
+    uiState.activeTimePicker?.let { target ->
+        val initial = when (target) {
+            SleepTimePickerTarget.WAKE -> uiState.wakeTime ?: LocalTime.of(7, 0)
+            SleepTimePickerTarget.ENTRY_START -> uiState.entryStartTime
+            SleepTimePickerTarget.ENTRY_END -> uiState.entryEndTime
+        }
         SleepTimePickerDialog(
-            initialTime = uiState.entryStartTime,
-            onConfirm = { time ->
-                viewModel.onEntryStartTimeChanged(time)
-                showStartTimePicker = false
-            },
-            onDismiss = { showStartTimePicker = false }
-        )
-    }
-
-    if (showEndTimePicker) {
-        SleepTimePickerDialog(
-            initialTime = uiState.entryEndTime,
-            onConfirm = { time ->
-                viewModel.onEntryEndTimeChanged(time)
-                showEndTimePicker = false
-            },
-            onDismiss = { showEndTimePicker = false }
+            initialTime = initial,
+            onConfirm = viewModel::onConfirmTimePicker,
+            onDismiss = viewModel::onDismissTimePicker
         )
     }
 
@@ -96,8 +81,8 @@ fun SleepHistoryScreen(
                 uiState = uiState,
                 isEditing = uiState.editingRecord != null,
                 onTypeChanged = viewModel::onEntryTypeChanged,
-                onStartTimeClick = { showStartTimePicker = true },
-                onEndTimeClick = { showEndTimePicker = true },
+                onStartTimeClick = { viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START) },
+                onEndTimeClick = { viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END) },
                 onSave = viewModel::onSaveEntry
             )
         }

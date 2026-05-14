@@ -51,13 +51,12 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -111,40 +110,16 @@ fun SleepTrackingScreen(
             .fold(Duration.ZERO) { acc, d -> acc + d }
     }
 
-    var showWakeTimePicker by remember { mutableStateOf(false) }
-    var showStartTimePicker by remember { mutableStateOf(false) }
-    var showEndTimePicker by remember { mutableStateOf(false) }
-
-    if (showWakeTimePicker) {
+    uiState.activeTimePicker?.let { target ->
+        val initial = when (target) {
+            SleepTimePickerTarget.WAKE -> uiState.wakeTime ?: LocalTime.of(7, 0)
+            SleepTimePickerTarget.ENTRY_START -> uiState.entryStartTime
+            SleepTimePickerTarget.ENTRY_END -> uiState.entryEndTime
+        }
         SleepTimePickerDialog(
-            initialTime = uiState.wakeTime ?: LocalTime.of(7, 0),
-            onConfirm = { time ->
-                viewModel.onSetWakeTime(time)
-                showWakeTimePicker = false
-            },
-            onDismiss = { showWakeTimePicker = false }
-        )
-    }
-
-    if (showStartTimePicker) {
-        SleepTimePickerDialog(
-            initialTime = uiState.entryStartTime,
-            onConfirm = { time ->
-                viewModel.onEntryStartTimeChanged(time)
-                showStartTimePicker = false
-            },
-            onDismiss = { showStartTimePicker = false }
-        )
-    }
-
-    if (showEndTimePicker) {
-        SleepTimePickerDialog(
-            initialTime = uiState.entryEndTime,
-            onConfirm = { time ->
-                viewModel.onEntryEndTimeChanged(time)
-                showEndTimePicker = false
-            },
-            onDismiss = { showEndTimePicker = false }
+            initialTime = initial,
+            onConfirm = viewModel::onConfirmTimePicker,
+            onDismiss = viewModel::onDismissTimePicker
         )
     }
 
@@ -167,8 +142,8 @@ fun SleepTrackingScreen(
                 uiState = uiState,
                 isEditing = uiState.editingRecord != null,
                 onTypeChanged = viewModel::onEntryTypeChanged,
-                onStartTimeClick = { showStartTimePicker = true },
-                onEndTimeClick = { showEndTimePicker = true },
+                onStartTimeClick = { viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START) },
+                onEndTimeClick = { viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END) },
                 onSave = viewModel::onSaveEntry
             )
         }
@@ -229,7 +204,7 @@ fun SleepTrackingScreen(
             item {
                 WakeTimeChip(
                     wakeTime = uiState.wakeTime,
-                    onClick = { showWakeTimePicker = true }
+                    onClick = { viewModel.onShowTimePicker(SleepTimePickerTarget.WAKE) }
                 )
             }
             item {
@@ -738,10 +713,11 @@ internal fun SleepTimePickerDialog(
     onConfirm: (LocalTime) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     val timePickerState = rememberTimePickerState(
         initialHour = initialTime.hour,
         initialMinute = initialTime.minute,
-        is24Hour = false
+        is24Hour = android.text.format.DateFormat.is24HourFormat(context)
     )
     AlertDialog(
         onDismissRequest = onDismiss,

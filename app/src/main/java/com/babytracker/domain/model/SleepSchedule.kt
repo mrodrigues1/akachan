@@ -23,7 +23,8 @@ data class ScheduleEntry(
     val startTime: LocalTime,
     val duration: Duration,
     val label: String,
-    val isAdjusted: Boolean = false
+    val isAdjusted: Boolean = false,
+    val emoji: String = "😴"
 )
 
 enum class ScheduleMode(val label: String) {
