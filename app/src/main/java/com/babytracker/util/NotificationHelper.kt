@@ -48,7 +48,9 @@ object NotificationHelper {
     private const val TAG = "NotificationHelper"
     private const val SECONDS_PER_MINUTE = 60
     private const val MILLIS_PER_SECOND = 1000L
-    private const val ACTIVE_REFRESH_INTERVAL_MS = 5_000L
+    private const val ACTIVE_REFRESH_INTERVAL_MS = 30_000L
+    const val BREASTFEEDING_GROUP_KEY = "com.babytracker.notifications.breastfeeding"
+    const val SLEEP_GROUP_KEY = "com.babytracker.notifications.sleep"
 
     private fun resolveAccent(context: Context, light: Color, dark: Color): Int {
         val nightMask = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
@@ -58,12 +60,14 @@ object NotificationHelper {
 
     private fun NotificationCompat.Builder.applyDesignSystem(
         accentColor: Int,
-        smallIconRes: Int
+        smallIconRes: Int,
+        visibility: Int = NotificationCompat.VISIBILITY_PRIVATE
     ): NotificationCompat.Builder = this
         .setSmallIcon(smallIconRes)
         .setColor(accentColor)
         .setColorized(false)
         .setOnlyAlertOnce(true)
+        .setVisibility(visibility)
 
     private fun buildProgressBigView(
         context: Context,
@@ -225,6 +229,7 @@ object NotificationHelper {
             .setOngoing(false)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setGroup(BREASTFEEDING_GROUP_KEY)
             .setContentIntent(tapPi)
 
         if (richEnabled) {
@@ -280,6 +285,7 @@ object NotificationHelper {
             .setContentText(body)
             .setAutoCancel(true)
             .setOngoing(false)
+            .setGroup(BREASTFEEDING_GROUP_KEY)
             .setContentIntent(tapPi)
 
         if (richEnabled) {
@@ -343,6 +349,7 @@ object NotificationHelper {
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setGroup(BREASTFEEDING_GROUP_KEY)
             .setContentIntent(tapPi)
 
         if (richEnabled) {
@@ -492,6 +499,7 @@ object NotificationHelper {
             .setContentText(body)
             .setAutoCancel(false)
             .setOngoing(true)
+            .setGroup(SLEEP_GROUP_KEY)
             .setContentIntent(tapPi)
 
         if (richEnabled) {
@@ -574,11 +582,24 @@ object NotificationHelper {
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        alarmManager.setAndAllowWhileIdle(
-            AlarmManager.ELAPSED_REALTIME_WAKEUP,
-            SystemClock.elapsedRealtime() + ACTIVE_REFRESH_INTERVAL_MS,
-            pendingIntent
-        )
+        val canScheduleExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            alarmManager.canScheduleExactAlarms()
+        } else {
+            true
+        }
+        if (canScheduleExact) {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + ACTIVE_REFRESH_INTERVAL_MS,
+                pendingIntent
+            )
+        } else {
+            alarmManager.setAndAllowWhileIdle(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + ACTIVE_REFRESH_INTERVAL_MS,
+                pendingIntent
+            )
+        }
     }
 
     private fun sleepActionPi(
