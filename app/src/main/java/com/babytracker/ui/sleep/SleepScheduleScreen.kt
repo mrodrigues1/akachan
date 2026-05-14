@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -99,6 +101,8 @@ fun SleepScheduleScreen(
             uiState.schedule != null -> {
                 ScheduleContent(
                     schedule = uiState.schedule!!,
+                    isRegressionExpanded = uiState.isRegressionExpanded,
+                    onToggleRegression = viewModel::onToggleRegression,
                     modifier = Modifier.padding(padding)
                 )
             }
@@ -124,6 +128,8 @@ fun SleepScheduleScreen(
 @Composable
 private fun ScheduleContent(
     schedule: SleepSchedule,
+    isRegressionExpanded: Boolean,
+    onToggleRegression: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -135,11 +141,13 @@ private fun ScheduleContent(
         item { Spacer(modifier = Modifier.height(4.dp)) }
 
         // Header
-        item { ScheduleHeader(schedule) }
-
-        // Regression warning
-        if (schedule.regressionWarning != null) {
-            item { RegressionWarningCard(schedule.regressionWarning) }
+        item {
+            ScheduleHeader(
+                schedule = schedule,
+                hasRegression = schedule.regressionWarning != null,
+                isRegressionExpanded = isRegressionExpanded,
+                onToggleRegression = onToggleRegression
+            )
         }
 
         // Daily timeline
@@ -150,6 +158,11 @@ private fun ScheduleContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
             )
+        }
+
+        // Regression warning (collapsible from ScheduleHeader)
+        if (schedule.regressionWarning != null && isRegressionExpanded) {
+            item { RegressionWarningCard(schedule.regressionWarning) }
         }
 
         itemsIndexed(schedule.napTimes) { index, entry ->
@@ -179,7 +192,12 @@ private fun ScheduleContent(
 }
 
 @Composable
-private fun ScheduleHeader(schedule: SleepSchedule) {
+private fun ScheduleHeader(
+    schedule: SleepSchedule,
+    hasRegression: Boolean,
+    isRegressionExpanded: Boolean,
+    onToggleRegression: () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
@@ -199,7 +217,30 @@ private fun ScheduleHeader(schedule: SleepSchedule) {
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
-                ModeBadge(schedule.mode)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ModeBadge(schedule.mode)
+                    if (hasRegression) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        IconButton(
+                            onClick = onToggleRegression,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isRegressionExpanded) {
+                                    Icons.Default.ExpandLess
+                                } else {
+                                    Icons.Default.ExpandMore
+                                },
+                                contentDescription = if (isRegressionExpanded) {
+                                    "Hide regression info"
+                                } else {
+                                    "Show regression info"
+                                },
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
@@ -243,25 +284,22 @@ private fun RegressionWarningCard(info: RegressionInfo) {
         colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = info.name,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = onContainerColor
-                )
-            }
-            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = info.description,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = onContainerColor
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = info.name,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = onContainerColor.copy(alpha = 0.85f)
+            )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "Typical duration: ${info.durationWeeks}",
                 style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
                 color = onContainerColor.copy(alpha = 0.7f)
             )
         }
