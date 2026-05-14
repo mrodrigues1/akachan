@@ -5,8 +5,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -134,15 +138,21 @@ private fun ScheduleContent(
     onToggleRegression: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val timelineItems = buildSleepTimelineItems(
+        napTimes = schedule.napTimes,
+        wakeWindows = schedule.wakeWindows,
+        bedtime = schedule.bedtime,
+        bedtimeWindow = schedule.bedtimeWindow
+    )
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item { Spacer(modifier = Modifier.height(4.dp)) }
 
-        // Header
         item {
             ScheduleHeader(
                 schedule = schedule,
@@ -152,39 +162,28 @@ private fun ScheduleContent(
             )
         }
 
-        // Daily timeline
         item {
             Text(
-                text = "DAILY SCHEDULE",
+                text = "TODAY",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
             )
         }
 
-        // Regression warning (collapsible from ScheduleHeader)
         if (schedule.regressionWarning != null && isRegressionExpanded) {
             item { RegressionWarningCard(schedule.regressionWarning) }
         }
 
-        itemsIndexed(schedule.napTimes) { index, entry ->
-            // Wake window indicator before each nap
-            WakeWindowIndicator(schedule.wakeWindows.getOrNull(index))
-            Spacer(modifier = Modifier.height(4.dp))
-            NapCard(entry)
+        itemsIndexed(timelineItems) { index, item ->
+            SleepTimelineRow(
+                item = item,
+                isLast = index == timelineItems.lastIndex
+            )
         }
 
-        // Final wake window + bedtime
-        item {
-            WakeWindowIndicator(schedule.wakeWindows.lastOrNull())
-            Spacer(modifier = Modifier.height(4.dp))
-            BedtimeCard(schedule.bedtime, schedule.bedtimeWindow)
-        }
-
-        // Sleep summary
         item { SleepSummaryCard(schedule) }
 
-        // Nap transition suggestion
         if (schedule.napTransitionSuggestion != null) {
             item { NapTransitionCard(schedule.napTransitionSuggestion) }
         }
@@ -309,81 +308,91 @@ private fun RegressionWarningCard(info: RegressionInfo) {
 }
 
 @Composable
-private fun WakeWindowIndicator(duration: Duration?) {
-    if (duration == null) return
+private fun SleepTimelineRow(
+    item: SleepTimelineItem,
+    isLast: Boolean,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 24.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .defaultMinSize(minHeight = 68.dp),
+        verticalAlignment = Alignment.Top
     ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
-        )
-        Spacer(modifier = Modifier.width(12.dp))
+        TimelineTimeColumn(item)
+        TimelineRail(isLast = isLast)
+        if (item.isBedtime) {
+            BedtimeCard(item)
+        } else {
+            NapCard(item)
+        }
+    }
+}
+
+@Composable
+private fun TimelineTimeColumn(item: SleepTimelineItem) {
+    Column(
+        modifier = Modifier.width(64.dp),
+        horizontalAlignment = Alignment.End
+    ) {
         Text(
-            text = "Awake for ${duration.formatDuration()}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            text = formatLocalTime(item.startTime),
+            style = MaterialTheme.typography.labelLarge,
+            color = if (item.isBedtime) {
+                MaterialTheme.colorScheme.secondary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            textAlign = TextAlign.End
         )
     }
 }
 
 @Composable
-private fun NapCard(entry: ScheduleEntry) {
-    val isDark = LocalDarkTheme.current
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 1.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = if (isDark) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null
+private fun TimelineRail(isLast: Boolean) {
+    Box(
+        modifier = Modifier
+            .width(28.dp)
+            .height(68.dp),
+        contentAlignment = Alignment.TopCenter
     ) {
+        if (!isLast) {
+            Box(
+                modifier = Modifier
+                    .padding(top = 14.dp)
+                    .width(1.dp)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.outlineVariant)
+            )
+        }
+        Box(
+            modifier = Modifier
+                .padding(top = 5.dp)
+                .size(10.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.secondary)
+        )
+    }
+}
+
+@Composable
+private fun NapCard(item: SleepTimelineItem) {
+    DenseTimelineCard {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = entry.emoji,
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = entry.label,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        if (entry.isAdjusted) {
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "(adjusted)",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.tertiary
-                            )
-                        }
-                    }
-                    Text(
-                        text = formatLocalTime(entry.startTime),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            TimelineTextBlock(
+                item = item,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                supportingColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
+            )
             Text(
-                text = entry.duration.formatDuration(),
-                style = MaterialTheme.typography.bodyMedium,
+                text = item.trailing,
+                style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.secondary,
                 textAlign = TextAlign.End
@@ -393,49 +402,87 @@ private fun NapCard(entry: ScheduleEntry) {
 }
 
 @Composable
-private fun BedtimeCard(bedtime: LocalTime, bedtimeWindow: ClosedRange<LocalTime>) {
+private fun BedtimeCard(item: SleepTimelineItem) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondary
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            TimelineTextBlock(
+                item = item,
+                contentColor = MaterialTheme.colorScheme.onSecondary,
+                supportingColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.8f),
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = item.trailing,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondary,
+                textAlign = TextAlign.End
+            )
+        }
+    }
+}
+
+@Composable
+private fun DenseTimelineCard(content: @Composable ColumnScope.() -> Unit) {
+    val isDark = LocalDarkTheme.current
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 1.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = if (isDark) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+        content = content
+    )
+}
+
+@Composable
+private fun TimelineTextBlock(
+    item: SleepTimelineItem,
+    contentColor: Color,
+    supportingColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = item.emoji,
+            style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "\uD83C\uDF19",
-                    style = MaterialTheme.typography.titleLarge
+                    text = item.label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
+                if (item.isAdjusted) {
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Bedtime",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondary
-                    )
-                    Text(
-                        text = formatLocalTime(bedtime),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.8f)
+                        text = "adjusted",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "${formatLocalTime(bedtimeWindow.start)} - ${formatLocalTime(bedtimeWindow.endInclusive)}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.7f),
-                textAlign = TextAlign.End
+                text = item.detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = supportingColor
             )
         }
     }
@@ -543,6 +590,47 @@ private fun NapTransitionCard(suggestion: String) {
 private val timeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
 private fun formatLocalTime(time: LocalTime): String = time.format(timeFormatter)
+
+internal data class SleepTimelineItem(
+    val wakeWindow: Duration?,
+    val startTime: LocalTime,
+    val label: String,
+    val detail: String,
+    val trailing: String,
+    val emoji: String,
+    val isAdjusted: Boolean = false,
+    val isBedtime: Boolean = false,
+)
+
+internal fun buildSleepTimelineItems(
+    napTimes: List<ScheduleEntry>,
+    wakeWindows: List<Duration>,
+    bedtime: LocalTime,
+    bedtimeWindow: ClosedRange<LocalTime>,
+): List<SleepTimelineItem> {
+    val napItems = napTimes.mapIndexed { index, entry ->
+        val wakeWindow = wakeWindows.getOrNull(index)
+        SleepTimelineItem(
+            wakeWindow = wakeWindow,
+            startTime = entry.startTime,
+            label = entry.label,
+            detail = wakeWindow?.let { "After ${it.formatDuration()} awake" } ?: "Suggested nap",
+            trailing = entry.duration.formatDuration(),
+            emoji = entry.emoji,
+            isAdjusted = entry.isAdjusted
+        )
+    }
+
+    return napItems + SleepTimelineItem(
+        wakeWindow = wakeWindows.lastOrNull(),
+        startTime = bedtime,
+        label = "Bedtime",
+        detail = "${formatLocalTime(bedtimeWindow.start)} - ${formatLocalTime(bedtimeWindow.endInclusive)}",
+        trailing = formatLocalTime(bedtime),
+        emoji = "\uD83C\uDF19",
+        isBedtime = true
+    )
+}
 
 internal fun formatAge(ageInWeeks: Int): String {
     val totalDays = ageInWeeks * 7
