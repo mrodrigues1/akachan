@@ -70,7 +70,7 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
             ACTION_RESUME -> handleResume(sessionId)
             ACTION_STOP -> handleStop(sessionId)
             ACTION_DISMISS -> NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
-            ACTION_KEEP_GOING -> NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID)
+            ACTION_KEEP_GOING -> handleKeepGoing(context, sessionId)
             ACTION_REFRESH_ACTIVE -> refreshActiveNotification(context, sessionId)
         }
     }
@@ -127,6 +127,14 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
             notificationCoordinator.cancelScheduled()
         }
         notificationCoordinator.cancelPostedSessionNotifications()
+    }
+
+    private suspend fun handleKeepGoing(context: Context, sessionId: Long) {
+        NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID)
+        val session = repository.getActiveSession().first()
+        if (session?.id == sessionId) {
+            notificationCoordinator.rearmAfterKeepGoing(session.id, currentSide(session))
+        }
     }
 
     private suspend fun refreshActiveNotification(context: Context, sessionId: Long) {

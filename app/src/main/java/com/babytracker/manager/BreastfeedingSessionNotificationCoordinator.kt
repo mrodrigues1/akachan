@@ -136,6 +136,20 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
         return pausedSession.pausedDurationMs + currentPauseDurationMs
     }
 
+    suspend fun rearmAfterKeepGoing(sessionId: Long, currentSide: String) {
+        val maxTotal = settingsRepository.getMaxTotalFeedMinutes().first()
+        val maxPerBreast = settingsRepository.getMaxPerBreastMinutes().first()
+        if (maxTotal > 0) {
+            notificationScheduler.scheduleMaxTotalTimeNotificationAt(
+                triggerTime = Instant.now().plusSeconds(600),
+                sessionId = sessionId,
+                maxTotalMinutes = maxTotal,
+                currentSide = currentSide,
+                maxPerBreastMinutes = maxPerBreast
+            )
+        }
+    }
+
     private fun currentSideName(session: BreastfeedingSession): String =
         if (session.switchTime != null) {
             if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT.name else BreastSide.LEFT.name
