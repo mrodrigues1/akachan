@@ -5,9 +5,11 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.babytracker.domain.model.BreastSide
+import com.babytracker.domain.model.BreastfeedingActiveNotificationSettings
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.getBreastfeedingActiveNotificationSettings
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
@@ -93,16 +95,15 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
     }
 
     private suspend fun showSwitchedActiveNotification(context: Context, session: BreastfeedingSession) {
-        val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
-        val maxTotalMinutes = settingsRepository.getMaxTotalFeedMinutes().first()
+        val settings = breastfeedingActiveNotificationSettings()
         NotificationHelper.showBreastfeedingActive(
             context = context,
             sessionId = session.id,
             currentSide = oppositeSide(session.startingSide),
             sessionStartEpochMs = session.startTime.toEpochMilli(),
             pausedDurationMs = session.pausedDurationMs,
-            richEnabled = richEnabled,
-            maxTotalMinutes = maxTotalMinutes
+            richEnabled = settings.richNotificationsEnabled,
+            maxTotalMinutes = settings.maxTotalFeedMinutes
         )
     }
 
@@ -147,18 +148,20 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
         val session = repository.getActiveSession().first()
         if (session == null || session.id != sessionId || session.isPaused) return
 
-        val richEnabled = settingsRepository.getRichNotificationsEnabled().first()
-        val maxTotalMinutes = settingsRepository.getMaxTotalFeedMinutes().first()
+        val settings = breastfeedingActiveNotificationSettings()
         NotificationHelper.showBreastfeedingActive(
             context = context,
             sessionId = session.id,
             currentSide = currentSide(session),
             sessionStartEpochMs = session.startTime.toEpochMilli(),
             pausedDurationMs = session.pausedDurationMs,
-            richEnabled = richEnabled,
-            maxTotalMinutes = maxTotalMinutes
+            richEnabled = settings.richNotificationsEnabled,
+            maxTotalMinutes = settings.maxTotalFeedMinutes
         )
     }
+
+    private suspend fun breastfeedingActiveNotificationSettings(): BreastfeedingActiveNotificationSettings =
+        settingsRepository.getBreastfeedingActiveNotificationSettings().first()
 
     private fun currentSide(session: BreastfeedingSession): String =
         if (session.switchTime != null) {
