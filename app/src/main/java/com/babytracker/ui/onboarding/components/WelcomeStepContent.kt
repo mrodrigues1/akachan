@@ -3,6 +3,7 @@ package com.babytracker.ui.onboarding.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.babytracker.ui.theme.LocalDarkTheme
 
@@ -39,50 +41,66 @@ fun WelcomeStepContent(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.surface,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 24.dp)
-                .padding(top = 32.dp, bottom = 28.dp),
-        ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val isCompactHeight = maxHeight < 560.dp || maxWidth > maxHeight
+            val horizontalPadding = if (isCompactHeight) 20.dp else 24.dp
+            val topPadding = if (isCompactHeight) 18.dp else 32.dp
+            val bottomPadding = if (isCompactHeight) 18.dp else 28.dp
+            val previewHeight = if (isCompactHeight) 144.dp else 224.dp
+
             Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState()),
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(horizontal = horizontalPadding)
+                    .padding(top = topPadding, bottom = bottomPadding),
             ) {
-                WelcomeCarePreview(modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(32.dp))
-                Text(
-                    text = "Welcome to Akachan",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = "A calm place to track feeds, sleep, and allergy notes during the first year.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.height(28.dp))
-                WelcomeFeatureList()
-                Spacer(modifier = Modifier.height(24.dp))
-            }
-            Button(
-                onClick = onGetStarted,
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.extraLarge,
-            ) {
-                Text("Set up baby profile")
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    WelcomeCarePreview(
+                        previewHeight = previewHeight,
+                        isCompactHeight = isCompactHeight,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(modifier = Modifier.height(if (isCompactHeight) 18.dp else 32.dp))
+                    Text(
+                        text = "Welcome to Akachan",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "A calm place to track feeds, sleep, and allergy notes during the first year.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(if (isCompactHeight) 20.dp else 28.dp))
+                    WelcomeFeatureList()
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+                Button(
+                    onClick = onGetStarted,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.extraLarge,
+                ) {
+                    Text("Set up baby profile")
+                }
             }
         }
     }
 }
 
 @Composable
-private fun WelcomeCarePreview(modifier: Modifier = Modifier) {
+private fun WelcomeCarePreview(
+    previewHeight: Dp,
+    isCompactHeight: Boolean,
+    modifier: Modifier = Modifier,
+) {
     val darkModeBorder = if (LocalDarkTheme.current) {
         BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     } else {
@@ -91,7 +109,7 @@ private fun WelcomeCarePreview(modifier: Modifier = Modifier) {
 
     Surface(
         modifier = modifier
-            .height(224.dp)
+            .height(previewHeight)
             .clearAndSetSemantics {},
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -99,11 +117,11 @@ private fun WelcomeCarePreview(modifier: Modifier = Modifier) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(22.dp),
+                .padding(if (isCompactHeight) 16.dp else 22.dp),
         ) {
             Surface(
                 modifier = Modifier
-                    .size(112.dp)
+                    .size(if (isCompactHeight) 88.dp else 112.dp)
                     .align(Alignment.Center),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primaryContainer,

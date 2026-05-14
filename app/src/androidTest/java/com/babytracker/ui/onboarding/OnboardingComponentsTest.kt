@@ -1,6 +1,7 @@
 package com.babytracker.ui.onboarding
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -12,6 +13,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -81,6 +83,24 @@ class OnboardingComponentsTest {
     }
 
     @Test
+    fun welcomeStepSupportsLandscapeDark2xFontScale() {
+        composeRule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+                BabyTrackerTheme(themeConfig = ThemeConfig.DARK) {
+                    WelcomeStepContent(
+                        onGetStarted = {},
+                        modifier = Modifier.requiredSize(width = 640.dp, height = 360.dp),
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithText("Welcome to Akachan").assertIsDisplayed()
+        composeRule.onNodeWithText("Optional partner view").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Set up baby profile").assertIsDisplayed()
+    }
+
+    @Test
     fun welcomePreviewIsHiddenFromTalkBack() {
         composeRule.setContent {
             BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
@@ -112,15 +132,15 @@ class OnboardingComponentsTest {
         }
 
         composeRule.onNode(
-            hasText("Allergies")
+            hasText("Allergy notes")
                 .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)),
         ).assertIsDisplayed()
         composeRule.onNode(
-            hasText("Any known allergies?")
+            hasText("Any allergies to note?")
                 .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)),
         ).assertIsDisplayed()
         composeRule.onNode(
-            hasText("Known allergies")
+            hasText("Add known allergies")
                 .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)),
         ).assertIsDisplayed()
     }
@@ -209,6 +229,33 @@ class OnboardingComponentsTest {
     }
 
     @Test
+    fun babyInfoStepSupportsSmallHeight2xFontScale() {
+        composeRule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+                BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                    BabyInfoStepContent(
+                        name = "Luna",
+                        nameError = null,
+                        selectedDate = LocalDate.now().minusMonths(2),
+                        birthDateError = null,
+                        showAgeWarning = false,
+                        isNextEnabled = true,
+                        onNameChanged = {},
+                        onDateSelected = {},
+                        onBack = {},
+                        onNext = {},
+                        modifier = Modifier.requiredSize(width = 320.dp, height = 420.dp),
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithText("Baby profile").assertIsDisplayed()
+        composeRule.onNodeWithText("Date of birth").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Continue").assertIsDisplayed()
+    }
+
+    @Test
     fun dateOfBirthFieldExposesOneTalkBackButtonTarget() {
         val selectedDate = LocalDate.of(2025, 2, 3)
 
@@ -278,9 +325,9 @@ class OnboardingComponentsTest {
         }
 
         composeRule.onNode(
-            hasText("No known allergies")
-                .and(SemanticsMatcher.expectValue(SemanticsProperties.Selected, true))
-                .and(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Selected")),
+            hasText("None known yet")
+                .and(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.On))
+                .and(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "No known allergies selected")),
         ).assertIsDisplayed()
     }
 
@@ -333,12 +380,38 @@ class OnboardingComponentsTest {
         }
 
         composeRule.onNodeWithText("Step 3 of 3").assertIsDisplayed()
-        composeRule.onNodeWithText("Allergies").assertIsDisplayed()
-        composeRule.onNodeWithText("Any known allergies?").assertIsDisplayed()
-        composeRule.onNodeWithText("No known allergies").assertIsDisplayed()
-        composeRule.onNodeWithText("Ready to save with no known allergies.").assertIsDisplayed()
+        composeRule.onNodeWithText("Allergy notes").assertIsDisplayed()
+        composeRule.onNodeWithText("Any allergies to note?").assertIsDisplayed()
+        composeRule.onNodeWithText("None known yet").assertIsDisplayed()
+        composeRule.onNodeWithText("No allergies will be saved yet.").assertIsDisplayed()
         composeRule.onNodeWithText("Finish setup").assertIsDisplayed()
         composeRule.onNodeWithText("ALLERGIES").assertDoesNotExist()
+    }
+
+    @Test
+    fun allergiesStepSupportsLandscapeDark2xFontScale() {
+        composeRule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+                BabyTrackerTheme(themeConfig = ThemeConfig.DARK) {
+                    AllergiesStepContent(
+                        babyName = "Luna",
+                        selectedAllergies = setOf(AllergyType.CMPA, AllergyType.OTHER),
+                        customNote = "Pears",
+                        isSaving = false,
+                        onAllergyToggled = {},
+                        onAllergiesCleared = {},
+                        onCustomNoteChanged = {},
+                        onBack = {},
+                        onFinish = {},
+                        modifier = Modifier.requiredSize(width = 640.dp, height = 360.dp),
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithText("Allergy notes").assertIsDisplayed()
+        composeRule.onNodeWithText("Describe other allergy").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Finish setup").assertIsDisplayed()
     }
 
     @Test
@@ -361,8 +434,8 @@ class OnboardingComponentsTest {
             }
         }
 
-        composeRule.onNodeWithText("Any known allergies?").assertIsDisplayed()
-        composeRule.onNodeWithText("Describe the allergy").assertIsDisplayed()
+        composeRule.onNodeWithText("Any allergies to note?").assertIsDisplayed()
+        composeRule.onNodeWithText("Describe other allergy").assertIsDisplayed()
         composeRule.onNodeWithText("Step 3 of 3").assertDoesNotExist()
         composeRule.onNodeWithText("Finish setup").assertDoesNotExist()
     }
@@ -386,7 +459,7 @@ class OnboardingComponentsTest {
             }
         }
 
-        composeRule.onNodeWithText("No known allergies").performClick()
+        composeRule.onNodeWithText("None known yet").performClick()
 
         composeRule.runOnIdle {
             assertTrue(clearClicked)
@@ -426,13 +499,13 @@ class OnboardingComponentsTest {
             }
         }
 
-        composeRule.onNodeWithText("Selected: Cow's Milk Protein, Other").assertIsDisplayed()
-        composeRule.onNodeWithText("Describe the allergy").assertIsDisplayed()
+        composeRule.onNodeWithText("Will save: Cow's Milk Protein, Other").assertIsDisplayed()
+        composeRule.onNodeWithText("Describe other allergy").assertIsDisplayed()
 
-        composeRule.onNodeWithText("No known allergies").performClick()
+        composeRule.onNodeWithText("None known yet").performClick()
         composeRule.mainClock.advanceTimeBy(500)
 
-        composeRule.onNodeWithText("Ready to save with no known allergies.").assertIsDisplayed()
-        composeRule.onNodeWithText("Describe the allergy").assertDoesNotExist()
+        composeRule.onNodeWithText("No allergies will be saved yet.").assertIsDisplayed()
+        composeRule.onNodeWithText("Describe other allergy").assertDoesNotExist()
     }
 }
