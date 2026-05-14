@@ -254,7 +254,7 @@ object NotificationHelper {
                     )
                 )
                 .addAction(0, "Switch Now", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_SWITCH, RC_SWITCH_NOW))
-                .addAction(0, "Dismiss", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_DISMISS, RC_BF_DISMISS))
+                .addAction(0, "Not yet", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_DISMISS, RC_BF_DISMISS))
         } else {
             builder.setContentText(body)
         }
@@ -271,7 +271,7 @@ object NotificationHelper {
         richEnabled: Boolean
     ) {
         val title = "\u23F1 Feeding limit reached"
-        val body = "$maxTotalMinutes min limit reached."
+        val body = "$maxTotalMinutes-min session. Tap Stop or continue."
         val tapPi = mainActivityPendingIntent(context)
         val accent = resolveAccent(context, WarningAmber, WarningAmberDark)
         val builder = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
@@ -308,8 +308,8 @@ object NotificationHelper {
                         progressText = progressText
                     )
                 )
-                .addAction(0, "Stop Session", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_STOP, RC_STOP_SESSION))
-                .addAction(0, "Keep Going", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_KEEP_GOING, RC_KEEP_GOING))
+                .addAction(0, "Stop feeding", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_STOP, RC_STOP_SESSION))
+                .addAction(0, "Continue", breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_KEEP_GOING, RC_KEEP_GOING))
         } else {
             builder.setContentText(body)
         }
@@ -411,7 +411,7 @@ object NotificationHelper {
             .addAction(0, pauseResumeLabel(isPaused), pauseResumePendingIntent(content.context, content.sessionId, isPaused))
             .addAction(
                 0,
-                "Stop Session",
+                "Stop feeding",
                 breastfeedingActionPi(
                     content.context,
                     content.sessionId,
@@ -526,7 +526,7 @@ object NotificationHelper {
                     )
                 )
                 .setStyle(NotificationCompat.DecoratedCustomViewStyle())
-                .addAction(0, "Stop Sleep", sleepActionPi(context, sessionId, SleepActionReceiver.ACTION_STOP, RC_STOP_SLEEP))
+                .addAction(0, "End sleep", sleepActionPi(context, sessionId, SleepActionReceiver.ACTION_STOP, RC_STOP_SLEEP))
         } else {
             builder.setContentText(body)
         }

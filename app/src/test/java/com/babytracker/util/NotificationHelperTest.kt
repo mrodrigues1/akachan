@@ -110,7 +110,74 @@ class NotificationHelperTest {
         assertTrue(source.contains("ACTION_RESUME"))
         assertTrue(source.contains("\"Pause\""))
         assertTrue(source.contains("\"Resume\""))
-        assertTrue(source.contains("\"Stop Session\""))
+        assertTrue(source.contains("\"Stop feeding\""))
+    }
+
+    // --- copy regression tests ---
+
+    @Test
+    fun `feeding limit body uses dash-joined duration and both-paths guidance`() {
+        val source = notificationHelperSource()
+        val body = Regex("""val body = "(.+?)"""")
+            .findAll(Regex("fun showFeedingLimit[\\s\\S]*?fun showBreastfeedingActive").find(source)!!.value)
+            .first().groupValues[1]
+
+        assertTrue(body.contains("-min session"), "body must use dash-joined duration: got '$body'")
+        assertTrue(body.contains("Tap Stop or continue"), "body must state both paths: got '$body'")
+        assertFalse(body.contains("limit reached"), "stale 'limit reached' copy must not appear: got '$body'")
+    }
+
+    @Test
+    fun `feeding limit action labels are warm-functional`() {
+        val source = notificationHelperSource()
+        val functionBody = Regex("fun showFeedingLimit[\\s\\S]*?fun showBreastfeedingActive")
+            .find(source)?.value ?: error("showFeedingLimit body not found")
+
+        assertTrue(functionBody.contains("\"Stop feeding\""), "feeding-limit stop action must be 'Stop feeding'")
+        assertTrue(functionBody.contains("\"Continue\""), "feeding-limit keep-going action must be 'Continue'")
+        assertFalse(functionBody.contains("\"Stop Session\""), "stale 'Stop Session' must not appear in showFeedingLimit")
+        assertFalse(functionBody.contains("\"Keep Going\""), "stale 'Keep Going' must not appear in showFeedingLimit")
+    }
+
+    @Test
+    fun `switch side dismiss action is not yet`() {
+        val source = notificationHelperSource()
+        val functionBody = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
+            .find(source)?.value ?: error("showSwitchSide body not found")
+
+        assertTrue(functionBody.contains("\"Not yet\""), "switch-side dismiss must be 'Not yet'")
+        assertFalse(functionBody.contains("\"Dismiss\""), "stale 'Dismiss' must not appear in showSwitchSide")
+    }
+
+    @Test
+    fun `active breastfeeding stop action is stop feeding`() {
+        val source = notificationHelperSource()
+        val functionBody = Regex("applyBreastfeedingActiveRichContent[\\s\\S]*?private fun breastfeedingActiveProgress")
+            .find(source)?.value ?: error("applyBreastfeedingActiveRichContent body not found")
+
+        assertTrue(functionBody.contains("\"Stop feeding\""), "active feeding stop action must be 'Stop feeding'")
+        assertFalse(functionBody.contains("\"Stop Session\""), "stale 'Stop Session' must not appear in active feeding")
+    }
+
+    @Test
+    fun `sleep stop action is end sleep`() {
+        val source = notificationHelperSource()
+        val functionBody = Regex("fun showSleepActive[\\s\\S]*?fun cancelNotification")
+            .find(source)?.value ?: error("showSleepActive body not found")
+
+        assertTrue(functionBody.contains("\"End sleep\""), "sleep stop action must be 'End sleep'")
+        assertFalse(functionBody.contains("\"Stop Sleep\""), "stale 'Stop Sleep' must not appear in showSleepActive")
+    }
+
+    @Test
+    fun `no stale notification copy remains in source`() {
+        val source = notificationHelperSource()
+
+        assertFalse(source.contains("\"Stop Session\""), "stale 'Stop Session' label found")
+        assertFalse(source.contains("\"Keep Going\""), "stale 'Keep Going' label found")
+        assertFalse(source.contains("\"Stop Sleep\""), "stale 'Stop Sleep' label found")
+        assertFalse(source.contains("\"Dismiss\""), "stale 'Dismiss' label found")
+        assertFalse(source.contains("min limit reached"), "stale 'min limit reached' body copy found")
     }
 
     @Test
