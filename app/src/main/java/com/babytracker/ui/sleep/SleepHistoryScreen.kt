@@ -1,5 +1,6 @@
 package com.babytracker.ui.sleep
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,11 +14,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -35,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.util.formatDuration
-import com.babytracker.util.groupByLocalDate
 import com.babytracker.util.toRelativeLabel
 import java.time.Duration
 import java.time.LocalTime
@@ -48,8 +50,7 @@ fun SleepHistoryScreen(
     viewModel: SleepViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val history by viewModel.history.collectAsStateWithLifecycle()
-    val grouped = history.groupByLocalDate { it.startTime }
+    val groupedByDateDesc by viewModel.historyByDateDesc.collectAsStateWithLifecycle()
 
     var showStartTimePicker by remember { mutableStateOf(false) }
     var showEndTimePicker by remember { mutableStateOf(false) }
@@ -118,15 +119,16 @@ fun SleepHistoryScreen(
             )
         }
     ) { padding ->
-        if (history.isEmpty()) {
+        if (groupedByDateDesc.isEmpty()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding),
+                    .padding(padding)
+                    .padding(horizontal = 32.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "🌙", style = MaterialTheme.typography.displaySmall)
+                Text(text = "🌙", style = MaterialTheme.typography.headlineLarge)
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "No sleep records yet",
@@ -138,8 +140,19 @@ fun SleepHistoryScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 32.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(vertical = 4.dp)
                 )
+                Spacer(modifier = Modifier.height(20.dp))
+                OutlinedButton(
+                    onClick = onNavigateBack,
+                    shape = MaterialTheme.shapes.extraLarge,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Text("Back to Sleep", style = MaterialTheme.typography.labelLarge)
+                }
             }
         } else {
             LazyColumn(
@@ -151,7 +164,7 @@ fun SleepHistoryScreen(
                     end = 16.dp
                 )
             ) {
-                grouped.entries.sortedByDescending { it.key }.forEach { (date, records) ->
+                groupedByDateDesc.forEach { (date, records) ->
                     val totalDuration = records
                         .filter { it.endTime != null }
                         .mapNotNull { record ->
@@ -166,7 +179,7 @@ fun SleepHistoryScreen(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier
-                                .background(MaterialTheme.colorScheme.surface)
+                                .background(MaterialTheme.colorScheme.background)
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp)
                         )

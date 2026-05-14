@@ -475,7 +475,7 @@ private fun TodayEmptyState() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(text = "🌙", style = MaterialTheme.typography.displaySmall)
+        Text(text = "🌙", style = MaterialTheme.typography.headlineLarge)
         Text(
             text = "No sleep entries yet",
             style = MaterialTheme.typography.bodyMedium,
@@ -601,8 +601,7 @@ internal fun AddSleepEntrySheetContent(
     ) {
         Text(
             text = if (isEditing) "Edit Sleep Entry" else "Add Sleep Entry",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.headlineSmall
         )
 
         Row(
