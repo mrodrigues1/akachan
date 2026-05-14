@@ -97,6 +97,13 @@ class NotificationHelperTest {
     }
 
     @Test
+    fun `formatDurationCompact uses minute word consistently`() {
+        assertEquals("2 min", invokePrivateStringMethod("formatDurationCompact", 120))
+        assertEquals("2 min 5s", invokePrivateStringMethod("formatDurationCompact", 125))
+        assertEquals("5s", invokePrivateStringMethod("formatDurationCompact", 5))
+    }
+
+    @Test
     fun `active notification refresh interval is thirty seconds`() {
         val field = NotificationHelper::class.java.getDeclaredField("ACTIVE_REFRESH_INTERVAL_MS")
         field.isAccessible = true
@@ -130,11 +137,12 @@ class NotificationHelperTest {
     // --- copy regression tests ---
 
     @Test
-    fun `feeding limit body uses dash-joined duration and both-paths guidance`() {
+    fun `feeding limit body uses word-joined duration and both-paths guidance`() {
         val strings = notificationStringsXml()
         val body = stringsXmlValue(strings, "notif_body_feeding_limit")
 
-        assertTrue(body.contains("-min session"), "body must use dash-joined duration: got '$body'")
+        assertTrue(body.contains(" min session"), "body must use word-joined duration: got '$body'")
+        assertFalse(body.contains("-min session"), "body must match compact minute format without dash: got '$body'")
         assertTrue(body.contains("Tap Stop or Continue"), "body must state both paths with capital C on Continue: got '$body'")
         assertFalse(body.contains("limit reached"), "stale 'limit reached' copy must not appear: got '$body'")
     }
@@ -155,14 +163,23 @@ class NotificationHelperTest {
     }
 
     @Test
-    fun `switch side dismiss action is not yet`() {
+    fun `switch side dismiss action names the current-side choice`() {
         val source = notificationHelperSource()
         val strings = notificationStringsXml()
         val functionBody = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
             .find(source)?.value ?: error("showSwitchSide body not found")
 
-        assertTrue(functionBody.contains("notif_action_not_yet"), "switch-side dismiss must reference R.string.notif_action_not_yet")
-        assertEquals("Not yet", stringsXmlValue(strings, "notif_action_not_yet"), "notif_action_not_yet must be 'Not yet'")
+        assertTrue(
+            functionBody.contains("notif_action_keep_current_side"),
+            "switch-side dismiss must reference R.string.notif_action_keep_current_side"
+        )
+        assertEquals(
+            "Keep current side",
+            stringsXmlValue(strings, "notif_action_keep_current_side"),
+            "notif_action_keep_current_side must be self-contained"
+        )
+        val staleAmbiguousLabel = ">Not" + " yet<"
+        assertFalse(strings.contains(staleAmbiguousLabel), "stale ambiguous switch-side label must not appear in strings.xml")
         assertFalse(functionBody.contains("\"Dismiss\""), "stale 'Dismiss' must not appear in showSwitchSide")
     }
 

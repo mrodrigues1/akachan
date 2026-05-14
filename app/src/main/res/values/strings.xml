@@ -10,7 +10,7 @@
 
     <!-- Notification action labels -->
     <string name="notif_action_switch_now">Switch now</string>
-    <string name="notif_action_not_yet">Not yet</string>
+    <string name="notif_action_keep_current_side">Keep current side</string>
     <string name="notif_action_stop_feeding">Stop feeding</string>
     <string name="notif_action_continue">Continue</string>
     <string name="notif_action_end_sleep">End sleep</string>
@@ -28,7 +28,7 @@
     <!-- Args: 1=side label, 2=elapsed minutes, 3=other side label -->
     <string name="notif_body_switch_sides">%1$s breast &#183; %2$dm &#183; Switch to the %3$s</string>
     <!-- Args: 1=max total minutes -->
-    <string name="notif_body_feeding_limit">%1$d-min session. Tap Stop or Continue.</string>
+    <string name="notif_body_feeding_limit">%1$d min session. Tap Stop or Continue.</string>
     <!-- Args: 1=side label -->
     <string name="notif_body_feeding_paused">%1$s breast &#183; paused</string>
     <string name="notif_body_feeding_active">%1$s breast &#183; in progress</string>
