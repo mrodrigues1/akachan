@@ -154,8 +154,8 @@ object NotificationHelper {
         val seconds = safeSeconds % SECONDS_PER_MINUTE
         return when {
             minutes == 0 -> "${seconds}s"
-            seconds == 0 -> "${minutes}m"
-            else -> "${minutes}m ${seconds}s"
+            seconds == 0 -> "${minutes} min"
+            else -> "${minutes} min ${seconds}s"
         }
     }
 
@@ -260,7 +260,11 @@ object NotificationHelper {
                     )
                 )
                 .addAction(0, context.getString(R.string.notif_action_switch_now), breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_SWITCH, RC_SWITCH_NOW))
-                .addAction(0, context.getString(R.string.notif_action_not_yet), breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_DISMISS, RC_BF_DISMISS))
+                .addAction(
+                    0,
+                    context.getString(R.string.notif_action_keep_current_side),
+                    breastfeedingActionPi(context, sessionId, BreastfeedingActionReceiver.ACTION_DISMISS, RC_BF_DISMISS)
+                )
         } else {
             builder.setContentText(body)
         }
