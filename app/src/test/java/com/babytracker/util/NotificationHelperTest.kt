@@ -363,6 +363,28 @@ class NotificationHelperTest {
     }
 
     @Test
+    fun `feeding collapsed chronometer is width constrained on narrow notification rows`() {
+        val file = listOf(
+            java.io.File("src/main/res/layout/notification_collapsed_feeding_active.xml"),
+            java.io.File("app/src/main/res/layout/notification_collapsed_feeding_active.xml")
+        ).first { it.exists() }.readText()
+
+        assertTrue(
+            file.contains("android:maxWidth=\"64dp\""),
+            "notification_collapsed_timer must declare android:maxWidth=\"64dp\" so it cannot starve " +
+                "the active title on narrow notification rows"
+        )
+        assertTrue(
+            file.contains("android:maxLines=\"1\""),
+            "notification_collapsed_timer must stay on one line in the collapsed notification title row"
+        )
+        assertTrue(
+            file.contains("android:ellipsize=\"end\""),
+            "notification_collapsed_timer must ellipsize instead of expanding past its constrained width"
+        )
+    }
+
+    @Test
     fun `showSleepActive collapsed view uses sleep layout with hidden progress`() {
         val source = notificationHelperSource()
         val functionBody = Regex("fun showSleepActive[\\s\\S]*?fun cancelNotification")
