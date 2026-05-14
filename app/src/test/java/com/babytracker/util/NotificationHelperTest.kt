@@ -17,6 +17,12 @@ class NotificationHelperTest {
     private val lightColor = Color(0xFFC2185B) // Pink700
     private val darkColor = Color(0xFFF48FB1)  // PrimaryPinkDark
 
+    private data class ActiveTimingSnapshot(
+        val elapsedMs: Long,
+        val elapsedSeconds: Int,
+        val chronometerBaseElapsedMs: Long
+    )
+
     // resolveAccent(Context, Color, Color) compiles to a name-mangled method
     // because Color is a Compose @JvmInline value class — its JVM ABI is
     // `resolveAccent-<hash>(Context, long, long)`. Find it by name prefix and
@@ -47,6 +53,38 @@ class NotificationHelperTest {
             .first { it.name == name }
         method.isAccessible = true
         return method.invoke(NotificationHelper, value) as String
+    }
+
+    private fun invokeActiveNotificationTiming(
+        sessionStartEpochMs: Long,
+        pausedDurationMs: Long,
+        pausedAtEpochMs: Long?,
+        nowEpochMs: Long,
+        elapsedRealtimeMs: Long
+    ): ActiveTimingSnapshot {
+        val method = NotificationHelper::class.java.declaredMethods
+            .first { it.name == "activeNotificationTiming" }
+        method.isAccessible = true
+        val result = method.invoke(
+            NotificationHelper,
+            sessionStartEpochMs,
+            pausedDurationMs,
+            pausedAtEpochMs,
+            nowEpochMs,
+            elapsedRealtimeMs
+        )
+        val resultClass = result.javaClass
+        return ActiveTimingSnapshot(
+            elapsedMs = resultClass.declaredFields.first { it.name == "elapsedMs" }
+                .apply { isAccessible = true }
+                .getLong(result),
+            elapsedSeconds = resultClass.declaredFields.first { it.name == "elapsedSeconds" }
+                .apply { isAccessible = true }
+                .getInt(result),
+            chronometerBaseElapsedMs = resultClass.declaredFields.first { it.name == "chronometerBaseElapsedMs" }
+                .apply { isAccessible = true }
+                .getLong(result)
+        )
     }
 
     private fun notificationHelperSource(): String =
@@ -317,6 +355,26 @@ class NotificationHelperTest {
         val collapsedCall = extractCollapsedViewArgs(functionBody)
 
         assertTrue(collapsedCall.contains("chronometerBaseElapsedMs"), "collapsed view must receive chronometerBaseElapsedMs for live timer")
+    }
+
+    @Test
+    fun `active breastfeeding chronometer timing keeps millisecond precision`() {
+        val timing = invokeActiveNotificationTiming(
+            sessionStartEpochMs = 1_000L,
+            pausedDurationMs = 0L,
+            pausedAtEpochMs = null,
+            nowEpochMs = 23_900L,
+            elapsedRealtimeMs = 100_000L
+        )
+
+        assertEquals(22_900L, timing.elapsedMs)
+        assertEquals(22, timing.elapsedSeconds)
+        assertEquals(
+            77_100L,
+            timing.chronometerBaseElapsedMs,
+            "custom chronometers must use elapsed milliseconds, not elapsedSeconds * 1000, " +
+                "or they drift behind the system header timer by up to one second"
+        )
     }
 
     @Test

@@ -47,7 +47,6 @@ object NotificationHelper {
     private const val RC_RESUME_BF_ACTIVE = 2009
     private const val TAG = "NotificationHelper"
     private const val SECONDS_PER_MINUTE = 60
-    private const val MILLIS_PER_SECOND = 1000L
     private const val ACTIVE_REFRESH_INTERVAL_MS = 30_000L
     const val BREASTFEEDING_GROUP_KEY = "com.babytracker.notifications.breastfeeding"
     const val SLEEP_GROUP_KEY = "com.babytracker.notifications.sleep"
@@ -203,19 +202,26 @@ object NotificationHelper {
     private fun limitProgressText(maxTotalMinutes: Int): String =
         "${formatMaxTimeLabel(maxTotalMinutes)} reached"
 
-    private fun activeElapsedSeconds(sessionStartEpochMs: Long, pausedDurationMs: Long): Int =
-        ((System.currentTimeMillis() - sessionStartEpochMs - pausedDurationMs).coerceAtLeast(0L) / 1000L)
+    private fun elapsedSeconds(elapsedMs: Long): Int =
+        (elapsedMs.coerceAtLeast(0L) / 1000L)
             .coerceAtMost(Int.MAX_VALUE.toLong())
             .toInt()
 
-    private fun pausedElapsedSeconds(
+    private fun activeNotificationTiming(
         sessionStartEpochMs: Long,
         pausedDurationMs: Long,
-        pausedAtEpochMs: Long
-    ): Int =
-        ((pausedAtEpochMs - sessionStartEpochMs - pausedDurationMs).coerceAtLeast(0L) / 1000L)
-            .coerceAtMost(Int.MAX_VALUE.toLong())
-            .toInt()
+        pausedAtEpochMs: Long?,
+        nowEpochMs: Long = System.currentTimeMillis(),
+        elapsedRealtimeMs: Long = SystemClock.elapsedRealtime()
+    ): ActiveNotificationTiming {
+        val elapsedMs = ((pausedAtEpochMs ?: nowEpochMs) - sessionStartEpochMs - pausedDurationMs)
+            .coerceAtLeast(0L)
+        return ActiveNotificationTiming(
+            elapsedMs = elapsedMs,
+            elapsedSeconds = elapsedSeconds(elapsedMs),
+            chronometerBaseElapsedMs = elapsedRealtimeMs - elapsedMs
+        )
+    }
 
     fun createBreastfeedingNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -418,11 +424,12 @@ object NotificationHelper {
 
     private fun NotificationCompat.Builder.applyBreastfeedingActiveRichContent(content: ActiveNotificationContent) {
         val isPaused = content.pausedAtEpochMs != null
-        val elapsedSeconds = content.pausedAtEpochMs
-            ?.let { pausedElapsedSeconds(content.sessionStartEpochMs, content.pausedDurationMs, it) }
-            ?: activeElapsedSeconds(content.sessionStartEpochMs, content.pausedDurationMs)
-        val progress = breastfeedingActiveProgress(elapsedSeconds, content.maxTotalMinutes)
-        val chronometerBase = SystemClock.elapsedRealtime() - (elapsedSeconds * MILLIS_PER_SECOND)
+        val timing = activeNotificationTiming(
+            sessionStartEpochMs = content.sessionStartEpochMs,
+            pausedDurationMs = content.pausedDurationMs,
+            pausedAtEpochMs = content.pausedAtEpochMs
+        )
+        val progress = breastfeedingActiveProgress(timing.elapsedSeconds, content.maxTotalMinutes)
 
         setUsesChronometer(!isPaused)
             .setShowWhen(!isPaused)
@@ -440,7 +447,7 @@ object NotificationHelper {
                         titleSuffix = content.context.getString(
                             if (isPaused) R.string.notif_status_feeding_paused else R.string.notif_status_feeding_active
                         ),
-                        chronometerBaseElapsedMs = chronometerBase,
+                        chronometerBaseElapsedMs = timing.chronometerBaseElapsedMs,
                         chronometerRunning = !isPaused
                     )
                 )
@@ -454,7 +461,7 @@ object NotificationHelper {
                     progress = progress.current,
                     maxProgress = progress.max,
                     progressText = progress.label,
-                    chronometerBaseElapsedMs = chronometerBase,
+                    chronometerBaseElapsedMs = timing.chronometerBaseElapsedMs,
                     chronometerRunning = !isPaused,
                     showProgress = progress.isEnabled
                 )
@@ -503,6 +510,12 @@ object NotificationHelper {
         val max: Int,
         val label: String,
         val isEnabled: Boolean
+    )
+
+    private data class ActiveNotificationTiming(
+        val elapsedMs: Long,
+        val elapsedSeconds: Int,
+        val chronometerBaseElapsedMs: Long
     )
 
     private data class CollapsedTimerContent(
