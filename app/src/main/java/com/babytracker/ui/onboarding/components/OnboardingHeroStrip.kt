@@ -49,8 +49,8 @@ fun OnboardingHeroStrip(
         null
     }
     val horizontalPadding = if (isCompactHeight) 16.dp else 20.dp
-    val verticalPadding = if (isCompactHeight) 10.dp else 16.dp
-    val contentSpacing = if (isCompactHeight) 10.dp else 14.dp
+    val verticalPadding = if (isCompactHeight) 6.dp else 16.dp
+    val contentSpacing = if (isCompactHeight) 6.dp else 14.dp
 
     Column(
         modifier = modifier
@@ -141,7 +141,7 @@ private fun StepBadge(
     }
 
     Surface(
-        modifier = modifier.size(if (isCompactHeight) 36.dp else 40.dp),
+        modifier = modifier.size(if (isCompactHeight) 32.dp else 40.dp),
         shape = CircleShape,
         color = accentContainerColor,
         contentColor = accentContentColor,

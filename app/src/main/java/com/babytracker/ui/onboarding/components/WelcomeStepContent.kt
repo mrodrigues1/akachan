@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,6 +26,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -37,16 +40,40 @@ fun WelcomeStepContent(
     onGetStarted: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val fontScale = LocalDensity.current.fontScale
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.surface,
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val isCompactHeight = maxHeight < 560.dp || maxWidth > maxHeight
+            val usesLargeText = fontScale >= 1.5f
             val horizontalPadding = if (isCompactHeight) 20.dp else 24.dp
-            val topPadding = if (isCompactHeight) 18.dp else 32.dp
-            val bottomPadding = if (isCompactHeight) 18.dp else 28.dp
-            val previewHeight = if (isCompactHeight) 144.dp else 224.dp
+            val topPadding = when {
+                isCompactHeight && usesLargeText -> 12.dp
+                isCompactHeight -> 18.dp
+                else -> 32.dp
+            }
+            val bottomPadding = when {
+                isCompactHeight && usesLargeText -> 12.dp
+                isCompactHeight -> 18.dp
+                else -> 28.dp
+            }
+            val previewHeight = when {
+                isCompactHeight && usesLargeText -> 84.dp
+                isCompactHeight -> 144.dp
+                else -> 224.dp
+            }
+            val previewTitleSpacing = when {
+                isCompactHeight && usesLargeText -> 12.dp
+                isCompactHeight -> 18.dp
+                else -> 32.dp
+            }
+            val featureTopSpacing = when {
+                isCompactHeight && usesLargeText -> 14.dp
+                isCompactHeight -> 20.dp
+                else -> 28.dp
+            }
 
             Column(
                 modifier = Modifier
@@ -66,7 +93,7 @@ fun WelcomeStepContent(
                         isCompactHeight = isCompactHeight,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    Spacer(modifier = Modifier.height(if (isCompactHeight) 18.dp else 32.dp))
+                    Spacer(modifier = Modifier.height(previewTitleSpacing))
                     Text(
                         text = "Welcome to Akachan",
                         style = MaterialTheme.typography.headlineLarge,
@@ -79,13 +106,16 @@ fun WelcomeStepContent(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Spacer(modifier = Modifier.height(if (isCompactHeight) 20.dp else 28.dp))
+                    Spacer(modifier = Modifier.height(featureTopSpacing))
                     WelcomeFeatureList()
                     Spacer(modifier = Modifier.height(24.dp))
                 }
                 Button(
                     onClick = onGetStarted,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .testTag("onboarding_welcome_primary_action"),
                     shape = MaterialTheme.shapes.extraLarge,
                 ) {
                     Text("Set up baby profile")
