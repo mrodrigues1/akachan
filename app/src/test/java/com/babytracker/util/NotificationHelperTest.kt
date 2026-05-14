@@ -123,7 +123,7 @@ class NotificationHelperTest {
             .first().groupValues[1]
 
         assertTrue(body.contains("-min session"), "body must use dash-joined duration: got '$body'")
-        assertTrue(body.contains("Tap Stop or continue"), "body must state both paths: got '$body'")
+        assertTrue(body.contains("Tap Stop or Continue"), "body must state both paths with capital C on Continue: got '$body'")
         assertFalse(body.contains("limit reached"), "stale 'limit reached' copy must not appear: got '$body'")
     }
 
@@ -405,5 +405,116 @@ class NotificationHelperTest {
             block.contains("android:layout_height=\"4dp\""),
             "collapsed sleep ProgressBar must be 4dp tall — 2dp is too thin to read at a glance"
         )
+    }
+
+    // --- polish regression tests ---
+
+    @Test
+    fun `switch side body uses capitalized side label for the target breast`() {
+        val source = notificationHelperSource()
+        val functionBody = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
+            .find(source)?.value ?: error("showSwitchSide body not found")
+
+        assertFalse(
+            functionBody.contains("\"right\"") || functionBody.contains("\"left\""),
+            "otherSide variable must be capitalized ('Right'/'Left') to match sideLabel casing in the same body string"
+        )
+        assertTrue(
+            functionBody.contains("\"Right\"") && functionBody.contains("\"Left\""),
+            "otherSide must produce 'Right' for LEFT current side and 'Left' for RIGHT current side"
+        )
+    }
+
+    @Test
+    fun `switch side primary action uses sentence case`() {
+        val source = notificationHelperSource()
+        val functionBody = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
+            .find(source)?.value ?: error("showSwitchSide body not found")
+
+        assertTrue(
+            functionBody.contains("\"Switch now\""),
+            "switch-side primary action must be 'Switch now' (sentence case) — 'Switch Now' (title case) is inconsistent with all other action labels"
+        )
+        assertFalse(
+            functionBody.contains("\"Switch Now\""),
+            "stale title-case 'Switch Now' must not appear in showSwitchSide"
+        )
+    }
+
+    @Test
+    fun `feeding limit body capitalises Continue to match action button label`() {
+        val source = notificationHelperSource()
+        val functionBody = Regex("fun showFeedingLimit[\\s\\S]*?fun showBreastfeedingActive")
+            .find(source)?.value ?: error("showFeedingLimit body not found")
+        val body = Regex("""val body = "(.+?)"""")
+            .findAll(functionBody).first().groupValues[1]
+
+        assertTrue(
+            body.contains("Continue"),
+            "body must use capital-C 'Continue' to match the 'Continue' action button label: got '$body'"
+        )
+        assertFalse(
+            body.contains("continue"),
+            "lowercase 'continue' in body mismatches the 'Continue' action label and creates visual inconsistency: got '$body'"
+        )
+    }
+
+    @Test
+    fun `feeding expanded chronometer uses feeding accent color not surface color`() {
+        val file = listOf(
+            java.io.File("src/main/res/layout/notification_breastfeeding_progress.xml"),
+            java.io.File("app/src/main/res/layout/notification_breastfeeding_progress.xml")
+        ).first { it.exists() }.readText()
+
+        assertTrue(
+            file.contains("notification_feeding_accent"),
+            "feeding expanded Chronometer must use @color/notification_feeding_accent — " +
+                "sleep expanded uses notification_sleep_accent; both timers should follow the same semantic color pattern"
+        )
+        assertFalse(
+            file.contains("notification_timer") && file.contains("notification_on_surface") &&
+                !file.contains("notification_feeding_accent"),
+            "feeding expanded Chronometer must not fall back to notification_on_surface — that neutral color breaks the semantic pairing with sleep"
+        )
+    }
+
+    private fun collapsedBodyTextSize(name: String): String {
+        val content = listOf(
+            java.io.File("src/main/res/layout/$name"),
+            java.io.File("app/src/main/res/layout/$name")
+        ).first { it.exists() }.readText()
+        val bodyBlock = Regex("<TextView[\\s\\S]*?notification_body[\\s\\S]*?/>")
+            .find(content)?.value ?: error("notification_body TextView not found in $name")
+        return bodyBlock
+    }
+
+    @Test
+    fun `collapsed feeding layout body text is 12sp`() {
+        val block = collapsedBodyTextSize("notification_collapsed_feeding.xml")
+        assertTrue(
+            block.contains("android:textSize=\"12sp\""),
+            "notification_collapsed_feeding body must be 12sp (labelSmall token) — 11.5sp is non-standard and not in the type scale"
+        )
+        assertFalse(block.contains("11.5sp"), "non-standard 11.5sp must not appear in collapsed feeding layout")
+    }
+
+    @Test
+    fun `collapsed warning layout body text is 12sp`() {
+        val block = collapsedBodyTextSize("notification_collapsed_warning.xml")
+        assertTrue(
+            block.contains("android:textSize=\"12sp\""),
+            "notification_collapsed_warning body must be 12sp (labelSmall token) — 11.5sp is non-standard and not in the type scale"
+        )
+        assertFalse(block.contains("11.5sp"), "non-standard 11.5sp must not appear in collapsed warning layout")
+    }
+
+    @Test
+    fun `collapsed sleep layout body text is 12sp`() {
+        val block = collapsedBodyTextSize("notification_collapsed_sleep.xml")
+        assertTrue(
+            block.contains("android:textSize=\"12sp\""),
+            "notification_collapsed_sleep body must be 12sp (labelSmall token) — 11.5sp is non-standard and not in the type scale"
+        )
+        assertFalse(block.contains("11.5sp"), "non-standard 11.5sp must not appear in collapsed sleep layout")
     }
 }

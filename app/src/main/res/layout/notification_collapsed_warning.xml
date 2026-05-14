@@ -36,5 +36,5 @@
         android:fontFamily="sans-serif"
         android:maxLines="1"
         android:textColor="@color/notification_on_surface_variant"
-        android:textSize="11.5sp" />
+        android:textSize="12sp" />
 </LinearLayout>
