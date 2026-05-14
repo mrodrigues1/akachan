@@ -4,11 +4,13 @@ import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
+import com.babytracker.domain.usecase.sleep.DeleteSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.GenerateSleepScheduleUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.SaveSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.StartSleepRecordUseCase
 import com.babytracker.domain.usecase.sleep.StopSleepRecordUseCase
+import com.babytracker.domain.usecase.sleep.UpdateSleepEntryUseCase
 import com.babytracker.manager.SleepNotificationScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coEvery
@@ -28,6 +30,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -38,6 +41,8 @@ import java.time.LocalTime
 class SleepViewModelTest {
 
     private lateinit var saveSleepEntry: SaveSleepEntryUseCase
+    private lateinit var updateSleepEntry: UpdateSleepEntryUseCase
+    private lateinit var deleteSleepEntry: DeleteSleepEntryUseCase
     private lateinit var getSleepHistory: GetSleepHistoryUseCase
     private lateinit var generateSchedule: GenerateSleepScheduleUseCase
     private lateinit var getBabyProfile: GetBabyProfileUseCase
@@ -53,6 +58,8 @@ class SleepViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         saveSleepEntry = mockk()
+        updateSleepEntry = mockk()
+        deleteSleepEntry = mockk()
         getSleepHistory = mockk()
         generateSchedule = mockk()
         getBabyProfile = mockk()
@@ -77,6 +84,8 @@ class SleepViewModelTest {
 
     private fun createViewModel() = SleepViewModel(
         saveSleepEntry,
+        updateSleepEntry,
+        deleteSleepEntry,
         getSleepHistory,
         generateSchedule,
         getBabyProfile,
@@ -191,8 +200,8 @@ class SleepViewModelTest {
         viewModel = createViewModel()
 
         viewModel.activeSleepSession.test {
-            assertNull(awaitItem()) // StateFlow emits initial null synchronously on subscribe
-            testDispatcher.scheduler.advanceUntilIdle() // history chain runs, activeSleepSession updates
+            assertNull(awaitItem())
+            testDispatcher.scheduler.advanceUntilIdle()
             val session = awaitItem()
             assertEquals(2L, session?.id)
             assertEquals(SleepType.NIGHT_SLEEP, session?.sleepType)
@@ -218,7 +227,7 @@ class SleepViewModelTest {
         viewModel = createViewModel()
 
         viewModel.activeSleepSession.test {
-            assertNull(awaitItem()) // initial null before history chain runs
+            assertNull(awaitItem())
             testDispatcher.scheduler.advanceUntilIdle()
             assertEquals(2L, awaitItem()?.id)
             cancelAndIgnoreRemainingEvents()
@@ -239,7 +248,7 @@ class SleepViewModelTest {
         viewModel = createViewModel()
 
         viewModel.activeSleepSession.test {
-            assertNull(awaitItem()) // initial null before history chain runs
+            assertNull(awaitItem())
             testDispatcher.scheduler.advanceUntilIdle()
             assertEquals(3L, awaitItem()?.id)
 
@@ -249,5 +258,100 @@ class SleepViewModelTest {
 
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `onDeleteRequest sets pendingDeleteRecord`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val record = SleepRecord(id = 5L, startTime = Instant.now(), sleepType = SleepType.NAP)
+
+        viewModel.onDeleteRequest(record)
+
+        assertEquals(record, viewModel.uiState.value.pendingDeleteRecord)
+    }
+
+    @Test
+    fun `onDismissDelete clears pendingDeleteRecord`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val record = SleepRecord(id = 5L, startTime = Instant.now(), sleepType = SleepType.NAP)
+
+        viewModel.onDeleteRequest(record)
+        viewModel.onDismissDelete()
+
+        assertNull(viewModel.uiState.value.pendingDeleteRecord)
+    }
+
+    @Test
+    fun `onConfirmDelete calls deleteSleepEntry and syncs`() = runTest {
+        coJustRun { deleteSleepEntry(any()) }
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val record = SleepRecord(id = 7L, startTime = Instant.now(), sleepType = SleepType.NAP)
+
+        viewModel.onDeleteRequest(record)
+        viewModel.onConfirmDelete()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { deleteSleepEntry(7L) }
+        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
+        assertNull(viewModel.uiState.value.pendingDeleteRecord)
+    }
+
+    @Test
+    fun `onEditRecord opens sheet pre-populated with record values`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val record = SleepRecord(
+            id = 9L,
+            startTime = Instant.parse("2024-01-15T20:00:00Z"),
+            endTime = Instant.parse("2024-01-15T22:00:00Z"),
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+
+        viewModel.onEditRecord(record)
+
+        val state = viewModel.uiState.value
+        assertEquals(true, state.showEntrySheet)
+        assertEquals(record, state.editingRecord)
+        assertEquals(SleepType.NIGHT_SLEEP, state.entryType)
+        assertNotNull(state.entryDurationPreview)
+    }
+
+    @Test
+    fun `onSaveEntry calls updateSleepEntry when editing`() = runTest {
+        coJustRun { updateSleepEntry(any(), any(), any(), any()) }
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val record = SleepRecord(
+            id = 11L,
+            startTime = Instant.now().minusSeconds(7200),
+            endTime = Instant.now().minusSeconds(3600),
+            sleepType = SleepType.NAP,
+        )
+
+        viewModel.onEditRecord(record)
+        viewModel.onEntryStartTimeChanged(LocalTime.of(10, 0))
+        viewModel.onEntryEndTimeChanged(LocalTime.of(11, 0))
+        viewModel.onSaveEntry()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { updateSleepEntry(eq(11L), any(), any(), any()) }
+        coVerify(exactly = 0) { saveSleepEntry(any(), any(), any()) }
+        assertNull(viewModel.uiState.value.editingRecord)
+    }
+
+    @Test
+    fun `onDismissSheet clears editingRecord`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val record = SleepRecord(id = 13L, startTime = Instant.now(), sleepType = SleepType.NAP)
+
+        viewModel.onEditRecord(record)
+        viewModel.onDismissSheet()
+
+        assertNull(viewModel.uiState.value.editingRecord)
+        assertEquals(false, viewModel.uiState.value.showEntrySheet)
     }
 }

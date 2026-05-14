@@ -7,11 +7,13 @@ import com.babytracker.domain.model.SleepSchedule
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
+import com.babytracker.domain.usecase.sleep.DeleteSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.GenerateSleepScheduleUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.SaveSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.StartSleepRecordUseCase
 import com.babytracker.domain.usecase.sleep.StopSleepRecordUseCase
+import com.babytracker.domain.usecase.sleep.UpdateSleepEntryUseCase
 import com.babytracker.manager.SleepNotificationScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,12 +40,16 @@ data class SleepUiState(
     val entryStartTime: LocalTime = LocalTime.now(),
     val entryEndTime: LocalTime = LocalTime.now(),
     val entryError: String? = null,
-    val entryDurationPreview: Duration? = null
+    val entryDurationPreview: Duration? = null,
+    val pendingDeleteRecord: SleepRecord? = null,
+    val editingRecord: SleepRecord? = null,
 )
 
 @HiltViewModel
 class SleepViewModel @Inject constructor(
     private val saveSleepEntry: SaveSleepEntryUseCase,
+    private val updateSleepEntry: UpdateSleepEntryUseCase,
+    private val deleteSleepEntry: DeleteSleepEntryUseCase,
     private val getSleepHistory: GetSleepHistoryUseCase,
     private val generateSchedule: GenerateSleepScheduleUseCase,
     private val getBabyProfile: GetBabyProfileUseCase,
@@ -94,6 +100,7 @@ class SleepViewModel @Inject constructor(
         val now = LocalTime.now()
         _uiState.value = _uiState.value.copy(
             showEntrySheet = true,
+            editingRecord = null,
             entryStartTime = now,
             entryEndTime = now,
             entryError = null,
@@ -101,8 +108,40 @@ class SleepViewModel @Inject constructor(
         )
     }
 
+    fun onEditRecord(record: SleepRecord) {
+        val zone = ZoneId.systemDefault()
+        val startLocal = record.startTime.atZone(zone).toLocalTime()
+        val endLocal = record.endTime?.atZone(zone)?.toLocalTime() ?: LocalTime.now()
+        _uiState.value = _uiState.value.copy(
+            showEntrySheet = true,
+            editingRecord = record,
+            entryType = record.sleepType,
+            entryStartTime = startLocal,
+            entryEndTime = endLocal,
+            entryError = null,
+            entryDurationPreview = computeDurationPreview(startLocal, endLocal)
+        )
+    }
+
+    fun onDeleteRequest(record: SleepRecord) {
+        _uiState.value = _uiState.value.copy(pendingDeleteRecord = record)
+    }
+
+    fun onDismissDelete() {
+        _uiState.value = _uiState.value.copy(pendingDeleteRecord = null)
+    }
+
+    fun onConfirmDelete() {
+        val record = _uiState.value.pendingDeleteRecord ?: return
+        _uiState.value = _uiState.value.copy(pendingDeleteRecord = null)
+        viewModelScope.launch {
+            deleteSleepEntry(record.id)
+            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
+        }
+    }
+
     fun onDismissSheet() {
-        _uiState.value = _uiState.value.copy(showEntrySheet = false, entryError = null)
+        _uiState.value = _uiState.value.copy(showEntrySheet = false, entryError = null, editingRecord = null)
     }
 
     fun onEntryTypeChanged(type: SleepType) {
@@ -122,19 +161,23 @@ class SleepViewModel @Inject constructor(
     fun onSaveEntry() {
         val state = _uiState.value
         val zone = ZoneId.systemDefault()
-        val today = LocalDate.now()
-        var startInstant = state.entryStartTime.atDate(today).atZone(zone).toInstant()
-        val endInstant = state.entryEndTime.atDate(today).atZone(zone).toInstant()
+        val referenceDate = state.editingRecord?.startTime?.atZone(zone)?.toLocalDate() ?: LocalDate.now()
+        var startInstant = state.entryStartTime.atDate(referenceDate).atZone(zone).toInstant()
+        val endInstant = state.entryEndTime.atDate(referenceDate).atZone(zone).toInstant()
         if (startInstant > endInstant) {
-            startInstant = state.entryStartTime.atDate(today.minusDays(1)).atZone(zone).toInstant()
+            startInstant = state.entryStartTime.atDate(referenceDate.minusDays(1)).atZone(zone).toInstant()
         }
         if (endInstant <= startInstant) {
             _uiState.value = state.copy(entryError = "End time must be after start time")
             return
         }
         viewModelScope.launch {
-            saveSleepEntry(startInstant, endInstant, state.entryType)
-            _uiState.value = _uiState.value.copy(showEntrySheet = false, entryError = null)
+            if (state.editingRecord != null) {
+                updateSleepEntry(state.editingRecord.id, startInstant, endInstant, state.entryType)
+            } else {
+                saveSleepEntry(startInstant, endInstant, state.entryType)
+            }
+            _uiState.value = _uiState.value.copy(showEntrySheet = false, entryError = null, editingRecord = null)
             runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
         }
     }

@@ -17,24 +17,28 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.babytracker.ui.component.HistoryCard
 import com.babytracker.util.formatDuration
-import com.babytracker.util.formatTime12h
 import com.babytracker.util.groupByLocalDate
 import com.babytracker.util.toRelativeLabel
 import java.time.Duration
+import java.time.LocalTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,8 +47,60 @@ fun SleepHistoryScreen(
     modifier: Modifier = Modifier,
     viewModel: SleepViewModel = hiltViewModel(),
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val history by viewModel.history.collectAsStateWithLifecycle()
     val grouped = history.groupByLocalDate { it.startTime }
+
+    var showStartTimePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
+
+    if (showStartTimePicker) {
+        SleepTimePickerDialog(
+            initialTime = uiState.entryStartTime,
+            onConfirm = { time ->
+                viewModel.onEntryStartTimeChanged(time)
+                showStartTimePicker = false
+            },
+            onDismiss = { showStartTimePicker = false }
+        )
+    }
+
+    if (showEndTimePicker) {
+        SleepTimePickerDialog(
+            initialTime = uiState.entryEndTime,
+            onConfirm = { time ->
+                viewModel.onEntryEndTimeChanged(time)
+                showEndTimePicker = false
+            },
+            onDismiss = { showEndTimePicker = false }
+        )
+    }
+
+    uiState.pendingDeleteRecord?.let { record ->
+        SleepDeleteConfirmationDialog(
+            record = record,
+            onDismiss = viewModel::onDismissDelete,
+            onConfirm = viewModel::onConfirmDelete
+        )
+    }
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    if (uiState.showEntrySheet) {
+        ModalBottomSheet(
+            onDismissRequest = viewModel::onDismissSheet,
+            sheetState = sheetState
+        ) {
+            AddSleepEntrySheetContent(
+                uiState = uiState,
+                isEditing = uiState.editingRecord != null,
+                onTypeChanged = viewModel::onEntryTypeChanged,
+                onStartTimeClick = { showStartTimePicker = true },
+                onEndTimeClick = { showEndTimePicker = true },
+                onSave = viewModel::onSaveEntry
+            )
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -117,19 +173,15 @@ fun SleepHistoryScreen(
                     }
 
                     items(records, key = { it.id }) { record ->
-                        HistoryCard(
-                            title = record.sleepType.label,
-                            subtitle = buildString {
-                                append(record.startTime.formatTime12h())
-                                record.endTime?.let { append(" – ${it.formatTime12h()}") }
-                            },
-                            trailing = record.endTime?.let { end ->
-                                Duration.between(record.startTime, end).formatDuration()
-                            } ?: "In progress",
-                            badgeEmoji = record.sleepType.emoji,
-                            badgeColor = MaterialTheme.colorScheme.secondaryContainer,
-                            trailingColor = MaterialTheme.colorScheme.secondary,
-                        )
+                        if (record.endTime != null) {
+                            SwipeableSleepEntry(
+                                record = record,
+                                onDeleteRequest = viewModel::onDeleteRequest,
+                                onEditRecord = viewModel::onEditRecord
+                            )
+                        } else {
+                            SleepEntryCard(record = record)
+                        }
                     }
                 }
             }

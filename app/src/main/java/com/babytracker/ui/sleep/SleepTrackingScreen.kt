@@ -1,6 +1,11 @@
 package com.babytracker.ui.sleep
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -31,22 +37,28 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -135,6 +147,14 @@ fun SleepTrackingScreen(
         )
     }
 
+    uiState.pendingDeleteRecord?.let { record ->
+        SleepDeleteConfirmationDialog(
+            record = record,
+            onDismiss = viewModel::onDismissDelete,
+            onConfirm = viewModel::onConfirmDelete
+        )
+    }
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     if (uiState.showEntrySheet) {
@@ -144,6 +164,7 @@ fun SleepTrackingScreen(
         ) {
             AddSleepEntrySheetContent(
                 uiState = uiState,
+                isEditing = uiState.editingRecord != null,
                 onTypeChanged = viewModel::onEntryTypeChanged,
                 onStartTimeClick = { showStartTimePicker = true },
                 onEndTimeClick = { showEndTimePicker = true },
@@ -220,7 +241,11 @@ fun SleepTrackingScreen(
                 item { TodayEmptyState() }
             } else {
                 items(todayEntries, key = { it.id }) { record ->
-                    SleepEntryCard(record = record)
+                    SwipeableSleepEntry(
+                        record = record,
+                        onDeleteRequest = viewModel::onDeleteRequest,
+                        onEditRecord = viewModel::onEditRecord
+                    )
                 }
             }
             item {
@@ -256,6 +281,88 @@ fun SleepTrackingScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun SwipeableSleepEntry(
+    record: SleepRecord,
+    onDeleteRequest: (SleepRecord) -> Unit,
+    onEditRecord: (SleepRecord) -> Unit,
+) {
+    val dismissState = rememberSwipeToDismissBoxState()
+
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+            onDeleteRequest(record)
+            dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+        }
+    }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = { SleepEntryDeleteBackground(dismissState.targetValue) }
+    ) {
+        Box(
+            modifier = Modifier.combinedClickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onLongClick = { onEditRecord(record) },
+                onClick = {}
+            )
+        ) {
+            SleepEntryCard(record = record)
+        }
+    }
+}
+
+@Composable
+private fun SleepEntryDeleteBackground(targetValue: SwipeToDismissBoxValue) {
+    val color by animateColorAsState(
+        targetValue = if (targetValue == SwipeToDismissBoxValue.EndToStart)
+            MaterialTheme.colorScheme.errorContainer
+        else
+            Color.Transparent,
+        label = "deleteBackground"
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(vertical = 4.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .background(color),
+        contentAlignment = Alignment.CenterEnd
+    ) {
+        Icon(
+            imageVector = Icons.Default.Delete,
+            contentDescription = "Delete entry",
+            tint = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.padding(end = 20.dp)
+        )
+    }
+}
+
+@Composable
+internal fun SleepDeleteConfirmationDialog(
+    record: SleepRecord,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete entry?") },
+        text = { Text("${record.sleepType.emoji} ${record.sleepType.label} will be removed.") },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) { Text("Delete") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
 @Composable
 private fun WakeTimeChip(wakeTime: LocalTime?, onClick: () -> Unit) {
     val formatter = remember { DateTimeFormatter.ofPattern("h:mm a").withLocale(java.util.Locale.getDefault()) }
@@ -275,7 +382,7 @@ private fun WakeTimeChip(wakeTime: LocalTime?, onClick: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "\uD83C\uDF05 Woke at ${wakeTime.format(formatter)}",
+                    text = "🌅 Woke at ${wakeTime.format(formatter)}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
@@ -300,7 +407,7 @@ private fun WakeTimeChip(wakeTime: LocalTime?, onClick: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "\uD83C\uDF05 Tap to set today's wake time",
+                    text = "🌅 Tap to set today's wake time",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -335,15 +442,15 @@ private fun SleepSummaryRow(
         ) {
             SummaryStatColumn(
                 label = "Sleep today",
-                value = if (totalSleep.isZero) "\u2014" else totalSleep.formatDuration()
+                value = if (totalSleep.isZero) "—" else totalSleep.formatDuration()
             )
             SummaryStatColumn(
                 label = "Naps",
-                value = if (napCount == 0) "\u2014" else napCount.toString()
+                value = if (napCount == 0) "—" else napCount.toString()
             )
             SummaryStatColumn(
                 label = "Night sleep",
-                value = if (nightSleep.isZero) "\u2014" else nightSleep.formatDuration()
+                value = if (nightSleep.isZero) "—" else nightSleep.formatDuration()
             )
         }
     }
@@ -375,7 +482,7 @@ private fun TodayEmptyState() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(text = "\uD83C\uDF19", style = MaterialTheme.typography.displaySmall)
+        Text(text = "🌙", style = MaterialTheme.typography.displaySmall)
         Text(
             text = "No sleep entries yet",
             style = MaterialTheme.typography.bodyMedium,
@@ -432,12 +539,12 @@ private fun ActiveSleepCard(record: SleepRecord, onStop: () -> Unit) {
 }
 
 @Composable
-private fun SleepEntryCard(record: SleepRecord) {
+internal fun SleepEntryCard(record: SleepRecord) {
     HistoryCard(
         title = record.sleepType.label,
         subtitle = buildString {
             append(record.startTime.formatTime12h())
-            if (record.endTime != null) append(" \u2013 ${record.endTime.formatTime12h()}")
+            if (record.endTime != null) append(" – ${record.endTime.formatTime12h()}")
         },
         trailing = record.endTime?.let { end ->
             Duration.between(record.startTime, end).formatDuration()
@@ -450,12 +557,13 @@ private fun SleepEntryCard(record: SleepRecord) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddSleepEntrySheetContent(
+internal fun AddSleepEntrySheetContent(
     uiState: SleepUiState,
     onTypeChanged: (SleepType) -> Unit,
     onStartTimeClick: () -> Unit,
     onEndTimeClick: () -> Unit,
-    onSave: () -> Unit
+    onSave: () -> Unit,
+    isEditing: Boolean = false,
 ) {
     val formatter = remember { DateTimeFormatter.ofPattern("h:mm a").withLocale(java.util.Locale.getDefault()) }
 
@@ -467,12 +575,11 @@ private fun AddSleepEntrySheetContent(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "Add Sleep Entry",
+            text = if (isEditing) "Edit Sleep Entry" else "Add Sleep Entry",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
 
-        // Type toggle
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -491,7 +598,6 @@ private fun AddSleepEntrySheetContent(
             }
         }
 
-        // Start + End time row
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -540,7 +646,6 @@ private fun AddSleepEntrySheetContent(
             }
         }
 
-        // Duration or error feedback
         when {
             uiState.entryError != null -> {
                 Card(
@@ -550,7 +655,7 @@ private fun AddSleepEntrySheetContent(
                     )
                 ) {
                     Text(
-                        text = "\u26A0 ${uiState.entryError}",
+                        text = "⚠ ${uiState.entryError}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         textAlign = TextAlign.Center,
@@ -568,7 +673,7 @@ private fun AddSleepEntrySheetContent(
                     )
                 ) {
                     Text(
-                        text = "\u23F1 Duration: ${uiState.entryDurationPreview.formatDuration()}",
+                        text = "⏱ Duration: ${uiState.entryDurationPreview.formatDuration()}",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -581,10 +686,11 @@ private fun AddSleepEntrySheetContent(
             }
         }
 
-        // Save button
-        val saveLabel = when (uiState.entryType) {
-            SleepType.NAP -> "Save Nap"
-            SleepType.NIGHT_SLEEP -> "Save Night Sleep"
+        val saveLabel = when {
+            isEditing && uiState.entryType == SleepType.NAP -> "Update Nap"
+            isEditing -> "Update Night Sleep"
+            uiState.entryType == SleepType.NAP -> "Save Nap"
+            else -> "Save Night Sleep"
         }
         Button(
             onClick = onSave,
@@ -603,7 +709,7 @@ private fun AddSleepEntrySheetContent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SleepTimePickerDialog(
+internal fun SleepTimePickerDialog(
     initialTime: LocalTime,
     onConfirm: (LocalTime) -> Unit,
     onDismiss: () -> Unit
