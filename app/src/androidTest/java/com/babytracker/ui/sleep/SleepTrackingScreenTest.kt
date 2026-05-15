@@ -135,8 +135,10 @@ class SleepTrackingScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("End time needs to be after start time. Adjust one time to save this sleep.")
-            .assertIsDisplayed()
+        composeRule.onNodeWithText(
+            "End time needs to be after start time. Adjust one time to save this sleep.",
+            substring = true,
+        ).assertIsDisplayed()
         composeRule.onNodeWithText("Save Nap")
             .assertIsNotEnabled()
     }
