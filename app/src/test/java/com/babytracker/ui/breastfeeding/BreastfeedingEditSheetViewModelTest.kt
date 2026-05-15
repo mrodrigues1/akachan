@@ -220,4 +220,78 @@ class BreastfeedingEditSheetViewModelTest {
 
         coVerify(exactly = 1) { notificationCoordinator.cancelAllSessionNotifications() }
     }
+
+    @Test
+    fun onEditSaveTriggersFirestoreSync() = runTest(testDispatcher) {
+        coJustRun { updateSession(any(), any(), any()) }
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onEditSessionClick(sampleSession)
+        val newEnd = sampleSession.startTime.plusSeconds(2400)
+        vm.onEditEndChanged(newEnd)
+
+        vm.onEditSave()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+    }
+
+    @Test
+    fun onEditSaveDoesNotSyncWhenUpdateFails() = runTest(testDispatcher) {
+        coEvery { updateSession(any(), any(), any()) } throws RuntimeException("DB error")
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onEditSessionClick(sampleSession)
+        val newEnd = sampleSession.startTime.plusSeconds(2400)
+        vm.onEditEndChanged(newEnd)
+
+        vm.onEditSave()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { syncToFirestore(any()) }
+        assertNotNull(vm.uiState.value.editSheet)
+    }
+
+    @Test
+    fun onDeleteConfirmedTriggersFirestoreSync() = runTest(testDispatcher) {
+        coJustRun { deleteSession(any()) }
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onEditSessionClick(sampleSession)
+        vm.onDeleteRequested()
+
+        vm.onDeleteConfirmed()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+    }
+
+    @Test
+    fun onDeleteConfirmedDoesNotSyncWhenDeleteFails() = runTest(testDispatcher) {
+        coEvery { deleteSession(any()) } throws RuntimeException("DB error")
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onEditSessionClick(sampleSession)
+        vm.onDeleteRequested()
+
+        vm.onDeleteConfirmed()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { syncToFirestore(any()) }
+        assertNotNull(vm.uiState.value.editSheet)
+    }
+
+    @Test
+    fun onEditSessionClickFromFeedingScreenOpensSheetWithCorrectSession() = runTest(testDispatcher) {
+        val anotherSession = sampleSession.copy(id = 99L, startingSide = BreastSide.RIGHT)
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.onEditSessionClick(anotherSession)
+
+        val sheet = vm.uiState.value.editSheet
+        assertNotNull(sheet)
+        assertEquals(99L, sheet!!.original.id)
+        assertEquals(BreastSide.RIGHT, sheet.original.startingSide)
+    }
 }
