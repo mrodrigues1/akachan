@@ -11,6 +11,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import java.time.Instant
 import javax.inject.Singleton
 
 @Module
@@ -35,4 +36,7 @@ object DatabaseModule {
     @Provides
     fun provideSleepDao(database: BabyTrackerDatabase): SleepDao =
         database.sleepDao()
+
+    @Provides
+    fun provideNowProvider(): () -> Instant = Instant::now
 }
