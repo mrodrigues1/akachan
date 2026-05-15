@@ -31,4 +31,7 @@ class BreastfeedingRepositoryImpl @Inject constructor(
 
     override suspend fun updateSession(session: BreastfeedingSession) =
         dao.updateSession(session.toEntity())
+
+    override suspend fun deleteSession(session: BreastfeedingSession) =
+        dao.deleteSession(session.toEntity())
 }
