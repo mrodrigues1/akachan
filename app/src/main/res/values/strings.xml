@@ -18,6 +18,7 @@
     <string name="notif_action_resume">Resume</string>
 
     <!-- Notification titles -->
+    <string name="notif_title_breastfeeding_group">Breastfeeding</string>
     <string name="notif_title_switch_sides">🍼 Time to switch sides</string>
     <string name="notif_title_feeding_limit">⏱ Feeding limit reached</string>
     <string name="notif_title_feeding_paused">🍼 Feeding paused</string>

@@ -907,4 +907,120 @@ class NotificationHelperTest {
                 "custom dark values like #0D2440 have no design-system traceability"
         )
     }
+
+    // --- breastfeeding group ordering tests ---
+
+    private fun extractSortKey(functionBody: String, functionName: String): String {
+        val match = Regex("""setSortKey\("([^"]+)"\)""").find(functionBody)
+            ?: error("$functionName must call setSortKey(\"...\") with a string literal")
+        return match.groupValues[1]
+    }
+
+    @Test
+    fun `showBreastfeedingActive sets sortKey starting with 1 so it appears on top of the group`() {
+        val source = notificationHelperSource()
+        val body = Regex("fun showBreastfeedingActive[\\s\\S]*?private fun NotificationCompat")
+            .find(source)?.value ?: error("showBreastfeedingActive body not found")
+
+        val sortKey = extractSortKey(body, "showBreastfeedingActive")
+        assertTrue(
+            sortKey.startsWith("1"),
+            "showBreastfeedingActive sortKey must start with '1' — main session notification is highest priority: got '$sortKey'"
+        )
+    }
+
+    @Test
+    fun `showSwitchSide sets sortKey starting with 2 so it appears below the main notification`() {
+        val source = notificationHelperSource()
+        val body = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
+            .find(source)?.value ?: error("showSwitchSide body not found")
+
+        val sortKey = extractSortKey(body, "showSwitchSide")
+        assertTrue(
+            sortKey.startsWith("2"),
+            "showSwitchSide sortKey must start with '2' — switch-side is second priority: got '$sortKey'"
+        )
+    }
+
+    @Test
+    fun `showFeedingLimit sets sortKey starting with 3 so it appears below switch-side`() {
+        val source = notificationHelperSource()
+        val body = Regex("fun showFeedingLimit[\\s\\S]*?fun showBreastfeedingActive")
+            .find(source)?.value ?: error("showFeedingLimit body not found")
+
+        val sortKey = extractSortKey(body, "showFeedingLimit")
+        assertTrue(
+            sortKey.startsWith("3"),
+            "showFeedingLimit sortKey must start with '3' — end-session warning is third priority: got '$sortKey'"
+        )
+    }
+
+    @Test
+    fun `breastfeeding sortKeys sort lexically active before switch before limit`() {
+        val source = notificationHelperSource()
+        val activeBody = Regex("fun showBreastfeedingActive[\\s\\S]*?private fun NotificationCompat")
+            .find(source)?.value ?: error("showBreastfeedingActive body not found")
+        val switchBody = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
+            .find(source)?.value ?: error("showSwitchSide body not found")
+        val limitBody = Regex("fun showFeedingLimit[\\s\\S]*?fun showBreastfeedingActive")
+            .find(source)?.value ?: error("showFeedingLimit body not found")
+
+        val active = extractSortKey(activeBody, "showBreastfeedingActive")
+        val switch = extractSortKey(switchBody, "showSwitchSide")
+        val limit = extractSortKey(limitBody, "showFeedingLimit")
+
+        assertTrue(active < switch, "active sortKey '$active' must sort before switch sortKey '$switch'")
+        assertTrue(switch < limit, "switch sortKey '$switch' must sort before limit sortKey '$limit'")
+    }
+
+    @Test
+    fun `NotificationHelper posts a breastfeeding group summary so the three notifications collapse into one group`() {
+        val source = notificationHelperSource()
+        assertTrue(
+            source.contains("setGroupSummary(true)"),
+            "NotificationHelper must build a group summary with setGroupSummary(true) — " +
+                "without a summary, Android does not visibly group fewer than 4 child notifications"
+        )
+    }
+
+    @Test
+    fun `breastfeeding group summary is posted from each breastfeeding show function`() {
+        val source = notificationHelperSource()
+        val activeBody = Regex("fun showBreastfeedingActive[\\s\\S]*?private fun NotificationCompat")
+            .find(source)?.value ?: error("showBreastfeedingActive body not found")
+        val switchBody = Regex("fun showSwitchSide[\\s\\S]*?fun showFeedingLimit")
+            .find(source)?.value ?: error("showSwitchSide body not found")
+        val limitBody = Regex("fun showFeedingLimit[\\s\\S]*?fun showBreastfeedingActive")
+            .find(source)?.value ?: error("showFeedingLimit body not found")
+
+        listOf(
+            "showBreastfeedingActive" to activeBody,
+            "showSwitchSide" to switchBody,
+            "showFeedingLimit" to limitBody
+        ).forEach { (name, body) ->
+            assertTrue(
+                body.contains("postBreastfeedingGroupSummary"),
+                "$name must call postBreastfeedingGroupSummary so the group summary is always present whenever a child posts"
+            )
+        }
+    }
+
+    @Test
+    fun `BREASTFEEDING_GROUP_SUMMARY_NOTIFICATION_ID is distinct from the three child notification IDs`() {
+        val summaryIdField = NotificationHelper::class.java.declaredFields
+            .firstOrNull { it.name == "BREASTFEEDING_GROUP_SUMMARY_NOTIFICATION_ID" }
+            ?: error("BREASTFEEDING_GROUP_SUMMARY_NOTIFICATION_ID constant must exist on NotificationHelper")
+        summaryIdField.isAccessible = true
+        val summaryId = summaryIdField.getInt(NotificationHelper)
+
+        val childIds = setOf(
+            NotificationHelper.BREASTFEEDING_NOTIFICATION_ID,
+            NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID,
+            NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID
+        )
+        assertFalse(
+            childIds.contains(summaryId),
+            "summary id $summaryId must not collide with any child id $childIds"
+        )
+    }
 }
