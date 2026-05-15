@@ -276,15 +276,13 @@ internal fun SwipeableSleepEntry(
         backgroundContent = { SleepEntryDeleteBackground(dismissState.targetValue) }
     ) {
         Box(
-            modifier = Modifier
-                .semantics(mergeDescendants = true) {}
-                .combinedClickable(
-                    role = Role.Button,
-                    onClickLabel = "Edit sleep entry",
-                    onLongClickLabel = "Edit sleep entry",
-                    onLongClick = { onEditRecord(record) },
-                    onClick = { onEditRecord(record) }
-                )
+            modifier = Modifier.combinedClickable(
+                role = Role.Button,
+                onClickLabel = "Edit sleep entry",
+                onLongClickLabel = "Edit sleep entry",
+                onLongClick = { onEditRecord(record) },
+                onClick = { onEditRecord(record) }
+            )
         ) {
             SleepEntryCard(record = record)
         }
