@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
@@ -414,13 +415,30 @@ fun BreastfeedingScreen(
 
                     if (summary is LastFeedingSummaryState.Populated) {
                         Spacer(modifier = Modifier.height(24.dp))
-                        LastFeedingSummaryCard(summary = summary)
+                        LastFeedingSummaryCard(
+                            summary = summary,
+                            onEditSession = viewModel::onEditSessionClick,
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }
+    }
+
+    val editSheet = uiState.editSheet
+    if (editSheet != null) {
+        EditBreastfeedingSessionSheet(
+            state = editSheet,
+            onStartChanged = viewModel::onEditStartChanged,
+            onEndChanged = viewModel::onEditEndChanged,
+            onDismiss = viewModel::onEditDismiss,
+            onSave = viewModel::onEditSave,
+            onDeleteRequested = viewModel::onDeleteRequested,
+            onDeleteConfirmed = viewModel::onDeleteConfirmed,
+            onDeleteCancelled = viewModel::onDeleteCancelled,
+        )
     }
 
     if (showStopConfirmation) {
@@ -494,7 +512,10 @@ private fun isNotificationPermissionGranted(context: Context): Boolean {
 }
 
 @Composable
-private fun LastFeedingSummaryCard(summary: LastFeedingSummaryState.Populated) {
+private fun LastFeedingSummaryCard(
+    summary: LastFeedingSummaryState.Populated,
+    onEditSession: (BreastfeedingSession) -> Unit,
+) {
     val session = summary.lastSession
     val secondSide = if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
 
@@ -519,7 +540,10 @@ private fun LastFeedingSummaryCard(summary: LastFeedingSummaryState.Populated) {
             subtitle = "First side · ${session.startTime.formatTime12h()}",
             trailing = summary.firstSideDuration.formatDuration(),
             badgeEmoji = "🍼",
-            badgeColor = MaterialTheme.colorScheme.primaryContainer
+            badgeColor = MaterialTheme.colorScheme.primaryContainer,
+            onClick = { onEditSession(session) },
+            trailingIcon = Icons.Default.Edit,
+            trailingIconDescription = "Edit session",
         )
 
         if (summary.secondSideDuration != null) {
@@ -528,7 +552,10 @@ private fun LastFeedingSummaryCard(summary: LastFeedingSummaryState.Populated) {
                 subtitle = "Second side",
                 trailing = summary.secondSideDuration.formatDuration(),
                 badgeEmoji = "🍼",
-                badgeColor = MaterialTheme.colorScheme.primaryContainer
+                badgeColor = MaterialTheme.colorScheme.primaryContainer,
+                onClick = { onEditSession(session) },
+                trailingIcon = Icons.Default.Edit,
+                trailingIconDescription = "Edit session",
             )
         }
     }
