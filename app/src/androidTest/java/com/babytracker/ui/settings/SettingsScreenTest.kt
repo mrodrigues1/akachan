@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.ThemeConfig
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.LocalDate
 import java.time.LocalTime
 
 @RunWith(AndroidJUnit4::class)
@@ -82,7 +84,34 @@ class SettingsScreenTest {
         composeRule.onAllNodesWithText("Disconnect").assertCountEquals(2)
     }
 
-    private class FakeBabyRepository : BabyRepository {
+    // Regression test: clicking Edit Allergies crashed with nested verticalScroll giving
+    // AllergiesStepContent infinite height constraints (IllegalStateException in ScrollNode).
+    @Test
+    fun clickingEditAllergiesOpensSheetWithoutCrash() {
+        val babyRepo = object : FakeBabyRepository() {
+            override fun getBabyProfile(): Flow<Baby?> = flowOf(
+                Baby(name = "Leo", birthDate = LocalDate.of(2025, 1, 1))
+            )
+        }
+        val settingsRepo = object : FakeSettingsRepository() {
+            override fun getAppMode(): Flow<AppMode> = flowOf(AppMode.NONE)
+        }
+        val viewModel = SettingsViewModel(
+            getBabyProfile = GetBabyProfileUseCase(babyRepo),
+            settingsRepository = settingsRepo,
+            saveBabyProfile = SaveBabyProfileUseCase(babyRepo),
+        )
+
+        composeRule.setContent {
+            SettingsScreen(onNavigateBack = {}, viewModel = viewModel)
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Allergies").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Edit allergies").assertIsDisplayed()
+    }
+
+    private open class FakeBabyRepository : BabyRepository {
         override fun getBabyProfile(): Flow<Baby?> = flowOf(null)
 
         override suspend fun saveBabyProfile(baby: Baby) = Unit
@@ -90,7 +119,7 @@ class SettingsScreenTest {
         override fun isOnboardingComplete(): Flow<Boolean> = flowOf(true)
     }
 
-    private class FakeSettingsRepository : SettingsRepository {
+    private open class FakeSettingsRepository : SettingsRepository {
         override fun getThemeConfig(): Flow<ThemeConfig> = flowOf(ThemeConfig.SYSTEM)
 
         override suspend fun setThemeConfig(themeConfig: ThemeConfig) = Unit

@@ -624,8 +624,7 @@ private fun AllergiesEditSheet(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp)
-            .padding(bottom = 24.dp)
-            .verticalScroll(rememberScrollState()),
+            .padding(bottom = 24.dp),
     ) {
         Text(
             text = "Edit allergies",
