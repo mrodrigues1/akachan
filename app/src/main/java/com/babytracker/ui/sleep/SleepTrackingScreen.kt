@@ -58,6 +58,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -507,7 +509,7 @@ private fun SleepQuickStartRow(
             onClick = onStartNap,
             modifier = Modifier
                 .weight(1f)
-                .heightIn(min = 56.dp),
+                .heightIn(min = 88.dp),
             shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondary
@@ -523,7 +525,7 @@ private fun SleepQuickStartRow(
             onClick = onStartNightSleep,
             modifier = Modifier
                 .weight(1f)
-                .heightIn(min = 56.dp),
+                .heightIn(min = 88.dp),
             shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondary
@@ -657,7 +659,8 @@ internal fun AddSleepEntrySheetContent(
                     onClick = onStartTimeClick,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 48.dp),
+                        .heightIn(min = 48.dp)
+                        .semantics { contentDescription = "Change start time" },
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text(
@@ -681,7 +684,8 @@ internal fun AddSleepEntrySheetContent(
                     onClick = onEndTimeClick,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 48.dp),
+                        .heightIn(min = 48.dp)
+                        .semantics { contentDescription = "Change end time" },
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text(

@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -461,13 +462,15 @@ private fun TimelineTextBlock(
             style = MaterialTheme.typography.titleMedium
         )
         Spacer(modifier = Modifier.width(10.dp))
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = item.label,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = contentColor
+                    color = contentColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 if (item.isAdjusted) {
                     Spacer(modifier = Modifier.width(6.dp))
