@@ -99,6 +99,10 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
         )
     }
 
+    override fun cancelPerBreastNotification() {
+        cancelAlarm(REQUEST_CODE_MAX_PER_BREAST)
+    }
+
     override fun cancelAllScheduledNotifications() {
         cancelAlarm(REQUEST_CODE_MAX_TOTAL)
         cancelAlarm(REQUEST_CODE_MAX_PER_BREAST)

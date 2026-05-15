@@ -31,5 +31,6 @@ interface NotificationScheduler {
         currentSide: String,
         maxTotalMinutes: Int
     )
+    fun cancelPerBreastNotification()
     fun cancelAllScheduledNotifications()
 }

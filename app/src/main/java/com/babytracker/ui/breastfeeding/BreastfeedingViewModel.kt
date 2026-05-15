@@ -198,12 +198,9 @@ class BreastfeedingViewModel @Inject constructor(
         val session = _uiState.value.activeSession ?: return
         viewModelScope.launch {
             switchSide(session)
-            // Update the ongoing notification only when this is the first (and only) side switch.
-            // After switching, the current side is the opposite of the original starting side.
             if (session.switchTime == null) {
-                val switchedSession = session.copy(
-                    switchTime = Instant.now()
-                )
+                notificationCoordinator.cancelPerBreastScheduled()
+                val switchedSession = session.copy(switchTime = Instant.now())
                 notificationCoordinator.showRunning(switchedSession)
             }
             runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }

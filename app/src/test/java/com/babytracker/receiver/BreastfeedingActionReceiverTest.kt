@@ -71,6 +71,7 @@ class BreastfeedingActionReceiverTest {
         every { settingsRepository.getMaxTotalFeedMinutes() } returns MutableStateFlow(30)
         coEvery { pauseSession(any()) } returns Unit
         coEvery { resumeSession(any()) } returns Unit
+        every { notificationCoordinator.cancelPerBreastScheduled() } returns Unit
         every { notificationCoordinator.cancelScheduled() } returns Unit
         every { notificationCoordinator.cancelPostedSessionNotifications() } returns Unit
         every { notificationCoordinator.cancelAllSessionNotifications() } returns Unit
@@ -93,6 +94,7 @@ class BreastfeedingActionReceiverTest {
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_SWITCH, 42L))
 
         coVerify { switchSide(activeSession) }
+        verify { notificationCoordinator.cancelPerBreastScheduled() }
         verify {
             NotificationHelper.showBreastfeedingActive(
                 context = context,
