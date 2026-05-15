@@ -78,6 +78,10 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
         )
     }
 
+    fun cancelPerBreastScheduled() {
+        notificationScheduler.cancelPerBreastNotification()
+    }
+
     fun cancelScheduled() {
         notificationScheduler.cancelAllScheduledNotifications()
     }

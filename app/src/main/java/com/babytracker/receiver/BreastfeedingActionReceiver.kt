@@ -88,6 +88,7 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
         if (session?.id == sessionId) {
             switchSide(session)
             if (session.switchTime == null) {
+                notificationCoordinator.cancelPerBreastScheduled()
                 showSwitchedActiveNotification(context, session)
             }
         }

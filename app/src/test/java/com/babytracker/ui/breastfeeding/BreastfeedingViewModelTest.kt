@@ -92,6 +92,7 @@ class BreastfeedingViewModelTest {
         coEvery { notificationCoordinator.scheduleInitial(any()) } returns Unit
         coEvery { notificationCoordinator.showRunning(any(), any()) } returns Unit
         coEvery { notificationCoordinator.showPaused(any(), any()) } returns Unit
+        every { notificationCoordinator.cancelPerBreastScheduled() } returns Unit
         every { notificationCoordinator.cancelScheduled() } returns Unit
         every { notificationCoordinator.cancelAllSessionNotifications() } returns Unit
         coEvery { notificationCoordinator.rescheduleAfterResume(any(), any()) } returns 0L
@@ -303,6 +304,7 @@ class BreastfeedingViewModelTest {
         viewModel.onSwitchSide()
         testDispatcher.scheduler.advanceUntilIdle()
 
+        verify { notificationCoordinator.cancelPerBreastScheduled() }
         coVerify {
             notificationCoordinator.showRunning(
                 match { it.id == session.id && it.startingSide == BreastSide.LEFT && it.switchTime != null },
