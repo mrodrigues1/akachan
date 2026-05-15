@@ -2,6 +2,7 @@ package com.babytracker.ui.component
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +21,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,8 +39,17 @@ fun HistoryCard(
     trailingColor: Color = MaterialTheme.colorScheme.primary,
     trailingIcon: ImageVector? = null,
     trailingIconDescription: String? = null,
+    onClick: (() -> Unit)? = null,
 ) {
     val isDark = LocalDarkTheme.current
+    val rowModifier = Modifier
+        .fillMaxWidth()
+        .let { if (onClick != null) it.clickable(role = Role.Button, onClick = onClick) else it }
+        .padding(horizontal = 14.dp, vertical = 12.dp)
+        .semantics(mergeDescendants = true) {
+            if (onClick != null) role = Role.Button
+        }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -48,10 +60,7 @@ fun HistoryCard(
         border = if (isDark) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp)
-                .semantics(mergeDescendants = true) {},
+            modifier = rowModifier,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
