@@ -47,6 +47,7 @@ fun BreastfeedingHistoryScreen(
     viewModel: BreastfeedingViewModel = hiltViewModel(),
 ) {
     val history by viewModel.history.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val grouped = history.groupByLocalDate { it.startTime }
     val sortedGroups = remember(grouped) {
         grouped.entries
@@ -130,11 +131,26 @@ fun BreastfeedingHistoryScreen(
                             subtitle = session.startTime.formatTime12h(),
                             trailing = session.activeDuration?.formatDuration() ?: "In progress",
                             badgeEmoji = "🍼",
-                            badgeColor = MaterialTheme.colorScheme.primaryContainer
+                            badgeColor = MaterialTheme.colorScheme.primaryContainer,
+                            onClick = { viewModel.onEditSessionClick(session) },
                         )
                     }
                 }
             }
         }
+    }
+
+    val editSheet = uiState.editSheet
+    if (editSheet != null) {
+        EditBreastfeedingSessionSheet(
+            state = editSheet,
+            onStartChanged = viewModel::onEditStartChanged,
+            onEndChanged = viewModel::onEditEndChanged,
+            onDismiss = viewModel::onEditDismiss,
+            onSave = viewModel::onEditSave,
+            onDeleteRequested = viewModel::onDeleteRequested,
+            onDeleteConfirmed = viewModel::onDeleteConfirmed,
+            onDeleteCancelled = viewModel::onDeleteCancelled,
+        )
     }
 }
