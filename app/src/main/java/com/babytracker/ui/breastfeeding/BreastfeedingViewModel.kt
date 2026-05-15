@@ -6,12 +6,16 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.usecase.breastfeeding.DeleteBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
+import com.babytracker.domain.usecase.breastfeeding.UpdateBreastfeedingSessionUseCase
+import com.babytracker.domain.usecase.breastfeeding.foldPause
+import com.babytracker.domain.usecase.breastfeeding.validateBreastfeedingEdit
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -44,6 +48,22 @@ sealed class LastFeedingSummaryState {
     ) : LastFeedingSummaryState()
 }
 
+data class EditSheetState(
+    val original: BreastfeedingSession,
+    val editedStart: Instant,
+    val editedEnd: Instant?,
+    val validationError: String? = null,
+    val isSaving: Boolean = false,
+    val deleteConfirm: Boolean = false,
+    val isDeleting: Boolean = false,
+) {
+    val isDirty: Boolean
+        get() = editedStart != original.startTime || editedEnd != original.endTime
+
+    val canSave: Boolean
+        get() = isDirty && validationError == null && !isSaving && !isDeleting
+}
+
 data class BreastfeedingUiState(
     val activeSession: BreastfeedingSession? = null,
     val selectedSide: BreastSide? = null,
@@ -52,6 +72,7 @@ data class BreastfeedingUiState(
     val lastFeedingSummary: LastFeedingSummaryState = LastFeedingSummaryState.Empty,
     val error: String? = null,
     val currentSide: BreastSide? = null,
+    val editSheet: EditSheetState? = null,
 )
 
 @HiltViewModel
@@ -62,6 +83,8 @@ class BreastfeedingViewModel @Inject constructor(
     getHistory: GetBreastfeedingHistoryUseCase,
     private val pauseSession: PauseBreastfeedingSessionUseCase,
     private val resumeSession: ResumeBreastfeedingSessionUseCase,
+    private val updateSession: UpdateBreastfeedingSessionUseCase,
+    private val deleteSession: DeleteBreastfeedingSessionUseCase,
     private val repository: BreastfeedingRepository,
     private val settingsRepository: SettingsRepository,
     private val notificationCoordinator: BreastfeedingSessionNotificationCoordinator,
@@ -89,6 +112,7 @@ class BreastfeedingViewModel @Inject constructor(
                     lastFeedingSummary = _uiState.value.lastFeedingSummary,
                     error = _uiState.value.error,
                     currentSide = session?.currentSide(),
+                    editSheet = _uiState.value.editSheet,
                 )
             }.collect { newState ->
                 _uiState.value = newState
@@ -204,6 +228,104 @@ class BreastfeedingViewModel @Inject constructor(
             resumeSession(session)
             val totalPausedMs = notificationCoordinator.rescheduleAfterResume(session, resumeInstant)
             notificationCoordinator.showRunning(session, pausedDurationMs = totalPausedMs)
+            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+        }
+    }
+
+    fun onEditSessionClick(session: BreastfeedingSession) {
+        val state = EditSheetState(
+            original = session,
+            editedStart = session.startTime,
+            editedEnd = session.endTime,
+            validationError = null,
+        )
+        _uiState.value = _uiState.value.copy(editSheet = state)
+    }
+
+    fun onEditStartChanged(newStart: Instant) {
+        val current = _uiState.value.editSheet ?: return
+        val (projectedPausedMs, _) = foldPause(current.original, newStart, current.editedEnd)
+        val error = validateBreastfeedingEdit(
+            startTime = newStart,
+            endTime = current.editedEnd,
+            pausedDurationMs = projectedPausedMs,
+            now = Instant.now(),
+        )
+        _uiState.value = _uiState.value.copy(
+            editSheet = current.copy(editedStart = newStart, validationError = error)
+        )
+    }
+
+    fun onEditEndChanged(newEnd: Instant?) {
+        val current = _uiState.value.editSheet ?: return
+        val (projectedPausedMs, _) = foldPause(current.original, current.editedStart, newEnd)
+        val error = validateBreastfeedingEdit(
+            startTime = current.editedStart,
+            endTime = newEnd,
+            pausedDurationMs = projectedPausedMs,
+            now = Instant.now(),
+        )
+        _uiState.value = _uiState.value.copy(
+            editSheet = current.copy(editedEnd = newEnd, validationError = error)
+        )
+    }
+
+    fun onEditDismiss() {
+        _uiState.value = _uiState.value.copy(editSheet = null)
+    }
+
+    fun onEditSave() {
+        val current = _uiState.value.editSheet ?: return
+        if (!current.canSave) return
+        val wasInProgress = current.original.endTime == null
+        val nowHasEnd = current.editedEnd != null
+        _uiState.value = _uiState.value.copy(editSheet = current.copy(isSaving = true))
+        viewModelScope.launch {
+            val result = runCatching {
+                updateSession(current.original, current.editedStart, current.editedEnd)
+            }
+            if (result.isFailure) {
+                _uiState.value = _uiState.value.copy(
+                    editSheet = current.copy(isSaving = false),
+                    error = "Could not save changes. Please try again.",
+                )
+                return@launch
+            }
+            if (wasInProgress && nowHasEnd) {
+                notificationCoordinator.cancelAllSessionNotifications()
+            }
+            _uiState.value = _uiState.value.copy(editSheet = null)
+            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+        }
+    }
+
+    fun onDeleteRequested() {
+        val current = _uiState.value.editSheet ?: return
+        _uiState.value = _uiState.value.copy(editSheet = current.copy(deleteConfirm = true))
+    }
+
+    fun onDeleteCancelled() {
+        val current = _uiState.value.editSheet ?: return
+        _uiState.value = _uiState.value.copy(editSheet = current.copy(deleteConfirm = false))
+    }
+
+    fun onDeleteConfirmed() {
+        val current = _uiState.value.editSheet ?: return
+        val wasInProgress = current.original.endTime == null
+        _uiState.value = _uiState.value.copy(editSheet = current.copy(isDeleting = true))
+        viewModelScope.launch {
+            val result = runCatching { deleteSession(current.original) }
+            if (result.isFailure) {
+                _uiState.value = _uiState.value.copy(
+                    editSheet = current.copy(isDeleting = false, deleteConfirm = false),
+                    error = "Could not delete session. Please try again.",
+                )
+                return@launch
+            }
+            if (wasInProgress) {
+                notificationCoordinator.cancelAllSessionNotifications()
+            }
+            _uiState.value = _uiState.value.copy(editSheet = null)
             runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
         }
     }

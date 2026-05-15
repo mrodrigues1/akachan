@@ -4,12 +4,14 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.usecase.breastfeeding.DeleteBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
+import com.babytracker.domain.usecase.breastfeeding.UpdateBreastfeedingSessionUseCase
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coEvery
@@ -47,6 +49,8 @@ class BreastfeedingViewModelTest {
     private lateinit var getHistory: GetBreastfeedingHistoryUseCase
     private lateinit var pauseSession: PauseBreastfeedingSessionUseCase
     private lateinit var resumeSession: ResumeBreastfeedingSessionUseCase
+    private lateinit var updateSession: UpdateBreastfeedingSessionUseCase
+    private lateinit var deleteSession: DeleteBreastfeedingSessionUseCase
     private lateinit var repository: BreastfeedingRepository
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
@@ -79,6 +83,8 @@ class BreastfeedingViewModelTest {
         every { settingsRepository.getRichNotificationsEnabled() } returns flowOf(false)
         pauseSession = mockk()
         resumeSession = mockk()
+        updateSession = mockk()
+        deleteSession = mockk()
         coJustRun { startSession(any()) }
         coJustRun { pauseSession(any()) }
         coJustRun { resumeSession(any()) }
@@ -106,6 +112,8 @@ class BreastfeedingViewModelTest {
         getHistory,
         pauseSession,
         resumeSession,
+        updateSession,
+        deleteSession,
         repository,
         settingsRepository,
         notificationCoordinator,
