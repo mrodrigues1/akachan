@@ -35,6 +35,7 @@ object NotificationHelper {
     const val SWITCH_SIDE_NOTIFICATION_ID = 1002
     const val SLEEP_NOTIFICATION_ID = 1003
     const val BREASTFEEDING_ACTIVE_NOTIFICATION_ID = 1004
+    const val BREASTFEEDING_GROUP_SUMMARY_NOTIFICATION_ID = 1005
     private const val RC_MAIN_TAP = 0
     private const val RC_SWITCH_NOW = 2001
     private const val RC_BF_DISMISS = 2002
@@ -272,6 +273,7 @@ object NotificationHelper {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setGroup(BREASTFEEDING_GROUP_KEY)
+            .setSortKey("2_switch")
             .setContentIntent(tapPi)
 
         if (richEnabled) {
@@ -310,6 +312,7 @@ object NotificationHelper {
             builder.setContentText(body)
         }
 
+        postBreastfeedingGroupSummary(context)
         context.getSystemService(NotificationManager::class.java)
             .notify(SWITCH_SIDE_NOTIFICATION_ID, builder.build())
         Log.d(TAG, "showSwitchSide posted (rich=$richEnabled)")
@@ -333,6 +336,7 @@ object NotificationHelper {
             .setAutoCancel(true)
             .setOngoing(false)
             .setGroup(BREASTFEEDING_GROUP_KEY)
+            .setSortKey("3_limit")
             .setContentIntent(tapPi)
 
         if (richEnabled) {
@@ -367,6 +371,7 @@ object NotificationHelper {
             builder.setContentText(body)
         }
 
+        postBreastfeedingGroupSummary(context)
         context.getSystemService(NotificationManager::class.java)
             .notify(BREASTFEEDING_NOTIFICATION_ID, builder.build())
         Log.d(TAG, "showFeedingLimit posted (rich=$richEnabled)")
@@ -398,6 +403,7 @@ object NotificationHelper {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setGroup(BREASTFEEDING_GROUP_KEY)
+            .setSortKey("1_active")
             .setContentIntent(tapPi)
 
         if (richEnabled) {
@@ -417,6 +423,7 @@ object NotificationHelper {
             builder.setContentText(body)
         }
 
+        postBreastfeedingGroupSummary(context)
         context.getSystemService(NotificationManager::class.java)
             .notify(BREASTFEEDING_ACTIVE_NOTIFICATION_ID, builder.build())
         Log.d(TAG, "showBreastfeedingActive posted (rich=$richEnabled)")
@@ -598,6 +605,24 @@ object NotificationHelper {
         context.getSystemService(NotificationManager::class.java)
             .notify(SLEEP_NOTIFICATION_ID, builder.build())
         Log.d(TAG, "showSleepActive posted (rich=$richEnabled)")
+    }
+
+    private fun postBreastfeedingGroupSummary(context: Context) {
+        val accent = resolveAccent(context, Pink700, PrimaryPinkDark)
+        val tapPi = mainActivityPendingIntent(context)
+        val summary = NotificationCompat.Builder(context, BREASTFEEDING_CHANNEL_ID)
+            .applyDesignSystem(accent, R.drawable.ic_notif_breastfeeding)
+            .setContentTitle(context.getString(R.string.notif_title_breastfeeding_group))
+            .setGroup(BREASTFEEDING_GROUP_KEY)
+            .setGroupSummary(true)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setContentIntent(tapPi)
+            .build()
+        context.getSystemService(NotificationManager::class.java)
+            .notify(BREASTFEEDING_GROUP_SUMMARY_NOTIFICATION_ID, summary)
     }
 
     fun cancelNotification(context: Context, notificationId: Int) {

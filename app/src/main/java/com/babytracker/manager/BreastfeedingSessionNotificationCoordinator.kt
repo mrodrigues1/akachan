@@ -86,6 +86,7 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
         NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID)
         NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
         NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_ACTIVE_NOTIFICATION_ID)
+        NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_GROUP_SUMMARY_NOTIFICATION_ID)
     }
 
     fun cancelAllSessionNotifications() {
