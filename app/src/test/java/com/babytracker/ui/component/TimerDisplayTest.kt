@@ -34,4 +34,14 @@ class TimerDisplayTest {
     fun shouldAnimateTimerRing_pausedWithRing_returnsFalse() {
         assertEquals(false, shouldAnimateTimerRing(hasRing = true, isRunning = false))
     }
+
+    @Test
+    fun shouldAnimateTimerRing_notRunningWithoutRing_returnsFalse() {
+        assertEquals(false, shouldAnimateTimerRing(hasRing = false, isRunning = false))
+    }
+
+    @Test
+    fun formatElapsedAsMinutesSeconds_zeroSeconds_returnsZeroed() {
+        assertEquals("00:00", formatElapsedAsMinutesSeconds(0))
+    }
 }

@@ -1,5 +1,6 @@
 package com.babytracker.ui.component
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -72,7 +73,11 @@ fun TimerDisplay(
     val isOverMax = hasRing && elapsedSeconds >= maxDurationSeconds
     val resolvedRingColor = if (ringColor == Color.Unspecified) MaterialTheme.colorScheme.primary else ringColor
     val resolvedTrackColor = if (trackColor == Color.Unspecified) MaterialTheme.colorScheme.primaryContainer else trackColor
-    val progressColor = if (isOverMax) MaterialTheme.colorScheme.tertiary else resolvedRingColor
+    val progressColor by animateColorAsState(
+        targetValue = if (isOverMax) MaterialTheme.colorScheme.tertiary else resolvedRingColor,
+        animationSpec = tween(durationMillis = 600),
+        label = "ring_progress_color",
+    )
 
     val scale = if (shouldAnimateTimerRing(hasRing, isRunning)) {
         val infiniteTransition = rememberInfiniteTransition(label = "ring_pulse")

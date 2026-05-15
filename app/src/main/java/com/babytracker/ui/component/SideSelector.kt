@@ -1,5 +1,8 @@
 package com.babytracker.ui.component
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,8 +19,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -31,16 +36,50 @@ import com.babytracker.domain.model.displayName
 fun SideSelector(
     selectedSide: BreastSide?,
     onSideSelected: (BreastSide) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         BreastSide.entries.forEach { side ->
             val isSelected = selectedSide == side
             val label = side.displayName()
             val arrowIcon = if (side == BreastSide.LEFT) Icons.Filled.KeyboardArrowLeft else Icons.Filled.KeyboardArrowRight
+
+            val containerColor by animateColorAsState(
+                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                animationSpec = tween(durationMillis = 220),
+                label = "container_${side.name}",
+            )
+            val borderColor by animateColorAsState(
+                targetValue = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.primaryContainer,
+                animationSpec = tween(durationMillis = 220),
+                label = "border_${side.name}",
+            )
+            val elevation by animateDpAsState(
+                targetValue = if (isSelected) 6.dp else 0.dp,
+                animationSpec = tween(durationMillis = 220),
+                label = "elevation_${side.name}",
+            )
+            val iconTint by animateColorAsState(
+                targetValue = if (isSelected) {
+                    MaterialTheme.colorScheme.onPrimary
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                },
+                animationSpec = tween(durationMillis = 220),
+                label = "icon_tint_${side.name}",
+            )
+            val textColor by animateColorAsState(
+                targetValue = if (isSelected) {
+                    MaterialTheme.colorScheme.onPrimary
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                },
+                animationSpec = tween(durationMillis = 220),
+                label = "text_color_${side.name}",
+            )
 
             Card(
                 onClick = { onSideSelected(side) },
@@ -53,46 +92,27 @@ fun SideSelector(
                         contentDescription = "$label${if (isSelected) ", selected" else ""}"
                     },
                 shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isSelected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.surface
-                    }
-                ),
-                border = if (isSelected) null else BorderStroke(
-                    width = 2.dp,
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = if (isSelected) 6.dp else 0.dp
-                )
+                colors = CardDefaults.cardColors(containerColor = containerColor),
+                border = BorderStroke(width = 2.dp, color = borderColor),
+                elevation = CardDefaults.cardElevation(defaultElevation = elevation),
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 88.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Icon(
                         imageVector = arrowIcon,
                         contentDescription = null,
                         modifier = Modifier.size(28.dp),
-                        tint = if (isSelected) {
-                            MaterialTheme.colorScheme.onPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                        }
+                        tint = iconTint,
                     )
                     Text(
                         text = label,
                         style = MaterialTheme.typography.labelLarge,
-                        color = if (isSelected) {
-                            MaterialTheme.colorScheme.onPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        }
+                        color = textColor,
                     )
                 }
             }
