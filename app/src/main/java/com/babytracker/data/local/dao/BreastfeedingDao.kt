@@ -1,6 +1,7 @@
 package com.babytracker.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
@@ -26,4 +27,7 @@ interface BreastfeedingDao {
 
     @Update
     suspend fun updateSession(entity: BreastfeedingEntity)
+
+    @Delete
+    suspend fun deleteSession(entity: BreastfeedingEntity)
 }
