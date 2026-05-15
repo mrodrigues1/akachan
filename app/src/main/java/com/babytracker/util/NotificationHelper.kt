@@ -494,7 +494,7 @@ object NotificationHelper {
         val maxSeconds = maxTotalMinutes * SECONDS_PER_MINUTE
         val progressEnabled = maxSeconds > 0
         return ActiveProgress(
-            current = if (progressEnabled) elapsedSeconds else 0,
+            current = if (progressEnabled) elapsedSeconds.coerceAtMost(maxSeconds) else 0,
             max = if (progressEnabled) maxSeconds else 1,
             label = if (progressEnabled) activeProgressText(maxTotalMinutes) else formatDurationCompact(elapsedSeconds),
             isEnabled = progressEnabled

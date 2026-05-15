@@ -1005,6 +1005,56 @@ class NotificationHelperTest {
         }
     }
 
+    // --- progress bar accuracy tests ---
+
+    private data class ActiveProgressSnapshot(
+        val current: Int,
+        val max: Int,
+        val label: String,
+        val isEnabled: Boolean
+    )
+
+    private fun invokeBreastfeedingActiveProgress(elapsedSeconds: Int, maxTotalMinutes: Int): ActiveProgressSnapshot {
+        val method = NotificationHelper::class.java.declaredMethods
+            .first { it.name == "breastfeedingActiveProgress" }
+        method.isAccessible = true
+        val result = method.invoke(NotificationHelper, elapsedSeconds, maxTotalMinutes)
+        val resultClass = result.javaClass
+        return ActiveProgressSnapshot(
+            current = resultClass.getDeclaredField("current").apply { isAccessible = true }.getInt(result),
+            max = resultClass.getDeclaredField("max").apply { isAccessible = true }.getInt(result),
+            label = resultClass.getDeclaredField("label").apply { isAccessible = true }.get(result) as String,
+            isEnabled = resultClass.getDeclaredField("isEnabled").apply { isAccessible = true }.getBoolean(result)
+        )
+    }
+
+    @Test
+    fun `breastfeedingActiveProgress caps current at maxSeconds when elapsed exceeds limit`() {
+        val result = invokeBreastfeedingActiveProgress(elapsedSeconds = 605, maxTotalMinutes = 10)
+        assertEquals(
+            600,
+            result.current,
+            "progress.current must be capped at 600 (maxSeconds) when elapsedSeconds=605 — " +
+                "without the cap, ActiveProgress has current > max, an invalid state that the " +
+                "RemoteViews coerceIn() masks but that can cause inconsistent snapshots"
+        )
+        assertEquals(600, result.max)
+    }
+
+    @Test
+    fun `breastfeedingActiveProgress current equals max when elapsed exactly matches limit`() {
+        val result = invokeBreastfeedingActiveProgress(elapsedSeconds = 600, maxTotalMinutes = 10)
+        assertEquals(600, result.current, "elapsed == max must produce current == max (100%)")
+        assertEquals(600, result.max)
+    }
+
+    @Test
+    fun `breastfeedingActiveProgress current equals elapsed when below limit`() {
+        val result = invokeBreastfeedingActiveProgress(elapsedSeconds = 300, maxTotalMinutes = 10)
+        assertEquals(300, result.current, "elapsed below max must produce current == elapsedSeconds")
+        assertEquals(600, result.max)
+    }
+
     @Test
     fun `BREASTFEEDING_GROUP_SUMMARY_NOTIFICATION_ID is distinct from the three child notification IDs`() {
         val summaryIdField = NotificationHelper::class.java.declaredFields

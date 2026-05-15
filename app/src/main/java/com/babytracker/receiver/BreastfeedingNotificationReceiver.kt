@@ -62,6 +62,20 @@ class BreastfeedingNotificationReceiver : BroadcastReceiver() {
                 NotificationHelper.showFeedingLimit(
                     context, sessionId, maxTotalMinutes, richEnabled
                 )
+                // Snap the active notification progress to 100% immediately. Without this, the
+                // progress bar (refreshed every 30s) can show < 100% while the live chronometer
+                // already shows the max time. The alarm fires when actual elapsed == max, so
+                // synthetically placing sessionStart = now - maxTotalMinutes * 60s gives the
+                // correct elapsed and keeps the chronometer accurate.
+                NotificationHelper.showBreastfeedingActive(
+                    context = context,
+                    sessionId = sessionId,
+                    currentSide = currentSide,
+                    sessionStartEpochMs = System.currentTimeMillis() - maxTotalMinutes * 60_000L,
+                    pausedDurationMs = 0L,
+                    richEnabled = richEnabled,
+                    maxTotalMinutes = maxTotalMinutes
+                )
             }
             else -> Log.w(TAG, "Unknown notification type: $notificationType")
         }

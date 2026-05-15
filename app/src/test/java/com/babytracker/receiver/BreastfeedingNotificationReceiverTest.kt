@@ -30,6 +30,7 @@ class BreastfeedingNotificationReceiverTest {
         mockkObject(NotificationHelper)
         every { NotificationHelper.showSwitchSide(any(), any(), any(), any(), any()) } returns Unit
         every { NotificationHelper.showFeedingLimit(any(), any(), any(), any()) } returns Unit
+        every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any(), any()) } returns Unit
     }
 
     @AfterEach
@@ -166,6 +167,69 @@ class BreastfeedingNotificationReceiverTest {
         )
 
         verify { NotificationHelper.showFeedingLimit(context, any(), 45, any()) }
+    }
+
+    @Test
+    fun maxTotalTypeAlsoUpdatesActiveNotificationToFullProgress() = runTest {
+        receiver.handle(
+            context,
+            intent(
+                type = BreastfeedingNotificationReceiver.NOTIFICATION_TYPE_MAX_TOTAL,
+                sessionId = 2L,
+                currentSide = "RIGHT",
+                elapsedMinutes = 0,
+                maxTotalMinutes = 10,
+            ),
+        )
+
+        // Active notification must be re-posted at the moment the limit alarm fires so the
+        // frozen progress bar (last updated up to 30s earlier) snaps to 100% before the
+        // next scheduled refresh arrives.
+        verify {
+            NotificationHelper.showBreastfeedingActive(
+                context,
+                2L,
+                "RIGHT",
+                any(), // sessionStartEpochMs computed as now - maxTotalMinutes * 60_000
+                0L,    // pausedDurationMs
+                any(), // richEnabled
+                10,    // maxTotalMinutes
+                null,  // pausedAtEpochMs — session still running
+            )
+        }
+    }
+
+    @Test
+    fun maxTotalTypeStillShowsFeedingLimitAndAlsoUpdatesActive() = runTest {
+        receiver.handle(
+            context,
+            intent(
+                type = BreastfeedingNotificationReceiver.NOTIFICATION_TYPE_MAX_TOTAL,
+                sessionId = 3L,
+                currentSide = "LEFT",
+                elapsedMinutes = 0,
+                maxTotalMinutes = 15,
+            ),
+        )
+
+        verify { NotificationHelper.showFeedingLimit(context, 3L, 15, any()) }
+        verify { NotificationHelper.showBreastfeedingActive(context, 3L, "LEFT", any(), 0L, any(), 15, null) }
+    }
+
+    @Test
+    fun switchSideTypeDoesNotUpdateActiveNotification() = runTest {
+        receiver.handle(
+            context,
+            intent(
+                type = BreastfeedingNotificationReceiver.NOTIFICATION_TYPE_SWITCH_SIDE,
+                sessionId = 1L,
+                currentSide = "LEFT",
+                elapsedMinutes = 5,
+                maxTotalMinutes = 20,
+            ),
+        )
+
+        verify(exactly = 0) { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any(), any()) }
     }
 
     @Test
