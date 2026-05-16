@@ -13,13 +13,26 @@ data class PumpingSession(
     val pausedAt: Instant? = null,
     val pausedDurationMs: Long = 0,
 ) {
-    val isInProgress: Boolean get() = endTime == null
-    val isPaused: Boolean get() = pausedAt != null
     val duration: Duration?
-        get() = endTime?.let { Duration.between(startTime, it).minusMillis(pausedDurationMs).coerceAtLeast(Duration.ZERO) }
+        get() = endTime?.let { Duration.between(startTime, it) }
 
-    fun activeDurationUntil(until: Instant): Duration =
-        Duration.between(startTime, endTime ?: until)
-            .minusMillis(pausedDurationMs)
+    val isInProgress: Boolean
+        get() = endTime == null
+
+    val isPaused: Boolean
+        get() = pausedAt != null
+
+    val activeDuration: Duration?
+        get() = endTime?.let { activeDurationUntil(it) }
+
+    fun activeDurationUntil(until: Instant): Duration {
+        val currentPausedMs = if (endTime == null && pausedAt != null) {
+            Duration.between(pausedAt, until).toMillis().coerceAtLeast(0L)
+        } else {
+            0L
+        }
+        return Duration.between(startTime, endTime ?: until)
+            .minusMillis(pausedDurationMs + currentPausedMs)
             .coerceAtLeast(Duration.ZERO)
+    }
 }
