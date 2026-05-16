@@ -24,11 +24,7 @@ package com.babytracker.domain.model
 
 enum class PumpingBreast { LEFT, RIGHT, BOTH }
 
-fun PumpingBreast.displayName(): String = when (this) {
-    PumpingBreast.LEFT -> "Left"
-    PumpingBreast.RIGHT -> "Right"
-    PumpingBreast.BOTH -> "Both"
-}
+fun PumpingBreast.displayName(): String = name.lowercase().replaceFirstChar { it.uppercase() }
 ```
 
 ### Step 2: `PumpingSession.kt`
@@ -49,15 +45,28 @@ data class PumpingSession(
     val pausedAt: Instant? = null,
     val pausedDurationMs: Long = 0,
 ) {
-    val isInProgress: Boolean get() = endTime == null
-    val isPaused: Boolean get() = pausedAt != null
     val duration: Duration?
-        get() = endTime?.let { Duration.between(startTime, it).minusMillis(pausedDurationMs).coerceAtLeast(Duration.ZERO) }
+        get() = endTime?.let { Duration.between(startTime, it) }
 
-    fun activeDurationUntil(until: Instant): Duration =
-        Duration.between(startTime, endTime ?: until)
-            .minusMillis(pausedDurationMs)
+    val isInProgress: Boolean
+        get() = endTime == null
+
+    val isPaused: Boolean
+        get() = pausedAt != null
+
+    val activeDuration: Duration?
+        get() = endTime?.let { activeDurationUntil(it) }
+
+    fun activeDurationUntil(until: Instant): Duration {
+        val currentPausedMs = if (endTime == null && pausedAt != null) {
+            Duration.between(pausedAt, until).toMillis().coerceAtLeast(0L)
+        } else {
+            0L
+        }
+        return Duration.between(startTime, endTime ?: until)
+            .minusMillis(pausedDurationMs + currentPausedMs)
             .coerceAtLeast(Duration.ZERO)
+    }
 }
 ```
 
@@ -110,6 +119,7 @@ package com.babytracker.domain.model
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Duration
@@ -125,7 +135,7 @@ class PumpingSessionTest {
     }
 
     @Test
-    fun `duration subtracts pausedDurationMs and floors at zero`() {
+    fun `duration is raw elapsed between start and end`() {
         val end = start.plus(Duration.ofMinutes(20))
         val session = PumpingSession(
             startTime = start,
@@ -133,13 +143,37 @@ class PumpingSessionTest {
             breast = PumpingBreast.BOTH,
             pausedDurationMs = Duration.ofMinutes(5).toMillis(),
         )
-        assertEquals(Duration.ofMinutes(15), session.duration)
+        assertEquals(Duration.ofMinutes(20), session.duration)
     }
 
     @Test
     fun `duration null when in progress`() {
         val session = PumpingSession(startTime = start, breast = PumpingBreast.LEFT)
-        assertEquals(null, session.duration)
+        assertNull(session.duration)
+    }
+
+    @Test
+    fun `activeDuration subtracts pausedDurationMs and floors at zero`() {
+        val end = start.plus(Duration.ofMinutes(20))
+        val session = PumpingSession(
+            startTime = start,
+            endTime = end,
+            breast = PumpingBreast.BOTH,
+            pausedDurationMs = Duration.ofMinutes(5).toMillis(),
+        )
+        assertEquals(Duration.ofMinutes(15), session.activeDuration)
+    }
+
+    @Test
+    fun `activeDuration floors at zero when paused exceeds elapsed`() {
+        val end = start.plus(Duration.ofMinutes(5))
+        val session = PumpingSession(
+            startTime = start,
+            endTime = end,
+            breast = PumpingBreast.LEFT,
+            pausedDurationMs = Duration.ofMinutes(10).toMillis(),
+        )
+        assertEquals(Duration.ZERO, session.activeDuration)
     }
 
     @Test
@@ -147,6 +181,18 @@ class PumpingSessionTest {
         val session = PumpingSession(startTime = start, breast = PumpingBreast.LEFT)
         val now = start.plus(Duration.ofMinutes(8))
         assertEquals(Duration.ofMinutes(8), session.activeDurationUntil(now))
+    }
+
+    @Test
+    fun `activeDurationUntil excludes current pause while in progress`() {
+        val pauseStart = start.plus(Duration.ofMinutes(5))
+        val now = pauseStart.plus(Duration.ofMinutes(3))
+        val session = PumpingSession(
+            startTime = start,
+            breast = PumpingBreast.LEFT,
+            pausedAt = pauseStart,
+        )
+        assertEquals(Duration.ofMinutes(5), session.activeDurationUntil(now))
     }
 
     @Test
@@ -167,6 +213,7 @@ class PumpingSessionTest {
 ```kotlin
 package com.babytracker.domain.model
 
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -185,6 +232,18 @@ class MilkBagTest {
     fun `isActive false when usedAt set`() {
         val bag = MilkBag(collectionDate = now, volumeMl = 120, createdAt = now, usedAt = now)
         assertFalse(bag.isActive)
+    }
+
+    @Test
+    fun `sourceSessionId preserved through copy`() {
+        val bag = MilkBag(
+            collectionDate = now,
+            volumeMl = 120,
+            sourceSessionId = 42L,
+            createdAt = now,
+        )
+        assertEquals(42L, bag.sourceSessionId)
+        assertEquals(42L, bag.copy(volumeMl = 150).sourceSessionId)
     }
 }
 ```
