@@ -4,7 +4,10 @@ import android.content.Context
 import androidx.room.Room
 import com.babytracker.data.local.BabyTrackerDatabase
 import com.babytracker.data.local.MIGRATION_1_2
+import com.babytracker.data.local.MIGRATION_2_3
 import com.babytracker.data.local.dao.BreastfeedingDao
+import com.babytracker.data.local.dao.MilkBagDao
+import com.babytracker.data.local.dao.PumpingDao
 import com.babytracker.data.local.dao.SleepDao
 import dagger.Module
 import dagger.Provides
@@ -24,9 +27,9 @@ object DatabaseModule {
         Room.databaseBuilder(
             context,
             BabyTrackerDatabase::class.java,
-            "baby_tracker_db"
+            "baby_tracker_db",
         )
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
     @Provides
@@ -34,8 +37,13 @@ object DatabaseModule {
         database.breastfeedingDao()
 
     @Provides
-    fun provideSleepDao(database: BabyTrackerDatabase): SleepDao =
-        database.sleepDao()
+    fun provideSleepDao(database: BabyTrackerDatabase): SleepDao = database.sleepDao()
+
+    @Provides
+    fun providePumpingDao(database: BabyTrackerDatabase): PumpingDao = database.pumpingDao()
+
+    @Provides
+    fun provideMilkBagDao(database: BabyTrackerDatabase): MilkBagDao = database.milkBagDao()
 
     @Provides
     fun provideNowProvider(): () -> Instant = Instant::now
