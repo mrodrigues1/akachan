@@ -130,8 +130,6 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.coroutines.test)
-    testImplementation(libs.room.testing)
-
     detektPlugins(libs.detekt.compose.rules)
 
     // Android Testing
@@ -139,7 +137,6 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.compose.ui.test.junit4)
     debugImplementation(libs.compose.ui.test.manifest)
-    androidTestImplementation(libs.room.testing)
     androidTestImplementation(libs.turbine)
 
     // Android Testing — JUnit 5 support
