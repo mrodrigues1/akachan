@@ -23,7 +23,7 @@ import com.babytracker.data.local.entity.SleepEntity
         MilkBagEntity::class,
     ],
     version = 3,
-    exportSchema = false,
+    exportSchema = true,
 )
 @TypeConverters(Converters::class)
 abstract class BabyTrackerDatabase : RoomDatabase() {
