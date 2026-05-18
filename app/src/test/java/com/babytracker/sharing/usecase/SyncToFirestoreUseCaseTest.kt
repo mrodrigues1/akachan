@@ -3,10 +3,12 @@ package com.babytracker.sharing.usecase
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.sharing.domain.model.AppMode
@@ -33,6 +35,8 @@ class SyncToFirestoreUseCaseTest {
     private val babyRepository: BabyRepository = mockk()
     private val breastfeedingRepository: BreastfeedingRepository = mockk()
     private val sleepRepository: SleepRepository = mockk()
+    private val inventoryRepository: InventoryRepository = mockk()
+    private val fixedNow = Instant.parse("2026-05-16T10:00:00Z")
 
     private lateinit var useCase: SyncToFirestoreUseCase
 
@@ -57,15 +61,18 @@ class SyncToFirestoreUseCaseTest {
             babyRepository,
             breastfeedingRepository,
             sleepRepository,
-        )
+            inventoryRepository,
+        ) { fixedNow }
         every { settingsRepository.getShareCode() } returns flowOf(shareCode.value)
         every { babyRepository.getBabyProfile() } returns flowOf(mockBaby)
         coEvery { breastfeedingRepository.getRecentSessions(any()) } returns listOf(mockSession)
         coEvery { sleepRepository.getRecentRecords(any()) } returns listOf(mockSleep)
+        coEvery { inventoryRepository.currentSummary() } returns InventorySummary.Empty
         coEvery { sharingRepository.syncFullSnapshot(any(), any()) } just Runs
         coEvery { sharingRepository.syncSessions(any(), any()) } just Runs
         coEvery { sharingRepository.syncSleepRecords(any(), any()) } just Runs
         coEvery { sharingRepository.syncBaby(any(), any()) } just Runs
+        coEvery { sharingRepository.syncInventory(any(), any()) } just Runs
     }
 
     @Test

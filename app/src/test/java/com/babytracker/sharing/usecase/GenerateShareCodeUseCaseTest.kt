@@ -1,8 +1,10 @@
 package com.babytracker.sharing.usecase
 
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.sharing.domain.model.AppMode
@@ -22,6 +24,7 @@ import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Instant
 import java.time.LocalDate
 
 class GenerateShareCodeUseCaseTest {
@@ -31,6 +34,8 @@ class GenerateShareCodeUseCaseTest {
     private val babyRepository: BabyRepository = mockk()
     private val breastfeedingRepository: BreastfeedingRepository = mockk()
     private val sleepRepository: SleepRepository = mockk()
+    private val inventoryRepository: InventoryRepository = mockk()
+    private val fixedNow = Instant.parse("2026-05-16T10:00:00Z")
 
     private lateinit var useCase: GenerateShareCodeUseCase
 
@@ -42,10 +47,12 @@ class GenerateShareCodeUseCaseTest {
             babyRepository,
             breastfeedingRepository,
             sleepRepository,
-        )
+            inventoryRepository,
+        ) { fixedNow }
         every { babyRepository.getBabyProfile() } returns flowOf(Baby("Test", LocalDate.now()))
         coEvery { breastfeedingRepository.getRecentSessions(any()) } returns emptyList()
         coEvery { sleepRepository.getRecentRecords(any()) } returns emptyList()
+        coEvery { inventoryRepository.currentSummary() } returns InventorySummary.Empty
         coEvery { sharingRepository.signInAnonymously() } returns "uid123"
         coEvery { sharingRepository.isShareCodeValid(any()) } returns false
         coEvery { sharingRepository.createShareDocument(any(), any()) } just Runs

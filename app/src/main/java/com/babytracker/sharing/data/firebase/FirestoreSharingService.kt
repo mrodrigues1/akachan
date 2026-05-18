@@ -1,6 +1,7 @@
 package com.babytracker.sharing.data.firebase
 
 import com.babytracker.sharing.domain.model.BabySnapshot
+import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
@@ -72,6 +73,18 @@ class FirestoreSharingService @Inject constructor(
         firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()
     }
 
+    suspend fun syncInventory(code: String, fields: InventorySnapshotFields) {
+        val data = mapOf(
+            "data" to mapOf(
+                "lastSyncAt" to Timestamp.now(),
+                "inventoryTotalMl" to fields.totalMl,
+                "inventoryBagCount" to fields.bagCount,
+                "inventoryUpdatedAt" to fields.updatedAtMs,
+            ),
+        )
+        firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()
+    }
+
     suspend fun registerPartner(code: String, partnerUid: String) {
         firestore.collection(SHARES).document(code)
             .collection(PARTNERS).document(partnerUid)
@@ -114,6 +127,9 @@ class FirestoreSharingService @Inject constructor(
         "baby" to babyToMap(snapshot.baby),
         "sessions" to snapshot.sessions.map { sessionToMap(it) },
         "sleepRecords" to snapshot.sleepRecords.map { sleepToMap(it) },
+        "inventoryTotalMl" to snapshot.inventoryTotalMl,
+        "inventoryBagCount" to snapshot.inventoryBagCount,
+        "inventoryUpdatedAt" to snapshot.inventoryUpdatedAt,
     )
 
     private fun babyToMap(baby: BabySnapshot): Map<String, Any> = mapOf(
@@ -154,7 +170,15 @@ class FirestoreSharingService @Inject constructor(
             ?.filterIsInstance<Map<*, *>>()
             ?.map { mapToSleep(it) }
             .orEmpty()
-        return ShareSnapshot(lastSyncAt, baby, sessions, sleepRecords)
+        return ShareSnapshot(
+            lastSyncAt = lastSyncAt,
+            baby = baby,
+            sessions = sessions,
+            sleepRecords = sleepRecords,
+            inventoryTotalMl = (data["inventoryTotalMl"] as? Number)?.toInt(),
+            inventoryBagCount = (data["inventoryBagCount"] as? Number)?.toInt(),
+            inventoryUpdatedAt = (data["inventoryUpdatedAt"] as? Number)?.toLong(),
+        )
     }
 
     private fun mapToBaby(map: Map<*, *>): BabySnapshot = BabySnapshot(

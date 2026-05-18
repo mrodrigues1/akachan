@@ -2,6 +2,7 @@ package com.babytracker.sharing.data.repository
 
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.BabySnapshot
+import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
@@ -36,6 +37,9 @@ class SharingRepositoryImpl @Inject constructor(
 
     override suspend fun syncBaby(code: ShareCode, baby: BabySnapshot) =
         service.syncBaby(code.value, baby)
+
+    override suspend fun syncInventory(code: ShareCode, fields: InventorySnapshotFields) =
+        service.syncInventory(code.value, fields)
 
     override suspend fun registerPartner(code: ShareCode, partnerUid: String) =
         service.registerPartner(code.value, partnerUid)
