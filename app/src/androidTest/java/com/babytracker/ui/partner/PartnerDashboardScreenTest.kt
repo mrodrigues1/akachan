@@ -28,6 +28,7 @@ import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.BabySnapshot
+import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
@@ -462,6 +463,8 @@ class PartnerDashboardScreenTest {
         override suspend fun syncSleepRecords(code: ShareCode, sleepRecords: List<SleepSnapshot>) = Unit
 
         override suspend fun syncBaby(code: ShareCode, baby: BabySnapshot) = Unit
+
+        override suspend fun syncInventory(code: ShareCode, fields: InventorySnapshotFields) = Unit
 
         override suspend fun registerPartner(code: ShareCode, partnerUid: String) = Unit
 
