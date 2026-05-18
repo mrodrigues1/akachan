@@ -9,6 +9,7 @@ fun validatePumpingEdit(
     pausedDurationMs: Long,
     now: Instant,
 ): String? {
+    if (startTime.isAfter(now)) return "Start cannot be in the future"
     if (endTime != null && !endTime.isAfter(startTime)) return "End must be after start"
     if (endTime != null && endTime.isAfter(now)) return "End cannot be in the future"
     if (endTime != null) {

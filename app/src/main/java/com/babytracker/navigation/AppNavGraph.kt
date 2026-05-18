@@ -17,6 +17,7 @@ import com.babytracker.ui.sharing.ManageSharingScreen
 import com.babytracker.ui.sleep.SleepHistoryScreen
 import com.babytracker.ui.sleep.SleepScheduleScreen
 import com.babytracker.ui.sleep.SleepTrackingScreen
+import com.babytracker.ui.pumping.PumpingHistoryScreen
 import com.babytracker.ui.pumping.PumpingScreen
 import com.babytracker.ui.theme.DesignSystemPreviewScreen
 
@@ -112,8 +113,7 @@ private fun NavGraphBuilder.pumpingGraph(navController: NavHostController) {
         )
     }
     composable(Routes.PUMPING_HISTORY) {
-        // Pumping history screen — implemented in task 7.
-        androidx.compose.material3.Text("Pumping history coming soon")
+        PumpingHistoryScreen(onNavigateBack = { navController.popBackStack() })
     }
 }
 
