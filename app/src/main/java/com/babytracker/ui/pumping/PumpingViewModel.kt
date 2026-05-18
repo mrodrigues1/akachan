@@ -158,7 +158,7 @@ class PumpingViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(manual = null)
                 openBagPrompt(
                     sessionId = saved.id,
-                    volumeMl = volume,
+                    volumeMl = volume!!,
                     collectionDate = saved.endTime!!,
                 )
             }.onFailure {
