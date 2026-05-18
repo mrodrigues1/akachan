@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   unit-tests:
     name: Unit Tests
@@ -20,7 +24,9 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
@@ -35,11 +41,8 @@ jobs:
           fi
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
 
-      - name: Run unit tests
-        run: ./gradlew test
-
-      - name: Verify coverage gate
-        run: ./gradlew :app:koverVerify
+      - name: Run unit tests and coverage gate
+        run: ./gradlew test :app:koverVerify
 
       - name: Upload coverage report
         if: always()
@@ -56,9 +59,17 @@ jobs:
           path: app/build/reports/tests/
 
   instrumentation-tests:
-    name: Instrumentation Tests
+    name: Instrumentation Tests Shard (${{ matrix.shard.display }}/2)
     runs-on: ubuntu-latest
     if: github.head_ref != 'chore/release'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - index: 0
+            display: 1
+          - index: 1
+            display: 2
 
     steps:
       - name: Checkout code
@@ -69,7 +80,9 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
@@ -96,11 +109,28 @@ jobs:
           api-level: 29
           arch: x86_64
           profile: Nexus 6
-          script: ./gradlew connectedAndroidTest
+          script: |
+            ./gradlew :app:connectedDebugAndroidTest \
+              -Pandroid.testInstrumentationRunnerArguments.numShards=2 \
+              -Pandroid.testInstrumentationRunnerArguments.shardIndex=${{ matrix.shard.index }}
 
       - name: Upload instrumentation test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: instrumentation-test-results
+          name: instrumentation-test-results-shard-${{ matrix.shard.display }}
           path: app/build/reports/androidTests/
+
+  instrumentation-tests-result:
+    name: Instrumentation Tests
+    runs-on: ubuntu-latest
+    needs: instrumentation-tests
+    if: always() && github.head_ref != 'chore/release'
+
+    steps:
+      - name: Verify instrumentation shards
+        run: |
+          if [ "${{ needs.instrumentation-tests.result }}" != "success" ]; then
+            echo "::error::One or more instrumentation test shards failed"
+            exit 1
+          fi

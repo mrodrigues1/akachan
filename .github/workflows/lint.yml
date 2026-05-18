@@ -5,6 +5,10 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -16,7 +20,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - uses: gradle/actions/setup-gradle@v3
+      - uses: gradle/actions/setup-gradle@v4
 
       - name: Create google-services.json
         env:
@@ -28,8 +32,5 @@ jobs:
           fi
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
 
-      - name: ktlint
-        run: ./gradlew ktlintCheck
-
-      - name: detekt
-        run: ./gradlew detekt
+      - name: ktlint and detekt
+        run: ./gradlew ktlintCheck detekt
