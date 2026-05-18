@@ -109,10 +109,7 @@ jobs:
           api-level: 29
           arch: x86_64
           profile: Nexus 6
-          script: |
-            ./gradlew :app:connectedDebugAndroidTest \
-              -Pandroid.testInstrumentationRunnerArguments.numShards=2 \
-              -Pandroid.testInstrumentationRunnerArguments.shardIndex=${{ matrix.shard.index }}
+          script: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.numShards=2 -Pandroid.testInstrumentationRunnerArguments.shardIndex=${{ matrix.shard.index }}
 
       - name: Upload instrumentation test results
         if: always()
