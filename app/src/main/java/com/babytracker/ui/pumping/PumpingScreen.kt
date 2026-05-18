@@ -676,9 +676,9 @@ internal fun ManualModeContent(
                     strokeWidth = 2.dp,
                     color = MaterialTheme.colorScheme.onTertiary,
                 )
-            } else {
-                Text("Save Session", style = MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.width(8.dp))
             }
+            Text("Save Session", style = MaterialTheme.typography.labelLarge)
         }
 
         Spacer(Modifier.height(32.dp))
