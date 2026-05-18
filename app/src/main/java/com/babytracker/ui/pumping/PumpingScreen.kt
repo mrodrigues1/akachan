@@ -35,6 +35,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -107,6 +108,7 @@ fun PumpingScreen(
     onNavigateBack: () -> Unit,
     onNavigateToHistory: () -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateToInventory: () -> Unit = {},
     viewModel: PumpingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -130,6 +132,9 @@ fun PumpingScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToInventory) {
+                        Icon(Icons.Filled.Archive, contentDescription = "Milk stash")
+                    }
                     IconButton(onClick = onNavigateToHistory) {
                         Icon(Icons.Filled.History, contentDescription = "History")
                     }
