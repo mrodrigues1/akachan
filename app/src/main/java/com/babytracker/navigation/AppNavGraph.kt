@@ -17,6 +17,7 @@ import com.babytracker.ui.sharing.ManageSharingScreen
 import com.babytracker.ui.sleep.SleepHistoryScreen
 import com.babytracker.ui.sleep.SleepScheduleScreen
 import com.babytracker.ui.sleep.SleepTrackingScreen
+import com.babytracker.ui.inventory.InventoryScreen
 import com.babytracker.ui.pumping.PumpingHistoryScreen
 import com.babytracker.ui.pumping.PumpingScreen
 import com.babytracker.ui.theme.DesignSystemPreviewScreen
@@ -110,10 +111,14 @@ private fun NavGraphBuilder.pumpingGraph(navController: NavHostController) {
         PumpingScreen(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToHistory = { navController.navigate(Routes.PUMPING_HISTORY) },
+            onNavigateToInventory = { navController.navigate(Routes.INVENTORY) },
         )
     }
     composable(Routes.PUMPING_HISTORY) {
         PumpingHistoryScreen(onNavigateBack = { navController.popBackStack() })
+    }
+    composable(Routes.INVENTORY) {
+        InventoryScreen(onNavigateBack = { navController.popBackStack() })
     }
 }
 
