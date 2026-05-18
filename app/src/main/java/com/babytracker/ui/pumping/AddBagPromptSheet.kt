@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -89,9 +90,9 @@ fun AddBagPromptSheet(
                         strokeWidth = 2.dp,
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
-                } else {
-                    Text("Add to stash", style = MaterialTheme.typography.labelLarge)
+                    Spacer(Modifier.width(8.dp))
                 }
+                Text("Add to stash", style = MaterialTheme.typography.labelLarge)
             }
             Spacer(Modifier.height(8.dp))
             TextButton(
