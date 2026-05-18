@@ -1,12 +1,16 @@
 package com.babytracker.ui.pumping
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
@@ -181,21 +185,22 @@ class EditPumpingSessionSheetTest {
 
     @Test
     fun tappingDeleteShowsDeleteConfirmRow() {
+        var currentState by mutableStateOf(baseState())
         composeRule.setContent {
             BabyTrackerTheme {
                 EditPumpingSessionSheet(
-                    state = baseState(),
+                    state = currentState,
                     onFieldChange = {},
                     onDismiss = {},
                     onSave = {},
-                    onDeleteRequested = {},
+                    onDeleteRequested = { currentState = currentState.copy(deleteConfirm = true) },
                     onDeleteConfirmed = {},
                     onDeleteCancelled = {},
                 )
             }
         }
 
-        composeRule.onNodeWithText("Delete").performClick()
+        composeRule.onNodeWithText("Delete").performScrollTo().performClick()
 
         composeRule.onNodeWithText("Delete this session?").assertIsDisplayed()
     }
@@ -217,7 +222,7 @@ class EditPumpingSessionSheetTest {
             }
         }
 
-        composeRule.onNodeWithText("Delete").performClick()
+        composeRule.onNodeWithText("Delete").performScrollTo().performClick()
 
         composeRule.runOnIdle { assertTrue(confirmed) }
     }
@@ -239,7 +244,7 @@ class EditPumpingSessionSheetTest {
             }
         }
 
-        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.onNodeWithText("Cancel").performScrollTo().performClick()
 
         composeRule.runOnIdle { assertTrue(cancelled) }
     }

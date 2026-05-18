@@ -63,7 +63,7 @@ class PumpingHistoryScreenTest {
 
     @Test
     fun sessionListRendersOneCardPerSession() {
-        val sessions = listOf(session(1), session(2))
+        val sessions = listOf(session(1), session(2, volumeMl = 200))
         composeRule.setContent {
             BabyTrackerTheme {
                 PumpingHistoryContent(
@@ -74,6 +74,7 @@ class PumpingHistoryScreenTest {
         }
 
         composeRule.onNodeWithText("Left · 120 mL").assertIsDisplayed()
+        composeRule.onNodeWithText("Left · 200 mL").assertIsDisplayed()
     }
 
     @Test
