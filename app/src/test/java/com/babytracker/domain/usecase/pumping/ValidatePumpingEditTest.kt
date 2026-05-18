@@ -129,4 +129,29 @@ class ValidatePumpingEditTest {
         )
         assertNull(result)
     }
+
+    @Test
+    fun returnsErrorWhenStartIsInFuture() {
+        val result = validatePumpingEdit(
+            startTime = now.plusSeconds(60),
+            endTime = null,
+            volumeMl = null,
+            pausedDurationMs = 0L,
+            now = now,
+        )
+        assertEquals("Start cannot be in the future", result)
+    }
+
+    @Test
+    fun returnsErrorWhenStartIsInFutureEvenWithNullEnd() {
+        val futureStart = now.plusSeconds(3600)
+        val result = validatePumpingEdit(
+            startTime = futureStart,
+            endTime = null,
+            volumeMl = null,
+            pausedDurationMs = 0L,
+            now = now,
+        )
+        assertEquals("Start cannot be in the future", result)
+    }
 }
