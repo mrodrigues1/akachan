@@ -7,6 +7,9 @@ data class ShareSnapshot(
     val baby: BabySnapshot,
     val sessions: List<SessionSnapshot>,
     val sleepRecords: List<SleepSnapshot>,
+    val inventoryTotalMl: Int? = null,
+    val inventoryBagCount: Int? = null,
+    val inventoryUpdatedAt: Long? = null,
 )
 
 data class BabySnapshot(

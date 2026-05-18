@@ -2,6 +2,7 @@ package com.babytracker.sharing.usecase
 
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.sharing.domain.model.AppMode
@@ -20,6 +21,8 @@ class GenerateShareCodeUseCase @Inject constructor(
     private val babyRepository: BabyRepository,
     private val breastfeedingRepository: BreastfeedingRepository,
     private val sleepRepository: SleepRepository,
+    private val inventoryRepository: InventoryRepository,
+    private val now: () -> Instant,
 ) {
     suspend operator fun invoke() {
         val uid = sharingRepository.signInAnonymously()
@@ -47,11 +50,16 @@ class GenerateShareCodeUseCase @Inject constructor(
         val baby = babyRepository.getBabyProfile().first()
         val sessions = breastfeedingRepository.getRecentSessions(SYNC_LIMIT)
         val sleepRecords = sleepRepository.getRecentRecords(SYNC_LIMIT)
+        val summary = inventoryRepository.currentSummary()
+        val timestamp = now()
         return ShareSnapshot(
-            lastSyncAt = Instant.now(),
+            lastSyncAt = timestamp,
             baby = baby?.toSnapshot() ?: BabySnapshot("", 0L, emptyList()),
             sessions = sessions.map { it.toSnapshot() },
             sleepRecords = sleepRecords.map { it.toSnapshot() },
+            inventoryTotalMl = summary.totalMl,
+            inventoryBagCount = summary.bagCount,
+            inventoryUpdatedAt = timestamp.toEpochMilli(),
         )
     }
 
