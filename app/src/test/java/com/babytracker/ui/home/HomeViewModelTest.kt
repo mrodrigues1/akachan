@@ -3,8 +3,13 @@ package com.babytracker.ui.home
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.InventorySummary
+import com.babytracker.domain.model.PumpingBreast
+import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.repository.InventoryRepository
+import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
@@ -39,6 +44,8 @@ class HomeViewModelTest {
     private lateinit var getSleepHistory: GetSleepHistoryUseCase
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
     private lateinit var settingsRepository: SettingsRepository
+    private lateinit var pumpingRepository: PumpingRepository
+    private lateinit var inventoryRepository: InventoryRepository
     private lateinit var viewModel: HomeViewModel
     private val testDispatcher = StandardTestDispatcher()
 
@@ -64,11 +71,15 @@ class HomeViewModelTest {
         getSleepHistory = mockk()
         syncToFirestore = mockk()
         settingsRepository = mockk()
+        pumpingRepository = mockk()
+        inventoryRepository = mockk()
 
         every { getBabyProfile() } returns flowOf(testBaby)
         every { getBreastfeedingHistory() } returns flowOf(emptyList())
         every { getSleepHistory() } returns flowOf(emptyList())
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.NONE)
+        every { pumpingRepository.getActiveSession() } returns flowOf(null)
+        every { inventoryRepository.getSummary() } returns flowOf(InventorySummary.Empty)
         coJustRun { syncToFirestore(any()) }
     }
 
@@ -83,6 +94,8 @@ class HomeViewModelTest {
         getSleepHistory,
         syncToFirestore,
         settingsRepository,
+        pumpingRepository,
+        inventoryRepository,
     )
 
     @Test
@@ -211,5 +224,45 @@ class HomeViewModelTest {
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         coVerify(exactly = 1) { syncToFirestore(any()) }
+    }
+
+    @Test
+    fun pumpingActive_isNull_whenNoActiveSession() = runTest {
+        every { pumpingRepository.getActiveSession() } returns flowOf(null)
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.uiState.value.pumpingActive)
+    }
+
+    @Test
+    fun pumpingActive_isSet_whenActivePumpingSessionExists() = runTest {
+        val session = PumpingSession(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(300),
+            breast = PumpingBreast.LEFT,
+        )
+        every { pumpingRepository.getActiveSession() } returns flowOf(session)
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull(viewModel.uiState.value.pumpingActive)
+        assertEquals(session.id, viewModel.uiState.value.pumpingActive!!.id)
+    }
+
+    @Test
+    fun inventorySummary_defaultsToEmpty_whenRepositoryEmitsEmpty() = runTest {
+        every { inventoryRepository.getSummary() } returns flowOf(InventorySummary.Empty)
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(InventorySummary.Empty, viewModel.uiState.value.inventorySummary)
+    }
+
+    @Test
+    fun inventorySummary_flowsThroughUnchanged() = runTest {
+        val summary = InventorySummary(totalMl = 240, bagCount = 3, oldestBagDate = null)
+        every { inventoryRepository.getSummary() } returns flowOf(summary)
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(240, viewModel.uiState.value.inventorySummary.totalMl)
+        assertEquals(3, viewModel.uiState.value.inventorySummary.bagCount)
     }
 }
