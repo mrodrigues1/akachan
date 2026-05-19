@@ -398,6 +398,19 @@ private fun CompactDashboardContent(
             now = now,
         )
 
+        val inventoryTotalMl = snapshot.inventoryTotalMl
+        val inventoryBagCount = snapshot.inventoryBagCount
+        if (inventoryTotalMl != null && inventoryBagCount != null && inventoryBagCount > 0) {
+            Spacer(modifier = Modifier.height(16.dp))
+            PartnerInventoryCard(
+                totalMl = inventoryTotalMl,
+                bagCount = inventoryBagCount,
+                updatedAtMs = snapshot.inventoryUpdatedAt,
+                now = now,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
         if (!hasSharedRecords) {
             Spacer(modifier = Modifier.height(18.dp))
             SharedRecordsEmptyState(babyName = snapshot.baby.name.takeIf { it.isNotBlank() })
@@ -461,6 +474,17 @@ private fun WideDashboardContent(
                 allergyCount = snapshot.baby.allergies.size,
                 now = now,
             )
+            val inventoryTotalMl = snapshot.inventoryTotalMl
+            val inventoryBagCount = snapshot.inventoryBagCount
+            if (inventoryTotalMl != null && inventoryBagCount != null && inventoryBagCount > 0) {
+                PartnerInventoryCard(
+                    totalMl = inventoryTotalMl,
+                    bagCount = inventoryBagCount,
+                    updatedAtMs = snapshot.inventoryUpdatedAt,
+                    now = now,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             if (!hasSharedRecords) {
                 SharedRecordsEmptyState(babyName = snapshot.baby.name.takeIf { it.isNotBlank() })
             }
@@ -823,6 +847,89 @@ private fun CareSummaryPanel(
             label = allergySummaryText(allergyCount),
             color = warningColors().accent,
         )
+    }
+}
+
+@Composable
+private fun PartnerInventoryCard(
+    totalMl: Int,
+    bagCount: Int,
+    updatedAtMs: Long?,
+    now: Instant,
+    modifier: Modifier = Modifier,
+) {
+    val updatedText = remember(updatedAtMs, now) {
+        updatedAtMs?.let {
+            Duration.between(Instant.ofEpochMilli(it), now)
+                .coerceAtLeast(Duration.ZERO)
+                .formatElapsedAgo()
+        }
+    }
+    val cardDescription = remember(totalMl, bagCount, updatedText) {
+        buildString {
+            append("Milk stash: $totalMl millilitres in $bagCount bags.")
+            if (updatedText != null) append(" Updated $updatedText.")
+        }
+    }
+
+    Card(
+        modifier = modifier
+            .semantics(mergeDescendants = true) {
+                contentDescription = cardDescription
+            },
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = dashboardPanelElevation()),
+        border = dashboardPanelBorder(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clearAndSetSemantics {}
+                    .background(
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = MaterialTheme.shapes.small,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "🧊",
+                    style = MaterialTheme.typography.titleSmall,
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = "Milk stash",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.clearAndSetSemantics {},
+                )
+                Text(
+                    text = "$totalMl mL · $bagCount bags",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (updatedText != null) {
+                    Text(
+                        text = "Updated $updatedText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
     }
 }
 
