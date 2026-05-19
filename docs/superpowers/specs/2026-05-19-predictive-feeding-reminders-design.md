@@ -33,7 +33,7 @@ Three layers, matching existing app patterns:
 
 ```
 Settings (DataStore)               BreastfeedingRepository
-  ├ predictiveEnabled: Bool          └ getRecentSessions(limit=6): Flow<List<Session>>
+  ├ predictiveEnabled: Bool          └ getRecentSessions(limit=20): Flow<List<Session>>
   ├ predictiveLeadMinutes: Int                     │
   ├ quietHoursStartMinute: Int                     │
   └ quietHoursEndMinute: Int                       │
@@ -97,16 +97,30 @@ data class FeedPrediction(
 
 `PredictNextFeedUseCase.invoke()` returns `Flow<FeedPrediction?>`:
 
-1. `combine` `breastfeedingRepository.getRecentSessions(6)` with `settingsRepository.getQuietHours()`.
+1. `combine` `breastfeedingRepository.getRecentSessions(20)` with `settingsRepository.getQuietHours()`.
 2. If any session is currently in progress (`endTime == null`) → emit `null`.
-3. From completed sessions sorted by `startTime` desc, build pairs `(start_{n+1}, start_n)` and compute interval minutes.
-4. Filter intervals: drop if **either** endpoint's local `LocalTime` falls inside the user's quiet-hours window. Window wraps midnight if `end < start`. If `start == end`, window is disabled and nothing is filtered.
-5. Cap each remaining interval at **360 minutes** (6 hours).
-6. If fewer than **3** intervals remain → emit `null`.
-7. `avg = mean(filtered.take(5))`.
-8. `predictedAt = mostRecentSession.startTime + avg.minutes`.
-9. `isOverdue = Instant.now().isAfter(predictedAt)`.
-10. `minutesUntil = Duration.between(Instant.now(), predictedAt).toMinutes()` (can be negative).
+3. **Freshness check**: if `Instant.now() - mostRecentSession.startTime > 12 hours` → emit `null`. Stale history must not anchor predictions.
+4. From completed sessions sorted by `startTime` desc, build pairs `(start_{n+1}, start_n)` and compute interval minutes.
+5. **Drop** intervals greater than **360 minutes** (6 hours). Intervals above the valid maximum are treated as data gaps, not clamped.
+6. **Drop** intervals where **either** endpoint's local `LocalTime` falls inside the user's quiet-hours window. Window wraps midnight if `end < start`. If `start == end`, window is disabled and nothing is filtered.
+7. Take the **most recent 5** intervals from the filtered list (not from the raw list — older valid daytime intervals are preferred over recent overnight ones).
+8. If fewer than **3** intervals remain → emit `null`.
+9. `avg = mean(takenIntervals)`.
+10. `predictedAt = mostRecentSession.startTime + avg.minutes`.
+11. `isOverdue = Instant.now().isAfter(predictedAt)`.
+12. `minutesUntil = Duration.between(Instant.now(), predictedAt).toMinutes()` (can be negative).
+13. **Overdue grace bound**: if `predictedAt` is more than **90 minutes** in the past → emit `null`. Beyond the grace window the prediction is treated as obsolete; UI must not show "hungry now" indefinitely.
+
+### Tuning constants
+
+| Constant | Value | Meaning |
+|----------|-------|---------|
+| `LOOKBACK_LIMIT` | 20 sessions | Pre-filter history fetched from DB; large enough that overnight quiet-hour drops still leave 3+ daytime intervals. |
+| `FRESHNESS_HORIZON` | 12 hours | Maximum age of `mostRecentSession.startTime` before predictions are suppressed. |
+| `INTERVAL_MAX_MINUTES` | 360 (6 h) | Intervals longer than this are dropped, not capped. |
+| `SAMPLE_SIZE_TARGET` | 5 | Most recent valid intervals used after filtering. |
+| `SAMPLE_SIZE_MIN` | 3 | Minimum valid intervals required to predict. |
+| `OVERDUE_GRACE_MINUTES` | 90 | Predictions older than this past `predictedAt` are suppressed. |
 
 ### Settings defaults
 
@@ -131,7 +145,8 @@ States, in priority order:
 |------------------|---------------|-------|
 | Active session in progress | (no prediction line; existing timer dominates) | — |
 | `prediction == null` | (no prediction line; card unchanged) | — |
-| Overdue ≥ 5 min | `Likely hungry now · ~{X}m ago` | `bodyMedium`, `tertiary` |
+| Overdue ≥ 5 min and ≤ 90 min | `Likely hungry now · ~{X}m ago` | `bodyMedium`, `tertiary` |
+| Overdue > 90 min | (no prediction line; use case has emitted `null`) | — |
 | Overdue 0..4 min | `Likely hungry around {time}` | `bodyMedium` muted |
 | ≤ 30 min away | `Likely hungry around {time}` + `in ~{X}m` | `bodyMedium` + `bodySmall` muted |
 | > 30 min away | `Likely hungry around {time}` | `bodyMedium` muted |
@@ -152,6 +167,9 @@ States, in priority order:
 │ ⏰ Predictive reminder       [Switch]    │  titleMedium + Switch
 │    Notify before next likely feed        │  bodySmall, onSurfaceVariant
 ├─────────────────────────────────────────┤
+│ ⚠ Notifications blocked   [Open settings]│  Warning row, visible only when
+│    Android won't deliver reminders        │  permission denied AND toggle on
+├─────────────────────────────────────────┤
 │ Notify ahead by                          │  titleSmall (disabled when toggle off)
 │ ○ 5m  ○ 10m  ● 15m  ○ 30m                │  M3 SegmentedButton row
 ├─────────────────────────────────────────┤
@@ -165,6 +183,23 @@ States, in priority order:
 - Quiet-hour pickers use M3 `TimePickerDialog`. Locale-aware 12h/24h via `DateFormat.is24HourFormat(context)`.
 - When `start == end`: show helper text `Quiet hours disabled` in `bodySmall`.
 - Empty-data hint shown under toggle when `< 3` valid intervals available: `Need 3+ recent feeds to predict.` (bodySmall, onSurfaceVariant). Toggle remains operable.
+
+### Runtime notification permission flow (Android 13+)
+
+`POST_NOTIFICATIONS` is a runtime permission on API 33+. A declared manifest entry is not enough — the user can deny or later revoke it, and the toggle alone can silently fail.
+
+**Permission state machine** (held in `SettingsViewModel` via `NotificationManagerCompat.areNotificationsEnabled()` re-checked on every `ON_RESUME`):
+
+| State | Toggle behavior |
+|-------|-----------------|
+| `GRANTED` | Toggle freely flips `predictiveEnabled`. No warning row. |
+| `DENIED` (no request yet) | Tapping toggle ON triggers `ActivityResultContracts.RequestPermission(POST_NOTIFICATIONS)`. On grant → flip true. On deny → flip false, surface warning row. |
+| `DENIED_PERMANENTLY` (`shouldShowRequestPermissionRationale == false` after a deny) | Toggle ON is permitted but the warning row appears immediately with `Open settings` action launching `Intent(ACTION_APP_NOTIFICATION_SETTINGS)`. Coordinator still schedules alarms so behavior resumes if the user grants later. |
+| `REVOKED` (was granted, now denied — detected on resume) | Same as `DENIED_PERMANENTLY`. |
+
+- `POST_NOTIFICATIONS` is added to `AndroidManifest.xml` (currently relied upon by existing breastfeeding notifications without a request flow; this design introduces the explicit request path).
+- The settings UI must surface the denied state, not silently swallow it.
+- Pre-Android-13 devices skip the permission flow entirely; permission is implicit.
 
 ### Notification
 
@@ -217,11 +252,12 @@ The 200ms debounce prevents alarm thrash when rapid emissions happen (e.g., duri
 - `PredictNextFeedUseCase` wraps the upstream flow in `catchAndLog()` (existing `FlowExt`) → emits `null` on failure.
 - Coordinator wraps `alarmManager.setExactAndAllowWhileIdle` in try/catch on `SecurityException` (user revoked `SCHEDULE_EXACT_ALARM`) and falls back to `setAndAllowWhileIdle`.
 - Receiver wraps notification post in try/catch; logs and exits cleanly on missing `POST_NOTIFICATIONS` permission.
+- Settings layer detects denied/revoked notification permission on `ON_RESUME` and reflects it in the warning row described in the permission flow section.
 - DataStore reads default to the values in the "Settings defaults" table above.
 
 ## Permissions
 
-- `POST_NOTIFICATIONS` — already declared.
+- `POST_NOTIFICATIONS` — declared in manifest; requested at runtime via the settings toggle flow on Android 13+. See "Runtime notification permission flow" above.
 - `SCHEDULE_EXACT_ALARM` — already declared and used by existing breastfeeding alarms.
 - No new manifest permissions.
 
@@ -235,11 +271,14 @@ The 200ms debounce prevents alarm thrash when rapid emissions happen (e.g., duri
 
 - Returns `null` when an active session is present.
 - Returns `null` when fewer than 3 valid intervals remain after filtering.
-- Computes mean of last 5 intervals correctly.
-- Caps each interval at 360 minutes before averaging.
+- Computes mean of the most-recent 5 valid intervals correctly.
+- **Drops** (not caps) intervals greater than 360 minutes.
 - Filters intervals where either endpoint falls inside the quiet-hours window (incl. wrap-around midnight).
 - `start == end` quiet hours leaves all intervals intact.
-- `isOverdue` is true when `predictedAt < now`.
+- **Freshness**: returns `null` when `mostRecentSession.startTime` is older than 12 hours (multi-day logging gap).
+- **Overdue grace**: returns `null` when `predictedAt` is more than 90 minutes in the past.
+- **Lookback sufficiency**: with 20 sessions where the 5 most-recent intervals are overnight (filtered out) but older daytime intervals exist, returns a non-null prediction built from the older valid intervals.
+- `isOverdue` is true when `predictedAt < now` and within grace.
 - `minutesUntil` sign correctness across past and future.
 - DST forward and backward transitions handled (zone-aware fixtures with `ZoneId.of("America/Sao_Paulo")` and `ZoneId.of("America/New_York")`).
 
@@ -266,6 +305,10 @@ The 200ms debounce prevents alarm thrash when rapid emissions happen (e.g., duri
 - Toggle reveals/hides config rows (alpha + enabled state).
 - Quiet-hours with `start == end` shows helper text `Quiet hours disabled`.
 - Segmented button selection persists to DataStore (verified via observed flow).
+- Permission `GRANTED` → no warning row visible when toggle on.
+- Permission `DENIED` (first request) → toggle ON triggers permission request; warning row hidden if granted, shown if denied.
+- Permission `DENIED_PERMANENTLY` → warning row visible; `Open settings` button launches `ACTION_APP_NOTIFICATION_SETTINGS` intent.
+- Permission `REVOKED` (granted on launch, revoked while backgrounded) → warning row appears on `ON_RESUME`.
 
 **`PredictiveFeedReceiverTest`**:
 
