@@ -57,6 +57,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.InventorySummary
+import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.util.formatDuration
@@ -76,6 +78,8 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier,
     onNavigateToConnectPartner: () -> Unit = {},
+    onNavigateToPumping: () -> Unit = {},
+    onNavigateToInventory: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -170,178 +174,196 @@ fun HomeScreen(
             val activeSession = uiState.activeSession
             val activeSleepRecord = uiState.activeSleepRecord
 
-            // Summary cards row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Breastfeeding card
-                val isActiveFeeding = activeSession != null
-                val feedingElevation by animateDpAsState(
-                    targetValue = if (isActiveFeeding) 4.dp else 1.dp,
-                    animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing),
-                    label = "feedingElevation",
-                )
-                Card(
-                    onClick = onNavigateToBreastfeeding,
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 140.dp)
-                        .semantics {
-                            contentDescription = if (isActiveFeeding)
-                                "Breastfeeding, session active. Open feeding screen."
-                            else
-                                "Breastfeeding. Open feeding screen."
-                        },
-                    shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = feedingElevation),
+            // Summary cards — 2×2 grid
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(modifier = Modifier.padding(20.dp).animateContentSize(animationSpec = tween(200, easing = LinearOutSlowInEasing))) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            Text(
-                                text = "🍼",
-                                style = MaterialTheme.typography.headlineMedium,
-                                modifier = Modifier.clearAndSetSemantics {},
-                            )
-                            AnimatedVisibility(
-                                visible = activeSession != null,
-                                enter = fadeIn(tween(150)) + scaleIn(initialScale = 0.7f, animationSpec = tween(150)),
-                                exit = fadeOut(tween(100)) + scaleOut(targetScale = 0.7f, animationSpec = tween(100)),
+                    // Breastfeeding card
+                    val isActiveFeeding = activeSession != null
+                    val feedingElevation by animateDpAsState(
+                        targetValue = if (isActiveFeeding) 4.dp else 1.dp,
+                        animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing),
+                        label = "feedingElevation",
+                    )
+                    Card(
+                        onClick = onNavigateToBreastfeeding,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 140.dp)
+                            .semantics {
+                                contentDescription = if (isActiveFeeding)
+                                    "Breastfeeding, session active. Open feeding screen."
+                                else
+                                    "Breastfeeding. Open feeding screen."
+                            },
+                        shape = MaterialTheme.shapes.large,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = feedingElevation),
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp).animateContentSize(animationSpec = tween(200, easing = LinearOutSlowInEasing))) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Top
                             ) {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = MaterialTheme.shapes.extraLarge,
+                                Text(
+                                    text = "🍼",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    modifier = Modifier.clearAndSetSemantics {},
+                                )
+                                AnimatedVisibility(
+                                    visible = activeSession != null,
+                                    enter = fadeIn(tween(150)) + scaleIn(initialScale = 0.7f, animationSpec = tween(150)),
+                                    exit = fadeOut(tween(100)) + scaleOut(targetScale = 0.7f, animationSpec = tween(100)),
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        shape = MaterialTheme.shapes.extraLarge,
                                     ) {
-                                        Icon(
-                                            imageVector = if (activeSession?.isPaused == true) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onPrimary,
-                                            modifier = Modifier.size(10.dp)
-                                        )
-                                        Text(
-                                            text = if (activeSession?.isPaused == true) "Paused" else "Live",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                        )
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = if (activeSession?.isPaused == true) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                                modifier = Modifier.size(10.dp)
+                                            )
+                                            Text(
+                                                text = if (activeSession?.isPaused == true) "Paused" else "Live",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                            )
+                                        }
                                     }
                                 }
                             }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Breastfeeding",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
+                            if (activeSession != null) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                ActiveFeedingTimer(session = activeSession)
+                            } else {
+                                val lastStart = uiState.lastSessionStartTime
+                                if (lastStart != null) {
+                                    LastFeedingAgoText(lastStart = lastStart)
+                                }
+                            }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Breastfeeding",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        )
-                        if (activeSession != null) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            ActiveFeedingTimer(session = activeSession)
-                        } else {
-                            val lastStart = uiState.lastSessionStartTime
-                            if (lastStart != null) {
-                                LastFeedingAgoText(lastStart = lastStart)
+                    }
+
+                    // Sleep card
+                    val isActiveSleep = activeSleepRecord != null
+                    val sleepElevation by animateDpAsState(
+                        targetValue = if (isActiveSleep) 4.dp else 1.dp,
+                        animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing),
+                        label = "sleepElevation",
+                    )
+                    Card(
+                        onClick = onNavigateToSleep,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 140.dp)
+                            .semantics {
+                                contentDescription = if (isActiveSleep)
+                                    "Sleep, session active. Open sleep screen."
+                                else
+                                    "Sleep. Open sleep screen."
+                            },
+                        shape = MaterialTheme.shapes.large,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = sleepElevation),
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp).animateContentSize(animationSpec = tween(200, easing = LinearOutSlowInEasing))) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Text(
+                                    text = "🌙",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    modifier = Modifier.clearAndSetSemantics {},
+                                )
+                                AnimatedVisibility(
+                                    visible = isActiveSleep,
+                                    enter = fadeIn(tween(150)) + scaleIn(initialScale = 0.7f, animationSpec = tween(150)),
+                                    exit = fadeOut(tween(100)) + scaleOut(targetScale = 0.7f, animationSpec = tween(100)),
+                                ) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        shape = MaterialTheme.shapes.extraLarge,
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PlayArrow,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSecondary,
+                                                modifier = Modifier.size(10.dp)
+                                            )
+                                            Text(
+                                                text = "Live",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSecondary,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Sleep",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            )
+                            if (activeSleepRecord != null) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                ActiveSleepTimer(record = activeSleepRecord)
+                            } else {
+                                val sleepLabel = uiState.lastNightSleepDuration
+                                    ?.formatDuration()
+                                    ?.let { "$it last night" }
+                                    ?: "${uiState.recentSleepRecords.size} records"
+                                Text(
+                                    text = sleepLabel,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                )
                             }
                         }
                     }
                 }
 
-                // Sleep card
-                val isActiveSleep = activeSleepRecord != null
-                val sleepElevation by animateDpAsState(
-                    targetValue = if (isActiveSleep) 4.dp else 1.dp,
-                    animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing),
-                    label = "sleepElevation",
-                )
-                Card(
-                    onClick = onNavigateToSleep,
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 140.dp)
-                        .semantics {
-                            contentDescription = if (isActiveSleep)
-                                "Sleep, session active. Open sleep screen."
-                            else
-                                "Sleep. Open sleep screen."
-                        },
-                    shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = sleepElevation),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(modifier = Modifier.padding(20.dp).animateContentSize(animationSpec = tween(200, easing = LinearOutSlowInEasing))) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            Text(
-                                text = "🌙",
-                                style = MaterialTheme.typography.headlineMedium,
-                                modifier = Modifier.clearAndSetSemantics {},
-                            )
-                            AnimatedVisibility(
-                                visible = isActiveSleep,
-                                enter = fadeIn(tween(150)) + scaleIn(initialScale = 0.7f, animationSpec = tween(150)),
-                                exit = fadeOut(tween(100)) + scaleOut(targetScale = 0.7f, animationSpec = tween(100)),
-                            ) {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.secondary,
-                                    shape = MaterialTheme.shapes.extraLarge,
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.PlayArrow,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSecondary,
-                                            modifier = Modifier.size(10.dp)
-                                        )
-                                        Text(
-                                            text = "Live",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSecondary,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Sleep",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        )
-                        if (activeSleepRecord != null) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            ActiveSleepTimer(record = activeSleepRecord)
-                        } else {
-                            val sleepLabel = uiState.lastNightSleepDuration
-                                ?.formatDuration()
-                                ?.let { "$it last night" }
-                                ?: "${uiState.recentSleepRecords.size} records"
-                            Text(
-                                text = sleepLabel,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            )
-                        }
-                    }
+                    PumpingHomeCard(
+                        active = uiState.pumpingActive,
+                        onClick = onNavigateToPumping,
+                        modifier = Modifier.weight(1f),
+                    )
+                    InventoryHomeCard(
+                        summary = uiState.inventorySummary,
+                        onClick = onNavigateToInventory,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
 
@@ -435,6 +457,175 @@ fun HomeScreen(
         }
         }
     }
+}
+
+@Composable
+internal fun PumpingHomeCard(
+    active: PumpingSession?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isPumping = active != null
+    val pumpingElevation by animateDpAsState(
+        targetValue = if (isPumping) 4.dp else 1.dp,
+        animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing),
+        label = "pumpingElevation",
+    )
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .heightIn(min = 140.dp)
+            .semantics {
+                contentDescription = if (isPumping)
+                    "Pumping, session active. Open pumping screen."
+                else
+                    "Pumping. Open pumping screen."
+            },
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = pumpingElevation),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(20.dp)
+                .animateContentSize(animationSpec = tween(200, easing = LinearOutSlowInEasing)),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
+                Text(
+                    text = "🥛",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.clearAndSetSemantics {},
+                )
+                AnimatedVisibility(
+                    visible = isPumping,
+                    enter = fadeIn(tween(150)) + scaleIn(initialScale = 0.7f, animationSpec = tween(150)),
+                    exit = fadeOut(tween(100)) + scaleOut(targetScale = 0.7f, animationSpec = tween(100)),
+                ) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiary,
+                        shape = MaterialTheme.shapes.extraLarge,
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        ) {
+                            Icon(
+                                imageVector = if (active?.isPaused == true) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onTertiary,
+                                modifier = Modifier.size(10.dp),
+                            )
+                            Text(
+                                text = if (active?.isPaused == true) "Paused" else "Live",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiary,
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Pumping",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            if (active != null) {
+                ActivePumpingTimer(session = active)
+            } else {
+                Text(
+                    text = "Tap to log",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun InventoryHomeCard(
+    summary: InventorySummary,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val hasBags = summary.bagCount > 0
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .heightIn(min = 140.dp)
+            .semantics {
+                contentDescription = if (hasBags)
+                    "Milk inventory, ${summary.bagCount} bags, ${summary.totalMl} milliliters. Open inventory screen."
+                else
+                    "Milk inventory, no bags stored. Open inventory screen."
+            },
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(20.dp)
+                .animateContentSize(animationSpec = tween(200, easing = LinearOutSlowInEasing)),
+        ) {
+            Text(
+                text = "🧊",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Inventory",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = if (hasBags) "${summary.totalMl} mL · ${summary.bagCount} bags" else "No bags stored",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActivePumpingTimer(session: PumpingSession) {
+    val elapsedSeconds by produceState(
+        initialValue = computePumpingElapsed(session, Instant.now()),
+        key1 = session,
+    ) {
+        if (session.isPaused) return@produceState
+        while (true) {
+            delay(1_000L)
+            value = computePumpingElapsed(session, Instant.now())
+        }
+    }
+    Text(
+        text = Duration.ofSeconds(elapsedSeconds).formatDuration(),
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onTertiaryContainer,
+    )
+}
+
+private fun computePumpingElapsed(session: PumpingSession, now: Instant): Long {
+    return if (session.isPaused) {
+        val pausedAt = session.pausedAt!!
+        (pausedAt.toEpochMilli() - session.startTime.toEpochMilli() - session.pausedDurationMs) / 1000
+    } else {
+        (now.toEpochMilli() - session.startTime.toEpochMilli() - session.pausedDurationMs) / 1000
+    }.coerceAtLeast(0L)
 }
 
 @Composable

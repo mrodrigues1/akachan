@@ -5,8 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.InventorySummary
+import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.repository.InventoryRepository
+import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
@@ -35,6 +39,8 @@ data class HomeUiState(
     val lastNightSleepDuration: Duration? = null,
     val lastSessionStartTime: Instant? = null,
     val appMode: AppMode = AppMode.NONE,
+    val pumpingActive: PumpingSession? = null,
+    val inventorySummary: InventorySummary = InventorySummary.Empty,
 )
 
 @HiltViewModel
@@ -44,50 +50,61 @@ class HomeViewModel @Inject constructor(
     getSleepHistory: GetSleepHistoryUseCase,
     private val syncToFirestore: SyncToFirestoreUseCase,
     settingsRepository: SettingsRepository,
+    pumpingRepository: PumpingRepository,
+    inventoryRepository: InventoryRepository,
 ) : ViewModel() {
 
     val uiState: StateFlow<HomeUiState> = combine(
-        getBabyProfile(),
-        getBreastfeedingHistory(),
-        getSleepHistory(),
-        settingsRepository.getAppMode()
-    ) { baby, feedings, sleepRecords, appMode ->
-        val yesterday = LocalDate.now().minusDays(1)
-        val zone = ZoneId.systemDefault()
+        combine(
+            getBabyProfile(),
+            getBreastfeedingHistory(),
+            getSleepHistory(),
+            settingsRepository.getAppMode(),
+        ) { baby, feedings, sleepRecords, appMode ->
+            val yesterday = LocalDate.now().minusDays(1)
+            val zone = ZoneId.systemDefault()
 
-        val lastNightSleep = sleepRecords
-            .filter { it.sleepType == SleepType.NIGHT_SLEEP && it.endTime != null }
-            .filter { it.startTime.atZone(zone).toLocalDate() == yesterday }
-            .mapNotNull { record ->
-                record.endTime?.let { end -> Duration.between(record.startTime, end) }
+            val lastNightSleep = sleepRecords
+                .filter { it.sleepType == SleepType.NIGHT_SLEEP && it.endTime != null }
+                .filter { it.startTime.atZone(zone).toLocalDate() == yesterday }
+                .mapNotNull { record ->
+                    record.endTime?.let { end -> Duration.between(record.startTime, end) }
+                }
+                .fold(Duration.ZERO) { acc, d -> acc + d }
+                .takeIf { !it.isZero }
+
+            val lastCompleted = feedings.firstOrNull { it.endTime != null }
+            val nextRecommendedSide = lastCompleted?.let { session ->
+                val endTime = session.endTime ?: return@let null
+                val oppositeSide = if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
+                if (session.switchTime == null) {
+                    oppositeSide
+                } else {
+                    val firstDuration = Duration.between(session.startTime, session.switchTime!!)
+                    val secondDuration = Duration.between(session.switchTime!!, endTime)
+                    if (secondDuration < firstDuration) oppositeSide else session.startingSide
+                }
             }
-            .fold(Duration.ZERO) { acc, d -> acc + d }
-            .takeIf { !it.isZero }
 
-        val lastCompleted = feedings.firstOrNull { it.endTime != null }
-        val nextRecommendedSide = lastCompleted?.let { session ->
-            val endTime = session.endTime ?: return@let null
-            val oppositeSide = if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
-            if (session.switchTime == null) {
-                oppositeSide
-            } else {
-                val firstDuration = Duration.between(session.startTime, session.switchTime!!)
-                val secondDuration = Duration.between(session.switchTime!!, endTime)
-                if (secondDuration < firstDuration) oppositeSide else session.startingSide
-            }
-        }
-
-        HomeUiState(
-            baby = baby,
-            recentFeedings = feedings.take(3),
-            recentSleepRecords = sleepRecords.take(3),
-            activeSession = feedings.firstOrNull { it.isInProgress },
-            activeSleepRecord = sleepRecords.firstOrNull { it.isInProgress },
-            nextRecommendedSide = nextRecommendedSide,
-            lastNightSleepDuration = lastNightSleep,
-            lastSessionStartTime = (feedings.firstOrNull { it.isInProgress }
-                ?: feedings.firstOrNull())?.startTime,
-            appMode = appMode,
+            HomeUiState(
+                baby = baby,
+                recentFeedings = feedings.take(3),
+                recentSleepRecords = sleepRecords.take(3),
+                activeSession = feedings.firstOrNull { it.isInProgress },
+                activeSleepRecord = sleepRecords.firstOrNull { it.isInProgress },
+                nextRecommendedSide = nextRecommendedSide,
+                lastNightSleepDuration = lastNightSleep,
+                lastSessionStartTime = (feedings.firstOrNull { it.isInProgress }
+                    ?: feedings.firstOrNull())?.startTime,
+                appMode = appMode,
+            )
+        },
+        pumpingRepository.getActiveSession(),
+        inventoryRepository.getSummary(),
+    ) { partial, pumpingActive, inventorySummary ->
+        partial.copy(
+            pumpingActive = pumpingActive,
+            inventorySummary = inventorySummary,
         )
     }.stateIn(
         scope = viewModelScope,

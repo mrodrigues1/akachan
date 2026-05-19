@@ -51,6 +51,8 @@ fun AppNavGraph(
                 onNavigateToSleep = { navController.navigate(Routes.SLEEP_TRACKING) },
                 onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
                 onNavigateToConnectPartner = { navController.navigate(Routes.CONNECT_PARTNER) },
+                onNavigateToPumping = { navController.navigate(Routes.PUMPING) },
+                onNavigateToInventory = { navController.navigate(Routes.INVENTORY) },
             )
         }
         composable(Routes.BREASTFEEDING) {
@@ -75,34 +77,41 @@ fun AppNavGraph(
         composable(Routes.SLEEP_SCHEDULE) {
             SleepScheduleScreen(onNavigateBack = { navController.popBackStack() })
         }
-        composable(Routes.SETTINGS) {
-            SettingsScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToDesignSystem = { navController.navigate(Routes.DESIGN_SYSTEM_PREVIEW) },
-                onNavigateToManageSharing = { navController.navigate(Routes.MANAGE_SHARING) },
-                onNavigateToConnectPartner = { navController.navigate(Routes.CONNECT_PARTNER) },
-                onDisconnect = { navController.navigateAfterDisconnect(isOnboardingComplete) },
-            )
-        }
-        composable(Routes.DESIGN_SYSTEM_PREVIEW) {
-            DesignSystemPreviewScreen(onNavigateBack = { navController.popBackStack() })
-        }
-        composable(Routes.CONNECT_PARTNER) {
-            ConnectPartnerScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onConnected = { navController.navigate(Routes.PARTNER_DASHBOARD) { popUpTo(0) { inclusive = true } } },
-            )
-        }
-        composable(Routes.PARTNER_DASHBOARD) {
-            PartnerDashboardScreen(
-                onDisconnected = { navController.navigateAfterDisconnect(isOnboardingComplete) },
-                onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
-            )
-        }
-        composable(Routes.MANAGE_SHARING) {
-            ManageSharingScreen(onNavigateBack = { navController.popBackStack() })
-        }
+        settingsGraph(navController, isOnboardingComplete)
         pumpingGraph(navController)
+    }
+}
+
+private fun NavGraphBuilder.settingsGraph(
+    navController: NavHostController,
+    isOnboardingComplete: Boolean,
+) {
+    composable(Routes.SETTINGS) {
+        SettingsScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToDesignSystem = { navController.navigate(Routes.DESIGN_SYSTEM_PREVIEW) },
+            onNavigateToManageSharing = { navController.navigate(Routes.MANAGE_SHARING) },
+            onNavigateToConnectPartner = { navController.navigate(Routes.CONNECT_PARTNER) },
+            onDisconnect = { navController.navigateAfterDisconnect(isOnboardingComplete) },
+        )
+    }
+    composable(Routes.DESIGN_SYSTEM_PREVIEW) {
+        DesignSystemPreviewScreen(onNavigateBack = { navController.popBackStack() })
+    }
+    composable(Routes.CONNECT_PARTNER) {
+        ConnectPartnerScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onConnected = { navController.navigate(Routes.PARTNER_DASHBOARD) { popUpTo(0) { inclusive = true } } },
+        )
+    }
+    composable(Routes.PARTNER_DASHBOARD) {
+        PartnerDashboardScreen(
+            onDisconnected = { navController.navigateAfterDisconnect(isOnboardingComplete) },
+            onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
+        )
+    }
+    composable(Routes.MANAGE_SHARING) {
+        ManageSharingScreen(onNavigateBack = { navController.popBackStack() })
     }
 }
 
