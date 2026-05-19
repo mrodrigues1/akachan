@@ -134,6 +134,7 @@ class PumpingViewModel @Inject constructor(
 
     fun onManualSave() {
         val manual = _uiState.value.manual ?: return
+        if (manual.isSaving) return
         val volume = manual.volumeMl.toIntOrNull()
         val validationError = when {
             volume == null || volume <= 0 -> "Enter volume in mL"
