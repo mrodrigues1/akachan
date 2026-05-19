@@ -81,11 +81,17 @@ class PartnerDashboardScreenTest {
         allergies: List<String> = emptyList(),
         sessions: List<SessionSnapshot> = emptyList(),
         sleepRecords: List<SleepSnapshot> = emptyList(),
+        inventoryTotalMl: Int? = null,
+        inventoryBagCount: Int? = null,
+        inventoryUpdatedAt: Long? = null,
     ) = ShareSnapshot(
         lastSyncAt = lastSyncAt,
         baby = BabySnapshot(babyName, fixedNow.minus(Duration.ofDays(35)).toEpochMilli(), allergies),
         sessions = sessions,
         sleepRecords = sleepRecords,
+        inventoryTotalMl = inventoryTotalMl,
+        inventoryBagCount = inventoryBagCount,
+        inventoryUpdatedAt = inventoryUpdatedAt,
     )
 
     @Test
@@ -441,6 +447,59 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithText("Feeding when shared").assertIsDisplayed()
         composeRule.onNodeWithText("This read-only view may be behind.", substring = true).assertIsDisplayed()
         composeRule.onNodeWithText("Check shared updates").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun inventoryCardIsHiddenWhenBagCountIsZero() {
+        composeRule.setContent {
+            PartnerDashboardScreen(
+                nowProvider = fixedNowProvider,
+                viewModel = buildViewModel(
+                    makeSnapshot(
+                        inventoryTotalMl = 0,
+                        inventoryBagCount = 0,
+                    ),
+                ),
+            )
+        }
+
+        composeRule.onNodeWithContentDescription("Milk stash", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun inventoryCardShowsMlAndBagCountWhenStashIsPresent() {
+        composeRule.setContent {
+            PartnerDashboardScreen(
+                nowProvider = fixedNowProvider,
+                viewModel = buildViewModel(
+                    makeSnapshot(
+                        inventoryTotalMl = 240,
+                        inventoryBagCount = 3,
+                    ),
+                ),
+            )
+        }
+
+        composeRule.onNodeWithText("240 mL · 3 bags").assertIsDisplayed()
+    }
+
+    @Test
+    fun inventoryCardShowsUpdatedLineWhenTimestampIsPresent() {
+        val updatedAt = fixedNow.minus(Duration.ofHours(2)).toEpochMilli()
+        composeRule.setContent {
+            PartnerDashboardScreen(
+                nowProvider = fixedNowProvider,
+                viewModel = buildViewModel(
+                    makeSnapshot(
+                        inventoryTotalMl = 180,
+                        inventoryBagCount = 2,
+                        inventoryUpdatedAt = updatedAt,
+                    ),
+                ),
+            )
+        }
+
+        composeRule.onNodeWithText("Updated 2h 0m ago").assertIsDisplayed()
     }
 
     private class FakeSharingRepository(
