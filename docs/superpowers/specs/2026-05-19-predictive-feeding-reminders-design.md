@@ -167,8 +167,8 @@ States, in priority order:
 │ ⏰ Predictive reminder       [Switch]    │  titleMedium + Switch
 │    Notify before next likely feed        │  bodySmall, onSurfaceVariant
 ├─────────────────────────────────────────┤
-│ ⚠ Notifications blocked   [Open settings]│  Warning row, visible only when
-│    Android won't deliver reminders        │  permission denied AND toggle on
+│ ⚠ Notifications blocked   [Open settings]│  Warning row, visible whenever
+│    Android won't deliver reminders        │  toggle is ON and permission denied
 ├─────────────────────────────────────────┤
 │ Notify ahead by                          │  titleSmall (disabled when toggle off)
 │ ○ 5m  ○ 10m  ● 15m  ○ 30m                │  M3 SegmentedButton row
@@ -188,14 +188,21 @@ States, in priority order:
 
 `POST_NOTIFICATIONS` is a runtime permission on API 33+. A declared manifest entry is not enough — the user can deny or later revoke it, and the toggle alone can silently fail.
 
+**Contract** (single source of truth for the warning row):
+
+- The warning row is visible **iff** `predictiveEnabled == true` AND notification permission is not granted (denied, permanently denied, or revoked).
+- Toggle OFF is always treated as a deliberate user choice — no warning row, regardless of permission state.
+- Permission denial does NOT auto-flip `predictiveEnabled` off. The user stays opted in; the coordinator continues to schedule alarms; the receiver fails gracefully at post time if permission is still missing when the alarm fires. The user sees the warning row and can recover via `Open settings`.
+
 **Permission state machine** (held in `SettingsViewModel` via `NotificationManagerCompat.areNotificationsEnabled()` re-checked on every `ON_RESUME`):
 
-| State | Toggle behavior |
-|-------|-----------------|
-| `GRANTED` | Toggle freely flips `predictiveEnabled`. No warning row. |
-| `DENIED` (no request yet) | Tapping toggle ON triggers `ActivityResultContracts.RequestPermission(POST_NOTIFICATIONS)`. On grant → flip true. On deny → flip false, surface warning row. |
-| `DENIED_PERMANENTLY` (`shouldShowRequestPermissionRationale == false` after a deny) | Toggle ON is permitted but the warning row appears immediately with `Open settings` action launching `Intent(ACTION_APP_NOTIFICATION_SETTINGS)`. Coordinator still schedules alarms so behavior resumes if the user grants later. |
-| `REVOKED` (was granted, now denied — detected on resume) | Same as `DENIED_PERMANENTLY`. |
+| State | Toggle ON tap | Resulting `predictiveEnabled` | Warning row |
+|-------|---------------|-------------------------------|-------------|
+| `GRANTED` | Flips to ON. | true | hidden |
+| `DENIED` (no request yet) | Launches `ActivityResultContracts.RequestPermission(POST_NOTIFICATIONS)`. On grant → stays ON. On deny → stays ON. | true in both branches | hidden if granted, shown if denied |
+| `DENIED_PERMANENTLY` (`shouldShowRequestPermissionRationale == false` after a deny) | Flips to ON immediately (no system dialog will appear; requesting silently returns denied). | true | shown with `Open settings` → `Intent(ACTION_APP_NOTIFICATION_SETTINGS)` |
+| `REVOKED` (was granted, now denied — detected on `ON_RESUME` while toggle is ON) | n/a (resume path, not a tap) | unchanged | shown with `Open settings` |
+| Any state, toggle OFF tap | Flips to OFF. | false | hidden |
 
 - `POST_NOTIFICATIONS` is added to `AndroidManifest.xml` (currently relied upon by existing breastfeeding notifications without a request flow; this design introduces the explicit request path).
 - The settings UI must surface the denied state, not silently swallow it.
@@ -306,9 +313,10 @@ The 200ms debounce prevents alarm thrash when rapid emissions happen (e.g., duri
 - Quiet-hours with `start == end` shows helper text `Quiet hours disabled`.
 - Segmented button selection persists to DataStore (verified via observed flow).
 - Permission `GRANTED` → no warning row visible when toggle on.
-- Permission `DENIED` (first request) → toggle ON triggers permission request; warning row hidden if granted, shown if denied.
-- Permission `DENIED_PERMANENTLY` → warning row visible; `Open settings` button launches `ACTION_APP_NOTIFICATION_SETTINGS` intent.
-- Permission `REVOKED` (granted on launch, revoked while backgrounded) → warning row appears on `ON_RESUME`.
+- Permission `DENIED` (first request) → toggle ON triggers permission request; on grant: toggle stays ON, no warning. **On deny: toggle stays ON, warning row visible with `Open settings` action** (recovery path always present).
+- Permission `DENIED_PERMANENTLY` → toggle ON flips to true immediately, warning row visible; `Open settings` button launches `ACTION_APP_NOTIFICATION_SETTINGS` intent.
+- Permission `REVOKED` (granted on launch, revoked while backgrounded) → warning row appears on `ON_RESUME` while toggle remains ON.
+- Toggle OFF while permission denied → warning row hidden (deliberate user choice respected).
 
 **`PredictiveFeedReceiverTest`**:
 
