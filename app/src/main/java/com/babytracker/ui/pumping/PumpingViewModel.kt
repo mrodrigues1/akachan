@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import javax.inject.Inject
 
-enum class PumpingMode { TIMER, MANUAL }
+enum class PumpingMode { MANUAL, TIMER }
 
 data class BagPromptState(
     val sessionId: Long?,
@@ -43,7 +43,7 @@ data class ManualEntryState(
 )
 
 data class PumpingUiState(
-    val mode: PumpingMode = PumpingMode.TIMER,
+    val mode: PumpingMode = PumpingMode.MANUAL,
     val activeSession: PumpingSession? = null,
     val selectedBreast: PumpingBreast = PumpingBreast.BOTH,
     val isStarting: Boolean = false,
@@ -64,7 +64,15 @@ class PumpingViewModel @Inject constructor(
     private val now: () -> Instant,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(PumpingUiState())
+    private val _uiState = MutableStateFlow(
+        run {
+            val nowInstant = now()
+            PumpingUiState(
+                mode = PumpingMode.MANUAL,
+                manual = ManualEntryState(startTime = nowInstant.minusSeconds(15 * 60), endTime = nowInstant),
+            )
+        },
+    )
     val uiState: StateFlow<PumpingUiState> = _uiState.asStateFlow()
 
     val activeSession: StateFlow<PumpingSession?> = pumpingRepository.getActiveSession()
