@@ -295,7 +295,12 @@ class PumpingViewModelTest {
         coVerify(exactly = 1) {
             saveManual(startTime = start, endTime = end, breast = PumpingBreast.LEFT, volumeMl = 80, notes = null)
         }
-        assertNull(viewModel.uiState.value.manual)
+        val resetManual = viewModel.uiState.value.manual
+        assertNotNull(resetManual)
+        assertEquals(fixedNow.minusSeconds(15 * 60), resetManual!!.startTime)
+        assertEquals(fixedNow, resetManual.endTime)
+        assertEquals("", resetManual.volumeMl)
+        assertNull(resetManual.validationError)
         assertNotNull(viewModel.uiState.value.bagPrompt)
         assertEquals(80, viewModel.uiState.value.bagPrompt?.volumeMl)
     }
