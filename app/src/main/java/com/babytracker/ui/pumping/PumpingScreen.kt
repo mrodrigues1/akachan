@@ -170,6 +170,11 @@ fun PumpingScreen(
                 label = "mode_content",
             ) { mode ->
                 when (mode) {
+                    PumpingMode.MANUAL -> ManualModeContent(
+                        state = state,
+                        onFieldChange = viewModel::onManualFieldChange,
+                        onSave = viewModel::onManualSave,
+                    )
                     PumpingMode.TIMER -> TimerModeContent(
                         state = state,
                         onBreastSelected = viewModel::onBreastSelected,
@@ -177,11 +182,6 @@ fun PumpingScreen(
                         onPause = viewModel::onPause,
                         onResume = viewModel::onResume,
                         onStop = { showStopSheet = true },
-                    )
-                    PumpingMode.MANUAL -> ManualModeContent(
-                        state = state,
-                        onFieldChange = viewModel::onManualFieldChange,
-                        onSave = viewModel::onManualSave,
                     )
                 }
             }
