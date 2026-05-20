@@ -156,7 +156,13 @@ class PumpingViewModel @Inject constructor(
                     notes = manual.notes.ifBlank { null },
                 )
             }.onSuccess { saved ->
-                _uiState.value = _uiState.value.copy(manual = null)
+                val nowInstant = now()
+                _uiState.value = _uiState.value.copy(
+                    manual = ManualEntryState(
+                        startTime = nowInstant.minusSeconds(15 * 60),
+                        endTime = nowInstant,
+                    ),
+                )
                 openBagPrompt(
                     sessionId = saved.id,
                     volumeMl = volume!!,
