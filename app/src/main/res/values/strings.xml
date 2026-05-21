@@ -51,4 +51,16 @@
     <!-- Chronometer accessibility descriptions -->
     <string name="notif_timer_feeding_description">Elapsed feeding time</string>
     <string name="notif_timer_sleep_description">Elapsed sleep time</string>
+
+    <!-- Predictive feed reminder channel -->
+    <string name="notif_channel_predictive_feed_name">Feeding reminders</string>
+    <string name="notif_channel_predictive_feed_description">Soft reminders before a likely feeding time</string>
+
+    <!-- Predictive feed reminder notification -->
+    <string name="notif_title_predictive_feed">Feeding likely soon</string>
+    <!-- Args: 1=formatted time, 2=minutes until -->
+    <string name="notif_body_predictive_feed">Around %1$s (in %2$d min). Estimated from recent feeds.</string>
+    <string name="notif_body_predictive_feed_now">Around %1$s. Estimated from recent feeds.</string>
+    <string name="notif_action_start_feeding">Start feeding</string>
+    <string name="notif_action_snooze_15">Snooze 15m</string>
 </resources>

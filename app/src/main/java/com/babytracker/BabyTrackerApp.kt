@@ -2,6 +2,7 @@ package com.babytracker
 
 import android.app.Application
 import com.babytracker.util.NotificationHelper
+import com.babytracker.util.createPredictiveFeedNotificationChannel
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
@@ -10,5 +11,6 @@ class BabyTrackerApp : Application() {
         super.onCreate()
         NotificationHelper.createBreastfeedingNotificationChannel(this)
         NotificationHelper.createSleepNotificationChannel(this)
+        createPredictiveFeedNotificationChannel(this)
     }
 }

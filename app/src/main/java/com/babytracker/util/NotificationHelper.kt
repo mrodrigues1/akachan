@@ -694,4 +694,8 @@ object NotificationHelper {
         },
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
+
+    const val PREDICTIVE_FEED_CHANNEL_ID = "predictive_feed_notifications"
+    const val PREDICTIVE_FEED_NOTIFICATION_ID = 1006
+    const val EXTRA_NAV_ROUTE = "com.babytracker.nav.route"
 }
