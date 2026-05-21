@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -48,6 +50,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -57,10 +60,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.ui.breastfeeding.PredictionCopy
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatMinutesSeconds
@@ -257,6 +262,9 @@ fun HomeScreen(
                                 val lastStart = uiState.lastSessionStartTime
                                 if (lastStart != null) {
                                     LastFeedingAgoText(lastStart = lastStart)
+                                }
+                                uiState.nextFeedPrediction?.let { prediction ->
+                                    FeedingPredictionSubtitle(prediction = prediction)
                                 }
                             }
                         }
@@ -455,6 +463,62 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
         }
+        }
+    }
+}
+
+@Composable
+internal fun FeedingPredictionSubtitle(
+    prediction: FeedPrediction,
+    modifier: Modifier = Modifier,
+) {
+    val subtitle = remember(prediction) { PredictionCopy.forPrediction(prediction) }
+    val primaryColor = if (prediction.isOverdue && prediction.minutesUntil <= -5)
+        MaterialTheme.colorScheme.error
+    else
+        MaterialTheme.colorScheme.onPrimaryContainer
+    Row(
+        verticalAlignment = Alignment.Top,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = subtitle.contentDescription
+            },
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Schedule,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier
+                .size(16.dp)
+                .padding(top = 2.dp),
+        )
+        Spacer(Modifier.width(4.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = subtitle.primary,
+                style = MaterialTheme.typography.bodyMedium,
+                color = primaryColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val detail = buildString {
+                subtitle.secondary?.let { append(it) }
+                if (subtitle.lowConfidence) {
+                    if (isNotEmpty()) append(" · ")
+                    append("low confidence")
+                }
+            }
+            if (detail.isNotEmpty()) {
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

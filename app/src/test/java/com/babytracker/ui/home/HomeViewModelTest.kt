@@ -3,6 +3,7 @@ package com.babytracker.ui.home
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
@@ -13,6 +14,7 @@ import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
+import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
@@ -46,6 +48,7 @@ class HomeViewModelTest {
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var pumpingRepository: PumpingRepository
     private lateinit var inventoryRepository: InventoryRepository
+    private lateinit var predictNextFeed: PredictNextFeedUseCase
     private lateinit var viewModel: HomeViewModel
     private val testDispatcher = StandardTestDispatcher()
 
@@ -73,6 +76,7 @@ class HomeViewModelTest {
         settingsRepository = mockk()
         pumpingRepository = mockk()
         inventoryRepository = mockk()
+        predictNextFeed = mockk()
 
         every { getBabyProfile() } returns flowOf(testBaby)
         every { getBreastfeedingHistory() } returns flowOf(emptyList())
@@ -80,6 +84,7 @@ class HomeViewModelTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.NONE)
         every { pumpingRepository.getActiveSession() } returns flowOf(null)
         every { inventoryRepository.getSummary() } returns flowOf(InventorySummary.Empty)
+        every { predictNextFeed() } returns flowOf(null)
         coJustRun { syncToFirestore(any()) }
     }
 
@@ -96,6 +101,7 @@ class HomeViewModelTest {
         settingsRepository,
         pumpingRepository,
         inventoryRepository,
+        predictNextFeed,
     )
 
     @Test
@@ -264,5 +270,37 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(240, viewModel.uiState.value.inventorySummary.totalMl)
         assertEquals(3, viewModel.uiState.value.inventorySummary.bagCount)
+    }
+
+    @Test
+    fun nextFeedPrediction_isExposed_whenNoActiveSession() = runTest {
+        val prediction = FeedPrediction(
+            predictedAt = Instant.parse("2026-05-19T17:40:00Z"),
+            averageIntervalMinutes = 180,
+            sampleSize = 5,
+            isOverdue = false,
+            minutesUntil = 45,
+        )
+        every { getBreastfeedingHistory() } returns flowOf(listOf(completedSession))
+        every { predictNextFeed() } returns flowOf(prediction)
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(prediction, viewModel.uiState.value.nextFeedPrediction)
+    }
+
+    @Test
+    fun nextFeedPrediction_isSuppressed_whenActiveSessionExists() = runTest {
+        val prediction = FeedPrediction(
+            predictedAt = Instant.parse("2026-05-19T17:40:00Z"),
+            averageIntervalMinutes = 180,
+            sampleSize = 5,
+            isOverdue = false,
+            minutesUntil = 45,
+        )
+        every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession, completedSession))
+        every { predictNextFeed() } returns flowOf(prediction)
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.uiState.value.nextFeedPrediction)
     }
 }
