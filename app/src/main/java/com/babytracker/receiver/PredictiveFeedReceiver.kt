@@ -1,19 +1,21 @@
 package com.babytracker.receiver
 
-import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.util.Log
+import com.babytracker.manager.PredictiveFeedScheduler
 import com.babytracker.util.NotificationHelper
 import com.babytracker.util.showPredictiveReminder
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.Instant
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class PredictiveFeedReceiver : BroadcastReceiver() {
+
+    @Inject lateinit var scheduler: PredictiveFeedScheduler
 
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
@@ -64,27 +66,10 @@ class PredictiveFeedReceiver : BroadcastReceiver() {
      */
     private fun snooze(context: Context, intent: Intent) {
         val predictedAtEpochMs = intent.getLongExtra(EXTRA_PREDICTED_AT_MS, 0L)
-        val nextTrigger = Instant.now().plusSeconds(SNOOZE_MINUTES * 60L)
-        val fireIntent = Intent(context, PredictiveFeedReceiver::class.java).apply {
-            action = ACTION_FIRE
-            putExtra(EXTRA_PREDICTED_AT_MS, predictedAtEpochMs)
-        }
-        val pi = PendingIntent.getBroadcast(
-            context, REQUEST_CODE_PREDICTIVE, fireIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        scheduler.schedulePredictiveReminderAt(
+            triggerTime = Instant.now().plusSeconds(SNOOZE_MINUTES * 60L),
+            predictedAt = Instant.ofEpochMilli(predictedAtEpochMs),
         )
-        val am = context.getSystemService(AlarmManager::class.java)
-        val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()
-        try {
-            if (canExact) {
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextTrigger.toEpochMilli(), pi)
-            } else {
-                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextTrigger.toEpochMilli(), pi)
-            }
-        } catch (e: SecurityException) {
-            Log.w(TAG, "SCHEDULE_EXACT_ALARM denied; falling back to inexact snooze", e)
-            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextTrigger.toEpochMilli(), pi)
-        }
         NotificationHelper.cancelNotification(context, NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID)
     }
 
