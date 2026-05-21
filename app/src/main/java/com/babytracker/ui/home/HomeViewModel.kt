@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepRecord
@@ -14,6 +15,7 @@ import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
+import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
@@ -41,6 +43,7 @@ data class HomeUiState(
     val appMode: AppMode = AppMode.NONE,
     val pumpingActive: PumpingSession? = null,
     val inventorySummary: InventorySummary = InventorySummary.Empty,
+    val nextFeedPrediction: FeedPrediction? = null,
 )
 
 @HiltViewModel
@@ -52,6 +55,7 @@ class HomeViewModel @Inject constructor(
     settingsRepository: SettingsRepository,
     pumpingRepository: PumpingRepository,
     inventoryRepository: InventoryRepository,
+    predictNextFeed: PredictNextFeedUseCase,
 ) : ViewModel() {
 
     val uiState: StateFlow<HomeUiState> = combine(
@@ -60,7 +64,8 @@ class HomeViewModel @Inject constructor(
             getBreastfeedingHistory(),
             getSleepHistory(),
             settingsRepository.getAppMode(),
-        ) { baby, feedings, sleepRecords, appMode ->
+            predictNextFeed(),
+        ) { baby, feedings, sleepRecords, appMode, prediction ->
             val yesterday = LocalDate.now().minusDays(1)
             val zone = ZoneId.systemDefault()
 
@@ -97,6 +102,7 @@ class HomeViewModel @Inject constructor(
                 lastSessionStartTime = (feedings.firstOrNull { it.isInProgress }
                     ?: feedings.firstOrNull())?.startTime,
                 appMode = appMode,
+                nextFeedPrediction = if (feedings.any { it.isInProgress }) null else prediction,
             )
         },
         pumpingRepository.getActiveSession(),
