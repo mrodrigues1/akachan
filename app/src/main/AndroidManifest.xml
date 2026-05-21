@@ -46,6 +46,16 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".receiver.PredictiveFeedReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.babytracker.PREDICTIVE_FEED_FIRE" />
+                <action android:name="com.babytracker.PREDICTIVE_FEED_SNOOZE" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>
