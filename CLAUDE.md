@@ -565,6 +565,52 @@ With that file in place, Gradle commands run cleanly without manual env exports 
 
 If the JDK path no longer exists (Gradle re-downloaded a newer version), run `ls ~/.gradle/jdks/` to find the current directory and update `org.gradle.java.home` accordingly.
 
+### Linux / WSL — UI / Instrumentation Tests
+
+`adb` is not installed in WSL — the Android SDK lives on the Windows side. WSL2 can execute Windows `.exe` files directly, so add the Windows SDK paths to `~/.bashrc`:
+
+```bash
+# Android SDK (Windows-side — WSL2 runs .exe directly)
+export ANDROID_SDK_ROOT="/mnt/c/Users/mathe/AppData/Local/Android/Sdk"
+export PATH="$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH"
+```
+
+After `source ~/.bashrc`, `adb` resolves to `adb.exe` on the Windows SDK and connects to the Windows ADB server.
+
+**To run instrumentation tests (`src/androidTest/`) from WSL:**
+
+1. Start the `Pixel_10_Pro` emulator from **Windows** Android Studio (or Windows terminal):
+   ```
+   # Windows terminal / PowerShell
+   %LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe -avd Pixel_10_Pro
+   ```
+2. Wait for boot, then from WSL:
+   ```bash
+   adb devices          # should list the emulator
+   ./gradlew connectedAndroidTest
+   ```
+
+**To run Compose UI tests without a device (Robolectric, JVM only):**
+
+Write the test in `src/test/` with `@RunWith(RobolectricTestRunner::class)` and `createComposeRule()`:
+
+```kotlin
+@RunWith(RobolectricTestRunner::class)
+class MyScreenTest {
+    @get:Rule val composeRule = createComposeRule()
+
+    @Test
+    fun myTest() {
+        composeRule.setContent { MyComposable() }
+        composeRule.onNodeWithText("Hello").assertIsDisplayed()
+    }
+}
+```
+
+Run via: `./gradlew :app:testDebugUnitTest`
+
+> `isIncludeAndroidResources = true` is already set in `testOptions` so resources and assets resolve at JVM test time.
+
 ---
 
 ## Testing Conventions
