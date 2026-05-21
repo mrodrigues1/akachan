@@ -33,8 +33,7 @@ class PredictNextFeedUseCase @Inject constructor(
             settingsRepository.getQuietHoursEndMinute(),
         ) { sessions, qhStart, qhEnd ->
             predict(sessions, qhStart, qhEnd)
-        }.catch { e ->
-            android.util.Log.e("PredictNextFeed", "Prediction failed", e)
+        }.catch {
             emit(null)
         }
     }
