@@ -580,5 +580,21 @@ class PartnerDashboardScreenTest {
         override suspend fun setShareCode(code: String) = Unit
 
         override suspend fun clearShareCode() = Unit
+
+        override fun getPredictiveEnabled(): Flow<Boolean> = flowOf(false)
+
+        override suspend fun setPredictiveEnabled(enabled: Boolean) = Unit
+
+        override fun getPredictiveLeadMinutes(): Flow<Int> = flowOf(15)
+
+        override suspend fun setPredictiveLeadMinutes(minutes: Int) = Unit
+
+        override fun getQuietHoursStartMinute(): Flow<Int> = flowOf(0)
+
+        override suspend fun setQuietHoursStartMinute(minuteOfDay: Int) = Unit
+
+        override fun getQuietHoursEndMinute(): Flow<Int> = flowOf(480)
+
+        override suspend fun setQuietHoursEndMinute(minuteOfDay: Int) = Unit
     }
 }

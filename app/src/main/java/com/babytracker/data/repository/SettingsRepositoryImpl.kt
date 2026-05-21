@@ -33,6 +33,12 @@ class SettingsRepositoryImpl @Inject constructor(
         private val RICH_NOTIFICATIONS_ENABLED = booleanPreferencesKey("rich_notifications_enabled")
         val APP_MODE = stringPreferencesKey("app_mode")
         val SHARE_CODE = stringPreferencesKey("share_code")
+        val PREDICTIVE_ENABLED = booleanPreferencesKey("predictive_enabled")
+        val PREDICTIVE_LEAD_MINUTES = intPreferencesKey("predictive_lead_minutes")
+        val QUIET_HOURS_START_MINUTE = intPreferencesKey("quiet_hours_start_minute")
+        val QUIET_HOURS_END_MINUTE = intPreferencesKey("quiet_hours_end_minute")
+        const val DEFAULT_LEAD_MINUTES = 15
+        val ALLOWED_LEAD_MINUTES = setOf(5, 10, 15, 30)
     }
 
     override fun getThemeConfig(): Flow<ThemeConfig> =
@@ -125,5 +131,40 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun clearShareCode() {
         dataStore.edit { it.remove(SHARE_CODE) }
+    }
+
+    override fun getPredictiveEnabled(): Flow<Boolean> =
+        dataStore.data.map { it[PREDICTIVE_ENABLED] ?: false }
+
+    override suspend fun setPredictiveEnabled(enabled: Boolean) {
+        dataStore.edit { it[PREDICTIVE_ENABLED] = enabled }
+    }
+
+    override fun getPredictiveLeadMinutes(): Flow<Int> =
+        dataStore.data.map { prefs ->
+            val stored = prefs[PREDICTIVE_LEAD_MINUTES] ?: DEFAULT_LEAD_MINUTES
+            if (stored in ALLOWED_LEAD_MINUTES) stored else DEFAULT_LEAD_MINUTES
+        }
+
+    override suspend fun setPredictiveLeadMinutes(minutes: Int) {
+        // Allowlist enforced at the repository boundary so the coordinator never
+        // computes triggerAt with a bogus offset (negative, zero, or huge). Invalid
+        // input collapses to the default (15) rather than corrupting persistent state.
+        val sanitized = if (minutes in ALLOWED_LEAD_MINUTES) minutes else DEFAULT_LEAD_MINUTES
+        dataStore.edit { it[PREDICTIVE_LEAD_MINUTES] = sanitized }
+    }
+
+    override fun getQuietHoursStartMinute(): Flow<Int> =
+        dataStore.data.map { it[QUIET_HOURS_START_MINUTE] ?: 0 }
+
+    override suspend fun setQuietHoursStartMinute(minuteOfDay: Int) {
+        dataStore.edit { it[QUIET_HOURS_START_MINUTE] = minuteOfDay.coerceIn(0, 1439) }
+    }
+
+    override fun getQuietHoursEndMinute(): Flow<Int> =
+        dataStore.data.map { it[QUIET_HOURS_END_MINUTE] ?: 480 }
+
+    override suspend fun setQuietHoursEndMinute(minuteOfDay: Int) {
+        dataStore.edit { it[QUIET_HOURS_END_MINUTE] = minuteOfDay.coerceIn(0, 1439) }
     }
 }

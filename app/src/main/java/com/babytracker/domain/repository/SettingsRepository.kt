@@ -25,4 +25,12 @@ interface SettingsRepository {
     fun getShareCode(): Flow<String?>
     suspend fun setShareCode(code: String)
     suspend fun clearShareCode()
+    fun getPredictiveEnabled(): Flow<Boolean>
+    suspend fun setPredictiveEnabled(enabled: Boolean)
+    fun getPredictiveLeadMinutes(): Flow<Int>
+    suspend fun setPredictiveLeadMinutes(minutes: Int)
+    fun getQuietHoursStartMinute(): Flow<Int>
+    suspend fun setQuietHoursStartMinute(minuteOfDay: Int)
+    fun getQuietHoursEndMinute(): Flow<Int>
+    suspend fun setQuietHoursEndMinute(minuteOfDay: Int)
 }

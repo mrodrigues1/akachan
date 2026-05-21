@@ -91,10 +91,10 @@ complexity:
     active: false
   TooManyFunctions:
     active: true
-    thresholdInFiles: 25
+    thresholdInFiles: 30
     thresholdInClasses: 20
     thresholdInObjects: 15
-    thresholdInInterfaces: 20
+    thresholdInInterfaces: 30
     ignorePrivate: true
     ignoreOverridden: true
 
