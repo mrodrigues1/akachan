@@ -14,7 +14,11 @@ import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
+import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
+import com.babytracker.manager.NotificationPermissionChecker
 import com.babytracker.sharing.domain.model.AppMode
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
@@ -32,10 +36,14 @@ class SettingsScreenTest {
     private fun buildPartnerViewModel(): SettingsViewModel {
         val babyRepository = FakeBabyRepository()
         val settingsRepository = FakeSettingsRepository()
+        val countRecentValidIntervals = mockk<CountRecentValidIntervalsUseCase>()
+        every { countRecentValidIntervals() } returns flowOf(0)
         return SettingsViewModel(
             getBabyProfile = GetBabyProfileUseCase(babyRepository),
             settingsRepository = settingsRepository,
             saveBabyProfile = SaveBabyProfileUseCase(babyRepository),
+            countRecentValidIntervals = countRecentValidIntervals,
+            notificationPermissionChecker = NotificationPermissionChecker { true },
         )
     }
 
@@ -96,10 +104,14 @@ class SettingsScreenTest {
         val settingsRepo = object : FakeSettingsRepository() {
             override fun getAppMode(): Flow<AppMode> = flowOf(AppMode.NONE)
         }
+        val countRecentValidIntervals = mockk<CountRecentValidIntervalsUseCase>()
+        every { countRecentValidIntervals() } returns flowOf(0)
         val viewModel = SettingsViewModel(
             getBabyProfile = GetBabyProfileUseCase(babyRepo),
             settingsRepository = settingsRepo,
             saveBabyProfile = SaveBabyProfileUseCase(babyRepo),
+            countRecentValidIntervals = countRecentValidIntervals,
+            notificationPermissionChecker = NotificationPermissionChecker { true },
         )
 
         composeRule.setContent {

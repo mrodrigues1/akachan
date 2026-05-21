@@ -63,4 +63,23 @@
     <string name="notif_body_predictive_feed_now">Around %1$s. Estimated from recent feeds.</string>
     <string name="notif_action_start_feeding">Start feeding</string>
     <string name="notif_action_snooze_15">Snooze 15m</string>
+
+    <!-- Settings — predictive feeding reminders section -->
+    <string name="settings_section_feeding_reminders">FEEDING REMINDERS</string>
+    <string name="settings_predictive_toggle_title">Predictive reminder</string>
+    <string name="settings_predictive_toggle_subtitle">Notify before next likely feed</string>
+    <string name="settings_notifications_blocked_title">Notifications blocked</string>
+    <string name="settings_notifications_blocked_subtitle">Android won\'t deliver reminders</string>
+    <string name="settings_open_settings">Open settings</string>
+    <string name="settings_lead_time_title">Notify ahead by</string>
+    <string name="settings_lead_time_5">5m</string>
+    <string name="settings_lead_time_10">10m</string>
+    <string name="settings_lead_time_15">15m</string>
+    <string name="settings_lead_time_30">30m</string>
+    <string name="settings_quiet_hours_title">Skip during quiet hours</string>
+    <string name="settings_quiet_hours_start">Start</string>
+    <string name="settings_quiet_hours_end">End</string>
+    <string name="settings_quiet_hours_helper">Intervals during this window are ignored</string>
+    <string name="settings_quiet_hours_disabled">Quiet hours disabled</string>
+    <string name="settings_predictive_need_more_feeds">Need 3+ recent feeds to predict.</string>
 </resources>

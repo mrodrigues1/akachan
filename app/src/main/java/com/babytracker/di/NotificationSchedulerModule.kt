@@ -3,11 +3,14 @@ package com.babytracker.di
 import android.content.Context
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.manager.BreastfeedingNotificationManager
+import com.babytracker.manager.NotificationPermissionChecker
+import com.babytracker.manager.NotificationPermissionCheckerImpl
 import com.babytracker.manager.NotificationScheduler
 import com.babytracker.manager.PredictiveFeedScheduler
 import com.babytracker.manager.PredictiveFeedSchedulerImpl
 import com.babytracker.manager.SleepNotificationManager
 import com.babytracker.manager.SleepNotificationScheduler
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -37,4 +40,15 @@ object NotificationSchedulerModule {
     fun providePredictiveFeedScheduler(
         @ApplicationContext context: Context
     ): PredictiveFeedScheduler = PredictiveFeedSchedulerImpl(context)
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class NotificationPermissionCheckerModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindNotificationPermissionChecker(
+        impl: NotificationPermissionCheckerImpl
+    ): NotificationPermissionChecker
 }

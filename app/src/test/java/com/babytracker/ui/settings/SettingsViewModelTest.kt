@@ -4,6 +4,8 @@ import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
+import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
+import com.babytracker.manager.NotificationPermissionChecker
 import com.babytracker.sharing.domain.model.AppMode
 import io.mockk.coEvery
 import io.mockk.coJustRun
@@ -48,8 +50,23 @@ class SettingsViewModelTest {
         every { settingsRepository.getAutoUpdateEnabled() } returns flowOf(true)
         every { settingsRepository.getRichNotificationsEnabled() } returns richNotificationsFlow
         every { settingsRepository.getAppMode() } returns appModeFlow
+        every { settingsRepository.getPredictiveEnabled() } returns flowOf(false)
+        every { settingsRepository.getPredictiveLeadMinutes() } returns flowOf(15)
+        every { settingsRepository.getQuietHoursStartMinute() } returns flowOf(0)
+        every { settingsRepository.getQuietHoursEndMinute() } returns flowOf(480)
+        val countRecentValidIntervals = mockk<CountRecentValidIntervalsUseCase>()
+        every { countRecentValidIntervals() } returns flowOf(0)
+        val notificationPermissionChecker = mockk<NotificationPermissionChecker> {
+            every { areNotificationsEnabled() } returns true
+        }
 
-        viewModel = SettingsViewModel(getBabyProfile, settingsRepository, mockk())
+        viewModel = SettingsViewModel(
+            getBabyProfile,
+            settingsRepository,
+            mockk(),
+            countRecentValidIntervals,
+            notificationPermissionChecker,
+        )
     }
 
     @AfterEach
