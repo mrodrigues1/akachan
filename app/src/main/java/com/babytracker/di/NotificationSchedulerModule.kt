@@ -4,6 +4,8 @@ import android.content.Context
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.manager.BreastfeedingNotificationManager
 import com.babytracker.manager.NotificationScheduler
+import com.babytracker.manager.PredictiveFeedScheduler
+import com.babytracker.manager.PredictiveFeedSchedulerImpl
 import com.babytracker.manager.SleepNotificationManager
 import com.babytracker.manager.SleepNotificationScheduler
 import dagger.Module
@@ -29,4 +31,10 @@ object NotificationSchedulerModule {
         @ApplicationContext context: Context,
         settingsRepository: SettingsRepository
     ): SleepNotificationScheduler = SleepNotificationManager(context, settingsRepository)
+
+    @Provides
+    @Singleton
+    fun providePredictiveFeedScheduler(
+        @ApplicationContext context: Context
+    ): PredictiveFeedScheduler = PredictiveFeedSchedulerImpl(context)
 }
