@@ -25,6 +25,7 @@ ktlint = "1.3.1"
 detekt = "1.23.6"
 firebaseBom = "33.7.0"
 konsist = "0.16.0"
+robolectric = "4.15.1"
 kover = "0.9.1"
 twitterComposeRules = "0.0.26"
 
@@ -77,6 +78,7 @@ firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx" }
 
 # Testing
 konsist = { group = "com.lemonappdev", name = "konsist", version.ref = "konsist" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 detekt-compose-rules = { group = "com.twitter.compose.rules", name = "detekt", version.ref = "twitterComposeRules" }
 junit5-api = { group = "org.junit.jupiter", name = "junit-jupiter-api", version.ref = "junit5" }
 junit5-engine = { group = "org.junit.jupiter", name = "junit-jupiter-engine", version.ref = "junit5" }

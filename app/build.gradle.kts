@@ -63,6 +63,7 @@ android {
     testOptions {
         unitTests {
             isReturnDefaultValues = true
+            isIncludeAndroidResources = true
         }
     }
 
@@ -123,6 +124,7 @@ dependencies {
     implementation(libs.coroutines.android)
 
     // Unit Testing
+    testImplementation(libs.robolectric)
     testImplementation(libs.konsist)
     testImplementation(libs.junit5.api)
     testRuntimeOnly(libs.junit5.engine)
