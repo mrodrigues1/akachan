@@ -547,19 +547,25 @@ Build variants: `debug` (default) and `release` (ProGuard minification enabled v
 
 ### Linux / WSL
 
-The system image ships only a JRE (`java`) — no `javac`. Hilt's annotation processor (`hiltJavaCompileDebug`) requires a full JDK. Gradle downloads one automatically to `~/.gradle/jdks/`. Set `JAVA_HOME` to that JDK before every Gradle invocation, and always pass `--no-configuration-cache` (the Hilt toolchain property cannot be serialized by the configuration cache under this setup):
+The system image ships only a JRE (`java`) — no `javac`. Hilt's annotation processor (`hiltJavaCompileDebug`) requires a full JDK. Gradle downloads one automatically to `~/.gradle/jdks/`. Additionally, the Hilt toolchain property cannot be serialized by the Gradle configuration cache under this setup, so config cache must be disabled on Linux/WSL.
 
-```bash
-export JAVA_HOME=/home/matheus/.gradle/jdks/eclipse_adoptium-17-amd64-linux.2
-export PATH=$JAVA_HOME/bin:$PATH
+Both are handled via `~/.gradle/gradle.properties` (GRADLE_USER_HOME has higher precedence than the project `gradle.properties`, so this overrides only the local machine and does not affect Windows-side dev):
 
-# Then run any Gradle task with --no-configuration-cache, e.g.:
-./gradlew :app:testDebugUnitTest --no-configuration-cache
-./gradlew ktlintFormat detekt --no-configuration-cache
-./gradlew :app:compileDebugAndroidTestKotlin --no-configuration-cache
+```properties
+# ~/.gradle/gradle.properties
+org.gradle.configuration-cache=false
+org.gradle.java.home=/home/matheus/.gradle/jdks/eclipse_adoptium-17-amd64-linux.2
 ```
 
-If the JDK path above no longer exists (Gradle re-downloaded a newer version), run `ls ~/.gradle/jdks/` to find the current directory and update accordingly.
+With that file in place, Gradle commands run cleanly without manual env exports or `--no-configuration-cache` flags:
+
+```bash
+./gradlew :app:testDebugUnitTest
+./gradlew ktlintFormat detekt
+./gradlew :app:compileDebugAndroidTestKotlin
+```
+
+If the JDK path no longer exists (Gradle re-downloaded a newer version), run `ls ~/.gradle/jdks/` to find the current directory and update `org.gradle.java.home` accordingly.
 
 ---
 
