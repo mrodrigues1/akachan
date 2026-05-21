@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
+import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
+import com.babytracker.manager.NotificationPermissionChecker
+import com.babytracker.sharing.domain.model.AppMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +28,13 @@ data class SettingsUiState(
     val richNotificationsEnabled: Boolean = true,
     val appMode: AppMode? = null,
     val isDisconnected: Boolean = false,
+    val predictiveEnabled: Boolean = false,
+    val predictiveLeadMinutes: Int = 15,
+    val quietHoursStartMinute: Int = 0,
+    val quietHoursEndMinute: Int = 480,
+    val notificationsPermissionGranted: Boolean = true,
+    val showPermissionWarning: Boolean = false,
+    val validIntervalCount: Int = 0,
 )
 
 @HiltViewModel
@@ -33,10 +42,16 @@ class SettingsViewModel @Inject constructor(
     private val getBabyProfile: GetBabyProfileUseCase,
     private val settingsRepository: SettingsRepository,
     private val saveBabyProfile: SaveBabyProfileUseCase,
+    private val countRecentValidIntervals: CountRecentValidIntervalsUseCase,
+    private val notificationPermissionChecker: NotificationPermissionChecker,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    private val _permissionGranted = MutableStateFlow(
+        notificationPermissionChecker.areNotificationsEnabled()
+    )
 
     init {
         viewModelScope.launch {
@@ -48,6 +63,12 @@ class SettingsViewModel @Inject constructor(
                 settingsRepository.getAutoUpdateEnabled(),
                 settingsRepository.getRichNotificationsEnabled(),
                 settingsRepository.getAppMode(),
+                settingsRepository.getPredictiveEnabled(),
+                settingsRepository.getPredictiveLeadMinutes(),
+                settingsRepository.getQuietHoursStartMinute(),
+                settingsRepository.getQuietHoursEndMinute(),
+                countRecentValidIntervals(),
+                _permissionGranted,
             ) { values ->
                 val baby = values[0] as? Baby
                 val maxPerBreast = values[1] as Int
@@ -56,6 +77,12 @@ class SettingsViewModel @Inject constructor(
                 val autoUpdate = values[4] as Boolean
                 val richNotifications = values[5] as Boolean
                 val appMode = values[6] as AppMode
+                val predictiveEnabled = values[7] as Boolean
+                val predictiveLeadMinutes = values[8] as Int
+                val quietHoursStart = values[9] as Int
+                val quietHoursEnd = values[10] as Int
+                val validIntervalCount = values[11] as Int
+                val permissionGranted = values[12] as Boolean
                 SettingsUiState(
                     baby = baby,
                     maxPerBreastMinutes = maxPerBreast,
@@ -64,6 +91,13 @@ class SettingsViewModel @Inject constructor(
                     autoUpdateEnabled = autoUpdate,
                     richNotificationsEnabled = richNotifications,
                     appMode = appMode,
+                    predictiveEnabled = predictiveEnabled,
+                    predictiveLeadMinutes = predictiveLeadMinutes,
+                    quietHoursStartMinute = quietHoursStart,
+                    quietHoursEndMinute = quietHoursEnd,
+                    notificationsPermissionGranted = permissionGranted,
+                    showPermissionWarning = predictiveEnabled && !permissionGranted,
+                    validIntervalCount = validIntervalCount,
                 )
             }.collect { next ->
                 _uiState.update { current -> next.copy(isDisconnected = current.isDisconnected) }
@@ -93,6 +127,28 @@ class SettingsViewModel @Inject constructor(
 
     fun onRichNotificationsToggled(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.setRichNotificationsEnabled(enabled) }
+    }
+
+    fun onPredictiveToggleChanged(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setPredictiveEnabled(enabled)
+        }
+    }
+
+    fun onLeadMinutesChanged(minutes: Int) {
+        viewModelScope.launch { settingsRepository.setPredictiveLeadMinutes(minutes) }
+    }
+
+    fun onQuietHoursStartChanged(minute: Int) {
+        viewModelScope.launch { settingsRepository.setQuietHoursStartMinute(minute) }
+    }
+
+    fun onQuietHoursEndChanged(minute: Int) {
+        viewModelScope.launch { settingsRepository.setQuietHoursEndMinute(minute) }
+    }
+
+    fun refreshNotificationsPermission(granted: Boolean) {
+        _permissionGranted.value = granted
     }
 
     fun disconnect() {

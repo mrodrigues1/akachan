@@ -141,6 +141,9 @@ dependencies {
     androidTestImplementation(libs.compose.ui.test.junit4)
     debugImplementation(libs.compose.ui.test.manifest)
     androidTestImplementation(libs.turbine)
+    androidTestImplementation(libs.mockk.android)
+    androidTestImplementation(libs.test.rules)
+    androidTestImplementation(libs.espresso.intents)
 
     // Android Testing — JUnit 5 support
     androidTestImplementation(libs.junit5.api)
