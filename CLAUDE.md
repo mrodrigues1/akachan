@@ -543,6 +543,22 @@ Receivers use `goAsync()` + a `CoroutineScope` so they can safely call `suspend`
 
 Build variants: `debug` (default) and `release` (ProGuard minification enabled via `proguard-android-optimize.txt` + `app/proguard-rules.pro`).
 
+### Linux / WSL
+
+The system image ships only a JRE (`java`) — no `javac`. Hilt's annotation processor (`hiltJavaCompileDebug`) requires a full JDK. Gradle downloads one automatically to `~/.gradle/jdks/`. Set `JAVA_HOME` to that JDK before every Gradle invocation, and always pass `--no-configuration-cache` (the Hilt toolchain property cannot be serialized by the configuration cache under this setup):
+
+```bash
+export JAVA_HOME=/home/matheus/.gradle/jdks/eclipse_adoptium-17-amd64-linux.2
+export PATH=$JAVA_HOME/bin:$PATH
+
+# Then run any Gradle task with --no-configuration-cache, e.g.:
+./gradlew :app:testDebugUnitTest --no-configuration-cache
+./gradlew ktlintFormat detekt --no-configuration-cache
+./gradlew :app:compileDebugAndroidTestKotlin --no-configuration-cache
+```
+
+If the JDK path above no longer exists (Gradle re-downloaded a newer version), run `ls ~/.gradle/jdks/` to find the current directory and update accordingly.
+
 ---
 
 ## Testing Conventions
