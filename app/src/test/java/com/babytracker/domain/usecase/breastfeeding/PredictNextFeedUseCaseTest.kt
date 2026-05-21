@@ -210,7 +210,7 @@ class PredictNextFeedUseCaseTest {
     }
 
     @Test
-    fun `prefers older daytime intervals when recent intervals are overnight`() = runTest {
+    fun `returns null when surviving daytime intervals exceed max interval minutes`() = runTest {
         every { settingsRepository.getQuietHoursStartMinute() } returns flowOf(0)
         every { settingsRepository.getQuietHoursEndMinute() } returns flowOf(8 * 60)
 
