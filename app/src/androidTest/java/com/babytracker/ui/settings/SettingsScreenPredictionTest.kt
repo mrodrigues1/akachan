@@ -45,7 +45,8 @@ class SettingsScreenPredictionTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    private fun predictiveSwitch() = composeRule.onNodeWithTag("predictive_switch")
+    private fun predictiveSwitch() =
+        composeRule.onNodeWithTag("predictive_switch").performScrollTo()
 
     private fun buildViewModel(
         settingsRepository: SettingsRepository = PredictionFakeSettingsRepository(),
