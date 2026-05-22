@@ -28,6 +28,7 @@ class PredictiveFeedReceiverTest {
         nm = context.getSystemService(NotificationManager::class.java)
         createPredictiveFeedNotificationChannel(context)
         nm.cancel(NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID)
+        awaitNotificationAbsent(NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID)
     }
 
     @Test
@@ -41,9 +42,7 @@ class PredictiveFeedReceiverTest {
         }
         PredictiveFeedReceiver().onReceive(context, intent)
 
-        val posted = nm.activeNotifications.firstOrNull {
-            it.id == NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID
-        }
+        val posted = awaitNotification(NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID)
         assertNotNull(posted)
         assertEquals(NotificationHelper.PREDICTIVE_FEED_CHANNEL_ID, posted!!.notification.channelId)
     }
@@ -57,10 +56,8 @@ class PredictiveFeedReceiverTest {
         }
         PredictiveFeedReceiver().onReceive(context, intent)
 
-        val posted = nm.activeNotifications.firstOrNull {
-            it.id == NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID
-        }
-        assertNull(posted)
+        Thread.sleep(300)
+        assertNull(nm.activeNotifications.firstOrNull { it.id == NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID })
     }
 
     @Test
@@ -72,48 +69,58 @@ class PredictiveFeedReceiverTest {
         }
         PredictiveFeedReceiver().onReceive(context, intent)
 
-        val posted = nm.activeNotifications.first {
-            it.id == NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID
-        }
-        val body = posted.notification.extras.getCharSequence("android.text").toString()
+        val posted = awaitNotification(NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID)
+        assertNotNull("Notification not posted", posted)
+        val body = posted!!.notification.extras.getCharSequence("android.text").toString()
         assertTrue("Body did not recompute minutes: $body", body.contains("in 4 min") || body.contains("in 5 min"))
     }
 
     @Test
     fun snoozeDiscardsCurrentNotification() {
         val predictedAt = Instant.now().plusSeconds(20 * 60L).toEpochMilli()
-        // First post a notification so there is something to cancel.
         val fireIntent = Intent(context, PredictiveFeedReceiver::class.java).apply {
             action = PredictiveFeedReceiver.ACTION_FIRE
             putExtra(PredictiveFeedReceiver.EXTRA_PREDICTED_AT_MS, predictedAt)
         }
         PredictiveFeedReceiver().onReceive(context, fireIntent)
-        assertNotNull(
-            nm.activeNotifications.firstOrNull { it.id == NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID },
-        )
+        assertNotNull("Fire did not post notification", awaitNotification(NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID))
 
-        // Snooze: should cancel the existing notification and schedule a new alarm.
         val snoozeIntent = Intent(context, PredictiveFeedReceiver::class.java).apply {
             action = PredictiveFeedReceiver.ACTION_SNOOZE
             putExtra(PredictiveFeedReceiver.EXTRA_PREDICTED_AT_MS, predictedAt)
         }
         PredictiveFeedReceiver().onReceive(context, snoozeIntent)
 
-        assertNull(
-            nm.activeNotifications.firstOrNull { it.id == NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID },
-        )
+        awaitNotificationAbsent(NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID)
+        assertNull(nm.activeNotifications.firstOrNull { it.id == NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID })
     }
 
     @Test
     fun dropsFireWhenPredictedAtIsZero() {
         val intent = Intent(context, PredictiveFeedReceiver::class.java).apply {
             action = PredictiveFeedReceiver.ACTION_FIRE
-            // No EXTRA_PREDICTED_AT_MS → defaults to 0
         }
         PredictiveFeedReceiver().onReceive(context, intent)
 
-        assertNull(
-            nm.activeNotifications.firstOrNull { it.id == NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID },
-        )
+        Thread.sleep(300)
+        assertNull(nm.activeNotifications.firstOrNull { it.id == NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID })
+    }
+
+    private fun awaitNotification(id: Int, timeoutMs: Long = 2_000): android.service.notification.StatusBarNotification? {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            val n = nm.activeNotifications.firstOrNull { it.id == id }
+            if (n != null) return n
+            Thread.sleep(100)
+        }
+        return null
+    }
+
+    private fun awaitNotificationAbsent(id: Int, timeoutMs: Long = 2_000) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            if (nm.activeNotifications.none { it.id == id }) return
+            Thread.sleep(100)
+        }
     }
 }
