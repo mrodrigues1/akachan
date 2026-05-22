@@ -136,8 +136,7 @@ fun SettingsScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                val granted = NotificationManagerCompat.from(context).areNotificationsEnabled()
-                viewModel.refreshNotificationsPermission(granted)
+                viewModel.onLifecycleResume()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

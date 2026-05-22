@@ -151,6 +151,10 @@ class SettingsViewModel @Inject constructor(
         _permissionGranted.value = granted
     }
 
+    fun onLifecycleResume() {
+        _permissionGranted.value = notificationPermissionChecker.areNotificationsEnabled()
+    }
+
     fun disconnect() {
         viewModelScope.launch {
             settingsRepository.setAppMode(AppMode.NONE)

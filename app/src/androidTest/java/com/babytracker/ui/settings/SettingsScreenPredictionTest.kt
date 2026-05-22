@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -77,8 +78,8 @@ class SettingsScreenPredictionTest {
 
         // Toggle OFF: "Notify ahead by" row exists (just dimmed by alpha). Clicking "30m"
         // should be a no-op because enabled=false on the segmented button.
-        composeRule.onNodeWithText("Notify ahead by").assertIsDisplayed()
-        composeRule.onNodeWithText("30m").performClick()
+        composeRule.onNodeWithText("Notify ahead by").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("30m").performScrollTo().performClick()
         composeRule.waitForIdle()
         // No state change when disabled.
         assertEquals(
@@ -92,7 +93,7 @@ class SettingsScreenPredictionTest {
         composeRule.waitForIdle()
 
         // Now click "30m" - it should update.
-        composeRule.onNodeWithText("30m").performClick()
+        composeRule.onNodeWithText("30m").performScrollTo().performClick()
         composeRule.waitForIdle()
         assertEquals(
             "Expected lead minutes to be 30 after toggle ON",
@@ -114,7 +115,7 @@ class SettingsScreenPredictionTest {
             SettingsScreen(onNavigateBack = {}, viewModel = vm)
         }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText(TEXT_QUIET_HOURS_DISABLED).assertIsDisplayed()
+        composeRule.onNodeWithText(TEXT_QUIET_HOURS_DISABLED).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -129,7 +130,7 @@ class SettingsScreenPredictionTest {
         }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("30m").performClick()
+        composeRule.onNodeWithText("30m").performScrollTo().performClick()
         composeRule.waitForIdle()
 
         assertEquals(
@@ -179,7 +180,7 @@ class SettingsScreenPredictionTest {
         // Toggle is still ON in repo state.
         assertTrue("Expected predictiveEnabled true after toggle", repo.predictiveEnabled.value)
         // Warning is visible.
-        composeRule.onNodeWithText(TEXT_NOTIFICATIONS_BLOCKED).assertIsDisplayed()
+        composeRule.onNodeWithText(TEXT_NOTIFICATIONS_BLOCKED).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -199,8 +200,8 @@ class SettingsScreenPredictionTest {
             }
             composeRule.waitForIdle()
 
-            composeRule.onNodeWithText(TEXT_NOTIFICATIONS_BLOCKED).assertIsDisplayed()
-            composeRule.onNodeWithText("Open settings").performClick()
+            composeRule.onNodeWithText(TEXT_NOTIFICATIONS_BLOCKED).performScrollTo().assertIsDisplayed()
+            composeRule.onNodeWithText("Open settings").performScrollTo().performClick()
             composeRule.waitForIdle()
 
             Intents.intended(hasAction(AndroidSettings.ACTION_APP_NOTIFICATION_SETTINGS))
@@ -232,7 +233,7 @@ class SettingsScreenPredictionTest {
         }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText(TEXT_NOTIFICATIONS_BLOCKED).assertIsDisplayed()
+        composeRule.onNodeWithText(TEXT_NOTIFICATIONS_BLOCKED).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -253,7 +254,7 @@ class SettingsScreenPredictionTest {
         // Toggle ON: warning appears.
         predictiveSwitch().performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithText(TEXT_NOTIFICATIONS_BLOCKED).assertIsDisplayed()
+        composeRule.onNodeWithText(TEXT_NOTIFICATIONS_BLOCKED).performScrollTo().assertIsDisplayed()
 
         // Toggle OFF: warning hidden.
         predictiveSwitch().performClick()
