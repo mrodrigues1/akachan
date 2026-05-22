@@ -3,10 +3,8 @@ package com.babytracker.ui.settings
 import android.provider.Settings as AndroidSettings
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.espresso.intent.Intents
@@ -46,8 +44,7 @@ class SettingsScreenPredictionTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    private fun predictiveSwitch() =
-        composeRule.onNode(isToggleable() and hasAnyAncestor(hasText(TEXT_PREDICTIVE_TOGGLE)))
+    private fun predictiveSwitch() = composeRule.onNodeWithTag("predictive_switch")
 
     private fun buildViewModel(
         settingsRepository: SettingsRepository = PredictionFakeSettingsRepository(),

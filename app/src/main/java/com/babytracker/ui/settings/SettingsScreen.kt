@@ -69,6 +69,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -342,6 +343,7 @@ fun SettingsScreen(
                     }
                     Switch(
                         checked = uiState.predictiveEnabled,
+                        modifier = Modifier.testTag("predictive_switch"),
                         onCheckedChange = { newValue ->
                             if (newValue && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                 val granted = NotificationManagerCompat.from(context)
