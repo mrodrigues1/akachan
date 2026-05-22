@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.rule.GrantPermissionRule
 import com.babytracker.util.NotificationHelper
 import com.babytracker.util.createPredictiveFeedNotificationChannel
 import org.junit.Assert.assertEquals
@@ -13,17 +12,12 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.time.Instant
 
 @RunWith(AndroidJUnit4::class)
 class PredictiveFeedReceiverTest {
-
-    @get:Rule
-    val grantNotificationPermission: GrantPermissionRule =
-        GrantPermissionRule.grant("android.permission.POST_NOTIFICATIONS")
 
     private lateinit var context: Context
     private lateinit var nm: NotificationManager
