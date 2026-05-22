@@ -40,6 +40,7 @@ data class HomeUiState(
     val nextRecommendedSide: BreastSide? = null,
     val lastNightSleepDuration: Duration? = null,
     val lastSessionStartTime: Instant? = null,
+    val lastSleepEndTime: Instant? = null,
     val appMode: AppMode = AppMode.NONE,
     val pumpingActive: PumpingSession? = null,
     val inventorySummary: InventorySummary = InventorySummary.Empty,
@@ -101,6 +102,7 @@ class HomeViewModel @Inject constructor(
                 lastNightSleepDuration = lastNightSleep,
                 lastSessionStartTime = (feedings.firstOrNull { it.isInProgress }
                     ?: feedings.firstOrNull())?.startTime,
+                lastSleepEndTime = sleepRecords.firstOrNull { it.endTime != null }?.endTime,
                 appMode = appMode,
                 nextFeedPrediction = if (feedings.any { it.isInProgress }) null else prediction,
             )

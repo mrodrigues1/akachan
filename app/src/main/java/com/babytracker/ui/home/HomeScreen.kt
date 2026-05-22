@@ -344,15 +344,27 @@ fun HomeScreen(
                                 Spacer(modifier = Modifier.height(4.dp))
                                 ActiveSleepTimer(record = activeSleepRecord)
                             } else {
-                                val sleepLabel = uiState.lastNightSleepDuration
+                                val nightLabel = uiState.lastNightSleepDuration
                                     ?.formatDuration()
                                     ?.let { "$it last night" }
-                                    ?: "${uiState.recentSleepRecords.size} records"
-                                Text(
-                                    text = sleepLabel,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                )
+                                if (nightLabel != null) {
+                                    Text(
+                                        text = nightLabel,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    )
+                                } else {
+                                    val lastEnd = uiState.lastSleepEndTime
+                                    if (lastEnd != null) {
+                                        LastSleepAgoText(endTime = lastEnd)
+                                    } else {
+                                        Text(
+                                            text = "No sleep recorded yet",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -732,6 +744,21 @@ private fun LastFeedingAgoText(lastStart: Instant) {
         text = Duration.between(lastStart, now).formatElapsedAgo(),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onPrimaryContainer,
+    )
+}
+
+@Composable
+private fun LastSleepAgoText(endTime: Instant) {
+    val now by produceState(initialValue = Instant.now(), key1 = endTime) {
+        while (true) {
+            delay(60_000L)
+            value = Instant.now()
+        }
+    }
+    Text(
+        text = Duration.between(endTime, now).formatElapsedAgo(),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSecondaryContainer,
     )
 }
 
