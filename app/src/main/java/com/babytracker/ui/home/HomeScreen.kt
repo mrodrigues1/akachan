@@ -344,26 +344,25 @@ fun HomeScreen(
                                 Spacer(modifier = Modifier.height(4.dp))
                                 ActiveSleepTimer(record = activeSleepRecord)
                             } else {
+                                val lastEnd = uiState.lastSleepEndTime
+                                if (lastEnd != null) {
+                                    LastSleepAgoText(endTime = lastEnd)
+                                } else {
+                                    Text(
+                                        text = "No sleep recorded yet",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    )
+                                }
                                 val nightLabel = uiState.lastNightSleepDuration
                                     ?.formatDuration()
                                     ?.let { "$it last night" }
                                 if (nightLabel != null) {
                                     Text(
                                         text = nightLabel,
-                                        style = MaterialTheme.typography.bodyMedium,
+                                        style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                                     )
-                                } else {
-                                    val lastEnd = uiState.lastSleepEndTime
-                                    if (lastEnd != null) {
-                                        LastSleepAgoText(endTime = lastEnd)
-                                    } else {
-                                        Text(
-                                            text = "No sleep recorded yet",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        )
-                                    }
                                 }
                             }
                         }
