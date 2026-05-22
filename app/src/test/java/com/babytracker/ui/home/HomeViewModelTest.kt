@@ -303,4 +303,59 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
         assertNull(viewModel.uiState.value.nextFeedPrediction)
     }
+
+    @Test
+    fun lastSleepEndTime_isNull_whenNoCompletedSleepExists() = runTest {
+        every { getSleepHistory() } returns flowOf(emptyList())
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.uiState.value.lastSleepEndTime)
+    }
+
+    @Test
+    fun lastSleepEndTime_isSet_toLatestEndTime() = runTest {
+        val earlierEnd = Instant.parse("2026-05-22T08:00:00Z")
+        val laterEnd = Instant.parse("2026-05-22T10:00:00Z")
+        val older = SleepRecord(
+            id = 1L,
+            startTime = Instant.parse("2026-05-22T07:00:00Z"),
+            endTime = earlierEnd,
+            sleepType = SleepType.NAP,
+        )
+        val newer = SleepRecord(
+            id = 2L,
+            startTime = Instant.parse("2026-05-22T09:00:00Z"),
+            endTime = laterEnd,
+            sleepType = SleepType.NAP,
+        )
+        every { getSleepHistory() } returns flowOf(listOf(newer, older))
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(laterEnd, viewModel.uiState.value.lastSleepEndTime)
+    }
+
+    @Test
+    fun lastSleepEndTime_picksMaxEndTime_notLatestStartTime() = runTest {
+        // Record A: later startTime but earlier endTime (appears first in start_time DESC list)
+        val endTimeA = Instant.parse("2026-05-22T07:30:00Z")
+        val recordA = SleepRecord(
+            id = 1L,
+            startTime = Instant.parse("2026-05-22T07:00:00Z"),
+            endTime = endTimeA,
+            sleepType = SleepType.NAP,
+        )
+        // Record B: earlier startTime but later endTime
+        val endTimeB = Instant.parse("2026-05-22T06:00:00Z")
+        val recordB = SleepRecord(
+            id = 2L,
+            startTime = Instant.parse("2026-05-21T22:00:00Z"),
+            endTime = endTimeB,
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        // recordA appears first (later start_time), but endTimeA > endTimeB
+        every { getSleepHistory() } returns flowOf(listOf(recordA, recordB))
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(endTimeA, viewModel.uiState.value.lastSleepEndTime)
+    }
 }

@@ -102,7 +102,7 @@ class HomeViewModel @Inject constructor(
                 lastNightSleepDuration = lastNightSleep,
                 lastSessionStartTime = (feedings.firstOrNull { it.isInProgress }
                     ?: feedings.firstOrNull())?.startTime,
-                lastSleepEndTime = sleepRecords.firstOrNull { it.endTime != null }?.endTime,
+                lastSleepEndTime = sleepRecords.mapNotNull { it.endTime }.maxOrNull(),
                 appMode = appMode,
                 nextFeedPrediction = if (feedings.any { it.isInProgress }) null else prediction,
             )
