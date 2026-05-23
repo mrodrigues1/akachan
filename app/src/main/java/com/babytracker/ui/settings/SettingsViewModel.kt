@@ -35,6 +35,8 @@ data class SettingsUiState(
     val notificationsPermissionGranted: Boolean = true,
     val showPermissionWarning: Boolean = false,
     val validIntervalCount: Int = 0,
+    val napReminderEnabled: Boolean = false,
+    val napReminderDelayMinutes: Int = 60,
 )
 
 @HiltViewModel
@@ -69,6 +71,8 @@ class SettingsViewModel @Inject constructor(
                 settingsRepository.getQuietHoursEndMinute(),
                 countRecentValidIntervals(),
                 _permissionGranted,
+                settingsRepository.getNapReminderEnabled(),
+                settingsRepository.getNapReminderDelayMinutes(),
             ) { values ->
                 val baby = values[0] as? Baby
                 val maxPerBreast = values[1] as Int
@@ -83,6 +87,8 @@ class SettingsViewModel @Inject constructor(
                 val quietHoursEnd = values[10] as Int
                 val validIntervalCount = values[11] as Int
                 val permissionGranted = values[12] as Boolean
+                val napReminderEnabled = values[13] as Boolean
+                val napReminderDelayMinutes = values[14] as Int
                 SettingsUiState(
                     baby = baby,
                     maxPerBreastMinutes = maxPerBreast,
@@ -96,8 +102,10 @@ class SettingsViewModel @Inject constructor(
                     quietHoursStartMinute = quietHoursStart,
                     quietHoursEndMinute = quietHoursEnd,
                     notificationsPermissionGranted = permissionGranted,
-                    showPermissionWarning = predictiveEnabled && !permissionGranted,
+                    showPermissionWarning = (predictiveEnabled || napReminderEnabled) && !permissionGranted,
                     validIntervalCount = validIntervalCount,
+                    napReminderEnabled = napReminderEnabled,
+                    napReminderDelayMinutes = napReminderDelayMinutes,
                 )
             }.collect { next ->
                 _uiState.update { current -> next.copy(isDisconnected = current.isDisconnected) }
@@ -161,5 +169,13 @@ class SettingsViewModel @Inject constructor(
             settingsRepository.clearShareCode()
             _uiState.update { it.copy(isDisconnected = true) }
         }
+    }
+
+    fun onNapReminderToggleChanged(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setNapReminderEnabled(enabled) }
+    }
+
+    fun onNapReminderDelayChanged(minutes: Int) {
+        viewModelScope.launch { settingsRepository.setNapReminderDelayMinutes(minutes) }
     }
 }
