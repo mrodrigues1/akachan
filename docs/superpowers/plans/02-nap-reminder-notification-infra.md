@@ -12,7 +12,7 @@ LINEAR_ISSUE: AKA-31
 
 **Suggested branch:** `feat/nap-reminder-notification-infra`
 
-**Dependencies:** `SettingsRepository.getQuietHoursStartMinute()` and `getQuietHoursEndMinute()` already exist in the current codebase — this plan is independently buildable. Plan 01 (AKA-30) adds `getNapReminderEnabled` / `getNapReminderDelayMinutes`, but those are not used inside this plan's scope.
+**Dependencies:** Requires Plan 01 (AKA-30) merged first — `SettingsRepository.getNapReminderEnabled()` is read by `NapReminderReceiver.handle()` at alarm-fire time as a defense-in-depth check: if the user disabled the feature after the alarm was set, the receiver suppresses the notification. `getQuietHoursStartMinute()` and `getQuietHoursEndMinute()` already exist in the current codebase before Plan 01.
 
 ---
 
@@ -419,6 +419,7 @@ class NapReminderReceiverTest {
         mockkObject(NotificationHelper)
         mockkStatic(LocalTime::class)
         every { NotificationHelper.showNapReminder(any()) } returns Unit
+        every { settingsRepository.getNapReminderEnabled() } returns flowOf(true)
     }
 
     @AfterEach
@@ -485,6 +486,17 @@ class NapReminderReceiverTest {
 
         verify(exactly = 0) { NotificationHelper.showNapReminder(any()) }
     }
+
+    @Test
+    fun `suppresses notification when nap reminder feature is disabled`() = runTest {
+        every { settingsRepository.getNapReminderEnabled() } returns flowOf(false)
+        stubQuietHours(startMinute = 0, endMinute = 480)
+        stubCurrentTime(hourOfDay = 10, minute = 0)         // outside quiet window
+
+        receiver.handle(context)
+
+        verify(exactly = 0) { NotificationHelper.showNapReminder(any()) }
+    }
 }
 ```
 
@@ -494,7 +506,7 @@ class NapReminderReceiverTest {
 ./gradlew :app:testDebugUnitTest --tests "com.babytracker.receiver.NapReminderReceiverTest" 2>&1 | tail -30
 ```
 
-Expected: compile error — `NapReminderReceiver.handle` does not exist, or the stub from Task 2 lacks the `settingsRepository` field and `handle` function.
+Expected: compile error — `NapReminderReceiver.handle` does not exist, or the stub from Task 2 lacks the `settingsRepository` field and `handle` function. Also expected: `getNapReminderEnabled` does not exist on `SettingsRepository` (since Plan 01 is not yet implemented). That is fine — confirm the error and proceed.
 
 - [ ] **Step 3: Create (or replace) NapReminderReceiver with full implementation**
 
@@ -539,6 +551,12 @@ class NapReminderReceiver : BroadcastReceiver() {
     }
 
     internal suspend fun handle(context: Context) {
+        val enabled = settingsRepository.getNapReminderEnabled().first()
+        if (!enabled) {
+            Log.d(TAG, "Nap reminder disabled; suppressing stale alarm")
+            return
+        }
+
         val startMinute = settingsRepository.getQuietHoursStartMinute().first()
         val endMinute = settingsRepository.getQuietHoursEndMinute().first()
         val now = LocalTime.now()
@@ -574,7 +592,7 @@ class NapReminderReceiver : BroadcastReceiver() {
 ./gradlew :app:testDebugUnitTest --tests "com.babytracker.receiver.NapReminderReceiverTest" 2>&1 | tail -20
 ```
 
-Expected: `BUILD SUCCESSFUL`, 5 tests pass.
+Expected: `BUILD SUCCESSFUL`, 6 tests pass.
 
 - [ ] **Step 5: Commit**
 
@@ -732,10 +750,11 @@ git commit -m "feat(notification): register NapReminderReceiver and add DI bindi
 - [ ] `NapReminderManager.cancel()` cancels the same `PendingIntent` (request code `RC_NAP_REMINDER = 3001`)
 - [ ] `NotificationHelper.NAP_REMINDER_NOTIFICATION_ID == 1007`
 - [ ] `NotificationHelper.showNapReminder()` builds on `SLEEP_CHANNEL_ID`, blue accent, `PRIORITY_DEFAULT`, `CATEGORY_REMINDER`, tap opens `MainActivity` with `EXTRA_NAV_ROUTE = Routes.SLEEP_TRACKING`, no action buttons
-- [ ] `NapReminderReceiver.handle()` suppresses if current minute is inside quiet window; suppression handles overnight wrap-around (start > end)
+- [ ] `NapReminderReceiver.handle()` reads `getNapReminderEnabled()` first; suppresses and returns immediately when false
+- [ ] `NapReminderReceiver.handle()` suppresses if current minute is inside quiet window (checked only when enabled); suppression handles overnight wrap-around (start > end)
 - [ ] `NapReminderReceiver` registered in `AndroidManifest.xml`
 - [ ] `NapReminderScheduler` bound to `NapReminderManager` via `@Binds @Singleton` in `NapReminderModule`
 - [ ] 4 `NapReminderManagerTest` tests pass
-- [ ] 5 `NapReminderReceiverTest` tests pass
+- [ ] 6 `NapReminderReceiverTest` tests pass (5 quiet-hours + 1 disabled)
 - [ ] `./gradlew ktlintFormat && ./gradlew detekt` clean
 - [ ] `./gradlew :app:testDebugUnitTest` — zero failures including pre-existing tests

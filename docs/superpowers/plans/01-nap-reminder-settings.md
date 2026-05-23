@@ -237,7 +237,32 @@ override suspend fun setNapReminderDelayMinutes(minutes: Int) {
 
 Expected: `BUILD SUCCESSFUL`, 10 tests pass (3 existing + 7 new).
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Check and update any androidTest SettingsRepository fakes**
+
+```bash
+grep -rl "SettingsRepository" app/src/androidTest/ --include="*.kt" 2>/dev/null | head -10
+```
+
+For every file returned: open it and find any class that `implements SettingsRepository` (or `object` that does). Add these 4 stub overrides so it keeps compiling after the interface change:
+
+```kotlin
+override fun getNapReminderEnabled(): Flow<Boolean> = flowOf(false)
+override suspend fun setNapReminderEnabled(enabled: Boolean) = Unit
+override fun getNapReminderDelayMinutes(): Flow<Int> = flowOf(60)
+override suspend fun setNapReminderDelayMinutes(minutes: Int) = Unit
+```
+
+If the file does not already import `kotlinx.coroutines.flow.flowOf`, add the import.
+
+- [ ] **Step 7: Verify androidTest compiles**
+
+```bash
+./gradlew :app:compileDebugAndroidTestKotlin 2>&1 | grep "error:" | head -20
+```
+
+Expected: no errors. If "must override" errors appear for the new methods, fix them with the stubs above.
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add app/src/main/java/com/babytracker/data/repository/SettingsRepositoryImpl.kt
@@ -286,16 +311,57 @@ data class SettingsUiState(
 )
 ```
 
-- [ ] **Step 2: Update SettingsViewModelTest — add mocks to setup and new tests**
+- [ ] **Step 2: Update SettingsViewModelTest — promote mocks to fields, add mocks to setup, add 5 new tests**
 
-In `SettingsViewModelTest.setup()`, after `every { settingsRepository.getQuietHoursEndMinute() } returns flowOf(480)`, add:
+**a) Promote 3 local variables in `setUp()` to class-level `lateinit var` fields** (they are currently declared with `val` inside `setup()`):
+
+```kotlin
+private lateinit var getBabyProfile: GetBabyProfileUseCase
+private lateinit var countRecentValidIntervals: CountRecentValidIntervalsUseCase
+private lateinit var permissionChecker: NotificationPermissionChecker
+```
+
+Also add this import at the top:
+```kotlin
+import com.babytracker.manager.NotificationPermissionChecker
+```
+
+**b) In `setUp()`, replace the 3 local `val` declarations** with assignments to the new fields:
+
+```kotlin
+getBabyProfile = mockk()
+every { getBabyProfile() } returns flowOf(null)
+```
+
+```kotlin
+countRecentValidIntervals = mockk()
+every { countRecentValidIntervals() } returns flowOf(0)
+```
+
+```kotlin
+permissionChecker = mockk { every { areNotificationsEnabled() } returns true }
+```
+
+Update the `SettingsViewModel(...)` constructor call to use the field names (same values, just no `val`):
+
+```kotlin
+viewModel = SettingsViewModel(
+    getBabyProfile,
+    settingsRepository,
+    mockk(),
+    countRecentValidIntervals,
+    permissionChecker,
+)
+```
+
+**c) In `setUp()`, after `every { settingsRepository.getQuietHoursEndMinute() } returns flowOf(480)`, add:**
 
 ```kotlin
 every { settingsRepository.getNapReminderEnabled() } returns flowOf(false)
 every { settingsRepository.getNapReminderDelayMinutes() } returns flowOf(60)
 ```
 
-Append 4 new test methods at the end of the class. Note: `coJustRun` and `assertEquals` are already imported in this file.
+**d) Append 5 new test methods at the end of the class.** Note: `coJustRun`, `assertEquals`, `assertTrue`, `assertFalse` are already imported in this file.
 
 ```kotlin
 @Test
@@ -328,6 +394,23 @@ fun `onNapReminderDelayChanged calls setNapReminderDelayMinutes`() = runTest {
     testDispatcher.scheduler.advanceUntilIdle()
 
     coVerify { settingsRepository.setNapReminderDelayMinutes(90) }
+}
+
+@Test
+fun `showPermissionWarning true when nap reminder enabled and notifications denied`() = runTest {
+    every { settingsRepository.getNapReminderEnabled() } returns flowOf(true)
+    val deniedChecker = mockk<NotificationPermissionChecker> {
+        every { areNotificationsEnabled() } returns false
+    }
+    val vm = SettingsViewModel(
+        getBabyProfile,
+        settingsRepository,
+        mockk(),
+        countRecentValidIntervals,
+        deniedChecker,
+    )
+    testDispatcher.scheduler.advanceUntilIdle()
+    assertTrue(vm.uiState.value.showPermissionWarning)
 }
 ```
 
@@ -389,7 +472,7 @@ combine(
         quietHoursStartMinute = quietHoursStart,
         quietHoursEndMinute = quietHoursEnd,
         notificationsPermissionGranted = permissionGranted,
-        showPermissionWarning = predictiveEnabled && !permissionGranted,
+        showPermissionWarning = (predictiveEnabled || napReminderEnabled) && !permissionGranted,
         validIntervalCount = validIntervalCount,
         napReminderEnabled = napReminderEnabled,
         napReminderDelayMinutes = napReminderDelayMinutes,
@@ -548,7 +631,10 @@ git commit -m "feat(settings): add nap reminder UI section to SettingsScreen"
 - [ ] `SettingsViewModel` exposes `onNapReminderToggleChanged(Boolean)` and `onNapReminderDelayChanged(Int)`
 - [ ] Settings screen shows "SLEEP REMINDERS" section with Switch (testTag `nap_reminder_switch`) and `OutlinedTextField`
 - [ ] `OutlinedTextField` is disabled and renders at 38% alpha when toggle is off
+- [ ] `SettingsUiState.showPermissionWarning` is `true` when `napReminderEnabled == true` and notifications permission is denied (in addition to the existing predictive case)
 - [ ] 7 new `SettingsRepositoryImplTest` tests pass
-- [ ] 4 new `SettingsViewModelTest` tests pass
+- [ ] 5 new `SettingsViewModelTest` tests pass (4 state/handler + 1 permission warning)
+- [ ] Every `SettingsRepository` fake in `androidTest/` implements the 4 new methods
+- [ ] `./gradlew :app:compileDebugAndroidTestKotlin` — no errors
 - [ ] `./gradlew ktlintFormat && ./gradlew detekt` clean
 - [ ] `./gradlew :app:testDebugUnitTest` — zero failures including pre-existing tests

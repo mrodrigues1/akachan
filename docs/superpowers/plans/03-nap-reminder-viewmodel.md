@@ -6,7 +6,7 @@ LINEAR_ISSUE: AKA-32
 
 **Goal:** Wire `NapReminderScheduler` into `SleepViewModel` so a nap reminder alarm is scheduled when a NAP session stops (if enabled) and cancelled whenever any new sleep session starts.
 
-**Architecture:** `SleepViewModel` receives `NapReminderScheduler` as a constructor-injected dependency. `onStopRecord()` reads `getNapReminderEnabled()` and `getNapReminderDelayMinutes()` from `SettingsRepository` at call time (`.first()`) and conditionally calls `schedule()`; `onStartRecord()` calls `cancel()` unconditionally before starting the record. No new state, no new composable — this plan is pure wiring.
+**Architecture:** `SleepViewModel` and `SettingsViewModel` both receive `NapReminderScheduler` as a constructor-injected dependency. In `SleepViewModel`: `onStopRecord()` reads `getNapReminderEnabled()` and `getNapReminderDelayMinutes()` from `SettingsRepository` at call time (`.first()`) and conditionally calls `schedule()`; `onStartRecord()` calls `cancel()` unconditionally before starting the record. In `SettingsViewModel`: `onNapReminderToggleChanged(false)` calls `cancel()` immediately so a pending alarm is cleared as soon as the user disables the feature (defense-in-depth: the receiver also checks the flag at fire time, but this provides instant cancellation). No new state, no new composable — this plan is pure wiring.
 
 **Tech Stack:** Kotlin, Hilt `@HiltViewModel`, Kotlin Coroutines, JUnit 5, MockK, Turbine
 
@@ -22,6 +22,8 @@ LINEAR_ISSUE: AKA-32
 |------|--------|---------------|
 | `ui/sleep/SleepViewModel.kt` | Modify | Inject `NapReminderScheduler`; cancel on start; schedule on NAP stop when enabled |
 | `src/test/.../SleepViewModelTest.kt` | Modify | Add mock + 4 new tests; stub `getNapReminderEnabled` / `getNapReminderDelayMinutes` in `setUp()` |
+| `ui/settings/SettingsViewModel.kt` | Modify | Inject `NapReminderScheduler`; call `cancel()` when toggle is turned off |
+| `src/test/.../SettingsViewModelTest.kt` | Modify | Add mock + 1 new test for cancel-on-disable |
 
 ---
 
@@ -272,6 +274,141 @@ git commit -m "feat(sleep): integrate NapReminderScheduler into SleepViewModel"
 
 ---
 
+### Task 2: SettingsViewModel — cancel pending alarm on nap reminder toggle-off (TDD)
+
+**Files:**
+- Modify: `app/src/main/java/com/babytracker/ui/settings/SettingsViewModel.kt`
+- Modify: `app/src/test/java/com/babytracker/ui/settings/SettingsViewModelTest.kt`
+
+The test file was updated in Plan 01 to promote `getBabyProfile`, `countRecentValidIntervals`, and `permissionChecker` to class fields. The SettingsViewModel constructor currently has 5 parameters (from Plan 01); this task adds a 6th.
+
+- [ ] **Step 1: Add failing test in SettingsViewModelTest**
+
+Add this import at the top of `SettingsViewModelTest.kt` (with existing imports):
+
+```kotlin
+import com.babytracker.manager.NapReminderScheduler
+import io.mockk.verify
+```
+
+Add field declaration with the existing `lateinit var` declarations:
+
+```kotlin
+private lateinit var napReminderScheduler: NapReminderScheduler
+```
+
+In `setUp()`, after the last existing mock initialization, add:
+
+```kotlin
+napReminderScheduler = mockk()
+every { napReminderScheduler.cancel() } returns Unit
+```
+
+Update the `SettingsViewModel(...)` constructor call in `setUp()` to pass `napReminderScheduler` as the last argument:
+
+```kotlin
+viewModel = SettingsViewModel(
+    getBabyProfile,
+    settingsRepository,
+    mockk(),
+    countRecentValidIntervals,
+    permissionChecker,
+    napReminderScheduler,
+)
+```
+
+Add this test method at the end of the class:
+
+```kotlin
+@Test
+fun `onNapReminderToggleChanged false cancels pending nap reminder alarm`() = runTest {
+    coJustRun { settingsRepository.setNapReminderEnabled(any()) }
+
+    viewModel.onNapReminderToggleChanged(false)
+    testDispatcher.scheduler.advanceUntilIdle()
+
+    verify { napReminderScheduler.cancel() }
+}
+```
+
+- [ ] **Step 2: Run tests to confirm they fail**
+
+```bash
+./gradlew :app:testDebugUnitTest --tests "com.babytracker.ui.settings.SettingsViewModelTest" 2>&1 | tail -30
+```
+
+Expected: compile error — `SettingsViewModel` does not yet accept `NapReminderScheduler`. If tests somehow pass, stop — cancel is already wired.
+
+- [ ] **Step 3: Add NapReminderScheduler to SettingsViewModel constructor**
+
+Add import to `SettingsViewModel.kt`:
+
+```kotlin
+import com.babytracker.manager.NapReminderScheduler
+```
+
+Add `napReminderScheduler` as the last constructor parameter:
+
+```kotlin
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
+    private val getBabyProfile: GetBabyProfileUseCase,
+    private val settingsRepository: SettingsRepository,
+    private val saveBabyProfile: SaveBabyProfileUseCase,
+    private val countRecentValidIntervals: CountRecentValidIntervalsUseCase,
+    private val notificationPermissionChecker: NotificationPermissionChecker,
+    private val napReminderScheduler: NapReminderScheduler,
+) : ViewModel() {
+```
+
+- [ ] **Step 4: Update onNapReminderToggleChanged to cancel when disabling**
+
+Replace the existing `onNapReminderToggleChanged` function (added in Plan 01):
+
+```kotlin
+fun onNapReminderToggleChanged(enabled: Boolean) {
+    viewModelScope.launch {
+        settingsRepository.setNapReminderEnabled(enabled)
+        if (!enabled) napReminderScheduler.cancel()
+    }
+}
+```
+
+- [ ] **Step 5: Run all SettingsViewModelTest to confirm all pass**
+
+```bash
+./gradlew :app:testDebugUnitTest --tests "com.babytracker.ui.settings.SettingsViewModelTest" 2>&1 | tail -20
+```
+
+Expected: `BUILD SUCCESSFUL`, all tests pass (existing + new).
+
+- [ ] **Step 6: Run full test suite**
+
+```bash
+./gradlew :app:testDebugUnitTest 2>&1 | tail -20
+```
+
+Expected: `BUILD SUCCESSFUL`, zero failures.
+
+- [ ] **Step 7: Format and lint**
+
+```bash
+./gradlew ktlintFormat
+./gradlew detekt
+```
+
+Expected: no violations. Fix any that appear (never use `@Suppress`).
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add app/src/main/java/com/babytracker/ui/settings/SettingsViewModel.kt
+git add app/src/test/java/com/babytracker/ui/settings/SettingsViewModelTest.kt
+git commit -m "feat(settings): cancel pending nap alarm on reminder toggle-off"
+```
+
+---
+
 ## Acceptance Criteria
 
 - [ ] `SleepViewModel` constructor accepts `NapReminderScheduler` as a Hilt-injected parameter
@@ -281,5 +418,8 @@ git commit -m "feat(sleep): integrate NapReminderScheduler into SleepViewModel"
 - [ ] `onStopRecord()` does NOT call `schedule()` when `sleepType == NIGHT_SLEEP`, regardless of enabled state
 - [ ] 4 new `SleepViewModelTest` tests pass
 - [ ] All 34 pre-existing `SleepViewModelTest` tests still pass
+- [ ] `SettingsViewModel` constructor accepts `NapReminderScheduler` as a Hilt-injected parameter
+- [ ] `onNapReminderToggleChanged(false)` calls `napReminderScheduler.cancel()` after persisting the setting
+- [ ] 1 new `SettingsViewModelTest` test passes (`onNapReminderToggleChanged false cancels pending nap reminder alarm`)
 - [ ] `./gradlew ktlintFormat && ./gradlew detekt` clean
 - [ ] `./gradlew :app:testDebugUnitTest` — zero failures
