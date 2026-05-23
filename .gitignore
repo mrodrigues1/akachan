@@ -39,4 +39,5 @@ google-services.json
 /.qwen/
 /.superpowers/
 /.claude/settings.local.json
+/.claude/*.lock
 
