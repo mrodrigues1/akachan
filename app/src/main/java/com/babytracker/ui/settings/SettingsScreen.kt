@@ -400,6 +400,54 @@ fun SettingsScreen(
                 }
 
                 HorizontalDivider()
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                Text(
+                    text = stringResource(R.string.settings_section_sleep_reminders),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.settings_nap_reminder_toggle_title),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Text(
+                            stringResource(R.string.settings_nap_reminder_toggle_subtitle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = uiState.napReminderEnabled,
+                        modifier = Modifier.testTag("nap_reminder_switch"),
+                        onCheckedChange = { viewModel.onNapReminderToggleChanged(it) },
+                    )
+                }
+
+                OutlinedTextField(
+                    value = if (uiState.napReminderDelayMinutes > 0) uiState.napReminderDelayMinutes.toString() else "",
+                    onValueChange = { input ->
+                        input.toIntOrNull()?.let { viewModel.onNapReminderDelayChanged(it) }
+                    },
+                    label = { Text(stringResource(R.string.settings_nap_reminder_delay_label)) },
+                    enabled = uiState.napReminderEnabled,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .alpha(if (uiState.napReminderEnabled) 1f else 0.38f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                )
             }
 
             Text(
