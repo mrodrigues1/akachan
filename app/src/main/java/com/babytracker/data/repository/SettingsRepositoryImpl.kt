@@ -37,6 +37,8 @@ class SettingsRepositoryImpl @Inject constructor(
         val PREDICTIVE_LEAD_MINUTES = intPreferencesKey("predictive_lead_minutes")
         val QUIET_HOURS_START_MINUTE = intPreferencesKey("quiet_hours_start_minute")
         val QUIET_HOURS_END_MINUTE = intPreferencesKey("quiet_hours_end_minute")
+        val NAP_REMINDER_ENABLED = booleanPreferencesKey("nap_reminder_enabled")
+        val NAP_REMINDER_DELAY_MINUTES = intPreferencesKey("nap_reminder_delay_minutes")
         const val DEFAULT_LEAD_MINUTES = 15
         val ALLOWED_LEAD_MINUTES = setOf(5, 10, 15, 30)
     }
@@ -166,5 +168,19 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setQuietHoursEndMinute(minuteOfDay: Int) {
         dataStore.edit { it[QUIET_HOURS_END_MINUTE] = minuteOfDay.coerceIn(0, 1439) }
+    }
+
+    override fun getNapReminderEnabled(): Flow<Boolean> =
+        dataStore.data.map { it[NAP_REMINDER_ENABLED] ?: false }
+
+    override suspend fun setNapReminderEnabled(enabled: Boolean) {
+        dataStore.edit { it[NAP_REMINDER_ENABLED] = enabled }
+    }
+
+    override fun getNapReminderDelayMinutes(): Flow<Int> =
+        dataStore.data.map { it[NAP_REMINDER_DELAY_MINUTES] ?: 60 }
+
+    override suspend fun setNapReminderDelayMinutes(minutes: Int) {
+        dataStore.edit { it[NAP_REMINDER_DELAY_MINUTES] = minutes.coerceIn(1, 480) }
     }
 }

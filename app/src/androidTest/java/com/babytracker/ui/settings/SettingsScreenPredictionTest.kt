@@ -378,5 +378,13 @@ class SettingsScreenPredictionTest {
         override suspend fun setQuietHoursEndMinute(minuteOfDay: Int) {
             quietHoursEnd.value = minuteOfDay
         }
+
+        override fun getNapReminderEnabled(): Flow<Boolean> = flowOf(false)
+
+        override suspend fun setNapReminderEnabled(enabled: Boolean) = Unit
+
+        override fun getNapReminderDelayMinutes(): Flow<Int> = flowOf(60)
+
+        override suspend fun setNapReminderDelayMinutes(minutes: Int) = Unit
     }
 }
