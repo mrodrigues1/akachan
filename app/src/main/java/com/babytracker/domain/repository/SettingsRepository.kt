@@ -33,4 +33,8 @@ interface SettingsRepository {
     suspend fun setQuietHoursStartMinute(minuteOfDay: Int)
     fun getQuietHoursEndMinute(): Flow<Int>
     suspend fun setQuietHoursEndMinute(minuteOfDay: Int)
+    fun getNapReminderEnabled(): Flow<Boolean>
+    suspend fun setNapReminderEnabled(enabled: Boolean)
+    fun getNapReminderDelayMinutes(): Flow<Int>
+    suspend fun setNapReminderDelayMinutes(minutes: Int)
 }
