@@ -430,7 +430,18 @@ fun SettingsScreen(
                     Switch(
                         checked = uiState.napReminderEnabled,
                         modifier = Modifier.testTag("nap_reminder_switch"),
-                        onCheckedChange = { viewModel.onNapReminderToggleChanged(it) },
+                        onCheckedChange = { newValue ->
+                            if (newValue && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                val granted = NotificationManagerCompat.from(context)
+                                    .areNotificationsEnabled()
+                                viewModel.onNapReminderToggleChanged(true)
+                                if (!granted) {
+                                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            } else {
+                                viewModel.onNapReminderToggleChanged(newValue)
+                            }
+                        },
                     )
                 }
 
