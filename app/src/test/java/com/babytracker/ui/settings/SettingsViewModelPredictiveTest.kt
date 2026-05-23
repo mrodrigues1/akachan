@@ -59,6 +59,8 @@ class SettingsViewModelPredictiveTest {
         every { settingsRepository.getQuietHoursStartMinute() } returns quietHoursStartFlow
         every { settingsRepository.getQuietHoursEndMinute() } returns quietHoursEndFlow
         every { countRecentValidIntervals() } returns validIntervalCountFlow
+        every { settingsRepository.getNapReminderEnabled() } returns flowOf(false)
+        every { settingsRepository.getNapReminderDelayMinutes() } returns flowOf(60)
     }
 
     @AfterEach
