@@ -110,12 +110,14 @@ class SleepViewModel @Inject constructor(
     fun onStopRecord() {
         val session = activeSleepSession.value ?: return
         viewModelScope.launch {
-            stopRecord(session.id)
+            val stoppedRecord = stopRecord(session.id)
             sleepNotificationScheduler.cancel()
-            val enabled = settingsRepository.getNapReminderEnabled().first()
-            if (enabled && session.sleepType == SleepType.NAP) {
-                val delayMinutes = settingsRepository.getNapReminderDelayMinutes().first()
-                napReminderScheduler.schedule(Instant.now(), delayMinutes)
+            if (stoppedRecord != null && stoppedRecord.sleepType == SleepType.NAP) {
+                val enabled = settingsRepository.getNapReminderEnabled().first()
+                if (enabled) {
+                    val delayMinutes = settingsRepository.getNapReminderDelayMinutes().first()
+                    napReminderScheduler.schedule(Instant.now(), delayMinutes)
+                }
             }
             runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
         }
