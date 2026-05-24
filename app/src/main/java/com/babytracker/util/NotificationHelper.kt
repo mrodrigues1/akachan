@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
 import com.babytracker.MainActivity
 import com.babytracker.R
+import com.babytracker.navigation.Routes
 import com.babytracker.receiver.BreastfeedingActionReceiver
 import com.babytracker.receiver.SleepActionReceiver
 import com.babytracker.ui.theme.Blue700
@@ -36,6 +37,7 @@ object NotificationHelper {
     const val SLEEP_NOTIFICATION_ID = 1003
     const val BREASTFEEDING_ACTIVE_NOTIFICATION_ID = 1004
     const val BREASTFEEDING_GROUP_SUMMARY_NOTIFICATION_ID = 1005
+    const val NAP_REMINDER_NOTIFICATION_ID = 1007
     private const val RC_MAIN_TAP = 0
     private const val RC_SWITCH_NOW = 2001
     private const val RC_BF_DISMISS = 2002
@@ -46,6 +48,7 @@ object NotificationHelper {
     private const val RC_REFRESH_BF_ACTIVE = 2007
     private const val RC_PAUSE_BF_ACTIVE = 2008
     private const val RC_RESUME_BF_ACTIVE = 2009
+    private const val RC_NAP_REMINDER_TAP = 3002
     private const val TAG = "NotificationHelper"
     private const val SECONDS_PER_MINUTE = 60
     private const val ACTIVE_REFRESH_INTERVAL_MS = 30_000L
@@ -629,6 +632,39 @@ object NotificationHelper {
         context.getSystemService(NotificationManager::class.java).cancel(notificationId)
         Log.d(TAG, "Notification cancelled (ID: $notificationId)")
     }
+
+    fun showNapReminder(context: Context) {
+        val title = context.getString(R.string.notif_title_nap_reminder)
+        val body = context.getString(R.string.notif_body_nap_reminder)
+        val accent = resolveAccent(context, Blue700, SecondaryBlueDark)
+        val tapPi = napReminderTapPendingIntent(context)
+        val notification = NotificationCompat.Builder(context, SLEEP_CHANNEL_ID)
+            .applyDesignSystem(accent, R.drawable.ic_notif_sleep)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setTicker(title)
+            .setAutoCancel(true)
+            .setOngoing(false)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setGroup(SLEEP_GROUP_KEY)
+            .setContentIntent(tapPi)
+            .build()
+        context.getSystemService(NotificationManager::class.java)
+            .notify(NAP_REMINDER_NOTIFICATION_ID, notification)
+        Log.d(TAG, "showNapReminder posted")
+    }
+
+    private fun napReminderTapPendingIntent(context: Context): PendingIntent =
+        PendingIntent.getActivity(
+            context,
+            RC_NAP_REMINDER_TAP,
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                putExtra(EXTRA_NAV_ROUTE, Routes.SLEEP_TRACKING)
+            },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
 
     private fun mainActivityPendingIntent(context: Context): PendingIntent =
         PendingIntent.getActivity(
