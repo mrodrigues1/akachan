@@ -47,7 +47,14 @@ Approach: **Glance + Hilt EntryPoint, direct repository read.** No new ViewModel
 `BabyWidget.provideGlance` uses `EntryPointAccessors.fromApplication(context, WidgetEntryPoint::class.java)` to obtain the two repositories, then suspend-reads:
 
 - `BreastfeedingRepository.getLastSession()` — already exists.
-- `SleepRepository.getActiveRecord()` — **new method** (see Production changes).
+- `SleepRepository.getLatestRecord()` — **new method** (see Production changes). Returns the most recent sleep record regardless of completion.
+
+Sleep state is derived from the single latest record:
+- record exists, `endTime == null` → **SLEEPING** (`sleepSince = startTime`).
+- record exists, `endTime != null` → **AWAKE** (`sleepSince = endTime`, drives "Awake since").
+- no record → **NONE** ("No sleep logged").
+
+A single latest-record read is required: an active-only query cannot distinguish AWAKE from NONE, so the spec'd "Awake since" state would be unrenderable.
 
 It maps the results into `WidgetData` and renders. Pure read; no write, no ViewModel.
 
@@ -55,9 +62,9 @@ It maps the results into `WidgetData` and renders. Pure read; no write, no ViewM
 
 1. **`SleepRepository` + impl + `SleepDao`:** add
    ```kotlin
-   suspend fun getActiveRecord(): SleepRecord?
+   suspend fun getLatestRecord(): SleepRecord?
    ```
-   DAO query: `SELECT * FROM sleep_records WHERE end_time IS NULL ORDER BY start_time DESC LIMIT 1`. Maps via existing `toDomain()`.
+   DAO query: `SELECT * FROM sleep_records ORDER BY start_time DESC LIMIT 1`. Returns the newest record whether or not it is complete; the widget derives SLEEPING/AWAKE/NONE from its `endTime`. Maps via existing `toDomain()`.
 
 2. **`WidgetSyncManager` wiring:** started from `BabyTrackerApp.onCreate()`. It launches a coroutine on an application-scoped `CoroutineScope` (SupervisorJob + Dispatchers.Default) that collects:
    - `BreastfeedingRepository.getAllSessions()`
@@ -131,8 +138,8 @@ Versions pinned to the current AndroidX-compatible releases at implementation ti
 ## Testing
 
 - **Unit (`src/test/`):**
-  - `SleepDao.getActiveRecord` — in-memory Room: returns the open record, null when none, newest when multiple open.
-  - `WidgetData` mapping — feed/sleep combinations → correct `sleepState` and fields.
+  - `SleepDao.getLatestRecord` — in-memory Room: returns newest record (open or completed), null when none, newest when multiple.
+  - `WidgetData` mapping — covers all three sleep states (active→SLEEPING, completed→AWAKE, none→NONE) and feed present/absent → correct `sleepState`, `sleepSince`, and feed fields.
   - Elapsed/duration formatting already covered by `DateTimeExt` tests; add cases if new formatting introduced.
   - `WidgetSyncManager` — emits `updateAll` trigger on Flow change (verify via an injected updater abstraction / MockK).
 - **Not unit-tested:** Glance composable rendering (no Robolectric Glance host available). Manual verification on device for layout, taps, and resize.
