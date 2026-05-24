@@ -88,4 +88,8 @@
     <string name="settings_nap_reminder_toggle_title">Nap reminder</string>
     <string name="settings_nap_reminder_toggle_subtitle">Notify after a nap ends</string>
     <string name="settings_nap_reminder_delay_label">Remind after (minutes)</string>
+
+    <!-- Nap reminder notification -->
+    <string name="notif_title_nap_reminder">Next nap window approaching</string>
+    <string name="notif_body_nap_reminder">Consider starting the next nap soon</string>
 </resources>
