@@ -54,7 +54,7 @@ class NapReminderReceiverTest {
         stubQuietHours(startMinute = 0, endMinute = 480)   // 00:00–08:00
         stubCurrentTime(hourOfDay = 10, minute = 0)        // 10:00 → minute 600
 
-        receiver.handle(context)
+        receiver.handle(context, System.currentTimeMillis())
 
         verify(exactly = 1) { NotificationHelper.showNapReminder(context) }
     }
@@ -64,7 +64,7 @@ class NapReminderReceiverTest {
         stubQuietHours(startMinute = 0, endMinute = 480)   // 00:00–08:00
         stubCurrentTime(hourOfDay = 1, minute = 0)         // 01:00 → minute 60
 
-        receiver.handle(context)
+        receiver.handle(context, System.currentTimeMillis())
 
         verify(exactly = 0) { NotificationHelper.showNapReminder(any()) }
     }
@@ -74,7 +74,7 @@ class NapReminderReceiverTest {
         stubQuietHours(startMinute = 1380, endMinute = 120) // 23:00–02:00 overnight
         stubCurrentTime(hourOfDay = 0, minute = 30)         // 00:30 → minute 30
 
-        receiver.handle(context)
+        receiver.handle(context, System.currentTimeMillis())
 
         verify(exactly = 0) { NotificationHelper.showNapReminder(any()) }
     }
@@ -84,7 +84,7 @@ class NapReminderReceiverTest {
         stubQuietHours(startMinute = 1380, endMinute = 120) // 23:00–02:00 overnight
         stubCurrentTime(hourOfDay = 5, minute = 0)          // 05:00 → minute 300
 
-        receiver.handle(context)
+        receiver.handle(context, System.currentTimeMillis())
 
         verify(exactly = 1) { NotificationHelper.showNapReminder(context) }
     }
@@ -94,7 +94,7 @@ class NapReminderReceiverTest {
         stubQuietHours(startMinute = 1380, endMinute = 120) // 23:00–02:00
         stubCurrentTime(hourOfDay = 23, minute = 0)         // 23:00 → minute 1380
 
-        receiver.handle(context)
+        receiver.handle(context, System.currentTimeMillis())
 
         verify(exactly = 0) { NotificationHelper.showNapReminder(any()) }
     }
@@ -105,7 +105,18 @@ class NapReminderReceiverTest {
         stubQuietHours(startMinute = 0, endMinute = 480)
         stubCurrentTime(hourOfDay = 10, minute = 0)         // outside quiet window
 
-        receiver.handle(context)
+        receiver.handle(context, System.currentTimeMillis())
+
+        verify(exactly = 0) { NotificationHelper.showNapReminder(any()) }
+    }
+
+    @Test
+    fun `suppresses notification when alarm is stale (older than 2 hours)`() = runTest {
+        stubQuietHours(startMinute = 0, endMinute = 480)
+        stubCurrentTime(hourOfDay = 10, minute = 0)         // outside quiet window
+
+        val staleMs = System.currentTimeMillis() - (3L * 60 * 60 * 1000L) // 3 hours ago
+        receiver.handle(context, staleMs)
 
         verify(exactly = 0) { NotificationHelper.showNapReminder(any()) }
     }
