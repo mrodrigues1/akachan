@@ -706,6 +706,24 @@ class SleepViewModelTest {
     }
 
     @Test
+    fun `onStopRecord does not schedule nap reminder when stopRecord returns null`() = runTest {
+        val inProgress = SleepRecord(id = 1L, startTime = Instant.now().minusSeconds(1800), sleepType = SleepType.NAP)
+        every { getSleepHistory() } returns flowOf(listOf(inProgress))
+        coEvery { stopRecord(1L) } returns null
+        every { settingsRepository.getNapReminderEnabled() } returns flowOf(true)
+        viewModel = createViewModel()
+
+        val collectJob = launch { viewModel.activeSleepSession.collect {} }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onStopRecord()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 0) { napReminderScheduler.schedule(any(), any()) }
+        collectJob.cancel()
+    }
+
+    @Test
     fun `onStartRecord always cancels pending nap reminder regardless of sleep type`() = runTest {
         val record = SleepRecord(id = 1L, startTime = Instant.now(), sleepType = SleepType.NIGHT_SLEEP)
         coEvery { startRecord(SleepType.NIGHT_SLEEP) } returns record

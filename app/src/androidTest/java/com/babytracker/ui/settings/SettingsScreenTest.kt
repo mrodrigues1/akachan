@@ -15,6 +15,7 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
+import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.NotificationPermissionChecker
 import com.babytracker.sharing.domain.model.AppMode
 import io.mockk.every
@@ -44,6 +45,7 @@ class SettingsScreenTest {
             saveBabyProfile = SaveBabyProfileUseCase(babyRepository),
             countRecentValidIntervals = countRecentValidIntervals,
             notificationPermissionChecker = NotificationPermissionChecker { true },
+            napReminderScheduler = mockk(relaxed = true),
         )
     }
 
@@ -112,6 +114,7 @@ class SettingsScreenTest {
             saveBabyProfile = SaveBabyProfileUseCase(babyRepo),
             countRecentValidIntervals = countRecentValidIntervals,
             notificationPermissionChecker = NotificationPermissionChecker { true },
+            napReminderScheduler = mockk(relaxed = true),
         )
 
         composeRule.setContent {
