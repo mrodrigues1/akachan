@@ -4,6 +4,7 @@ import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
+import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.NotificationPermissionChecker
 import com.babytracker.sharing.domain.model.AppMode
 import io.mockk.coEvery
@@ -75,6 +76,7 @@ class SettingsViewModelPredictiveTest {
             saveBabyProfile = mockk(),
             countRecentValidIntervals = countRecentValidIntervals,
             notificationPermissionChecker = NotificationPermissionChecker { notificationsEnabledStub },
+            napReminderScheduler = mockk(relaxed = true),
         )
     }
 
