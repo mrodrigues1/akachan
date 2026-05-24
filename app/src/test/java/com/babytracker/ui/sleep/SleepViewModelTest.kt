@@ -78,6 +78,8 @@ class SleepViewModelTest {
         every { getSleepHistory() } returns flowOf(emptyList())
         every { settingsRepository.getWakeTime() } returns flowOf(null)
         every { getBabyProfile() } returns flowOf(null)
+        every { settingsRepository.getNapReminderEnabled() } returns flowOf(false)
+        every { settingsRepository.getNapReminderDelayMinutes() } returns flowOf(60)
         coJustRun { syncToFirestore(any()) }
         coJustRun { sleepNotificationScheduler.show(any(), any(), any()) }
         every { sleepNotificationScheduler.cancel() } returns Unit
@@ -701,5 +703,18 @@ class SleepViewModelTest {
 
         verify(exactly = 0) { napReminderScheduler.schedule(any(), any()) }
         collectJob.cancel()
+    }
+
+    @Test
+    fun `onStartRecord always cancels pending nap reminder regardless of sleep type`() = runTest {
+        val record = SleepRecord(id = 1L, startTime = Instant.now(), sleepType = SleepType.NIGHT_SLEEP)
+        coEvery { startRecord(SleepType.NIGHT_SLEEP) } returns record
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onStartRecord(SleepType.NIGHT_SLEEP)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify { napReminderScheduler.cancel() }
     }
 }
