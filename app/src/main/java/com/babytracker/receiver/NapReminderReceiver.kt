@@ -23,11 +23,12 @@ class NapReminderReceiver : BroadcastReceiver() {
     @Inject lateinit var settingsRepository: SettingsRepository
 
     override fun onReceive(context: Context, intent: Intent) {
+        val triggerAtMs = intent.getLongExtra(EXTRA_TRIGGER_AT_MS, -1L)
         val result = goAsync()
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {
                 withTimeout(10_000L) {
-                    handle(context)
+                    handle(context, triggerAtMs)
                 }
             } catch (e: TimeoutCancellationException) {
                 Log.e(TAG, "onReceive timed out", e)
@@ -37,10 +38,15 @@ class NapReminderReceiver : BroadcastReceiver() {
         }
     }
 
-    internal suspend fun handle(context: Context) {
+    internal suspend fun handle(context: Context, triggerAtMs: Long) {
+        if (triggerAtMs > 0L && System.currentTimeMillis() - triggerAtMs > STALE_THRESHOLD_MS) {
+            Log.d(TAG, "Stale alarm suppressed (scheduled=$triggerAtMs)")
+            return
+        }
+
         val enabled = settingsRepository.getNapReminderEnabled().first()
         if (!enabled) {
-            Log.d(TAG, "Nap reminder disabled; suppressing stale alarm")
+            Log.d(TAG, "Nap reminder disabled; suppressing")
             return
         }
 
@@ -68,6 +74,8 @@ class NapReminderReceiver : BroadcastReceiver() {
     }
 
     companion object {
+        const val EXTRA_TRIGGER_AT_MS = "trigger_at_ms"
+        private const val STALE_THRESHOLD_MS = 2L * 60 * 60 * 1000L
         private const val TAG = "NapReminderReceiver"
     }
 }

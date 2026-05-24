@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import com.babytracker.receiver.NapReminderReceiver
+import com.babytracker.receiver.NapReminderReceiver.Companion.EXTRA_TRIGGER_AT_MS
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
 import javax.inject.Inject
@@ -20,9 +21,9 @@ class NapReminderManager @Inject constructor(
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
 
     override fun schedule(napEndTime: Instant, delayMinutes: Int) {
-        val pi = buildPendingIntent()
-        alarmManager.cancel(pi)
         val triggerAtMs = napEndTime.plusSeconds(delayMinutes.toLong() * 60).toEpochMilli()
+        val pi = buildPendingIntent(triggerAtMs)
+        alarmManager.cancel(pi)
         val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
             alarmManager.canScheduleExactAlarms()
         try {
@@ -41,12 +42,17 @@ class NapReminderManager @Inject constructor(
         alarmManager.cancel(buildPendingIntent())
     }
 
-    private fun buildPendingIntent(): PendingIntent = PendingIntent.getBroadcast(
-        context,
-        RC_NAP_REMINDER,
-        Intent(context, NapReminderReceiver::class.java),
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-    )
+    private fun buildPendingIntent(triggerAtMs: Long = -1L): PendingIntent {
+        val intent = Intent(context, NapReminderReceiver::class.java).apply {
+            if (triggerAtMs > 0L) putExtra(EXTRA_TRIGGER_AT_MS, triggerAtMs)
+        }
+        return PendingIntent.getBroadcast(
+            context,
+            RC_NAP_REMINDER,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
 
     companion object {
         const val RC_NAP_REMINDER = 3001

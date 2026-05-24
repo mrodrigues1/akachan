@@ -14,6 +14,7 @@ import com.babytracker.domain.usecase.sleep.SaveSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.StartSleepRecordUseCase
 import com.babytracker.domain.usecase.sleep.StopSleepRecordUseCase
 import com.babytracker.domain.usecase.sleep.UpdateSleepEntryUseCase
+import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.SleepNotificationScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,11 +22,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -61,6 +64,7 @@ class SleepViewModel @Inject constructor(
     private val startRecord: StartSleepRecordUseCase,
     private val stopRecord: StopSleepRecordUseCase,
     private val sleepNotificationScheduler: SleepNotificationScheduler,
+    private val napReminderScheduler: NapReminderScheduler,
     private val syncToFirestore: SyncToFirestoreUseCase,
 ) : ViewModel() {
 
@@ -105,8 +109,15 @@ class SleepViewModel @Inject constructor(
     fun onStopRecord() {
         val session = activeSleepSession.value ?: return
         viewModelScope.launch {
-            stopRecord(session.id)
+            val stoppedRecord = stopRecord(session.id)
             sleepNotificationScheduler.cancel()
+            if (stoppedRecord != null && stoppedRecord.sleepType == SleepType.NAP) {
+                val enabled = settingsRepository.getNapReminderEnabled().first()
+                if (enabled) {
+                    val delay = settingsRepository.getNapReminderDelayMinutes().first()
+                    napReminderScheduler.schedule(Instant.now(), delay)
+                }
+            }
             runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
         }
     }

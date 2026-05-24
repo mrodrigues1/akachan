@@ -36,7 +36,7 @@ import com.babytracker.util.UpdateChecker
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
-private val ALLOWED_NAV_ROUTES = setOf(Routes.BREASTFEEDING)
+private val ALLOWED_NAV_ROUTES = setOf(Routes.BREASTFEEDING, Routes.SLEEP_TRACKING)
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
