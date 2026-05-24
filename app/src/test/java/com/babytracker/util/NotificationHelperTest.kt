@@ -48,42 +48,24 @@ class NotificationHelperTest {
         return context
     }
 
-    private fun invokePrivateStringMethod(name: String, value: Int): String {
-        val method = NotificationHelper::class.java.declaredMethods
-            .first { it.name == name }
-        method.isAccessible = true
-        return method.invoke(NotificationHelper, value) as String
-    }
-
     private fun invokeActiveNotificationTiming(
         sessionStartEpochMs: Long,
         pausedDurationMs: Long,
         pausedAtEpochMs: Long?,
         nowEpochMs: Long,
-        elapsedRealtimeMs: Long
+        elapsedRealtimeMs: Long,
     ): ActiveTimingSnapshot {
-        val method = NotificationHelper::class.java.declaredMethods
-            .first { it.name == "activeNotificationTiming" }
-        method.isAccessible = true
-        val result = method.invoke(
-            NotificationHelper,
-            sessionStartEpochMs,
-            pausedDurationMs,
-            pausedAtEpochMs,
-            nowEpochMs,
-            elapsedRealtimeMs
+        val result = activeNotificationTiming(
+            sessionStartEpochMs = sessionStartEpochMs,
+            pausedDurationMs = pausedDurationMs,
+            pausedAtEpochMs = pausedAtEpochMs,
+            nowEpochMs = nowEpochMs,
+            elapsedRealtimeMs = elapsedRealtimeMs,
         )
-        val resultClass = result.javaClass
         return ActiveTimingSnapshot(
-            elapsedMs = resultClass.declaredFields.first { it.name == "elapsedMs" }
-                .apply { isAccessible = true }
-                .getLong(result),
-            elapsedSeconds = resultClass.declaredFields.first { it.name == "elapsedSeconds" }
-                .apply { isAccessible = true }
-                .getInt(result),
-            chronometerBaseElapsedMs = resultClass.declaredFields.first { it.name == "chronometerBaseElapsedMs" }
-                .apply { isAccessible = true }
-                .getLong(result)
+            elapsedMs = result.elapsedMs,
+            elapsedSeconds = result.elapsedSeconds,
+            chronometerBaseElapsedMs = result.chronometerBaseElapsedMs,
         )
     }
 
@@ -126,19 +108,19 @@ class NotificationHelperTest {
 
     @Test
     fun `activeProgressText shows only max feeding time`() {
-        assertEquals("2 min", invokePrivateStringMethod("activeProgressText", 2))
+        assertEquals("2 min", activeProgressText(2))
     }
 
     @Test
     fun `limitProgressText states max feeding time is reached`() {
-        assertEquals("2 min reached", invokePrivateStringMethod("limitProgressText", 2))
+        assertEquals("2 min reached", limitProgressText(2))
     }
 
     @Test
     fun `formatDurationCompact uses minute word consistently`() {
-        assertEquals("2 min", invokePrivateStringMethod("formatDurationCompact", 120))
-        assertEquals("2 min 5s", invokePrivateStringMethod("formatDurationCompact", 125))
-        assertEquals("5s", invokePrivateStringMethod("formatDurationCompact", 5))
+        assertEquals("2 min", formatDurationCompact(120))
+        assertEquals("2 min 5s", formatDurationCompact(125))
+        assertEquals("5s", formatDurationCompact(5))
     }
 
     @Test
@@ -291,11 +273,14 @@ class NotificationHelperTest {
     }
 
     @Test
-    fun `buildCollapsedView function exists in NotificationHelper`() {
-        val source = notificationHelperSource()
+    fun `buildCollapsedView function exists in notification util`() {
+        val viewBuildersSource = listOf(
+            java.io.File("src/main/java/com/babytracker/util/NotificationViewBuilders.kt"),
+            java.io.File("app/src/main/java/com/babytracker/util/NotificationViewBuilders.kt"),
+        ).first { it.exists() }.readText()
         assertTrue(
-            source.contains("fun buildCollapsedView("),
-            "buildCollapsedView must be defined in NotificationHelper"
+            viewBuildersSource.contains("fun buildCollapsedView("),
+            "buildCollapsedView must be defined in NotificationViewBuilders",
         )
     }
 
