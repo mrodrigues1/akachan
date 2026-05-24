@@ -56,6 +56,15 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".receiver.NapReminderReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.babytracker.NAP_REMINDER_FIRE" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

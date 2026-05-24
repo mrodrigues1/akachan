@@ -3,6 +3,8 @@ package com.babytracker.di
 import android.content.Context
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.manager.BreastfeedingNotificationManager
+import com.babytracker.manager.NapReminderManager
+import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.NotificationPermissionChecker
 import com.babytracker.manager.NotificationPermissionCheckerImpl
 import com.babytracker.manager.NotificationScheduler
@@ -51,4 +53,13 @@ abstract class NotificationPermissionCheckerModule {
     abstract fun bindNotificationPermissionChecker(
         impl: NotificationPermissionCheckerImpl
     ): NotificationPermissionChecker
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class NapReminderModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindNapReminderScheduler(impl: NapReminderManager): NapReminderScheduler
 }
