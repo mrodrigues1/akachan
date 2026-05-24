@@ -37,7 +37,9 @@ Allow parents to export tracking data for pediatric appointments (PDF) and to ba
 
 ## Data scope
 
-Room DB is at version 3. Tables to back up:
+> **Schema is verified against the current `main` working tree, not CLAUDE.md.** `CLAUDE.md` still documents Room v2 (breastfeeding + sleep only) and is **stale**. The actual code on `main` is **Room v3**: `BabyTrackerDatabase` declares all four entities below and ships `MIGRATION_1_2` + `MIGRATION_2_3`, and the `pumping_sessions` / `milk_bags` DAOs, entities, and repositories all exist. These tables are **already on main** — this project introduces **no** schema migration; it backs up the shipped schema as-is. (Updating CLAUDE.md's schema table is a worthwhile side cleanup but out of scope for these PRs.)
+
+Room DB is at version 3 (confirmed in code). Tables to back up:
 
 - `breastfeeding_sessions`
 - `sleep_records`
@@ -112,10 +114,11 @@ PRs are **sequential** — PR1 lands the `BackupData` model + serialization that
 - Add `kotlinx-serialization-json` and the Kotlin serialization plugin to the version catalog + `app/build.gradle.kts`.
 - `BackupData.kt` + per-table backup DTOs + entity↔backup extension functions.
 - Add `suspend getAll*Once()` snapshot reads to DAOs where only `Flow` exists (one-shot reads for export).
-- `ExportBackupUseCase` — gather all repos → `BackupData` → JSON string.
+- `ExportBackupUseCase` — gather all repos → `BackupData` (sets `backupFormatVersion` + current `roomSchemaVersion`) → JSON string.
 - `ExportCsvUseCase` — per-table CSV (export-only). One file per table (zipped) or separate files.
-- `BackupFileWriter` + `FileProvider` config (cache dir) → shareable `Uri`.
-- Share via `Intent.ACTION_SEND`.
+- **Durable destination is the primary path.** JSON backup uses **`ACTION_CREATE_DOCUMENT`** so the user picks a persistent location (Drive, Downloads, etc.); the use case writes the bytes to that user-selected `Uri`. This is the persistence guarantee that satisfies the "survive uninstall" goal — it does **not** depend on a share target succeeding.
+- `BackupFileWriter` writes to either a SAF document `Uri` (durable, for JSON backup) or a `FileProvider` cache `Uri` (transient, for share-only artifacts).
+- **Share is secondary/optional.** PDF and CSV (ephemeral, regenerable) may use a `FileProvider` cache file + `Intent.ACTION_SEND`. Offering ACTION_SEND for the JSON backup too is fine, but only *after* the durable `ACTION_CREATE_DOCUMENT` write — sharing is never the only copy.
 
 ### PR2 — PDF export
 
@@ -129,7 +132,7 @@ PRs are **sequential** — PR1 lands the `BackupData` model + serialization that
 - `ImportBackupUseCase` — **merge by full-row identity** (revised; see "Import semantics" below):
   - **Duplicate detection uses every persisted field**, not a partial key. Compute a per-row identity = hash of all persisted fields (breastfeeding: start/end/side/switch/notes/pause fields; sleep: start/end/type/notes; pumping: start/end/breast/volume/notes/pause; milk bag: collectionDate/volume/usedAt/notes/createdAt — **excluding** the autoGen `id` and the FK `sourceSessionId`, which is handled by remapping). A backup row is skipped **only** when an existing row hashes identically. Two rows that share a coarse timestamp but differ in any field are **both kept** — never silently dropped.
   - FK rule (single, non-contradictory): a backup is required to be self-contained. **Validation** (step 1 below) rejects the whole import if any milk bag has a non-null `sourceSessionId` that does not reference a pumping row present in the same backup. A milk bag whose `sourceSessionId` is already `null` in the backup is valid and stays `null`. There is **no** silent null-on-dangling rule — dangling means reject, so validation and remapping cannot disagree.
-  - FK remapping (after validation passes): each backup row carries its backup-local `id`. Insert `pumping_sessions` first, capture new autoGen IDs, build old→new map, rewrite each `milkBag.sourceSessionId` via the map before insert. Every non-null value is guaranteed to be in the map because validation already proved the parent exists in the backup.
+  - FK remapping (after validation passes): each backup row carries its backup-local `id`. Process `pumping_sessions` **as an upsert that always yields a mapping**: for each backup pumping row, if it is a new (non-duplicate) row insert it and capture the autoGen id; if it was skipped as a duplicate, look up the **matched existing row's database id**. Either way the old(backup-local)→new(database) map gets an entry for **every** backup pumping id — including deduped ones. Then rewrite each `milkBag.sourceSessionId` via the map before insert. This closes the gap where a milk bag references a pumping row that was skipped as a duplicate: it correctly attaches to the already-present session rather than failing or orphaning. Validation guarantees every non-null `sourceSessionId` has a backup parent, and the upsert guarantees that parent has a map entry.
   - Room rows (all 4 tables) inserted in a single Room `@Transaction` — atomic within Room.
 - New `SettingsRepository.restoreFromBackup(BackupData)` — performs a **single** `DataStore.edit {}` that writes the baby profile + all backed-up settings keys and clears the import journal in one atomic batch. Per-setting setters are not reused for import.
 - New journal keys in DataStore: `importInProgress: Boolean`, `importStartedAt: Long`, `lastImportCompletedAt: Long`. A startup check (in the app's existing init path) reads `importInProgress` and surfaces the incomplete-import notice when true.
@@ -161,7 +164,8 @@ Exceptions propagate to the ViewModel and surface as a `DataExportUiState` error
 - **Unit (MockK):** export round-trip (export → import → assert equality), full-row identity dedupe, FK remap correctness, settings exclusion (no `appMode`/`shareCode` in output).
 - **Version contract:** `backupFormatVersion` newer-than-build → reject; older → up-migration path invoked; equal → accept. A settings-only/DTO-shape change with unchanged `roomSchemaVersion` still trips the older/newer gate (drift test).
 - **Cross-store / journal:** simulate Room commit then DataStore-restore failure → `importInProgress` stays `true`; startup detects it; re-import is idempotent (no duplicate rows, settings re-applied). `restoreFromBackup` writes all keys in one `edit {}` (partial-write impossible).
-- **Milk-bag FK:** non-null `sourceSessionId` with no matching backup pumping row → whole import rejected (no silent null). Null `sourceSessionId` → preserved as null.
+- **Milk-bag FK:** non-null `sourceSessionId` with no matching backup pumping row → whole import rejected (no silent null). Null `sourceSessionId` → preserved as null. **Milk bag referencing a pumping row that gets deduped (already present)** → milk bag attaches to the existing session's DB id (upsert map covers skipped parents), not orphaned.
+- **Durable export:** JSON backup writes to a user-selected `ACTION_CREATE_DOCUMENT` `Uri`; bytes land at that destination independent of any share action.
 - **Import edge cases:**
   - Same coarse key, different payload (e.g. same `startTime` + `startingSide`, different `endTime`/`notes`) → **both rows kept**, none dropped.
   - Exact duplicate row → skipped (no second insert).
