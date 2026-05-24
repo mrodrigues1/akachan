@@ -159,8 +159,27 @@ dependencies {
     implementation(libs.coroutines.play.services)
 }
 
+// Konsist scope creation costs ~14 minutes on WSL2 NTFS. Opt out of the
+// architecture tests with `-PfastTests` (bare flag or `=true`/`=1`/`=yes`)
+// for fast dev loops. `-PfastTests=false`, `=0`, `=no` keeps them. CI omits
+// the flag and runs the full suite.
+val skipArchitectureTests: Boolean =
+    project
+        .findProperty("fastTests")
+        ?.toString()
+        ?.lowercase()
+        ?.let { it.isEmpty() || it in setOf("true", "1", "yes") } ?: false
+
 tasks.withType<Test> {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        if (skipArchitectureTests) {
+            excludeTags("architecture")
+        }
+    }
+    // Konsist scope parsing keeps every Kotlin AST in memory — default 512m
+    // forces GC churn that visibly slows architecture tests, especially on WSL2.
+    maxHeapSize = "2g"
+    jvmArgs("-XX:+UseG1GC", "-XX:MaxMetaspaceSize=512m")
 }
 
 ksp {

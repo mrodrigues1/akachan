@@ -567,6 +567,29 @@ With that file in place, Gradle commands run cleanly without manual env exports 
 
 If the JDK path no longer exists (Gradle re-downloaded a newer version), run `ls ~/.gradle/jdks/` to find the current directory and update `org.gradle.java.home` accordingly.
 
+### Linux / WSL — Test Performance
+
+The architecture tests in `app/src/test/java/com/babytracker/architecture/` use [Konsist](https://github.com/LemonAppDev/konsist) to scan every production Kotlin file. On WSL2, the project lives on the Windows NTFS volume (`/mnt/c/...`) and is read through the 9P/DrvFs bridge, which makes file I/O roughly an order of magnitude slower than native ext4. The first `Konsist.scopeFromProduction()` call inside a test JVM takes **~14 minutes** under that setup vs. seconds on a native disk; subsequent calls in the same JVM reuse the cached parse.
+
+Two patches reduce the impact:
+
+1. **Shared, lazy scope** — `app/src/test/java/com/babytracker/architecture/KonsistScopes.kt` exposes one `productionScope` that the three architecture tests all reuse. Without it, every test method paid the scan cost.
+2. **`-PfastTests` opt-out** — all architecture test classes carry `@Tag("architecture")`. `tasks.withType<Test>` reads `-PfastTests` (presence flag — any value enables it) and skips that tag, so the inner dev loop is sub-15-seconds while CI (no flag) still runs the full suite.
+
+Day-to-day commands on WSL:
+
+```bash
+# Fast loop — skips the architecture tests (~10s warm, ~4min cold)
+./gradlew :app:testDebugUnitTest -PfastTests
+
+# Full suite — run before pushing (matches CI behaviour)
+./gradlew :app:testDebugUnitTest
+```
+
+When adding new architecture tests, annotate them with `@Tag("architecture")` and use the shared `productionScope` instead of calling `Konsist.scopeFromProduction()` directly. Architecture rules only inspect production sources — test code is intentionally excluded.
+
+For an even bigger speedup, clone the repo onto the WSL ext4 filesystem (e.g. `~/akachan`) and work from there — native filesystem I/O eliminates the 9P bottleneck entirely. The trade-off is that Windows-side tools (Android Studio on Windows, Explorer) can no longer reach the working copy.
+
 ---
 
 ## Testing Conventions

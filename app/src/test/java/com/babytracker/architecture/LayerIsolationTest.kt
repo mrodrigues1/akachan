@@ -1,16 +1,17 @@
 package com.babytracker.architecture
 
-import com.lemonappdev.konsist.api.Konsist
 import com.lemonappdev.konsist.api.ext.list.withNameEndingWith
 import com.lemonappdev.konsist.api.ext.list.withPackage
 import com.lemonappdev.konsist.api.verify.assertFalse
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
+@Tag("architecture")
 class LayerIsolationTest {
 
     @Test
     fun `UI layer does not import data layer directly`() {
-        Konsist.scopeFromProject()
+        productionScope
             .classes()
             .withPackage("com.babytracker.ui..")
             .assertFalse { clazz ->
@@ -22,7 +23,7 @@ class LayerIsolationTest {
 
     @Test
     fun `domain layer does not import UI or data layers`() {
-        Konsist.scopeFromProject()
+        productionScope
             .classes()
             .withPackage("com.babytracker.domain..")
             .assertFalse { clazz ->
@@ -35,7 +36,7 @@ class LayerIsolationTest {
 
     @Test
     fun `domain models have no framework imports`() {
-        Konsist.scopeFromProject()
+        productionScope
             .classes()
             .withPackage("com.babytracker.domain.model..")
             .assertFalse { clazz ->
@@ -49,7 +50,7 @@ class LayerIsolationTest {
 
     @Test
     fun `ViewModels do not import Room DAOs directly`() {
-        Konsist.scopeFromProject()
+        productionScope
             .classes()
             .withNameEndingWith("ViewModel")
             .assertFalse { clazz ->
