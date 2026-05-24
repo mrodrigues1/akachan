@@ -8,6 +8,7 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
+import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.NotificationPermissionChecker
 import com.babytracker.sharing.domain.model.AppMode
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,6 +47,7 @@ class SettingsViewModel @Inject constructor(
     private val saveBabyProfile: SaveBabyProfileUseCase,
     private val countRecentValidIntervals: CountRecentValidIntervalsUseCase,
     private val notificationPermissionChecker: NotificationPermissionChecker,
+    private val napReminderScheduler: NapReminderScheduler,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -172,7 +174,10 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun onNapReminderToggleChanged(enabled: Boolean) {
-        viewModelScope.launch { settingsRepository.setNapReminderEnabled(enabled) }
+        viewModelScope.launch {
+            settingsRepository.setNapReminderEnabled(enabled)
+            if (!enabled) napReminderScheduler.cancel()
+        }
     }
 
     fun onNapReminderDelayChanged(minutes: Int) {
