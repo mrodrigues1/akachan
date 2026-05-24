@@ -29,7 +29,7 @@ Allow parents to export tracking data for pediatric appointments (PDF) and to ba
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | PDF engine | `android.graphics.pdf.PdfDocument` + Canvas | No new deps, full layout control, direct use of design tokens. |
-| Import strategy | Merge, dedupe by content | Non-destructive; safe to import into a populated DB. |
+| Import strategy | Merge, dedupe by full-row identity | Non-destructive; never silently drops a distinct row; safe to import into a populated DB. |
 | Backup scope | All data + user settings; exclude sharing state | Round-trip fidelity without restoring stale Firebase state on a new device. |
 | Format roles | JSON = backup + import; CSV = export-only | Avoids fragile CSV parsing for relational data. |
 | JSON library | `kotlinx.serialization` (add to version catalog + Kotlin plugin) | Cleanest Kotlin-native serialization for the nested DTO. |
@@ -118,11 +118,20 @@ PRs are **sequential** — PR1 lands the `BackupData` model + serialization that
 ### PR3 — Import / merge engine
 
 - `BackupFileReader` — SAF `ACTION_OPEN_DOCUMENT` → read `Uri` → parse JSON → `BackupData`. Validate `schemaVersion`: reject a newer version with a user-facing error; handle older versions if/when migrations exist.
-- `ImportBackupUseCase` — **merge by content**:
-  - Dedupe keys: breastfeeding = `startTime`+`startingSide`; sleep = `startTime`+`sleepType`; pumping = `startTime`+`breast`; milk bag = `collectionDate`+`volumeMl`+`createdAt`. Skip rows already present.
-  - FK remapping: insert `pumping_sessions` first, capture new autoGen IDs, map old→new, rewrite `milkBag.sourceSessionId` before insert. Missing parent → `null` (matches `SET NULL`).
-  - Settings: overwrite from backup where present; baby profile overwrite if present.
-  - Wrap all inserts in a single Room `@Transaction` — atomic, rollback on failure (no partial writes).
+- `ImportBackupUseCase` — **merge by full-row identity** (revised; see "Import semantics" below):
+  - **Duplicate detection uses every persisted field**, not a partial key. Compute a per-row identity = hash of all persisted fields (breastfeeding: start/end/side/switch/notes/pause fields; sleep: start/end/type/notes; pumping: start/end/breast/volume/notes/pause; milk bag: collectionDate/volume/usedAt/notes/createdAt — **excluding** the autoGen `id` and the FK `sourceSessionId`, which is handled by remapping). A backup row is skipped **only** when an existing row hashes identically. Two rows that share a coarse timestamp but differ in any field are **both kept** — never silently dropped.
+  - FK remapping: each backup row carries its backup-local `id`. Insert `pumping_sessions` first, capture new autoGen IDs, build old→new map, rewrite `milkBag.sourceSessionId` via the map before insert. Missing/unmapped parent → `null` (matches `SET NULL`).
+  - Room rows (all 4 tables) inserted in a single Room `@Transaction` — atomic within Room.
+
+#### Import semantics — cross-store consistency
+
+Baby profile and settings live in **DataStore**, the tracking rows in **Room**. These are two independent stores; **a single transaction cannot span both**, so true all-or-nothing restore is not achievable without a journal/compensation layer (out of scope). The design does not promise it. Instead, fail safe via a strict ordering:
+
+1. **Validate everything first.** Parse JSON, check `schemaVersion`, validate every row (enums, required fields, FK references) *before any write*. Reject the whole import on any validation error — nothing is written.
+2. **Room import second.** Insert all tracking rows inside one Room `@Transaction`. On failure → rollback; DataStore is still untouched → DB unchanged, safe to retry.
+3. **DataStore restore last.** Write baby profile + settings only after Room commits. DataStore writes are simple key puts and effectively cannot fail mid-batch after validation; the worst residual case is the new tracking data plus old settings — degraded, not corrupt.
+
+Because merge is additive (duplicates skipped, everything else inserted), a retry after partial failure re-skips already-imported rows and completes the remainder — re-import is idempotent and safe. The confirmation dialog states the merge is additive and not atomic across settings + data.
 
 ### PR4 — Settings UI wiring
 
@@ -131,10 +140,16 @@ PRs are **sequential** — PR1 lands the `BackupData` model + serialization that
 
 ## Error handling
 
-Exceptions propagate to the ViewModel and surface as a `DataExportUiState` error (existing convention). Import validates schema version and malformed JSON up front; the merge transaction rolls back on any failure, leaving the DB untouched.
+Exceptions propagate to the ViewModel and surface as a `DataExportUiState` error (existing convention). Import validates schema version, malformed JSON, and all row content up front, so a rejected import writes nothing. The Room merge runs in a `@Transaction` (rolls back on failure); DataStore restore runs only after Room commits. See "Import semantics — cross-store consistency" for the full ordering and the explicit non-atomicity caveat across the two stores.
 
 ## Testing
 
-- **Unit (MockK):** export round-trip (export → import → assert equality), dedupe logic, FK remap correctness, schema-version reject, settings exclusion (no `appMode`/`shareCode` in output).
+- **Unit (MockK):** export round-trip (export → import → assert equality), full-row identity dedupe, FK remap correctness, schema-version reject, settings exclusion (no `appMode`/`shareCode` in output).
+- **Import edge cases (Codex-flagged):**
+  - Same coarse key, different payload (e.g. same `startTime` + `startingSide`, different `endTime`/`notes`) → **both rows kept**, none dropped.
+  - Exact duplicate row → skipped (no second insert).
+  - Validation failure on one row → entire import rejected, zero writes to Room and DataStore.
+  - Room insert failure → transaction rollback, DataStore untouched, DB unchanged.
+  - Re-import after partial completion → idempotent, no duplicates.
 - **PDF:** Robolectric smoke test — generated bytes non-empty, expected page count for a known record set.
 - All tests pass before each PR. Architecture tests (`@Tag("architecture")`) must still pass for the new package.
