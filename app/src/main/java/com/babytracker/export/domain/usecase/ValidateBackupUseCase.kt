@@ -47,32 +47,48 @@ class ValidateBackupUseCase @Inject constructor(
     }
 
     private fun validateScalarInvariants(data: BackupData) {
-        fun bad(msg: String): Nothing = throw InvalidBackupException(msg)
-        fun checkSpan(start: Long, end: Long?, label: String) {
-            if (start < 0) bad("$label has negative start time")
-            if (end != null && end < start) bad("$label end ($end) precedes start ($start)")
-        }
+        validateBreastfeedingInvariants(data)
+        validateSleepInvariants(data)
+        validatePumpingInvariants(data)
+        validateMilkBagInvariants(data)
+    }
 
+    private fun validateBreastfeedingInvariants(data: BackupData) {
         data.breastfeeding.forEach {
             checkSpan(it.startTime, it.endTime, "breastfeeding ${it.id}")
             if (it.pausedDurationMs < 0) bad("breastfeeding ${it.id} has negative paused duration")
         }
+    }
+
+    private fun validateSleepInvariants(data: BackupData) {
         data.sleep.forEach { checkSpan(it.startTime, it.endTime, "sleep ${it.id}") }
+    }
+
+    private fun validatePumpingInvariants(data: BackupData) {
         data.pumping.forEach {
             checkSpan(it.startTime, it.endTime, "pumping ${it.id}")
             if (it.pausedDurationMs < 0) bad("pumping ${it.id} has negative paused duration")
             if (it.volumeMl != null && it.volumeMl < 0) bad("pumping ${it.id} has negative volume")
         }
+        val pumpingIds = data.pumping.map { it.id }
+        if (pumpingIds.size != pumpingIds.toSet().size) {
+            bad("Backup contains duplicate pumping ids")
+        }
+    }
+
+    private fun validateMilkBagInvariants(data: BackupData) {
         data.milkBags.forEach {
             if (it.collectionDate < 0) bad("milk bag ${it.id} has negative collection date")
             if (it.createdAt < 0) bad("milk bag ${it.id} has negative created time")
             if (it.volumeMl < 0) bad("milk bag ${it.id} has negative volume")
         }
+    }
 
-        val pumpingIds = data.pumping.map { it.id }
-        if (pumpingIds.size != pumpingIds.toSet().size) {
-            bad("Backup contains duplicate pumping ids")
-        }
+    private fun bad(msg: String): Nothing = throw InvalidBackupException(msg)
+
+    private fun checkSpan(start: Long, end: Long?, label: String) {
+        if (start < 0) bad("$label has negative start time")
+        if (end != null && end < start) bad("$label end ($end) precedes start ($start)")
     }
 
     private fun validateMilkBagReferences(data: BackupData) {
