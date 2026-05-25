@@ -111,7 +111,8 @@ class BackupImporterImpl @Inject constructor(
         return inserted
     }
 
-    // Identity keys: every persisted field except autogen id (+ sourceSessionId for milk bags).
+    // Identity keys: every persisted field except autogen id; sourceSessionId also excluded for
+    // milk bags so a bag differing only in link source is treated as the same inventory item.
     private fun BreastfeedingEntity.identity() =
         listOf(startTime, endTime, startingSide, switchTime, notes, pausedAt, pausedDurationMs)
     private fun SleepEntity.identity() = listOf(startTime, endTime, sleepType, notes)
