@@ -7,6 +7,7 @@ import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,6 +26,12 @@ class BreastfeedingRepositoryImpl @Inject constructor(
 
     override suspend fun getRecentSessions(limit: Int): List<BreastfeedingSession> =
         dao.getRecentSessions(limit).map { it.toDomain() }
+
+    override suspend fun getCompletedSessionsBetween(
+        start: Instant,
+        end: Instant,
+    ): List<BreastfeedingSession> =
+        dao.getCompletedSessionsBetween(start.toEpochMilli(), end.toEpochMilli()).map { it.toDomain() }
 
     override suspend fun insertSession(session: BreastfeedingSession): Long =
         dao.insertSession(session.toEntity())

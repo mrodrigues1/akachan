@@ -39,7 +39,11 @@ class BackupFileWriter @Inject constructor(
      * still sees the human-readable [fileName]. The OS evicts the cache dir over time, so old
      * artifacts are reclaimed automatically (no explicit cleanup needed here).
      */
-    suspend fun writeCacheFile(fileName: String, content: String): Uri = withContext(Dispatchers.IO) {
+    suspend fun writeCacheFile(fileName: String, content: String): Uri =
+        writeCacheBytes(fileName, content.toByteArray(Charsets.UTF_8))
+
+    /** Transient path (binary, e.g. PDF): write to cache, return a shareable FileProvider Uri. */
+    suspend fun writeCacheBytes(fileName: String, bytes: ByteArray): Uri = withContext(Dispatchers.IO) {
         // Reject path separators / relative-dir names before touching the filesystem: a value
         // like "../foo" or an absolute path could otherwise escape the export dir and truncate
         // an app-private file (FileProvider only validates AFTER the write).
@@ -55,7 +59,7 @@ class BackupFileWriter @Inject constructor(
         require(file.canonicalFile.parentFile == uniqueDir.canonicalFile) {
             "Resolved export path escapes exports dir: $fileName"
         }
-        file.writeText(content, Charsets.UTF_8)
+        file.writeBytes(bytes)
         FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     }
 }

@@ -90,4 +90,16 @@ class BackupFileWriterTest {
         // The traversal target must not have been created.
         assertTrue(!File(context.cacheDir, "escape.json").exists())
     }
+
+    @Test
+    fun `writeCacheBytes returns readable content uri and rejects traversal`() = runTest {
+        val uri = writer.writeCacheBytes("report.pdf", byteArrayOf(37, 80, 68, 70)) // %PDF
+        assertEquals("content", uri.scheme)
+        val read = context.contentResolver.openInputStream(uri)!!.use { it.readBytes() }
+        assertEquals("%PDF", read.decodeToString())
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking { writer.writeCacheBytes("../evil.pdf", byteArrayOf(1)) }
+        }
+    }
 }

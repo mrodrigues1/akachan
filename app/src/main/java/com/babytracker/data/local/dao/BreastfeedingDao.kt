@@ -25,6 +25,13 @@ interface BreastfeedingDao {
     @Query("SELECT * FROM breastfeeding_sessions ORDER BY start_time ASC")
     suspend fun getAllSessionsOnce(): List<BreastfeedingEntity>
 
+    @Query(
+        "SELECT * FROM breastfeeding_sessions " +
+            "WHERE end_time IS NOT NULL AND start_time <= :endMillis AND end_time >= :startMillis " +
+            "ORDER BY start_time ASC",
+    )
+    suspend fun getCompletedSessionsBetween(startMillis: Long, endMillis: Long): List<BreastfeedingEntity>
+
     @Insert
     suspend fun insertSession(entity: BreastfeedingEntity): Long
 
