@@ -27,6 +27,9 @@ interface MilkBagDao {
     )
     fun getActiveSummary(): Flow<InventorySummaryRow>
 
+    @Query("SELECT * FROM milk_bags ORDER BY collection_date ASC")
+    suspend fun getAllBagsOnce(): List<MilkBagEntity>
+
     @Insert
     suspend fun insert(entity: MilkBagEntity): Long
 

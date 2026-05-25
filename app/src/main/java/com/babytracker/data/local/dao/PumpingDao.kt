@@ -19,6 +19,9 @@ interface PumpingDao {
     @Query("SELECT * FROM pumping_sessions WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): PumpingEntity?
 
+    @Query("SELECT * FROM pumping_sessions ORDER BY start_time ASC")
+    suspend fun getAllSessionsOnce(): List<PumpingEntity>
+
     @Insert
     suspend fun insert(entity: PumpingEntity): Long
 
