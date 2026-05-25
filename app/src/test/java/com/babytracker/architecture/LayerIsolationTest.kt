@@ -59,4 +59,23 @@ class LayerIsolationTest {
                 }
             }
     }
+
+    @Test
+    fun `export domain layer does not import data or framework`() {
+        productionScope
+            .files
+            .filter { it.packagee?.name?.startsWith("com.babytracker.export.domain") == true }
+            .forEach { file ->
+                val violations = file.imports.filter { import ->
+                    import.name.startsWith("com.babytracker.export.data") ||
+                        import.name.startsWith("com.babytracker.data") ||
+                        import.name.startsWith("androidx.room") ||
+                        import.name.startsWith("android.")
+                }
+                assert(violations.isEmpty()) {
+                    "File ${file.name} in export.domain imports forbidden packages: " +
+                        violations.joinToString { it.name }
+                }
+            }
+    }
 }
