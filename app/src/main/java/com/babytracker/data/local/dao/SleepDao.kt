@@ -18,6 +18,9 @@ interface SleepDao {
     @Query("SELECT * FROM sleep_records ORDER BY start_time DESC LIMIT :limit")
     suspend fun getRecentRecords(limit: Int): List<SleepEntity>
 
+    @Query("SELECT * FROM sleep_records ORDER BY start_time ASC")
+    suspend fun getAllRecordsOnce(): List<SleepEntity>
+
     @Insert
     suspend fun insertRecord(entity: SleepEntity): Long
 
