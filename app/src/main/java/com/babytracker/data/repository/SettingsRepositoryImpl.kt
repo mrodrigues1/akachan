@@ -6,9 +6,11 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.export.domain.model.BackupData
 import com.babytracker.sharing.domain.model.AppMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -41,6 +43,16 @@ class SettingsRepositoryImpl @Inject constructor(
         val NAP_REMINDER_DELAY_MINUTES = intPreferencesKey("nap_reminder_delay_minutes")
         const val DEFAULT_LEAD_MINUTES = 15
         val ALLOWED_LEAD_MINUTES = setOf(5, 10, 15, 30)
+        val IMPORT_IN_PROGRESS = booleanPreferencesKey("import_in_progress")
+        val IMPORT_STARTED_AT = longPreferencesKey("import_started_at")
+        val LAST_IMPORT_COMPLETED_AT = longPreferencesKey("last_import_completed_at")
+        val BABY_NAME = stringPreferencesKey("baby_name")
+        val BABY_BIRTH_DATE = longPreferencesKey("baby_birth_date")
+        val ALLERGIES = stringPreferencesKey("allergies")
+        val CUSTOM_ALLERGY_NOTE = stringPreferencesKey("custom_allergy_note")
+        const val MAX_MINUTE_OF_DAY = 1439
+        const val MIN_NAP_DELAY = 1
+        const val MAX_NAP_DELAY = 480
     }
 
     override fun getThemeConfig(): Flow<ThemeConfig> =
@@ -182,5 +194,49 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setNapReminderDelayMinutes(minutes: Int) {
         dataStore.edit { it[NAP_REMINDER_DELAY_MINUTES] = minutes.coerceIn(1, 480) }
+    }
+
+    override fun isImportInProgress(): Flow<Boolean> =
+        dataStore.data.map { it[IMPORT_IN_PROGRESS] ?: false }
+
+    override suspend fun markImportInProgress(startedAt: Long) {
+        dataStore.edit {
+            it[IMPORT_IN_PROGRESS] = true
+            it[IMPORT_STARTED_AT] = startedAt
+        }
+    }
+
+    override suspend fun restoreFromBackup(data: BackupData) {
+        dataStore.edit { p ->
+            val baby = data.baby
+            if (baby != null) {
+                p[BABY_NAME] = baby.name
+                p[BABY_BIRTH_DATE] = baby.birthDateEpochDay
+                p[ALLERGIES] = baby.allergies.joinToString(",")
+                if (baby.customAllergyNote != null) p[CUSTOM_ALLERGY_NOTE] = baby.customAllergyNote
+                else p.remove(CUSTOM_ALLERGY_NOTE)
+                p[ONBOARDING_COMPLETE] = true
+            }
+
+            val s = data.settings
+            p[THEME_CONFIG] = s.themeConfig
+            p[MAX_PER_BREAST_MINUTES] = s.maxPerBreastMinutes
+            p[MAX_TOTAL_FEED_MINUTES] = s.maxTotalFeedMinutes
+            val wake = s.wakeTimeMinuteOfDay
+            if (wake != null && wake in 0..MAX_MINUTE_OF_DAY) p[WAKE_TIME_MINUTES] = wake
+            else p.remove(WAKE_TIME_MINUTES)
+            p[AUTO_UPDATE_ENABLED] = s.autoUpdateEnabled
+            p[RICH_NOTIFICATIONS_ENABLED] = s.richNotificationsEnabled
+            p[PREDICTIVE_ENABLED] = s.predictiveEnabled
+            p[PREDICTIVE_LEAD_MINUTES] =
+                if (s.predictiveLeadMinutes in ALLOWED_LEAD_MINUTES) s.predictiveLeadMinutes else DEFAULT_LEAD_MINUTES
+            p[QUIET_HOURS_START_MINUTE] = s.quietHoursStartMinute.coerceIn(0, MAX_MINUTE_OF_DAY)
+            p[QUIET_HOURS_END_MINUTE] = s.quietHoursEndMinute.coerceIn(0, MAX_MINUTE_OF_DAY)
+            p[NAP_REMINDER_ENABLED] = s.napReminderEnabled
+            p[NAP_REMINDER_DELAY_MINUTES] = s.napReminderDelayMinutes.coerceIn(MIN_NAP_DELAY, MAX_NAP_DELAY)
+
+            p[IMPORT_IN_PROGRESS] = false
+            p[LAST_IMPORT_COMPLETED_AT] = System.currentTimeMillis()
+        }
     }
 }

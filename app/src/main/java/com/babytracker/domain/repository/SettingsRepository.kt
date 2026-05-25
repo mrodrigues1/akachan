@@ -1,6 +1,7 @@
 package com.babytracker.domain.repository
 
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.export.domain.model.BackupData
 import com.babytracker.sharing.domain.model.AppMode
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalTime
@@ -37,4 +38,7 @@ interface SettingsRepository {
     suspend fun setNapReminderEnabled(enabled: Boolean)
     fun getNapReminderDelayMinutes(): Flow<Int>
     suspend fun setNapReminderDelayMinutes(minutes: Int)
+    fun isImportInProgress(): Flow<Boolean>
+    suspend fun markImportInProgress(startedAt: Long)
+    suspend fun restoreFromBackup(data: BackupData)
 }
