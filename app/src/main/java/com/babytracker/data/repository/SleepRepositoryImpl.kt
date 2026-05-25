@@ -21,6 +21,9 @@ class SleepRepositoryImpl @Inject constructor(
     override suspend fun getCompletedRecordsSince(since: Instant): List<SleepRecord> =
         dao.getCompletedRecordsSince(since.toEpochMilli()).map { it.toDomain() }
 
+    override suspend fun getCompletedRecordsBetween(start: Instant, end: Instant): List<SleepRecord> =
+        dao.getCompletedRecordsBetween(start.toEpochMilli(), end.toEpochMilli()).map { it.toDomain() }
+
     override suspend fun getRecentRecords(limit: Int): List<SleepRecord> =
         dao.getRecentRecords(limit).map { it.toDomain() }
 

@@ -3,6 +3,7 @@ package com.babytracker.architecture
 import com.lemonappdev.konsist.api.ext.list.withNameEndingWith
 import com.lemonappdev.konsist.api.ext.list.withPackage
 import com.lemonappdev.konsist.api.verify.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
@@ -72,7 +73,7 @@ class LayerIsolationTest {
                         import.name.startsWith("androidx.room") ||
                         import.name.startsWith("android.")
                 }
-                assert(violations.isEmpty()) {
+                assertTrue(violations.isEmpty()) {
                     "File ${file.name} in export.domain imports forbidden packages: " +
                         violations.joinToString { it.name }
                 }

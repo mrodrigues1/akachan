@@ -21,6 +21,13 @@ interface SleepDao {
     @Query("SELECT * FROM sleep_records ORDER BY start_time ASC")
     suspend fun getAllRecordsOnce(): List<SleepEntity>
 
+    @Query(
+        "SELECT * FROM sleep_records " +
+            "WHERE end_time IS NOT NULL AND start_time <= :endMillis AND end_time >= :startMillis " +
+            "ORDER BY start_time ASC",
+    )
+    suspend fun getCompletedRecordsBetween(startMillis: Long, endMillis: Long): List<SleepEntity>
+
     @Insert
     suspend fun insertRecord(entity: SleepEntity): Long
 
