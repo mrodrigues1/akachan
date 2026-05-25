@@ -17,7 +17,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -74,10 +73,9 @@ class ExportBackupUseCaseTest {
     }
 
     @Test
-    fun `finalizes in-progress sessions at export time`() = runTest {
+    fun `preserves active sessions with null endTime in backup`() = runTest {
         coEvery { source.readTracking() } returns TrackingSnapshot(
             breastfeeding = listOf(
-                // active: endTime null, currently paused
                 BreastfeedingBackup(1, 10, null, "LEFT", null, null, pausedAt = 50, pausedDurationMs = 5),
             ),
             sleep = listOf(SleepBackup(2, 10, null, "NAP", null)),
@@ -92,15 +90,12 @@ class ExportBackupUseCaseTest {
         val bf = parsed.breastfeeding.single()
         val pump = parsed.pumping.single()
 
-        // endTime finalized, pausedAt cleared, and the in-flight pause interval folded in:
-        // pausedDurationMs grows from its base (5/7) by (exportedAt - pausedAt), so it must be
-        // strictly greater than the original accumulated value.
-        assertNotNull(bf.endTime)
-        assertNull(bf.pausedAt)
-        assertTrue(bf.pausedDurationMs > 5L, "breastfeeding pause must be folded")
-        assertNotNull(parsed.sleep.single().endTime)
-        assertNotNull(pump.endTime)
-        assertNull(pump.pausedAt)
-        assertTrue(pump.pausedDurationMs > 7L, "pumping pause must be folded")
+        assertNull(bf.endTime, "active breastfeeding endTime must remain null")
+        assertEquals(50L, bf.pausedAt, "pausedAt must be preserved")
+        assertEquals(5L, bf.pausedDurationMs, "pausedDurationMs must not be mutated")
+        assertNull(parsed.sleep.single().endTime, "active sleep endTime must remain null")
+        assertNull(pump.endTime, "active pumping endTime must remain null")
+        assertEquals(60L, pump.pausedAt, "pumping pausedAt must be preserved")
+        assertEquals(7L, pump.pausedDurationMs, "pumping pausedDurationMs must not be mutated")
     }
 }
