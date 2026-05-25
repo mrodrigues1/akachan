@@ -1,8 +1,10 @@
 package com.babytracker.export.di
 
 import com.babytracker.BuildConfig
+import com.babytracker.export.data.BackupImporterImpl
 import com.babytracker.export.data.BackupSourceImpl
 import com.babytracker.export.data.PdfReportGenerator
+import com.babytracker.export.domain.BackupImporter
 import com.babytracker.export.domain.BackupSource
 import com.babytracker.export.domain.ExportMetadata
 import com.babytracker.export.domain.PdfReportRenderer
@@ -21,6 +23,10 @@ abstract class ExportModule {
     @Binds
     @Singleton
     abstract fun bindBackupSource(impl: BackupSourceImpl): BackupSource
+
+    @Binds
+    @Singleton
+    abstract fun bindBackupImporter(impl: BackupImporterImpl): BackupImporter
 
     @Binds
     @Singleton
