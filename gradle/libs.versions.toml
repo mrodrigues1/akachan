@@ -26,6 +26,9 @@ detekt = "1.23.6"
 firebaseBom = "33.7.0"
 konsist = "0.16.0"
 robolectric = "4.15.1"
+kotlinxSerialization = "1.7.3"
+junit4 = "4.13.2"
+androidxTestCore = "1.6.1"
 kover = "0.9.1"
 twitterComposeRules = "0.0.26"
 
@@ -79,6 +82,10 @@ firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx" }
 # Testing
 konsist = { group = "com.lemonappdev", name = "konsist", version.ref = "konsist" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
+junit-vintage-engine = { group = "org.junit.vintage", name = "junit-vintage-engine", version.ref = "junit5" }
+androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
 detekt-compose-rules = { group = "com.twitter.compose.rules", name = "detekt", version.ref = "twitterComposeRules" }
 junit5-api = { group = "org.junit.jupiter", name = "junit-jupiter-api", version.ref = "junit5" }
 junit5-engine = { group = "org.junit.jupiter", name = "junit-jupiter-engine", version.ref = "junit5" }
@@ -108,3 +115,4 @@ ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintGradle" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 android-junit5 = { id = "de.mannodermaus.android-junit", version.ref = "androidJunit5" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

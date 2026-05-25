@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
@@ -132,6 +133,9 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.coroutines.test)
+    testImplementation(libs.junit4)
+    testImplementation(libs.androidx.test.core)
+    testRuntimeOnly(libs.junit.vintage.engine)
     detektPlugins(libs.detekt.compose.rules)
 
     // Android Testing
@@ -151,6 +155,9 @@ dependencies {
     androidTestImplementation(libs.mannodermaus.core)
     androidTestRuntimeOnly(libs.mannodermaus.runner)
     androidTestImplementation(libs.coroutines.test)
+
+    // Serialization
+    implementation(libs.kotlinx.serialization.json)
 
     // Firebase
     implementation(platform(libs.firebase.bom))
