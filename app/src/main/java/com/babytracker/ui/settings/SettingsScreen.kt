@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Bedtime
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
@@ -73,6 +74,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -390,6 +392,32 @@ fun SettingsScreen(
                     )
                 }
 
+                if (uiState.predictiveEnabled && uiState.validIntervalCount < 3) {
+                    val remaining = 3 - uiState.validIntervalCount
+                    SuggestionChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                text = pluralStringResource(
+                                    R.plurals.settings_predictive_feeds_remaining,
+                                    remaining,
+                                    remaining,
+                                ),
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        },
+                        icon = {
+                            Icon(Icons.Outlined.Info, contentDescription = null)
+                        },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            iconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                        modifier = Modifier.padding(start = 16.dp),
+                    )
+                }
+
                 if (uiState.showPermissionWarning) {
                     WarningRow(
                         title = stringResource(R.string.settings_notifications_blocked_title),
@@ -407,29 +435,20 @@ fun SettingsScreen(
                 }
 
                 LeadTimeSegmentedRow(
-                    enabled = uiState.predictiveEnabled,
+                    enabled = uiState.predictiveEnabled && uiState.validIntervalCount >= 3,
                     selectedMinutes = uiState.predictiveLeadMinutes,
                     onSelect = viewModel::onLeadMinutesChanged,
                 )
 
                 val is24Hour = DateFormat.is24HourFormat(context)
                 QuietHoursRow(
-                    enabled = uiState.predictiveEnabled,
+                    enabled = uiState.predictiveEnabled && uiState.validIntervalCount >= 3,
                     startMinute = uiState.quietHoursStartMinute,
                     endMinute = uiState.quietHoursEndMinute,
                     is24Hour = is24Hour,
                     onStartPicked = viewModel::onQuietHoursStartChanged,
                     onEndPicked = viewModel::onQuietHoursEndChanged,
                 )
-
-                if (uiState.predictiveEnabled && uiState.validIntervalCount in 0..2) {
-                    Text(
-                        text = stringResource(R.string.settings_predictive_need_more_feeds),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    )
-                }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 Text(

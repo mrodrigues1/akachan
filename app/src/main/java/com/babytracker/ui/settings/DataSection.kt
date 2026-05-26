@@ -1,6 +1,7 @@
 package com.babytracker.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,10 +14,13 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -100,35 +104,74 @@ fun DataSection(
             }
         }
 
-        SettingsRow(
+        Text(
+            text = "EXPORT",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 0.dp),
+        )
+        DataActionRow(
             label = "PDF report",
             value = "Share your tracking data as a report",
             actionLabel = "Share",
-            onClick = { if (!working) showRangeDialog = true },
+            enabled = !working,
+            onClick = { showRangeDialog = true },
         )
         HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
-        SettingsRow(
+        DataActionRow(
             label = "Backup (JSON)",
             value = "Full snapshot, restore anytime",
             actionLabel = "Save",
-            onClick = { if (!working) onExportJson() },
+            enabled = !working,
+            onClick = onExportJson,
         )
         HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
-        SettingsRow(
+        DataActionRow(
             label = "Spreadsheet (CSV)",
             value = "Open in Excel, Numbers, or Sheets",
             actionLabel = "Share",
-            onClick = { if (!working) onExportCsv() },
+            enabled = !working,
+            onClick = onExportCsv,
         )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        SettingsRow(
-            label = "Restore from backup",
-            value = "Merge records from a JSON backup file",
-            actionLabel = "Restore",
-            onClick = { if (!working) onImport() },
+        val restoreBg = if (isDark) WarningContainerAmberDark else WarningContainerAmber
+        val restoreFg = if (isDark) OnWarningContainerAmberDark else OnWarningContainerAmber
+
+        Text(
+            text = "IMPORT",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 0.dp),
         )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = !working, onClick = onImport)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                Text(text = "Restore from backup", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = "Merge records from a JSON backup file",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            FilledTonalButton(
+                onClick = onImport,
+                enabled = !working,
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = restoreBg,
+                    contentColor = restoreFg,
+                ),
+            ) {
+                Text("Restore")
+            }
+        }
 
         if (showRangeDialog) {
             RangePickerDialog(
@@ -167,6 +210,37 @@ fun DataSection(
                 confirmButton = { TextButton(onClick = onConfirmImport, enabled = !working) { Text("Import") } },
                 dismissButton = { TextButton(onClick = onCancelImport) { Text("Cancel") } },
             )
+        }
+    }
+}
+
+@Composable
+private fun DataActionRow(
+    label: String,
+    value: String,
+    actionLabel: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(text = label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        OutlinedButton(onClick = onClick, enabled = enabled) {
+            Text(actionLabel)
         }
     }
 }
