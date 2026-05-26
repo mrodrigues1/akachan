@@ -1,7 +1,11 @@
 package com.babytracker.ui.settings
 
 import android.net.Uri
+import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.export.data.BackupFileReader
 import com.babytracker.export.data.BackupFileWriter
 import com.babytracker.export.domain.ImportCounts
@@ -15,6 +19,7 @@ import com.babytracker.export.domain.usecase.ExportCsvUseCase
 import com.babytracker.export.domain.usecase.GeneratePdfReportUseCase
 import com.babytracker.export.domain.usecase.ImportBackupUseCase
 import com.babytracker.export.domain.usecase.ValidateBackupUseCase
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -47,6 +52,10 @@ class DataExportViewModelTest {
     private val reader: BackupFileReader = mockk()
     private val writer: BackupFileWriter = mockk()
     private val settingsRepository: SettingsRepository = mockk()
+    private val breastfeedingRepository: BreastfeedingRepository = mockk()
+    private val pumpingRepository: PumpingRepository = mockk()
+    private val sleepRepository: SleepRepository = mockk()
+    private val syncToFirestore: SyncToFirestoreUseCase = mockk()
     private val uri: Uri = mockk(relaxed = true)
 
     private lateinit var vm: DataExportViewModel
@@ -68,9 +77,14 @@ class DataExportViewModelTest {
     fun setup() {
         Dispatchers.setMain(StandardTestDispatcher())
         every { settingsRepository.isImportInProgress() } returns flowOf(false)
+        every { breastfeedingRepository.getActiveSession() } returns flowOf(null)
+        every { pumpingRepository.getActiveSession() } returns flowOf(null)
+        coEvery { sleepRepository.getRecentRecords(1) } returns emptyList()
+        coEvery { syncToFirestore(any()) } just Runs
         vm = DataExportViewModel(
             exportBackup, exportCsvUseCase, generatePdf, validateBackup, importBackup,
-            reader, writer, settingsRepository,
+            reader, writer, settingsRepository, breastfeedingRepository, pumpingRepository,
+            sleepRepository, syncToFirestore,
         )
     }
 
@@ -156,5 +170,31 @@ class DataExportViewModelTest {
         advanceUntilIdle()
 
         assertEquals("application/pdf", vm.uiState.value.pendingShare?.mimeType)
+    }
+
+    @Test
+    fun `prepareImport blocks when active breastfeeding session exists`() = runTest {
+        every { breastfeedingRepository.getActiveSession() } returns flowOf(mockk<BreastfeedingSession>())
+
+        vm.prepareImport(uri)
+        advanceUntilIdle()
+
+        assertEquals(DataExportUiState.Status.ERROR, vm.uiState.value.status)
+        assertNull(vm.uiState.value.importPreview)
+    }
+
+    @Test
+    fun `confirmImport triggers firestore sync`() = runTest {
+        val data = backup()
+        coEvery { reader.read(uri) } returns "json"
+        every { validateBackup("json") } returns data
+        coEvery { importBackup(data) } returns ImportCounts(0, 0, 0, 0)
+
+        vm.prepareImport(uri)
+        advanceUntilIdle()
+        vm.confirmImport()
+        advanceUntilIdle()
+
+        coVerify { syncToFirestore(any()) }
     }
 }
