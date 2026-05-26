@@ -49,6 +49,10 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
@@ -123,6 +127,7 @@ fun SettingsScreen(
     var activeSheet by rememberSaveable { mutableStateOf<SettingsSheet?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.isDisconnected) {
         if (uiState.isDisconnected) onDisconnect()
@@ -139,6 +144,10 @@ fun SettingsScreen(
     val createDocLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json"),
     ) { uri -> uri?.let(dataVm::exportJsonTo) }
+
+    val savePdfLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf"),
+    ) { uri -> uri?.let(dataVm::savePdfToUri) }
 
     val openDocLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -166,6 +175,33 @@ fun SettingsScreen(
             // ERROR state: DataSection shows an inline persistent surface
         }
     }
+
+    LaunchedEffect(dataState.pendingPdfSave) {
+        val fileName = dataState.pendingPdfSave ?: return@LaunchedEffect
+        savePdfLauncher.launch(fileName)
+        dataVm.onPdfSaveLaunched()
+    }
+
+    LaunchedEffect(dataState.savedPdfUri) {
+        val pdfUri = dataState.savedPdfUri ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = "PDF saved to Downloads",
+            actionLabel = "Open",
+            duration = SnackbarDuration.Long,
+        )
+        if (result == SnackbarResult.ActionPerformed) {
+            runCatching {
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(pdfUri, "application/pdf")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            }
+        }
+        dataVm.onPdfOpenHandled()
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -184,6 +220,7 @@ fun SettingsScreen(
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Settings") },
@@ -405,14 +442,14 @@ fun SettingsScreen(
                 }
 
                 LeadTimeSegmentedRow(
-                    enabled = uiState.predictiveEnabled,
+                    enabled = uiState.predictiveEnabled && uiState.validIntervalCount >= 3,
                     selectedMinutes = uiState.predictiveLeadMinutes,
                     onSelect = viewModel::onLeadMinutesChanged,
                 )
 
                 val is24Hour = DateFormat.is24HourFormat(context)
                 QuietHoursRow(
-                    enabled = uiState.predictiveEnabled,
+                    enabled = uiState.predictiveEnabled && uiState.validIntervalCount >= 3,
                     startMinute = uiState.quietHoursStartMinute,
                     endMinute = uiState.quietHoursEndMinute,
                     is24Hour = is24Hour,
@@ -469,7 +506,8 @@ fun SettingsScreen(
                 HorizontalDivider()
                 DataSection(
                     state = dataState,
-                    onExportPdf = dataVm::exportPdf,
+                    onSavePdf = dataVm::exportPdfToDevice,
+                    onSharePdf = dataVm::exportPdfToShare,
                     onExportJson = { createDocLauncher.launch("baby-tracker-backup.json") },
                     onExportCsv = dataVm::exportCsv,
                     onImport = { openDocLauncher.launch(arrayOf("application/json")) },

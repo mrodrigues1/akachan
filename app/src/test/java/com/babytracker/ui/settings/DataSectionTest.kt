@@ -29,7 +29,7 @@ class DataSectionTest {
             MaterialTheme {
                 DataSection(
                     state = DataExportUiState(importPreview = preview),
-                    onExportPdf = {}, onExportJson = {}, onExportCsv = {},
+                    onSavePdf = {}, onSharePdf = {}, onExportJson = {}, onExportCsv = {},
                     onImport = {}, onConfirmImport = {}, onCancelImport = {},
                 )
             }
@@ -44,7 +44,7 @@ class DataSectionTest {
             MaterialTheme {
                 DataSection(
                     state = DataExportUiState(importIncomplete = true),
-                    onExportPdf = {}, onExportJson = {}, onExportCsv = {},
+                    onSavePdf = {}, onSharePdf = {}, onExportJson = {}, onExportCsv = {},
                     onImport = {}, onConfirmImport = {}, onCancelImport = {},
                 )
             }

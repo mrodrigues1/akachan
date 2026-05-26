@@ -53,7 +53,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun DataSection(
     state: DataExportUiState,
-    onExportPdf: (DateRange) -> Unit,
+    onSavePdf: (DateRange) -> Unit,
+    onSharePdf: (DateRange) -> Unit,
     onExportJson: () -> Unit,
     onExportCsv: () -> Unit,
     onImport: () -> Unit,
@@ -124,7 +125,7 @@ fun DataSection(
 
         DataActionRow(
             label = "PDF report",
-            value = "Feeding & sleep summary, ready to share",
+            value = "Feeding & sleep summary",
             actionLabel = "Export…",
             enabled = !working,
             leadingIcon = {
@@ -191,7 +192,14 @@ fun DataSection(
     if (showRangeSheet) {
         RangePickerSheet(
             onDismiss = { showRangeSheet = false },
-            onConfirm = { range -> onExportPdf(range) },
+            onSave = { range ->
+                showRangeSheet = false
+                onSavePdf(range)
+            },
+            onShare = { range ->
+                showRangeSheet = false
+                onSharePdf(range)
+            },
         )
     }
 
@@ -262,12 +270,25 @@ private fun DataActionRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RangePickerSheet(onDismiss: () -> Unit, onConfirm: (DateRange) -> Unit) {
+private fun RangePickerSheet(
+    onDismiss: () -> Unit,
+    onSave: (DateRange) -> Unit,
+    onShare: (DateRange) -> Unit,
+) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     var selected by rememberSaveable { mutableStateOf(7) }
 
     val options = listOf(7 to "Last 7 days", 14 to "Last 2 weeks", 30 to "Last month", -1 to "All time")
+
+    fun dismissThen(action: (DateRange) -> Unit) {
+        val days = selected
+        scope.launch { sheetState.hide() }.invokeOnCompletion {
+            onDismiss()
+            val range = if (days < 0) DateRange.allTime() else DateRange.lastDays(days.toLong())
+            action(range)
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -301,14 +322,14 @@ private fun RangePickerSheet(onDismiss: () -> Unit, onConfirm: (DateRange) -> Un
 
             Spacer(Modifier.height(20.dp))
             Button(
-                onClick = {
-                    val days = selected
-                    scope.launch { sheetState.hide() }.invokeOnCompletion {
-                        onDismiss()
-                        val range = if (days < 0) DateRange.allTime() else DateRange.lastDays(days.toLong())
-                        onConfirm(range)
-                    }
-                },
+                onClick = { dismissThen(onSave) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Save PDF")
+            }
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { dismissThen(onShare) },
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Share PDF")

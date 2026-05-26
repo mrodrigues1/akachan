@@ -1,7 +1,11 @@
 package com.babytracker.export.data
 
+import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import androidx.annotation.RequiresApi
 import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -61,5 +65,35 @@ class BackupFileWriter @Inject constructor(
         }
         file.writeBytes(bytes)
         FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    suspend fun savePdfToDownloads(fileName: String, bytes: ByteArray): Uri = withContext(Dispatchers.IO) {
+        val values = ContentValues().apply {
+            put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+            put(MediaStore.Downloads.MIME_TYPE, "application/pdf")
+            put(MediaStore.Downloads.IS_PENDING, 1)
+        }
+        val resolver = context.contentResolver
+        val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        val itemUri = resolver.insert(collection, values)
+            ?: error("MediaStore insert failed for $fileName")
+        try {
+            resolver.openOutputStream(itemUri)?.use { it.write(bytes) }
+                ?: error("Could not open output stream for $itemUri")
+            values.clear()
+            values.put(MediaStore.Downloads.IS_PENDING, 0)
+            val updated = resolver.update(itemUri, values, null, null)
+            check(updated > 0) { "MediaStore update failed to clear pending flag for $itemUri" }
+        } catch (e: Exception) {
+            runCatching { resolver.delete(itemUri, null, null) }
+            throw e
+        }
+        itemUri
+    }
+
+    suspend fun writeBytesToUri(uri: Uri, bytes: ByteArray) = withContext(Dispatchers.IO) {
+        context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(bytes) }
+            ?: error("Could not open output stream for $uri")
     }
 }
