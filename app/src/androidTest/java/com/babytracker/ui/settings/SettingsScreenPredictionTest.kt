@@ -47,6 +47,10 @@ class SettingsScreenPredictionTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
+    private fun buildFakeDataExportViewModel(): DataExportViewModel = mockk(relaxed = true) {
+        every { uiState } returns MutableStateFlow(DataExportUiState())
+    }
+
     private fun predictiveSwitch() =
         composeRule.onNodeWithTag("predictive_switch").performScrollTo()
 
@@ -76,7 +80,7 @@ class SettingsScreenPredictionTest {
         )
         val vm = buildViewModel(settingsRepository = repo)
         composeRule.setContent {
-            SettingsScreen(onNavigateBack = {}, viewModel = vm)
+            SettingsScreen(onNavigateBack = {}, viewModel = vm, dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
 
@@ -116,7 +120,7 @@ class SettingsScreenPredictionTest {
         )
         val vm = buildViewModel(settingsRepository = repo)
         composeRule.setContent {
-            SettingsScreen(onNavigateBack = {}, viewModel = vm)
+            SettingsScreen(onNavigateBack = {}, viewModel = vm, dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
         composeRule.onNodeWithText(TEXT_QUIET_HOURS_DISABLED).performScrollTo().assertIsDisplayed()
@@ -130,7 +134,7 @@ class SettingsScreenPredictionTest {
         )
         val vm = buildViewModel(settingsRepository = repo)
         composeRule.setContent {
-            SettingsScreen(onNavigateBack = {}, viewModel = vm)
+            SettingsScreen(onNavigateBack = {}, viewModel = vm, dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
 
@@ -155,7 +159,7 @@ class SettingsScreenPredictionTest {
             permissionChecker = NotificationPermissionChecker { true },
         )
         composeRule.setContent {
-            SettingsScreen(onNavigateBack = {}, viewModel = vm)
+            SettingsScreen(onNavigateBack = {}, viewModel = vm, dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
         predictiveSwitch().performClick()
@@ -174,7 +178,7 @@ class SettingsScreenPredictionTest {
             permissionChecker = NotificationPermissionChecker { false },
         )
         composeRule.setContent {
-            SettingsScreen(onNavigateBack = {}, viewModel = vm)
+            SettingsScreen(onNavigateBack = {}, viewModel = vm, dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
 
@@ -200,7 +204,7 @@ class SettingsScreenPredictionTest {
                 permissionChecker = NotificationPermissionChecker { false },
             )
             composeRule.setContent {
-                SettingsScreen(onNavigateBack = {}, viewModel = vm)
+                SettingsScreen(onNavigateBack = {}, viewModel = vm, dataVm = buildFakeDataExportViewModel())
             }
             composeRule.waitForIdle()
 
@@ -225,7 +229,7 @@ class SettingsScreenPredictionTest {
             permissionChecker = NotificationPermissionChecker { true },
         )
         composeRule.setContent {
-            SettingsScreen(onNavigateBack = {}, viewModel = vm)
+            SettingsScreen(onNavigateBack = {}, viewModel = vm, dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
         // Initially with permission granted + predictive enabled, no warning.
@@ -251,7 +255,7 @@ class SettingsScreenPredictionTest {
             permissionChecker = NotificationPermissionChecker { false },
         )
         composeRule.setContent {
-            SettingsScreen(onNavigateBack = {}, viewModel = vm)
+            SettingsScreen(onNavigateBack = {}, viewModel = vm, dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
 
@@ -271,7 +275,7 @@ class SettingsScreenPredictionTest {
         val repo = PredictionFakeSettingsRepository(appMode = AppMode.PARTNER)
         val vm = buildViewModel(settingsRepository = repo)
         composeRule.setContent {
-            SettingsScreen(onNavigateBack = {}, viewModel = vm)
+            SettingsScreen(onNavigateBack = {}, viewModel = vm, dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
         composeRule.onNodeWithText(TEXT_FEEDING_REMINDERS).assertDoesNotExist()
@@ -291,7 +295,7 @@ class SettingsScreenPredictionTest {
             countRecentValidIntervals = countUseCase,
         )
         composeRule.setContent {
-            SettingsScreen(onNavigateBack = {}, viewModel = vm)
+            SettingsScreen(onNavigateBack = {}, viewModel = vm, dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
         composeRule.onNodeWithText(TEXT_NEED_MORE_FEEDS).assertDoesNotExist()

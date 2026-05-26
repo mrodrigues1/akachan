@@ -22,6 +22,7 @@ import com.babytracker.sharing.domain.model.AppMode
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
 import org.junit.Test
@@ -34,6 +35,10 @@ class SettingsScreenTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+    private fun buildFakeDataExportViewModel(): DataExportViewModel = mockk(relaxed = true) {
+        every { uiState } returns MutableStateFlow(DataExportUiState())
+    }
 
     private fun buildPartnerViewModel(): SettingsViewModel {
         val babyRepository = FakeBabyRepository()
@@ -53,7 +58,7 @@ class SettingsScreenTest {
     @Test
     fun partnerModeHidesBabyProfileSection() {
         composeRule.setContent {
-            SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel())
+            SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel(), dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Baby Profile").assertDoesNotExist()
@@ -62,7 +67,7 @@ class SettingsScreenTest {
     @Test
     fun partnerModeHidesFeedingLimitsSection() {
         composeRule.setContent {
-            SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel())
+            SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel(), dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Feeding Limits").assertDoesNotExist()
@@ -71,7 +76,7 @@ class SettingsScreenTest {
     @Test
     fun partnerModeHidesNotificationsSection() {
         composeRule.setContent {
-            SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel())
+            SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel(), dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("NOTIFICATIONS").assertDoesNotExist()
@@ -80,7 +85,7 @@ class SettingsScreenTest {
     @Test
     fun partnerModeShowsDisconnectRow() {
         composeRule.setContent {
-            SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel())
+            SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel(), dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
         composeRule.onAllNodesWithText("Disconnect")[0].assertIsDisplayed()
@@ -89,7 +94,7 @@ class SettingsScreenTest {
     @Test
     fun partnerModeDisconnectRowButtonIsLabelledDisconnect() {
         composeRule.setContent {
-            SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel())
+            SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel(), dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
         composeRule.onAllNodesWithText("Disconnect").assertCountEquals(2)
@@ -119,7 +124,7 @@ class SettingsScreenTest {
         )
 
         composeRule.setContent {
-            SettingsScreen(onNavigateBack = {}, viewModel = viewModel)
+            SettingsScreen(onNavigateBack = {}, viewModel = viewModel, dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Allergies").performClick()
