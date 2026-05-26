@@ -81,7 +81,10 @@
     <string name="settings_quiet_hours_end">End</string>
     <string name="settings_quiet_hours_helper">Intervals during this window are ignored</string>
     <string name="settings_quiet_hours_disabled">Quiet hours disabled</string>
-    <string name="settings_predictive_need_more_feeds">Need 3+ recent feeds to predict.</string>
+    <plurals name="settings_predictive_feeds_remaining">
+        <item quantity="one">Needs %d more feed to activate</item>
+        <item quantity="other">Needs %d more feeds to activate</item>
+    </plurals>
 
     <!-- Settings — nap reminder section -->
     <string name="settings_section_sleep_reminders">SLEEP REMINDERS</string>
