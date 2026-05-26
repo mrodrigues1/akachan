@@ -1,10 +1,12 @@
 package com.babytracker.ui.settings
 
 import android.Manifest
+import android.content.ClipData
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import android.text.format.DateFormat
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -112,6 +114,7 @@ fun SettingsScreen(
     onNavigateToConnectPartner: () -> Unit = {},
     onDisconnect: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
+    dataVm: DataExportViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var activeSheet by rememberSaveable { mutableStateOf<SettingsSheet?>(null) }
@@ -127,6 +130,36 @@ fun SettingsScreen(
     }
 
     val context = LocalContext.current
+
+    val dataState by dataVm.uiState.collectAsStateWithLifecycle()
+
+    val createDocLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri -> uri?.let(dataVm::exportJsonTo) }
+
+    val openDocLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri -> uri?.let(dataVm::prepareImport) }
+
+    LaunchedEffect(dataState.pendingShare) {
+        val share = dataState.pendingShare ?: return@LaunchedEffect
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = share.mimeType
+            putExtra(Intent.EXTRA_STREAM, share.uri)
+            // Required so the receiving app can read the FileProvider Uri.
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            clipData = ClipData.newRawUri("", share.uri)
+        }
+        context.startActivity(Intent.createChooser(sendIntent, "Share"))
+        dataVm.onShareHandled()
+    }
+
+    LaunchedEffect(dataState.message) {
+        dataState.message?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            dataVm.onMessageShown()
+        }
+    }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -461,6 +494,19 @@ fun SettingsScreen(
                 )
             }
 
+            if (uiState.appMode != null && uiState.appMode != AppMode.PARTNER) {
+                HorizontalDivider()
+                DataSection(
+                    state = dataState,
+                    onExportPdf = dataVm::exportPdf,
+                    onExportJson = { createDocLauncher.launch("baby-tracker-backup.json") },
+                    onExportCsv = dataVm::exportCsv,
+                    onImport = { openDocLauncher.launch(arrayOf("application/json")) },
+                    onConfirmImport = dataVm::confirmImport,
+                    onCancelImport = dataVm::cancelImport,
+                )
+            }
+
             Text(
                 text = "Partner Access",
                 style = MaterialTheme.typography.labelMedium,
@@ -613,7 +659,7 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsRow(
+internal fun SettingsRow(
     label: String,
     value: String,
     onClick: () -> Unit,

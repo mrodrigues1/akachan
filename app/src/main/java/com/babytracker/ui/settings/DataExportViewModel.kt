@@ -3,7 +3,10 @@ package com.babytracker.ui.settings
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.export.data.BackupFileReader
 import com.babytracker.export.data.BackupFileWriter
 import com.babytracker.export.domain.model.BackupData
@@ -13,12 +16,14 @@ import com.babytracker.export.domain.usecase.ExportCsvUseCase
 import com.babytracker.export.domain.usecase.GeneratePdfReportUseCase
 import com.babytracker.export.domain.usecase.ImportBackupUseCase
 import com.babytracker.export.domain.usecase.ValidateBackupUseCase
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
@@ -56,6 +61,10 @@ class DataExportViewModel @Inject constructor(
     private val reader: BackupFileReader,
     private val writer: BackupFileWriter,
     private val settingsRepository: SettingsRepository,
+    private val breastfeedingRepository: BreastfeedingRepository,
+    private val pumpingRepository: PumpingRepository,
+    private val sleepRepository: SleepRepository,
+    private val syncToFirestore: SyncToFirestoreUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DataExportUiState())
@@ -88,6 +97,15 @@ class DataExportViewModel @Inject constructor(
     }
 
     fun prepareImport(uri: Uri) = execute {
+        if (hasAnyActiveSession()) {
+            _uiState.update {
+                it.copy(
+                    status = DataExportUiState.Status.ERROR,
+                    message = "Stop all active sessions before importing a backup.",
+                )
+            }
+            return@execute
+        }
         val data = validateBackup(reader.read(uri))
         _uiState.update {
             it.copy(
@@ -108,6 +126,7 @@ class DataExportViewModel @Inject constructor(
         _uiState.update { it.copy(importPreview = null) }
         execute("Backup imported") {
             importBackup(preview.data)
+            runCatching { syncToFirestore() }
         }
     }
 
@@ -122,6 +141,11 @@ class DataExportViewModel @Inject constructor(
     fun onMessageShown() {
         _uiState.update { it.copy(message = null, status = DataExportUiState.Status.IDLE) }
     }
+
+    private suspend fun hasAnyActiveSession(): Boolean =
+        breastfeedingRepository.getActiveSession().first() != null ||
+            pumpingRepository.getActiveSession().first() != null ||
+            sleepRepository.getRecentRecords(1).firstOrNull()?.let { it.endTime == null } == true
 
     private fun execute(successMessage: String? = null, block: suspend () -> Unit) {
         activeJob?.cancel()

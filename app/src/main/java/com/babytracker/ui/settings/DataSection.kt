@@ -1,0 +1,130 @@
+package com.babytracker.ui.settings
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
+import com.babytracker.export.domain.model.DateRange
+import java.time.Instant
+
+@Composable
+fun DataSection(
+    state: DataExportUiState,
+    onExportPdf: (DateRange) -> Unit,
+    onExportJson: () -> Unit,
+    onExportCsv: () -> Unit,
+    onImport: () -> Unit,
+    onConfirmImport: () -> Unit,
+    onCancelImport: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var showRangeDialog by remember { mutableStateOf(false) }
+
+    Column(modifier = modifier) {
+        Text(
+            text = "Data",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        )
+
+        if (state.importIncomplete) {
+            Text(
+                text = "Your last import may be incomplete. Re-import your backup to finish.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .testTag("importIncompleteNotice"),
+            )
+        }
+
+        val working = state.status == DataExportUiState.Status.WORKING
+        SettingsRow(label = "Export PDF report", value = "", onClick = { if (!working) showRangeDialog = true })
+        HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+        SettingsRow(label = "Export backup (JSON)", value = "", onClick = { if (!working) onExportJson() })
+        HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+        SettingsRow(label = "Export data (CSV)", value = "", onClick = { if (!working) onExportCsv() })
+        HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+        SettingsRow(label = "Import backup", value = "", onClick = { if (!working) onImport() })
+
+        if (showRangeDialog) {
+            RangePickerDialog(
+                onDismiss = { showRangeDialog = false },
+                onConfirm = { days ->
+                    showRangeDialog = false
+                    onExportPdf(DateRange.lastDays(days.toLong(), Instant.now()))
+                },
+            )
+        }
+
+        val preview = state.importPreview
+        if (preview != null) {
+            AlertDialog(
+                onDismissRequest = onCancelImport,
+                title = { Text("Import backup?") },
+                text = {
+                    Text(
+                        "This will merge into your current data:\n" +
+                            "• ${preview.breastfeeding} feeding sessions\n" +
+                            "• ${preview.sleep} sleep records\n" +
+                            "• ${preview.pumping} pumping sessions\n" +
+                            "• ${preview.milkBags} milk bags\n\n" +
+                            "Existing records are kept; duplicates are skipped.",
+                        modifier = Modifier.testTag("importConfirmText"),
+                    )
+                },
+                confirmButton = { TextButton(onClick = onConfirmImport, enabled = !working) { Text("Import") } },
+                dismissButton = { TextButton(onClick = onCancelImport) { Text("Cancel") } },
+            )
+        }
+    }
+}
+
+@Composable
+private fun RangePickerDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
+    val options = listOf(7, 14, 30)
+    var selected by remember { mutableIntStateOf(7) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("PDF date range") },
+        text = {
+            Column {
+                options.forEach { days ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(selected = selected == days, onClick = { selected = days })
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        RadioButton(selected = selected == days, onClick = { selected = days })
+                        Text("Last $days days")
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { onConfirm(selected) }) { Text("Export") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
