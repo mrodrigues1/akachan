@@ -28,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
@@ -317,7 +318,7 @@ fun SettingsScreen(
             if (uiState.appMode != null && uiState.appMode != AppMode.PARTNER) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 Text(
-                    text = "NOTIFICATIONS",
+                    text = "Notifications",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -342,8 +343,6 @@ fun SettingsScreen(
                         onCheckedChange = { viewModel.onRichNotificationsToggled(it) }
                     )
                 }
-
-                HorizontalDivider()
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 Text(
@@ -432,8 +431,6 @@ fun SettingsScreen(
                     )
                 }
 
-                HorizontalDivider()
-
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 Text(
                     text = stringResource(R.string.settings_section_sleep_reminders),
@@ -449,6 +446,8 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    Icon(Icons.Outlined.Bedtime, contentDescription = null)
+                    Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(
                             stringResource(R.string.settings_nap_reminder_toggle_title),
