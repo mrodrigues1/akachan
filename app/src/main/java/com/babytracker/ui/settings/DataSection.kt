@@ -104,12 +104,6 @@ fun DataSection(
             }
         }
 
-        Text(
-            text = "EXPORT",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 0.dp),
-        )
         DataActionRow(
             label = "PDF report",
             value = "Share your tracking data as a report",
@@ -139,12 +133,6 @@ fun DataSection(
         val restoreBg = if (isDark) WarningContainerAmberDark else WarningContainerAmber
         val restoreFg = if (isDark) OnWarningContainerAmberDark else OnWarningContainerAmber
 
-        Text(
-            text = "IMPORT",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 0.dp),
-        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()

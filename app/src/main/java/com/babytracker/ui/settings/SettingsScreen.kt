@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -363,28 +364,27 @@ fun SettingsScreen(
 
                 if (uiState.predictiveEnabled && uiState.validIntervalCount < 3) {
                     val remaining = 3 - uiState.validIntervalCount
-                    SuggestionChip(
-                        onClick = {},
-                        label = {
-                            Text(
-                                text = pluralStringResource(
-                                    R.plurals.settings_predictive_feeds_remaining,
-                                    remaining,
-                                    remaining,
-                                ),
-                                style = MaterialTheme.typography.labelMedium,
-                            )
-                        },
-                        icon = {
-                            Icon(Icons.Outlined.Info, contentDescription = null)
-                        },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            iconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        ),
-                        modifier = Modifier.padding(start = 16.dp),
-                    )
+                    Row(
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            Icons.Outlined.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = pluralStringResource(
+                                R.plurals.settings_predictive_feeds_remaining,
+                                remaining,
+                                remaining,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
 
                 if (uiState.showPermissionWarning) {
@@ -453,7 +453,7 @@ fun SettingsScreen(
                         input.toIntOrNull()?.let { viewModel.onNapReminderDelayChanged(it) }
                     },
                     label = { Text(stringResource(R.string.settings_nap_reminder_delay_label)) },
-                    supportingText = { Text("Fires this many minutes after a tracked nap ends. Set to 0 for immediate.") },
+                    supportingText = { Text("We'll remind you this many minutes after a nap ends.") },
                     enabled = uiState.napReminderEnabled,
                     modifier = Modifier
                         .fillMaxWidth()
