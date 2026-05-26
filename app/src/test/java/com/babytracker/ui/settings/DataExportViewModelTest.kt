@@ -162,14 +162,41 @@ class DataExportViewModelTest {
     }
 
     @Test
-    fun `exportPdf produces a pdf share artifact`() = runTest {
+    fun `exportPdfToShare produces a pdf share artifact`() = runTest {
         coEvery { generatePdf(any()) } returns byteArrayOf(37, 80, 68, 70)
         coEvery { writer.writeCacheBytes(any(), any()) } returns uri
 
-        vm.exportPdf(DateRange.lastDays(7L, Instant.parse("2026-05-24T00:00:00Z")))
+        vm.exportPdfToShare(DateRange.lastDays(7L, Instant.parse("2026-05-24T00:00:00Z")))
         advanceUntilIdle()
 
         assertEquals("application/pdf", vm.uiState.value.pendingShare?.mimeType)
+    }
+
+    @Test
+    fun `exportPdfToDevice sets pendingPdfSave on pre-Q devices`() = runTest {
+        // Build.VERSION.SDK_INT is 0 in JVM unit tests (below Q=29), so SAF path is taken.
+        coEvery { generatePdf(any()) } returns byteArrayOf(37, 80, 68, 70)
+
+        vm.exportPdfToDevice(DateRange.lastDays(7L, Instant.parse("2026-05-24T00:00:00Z")))
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.pendingShare)
+        assert(vm.uiState.value.pendingPdfSave?.endsWith(".pdf") == true)
+    }
+
+    @Test
+    fun `savePdfToUri writes bytes and sets savedPdfUri`() = runTest {
+        coEvery { generatePdf(any()) } returns byteArrayOf(37, 80, 68, 70)
+        coEvery { writer.writeBytesToUri(any(), any()) } just Runs
+
+        vm.exportPdfToDevice(DateRange.lastDays(7L, Instant.parse("2026-05-24T00:00:00Z")))
+        advanceUntilIdle()
+        vm.onPdfSaveLaunched()
+        vm.savePdfToUri(uri)
+        advanceUntilIdle()
+
+        coVerify { writer.writeBytesToUri(uri, any()) }
+        assertEquals(uri, vm.uiState.value.savedPdfUri)
     }
 
     @Test

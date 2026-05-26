@@ -1,6 +1,7 @@
 package com.babytracker.ui.settings
 
 import android.net.Uri
+import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.repository.BreastfeedingRepository
@@ -44,6 +45,8 @@ data class ImportPreview(
 data class DataExportUiState(
     val status: Status = Status.IDLE,
     val pendingShare: ShareArtifact? = null,
+    val pendingPdfSave: String? = null,
+    val savedPdfUri: Uri? = null,
     val importPreview: ImportPreview? = null,
     val message: String? = null,
     val importIncomplete: Boolean = false,
@@ -71,6 +74,7 @@ class DataExportViewModel @Inject constructor(
     val uiState: StateFlow<DataExportUiState> = _uiState.asStateFlow()
 
     private var activeJob: Job? = null
+    private var pendingPdfBytes: ByteArray? = null
 
     init {
         viewModelScope.launch {
@@ -90,7 +94,30 @@ class DataExportViewModel @Inject constructor(
         _uiState.update { it.copy(status = DataExportUiState.Status.IDLE, pendingShare = ShareArtifact(uri, "application/zip")) }
     }
 
-    fun exportPdf(range: DateRange) = execute {
+    fun exportPdfToDevice(range: DateRange) = execute {
+        val bytes = generatePdf(range)
+        val fileName = "baby-report-${System.currentTimeMillis()}.pdf"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val uri = writer.savePdfToDownloads(fileName, bytes)
+            _uiState.update { it.copy(status = DataExportUiState.Status.IDLE, savedPdfUri = uri) }
+        } else {
+            pendingPdfBytes = bytes
+            _uiState.update { it.copy(status = DataExportUiState.Status.IDLE, pendingPdfSave = fileName) }
+        }
+    }
+
+    fun onPdfSaveLaunched() {
+        _uiState.update { it.copy(pendingPdfSave = null) }
+    }
+
+    fun savePdfToUri(uri: Uri) = execute {
+        val bytes = pendingPdfBytes ?: return@execute
+        writer.writeBytesToUri(uri, bytes)
+        pendingPdfBytes = null
+        _uiState.update { it.copy(savedPdfUri = uri) }
+    }
+
+    fun exportPdfToShare(range: DateRange) = execute {
         val bytes = generatePdf(range)
         val uri = writer.writeCacheBytes("baby-report-${System.currentTimeMillis()}.pdf", bytes)
         _uiState.update { it.copy(status = DataExportUiState.Status.IDLE, pendingShare = ShareArtifact(uri, "application/pdf")) }
@@ -136,6 +163,10 @@ class DataExportViewModel @Inject constructor(
 
     fun onShareHandled() {
         _uiState.update { it.copy(pendingShare = null) }
+    }
+
+    fun onPdfOpenHandled() {
+        _uiState.update { it.copy(savedPdfUri = null) }
     }
 
     fun onMessageShown() {
