@@ -196,5 +196,11 @@ class SettingsScreenTest {
         override fun getNapReminderDelayMinutes(): Flow<Int> = flowOf(60)
 
         override suspend fun setNapReminderDelayMinutes(minutes: Int) = Unit
+
+        override fun isImportInProgress(): Flow<Boolean> = flowOf(false)
+
+        override suspend fun markImportInProgress(startedAt: Long) = Unit
+
+        override suspend fun restoreFromBackup(data: BackupData) = Unit
     }
 }
