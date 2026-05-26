@@ -74,6 +74,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -325,26 +326,12 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                 )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Rich notifications", style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            "Show progress bars and quick actions on notifications",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = uiState.richNotificationsEnabled,
-                        onCheckedChange = { viewModel.onRichNotificationsToggled(it) }
-                    )
-                }
+                SettingsSwitchRow(
+                    label = "Rich notifications",
+                    description = "Show progress bars and quick actions on notifications",
+                    checked = uiState.richNotificationsEnabled,
+                    onCheckedChange = { viewModel.onRichNotificationsToggled(it) },
+                )
 
                 HorizontalDivider()
                 Text(
@@ -354,43 +341,25 @@ fun SettingsScreen(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 )
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Outlined.Schedule, contentDescription = null)
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            stringResource(R.string.settings_predictive_toggle_title),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(
-                            stringResource(R.string.settings_predictive_toggle_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Switch(
-                        checked = uiState.predictiveEnabled,
-                        modifier = Modifier.testTag("predictive_switch"),
-                        onCheckedChange = { newValue ->
-                            if (newValue && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                val granted = NotificationManagerCompat.from(context)
-                                    .areNotificationsEnabled()
-                                viewModel.onPredictiveToggleChanged(true)
-                                if (!granted) {
-                                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                }
-                            } else {
-                                viewModel.onPredictiveToggleChanged(newValue)
+                SettingsSwitchRow(
+                    label = stringResource(R.string.settings_predictive_toggle_title),
+                    description = stringResource(R.string.settings_predictive_toggle_subtitle),
+                    checked = uiState.predictiveEnabled,
+                    onCheckedChange = { newValue ->
+                        if (newValue && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            val granted = NotificationManagerCompat.from(context)
+                                .areNotificationsEnabled()
+                            viewModel.onPredictiveToggleChanged(true)
+                            if (!granted) {
+                                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                             }
-                        },
-                    )
-                }
+                        } else {
+                            viewModel.onPredictiveToggleChanged(newValue)
+                        }
+                    },
+                    modifier = Modifier.testTag("predictive_switch"),
+                    leadingIcon = { Icon(Icons.Outlined.Schedule, contentDescription = null) },
+                )
 
                 if (uiState.predictiveEnabled && uiState.validIntervalCount < 3) {
                     val remaining = 3 - uiState.validIntervalCount
@@ -458,43 +427,25 @@ fun SettingsScreen(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 )
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Outlined.Bedtime, contentDescription = null)
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            stringResource(R.string.settings_nap_reminder_toggle_title),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(
-                            stringResource(R.string.settings_nap_reminder_toggle_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Switch(
-                        checked = uiState.napReminderEnabled,
-                        modifier = Modifier.testTag("nap_reminder_switch"),
-                        onCheckedChange = { newValue ->
-                            if (newValue && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                val granted = NotificationManagerCompat.from(context)
-                                    .areNotificationsEnabled()
-                                viewModel.onNapReminderToggleChanged(true)
-                                if (!granted) {
-                                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                }
-                            } else {
-                                viewModel.onNapReminderToggleChanged(newValue)
+                SettingsSwitchRow(
+                    label = stringResource(R.string.settings_nap_reminder_toggle_title),
+                    description = stringResource(R.string.settings_nap_reminder_toggle_subtitle),
+                    checked = uiState.napReminderEnabled,
+                    onCheckedChange = { newValue ->
+                        if (newValue && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            val granted = NotificationManagerCompat.from(context)
+                                .areNotificationsEnabled()
+                            viewModel.onNapReminderToggleChanged(true)
+                            if (!granted) {
+                                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                             }
-                        },
-                    )
-                }
+                        } else {
+                            viewModel.onNapReminderToggleChanged(newValue)
+                        }
+                    },
+                    modifier = Modifier.testTag("nap_reminder_switch"),
+                    leadingIcon = { Icon(Icons.Outlined.Bedtime, contentDescription = null) },
+                )
 
                 OutlinedTextField(
                     value = if (uiState.napReminderDelayMinutes > 0) uiState.napReminderDelayMinutes.toString() else "",
@@ -713,15 +664,22 @@ private fun SettingsSwitchRow(
     description: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    leadingIcon: (@Composable () -> Unit)? = null,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .semantics(mergeDescendants = true) {}
             .clickable { onCheckedChange(!checked) }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (leadingIcon != null) {
+            leadingIcon()
+            Spacer(Modifier.width(12.dp))
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(text = label, style = MaterialTheme.typography.bodyLarge)
             Text(
