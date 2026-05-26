@@ -135,6 +135,7 @@ dependencies {
     testImplementation(libs.coroutines.test)
     testImplementation(libs.junit4)
     testImplementation(libs.androidx.test.core)
+    testImplementation(libs.compose.ui.test.junit4)
     testRuntimeOnly(libs.junit.vintage.engine)
     detektPlugins(libs.detekt.compose.rules)
 
