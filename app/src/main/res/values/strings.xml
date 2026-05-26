@@ -65,11 +65,11 @@
     <string name="notif_action_snooze_15">Snooze 15m</string>
 
     <!-- Settings — predictive feeding reminders section -->
-    <string name="settings_section_feeding_reminders">FEEDING REMINDERS</string>
+    <string name="settings_section_feeding_reminders">Feeding Reminders</string>
     <string name="settings_predictive_toggle_title">Predictive reminder</string>
     <string name="settings_predictive_toggle_subtitle">Notify before next likely feed</string>
     <string name="settings_notifications_blocked_title">Notifications blocked</string>
-    <string name="settings_notifications_blocked_subtitle">Android won\'t deliver reminders</string>
+    <string name="settings_notifications_blocked_subtitle">Tap \'Open Settings\' to allow notifications.</string>
     <string name="settings_open_settings">Open settings</string>
     <string name="settings_lead_time_title">Notify ahead by</string>
     <string name="settings_lead_time_5">5m</string>
@@ -79,7 +79,7 @@
     <string name="settings_quiet_hours_title">Skip during quiet hours</string>
     <string name="settings_quiet_hours_start">Start</string>
     <string name="settings_quiet_hours_end">End</string>
-    <string name="settings_quiet_hours_helper">Intervals during this window are ignored</string>
+    <string name="settings_quiet_hours_helper">Reminders during this time are skipped.</string>
     <string name="settings_quiet_hours_disabled">Quiet hours disabled</string>
     <plurals name="settings_predictive_feeds_remaining">
         <item quantity="one">Needs %d more feed to activate</item>
@@ -87,7 +87,7 @@
     </plurals>
 
     <!-- Settings — nap reminder section -->
-    <string name="settings_section_sleep_reminders">SLEEP REMINDERS</string>
+    <string name="settings_section_sleep_reminders">Sleep Reminders</string>
     <string name="settings_nap_reminder_toggle_title">Nap reminder</string>
     <string name="settings_nap_reminder_toggle_subtitle">Notify after a nap ends</string>
     <string name="settings_nap_reminder_delay_label">Remind after (minutes)</string>

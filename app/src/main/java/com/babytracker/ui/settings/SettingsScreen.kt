@@ -254,8 +254,8 @@ fun SettingsScreen(
                                         onClick = { activeSheet = SettingsSheet.ALLERGIES },
                                         label = { Text(allergy.label) },
                                         colors = SuggestionChipDefaults.suggestionChipColors(
-                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                            labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                         ),
                                     )
                                 }
@@ -318,12 +318,12 @@ fun SettingsScreen(
             )
 
             if (uiState.appMode != null && uiState.appMode != AppMode.PARTNER) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                HorizontalDivider()
                 Text(
                     text = "Notifications",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                 )
                 Row(
                     modifier = Modifier
@@ -346,12 +346,12 @@ fun SettingsScreen(
                     )
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                HorizontalDivider()
                 Text(
                     text = stringResource(R.string.settings_section_feeding_reminders),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 )
 
                 Row(
@@ -450,12 +450,12 @@ fun SettingsScreen(
                     onEndPicked = viewModel::onQuietHoursEndChanged,
                 )
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                HorizontalDivider()
                 Text(
                     text = stringResource(R.string.settings_section_sleep_reminders),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 )
 
                 Row(
@@ -502,6 +502,7 @@ fun SettingsScreen(
                         input.toIntOrNull()?.let { viewModel.onNapReminderDelayChanged(it) }
                     },
                     label = { Text(stringResource(R.string.settings_nap_reminder_delay_label)) },
+                    supportingText = { Text("Fires this many minutes after a tracked nap ends. Set to 0 for immediate.") },
                     enabled = uiState.napReminderEnabled,
                     modifier = Modifier
                         .fillMaxWidth()
