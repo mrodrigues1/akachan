@@ -32,7 +32,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
@@ -94,7 +93,6 @@ import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.ui.onboarding.components.AllergiesStepContent
-import com.babytracker.ui.theme.WarningAmber
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -388,7 +386,7 @@ fun SettingsScreen(
                 }
 
                 if (uiState.showPermissionWarning) {
-                    WarningRow(
+                    WarningSurface(
                         title = stringResource(R.string.settings_notifications_blocked_title),
                         subtitle = stringResource(R.string.settings_notifications_blocked_subtitle),
                         actionLabel = stringResource(R.string.settings_open_settings),
@@ -1004,38 +1002,6 @@ private fun ThemeOption(
                 tint = MaterialTheme.colorScheme.primary,
             )
         }
-    }
-}
-
-@Composable
-private fun WarningRow(
-    title: String,
-    subtitle: String,
-    actionLabel: String,
-    onAction: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Warning,
-            contentDescription = null,
-            tint = WarningAmber,
-        )
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        TextButton(onClick = onAction) { Text(actionLabel) }
     }
 }
 

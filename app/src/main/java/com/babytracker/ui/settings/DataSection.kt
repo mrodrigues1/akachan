@@ -1,6 +1,5 @@
 package com.babytracker.ui.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,15 +8,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -35,13 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.babytracker.export.domain.model.DateRange
-import com.babytracker.ui.theme.LocalDarkTheme
-import com.babytracker.ui.theme.OnWarningContainerAmber
-import com.babytracker.ui.theme.OnWarningContainerAmberDark
-import com.babytracker.ui.theme.WarningAmber
-import com.babytracker.ui.theme.WarningAmberDark
-import com.babytracker.ui.theme.WarningContainerAmber
-import com.babytracker.ui.theme.WarningContainerAmberDark
 import java.time.Instant
 
 @Composable
@@ -57,7 +44,6 @@ fun DataSection(
 ) {
     var showRangeDialog by remember { mutableStateOf(false) }
     val working = state.status == DataExportUiState.Status.WORKING
-    val isDark = LocalDarkTheme.current
 
     Column(modifier = modifier) {
         Text(
@@ -77,31 +63,10 @@ fun DataSection(
         }
 
         if (state.importIncomplete) {
-            val warnBg = if (isDark) WarningContainerAmberDark else WarningContainerAmber
-            val warnText = if (isDark) OnWarningContainerAmberDark else OnWarningContainerAmber
-            val warnIcon = if (isDark) WarningAmberDark else WarningAmber
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .background(warnBg, MaterialTheme.shapes.small)
-                    .padding(horizontal = 12.dp, vertical = 10.dp)
-                    .testTag("importIncompleteNotice"),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Icon(
-                    Icons.Outlined.Warning,
-                    contentDescription = null,
-                    tint = warnIcon,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    text = "Your last import may be incomplete. Re-import your backup to finish.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = warnText,
-                )
-            }
+            WarningSurface(
+                title = "Your last import may be incomplete. Re-import your backup to finish.",
+                modifier = Modifier.testTag("importIncompleteNotice"),
+            )
         }
 
         DataActionRow(
@@ -130,9 +95,6 @@ fun DataSection(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        val restoreBg = if (isDark) WarningContainerAmberDark else WarningContainerAmber
-        val restoreFg = if (isDark) OnWarningContainerAmberDark else OnWarningContainerAmber
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -152,10 +114,6 @@ fun DataSection(
             FilledTonalButton(
                 onClick = onImport,
                 enabled = !working,
-                colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = restoreBg,
-                    contentColor = restoreFg,
-                ),
             ) {
                 Text("Restore")
             }
