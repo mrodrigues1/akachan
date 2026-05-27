@@ -28,7 +28,7 @@ class PredictiveFeedReceiver : BroadcastReceiver() {
     @Inject lateinit var settingsRepository: SettingsRepository
 
     override fun onReceive(context: Context, intent: Intent) {
-        val result = goAsync()
+        val result: PendingResult? = goAsync()
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {
                 withTimeout(10_000L) {
@@ -41,7 +41,7 @@ class PredictiveFeedReceiver : BroadcastReceiver() {
             } catch (e: TimeoutCancellationException) {
                 Log.e(TAG, "onReceive timed out", e)
             } finally {
-                result.finish()
+                result?.finish()
             }
         }
     }
