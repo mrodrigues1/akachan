@@ -45,6 +45,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -52,6 +53,7 @@ import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.util.formatDateTime
 import com.babytracker.util.formatElapsedAgo
+import com.babytracker.util.formatElapsedCompact
 import java.time.Duration
 import java.time.Instant
 
@@ -212,7 +214,7 @@ private fun SummaryCard(
                     color = MaterialTheme.colorScheme.outlineVariant,
                 )
                 StatColumn(
-                    value = Duration.between(summary.oldestBagDate, Instant.now()).formatElapsedAgo(),
+                    value = Duration.between(summary.oldestBagDate, Instant.now()).formatElapsedCompact(),
                     label = "OLDEST",
                     modifier = Modifier.weight(1f),
                 )
@@ -238,6 +240,8 @@ private fun StatColumn(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = label,
