@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -75,12 +76,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -124,6 +127,20 @@ fun SettingsScreen(
     dataVm: DataExportViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var napDelayDraft by remember { mutableStateOf(uiState.napReminderDelayMinutes.takeIf { it > 0 }?.toString() ?: "") }
+    var napDelayFieldFocused by remember { mutableStateOf(false) }
+    LaunchedEffect(uiState.napReminderDelayMinutes) {
+        if (!napDelayFieldFocused) {
+            napDelayDraft = uiState.napReminderDelayMinutes.takeIf { it > 0 }?.toString() ?: ""
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            if (napDelayFieldFocused) {
+                napDelayDraft.toIntOrNull()?.let { viewModel.onNapReminderDelayChanged(it) }
+            }
+        }
+    }
     var activeSheet by rememberSaveable { mutableStateOf<SettingsSheet?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
@@ -486,9 +503,10 @@ fun SettingsScreen(
                 )
 
                 OutlinedTextField(
-                    value = if (uiState.napReminderDelayMinutes > 0) uiState.napReminderDelayMinutes.toString() else "",
+                    value = napDelayDraft,
                     onValueChange = { input ->
-                        input.toIntOrNull()?.let { viewModel.onNapReminderDelayChanged(it) }
+                        val filtered = input.filter { it.isDigit() }
+                        if (filtered.length <= 3) napDelayDraft = filtered
                     },
                     label = { Text(stringResource(R.string.settings_nap_reminder_delay_label)) },
                     supportingText = { Text("We'll remind you this many minutes after a nap ends.") },
@@ -496,8 +514,30 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .alpha(if (uiState.napReminderEnabled) 1f else 0.38f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        .alpha(if (uiState.napReminderEnabled) 1f else 0.38f)
+                        .onFocusChanged { focusState ->
+                            napDelayFieldFocused = focusState.isFocused
+                            if (!focusState.isFocused) {
+                                val minutes = napDelayDraft.toIntOrNull()
+                                if (minutes != null) {
+                                    viewModel.onNapReminderDelayChanged(minutes)
+                                } else {
+                                    napDelayDraft = uiState.napReminderDelayMinutes.takeIf { it > 0 }?.toString() ?: ""
+                                }
+                            }
+                        },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(onDone = {
+                        val minutes = napDelayDraft.toIntOrNull()
+                        if (minutes != null) {
+                            viewModel.onNapReminderDelayChanged(minutes)
+                        } else {
+                            napDelayDraft = uiState.napReminderDelayMinutes.takeIf { it > 0 }?.toString() ?: ""
+                        }
+                    }),
                     singleLine = true,
                 )
             }
