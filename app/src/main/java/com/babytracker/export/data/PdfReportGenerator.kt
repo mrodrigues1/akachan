@@ -51,13 +51,13 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         y += LINE * 0.7f
         y = drawColumnHeaders(canvas, y, "Date & Time", "Side", "Duration")
         canvas.drawLine(MARGIN, y - LINE * 0.15f, PAGE_WIDTH - MARGIN, y - LINE * 0.15f, separatorPaint)
-        y += LINE * 0.2f
+        y += LINE * 0.5f
 
         for (s in data.breastfeeding) {
             val pos = ensureRoom(doc, page, y, totalPages) { c ->
                 var hy = drawColumnHeaders(c, MARGIN + LINE, "Date & Time", "Side", "Duration")
                 c.drawLine(MARGIN, hy - LINE * 0.15f, PAGE_WIDTH - MARGIN, hy - LINE * 0.15f, separatorPaint)
-                hy + LINE * 0.2f
+                hy + LINE * 0.5f
             }
             page = pos.page; canvas = pos.canvas; y = pos.y
             y = drawFeedingRow(canvas, y, s)
@@ -71,13 +71,13 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         y += LINE * 0.7f
         y = drawColumnHeaders(canvas, y, "Date & Time", "Type", "Duration")
         canvas.drawLine(MARGIN, y - LINE * 0.15f, PAGE_WIDTH - MARGIN, y - LINE * 0.15f, separatorPaint)
-        y += LINE * 0.2f
+        y += LINE * 0.5f
 
         for (r in data.sleep) {
             val pos = ensureRoom(doc, page, y, totalPages) { c ->
                 var hy = drawColumnHeaders(c, MARGIN + LINE, "Date & Time", "Type", "Duration")
                 c.drawLine(MARGIN, hy - LINE * 0.15f, PAGE_WIDTH - MARGIN, hy - LINE * 0.15f, separatorPaint)
-                hy + LINE * 0.2f
+                hy + LINE * 0.5f
             }
             page = pos.page; canvas = pos.canvas; y = pos.y
             y = drawSleepRow(canvas, y, r)
@@ -201,20 +201,20 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
 
         // Feeding section header
         y = sim(y, MARGIN + LINE)
-        y += LINE * 0.7f + LINE + LINE * 0.2f
+        y += LINE * 0.7f + LINE + LINE * 0.5f
 
         repeat(data.breastfeeding.size) {
-            y = sim(y, MARGIN + LINE * 2.2f)
+            y = sim(y, MARGIN + LINE * 2.5f)
             y += LINE
         }
         y += SECTION_GAP
 
         // Sleep section header
         y = sim(y, MARGIN + LINE)
-        y += LINE * 0.7f + LINE + LINE * 0.2f
+        y += LINE * 0.7f + LINE + LINE * 0.5f
 
         repeat(data.sleep.size) {
-            y = sim(y, MARGIN + LINE * 2.2f)
+            y = sim(y, MARGIN + LINE * 2.5f)
             y += LINE
         }
 
