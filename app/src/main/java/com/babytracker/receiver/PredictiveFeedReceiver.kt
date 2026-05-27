@@ -5,19 +5,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.manager.PredictiveFeedScheduler
-import com.babytracker.manager.isInQuietHours
 import com.babytracker.util.NotificationHelper
 import com.babytracker.util.showPredictiveReminder
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import java.time.Instant
 import javax.inject.Inject
 
@@ -25,28 +16,16 @@ import javax.inject.Inject
 class PredictiveFeedReceiver : BroadcastReceiver() {
 
     @Inject lateinit var scheduler: PredictiveFeedScheduler
-    @Inject lateinit var settingsRepository: SettingsRepository
 
     override fun onReceive(context: Context, intent: Intent) {
-        val result: PendingResult? = goAsync()
-        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
-            try {
-                withTimeout(10_000L) {
-                    when (intent.action) {
-                        ACTION_FIRE -> postReminder(context, intent)
-                        ACTION_SNOOZE -> snooze(context, intent)
-                        else -> Log.w(TAG, "Unknown action ${intent.action}")
-                    }
-                }
-            } catch (e: TimeoutCancellationException) {
-                Log.e(TAG, "onReceive timed out", e)
-            } finally {
-                result?.finish()
-            }
+        when (intent.action) {
+            ACTION_FIRE -> postReminder(context, intent)
+            ACTION_SNOOZE -> snooze(context, intent)
+            else -> Log.w(TAG, "Unknown action ${intent.action}")
         }
     }
 
-    private suspend fun postReminder(context: Context, intent: Intent) {
+    private fun postReminder(context: Context, intent: Intent) {
         val predictedAtEpochMs = intent.getLongExtra(EXTRA_PREDICTED_AT_MS, 0L)
         if (predictedAtEpochMs <= 0L) {
             Log.w(TAG, "Missing predictedAt; dropping fire")
@@ -56,17 +35,6 @@ class PredictiveFeedReceiver : BroadcastReceiver() {
         val staleAfterMs = predictedAtEpochMs + MAX_STALE_MINUTES * 60_000L
         if (nowMs > staleAfterMs) {
             Log.i(TAG, "Prediction stale by ${(nowMs - predictedAtEpochMs) / 60_000L}m; dropping fire")
-            return
-        }
-        val enabled = settingsRepository.getPredictiveEnabled().first()
-        if (!enabled) {
-            Log.i(TAG, "Dropping predictive reminder — feature disabled")
-            return
-        }
-        val quietStart = settingsRepository.getQuietHoursStartMinute().first()
-        val quietEnd = settingsRepository.getQuietHoursEndMinute().first()
-        if (isInQuietHours(Instant.now(), quietStart, quietEnd)) {
-            Log.i(TAG, "Dropping predictive reminder — now is inside quiet hours")
             return
         }
         try {
@@ -80,25 +48,11 @@ class PredictiveFeedReceiver : BroadcastReceiver() {
         }
     }
 
-    private suspend fun snooze(context: Context, intent: Intent) {
-        // Cancel the visible notification immediately so the user's tap is always honoured,
-        // even if settings reads below stall or fail.
+    private fun snooze(context: Context, intent: Intent) {
         NotificationHelper.cancelNotification(context, NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID)
         val predictedAtEpochMs = intent.getLongExtra(EXTRA_PREDICTED_AT_MS, 0L)
-        val snoozeTrigger = Instant.now().plusSeconds(SNOOZE_MINUTES * 60L)
-        val enabled = settingsRepository.getPredictiveEnabled().first()
-        if (!enabled) {
-            Log.i(TAG, "Dropping snooze reschedule — feature disabled")
-            return
-        }
-        val quietStart = settingsRepository.getQuietHoursStartMinute().first()
-        val quietEnd = settingsRepository.getQuietHoursEndMinute().first()
-        if (isInQuietHours(snoozeTrigger, quietStart, quietEnd)) {
-            Log.i(TAG, "Dropping snooze reschedule — trigger falls inside quiet hours")
-            return
-        }
         scheduler.schedulePredictiveReminderAt(
-            triggerTime = snoozeTrigger,
+            triggerTime = Instant.now().plusSeconds(SNOOZE_MINUTES * 60L),
             predictedAt = Instant.ofEpochMilli(predictedAtEpochMs),
         )
     }
