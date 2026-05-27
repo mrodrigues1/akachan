@@ -1,6 +1,7 @@
 package com.babytracker.export.data
 
 import android.graphics.Paint
+import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.SleepRecord
@@ -175,7 +176,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
     private val titlePaint = Paint().apply {
         color = ON_SURFACE
         textSize = TITLE_SIZE
-        isFakeBoldText = true
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
     private val captionPaint = Paint().apply {
         color = ON_SURFACE_VARIANT
@@ -184,18 +185,18 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
     private val sectionLabelPaint = Paint().apply {
         color = ON_SURFACE_VARIANT
         textSize = CAPTION_SIZE
-        isFakeBoldText = true
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         letterSpacing = 0.06f
     }
     private val feedingHeaderPaint = Paint().apply {
         color = FEEDING
         textSize = HEADER_SIZE
-        isFakeBoldText = true
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
     private val sleepHeaderPaint = Paint().apply {
         color = SLEEP
         textSize = HEADER_SIZE
-        isFakeBoldText = true
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
     private val bodyPaint = Paint().apply {
         color = ON_SURFACE
@@ -204,12 +205,12 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
     private val bodyBoldPaint = Paint().apply {
         color = ON_SURFACE
         textSize = BODY_SIZE
-        isFakeBoldText = true
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
     private val columnHeaderPaint = Paint().apply {
         color = ON_SURFACE_VARIANT
         textSize = CAPTION_SIZE
-        isFakeBoldText = true
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
     private val separatorPaint = Paint().apply {
         color = OUTLINE_COLOR
