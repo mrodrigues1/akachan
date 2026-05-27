@@ -11,8 +11,25 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
+
+internal fun isInQuietHours(
+    instant: Instant,
+    quietStartMinute: Int,
+    quietEndMinute: Int,
+    zone: ZoneId = ZoneId.systemDefault(),
+): Boolean {
+    if (quietStartMinute == quietEndMinute) return false
+    val localTime = instant.atZone(zone).toLocalTime()
+    val minuteOfDay = localTime.hour * 60 + localTime.minute
+    return if (quietStartMinute < quietEndMinute) {
+        minuteOfDay in quietStartMinute until quietEndMinute
+    } else {
+        minuteOfDay >= quietStartMinute || minuteOfDay < quietEndMinute
+    }
+}
 
 @Singleton
 class PredictiveFeedNotificationCoordinator @Inject constructor(
@@ -29,13 +46,31 @@ class PredictiveFeedNotificationCoordinator @Inject constructor(
                 predictNextFeed(),
                 settingsRepository.getPredictiveEnabled(),
                 settingsRepository.getPredictiveLeadMinutes(),
-            ) { prediction, enabled, lead -> Triple(prediction, enabled, lead) }
+                settingsRepository.getQuietHoursStartMinute(),
+                settingsRepository.getQuietHoursEndMinute(),
+            ) { prediction, enabled, lead, quietStart, quietEnd ->
+                ReconcileParams(prediction, enabled, lead, quietStart, quietEnd)
+            }
                 .debounce(DEBOUNCE_MS)
-                .collect { (prediction, enabled, lead) -> reconcile(prediction, enabled, lead) }
+                .collect { params ->
+                    reconcile(
+                        params.prediction,
+                        params.enabled,
+                        params.leadMinutes,
+                        params.quietStartMinute,
+                        params.quietEndMinute,
+                    )
+                }
         }
     }
 
-    private fun reconcile(prediction: FeedPrediction?, enabled: Boolean, leadMinutes: Int) {
+    private fun reconcile(
+        prediction: FeedPrediction?,
+        enabled: Boolean,
+        leadMinutes: Int,
+        quietStartMinute: Int,
+        quietEndMinute: Int,
+    ) {
         if (!enabled || prediction == null) {
             scheduler.cancelPredictiveReminder()
             return
@@ -45,8 +80,20 @@ class PredictiveFeedNotificationCoordinator @Inject constructor(
             scheduler.cancelPredictiveReminder()
             return
         }
+        if (isInQuietHours(triggerAt, quietStartMinute, quietEndMinute, ZoneId.systemDefault())) {
+            scheduler.cancelPredictiveReminder()
+            return
+        }
         scheduler.schedulePredictiveReminderAt(triggerAt, prediction.predictedAt)
     }
+
+    private data class ReconcileParams(
+        val prediction: FeedPrediction?,
+        val enabled: Boolean,
+        val leadMinutes: Int,
+        val quietStartMinute: Int,
+        val quietEndMinute: Int,
+    )
 
     companion object {
         private const val DEBOUNCE_MS = 200L

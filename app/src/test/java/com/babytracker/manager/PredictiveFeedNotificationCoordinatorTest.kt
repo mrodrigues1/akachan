@@ -126,11 +126,56 @@ class PredictiveFeedNotificationCoordinatorTest {
         verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), any()) }
     }
 
+    @Test
+    fun `cancels alarm when trigger falls inside quiet hours`() = runTest {
+        val scheduler = mockk<PredictiveFeedScheduler>(relaxed = true)
+        val predictedAt = Instant.now().plusSeconds(3600)
+        val leadMinutes = 15
+        val triggerAt = predictedAt.minusSeconds(leadMinutes * 60L)
+        val triggerMinuteOfDay = triggerAt.atZone(java.time.ZoneId.systemDefault()).toLocalTime()
+            .let { it.hour * 60 + it.minute }
+        // Quiet window starting at the trigger minute, 1 hour wide — always contains triggerMinuteOfDay.
+        val quietStart = triggerMinuteOfDay
+        val quietEnd = (triggerMinuteOfDay + 60) % 1440
+        val coordinator = buildCoordinator(
+            scheduler = scheduler,
+            predictionFlow = MutableStateFlow(prediction(predictedAt)),
+            enabledFlow = MutableStateFlow(true),
+            leadFlow = MutableStateFlow(leadMinutes),
+            quietStartFlow = MutableStateFlow(quietStart),
+            quietEndFlow = MutableStateFlow(quietEnd),
+        )
+        coordinator.start()
+        advanceTimeBy(300)
+        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any()) }
+        verify(exactly = 1) { scheduler.cancelPredictiveReminder() }
+    }
+
+    @Test
+    fun `schedules alarm when quiet hours are disabled (start equals end)`() = runTest {
+        val scheduler = mockk<PredictiveFeedScheduler>(relaxed = true)
+        val p = prediction(Instant.now().plusSeconds(3600))
+        val coordinator = buildCoordinator(
+            scheduler = scheduler,
+            predictionFlow = MutableStateFlow(p),
+            enabledFlow = MutableStateFlow(true),
+            leadFlow = MutableStateFlow(15),
+            quietStartFlow = MutableStateFlow(0),
+            quietEndFlow = MutableStateFlow(0),
+        )
+        coordinator.start()
+        advanceTimeBy(300)
+        verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), p.predictedAt) }
+        verify(exactly = 0) { scheduler.cancelPredictiveReminder() }
+    }
+
     private fun TestScope.buildCoordinator(
         scheduler: PredictiveFeedScheduler,
         predictionFlow: MutableStateFlow<FeedPrediction?>,
         enabledFlow: MutableStateFlow<Boolean>,
         leadFlow: MutableStateFlow<Int>,
+        quietStartFlow: MutableStateFlow<Int> = MutableStateFlow(0),
+        quietEndFlow: MutableStateFlow<Int> = MutableStateFlow(0),
     ): PredictiveFeedNotificationCoordinator {
         val useCase = mockk<PredictNextFeedUseCase>().also {
             every { it.invoke() } returns predictionFlow
@@ -138,6 +183,8 @@ class PredictiveFeedNotificationCoordinatorTest {
         val settings = mockk<SettingsRepository>().also {
             every { it.getPredictiveEnabled() } returns enabledFlow
             every { it.getPredictiveLeadMinutes() } returns leadFlow
+            every { it.getQuietHoursStartMinute() } returns quietStartFlow
+            every { it.getQuietHoursEndMinute() } returns quietEndFlow
         }
         return PredictiveFeedNotificationCoordinator(
             predictNextFeed = useCase,
