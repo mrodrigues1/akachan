@@ -9,6 +9,7 @@ import com.babytracker.export.domain.PdfReportRenderer
 import com.babytracker.util.formatDateTime
 import com.babytracker.util.formatDuration
 import java.io.ByteArrayOutputStream
+import java.time.Duration
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,55 +18,125 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
 
     override fun render(data: PdfReportData): ByteArray {
         val doc = PdfDocument()
-        var pageNumber = 1
-        var page = doc.startPage(newPageInfo(pageNumber))
+        var page = doc.startPage(newPageInfo(1))
         var canvas = page.canvas
         var y = MARGIN + TITLE_SIZE
 
-        canvas.drawText("Baby Tracker — Health Summary", MARGIN, y, titlePaint)
+        canvas.drawText("Baby Health Summary", MARGIN, y, titlePaint)
         y += LINE
         canvas.drawText(
-            "${data.range.start.formatDateTime()}  to  ${data.range.end.formatDateTime()}",
+            "${data.range.start.formatDateTime()}  –  ${data.range.end.formatDateTime()}",
             MARGIN, y, captionPaint,
         )
         y += SECTION_GAP
 
-        val feedingPos = ensureRoom(doc, page, y)
-        page = feedingPos.page
-        canvas = feedingPos.canvas
-        y = feedingPos.y
+        y = drawSummary(canvas, y, data)
+        y += SECTION_GAP
+
+        canvas.drawLine(MARGIN, y, PAGE_WIDTH - MARGIN, y, separatorPaint)
+        y += SECTION_GAP
+
+        // Feeding section
+        val feedPos = ensureRoom(doc, page, y)
+        page = feedPos.page; canvas = feedPos.canvas; y = feedPos.y
         canvas.drawText("Feeding (${data.breastfeeding.size})", MARGIN, y, feedingHeaderPaint)
-        y += LINE
+        y += LINE * 0.7f
+        y = drawColumnHeaders(canvas, y, "Date & Time", "Side", "Duration")
+        canvas.drawLine(MARGIN, y - LINE * 0.15f, PAGE_WIDTH - MARGIN, y - LINE * 0.15f, separatorPaint)
+        y += LINE * 0.2f
+
         for (s in data.breastfeeding) {
             val pos = ensureRoom(doc, page, y)
-            page = pos.page
-            canvas = pos.canvas
-            y = pos.y
-            canvas.drawText(feedingRow(s), MARGIN, y, bodyPaint)
-            y += LINE
+            page = pos.page; canvas = pos.canvas; y = pos.y
+            y = drawFeedingRow(canvas, y, s)
         }
         y += SECTION_GAP
 
+        // Sleep section
         val sleepPos = ensureRoom(doc, page, y)
-        page = sleepPos.page
-        canvas = sleepPos.canvas
-        y = sleepPos.y
+        page = sleepPos.page; canvas = sleepPos.canvas; y = sleepPos.y
         canvas.drawText("Sleep (${data.sleep.size})", MARGIN, y, sleepHeaderPaint)
-        y += LINE
+        y += LINE * 0.7f
+        y = drawColumnHeaders(canvas, y, "Date & Time", "Type", "Duration")
+        canvas.drawLine(MARGIN, y - LINE * 0.15f, PAGE_WIDTH - MARGIN, y - LINE * 0.15f, separatorPaint)
+        y += LINE * 0.2f
+
         for (r in data.sleep) {
             val pos = ensureRoom(doc, page, y)
-            page = pos.page
-            canvas = pos.canvas
-            y = pos.y
-            canvas.drawText(sleepRow(r), MARGIN, y, bodyPaint)
-            y += LINE
+            page = pos.page; canvas = pos.canvas; y = pos.y
+            y = drawSleepRow(canvas, y, r)
         }
 
+        drawPageFooter(page.canvas, page.info.pageNumber)
         doc.finishPage(page)
         val out = ByteArrayOutputStream()
         doc.writeTo(out)
         doc.close()
         return out.toByteArray()
+    }
+
+    private fun drawSummary(canvas: android.graphics.Canvas, startY: Float, data: PdfReportData): Float {
+        val rangeDays = Duration.between(data.range.start, data.range.end).toDays().coerceAtLeast(1)
+        val avgFeedPerDay = "%.1f".format(data.breastfeeding.size.toFloat() / rangeDays)
+        val avgSleepPerDay = "%.1f".format(data.sleep.size.toFloat() / rangeDays)
+
+        var y = startY
+
+        canvas.drawText("Summary", MARGIN, y, sectionLabelPaint)
+        y += LINE * 0.6f
+        canvas.drawLine(MARGIN, y, PAGE_WIDTH - MARGIN, y, separatorPaint)
+        y += LINE
+
+        canvas.drawText("Feeding sessions", MARGIN, y, bodyPaint)
+        canvas.drawText(data.breastfeeding.size.toString(), COL_SUMMARY_COUNT, y, bodyBoldPaint)
+        canvas.drawText("avg $avgFeedPerDay per day", COL_SUMMARY_AVG, y, captionPaint)
+        y += LINE
+
+        canvas.drawText("Sleep records", MARGIN, y, bodyPaint)
+        canvas.drawText(data.sleep.size.toString(), COL_SUMMARY_COUNT, y, bodyBoldPaint)
+        canvas.drawText("avg $avgSleepPerDay per day", COL_SUMMARY_AVG, y, captionPaint)
+        y += LINE * 0.6f
+
+        canvas.drawLine(MARGIN, y, PAGE_WIDTH - MARGIN, y, separatorPaint)
+        return y
+    }
+
+    private fun drawColumnHeaders(
+        canvas: android.graphics.Canvas,
+        startY: Float,
+        col1: String,
+        col2: String,
+        col3: String,
+    ): Float {
+        canvas.drawText(col1, MARGIN, startY, columnHeaderPaint)
+        canvas.drawText(col2, COL_TYPE, startY, columnHeaderPaint)
+        canvas.drawText(col3, COL_DURATION, startY, columnHeaderPaint)
+        return startY + LINE
+    }
+
+    private fun drawFeedingRow(canvas: android.graphics.Canvas, startY: Float, s: BreastfeedingSession): Float {
+        val duration = s.activeDuration?.formatDuration() ?: "—"
+        val side = s.startingSide.name.lowercase().replaceFirstChar { it.uppercase() }
+        canvas.drawText(s.startTime.formatDateTime(), MARGIN, startY, bodyPaint)
+        canvas.drawText(side, COL_TYPE, startY, bodyPaint)
+        canvas.drawText(duration, COL_DURATION, startY, bodyPaint)
+        return startY + LINE
+    }
+
+    private fun drawSleepRow(canvas: android.graphics.Canvas, startY: Float, r: SleepRecord): Float {
+        val duration = r.duration?.formatDuration() ?: "—"
+        val type = r.sleepType.name
+            .lowercase()
+            .split("_")
+            .joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
+        canvas.drawText(r.startTime.formatDateTime(), MARGIN, startY, bodyPaint)
+        canvas.drawText(type, COL_TYPE, startY, bodyPaint)
+        canvas.drawText(duration, COL_DURATION, startY, bodyPaint)
+        return startY + LINE
+    }
+
+    private fun drawPageFooter(canvas: android.graphics.Canvas, pageNumber: Int) {
+        canvas.drawText(pageNumber.toString(), PAGE_WIDTH / 2, PAGE_HEIGHT - MARGIN / 2, pageNumberPaint)
     }
 
     private data class PagePos(
@@ -75,25 +146,15 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
     )
 
     private fun ensureRoom(doc: PdfDocument, current: PdfDocument.Page, y: Float): PagePos {
-        if (y <= PAGE_HEIGHT - MARGIN) return PagePos(current, current.canvas, y)
-        val next = current.info.pageNumber + 1
+        if (y <= PAGE_HEIGHT - MARGIN - FOOTER_HEIGHT) return PagePos(current, current.canvas, y)
+        drawPageFooter(current.canvas, current.info.pageNumber)
         doc.finishPage(current)
-        val page = doc.startPage(newPageInfo(next))
+        val page = doc.startPage(newPageInfo(current.info.pageNumber + 1))
         return PagePos(page, page.canvas, MARGIN + LINE)
     }
 
     private fun newPageInfo(number: Int) =
         PdfDocument.PageInfo.Builder(PAGE_WIDTH.toInt(), PAGE_HEIGHT.toInt(), number).create()
-
-    private fun feedingRow(s: BreastfeedingSession): String {
-        val duration = s.activeDuration?.formatDuration() ?: "—"
-        return "${s.startTime.formatDateTime()}   ${s.startingSide.name.lowercase()}   $duration"
-    }
-
-    private fun sleepRow(r: SleepRecord): String {
-        val duration = r.duration?.formatDuration() ?: "—"
-        return "${r.startTime.formatDateTime()}   ${r.sleepType.name.lowercase()}   $duration"
-    }
 
     private val titlePaint = Paint().apply {
         color = ON_SURFACE
@@ -103,6 +164,12 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
     private val captionPaint = Paint().apply {
         color = ON_SURFACE_VARIANT
         textSize = CAPTION_SIZE
+    }
+    private val sectionLabelPaint = Paint().apply {
+        color = ON_SURFACE_VARIANT
+        textSize = CAPTION_SIZE
+        isFakeBoldText = true
+        letterSpacing = 0.06f
     }
     private val feedingHeaderPaint = Paint().apply {
         color = FEEDING
@@ -118,6 +185,26 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         color = ON_SURFACE
         textSize = BODY_SIZE
     }
+    private val bodyBoldPaint = Paint().apply {
+        color = ON_SURFACE
+        textSize = BODY_SIZE
+        isFakeBoldText = true
+    }
+    private val columnHeaderPaint = Paint().apply {
+        color = ON_SURFACE_VARIANT
+        textSize = CAPTION_SIZE
+        isFakeBoldText = true
+    }
+    private val separatorPaint = Paint().apply {
+        color = OUTLINE_COLOR
+        strokeWidth = 0.5f
+        style = Paint.Style.STROKE
+    }
+    private val pageNumberPaint = Paint().apply {
+        color = ON_SURFACE_VARIANT
+        textSize = CAPTION_SIZE
+        textAlign = Paint.Align.CENTER
+    }
 
     companion object {
         // Design tokens re-declared as android.graphics.Color ints (cannot import Compose Color).
@@ -125,16 +212,26 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         private const val SLEEP = 0xFF1976D2.toInt()              // Blue700
         private const val ON_SURFACE = 0xFF1A1A1A.toInt()         // OnSurfaceDark
         private const val ON_SURFACE_VARIANT = 0xFF6D6A64.toInt() // OnSurfaceVariantGrey
+        private const val OUTLINE_COLOR = 0xFFCAC4D0.toInt()      // OutlineVariantLight
 
         private const val PAGE_WIDTH = 595f   // A4 @ 72dpi
         private const val PAGE_HEIGHT = 842f
         private const val MARGIN = 40f
+        private const val FOOTER_HEIGHT = 28f
         private const val LINE = 22f
         private const val SECTION_GAP = 28f
         private const val TITLE_SIZE = 28f
-        private const val HEADER_SIZE = 18f
-        private const val BODY_SIZE = 14f
-        private const val CAPTION_SIZE = 12f
+        private const val HEADER_SIZE = 16f
+        private const val BODY_SIZE = 12f
+        private const val CAPTION_SIZE = 10f
+
+        // Fixed column X positions for detail rows
+        private const val COL_TYPE = 190f
+        private const val COL_DURATION = 310f
+
+        // Fixed column X positions for summary rows
+        private const val COL_SUMMARY_COUNT = 155f
+        private const val COL_SUMMARY_AVG = 195f
 
         /** Pure pagination helper: pages needed for [rowCount] rows at [rowsPerPage]. Always >= 1. */
         fun paginate(rowCount: Int, rowsPerPage: Int): Int =

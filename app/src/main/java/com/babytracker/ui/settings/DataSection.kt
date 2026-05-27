@@ -8,21 +8,32 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.TableChart
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +41,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.babytracker.export.domain.model.DateRange
 import java.time.Instant
+import kotlinx.coroutines.launch
 
 @Composable
 fun DataSection(
@@ -42,7 +54,7 @@ fun DataSection(
     onCancelImport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showRangeDialog by remember { mutableStateOf(false) }
+    var showRangeSheet by remember { mutableStateOf(false) }
     val working = state.status == DataExportUiState.Status.WORKING
 
     Column(modifier = modifier) {
@@ -71,25 +83,49 @@ fun DataSection(
 
         DataActionRow(
             label = "PDF report",
-            value = "Share your tracking data as a report",
+            value = "Feeding & sleep summary, ready to share",
             actionLabel = "Share",
             enabled = !working,
-            onClick = { showRangeDialog = true },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Outlined.Description,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp),
+                )
+            },
+            onClick = { showRangeSheet = true },
         )
-        HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+        HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
         DataActionRow(
             label = "Backup (JSON)",
             value = "Full snapshot, restore anytime",
             actionLabel = "Save",
             enabled = !working,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Outlined.Code,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp),
+                )
+            },
             onClick = onExportJson,
         )
-        HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+        HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
         DataActionRow(
             label = "Spreadsheet (CSV)",
             value = "Open in Excel, Numbers, or Sheets",
             actionLabel = "Share",
             enabled = !working,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Outlined.TableChart,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp),
+                )
+            },
             onClick = onExportCsv,
         )
 
@@ -118,45 +154,44 @@ fun DataSection(
                 Text("Restore")
             }
         }
+    }
 
-        if (showRangeDialog) {
-            RangePickerDialog(
-                onDismiss = { showRangeDialog = false },
-                onConfirm = { days ->
-                    showRangeDialog = false
-                    onExportPdf(DateRange.lastDays(days.toLong(), Instant.now()))
-                },
-            )
-        }
+    if (showRangeSheet) {
+        RangePickerSheet(
+            onDismiss = { showRangeSheet = false },
+            onConfirm = { days ->
+                onExportPdf(DateRange.lastDays(days.toLong(), Instant.now()))
+            },
+        )
+    }
 
-        val preview = state.importPreview
-        if (preview != null) {
-            AlertDialog(
-                onDismissRequest = onCancelImport,
-                title = { Text("Import backup?") },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            "This will merge into your current data:",
-                            modifier = Modifier.testTag("importConfirmText"),
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text("• ${preview.breastfeeding} feeding sessions")
-                        Text("• ${preview.sleep} sleep records")
-                        Text("• ${preview.pumping} pumping sessions")
-                        Text("• ${preview.milkBags} milk bags")
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Existing records are kept; duplicates are skipped.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-                confirmButton = { TextButton(onClick = onConfirmImport, enabled = !working) { Text("Import") } },
-                dismissButton = { TextButton(onClick = onCancelImport) { Text("Cancel") } },
-            )
-        }
+    val preview = state.importPreview
+    if (preview != null) {
+        AlertDialog(
+            onDismissRequest = onCancelImport,
+            title = { Text("Import backup?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        "This will merge into your current data:",
+                        modifier = Modifier.testTag("importConfirmText"),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text("• ${preview.breastfeeding} feeding sessions")
+                    Text("• ${preview.sleep} sleep records")
+                    Text("• ${preview.pumping} pumping sessions")
+                    Text("• ${preview.milkBags} milk bags")
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Existing records are kept; duplicates are skipped.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            confirmButton = { TextButton(onClick = onConfirmImport, enabled = !working) { Text("Import") } },
+            dismissButton = { TextButton(onClick = onCancelImport) { Text("Cancel") } },
+        )
     }
 }
 
@@ -168,6 +203,7 @@ private fun DataActionRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    leadingIcon: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -177,6 +213,10 @@ private fun DataActionRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (leadingIcon != null) {
+            leadingIcon()
+            Spacer(Modifier.width(14.dp))
+        }
         Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
             Text(text = label, style = MaterialTheme.typography.bodyLarge)
             Text(
@@ -191,31 +231,84 @@ private fun DataActionRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RangePickerDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
-    val options = listOf(7, 14, 30)
+private fun RangePickerSheet(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
     var selected by remember { mutableIntStateOf(7) }
-    AlertDialog(
+
+    val options = listOf(7 to "Last 7 days", 14 to "Last 2 weeks", 30 to "Last month")
+
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text("PDF date range") },
-        text = {
-            Column {
-                options.forEach { days ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(selected = selected == days, onClick = { selected = days })
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        RadioButton(selected = selected == days, onClick = { selected = days })
-                        Text("Last $days days")
-                    }
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+        ) {
+            Text("PDF Report", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Choose the date range to include",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+
+            options.forEachIndexed { index, (days, label) ->
+                RangeOption(
+                    label = label,
+                    selected = selected == days,
+                    onClick = { selected = days },
+                )
+                if (index < options.lastIndex) {
+                    HorizontalDivider()
                 }
             }
-        },
-        confirmButton = { TextButton(onClick = { onConfirm(selected) }) { Text("Export") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
+
+            Spacer(Modifier.height(20.dp))
+            Button(
+                onClick = {
+                    val days = selected
+                    scope.launch { sheetState.hide() }.invokeOnCompletion {
+                        onDismiss()
+                        onConfirm(days)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Share PDF")
+            }
+        }
+    }
+}
+
+@Composable
+private fun RangeOption(label: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+        )
+        if (selected) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
 }
