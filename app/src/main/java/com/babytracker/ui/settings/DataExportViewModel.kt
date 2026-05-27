@@ -167,7 +167,7 @@ class DataExportViewModel @Inject constructor(
                 throw e
             } catch (ignore: Exception) {
                 _uiState.update {
-                    it.copy(status = DataExportUiState.Status.ERROR, message = ignore.message ?: "Something went wrong")
+                    it.copy(status = DataExportUiState.Status.ERROR, message = ignore.message ?: "Export failed. Try again.")
                 }
             }
         }
