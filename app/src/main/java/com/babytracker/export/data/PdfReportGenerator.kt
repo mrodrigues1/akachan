@@ -19,6 +19,7 @@ import javax.inject.Singleton
 class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
 
     override fun render(data: PdfReportData): ByteArray {
+        val totalPages = countPages(data)
         val doc = PdfDocument()
         var page = doc.startPage(newPageInfo(1))
         var canvas = page.canvas
@@ -40,7 +41,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         y += SECTION_GAP
 
         // Feeding section
-        val feedPos = ensureRoom(doc, page, y)
+        val feedPos = ensureRoom(doc, page, y, totalPages)
         page = feedPos.page; canvas = feedPos.canvas; y = feedPos.y
         canvas.drawText("Feeding (${data.breastfeeding.size})", MARGIN, y, feedingHeaderPaint)
         y += LINE * 0.7f
@@ -49,7 +50,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         y += LINE * 0.2f
 
         for (s in data.breastfeeding) {
-            val pos = ensureRoom(doc, page, y) { c ->
+            val pos = ensureRoom(doc, page, y, totalPages) { c ->
                 var hy = drawColumnHeaders(c, MARGIN + LINE, "Date & Time", "Side", "Duration")
                 c.drawLine(MARGIN, hy - LINE * 0.15f, PAGE_WIDTH - MARGIN, hy - LINE * 0.15f, separatorPaint)
                 hy + LINE * 0.2f
@@ -60,7 +61,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         y += SECTION_GAP
 
         // Sleep section
-        val sleepPos = ensureRoom(doc, page, y)
+        val sleepPos = ensureRoom(doc, page, y, totalPages)
         page = sleepPos.page; canvas = sleepPos.canvas; y = sleepPos.y
         canvas.drawText("Sleep (${data.sleep.size})", MARGIN, y, sleepHeaderPaint)
         y += LINE * 0.7f
@@ -69,7 +70,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         y += LINE * 0.2f
 
         for (r in data.sleep) {
-            val pos = ensureRoom(doc, page, y) { c ->
+            val pos = ensureRoom(doc, page, y, totalPages) { c ->
                 var hy = drawColumnHeaders(c, MARGIN + LINE, "Date & Time", "Type", "Duration")
                 c.drawLine(MARGIN, hy - LINE * 0.15f, PAGE_WIDTH - MARGIN, hy - LINE * 0.15f, separatorPaint)
                 hy + LINE * 0.2f
@@ -78,7 +79,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
             y = drawSleepRow(canvas, y, r)
         }
 
-        drawPageFooter(page.canvas, page.info.pageNumber)
+        drawPageFooter(page.canvas, page.info.pageNumber, totalPages)
         doc.finishPage(page)
         val out = ByteArrayOutputStream()
         doc.writeTo(out)
@@ -146,8 +147,8 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         return startY + LINE
     }
 
-    private fun drawPageFooter(canvas: android.graphics.Canvas, pageNumber: Int) {
-        canvas.drawText(pageNumber.toString(), PAGE_WIDTH / 2, PAGE_HEIGHT - MARGIN / 2, pageNumberPaint)
+    private fun drawPageFooter(canvas: android.graphics.Canvas, pageNumber: Int, totalPages: Int) {
+        canvas.drawText("Page $pageNumber of $totalPages", PAGE_WIDTH / 2, PAGE_HEIGHT - MARGIN / 2, pageNumberPaint)
     }
 
     private data class PagePos(
@@ -160,14 +161,52 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         doc: PdfDocument,
         current: PdfDocument.Page,
         y: Float,
+        totalPages: Int,
         onNewPage: ((android.graphics.Canvas) -> Float)? = null,
     ): PagePos {
         if (y <= PAGE_HEIGHT - MARGIN - FOOTER_HEIGHT) return PagePos(current, current.canvas, y)
-        drawPageFooter(current.canvas, current.info.pageNumber)
+        drawPageFooter(current.canvas, current.info.pageNumber, totalPages)
         doc.finishPage(current)
         val page = doc.startPage(newPageInfo(current.info.pageNumber + 1))
         val newY = onNewPage?.invoke(page.canvas) ?: (MARGIN + LINE)
         return PagePos(page, page.canvas, newY)
+    }
+
+    /**
+     * Simulates the layout pass to count total pages without drawing.
+     * Must mirror the y-advancement logic in render() exactly.
+     */
+    private fun countPages(data: PdfReportData): Int {
+        var pageCount = 1
+
+        fun sim(y: Float, newPageY: Float): Float =
+            if (y <= PAGE_HEIGHT - MARGIN - FOOTER_HEIGHT) y else { pageCount++; newPageY }
+
+        var y = MARGIN + TITLE_SIZE + LINE + SECTION_GAP
+        y += LINE * 0.6f + LINE + LINE + LINE + LINE * 0.6f  // drawSummary block
+        y += SECTION_GAP
+        y += SECTION_GAP  // after separator
+
+        // Feeding section header
+        y = sim(y, MARGIN + LINE)
+        y += LINE * 0.7f + LINE + LINE * 0.2f
+
+        repeat(data.breastfeeding.size) {
+            y = sim(y, MARGIN + LINE * 2.2f)
+            y += LINE
+        }
+        y += SECTION_GAP
+
+        // Sleep section header
+        y = sim(y, MARGIN + LINE)
+        y += LINE * 0.7f + LINE + LINE * 0.2f
+
+        repeat(data.sleep.size) {
+            y = sim(y, MARGIN + LINE * 2.2f)
+            y += LINE
+        }
+
+        return pageCount
     }
 
     private fun newPageInfo(number: Int) =
@@ -248,7 +287,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
 
         // Fixed column X positions for summary rows
         private const val COL_SUMMARY_COUNT = 155f
-        private const val COL_SUMMARY_AVG = 195f
+        private const val COL_SUMMARY_AVG = 230f
 
         /** Pure pagination helper: pages needed for [rowCount] rows at [rowsPerPage]. Always >= 1. */
         fun paginate(rowCount: Int, rowsPerPage: Int): Int =
