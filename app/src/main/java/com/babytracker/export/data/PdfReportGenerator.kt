@@ -25,7 +25,9 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         var canvas = page.canvas
         var y = MARGIN + BRAND_LABEL_SIZE
         canvas.drawText("AKACHAN", MARGIN, y, brandLabelPaint)
-        y += TITLE_SIZE + LINE * 0.4f
+        y += LINE * 0.5f
+        canvas.drawLine(MARGIN, y, PAGE_WIDTH - MARGIN, y, brandRulePaint)
+        y += TITLE_SIZE + LINE * 0.2f
 
         canvas.drawText("Baby Health Summary", MARGIN, y, titlePaint)
         y += LINE
@@ -184,7 +186,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         fun sim(y: Float, newPageY: Float): Float =
             if (y <= PAGE_HEIGHT - MARGIN - FOOTER_HEIGHT) y else { pageCount++; newPageY }
 
-        var y = MARGIN + BRAND_LABEL_SIZE + TITLE_SIZE + LINE * 0.4f + LINE + SECTION_GAP
+        var y = MARGIN + BRAND_LABEL_SIZE + LINE * 0.5f + TITLE_SIZE + LINE * 0.2f + LINE + SECTION_GAP
         y += LINE * 0.6f + LINE + LINE + LINE + LINE * 0.6f  // drawSummary block
         y += SECTION_GAP
         y += SECTION_GAP  // after separator
@@ -219,6 +221,11 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         textSize = BRAND_LABEL_SIZE
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         letterSpacing = 0.12f
+    }
+    private val brandRulePaint = Paint().apply {
+        color = FEEDING
+        strokeWidth = 1.5f
+        style = Paint.Style.STROKE
     }
     private val titlePaint = Paint().apply {
         color = ON_SURFACE
