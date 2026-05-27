@@ -402,14 +402,14 @@ fun SettingsScreen(
                 }
 
                 LeadTimeSegmentedRow(
-                    enabled = uiState.predictiveEnabled && uiState.validIntervalCount >= 3,
+                    enabled = uiState.predictiveEnabled,
                     selectedMinutes = uiState.predictiveLeadMinutes,
                     onSelect = viewModel::onLeadMinutesChanged,
                 )
 
                 val is24Hour = DateFormat.is24HourFormat(context)
                 QuietHoursRow(
-                    enabled = uiState.predictiveEnabled && uiState.validIntervalCount >= 3,
+                    enabled = uiState.predictiveEnabled,
                     startMinute = uiState.quietHoursStartMinute,
                     endMinute = uiState.quietHoursEndMinute,
                     is24Hour = is24Hour,
