@@ -78,7 +78,10 @@ class SettingsScreenPredictionTest {
             appMode = AppMode.NONE,
             predictiveEnabledInitial = false,
         )
-        val vm = buildViewModel(settingsRepository = repo)
+        val validIntervals = mockk<CountRecentValidIntervalsUseCase>().also {
+            every { it.invoke() } returns flowOf(3)
+        }
+        val vm = buildViewModel(settingsRepository = repo, countRecentValidIntervals = validIntervals)
         composeRule.setContent {
             SettingsScreen(onNavigateBack = {}, viewModel = vm, dataVm = buildFakeDataExportViewModel())
         }
@@ -132,7 +135,10 @@ class SettingsScreenPredictionTest {
             appMode = AppMode.NONE,
             predictiveEnabledInitial = true,
         )
-        val vm = buildViewModel(settingsRepository = repo)
+        val validIntervals = mockk<CountRecentValidIntervalsUseCase>().also {
+            every { it.invoke() } returns flowOf(3)
+        }
+        val vm = buildViewModel(settingsRepository = repo, countRecentValidIntervals = validIntervals)
         composeRule.setContent {
             SettingsScreen(onNavigateBack = {}, viewModel = vm, dataVm = buildFakeDataExportViewModel())
         }

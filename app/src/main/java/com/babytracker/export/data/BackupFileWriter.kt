@@ -78,6 +78,7 @@ class BackupFileWriter @Inject constructor(
         val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
         val itemUri = resolver.insert(collection, values)
             ?: error("MediaStore insert failed for $fileName")
+        var succeeded = false
         try {
             resolver.openOutputStream(itemUri)?.use { it.write(bytes) }
                 ?: error("Could not open output stream for $itemUri")
@@ -85,9 +86,9 @@ class BackupFileWriter @Inject constructor(
             values.put(MediaStore.Downloads.IS_PENDING, 0)
             val updated = resolver.update(itemUri, values, null, null)
             check(updated > 0) { "MediaStore update failed to clear pending flag for $itemUri" }
-        } catch (e: Exception) {
-            runCatching { resolver.delete(itemUri, null, null) }
-            throw e
+            succeeded = true
+        } finally {
+            if (!succeeded) runCatching { resolver.delete(itemUri, null, null) }
         }
         itemUri
     }
