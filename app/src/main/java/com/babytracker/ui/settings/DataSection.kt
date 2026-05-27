@@ -1,5 +1,6 @@
 package com.babytracker.ui.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,13 +13,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.ReportProblem
+import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.TableChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -30,17 +33,16 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.babytracker.export.domain.model.DateRange
-import java.time.Instant
 import kotlinx.coroutines.launch
 
 @Composable
@@ -53,6 +55,7 @@ fun DataSection(
     onConfirmImport: () -> Unit,
     onCancelImport: () -> Unit,
     modifier: Modifier = Modifier,
+    onDismissMessage: () -> Unit = {},
 ) {
     var showRangeSheet by remember { mutableStateOf(false) }
     val working = state.status == DataExportUiState.Status.WORKING
@@ -74,9 +77,42 @@ fun DataSection(
             )
         }
 
+        if (state.status == DataExportUiState.Status.ERROR && state.message != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.small)
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.ReportProblem,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = state.message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(
+                    onClick = onDismissMessage,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
+                ) {
+                    Text("Dismiss")
+                }
+            }
+        }
+
         if (state.importIncomplete) {
             WarningSurface(
                 title = "Your last import may be incomplete. Re-import your backup to finish.",
+                actionLabel = "Re-import",
+                onAction = onImport,
                 modifier = Modifier.testTag("importIncompleteNotice"),
             )
         }
@@ -84,7 +120,7 @@ fun DataSection(
         DataActionRow(
             label = "PDF report",
             value = "Feeding & sleep summary, ready to share",
-            actionLabel = "Share",
+            actionLabel = "Export…",
             enabled = !working,
             leadingIcon = {
                 Icon(
@@ -104,7 +140,7 @@ fun DataSection(
             enabled = !working,
             leadingIcon = {
                 Icon(
-                    imageVector = Icons.Outlined.Code,
+                    imageVector = Icons.Outlined.Backup,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(22.dp),
@@ -129,39 +165,28 @@ fun DataSection(
             onClick = onExportCsv,
         )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(enabled = !working, onClick = onImport)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                Text(text = "Restore from backup", style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    text = "Merge records from a JSON backup file",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+        HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+        DataActionRow(
+            label = "Restore from backup",
+            value = "Merge records from a JSON backup file",
+            actionLabel = "Restore",
+            enabled = !working,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Outlined.Restore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp),
                 )
-            }
-            FilledTonalButton(
-                onClick = onImport,
-                enabled = !working,
-            ) {
-                Text("Restore")
-            }
-        }
+            },
+            onClick = onImport,
+        )
     }
 
     if (showRangeSheet) {
         RangePickerSheet(
             onDismiss = { showRangeSheet = false },
-            onConfirm = { days ->
-                onExportPdf(DateRange.lastDays(days.toLong(), Instant.now()))
-            },
+            onConfirm = { range -> onExportPdf(range) },
         )
     }
 
@@ -233,12 +258,12 @@ private fun DataActionRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RangePickerSheet(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
+private fun RangePickerSheet(onDismiss: () -> Unit, onConfirm: (DateRange) -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
-    var selected by remember { mutableIntStateOf(7) }
+    var selected by rememberSaveable { mutableStateOf(7) }
 
-    val options = listOf(7 to "Last 7 days", 14 to "Last 2 weeks", 30 to "Last month")
+    val options = listOf(7 to "Last 7 days", 14 to "Last 2 weeks", 30 to "Last month", -1 to "All time")
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -276,7 +301,8 @@ private fun RangePickerSheet(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
                     val days = selected
                     scope.launch { sheetState.hide() }.invokeOnCompletion {
                         onDismiss()
-                        onConfirm(days)
+                        val range = if (days < 0) DateRange.allTime() else DateRange.lastDays(days.toLong())
+                        onConfirm(range)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),

@@ -159,8 +159,11 @@ fun SettingsScreen(
 
     LaunchedEffect(dataState.message) {
         dataState.message?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            dataVm.onMessageShown()
+            if (dataState.status != DataExportUiState.Status.ERROR) {
+                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                dataVm.onMessageShown()
+            }
+            // ERROR state: DataSection shows an inline persistent surface
         }
     }
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -472,6 +475,7 @@ fun SettingsScreen(
                     onImport = { openDocLauncher.launch(arrayOf("application/json")) },
                     onConfirmImport = dataVm::confirmImport,
                     onCancelImport = dataVm::cancelImport,
+                    onDismissMessage = dataVm::onMessageShown,
                 )
             }
 

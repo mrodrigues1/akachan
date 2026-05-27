@@ -57,7 +57,7 @@ internal fun WarningSurface(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = if (subtitle != null) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodySmall,
+                style = if (subtitle != null) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium,
                 color = contentColor,
             )
             if (subtitle != null) {

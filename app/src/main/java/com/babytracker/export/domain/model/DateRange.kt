@@ -14,5 +14,8 @@ data class DateRange(
     companion object {
         fun lastDays(days: Long, now: Instant = Instant.now()): DateRange =
             DateRange(start = now.minus(Duration.ofDays(days)), end = now)
+
+        fun allTime(now: Instant = Instant.now()): DateRange =
+            DateRange(start = Instant.EPOCH, end = now)
     }
 }
