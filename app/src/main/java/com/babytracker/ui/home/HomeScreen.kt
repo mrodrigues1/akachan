@@ -14,8 +14,10 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -182,7 +184,9 @@ fun HomeScreen(
             // Summary cards — 2×2 grid
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Max),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // Breastfeeding card
@@ -196,6 +200,7 @@ fun HomeScreen(
                         onClick = onNavigateToBreastfeeding,
                         modifier = Modifier
                             .weight(1f)
+                            .fillMaxHeight()
                             .heightIn(min = 140.dp)
                             .semantics {
                                 contentDescription = if (isActiveFeeding)
@@ -281,6 +286,7 @@ fun HomeScreen(
                         onClick = onNavigateToSleep,
                         modifier = Modifier
                             .weight(1f)
+                            .fillMaxHeight()
                             .heightIn(min = 140.dp)
                             .semantics {
                                 contentDescription = if (isActiveSleep)
