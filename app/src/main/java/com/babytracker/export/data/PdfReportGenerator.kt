@@ -6,10 +6,11 @@ import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.export.domain.PdfReportData
 import com.babytracker.export.domain.PdfReportRenderer
-import com.babytracker.util.formatDateTime
+import com.babytracker.util.formatPdfDateTime
 import com.babytracker.util.formatDuration
 import java.io.ByteArrayOutputStream
 import java.time.Duration
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,8 +25,9 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
 
         canvas.drawText("Baby Health Summary", MARGIN, y, titlePaint)
         y += LINE
+        val startLabel = if (data.range.start == Instant.EPOCH) "All time" else data.range.start.formatPdfDateTime()
         canvas.drawText(
-            "${data.range.start.formatDateTime()}  –  ${data.range.end.formatDateTime()}",
+            "$startLabel  –  ${data.range.end.formatPdfDateTime()}",
             MARGIN, y, captionPaint,
         )
         y += SECTION_GAP
@@ -46,7 +48,11 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         y += LINE * 0.2f
 
         for (s in data.breastfeeding) {
-            val pos = ensureRoom(doc, page, y)
+            val pos = ensureRoom(doc, page, y) { c ->
+                var hy = drawColumnHeaders(c, MARGIN + LINE, "Date & Time", "Side", "Duration")
+                c.drawLine(MARGIN, hy - LINE * 0.15f, PAGE_WIDTH - MARGIN, hy - LINE * 0.15f, separatorPaint)
+                hy + LINE * 0.2f
+            }
             page = pos.page; canvas = pos.canvas; y = pos.y
             y = drawFeedingRow(canvas, y, s)
         }
@@ -62,7 +68,11 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         y += LINE * 0.2f
 
         for (r in data.sleep) {
-            val pos = ensureRoom(doc, page, y)
+            val pos = ensureRoom(doc, page, y) { c ->
+                var hy = drawColumnHeaders(c, MARGIN + LINE, "Date & Time", "Type", "Duration")
+                c.drawLine(MARGIN, hy - LINE * 0.15f, PAGE_WIDTH - MARGIN, hy - LINE * 0.15f, separatorPaint)
+                hy + LINE * 0.2f
+            }
             page = pos.page; canvas = pos.canvas; y = pos.y
             y = drawSleepRow(canvas, y, r)
         }
@@ -117,7 +127,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
     private fun drawFeedingRow(canvas: android.graphics.Canvas, startY: Float, s: BreastfeedingSession): Float {
         val duration = s.activeDuration?.formatDuration() ?: "—"
         val side = s.startingSide.name.lowercase().replaceFirstChar { it.uppercase() }
-        canvas.drawText(s.startTime.formatDateTime(), MARGIN, startY, bodyPaint)
+        canvas.drawText(s.startTime.formatPdfDateTime(), MARGIN, startY, bodyPaint)
         canvas.drawText(side, COL_TYPE, startY, bodyPaint)
         canvas.drawText(duration, COL_DURATION, startY, bodyPaint)
         return startY + LINE
@@ -129,7 +139,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
             .lowercase()
             .split("_")
             .joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
-        canvas.drawText(r.startTime.formatDateTime(), MARGIN, startY, bodyPaint)
+        canvas.drawText(r.startTime.formatPdfDateTime(), MARGIN, startY, bodyPaint)
         canvas.drawText(type, COL_TYPE, startY, bodyPaint)
         canvas.drawText(duration, COL_DURATION, startY, bodyPaint)
         return startY + LINE
@@ -145,12 +155,18 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         val y: Float,
     )
 
-    private fun ensureRoom(doc: PdfDocument, current: PdfDocument.Page, y: Float): PagePos {
+    private fun ensureRoom(
+        doc: PdfDocument,
+        current: PdfDocument.Page,
+        y: Float,
+        onNewPage: ((android.graphics.Canvas) -> Float)? = null,
+    ): PagePos {
         if (y <= PAGE_HEIGHT - MARGIN - FOOTER_HEIGHT) return PagePos(current, current.canvas, y)
         drawPageFooter(current.canvas, current.info.pageNumber)
         doc.finishPage(current)
         val page = doc.startPage(newPageInfo(current.info.pageNumber + 1))
-        return PagePos(page, page.canvas, MARGIN + LINE)
+        val newY = onNewPage?.invoke(page.canvas) ?: (MARGIN + LINE)
+        return PagePos(page, page.canvas, newY)
     }
 
     private fun newPageInfo(number: Int) =
