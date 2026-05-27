@@ -23,7 +23,9 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         val doc = PdfDocument()
         var page = doc.startPage(newPageInfo(1))
         var canvas = page.canvas
-        var y = MARGIN + TITLE_SIZE
+        var y = MARGIN + BRAND_LABEL_SIZE
+        canvas.drawText("AKACHAN", MARGIN, y, brandLabelPaint)
+        y += TITLE_SIZE + LINE * 0.4f
 
         canvas.drawText("Baby Health Summary", MARGIN, y, titlePaint)
         y += LINE
@@ -182,7 +184,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         fun sim(y: Float, newPageY: Float): Float =
             if (y <= PAGE_HEIGHT - MARGIN - FOOTER_HEIGHT) y else { pageCount++; newPageY }
 
-        var y = MARGIN + TITLE_SIZE + LINE + SECTION_GAP
+        var y = MARGIN + BRAND_LABEL_SIZE + TITLE_SIZE + LINE * 0.4f + LINE + SECTION_GAP
         y += LINE * 0.6f + LINE + LINE + LINE + LINE * 0.6f  // drawSummary block
         y += SECTION_GAP
         y += SECTION_GAP  // after separator
@@ -212,6 +214,12 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
     private fun newPageInfo(number: Int) =
         PdfDocument.PageInfo.Builder(PAGE_WIDTH.toInt(), PAGE_HEIGHT.toInt(), number).create()
 
+    private val brandLabelPaint = Paint().apply {
+        color = FEEDING
+        textSize = BRAND_LABEL_SIZE
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        letterSpacing = 0.12f
+    }
     private val titlePaint = Paint().apply {
         color = ON_SURFACE
         textSize = TITLE_SIZE
@@ -276,6 +284,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         private const val FOOTER_HEIGHT = 28f
         private const val LINE = 22f
         private const val SECTION_GAP = 28f
+        private const val BRAND_LABEL_SIZE = 9f
         private const val TITLE_SIZE = 28f
         private const val HEADER_SIZE = 16f
         private const val BODY_SIZE = 12f
