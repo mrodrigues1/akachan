@@ -117,4 +117,29 @@ class DateTimeExtTest {
     fun formatElapsedShortExactHoursReturnsZeroPaddedMinutes() {
         assertEquals("2h 00m", Duration.ofHours(2).formatElapsedShort())
     }
+
+    @Test
+    fun formatElapsedCompactUnderOneMinuteReturnsJustNow() {
+        assertEquals("Just now", Duration.ofSeconds(30).formatElapsedCompact())
+    }
+
+    @Test
+    fun formatElapsedCompactMinutesReturnsMinutes() {
+        assertEquals("14m", Duration.ofMinutes(14).formatElapsedCompact())
+    }
+
+    @Test
+    fun formatElapsedCompactHoursAndMinutesReturnsHoursAndMinutes() {
+        assertEquals("2h 14m", Duration.ofHours(2).plus(Duration.ofMinutes(14)).formatElapsedCompact())
+    }
+
+    @Test
+    fun formatElapsedCompactExactDayReturnsDays() {
+        assertEquals("1d", Duration.ofDays(1).formatElapsedCompact())
+    }
+
+    @Test
+    fun formatElapsedCompactMultipleDaysDropsHours() {
+        assertEquals("7d", Duration.ofHours(174).plus(Duration.ofMinutes(8)).formatElapsedCompact())
+    }
 }

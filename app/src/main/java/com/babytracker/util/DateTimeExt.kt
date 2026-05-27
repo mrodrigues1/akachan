@@ -72,3 +72,15 @@ fun Duration.formatElapsedShort(): String {
     val minutes = (toMinutes() % 60).toInt()
     return if (hours > 0) "${hours}h ${"%02d".format(minutes)}m" else "${minutes}m"
 }
+
+fun Duration.formatElapsedCompact(): String {
+    val days = toDays()
+    val hours = toHours()
+    val minutes = (toMinutes() % 60).toInt()
+    return when {
+        days > 0 -> "${days}d"
+        hours > 0 -> "${hours}h ${minutes}m"
+        minutes > 0 -> "${minutes}m"
+        else -> "Just now"
+    }
+}
