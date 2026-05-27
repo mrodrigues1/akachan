@@ -92,7 +92,15 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
     }
 
     private fun drawSummary(canvas: android.graphics.Canvas, startY: Float, data: PdfReportData): Float {
-        val rangeDays = Duration.between(data.range.start, data.range.end).toDays().coerceAtLeast(1)
+        // For all-time reports (start == EPOCH), compute the window from the earliest actual
+        // record so the per-day average is meaningful rather than ~0 over 20k days.
+        val effectiveStart = if (data.range.start == Instant.EPOCH) {
+            (data.breastfeeding.map { it.startTime } + data.sleep.map { it.startTime })
+                .minOrNull() ?: data.range.end
+        } else {
+            data.range.start
+        }
+        val rangeDays = Duration.between(effectiveStart, data.range.end).toDays().coerceAtLeast(1)
         val avgFeedPerDay = "%.1f".format(data.breastfeeding.size.toFloat() / rangeDays)
         val avgSleepPerDay = "%.1f".format(data.sleep.size.toFloat() / rangeDays)
 
@@ -187,7 +195,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
             if (y <= PAGE_HEIGHT - MARGIN - FOOTER_HEIGHT) y else { pageCount++; newPageY }
 
         var y = MARGIN + BRAND_LABEL_SIZE + LINE * 0.5f + TITLE_SIZE + LINE * 0.2f + LINE + SECTION_GAP
-        y += LINE * 0.6f + LINE + LINE + LINE + LINE * 0.6f  // drawSummary block
+        y += LINE * 0.6f + LINE + LINE + LINE * 0.6f  // mirrors drawSummary y-advances exactly
         y += SECTION_GAP
         y += SECTION_GAP  // after separator
 
