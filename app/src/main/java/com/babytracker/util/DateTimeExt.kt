@@ -17,6 +17,11 @@ fun Instant.formatDateTime(): String =
         .withZone(ZoneId.systemDefault())
         .format(this)
 
+fun Instant.formatPdfDateTime(): String =
+    DateTimeFormatter.ofPattern("MMM dd yyyy, HH:mm")
+        .withZone(ZoneId.systemDefault())
+        .format(this)
+
 fun Instant.formatTime12h(): String =
     DateTimeFormatter.ofPattern("hh:mm a")
         .withZone(ZoneId.systemDefault())
