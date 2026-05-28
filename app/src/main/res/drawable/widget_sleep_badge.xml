@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sleep domain container (Sleep Blue Container). Keep fill in sync with
+     theme secondaryContainer (SecondaryContainerBlue / Blue200). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#B3E5FC" />
+    <corners android:radius="12dp" />
+</shape>

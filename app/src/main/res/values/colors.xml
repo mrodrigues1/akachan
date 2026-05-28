@@ -9,4 +9,9 @@
     <color name="notification_warning_track">#FFE0B2</color>
     <color name="notification_sleep_accent">#1976D2</color>
     <color name="notification_sleep_track">#B3E5FC</color>
+
+    <!-- Widget — on-container text for the static preview/loading layouts. -->
+    <color name="widget_on_feed">#880E4F</color>
+    <color name="widget_on_sleep">#0D47A1</color>
+    <color name="widget_on_surface_variant">#6D6A64</color>
 </resources>
