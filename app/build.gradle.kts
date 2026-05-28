@@ -120,6 +120,13 @@ dependencies {
     // DataStore
     implementation(libs.datastore.preferences)
 
+    // Glance (widgets)
+    implementation(libs.glance.appwidget)
+    implementation(libs.glance.material3)
+
+    // WorkManager
+    implementation(libs.work.runtime.ktx)
+
     // Coroutines
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)

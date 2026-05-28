@@ -18,6 +18,8 @@ A native Android baby tracking app for parents of infants (0–12 months). Track
 | Local DB | Room 2.8.4 |
 | Preferences | DataStore 1.1.1 |
 | Sharing | Firebase BOM 33.7.0 (Firestore KTX, Auth KTX) |
+| Widgets | Glance 1.1.1 (appwidget + material3) |
+| Background work | WorkManager 2.10.0 |
 | Min SDK | 26 | Target SDK 35 | JVM 17 |
 | Testing | JUnit 5, MockK 1.13.13, Turbine 1.2.0, Compose UI Test |
 
