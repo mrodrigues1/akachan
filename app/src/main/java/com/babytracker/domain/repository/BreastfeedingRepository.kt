@@ -6,6 +6,7 @@ import java.time.Instant
 
 interface BreastfeedingRepository {
     fun getAllSessions(): Flow<List<BreastfeedingSession>>
+    fun observeLatestSession(): Flow<BreastfeedingSession?>
     fun getActiveSession(): Flow<BreastfeedingSession?>
     suspend fun getLastSession(): BreastfeedingSession?
     suspend fun getRecentSessions(limit: Int): List<BreastfeedingSession>

@@ -19,6 +19,9 @@ interface SleepDao {
     suspend fun getRecentRecords(limit: Int): List<SleepEntity>
 
     @Query("SELECT * FROM sleep_records ORDER BY start_time DESC, id DESC LIMIT 1")
+    fun observeLatestRecord(): Flow<SleepEntity?>
+
+    @Query("SELECT * FROM sleep_records ORDER BY start_time DESC, id DESC LIMIT 1")
     suspend fun getLatestRecord(): SleepEntity?
 
     @Query("SELECT * FROM sleep_records ORDER BY start_time ASC")

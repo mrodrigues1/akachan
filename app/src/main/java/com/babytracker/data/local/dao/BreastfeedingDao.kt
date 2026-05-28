@@ -17,6 +17,9 @@ interface BreastfeedingDao {
     fun getActiveSession(): Flow<BreastfeedingEntity?>
 
     @Query("SELECT * FROM breastfeeding_sessions ORDER BY start_time DESC LIMIT 1")
+    fun observeLatestSession(): Flow<BreastfeedingEntity?>
+
+    @Query("SELECT * FROM breastfeeding_sessions ORDER BY start_time DESC LIMIT 1")
     suspend fun getLastSession(): BreastfeedingEntity?
 
     @Query("SELECT * FROM breastfeeding_sessions ORDER BY start_time DESC LIMIT :limit")

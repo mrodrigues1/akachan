@@ -6,6 +6,7 @@ import java.time.Instant
 
 interface SleepRepository {
     fun getAllRecords(): Flow<List<SleepRecord>>
+    fun observeLatestRecord(): Flow<SleepRecord?>
     suspend fun getCompletedRecordsSince(since: Instant): List<SleepRecord>
     suspend fun getCompletedRecordsBetween(start: Instant, end: Instant): List<SleepRecord>
     suspend fun getRecentRecords(limit: Int): List<SleepRecord>
