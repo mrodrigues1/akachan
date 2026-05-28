@@ -6,6 +6,7 @@ import com.babytracker.debug.DebugDataSeeder
 import com.babytracker.manager.PredictiveFeedNotificationCoordinator
 import com.babytracker.util.NotificationHelper
 import com.babytracker.util.createPredictiveFeedNotificationChannel
+import com.babytracker.widget.WidgetSyncManager
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,7 @@ class BabyTrackerApp : Application() {
 
     @Inject lateinit var predictiveCoordinator: PredictiveFeedNotificationCoordinator
     @Inject lateinit var debugDataSeeder: DebugDataSeeder
+    @Inject lateinit var widgetSyncManager: WidgetSyncManager
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -27,6 +29,7 @@ class BabyTrackerApp : Application() {
         NotificationHelper.createSleepNotificationChannel(this)
         createPredictiveFeedNotificationChannel(this)
         predictiveCoordinator.start()
+        widgetSyncManager.start()
         if (BuildConfig.DEBUG) {
             appScope.launch { debugDataSeeder.seedIfEmpty() }
         }
