@@ -111,6 +111,8 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.ext.compiler)
 
     // Room
     implementation(libs.room.runtime)
@@ -132,6 +134,7 @@ dependencies {
     implementation(libs.coroutines.android)
 
     // Unit Testing
+    testImplementation(libs.work.testing)
     testImplementation(libs.robolectric)
     testImplementation(libs.konsist)
     testImplementation(libs.junit5.api)
