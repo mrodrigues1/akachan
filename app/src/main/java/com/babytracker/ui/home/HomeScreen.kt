@@ -517,7 +517,7 @@ internal fun FeedingPredictionSubtitle(
                 text = subtitle.primary,
                 style = MaterialTheme.typography.bodyMedium,
                 color = primaryColor,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             val detail = buildString {
