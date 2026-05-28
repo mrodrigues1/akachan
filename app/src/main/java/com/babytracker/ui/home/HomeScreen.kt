@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -376,18 +377,20 @@ fun HomeScreen(
                 }
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Max),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     PumpingHomeCard(
                         active = uiState.pumpingActive,
                         onClick = onNavigateToPumping,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                     InventoryHomeCard(
                         summary = uiState.inventorySummary,
                         onClick = onNavigateToInventory,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                 }
             }
@@ -404,8 +407,9 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
                     shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 ) {
                     Row(
                         modifier = Modifier.padding(14.dp),
@@ -420,12 +424,12 @@ fun HomeScreen(
                             Text(
                                 text = "TIP",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = "Try $nextSideName breast next, used less last session.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -555,7 +559,7 @@ internal fun PumpingHomeCard(
     Card(
         onClick = onClick,
         modifier = modifier
-            .heightIn(min = 140.dp)
+            .heightIn(min = 120.dp)
             .semantics {
                 contentDescription = if (isPumping)
                     "Pumping, session active. Open pumping screen."
@@ -642,7 +646,7 @@ internal fun InventoryHomeCard(
     Card(
         onClick = onClick,
         modifier = modifier
-            .heightIn(min = 140.dp)
+            .heightIn(min = 120.dp)
             .semantics {
                 contentDescription = if (hasBags)
                     "Milk inventory, ${summary.bagCount} bags, ${summary.totalMl} milliliters. Open inventory screen."
