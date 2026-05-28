@@ -27,6 +27,9 @@ class SleepRepositoryImpl @Inject constructor(
     override suspend fun getRecentRecords(limit: Int): List<SleepRecord> =
         dao.getRecentRecords(limit).map { it.toDomain() }
 
+    override suspend fun getLatestRecord(): SleepRecord? =
+        dao.getLatestRecord()?.toDomain()
+
     override suspend fun insertRecord(record: SleepRecord): Long =
         dao.insertRecord(record.toEntity())
 
