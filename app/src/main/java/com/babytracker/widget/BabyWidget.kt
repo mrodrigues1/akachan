@@ -37,7 +37,7 @@ class BabyWidget : GlanceAppWidget() {
         if (size.width >= MEDIUM_SIZE.width && size.height >= MEDIUM_SIZE.height) {
             MediumContent(data = data, now = now)
         } else {
-            SmallContent(data = data)
+            SmallContent(data = data, now = now)
         }
     }
 
