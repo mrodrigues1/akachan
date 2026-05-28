@@ -7,6 +7,7 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.action.clickable
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
@@ -42,7 +43,8 @@ fun SmallContent(data: WidgetData, modifier: GlanceModifier = GlanceModifier) {
         modifier = modifier
             .fillMaxSize()
             .background(GlanceTheme.colors.background)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .clickable(openHomeAction()),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         CompactFeedContent(data = data)
@@ -72,14 +74,14 @@ fun MediumContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Gla
         Spacer(modifier = GlanceModifier.height(ROW_SPACER))
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = GlanceModifier.fillMaxWidth(),
+            modifier = GlanceModifier.fillMaxWidth().clickable(openBreastfeedingAction()),
         ) {
             FeedRowContent(data = data, now = now)
         }
         Spacer(modifier = GlanceModifier.height(ROW_SPACER))
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = GlanceModifier.fillMaxWidth(),
+            modifier = GlanceModifier.fillMaxWidth().clickable(openSleepAction()),
         ) {
             SleepRowContent(data = data, now = now)
         }
