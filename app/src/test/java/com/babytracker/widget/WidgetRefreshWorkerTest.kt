@@ -142,6 +142,7 @@ class WidgetRefreshWorkerTest {
 
         coVerify(exactly = 1) { cache.clear("CODE") }
         coVerify(exactly = 0) { cache.save(any(), any()) }
+        coVerify(exactly = 1) { updater.updateAll() }
         assertTrue(result is ListenableWorker.Result.Success)
     }
 
@@ -160,6 +161,7 @@ class WidgetRefreshWorkerTest {
 
         coVerify(exactly = 0) { cache.save(any(), any()) }
         coVerify(exactly = 0) { cache.clear(any()) }
+        coVerify(exactly = 1) { updater.updateAll() }
         assertTrue(result is ListenableWorker.Result.Retry)
     }
 
@@ -178,6 +180,7 @@ class WidgetRefreshWorkerTest {
 
         coVerify(exactly = 0) { cache.save(any(), any()) }
         coVerify(exactly = 0) { cache.clear(any()) }
+        coVerify(exactly = 1) { updater.updateAll() }
         assertTrue(result is ListenableWorker.Result.Retry)
     }
 }
