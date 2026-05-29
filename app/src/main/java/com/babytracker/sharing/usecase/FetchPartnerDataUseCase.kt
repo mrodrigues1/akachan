@@ -38,10 +38,11 @@ class FetchPartnerDataUseCase @Inject constructor(
         // revoke so the worker clears the cache instead of keeping stale data and retrying.
         return try {
             sharingRepository.fetchSnapshot(code)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: IllegalStateException) {
-            if (e is CancellationException) throw e
             settingsRepository.clearPartnerStateIfShareCodeMatches(code.value)
-            throw PartnerAccessRevokedException("Share document missing or invalid: ${e.message}")
+            throw PartnerAccessRevokedException("Share document missing or invalid: ${e.message}", e)
         }
     }
 }
