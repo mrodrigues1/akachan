@@ -74,6 +74,7 @@ class WidgetDataMapperTest {
 
         assertNull(result.lastFeedSide)
         assertNull(result.lastFeedStart)
+        assertEquals(FeedState.NONE, result.feedState)
     }
 
     @Test
@@ -88,6 +89,7 @@ class WidgetDataMapperTest {
 
         assertEquals(BreastSide.RIGHT, result.lastFeedSide)
         assertEquals(Instant.parse("2026-05-24T08:00:00Z"), result.lastFeedStart)
+        assertEquals(FeedState.RECENT, result.feedState)
     }
 
     @Test
@@ -102,6 +104,21 @@ class WidgetDataMapperTest {
 
         assertEquals(BreastSide.LEFT, result.lastFeedSide)
         assertEquals(Instant.parse("2026-05-24T09:00:00Z"), result.lastFeedStart)
+        assertEquals(FeedState.ACTIVE, result.feedState)
+    }
+
+    @Test
+    fun `paused feed maps to PAUSED state`() {
+        val session = feed(
+            start = Instant.parse("2026-05-24T09:00:00Z"),
+            end = null,
+            side = BreastSide.LEFT,
+        ).copy(pausedAt = Instant.parse("2026-05-24T09:08:00Z"))
+
+        val result = toWidgetData(babyName = babyName, lastFeed = session, latestSleep = null)
+
+        assertEquals(BreastSide.LEFT, result.lastFeedSide)
+        assertEquals(FeedState.PAUSED, result.feedState)
     }
 
     @Test

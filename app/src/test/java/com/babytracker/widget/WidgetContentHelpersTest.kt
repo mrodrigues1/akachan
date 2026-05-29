@@ -1,6 +1,7 @@
 package com.babytracker.widget
 
 import com.babytracker.domain.model.BreastSide
+import com.babytracker.widget.data.FeedState
 import com.babytracker.widget.data.SleepState
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -24,16 +25,19 @@ class WidgetContentHelpersTest {
 
     @Test
     fun `feedLabel uses side label or empty copy`() {
-        assertEquals("Left", feedLabel(BreastSide.LEFT))
-        assertEquals("Right", feedLabel(BreastSide.RIGHT))
-        assertEquals("No feeds yet", feedLabel(null))
+        assertEquals("Last: Left", feedLabel(BreastSide.LEFT, FeedState.RECENT))
+        assertEquals("Last: Right", feedLabel(BreastSide.RIGHT, FeedState.RECENT))
+        assertEquals("Feeding: Right", feedLabel(BreastSide.RIGHT, FeedState.ACTIVE))
+        assertEquals("Paused: Left", feedLabel(BreastSide.LEFT, FeedState.PAUSED))
+        assertEquals("No feeds yet", feedLabel(null, FeedState.NONE))
     }
 
     @Test
     fun `feedValue renders short elapsed or null`() {
         val start = now.minus(Duration.ofMinutes(80))
-        assertEquals("1h 20m", feedValue(start, now))
-        assertNull(feedValue(null, now))
+        assertEquals("1h 20m ago", feedValue(start, FeedState.RECENT, now))
+        assertEquals("1h 20m", feedValue(start, FeedState.ACTIVE, now))
+        assertNull(feedValue(null, FeedState.RECENT, now))
     }
 
     @Test
@@ -57,13 +61,20 @@ class WidgetContentHelpersTest {
     @Test
     fun `feedContentDescription merges side and elapsed`() {
         val start = now.minus(Duration.ofMinutes(80))
-        assertEquals("Last feeding: Right side, 1h 20m ago", feedContentDescription(BreastSide.RIGHT, start, now))
+        assertEquals(
+            "Last feeding started 1h 20m ago; last side used Right",
+            feedContentDescription(BreastSide.RIGHT, FeedState.RECENT, start, now),
+        )
+        assertEquals(
+            "Feeding active: Right side, started 1h 20m ago",
+            feedContentDescription(BreastSide.RIGHT, FeedState.ACTIVE, start, now),
+        )
     }
 
     @Test
     fun `feedContentDescription falls back when no feed`() {
-        assertEquals("No feeds yet", feedContentDescription(null, null, now))
-        assertEquals("No feeds yet", feedContentDescription(BreastSide.LEFT, null, now))
+        assertEquals("No feeds yet", feedContentDescription(null, FeedState.NONE, null, now))
+        assertEquals("No feeds yet", feedContentDescription(BreastSide.LEFT, FeedState.RECENT, null, now))
     }
 
     @Test

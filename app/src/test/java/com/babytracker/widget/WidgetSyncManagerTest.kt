@@ -13,14 +13,16 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.time.LocalDate
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class WidgetSyncManagerTest {
 
     private val feed = BreastfeedingSession(
@@ -48,14 +50,12 @@ class WidgetSyncManagerTest {
 
     @Test
     fun `emits updateAll after debounce on single feed change`() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = CoroutineScope(dispatcher)
         val feedFlow = MutableSharedFlow<BreastfeedingSession?>(replay = 1)
         val sleepFlow = MutableSharedFlow<SleepRecord?>(replay = 1)
         val babyFlow = MutableSharedFlow<Baby?>(replay = 1)
         val updater: WidgetUpdater = mockk { coEvery { updateAll() } returns Unit }
 
-        buildManager(feedFlow, sleepFlow, babyFlow, updater, scope).start()
+        buildManager(feedFlow, sleepFlow, babyFlow, updater, backgroundScope).start()
         feedFlow.emit(feed)
         advanceTimeBy(600)
 
@@ -64,14 +64,12 @@ class WidgetSyncManagerTest {
 
     @Test
     fun `debounce coalesces back-to-back emissions to one updateAll`() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = CoroutineScope(dispatcher)
         val feedFlow = MutableSharedFlow<BreastfeedingSession?>(replay = 1)
         val sleepFlow = MutableSharedFlow<SleepRecord?>(replay = 1)
         val babyFlow = MutableSharedFlow<Baby?>(replay = 1)
         val updater: WidgetUpdater = mockk { coEvery { updateAll() } returns Unit }
 
-        buildManager(feedFlow, sleepFlow, babyFlow, updater, scope).start()
+        buildManager(feedFlow, sleepFlow, babyFlow, updater, backgroundScope).start()
         feedFlow.emit(null)
         advanceTimeBy(100)
         sleepFlow.emit(null)
@@ -84,8 +82,6 @@ class WidgetSyncManagerTest {
 
     @Test
     fun `first updateAll exception does not stop later emissions from refreshing`() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = CoroutineScope(dispatcher)
         val feedFlow = MutableSharedFlow<BreastfeedingSession?>(replay = 1)
         val sleepFlow = MutableSharedFlow<SleepRecord?>(replay = 1)
         val babyFlow = MutableSharedFlow<Baby?>(replay = 1)
@@ -93,7 +89,7 @@ class WidgetSyncManagerTest {
             coEvery { updateAll() } throws IllegalStateException("glance host gone") andThen Unit
         }
 
-        buildManager(feedFlow, sleepFlow, babyFlow, updater, scope).start()
+        buildManager(feedFlow, sleepFlow, babyFlow, updater, backgroundScope).start()
         feedFlow.emit(feed)
         advanceTimeBy(600)
         feedFlow.emit(null)
@@ -104,14 +100,12 @@ class WidgetSyncManagerTest {
 
     @Test
     fun `sleep changes also trigger updateAll`() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = CoroutineScope(dispatcher)
         val feedFlow = MutableSharedFlow<BreastfeedingSession?>(replay = 1)
         val sleepFlow = MutableSharedFlow<SleepRecord?>(replay = 1)
         val babyFlow = MutableSharedFlow<Baby?>(replay = 1)
         val updater: WidgetUpdater = mockk { coEvery { updateAll() } returns Unit }
 
-        buildManager(feedFlow, sleepFlow, babyFlow, updater, scope).start()
+        buildManager(feedFlow, sleepFlow, babyFlow, updater, backgroundScope).start()
         sleepFlow.emit(sleep)
         advanceTimeBy(600)
 
@@ -120,16 +114,28 @@ class WidgetSyncManagerTest {
 
     @Test
     fun `baby profile change triggers updateAll`() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val scope = CoroutineScope(dispatcher)
         val feedFlow = MutableSharedFlow<BreastfeedingSession?>(replay = 1)
         val sleepFlow = MutableSharedFlow<SleepRecord?>(replay = 1)
         val babyFlow = MutableSharedFlow<Baby?>(replay = 1)
         val updater: WidgetUpdater = mockk { coEvery { updateAll() } returns Unit }
 
-        buildManager(feedFlow, sleepFlow, babyFlow, updater, scope).start()
+        buildManager(feedFlow, sleepFlow, babyFlow, updater, backgroundScope).start()
         babyFlow.emit(baby)
         advanceTimeBy(600)
+
+        coVerify(exactly = 1) { updater.updateAll() }
+    }
+
+    @Test
+    fun `elapsed timer refreshes updateAll every minute`() = runTest {
+        val feedFlow = MutableSharedFlow<BreastfeedingSession?>(replay = 1)
+        val sleepFlow = MutableSharedFlow<SleepRecord?>(replay = 1)
+        val babyFlow = MutableSharedFlow<Baby?>(replay = 1)
+        val updater: WidgetUpdater = mockk { coEvery { updateAll() } returns Unit }
+
+        buildManager(feedFlow, sleepFlow, babyFlow, updater, backgroundScope).start()
+        runCurrent()
+        advanceTimeBy(60_600)
 
         coVerify(exactly = 1) { updater.updateAll() }
     }
