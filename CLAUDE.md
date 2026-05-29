@@ -636,6 +636,45 @@ Run via: `./gradlew :app:testDebugUnitTest`
 
 > `isIncludeAndroidResources = true` is already set in `testOptions` so resources and assets resolve at JVM test time.
 
+### Linux / WSL — Inspecting the Home-Screen Widget on the Emulator
+
+The Glance widget can only be seen once a launcher hosts it — there is no headless render path. To load and inspect it from WSL, start the `Pixel_10_Pro` emulator from **Windows** (see above), then work through `adb.exe`. Four gotchas matter:
+
+**1. `adb` is `adb.exe` (a Windows binary).** It only resolves Windows-visible paths. Anything under the project (`/mnt/c/...`) works; a WSL path like `/tmp/...` does not — `adb push /tmp/foo` fails with `cannot stat`. Stage any file you push from inside the repo tree (e.g. `build/`).
+
+**2. Install signature mismatch.** An APK built in WSL is signed with a different debug keystore than an Android Studio (Windows) install, so `adb install -r` fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`. Uninstall first — this wipes app data (Room DB + DataStore reset):
+
+```bash
+ADB="/mnt/c/Users/mathe/AppData/Local/Android/Sdk/platform-tools/adb.exe"
+./gradlew :app:assembleDebug
+"$ADB" uninstall com.babytracker
+"$ADB" install -r app/build/outputs/apk/debug/app-debug.apk
+"$ADB" shell monkey -p com.babytracker -c android.intent.category.LAUNCHER 1   # first launch creates the Room DB
+```
+
+**3. Seeding the DB — no `sqlite3` anywhere.** Neither the emulator image nor WSL ships `sqlite3`, but host `python3` has the `sqlite3` module. `run-as` works because debug builds are debuggable. Force-stop the app first (so no connection is open), pull → edit → push back, staging the file in the repo tree per gotcha 1:
+
+```bash
+"$ADB" shell am force-stop com.babytracker
+"$ADB" exec-out run-as com.babytracker cat databases/baby_tracker_db > build/seed.db
+python3 - build/seed.db <<'PY'
+import sqlite3, sys, time
+con = sqlite3.connect(sys.argv[1]); cur = con.cursor()
+now = int(time.time()*1000)
+# end_time NULL => SLEEPING, which paints the widget's active (solid Sleep Blue) sleep surface
+cur.execute("INSERT INTO sleep_records (start_time,end_time,sleep_type,notes) VALUES (?,?,?,?)",
+            (now - 45*60*1000, None, "NAP", None))
+con.commit(); cur.execute("PRAGMA wal_checkpoint(TRUNCATE)"); con.commit(); con.close()
+PY
+"$ADB" push build/seed.db /data/local/tmp/seed.db
+"$ADB" shell run-as com.babytracker cp /data/local/tmp/seed.db databases/baby_tracker_db
+"$ADB" shell run-as com.babytracker rm -f databases/baby_tracker_db-wal databases/baby_tracker_db-shm
+```
+
+Checkpoint with `wal_checkpoint(TRUNCATE)` and delete the device `-wal`/`-shm` so Room reopens cleanly from the single file. **Only INSERT into the pulled copy — never hand-build a DB from scratch:** Room validates the schema identity hash in `room_master_table` and crashes on mismatch.
+
+**4. Placing and resizing the widget.** No adb command adds a widget (`cmd appwidget` is stubbed), so drive the Pixel Launcher with `input`: long-press an empty cell (`input swipe x y x y 700`) → tap **Widgets** → tap the search field and `input text "Akachan"` → expand the result → drop the thumbnail with `input draganddrop x1 y1 x2 y2 2000`. Resize by long-pressing the placed widget, then dragging the bottom handle (the responsive breakpoint at `BabyWidget.MEDIUM_SIZE` switches the small↔medium layout). Read exact element bounds in device pixels with `uiautomator dump /sdcard/ui.xml` + `exec-out cat`; capture frames with `adb exec-out screencap -p > build/shot.png`.
+
 ---
 
 ## Testing Conventions
