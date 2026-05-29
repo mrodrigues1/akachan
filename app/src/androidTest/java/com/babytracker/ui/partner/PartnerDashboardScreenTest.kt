@@ -38,6 +38,7 @@ import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
 import com.babytracker.ui.theme.BabyTrackerTheme
+import com.babytracker.widget.WidgetUpdater
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -57,13 +58,14 @@ class PartnerDashboardScreenTest {
 
     private val fixedNow = Instant.parse("2026-05-12T06:00:00Z")
     private val fixedNowProvider = { fixedNow.toEpochMilli() }
+    private val noOpWidgetUpdater = object : WidgetUpdater { override suspend fun updateAll() = Unit }
 
     private fun buildViewModel(): PartnerDashboardViewModel {
-        return PartnerDashboardViewModel(buildFetchUseCase(snapshot = null))
+        return PartnerDashboardViewModel(buildFetchUseCase(snapshot = null), noOpWidgetUpdater)
     }
 
     private fun buildViewModel(snapshot: ShareSnapshot): PartnerDashboardViewModel {
-        return PartnerDashboardViewModel(buildFetchUseCase(snapshot))
+        return PartnerDashboardViewModel(buildFetchUseCase(snapshot), noOpWidgetUpdater)
     }
 
     private fun buildFetchUseCase(
@@ -285,7 +287,7 @@ class PartnerDashboardScreenTest {
     fun pullDownRefreshChecksForSharedUpdates() {
         val sharingRepository = FakeSharingRepository(makeSnapshot())
         val fetchUseCase = buildFetchUseCase(makeSnapshot(), sharingRepository)
-        val viewModel = PartnerDashboardViewModel(fetchUseCase)
+        val viewModel = PartnerDashboardViewModel(fetchUseCase, noOpWidgetUpdater)
 
         composeRule.setContent {
             PartnerDashboardScreen(
@@ -313,7 +315,7 @@ class PartnerDashboardScreenTest {
                 }
             },
         )
-        val viewModel = PartnerDashboardViewModel(buildFetchUseCase(makeSnapshot(), sharingRepository))
+        val viewModel = PartnerDashboardViewModel(buildFetchUseCase(makeSnapshot(), sharingRepository), noOpWidgetUpdater)
 
         composeRule.setContent {
             PartnerDashboardScreen(
