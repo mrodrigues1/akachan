@@ -183,4 +183,26 @@ class WidgetRefreshWorkerTest {
         coVerify(exactly = 1) { updater.updateAll() }
         assertTrue(result is ListenableWorker.Result.Retry)
     }
+
+    @Test
+    fun `partner success skips cache save when share code changed mid-fetch`() = runTest {
+        // Reconnect race: worker started with CODE_A, user switched to CODE_B mid-fetch.
+        // Guard must skip the save so CODE_A snapshot never lands under CODE_A's key when
+        // the active code is already CODE_B. updateAll() still fires so the render path
+        // detects the CODE_B cache-miss and schedules a fresh refresh.
+        val updater: WidgetUpdater = mockk { coEvery { updateAll() } returns Unit }
+        val settings: SettingsRepository = mockk {
+            coEvery { getAppMode() } returns flowOf(AppMode.PARTNER)
+            coEvery { getShareCode() } returnsMany listOf(flowOf("CODE_A"), flowOf("CODE_B"))
+        }
+        val fetch: FetchPartnerDataUseCase = mockk()
+        coEvery { fetch(ShareCode("CODE_A")) } returns snapshot
+        val cache: PartnerWidgetCache = mockk()
+
+        val result = buildWorker(updater, settings, fetch, cache).doWork()
+
+        coVerify(exactly = 0) { cache.save(any(), any()) }
+        coVerify(exactly = 1) { updater.updateAll() }
+        assertTrue(result is ListenableWorker.Result.Success)
+    }
 }
