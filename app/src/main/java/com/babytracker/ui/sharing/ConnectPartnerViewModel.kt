@@ -40,10 +40,10 @@ class ConnectPartnerViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 connectAsPartnerUseCase(ShareCode(code))
-                // Partner just connected: prime the widget cache now instead of waiting for the
-                // 15-min periodic worker.
-                widgetRefreshScheduler.scheduleImmediateRefresh()
                 _uiState.update { it.copy(isLoading = false, isConnected = true) }
+                // Best-effort: prime the widget cache now instead of waiting for the 15-min
+                // periodic worker. Failure here must not undo the successful connection.
+                runCatching { widgetRefreshScheduler.scheduleImmediateRefresh() }
             } catch (_: IllegalStateException) {
                 _uiState.update { it.copy(isLoading = false, error = "This code doesn't exist. Check with your partner.") }
             } catch (_: Exception) {
