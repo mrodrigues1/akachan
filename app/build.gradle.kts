@@ -1,3 +1,11 @@
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -7,6 +15,26 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.kover)
     alias(libs.plugins.android.junit5)
+}
+
+abstract class NormalizeAndroidTestConfigPaths : DefaultTask() {
+    @get:Optional
+    @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val configDirectory: DirectoryProperty
+
+    @TaskAction
+    fun normalize() {
+        if (System.getProperty("os.name").startsWith("Windows")) return
+
+        configDirectory.asFile
+            .get()
+            .walkTopDown()
+            .filter { it.name == "test_config.properties" && it.path.endsWith("com/android/tools/test_config.properties") }
+            .forEach { configFile ->
+                configFile.writeText(configFile.readText().replace("\\\\", "/"))
+            }
+    }
 }
 
 android {
@@ -188,25 +216,27 @@ val skipArchitectureTests: Boolean =
         ?.lowercase()
         ?.let { it.isEmpty() || it in setOf("true", "1", "yes") } ?: false
 
+val normalizeAndroidTestConfigPaths =
+    tasks.register<NormalizeAndroidTestConfigPaths>("normalizeAndroidTestConfigPaths") {
+        configDirectory.set(layout.buildDirectory.dir("intermediates/unit_test_config_directory"))
+    }
+
 tasks.withType<Test> {
     useJUnitPlatform {
         if (skipArchitectureTests) {
             excludeTags("architecture")
         }
     }
+    if (!System.getProperty("os.name").startsWith("Windows")) {
+        dependsOn(normalizeAndroidTestConfigPaths)
+        normalizeAndroidTestConfigPaths.configure {
+            mustRunAfter(tasks.matching { it.name == "generateDebugUnitTestConfig" })
+        }
+    }
     // Konsist scope parsing keeps every Kotlin AST in memory — default 512m
     // forces GC churn that visibly slows architecture tests, especially on WSL2.
     maxHeapSize = "2g"
     jvmArgs("-XX:+UseG1GC", "-XX:MaxMetaspaceSize=512m")
-    doFirst {
-        if (!System.getProperty("os.name").startsWith("Windows")) {
-            fileTree(layout.buildDirectory.dir("intermediates/unit_test_config_directory")) {
-                include("**/com/android/tools/test_config.properties")
-            }.forEach { configFile ->
-                configFile.writeText(configFile.readText().replace("\\\\", "/"))
-            }
-        }
-    }
 }
 
 ksp {
