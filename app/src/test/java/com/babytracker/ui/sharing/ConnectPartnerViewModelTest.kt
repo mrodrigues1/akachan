@@ -6,6 +6,7 @@ import com.babytracker.widget.WidgetRefreshScheduler
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
@@ -90,6 +91,19 @@ class ConnectPartnerViewModelTest {
         assertNotNull(error)
         assertTrue(error!!.contains("doesn't exist"))
         verify(exactly = 0) { widgetRefreshScheduler.scheduleImmediateRefresh() }
+    }
+
+    @Test
+    fun `onConnect stays connected when scheduler throws after successful connect`() = runTest {
+        val code = "ABCD1234"
+        coJustRun { connectAsPartnerUseCase(ShareCode(code)) }
+        every { widgetRefreshScheduler.scheduleImmediateRefresh() } throws RuntimeException("WorkManager not initialized")
+        viewModel.onCodeChanged(code)
+
+        viewModel.onConnect()
+
+        assertTrue(viewModel.uiState.value.isConnected)
+        assertNull(viewModel.uiState.value.error)
     }
 
     @Test
