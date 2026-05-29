@@ -4,6 +4,7 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
@@ -31,6 +32,16 @@ class FetchPartnerDataUseCase @Inject constructor(
             settingsRepository.clearPartnerStateIfShareCodeMatches(code.value)
             throw PartnerAccessRevokedException("Partner access revoked")
         }
-        return sharingRepository.fetchSnapshot(code)
+        // Guard against the TOCTOU window between isPartnerConnected and fetchSnapshot: if the
+        // primary deletes the share document after the connectivity check passes, fetchSnapshot
+        // throws IllegalStateException("No data in share document …"). Treat that as a confirmed
+        // revoke so the worker clears the cache instead of keeping stale data and retrying.
+        return try {
+            sharingRepository.fetchSnapshot(code)
+        } catch (e: IllegalStateException) {
+            if (e is CancellationException) throw e
+            settingsRepository.clearPartnerStateIfShareCodeMatches(code.value)
+            throw PartnerAccessRevokedException("Share document missing or invalid: ${e.message}")
+        }
     }
 }
