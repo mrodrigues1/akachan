@@ -12,5 +12,6 @@
     <!-- Widget — on-container text for the static preview/loading layouts. -->
     <color name="widget_on_feed">#F8BBD0</color>
     <color name="widget_on_sleep">#B3E5FC</color>
+    <color name="widget_on_sleep_active">#0D47A1</color>
     <color name="widget_on_surface_variant">#CAC4D0</color>
 </resources>
