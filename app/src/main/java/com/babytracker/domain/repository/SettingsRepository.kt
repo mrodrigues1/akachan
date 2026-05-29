@@ -26,6 +26,15 @@ interface SettingsRepository {
     fun getShareCode(): Flow<String?>
     suspend fun setShareCode(code: String)
     suspend fun clearShareCode()
+
+    /**
+     * Atomically clears partner state (removes the share code and sets [AppMode.NONE]) only if the
+     * currently stored share code still equals [code]. Returns true if it cleared, false if the
+     * stored code had already changed (e.g. the partner reconnected to a different primary).
+     * This prevents a stale background revoke from erasing a newer connection.
+     */
+    suspend fun clearPartnerStateIfShareCodeMatches(code: String): Boolean
+
     fun getPredictiveEnabled(): Flow<Boolean>
     suspend fun setPredictiveEnabled(enabled: Boolean)
     fun getPredictiveLeadMinutes(): Flow<Int>

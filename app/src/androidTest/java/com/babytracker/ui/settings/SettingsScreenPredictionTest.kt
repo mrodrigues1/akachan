@@ -368,6 +368,8 @@ class SettingsScreenPredictionTest {
 
         override suspend fun clearShareCode() = Unit
 
+        override suspend fun clearPartnerStateIfShareCodeMatches(code: String): Boolean = false
+
         override fun getPredictiveEnabled(): Flow<Boolean> = predictiveEnabled
 
         override suspend fun setPredictiveEnabled(enabled: Boolean) {

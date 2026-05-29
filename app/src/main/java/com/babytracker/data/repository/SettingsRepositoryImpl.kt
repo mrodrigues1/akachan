@@ -147,6 +147,20 @@ class SettingsRepositoryImpl @Inject constructor(
         dataStore.edit { it.remove(SHARE_CODE) }
     }
 
+    override suspend fun clearPartnerStateIfShareCodeMatches(code: String): Boolean {
+        var cleared = false
+        dataStore.edit { prefs ->
+            // Single edit block runs under DataStore's lock, so the compare-and-clear is atomic
+            // with respect to ConnectAsPartnerUseCase's setShareCode/setAppMode writes.
+            if (prefs[SHARE_CODE] == code) {
+                prefs.remove(SHARE_CODE)
+                prefs[APP_MODE] = AppMode.NONE.name
+                cleared = true
+            }
+        }
+        return cleared
+    }
+
     override fun getPredictiveEnabled(): Flow<Boolean> =
         dataStore.data.map { it[PREDICTIVE_ENABLED] ?: false }
 

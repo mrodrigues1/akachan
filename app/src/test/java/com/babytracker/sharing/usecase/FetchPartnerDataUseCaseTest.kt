@@ -1,21 +1,20 @@
 package com.babytracker.sharing.usecase
 
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
-import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
-import io.mockk.just
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -53,10 +52,9 @@ class FetchPartnerDataUseCaseTest {
     }
 
     @Test
-    fun throwsAndClearsStateWhenPartnerIsDisconnected() = runTest {
+    fun throwsPartnerAccessRevokedWhenPartnerIsDisconnected() = runTest {
         coEvery { sharingRepository.isPartnerConnected(shareCode, "uid123") } returns false
-        coEvery { settingsRepository.clearShareCode() } just Runs
-        coEvery { settingsRepository.setAppMode(AppMode.NONE) } just Runs
+        coEvery { settingsRepository.clearPartnerStateIfShareCodeMatches(shareCode.value) } returns true
 
         var caught: IllegalStateException? = null
         try {
@@ -66,12 +64,13 @@ class FetchPartnerDataUseCaseTest {
         }
 
         assertNotNull(caught)
-        coVerify { settingsRepository.clearShareCode() }
-        coVerify { settingsRepository.setAppMode(AppMode.NONE) }
+        assertTrue(caught is PartnerAccessRevokedException)
+        assertTrue(caught is IllegalStateException)
+        coVerify { settingsRepository.clearPartnerStateIfShareCodeMatches(shareCode.value) }
     }
 
     @Test
-    fun throwsWhenNoShareCodeStored() = runTest {
+    fun throwsPlainIllegalStateExceptionWhenNoShareCodeStored() = runTest {
         every { settingsRepository.getShareCode() } returns flowOf(null)
 
         var caught: IllegalStateException? = null
@@ -82,5 +81,20 @@ class FetchPartnerDataUseCaseTest {
         }
 
         assertNotNull(caught)
+        assertFalse(caught is PartnerAccessRevokedException)
+    }
+
+    @Test
+    fun invokeWithExplicitCodeFetchesThatCodeNotSettings() = runTest {
+        // The explicit overload must use the passed code, never re-reading settings — this is what
+        // lets the worker cache a snapshot under exactly the code it requested.
+        val explicit = ShareCode("ZZ999999")
+        coEvery { sharingRepository.isPartnerConnected(explicit, "uid123") } returns true
+        coEvery { sharingRepository.fetchSnapshot(explicit) } returns snapshot
+
+        val result = useCase(explicit)
+
+        assertEquals(snapshot, result)
+        coVerify { sharingRepository.fetchSnapshot(explicit) }
     }
 }
