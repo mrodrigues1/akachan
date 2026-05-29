@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
+import com.babytracker.widget.WidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +24,7 @@ data class PartnerDashboardUiState(
 @HiltViewModel
 class PartnerDashboardViewModel @Inject constructor(
     private val fetchPartnerDataUseCase: FetchPartnerDataUseCase,
+    private val widgetUpdater: WidgetUpdater,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PartnerDashboardUiState())
@@ -64,6 +66,9 @@ class PartnerDashboardViewModel @Inject constructor(
                         lastRefreshAt = System.currentTimeMillis(),
                     )
                 }
+                // AppMode is now NONE (use case cleared it atomically on confirmed revoke).
+                // Re-render immediately so the widget stops showing stale partner data.
+                widgetUpdater.updateAll()
             } catch (_: Exception) {
                 _uiState.update {
                     val errorMessage = if (it.snapshot == null) {
