@@ -52,9 +52,13 @@ class WidgetRefreshWorker @AssistedInject constructor(
         val code = ShareCode(shareCode)
         return runCatching { fetchPartnerData(code) }.fold(
             onSuccess = { snapshot ->
-                // Snapshot provably belongs to `code` (explicit fetch), so tagging the cache with
-                // the same `shareCode` can never mix two primaries.
-                partnerCache.save(shareCode, toWidgetData(snapshot))
+                // Guard: re-read the active share code before writing. If the user reconnected to
+                // a different primary mid-fetch, the stored code changed and we must not cache
+                // this snapshot under the old code. The render path will see a cache-miss for the
+                // new code and schedule a fresh refresh after updateAll() triggers a re-render.
+                if (settings.getShareCode().first() == shareCode) {
+                    partnerCache.save(shareCode, toWidgetData(snapshot))
+                }
                 updater.updateAll()
                 Result.success()
             },
