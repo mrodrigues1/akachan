@@ -3,7 +3,9 @@ package com.babytracker.di
 import com.babytracker.widget.GlanceWidgetUpdater
 import com.babytracker.widget.PartnerWidgetCache
 import com.babytracker.widget.PartnerWidgetCacheImpl
+import com.babytracker.widget.WidgetRefreshScheduler
 import com.babytracker.widget.WidgetUpdater
+import com.babytracker.widget.WorkManagerWidgetRefreshScheduler
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -21,4 +23,8 @@ abstract class WidgetModule {
     @Binds
     @Singleton
     abstract fun bindPartnerWidgetCache(impl: PartnerWidgetCacheImpl): PartnerWidgetCache
+
+    @Binds
+    @Singleton
+    abstract fun bindWidgetRefreshScheduler(impl: WorkManagerWidgetRefreshScheduler): WidgetRefreshScheduler
 }
