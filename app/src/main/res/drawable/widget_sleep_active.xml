@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sleep domain ACTIVE surface (Sleep Blue). Used only while the baby is asleep now, as the
+     glanceable active-session signal. Solid action color + white on-color text mirrors the
+     SideSelector selected state. Keep fill in sync with theme secondary (SecondaryBlue / Blue700).
+     Dark variant lives in drawable-night. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#1976D2" />
+    <corners android:radius="12dp" />
+</shape>

@@ -13,5 +13,6 @@
     <!-- Widget — on-container text for the static preview/loading layouts. -->
     <color name="widget_on_feed">#880E4F</color>
     <color name="widget_on_sleep">#0D47A1</color>
+    <color name="widget_on_sleep_active">#FFFFFF</color>
     <color name="widget_on_surface_variant">#6D6A64</color>
 </resources>

@@ -23,60 +23,33 @@ class WidgetContentHelpersTest {
     }
 
     @Test
-    fun `feedChipLabel pairs side with elapsed`() {
+    fun `feedLabel uses side label or empty copy`() {
+        assertEquals("Left", feedLabel(BreastSide.LEFT))
+        assertEquals("Right", feedLabel(BreastSide.RIGHT))
+        assertEquals("No feeds yet", feedLabel(null))
+    }
+
+    @Test
+    fun `feedValue renders short elapsed or null`() {
         val start = now.minus(Duration.ofMinutes(80))
-        assertEquals("Right · 1h 20m", feedChipLabel(BreastSide.RIGHT, start, now))
-    }
-
-    @Test
-    fun `feedChipLabel falls back when no feed recorded`() {
-        assertEquals("No feeds yet", feedChipLabel(null, null, now))
-    }
-
-    @Test
-    fun `sleepChipLabel describes sleeping with duration`() {
-        val since = now.minus(Duration.ofMinutes(45))
-        assertEquals("Sleeping 45m", sleepChipLabel(SleepState.SLEEPING, since, now))
-    }
-
-    @Test
-    fun `sleepChipLabel describes awake with duration`() {
-        val since = now.minus(Duration.ofHours(2))
-        assertEquals("Awake 2h 00m", sleepChipLabel(SleepState.AWAKE, since, now))
-    }
-
-    @Test
-    fun `sleepChipLabel falls back when no sleep recorded`() {
-        assertEquals("No sleep yet", sleepChipLabel(SleepState.NONE, null, now))
-    }
-
-    @Test
-    fun `feedTitle uses side label or empty copy`() {
-        assertEquals("Left", feedTitle(BreastSide.LEFT))
-        assertEquals("No feeds yet", feedTitle(null))
-    }
-
-    @Test
-    fun `feedValue renders elapsed-ago or null`() {
-        val start = now.minus(Duration.ofMinutes(80))
-        assertEquals("1h 20m ago", feedValue(start, now))
+        assertEquals("1h 20m", feedValue(start, now))
         assertNull(feedValue(null, now))
     }
 
     @Test
-    fun `sleepTitle maps each state`() {
-        assertEquals("Sleeping", sleepTitle(SleepState.SLEEPING))
-        assertEquals("Awake", sleepTitle(SleepState.AWAKE))
-        assertEquals("No sleep logged", sleepTitle(SleepState.NONE))
+    fun `sleepLabel maps each state`() {
+        assertEquals("Sleeping", sleepLabel(SleepState.SLEEPING))
+        assertEquals("Awake", sleepLabel(SleepState.AWAKE))
+        assertEquals("No sleep yet", sleepLabel(SleepState.NONE))
     }
 
     @Test
-    fun `sleepValue renders by state`() {
+    fun `sleepValue renders short elapsed by state`() {
         val sleepingSince = now.minus(Duration.ofMinutes(45))
         assertEquals("45m", sleepValue(SleepState.SLEEPING, sleepingSince, now))
 
         val awakeSince = now.minus(Duration.ofMinutes(30))
-        assertEquals("30m ago", sleepValue(SleepState.AWAKE, awakeSince, now))
+        assertEquals("30m", sleepValue(SleepState.AWAKE, awakeSince, now))
 
         assertNull(sleepValue(SleepState.NONE, null, now))
     }
