@@ -85,6 +85,28 @@ class FetchPartnerDataUseCaseTest {
     }
 
     @Test
+    fun throwsPartnerAccessRevokedWhenShareDocumentMissingAfterConnectivityCheck() = runTest {
+        // TOCTOU: isPartnerConnected passes, then primary deletes the share document before
+        // fetchSnapshot returns → fetchSnapshot throws ISE("No data in share document …").
+        // The use case must classify this as a confirmed revoke, not a transient error.
+        coEvery { sharingRepository.isPartnerConnected(shareCode, "uid123") } returns true
+        coEvery { sharingRepository.fetchSnapshot(shareCode) } throws
+            IllegalStateException("No data in share document ${shareCode.value}")
+        coEvery { settingsRepository.clearPartnerStateIfShareCodeMatches(shareCode.value) } returns true
+
+        var caught: IllegalStateException? = null
+        try {
+            useCase(shareCode)
+        } catch (e: IllegalStateException) {
+            caught = e
+        }
+
+        assertNotNull(caught)
+        assertTrue(caught is PartnerAccessRevokedException)
+        coVerify { settingsRepository.clearPartnerStateIfShareCodeMatches(shareCode.value) }
+    }
+
+    @Test
     fun invokeWithExplicitCodeFetchesThatCodeNotSettings() = runTest {
         // The explicit overload must use the passed code, never re-reading settings — this is what
         // lets the worker cache a snapshot under exactly the code it requested.
