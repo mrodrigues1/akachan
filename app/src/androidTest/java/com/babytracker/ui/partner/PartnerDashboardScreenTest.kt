@@ -582,6 +582,8 @@ class PartnerDashboardScreenTest {
 
         override suspend fun clearShareCode() = Unit
 
+        override suspend fun clearPartnerStateIfShareCodeMatches(code: String): Boolean = false
+
         override fun getPredictiveEnabled(): Flow<Boolean> = flowOf(false)
 
         override suspend fun setPredictiveEnabled(enabled: Boolean) = Unit
