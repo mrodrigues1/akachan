@@ -20,6 +20,8 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -41,6 +43,14 @@ private data class BlockTextSizes(val emoji: TextUnit, val label: TextUnit, val 
 private val SmallBlockSizes = BlockTextSizes(emoji = 14.sp, label = 10.sp, value = 16.sp)
 private val MediumBlockSizes = BlockTextSizes(emoji = 18.sp, label = 11.sp, value = 20.sp)
 
+/** What a [DomainBlock] shows: the visible emoji/label/value plus the merged screen-reader phrase. */
+private data class DomainBlockContent(
+    val emoji: String,
+    val label: String,
+    val value: String?,
+    val description: String,
+)
+
 /**
  * Bolder widget: the elapsed value is the glance hero (large + Bold, domain-tinted), the
  * label is demoted to a small supporting line. Sleep gets an active-state signal: while the
@@ -59,23 +69,21 @@ fun SmallContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Glan
     ) {
         DomainBlock(
             backgroundRes = R.drawable.widget_feed_badge,
-            emoji = FEED_EMOJI,
-            label = feedLabel(data.lastFeedSide),
-            value = feedValue(data.lastFeedStart, now),
+            content = feedBlockContent(data, now),
             contentColor = GlanceTheme.colors.onPrimaryContainer,
             sizes = SmallBlockSizes,
             onClick = openBreastfeedingAction(),
+            stacked = true,
             modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
         )
-        Spacer(modifier = GlanceModifier.width(6.dp))
+        Spacer(modifier = GlanceModifier.width(8.dp))
         DomainBlock(
             backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-            emoji = SLEEP_EMOJI,
-            label = sleepLabel(data.sleepState),
-            value = sleepValue(data.sleepState, data.sleepSince, now),
+            content = sleepBlockContent(data, now),
             contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
             sizes = SmallBlockSizes,
             onClick = openSleepAction(),
+            stacked = true,
             modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
         )
     }
@@ -106,23 +114,19 @@ fun MediumContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Gla
             ),
             modifier = GlanceModifier.fillMaxWidth().clickable(openHomeAction()),
         )
-        Spacer(modifier = GlanceModifier.height(6.dp))
+        Spacer(modifier = GlanceModifier.height(8.dp))
         DomainBlock(
             backgroundRes = R.drawable.widget_feed_badge,
-            emoji = FEED_EMOJI,
-            label = feedLabel(data.lastFeedSide),
-            value = feedValue(data.lastFeedStart, now),
+            content = feedBlockContent(data, now),
             contentColor = GlanceTheme.colors.onPrimaryContainer,
             sizes = MediumBlockSizes,
             onClick = openBreastfeedingAction(),
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
         )
-        Spacer(modifier = GlanceModifier.height(6.dp))
+        Spacer(modifier = GlanceModifier.height(8.dp))
         DomainBlock(
             backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-            emoji = SLEEP_EMOJI,
-            label = sleepLabel(data.sleepState),
-            value = sleepValue(data.sleepState, data.sleepSince, now),
+            content = sleepBlockContent(data, now),
             contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
             sizes = MediumBlockSizes,
             onClick = openSleepAction(),
@@ -132,46 +136,81 @@ fun MediumContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Gla
 }
 
 /**
- * A tinted domain surface that fills its modifier-defined bounds as one tap target. The
- * emoji anchors the domain; the label sits small above the large, Bold elapsed value. All
- * text shares [contentColor] so hierarchy is carried by scale and weight, not by hue.
+ * A tinted domain surface that fills its modifier-defined bounds as one tap target. The emoji
+ * anchors the domain; the label sits small beside/above the large, Bold elapsed value. All text
+ * shares [contentColor] so hierarchy is carried by scale and weight, not by hue.
+ *
+ * [stacked] picks the arrangement: `false` (medium, wide tiles) keeps emoji left of a label/value
+ * column; `true` (small, narrow tiles) drops the value to its own full-width line so the hero never
+ * ellipsizes (a side-by-side row clips "2h 44m" at the ~81dp small-tile width).
  */
 @Composable
 private fun DomainBlock(
     backgroundRes: Int,
-    emoji: String,
-    label: String,
-    value: String?,
+    content: DomainBlockContent,
     contentColor: ColorProvider,
     sizes: BlockTextSizes,
     onClick: Action,
     modifier: GlanceModifier = GlanceModifier,
+    stacked: Boolean = false,
 ) {
-    Row(
-        modifier = modifier
-            .background(ImageProvider(backgroundRes))
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-            .clickable(onClick),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(text = emoji, style = TextStyle(fontSize = sizes.emoji))
-        Spacer(modifier = GlanceModifier.width(8.dp))
-        Column {
-            Text(
-                text = label,
-                maxLines = 1,
-                style = TextStyle(color = contentColor, fontSize = sizes.label, fontWeight = FontWeight.Medium),
-            )
-            if (value != null) {
-                Text(
-                    text = value,
-                    maxLines = 1,
-                    style = TextStyle(color = contentColor, fontSize = sizes.value, fontWeight = FontWeight.Bold),
-                )
+    val surface = modifier
+        .background(ImageProvider(backgroundRes))
+        .padding(horizontal = 8.dp, vertical = 4.dp)
+        .clickable(onClick)
+        .semantics { contentDescription = content.description }
+    if (stacked) {
+        Column(modifier = surface, verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = content.emoji, style = TextStyle(fontSize = sizes.emoji))
+                Spacer(modifier = GlanceModifier.width(8.dp))
+                BlockLabel(content.label, contentColor, sizes.label)
+            }
+            content.value?.let { BlockValue(it, contentColor, sizes.value) }
+        }
+    } else {
+        Row(modifier = surface, verticalAlignment = Alignment.CenterVertically) {
+            Text(text = content.emoji, style = TextStyle(fontSize = sizes.emoji))
+            Spacer(modifier = GlanceModifier.width(8.dp))
+            Column {
+                BlockLabel(content.label, contentColor, sizes.label)
+                content.value?.let { BlockValue(it, contentColor, sizes.value) }
             }
         }
     }
 }
+
+@Composable
+private fun BlockLabel(text: String, color: ColorProvider, size: TextUnit) {
+    Text(
+        text = text,
+        maxLines = 1,
+        style = TextStyle(color = color, fontSize = size, fontWeight = FontWeight.Medium),
+    )
+}
+
+@Composable
+private fun BlockValue(text: String, color: ColorProvider, size: TextUnit) {
+    Text(
+        text = text,
+        maxLines = 1,
+        style = TextStyle(color = color, fontSize = size, fontWeight = FontWeight.Bold),
+    )
+}
+
+private fun feedBlockContent(data: WidgetData, now: Instant) = DomainBlockContent(
+    emoji = FEED_EMOJI,
+    label = feedLabel(data.lastFeedSide),
+    value = feedValue(data.lastFeedStart, now),
+    description = feedContentDescription(data.lastFeedSide, data.lastFeedStart, now),
+)
+
+private fun sleepBlockContent(data: WidgetData, now: Instant) = DomainBlockContent(
+    emoji = SLEEP_EMOJI,
+    label = sleepLabel(data.sleepState),
+    value = sleepValue(data.sleepState, data.sleepSince, now),
+    description = sleepContentDescription(data.sleepState, data.sleepSince, now),
+)
 
 internal fun BreastSide.label(): String = when (this) {
     BreastSide.LEFT -> "Left"
@@ -195,4 +234,19 @@ internal fun sleepValue(state: SleepState, since: Instant?, now: Instant): Strin
     when (state) {
         SleepState.NONE -> null
         SleepState.SLEEPING, SleepState.AWAKE -> since?.let { Duration.between(it, now).formatElapsedShort() }
+    }
+
+// Screen-reader copy: each tile merges emoji + label + value into one spoken phrase with the
+// context the loose nodes lack ("1h 20m" alone never says "1h 20m of what").
+
+internal fun feedContentDescription(side: BreastSide?, start: Instant?, now: Instant): String {
+    if (side == null || start == null) return "No feeds yet"
+    return "Last feeding: ${side.label()} side, ${Duration.between(start, now).formatElapsedShort()} ago"
+}
+
+internal fun sleepContentDescription(state: SleepState, since: Instant?, now: Instant): String =
+    when (state) {
+        SleepState.NONE -> "No sleep yet"
+        SleepState.SLEEPING -> since?.let { "Sleeping for ${Duration.between(it, now).formatElapsedShort()}" } ?: "Sleeping"
+        SleepState.AWAKE -> since?.let { "Awake for ${Duration.between(it, now).formatElapsedShort()}" } ?: "Awake"
     }

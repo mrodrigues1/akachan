@@ -103,6 +103,4 @@
     <string name="widget_preview_feed_value">1h 20m</string>
     <string name="widget_preview_sleep_label">Sleeping</string>
     <string name="widget_preview_sleep_value">45m</string>
-    <string name="widget_feed_content_description">Last feeding</string>
-    <string name="widget_sleep_content_description">Sleep status</string>
 </resources>

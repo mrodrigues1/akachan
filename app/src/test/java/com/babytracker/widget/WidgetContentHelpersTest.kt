@@ -53,4 +53,33 @@ class WidgetContentHelpersTest {
 
         assertNull(sleepValue(SleepState.NONE, null, now))
     }
+
+    @Test
+    fun `feedContentDescription merges side and elapsed`() {
+        val start = now.minus(Duration.ofMinutes(80))
+        assertEquals("Last feeding: Right side, 1h 20m ago", feedContentDescription(BreastSide.RIGHT, start, now))
+    }
+
+    @Test
+    fun `feedContentDescription falls back when no feed`() {
+        assertEquals("No feeds yet", feedContentDescription(null, null, now))
+        assertEquals("No feeds yet", feedContentDescription(BreastSide.LEFT, null, now))
+    }
+
+    @Test
+    fun `sleepContentDescription describes each state`() {
+        val sleepingSince = now.minus(Duration.ofMinutes(45))
+        assertEquals("Sleeping for 45m", sleepContentDescription(SleepState.SLEEPING, sleepingSince, now))
+
+        val awakeSince = now.minus(Duration.ofMinutes(20))
+        assertEquals("Awake for 20m", sleepContentDescription(SleepState.AWAKE, awakeSince, now))
+
+        assertEquals("No sleep yet", sleepContentDescription(SleepState.NONE, null, now))
+    }
+
+    @Test
+    fun `sleepContentDescription falls back when timestamp missing`() {
+        assertEquals("Sleeping", sleepContentDescription(SleepState.SLEEPING, null, now))
+        assertEquals("Awake", sleepContentDescription(SleepState.AWAKE, null, now))
+    }
 }

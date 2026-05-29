@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Widget-picker preview. Mirrors the bolder small (2×1) Glance layout: warm cream rounded
-     surface with two domain chips. Each chip stacks a small label over a large, Bold elapsed
-     value (the glance hero). The sleep chip shows the active state (solid Sleep Blue fill),
-     since the sample data is "Sleeping". -->
+     surface with two domain chips. Each chip puts the emoji + small label on one line and the
+     large, Bold elapsed value (the glance hero) on its own full-width line below, so the hero
+     never ellipsizes at the narrow small-tile width. The sleep chip shows the active state
+     (solid Sleep Blue fill), since the sample data is "Sleeping". -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -15,24 +16,25 @@
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:layout_marginEnd="6dp"
+        android:layout_marginEnd="8dp"
         android:background="@drawable/widget_feed_badge"
         android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="10dp"
-        android:paddingVertical="6dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:text="🍼"
-            android:textSize="14sp" />
+        android:orientation="vertical"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="4dp">
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="🍼"
+                android:textSize="14sp" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -42,17 +44,17 @@
                 android:text="@string/widget_preview_feed_label"
                 android:textColor="@color/widget_on_feed"
                 android:textSize="10sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="@string/widget_preview_feed_value"
-                android:textColor="@color/widget_on_feed"
-                android:textSize="16sp"
-                android:textStyle="bold" />
         </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/widget_preview_feed_value"
+            android:textColor="@color/widget_on_feed"
+            android:textSize="16sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <LinearLayout
@@ -61,21 +63,22 @@
         android:layout_weight="1"
         android:background="@drawable/widget_sleep_active"
         android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="10dp"
-        android:paddingVertical="6dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:text="🌙"
-            android:textSize="14sp" />
+        android:orientation="vertical"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="4dp">
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="🌙"
+                android:textSize="14sp" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -85,16 +88,16 @@
                 android:text="@string/widget_preview_sleep_label"
                 android:textColor="@color/widget_on_sleep_active"
                 android:textSize="10sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="@string/widget_preview_sleep_value"
-                android:textColor="@color/widget_on_sleep_active"
-                android:textSize="16sp"
-                android:textStyle="bold" />
         </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/widget_preview_sleep_value"
+            android:textColor="@color/widget_on_sleep_active"
+            android:textSize="16sp"
+            android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>
