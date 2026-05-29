@@ -21,8 +21,8 @@ class PartnerWidgetCacheImpl @Inject constructor(
 
     override suspend fun read(shareCode: String): WidgetData? {
         val prefs = dataStore.data.first()
-        val feedStateName = prefs[FEED_STATE] ?: return null
         if (prefs[SHARE_CODE] != shareCode) return null
+        val feedStateName = prefs[FEED_STATE] ?: return null
 
         return WidgetData(
             babyName = prefs[BABY_NAME] ?: "Baby",
