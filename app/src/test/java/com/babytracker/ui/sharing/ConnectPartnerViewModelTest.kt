@@ -2,10 +2,12 @@ package com.babytracker.ui.sharing
 
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.usecase.ConnectAsPartnerUseCase
+import com.babytracker.widget.WidgetRefreshScheduler
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -22,13 +24,15 @@ import org.junit.jupiter.api.Test
 class ConnectPartnerViewModelTest {
 
     private lateinit var connectAsPartnerUseCase: ConnectAsPartnerUseCase
+    private lateinit var widgetRefreshScheduler: WidgetRefreshScheduler
     private lateinit var viewModel: ConnectPartnerViewModel
 
     @BeforeEach
     fun setup() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         connectAsPartnerUseCase = mockk()
-        viewModel = ConnectPartnerViewModel(connectAsPartnerUseCase)
+        widgetRefreshScheduler = mockk(relaxUnitFun = true)
+        viewModel = ConnectPartnerViewModel(connectAsPartnerUseCase, widgetRefreshScheduler)
     }
 
     @AfterEach
@@ -62,7 +66,7 @@ class ConnectPartnerViewModelTest {
     }
 
     @Test
-    fun `onConnect sets isConnected on success`() = runTest {
+    fun `onConnect sets isConnected and schedules an immediate widget refresh on success`() = runTest {
         val code = "ABCD1234"
         coJustRun { connectAsPartnerUseCase(ShareCode(code)) }
         viewModel.onCodeChanged(code)
@@ -71,10 +75,11 @@ class ConnectPartnerViewModelTest {
 
         assertTrue(viewModel.uiState.value.isConnected)
         assertNull(viewModel.uiState.value.error)
+        verify(exactly = 1) { widgetRefreshScheduler.scheduleImmediateRefresh() }
     }
 
     @Test
-    fun `onConnect shows not-found error on IllegalStateException`() = runTest {
+    fun `onConnect shows not-found error and does not schedule on IllegalStateException`() = runTest {
         val code = "ABCD1234"
         coEvery { connectAsPartnerUseCase(ShareCode(code)) } throws IllegalStateException("not found")
         viewModel.onCodeChanged(code)
@@ -84,10 +89,11 @@ class ConnectPartnerViewModelTest {
         val error = viewModel.uiState.value.error
         assertNotNull(error)
         assertTrue(error!!.contains("doesn't exist"))
+        verify(exactly = 0) { widgetRefreshScheduler.scheduleImmediateRefresh() }
     }
 
     @Test
-    fun `onConnect shows connection error on generic exception`() = runTest {
+    fun `onConnect shows connection error and does not schedule on generic exception`() = runTest {
         val code = "ABCD1234"
         coEvery { connectAsPartnerUseCase(ShareCode(code)) } throws RuntimeException("Network error")
         viewModel.onCodeChanged(code)
@@ -97,5 +103,6 @@ class ConnectPartnerViewModelTest {
         val error = viewModel.uiState.value.error
         assertNotNull(error)
         assertTrue(error!!.contains("connection"))
+        verify(exactly = 0) { widgetRefreshScheduler.scheduleImmediateRefresh() }
     }
 }
