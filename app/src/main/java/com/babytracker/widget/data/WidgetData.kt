@@ -11,10 +11,18 @@ enum class SleepState {
     NONE,
 }
 
+enum class FeedState {
+    ACTIVE,
+    PAUSED,
+    RECENT,
+    NONE,
+}
+
 data class WidgetData(
     val babyName: String,
     val lastFeedSide: BreastSide?,
     val lastFeedStart: Instant?,
+    val feedState: FeedState,
     val sleepState: SleepState,
     val sleepSince: Instant?,
 ) {
@@ -23,6 +31,7 @@ data class WidgetData(
             babyName = "Baby",
             lastFeedSide = null,
             lastFeedStart = null,
+            feedState = FeedState.NONE,
             sleepState = SleepState.NONE,
             sleepSince = null,
         )
@@ -35,31 +44,49 @@ fun toWidgetData(
     latestSleep: SleepRecord?,
 ): WidgetData {
     val resolvedName = babyName?.takeIf { it.isNotBlank() } ?: "Baby"
+    val sleepState = latestSleep.toSleepState()
+    val sleepSince = latestSleep.toSleepSince(sleepState)
 
-    val sleepState = when {
-        latestSleep == null -> SleepState.NONE
-        latestSleep.endTime == null -> SleepState.SLEEPING
+    return WidgetData(
+        babyName = resolvedName,
+        lastFeedSide = lastFeed.toEffectiveFeedSide(),
+        lastFeedStart = lastFeed?.startTime,
+        feedState = lastFeed.toFeedState(),
+        sleepState = sleepState,
+        sleepSince = sleepSince,
+    )
+}
+
+private fun SleepRecord?.toSleepState(): SleepState =
+    when {
+        this == null -> SleepState.NONE
+        endTime == null -> SleepState.SLEEPING
         else -> SleepState.AWAKE
     }
-    val sleepSince: Instant? = when (sleepState) {
-        SleepState.SLEEPING -> latestSleep?.startTime
-        SleepState.AWAKE -> latestSleep?.endTime
+
+private fun SleepRecord?.toSleepSince(state: SleepState): Instant? =
+    when (state) {
+        SleepState.SLEEPING -> this?.startTime
+        SleepState.AWAKE -> this?.endTime
         SleepState.NONE -> null
     }
 
-    val effectiveFeedSide = lastFeed?.let { feed ->
+private fun BreastfeedingSession?.toEffectiveFeedSide(): BreastSide? =
+    this?.let { feed ->
         if (feed.switchTime != null) {
-            if (feed.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
+            feed.startingSide.opposite()
         } else {
             feed.startingSide
         }
     }
 
-    return WidgetData(
-        babyName = resolvedName,
-        lastFeedSide = effectiveFeedSide,
-        lastFeedStart = lastFeed?.startTime,
-        sleepState = sleepState,
-        sleepSince = sleepSince,
-    )
-}
+private fun BreastSide.opposite(): BreastSide =
+    if (this == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
+
+private fun BreastfeedingSession?.toFeedState(): FeedState =
+    when {
+        this == null -> FeedState.NONE
+        endTime != null -> FeedState.RECENT
+        pausedAt != null -> FeedState.PAUSED
+        else -> FeedState.ACTIVE
+    }

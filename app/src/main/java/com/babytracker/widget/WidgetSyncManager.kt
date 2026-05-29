@@ -8,8 +8,10 @@ import com.babytracker.domain.repository.SleepRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
@@ -18,6 +20,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val DEBOUNCE_MS = 500L
+private const val ELAPSED_TIME_REFRESH_MS = 60_000L
 private const val TAG = "WidgetSyncManager"
 
 @OptIn(FlowPreview::class)
@@ -34,8 +37,14 @@ class WidgetSyncManager @Inject constructor(
         val feedTrigger = feedRepository.observeLatestSession().map { Unit }
         val sleepTrigger = sleepRepository.observeLatestRecord().map { Unit }
         val babyTrigger = babyRepository.getBabyProfile().map { Unit }
+        val elapsedTimeTrigger = flow {
+            while (true) {
+                delay(ELAPSED_TIME_REFRESH_MS)
+                emit(Unit)
+            }
+        }
 
-        merge(feedTrigger, sleepTrigger, babyTrigger)
+        merge(feedTrigger, sleepTrigger, babyTrigger, elapsedTimeTrigger)
             .debounce(DEBOUNCE_MS)
             .onEach { safeUpdate() }
             .catch { e -> Log.w(TAG, "Widget sync flow terminated", e) }

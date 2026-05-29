@@ -29,6 +29,7 @@ import androidx.glance.unit.ColorProvider
 import com.babytracker.R
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.util.formatElapsedShort
+import com.babytracker.widget.data.FeedState
 import com.babytracker.widget.data.SleepState
 import com.babytracker.widget.data.WidgetData
 import java.time.Duration
@@ -53,12 +54,12 @@ private data class DomainBlockContent(
 
 /**
  * Bolder widget: the elapsed value is the glance hero (large + Bold, domain-tinted), the
- * label is demoted to a small supporting line. Sleep gets an active-state signal: while the
- * baby is asleep *now* the sleep surface fills solid Sleep Blue (mirrors the SideSelector
- * selected grammar), so "asleep right now" reads without reading any text.
+ * label is demoted to a small supporting line. Active feed and sleep sessions fill with
+ * their solid domain color so the running state reads without parsing every word.
  */
 @Composable
 fun SmallContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier) {
+    val feedingActive = data.hasActiveFeed()
     val sleeping = data.sleepState == SleepState.SLEEPING
     Row(
         modifier = modifier
@@ -68,9 +69,13 @@ fun SmallContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Glan
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DomainBlock(
-            backgroundRes = R.drawable.widget_feed_badge,
+            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
             content = feedBlockContent(data, now),
-            contentColor = GlanceTheme.colors.onPrimaryContainer,
+            contentColor = if (feedingActive) {
+                GlanceTheme.colors.onPrimary
+            } else {
+                GlanceTheme.colors.onPrimaryContainer
+            },
             sizes = SmallBlockSizes,
             onClick = openBreastfeedingAction(),
             stacked = true,
@@ -97,6 +102,7 @@ fun SmallContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Glan
  */
 @Composable
 fun MediumContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier) {
+    val feedingActive = data.hasActiveFeed()
     val sleeping = data.sleepState == SleepState.SLEEPING
     Column(
         modifier = modifier
@@ -116,9 +122,13 @@ fun MediumContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Gla
         )
         Spacer(modifier = GlanceModifier.height(8.dp))
         DomainBlock(
-            backgroundRes = R.drawable.widget_feed_badge,
+            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
             content = feedBlockContent(data, now),
-            contentColor = GlanceTheme.colors.onPrimaryContainer,
+            contentColor = if (feedingActive) {
+                GlanceTheme.colors.onPrimary
+            } else {
+                GlanceTheme.colors.onPrimaryContainer
+            },
             sizes = MediumBlockSizes,
             onClick = openBreastfeedingAction(),
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
@@ -200,9 +210,9 @@ private fun BlockValue(text: String, color: ColorProvider, size: TextUnit) {
 
 private fun feedBlockContent(data: WidgetData, now: Instant) = DomainBlockContent(
     emoji = FEED_EMOJI,
-    label = feedLabel(data.lastFeedSide),
-    value = feedValue(data.lastFeedStart, now),
-    description = feedContentDescription(data.lastFeedSide, data.lastFeedStart, now),
+    label = feedLabel(data.lastFeedSide, data.feedState),
+    value = feedValue(data.lastFeedStart, data.feedState, now),
+    description = feedContentDescription(data.lastFeedSide, data.feedState, data.lastFeedStart, now),
 )
 
 private fun sleepBlockContent(data: WidgetData, now: Instant) = DomainBlockContent(
@@ -212,6 +222,8 @@ private fun sleepBlockContent(data: WidgetData, now: Instant) = DomainBlockConte
     description = sleepContentDescription(data.sleepState, data.sleepSince, now),
 )
 
+private fun WidgetData.hasActiveFeed(): Boolean = feedState == FeedState.ACTIVE || feedState == FeedState.PAUSED
+
 internal fun BreastSide.label(): String = when (this) {
     BreastSide.LEFT -> "Left"
     BreastSide.RIGHT -> "Right"
@@ -219,10 +231,19 @@ internal fun BreastSide.label(): String = when (this) {
 
 // --- Pure label/value builders, shared by both sizes (unit-tested in WidgetContentHelpersTest) ---
 
-internal fun feedLabel(side: BreastSide?): String = side?.label() ?: "No feeds yet"
+internal fun feedLabel(side: BreastSide?, state: FeedState): String =
+    when (state) {
+        FeedState.ACTIVE -> side?.let { "Feeding: ${it.label()}" } ?: "Feeding"
+        FeedState.PAUSED -> side?.let { "Paused: ${it.label()}" } ?: "Paused"
+        FeedState.RECENT -> side?.let { "Last: ${it.label()}" } ?: "Last feed"
+        FeedState.NONE -> "No feeds yet"
+    }
 
-internal fun feedValue(start: Instant?, now: Instant): String? =
-    start?.let { Duration.between(it, now).formatElapsedShort() }
+internal fun feedValue(start: Instant?, state: FeedState, now: Instant): String? =
+    start?.let {
+        val elapsed = Duration.between(it, now).formatElapsedShort()
+        if (state == FeedState.RECENT) "$elapsed ago" else elapsed
+    }
 
 internal fun sleepLabel(state: SleepState): String = when (state) {
     SleepState.SLEEPING -> "Sleeping"
@@ -239,9 +260,15 @@ internal fun sleepValue(state: SleepState, since: Instant?, now: Instant): Strin
 // Screen-reader copy: each tile merges emoji + label + value into one spoken phrase with the
 // context the loose nodes lack ("1h 20m" alone never says "1h 20m of what").
 
-internal fun feedContentDescription(side: BreastSide?, start: Instant?, now: Instant): String {
+internal fun feedContentDescription(side: BreastSide?, state: FeedState, start: Instant?, now: Instant): String {
     if (side == null || start == null) return "No feeds yet"
-    return "Last feeding: ${side.label()} side, ${Duration.between(start, now).formatElapsedShort()} ago"
+    val elapsed = Duration.between(start, now).formatElapsedShort()
+    return when (state) {
+        FeedState.ACTIVE -> "Feeding active: ${side.label()} side, started $elapsed ago"
+        FeedState.PAUSED -> "Feeding paused: ${side.label()} side, started $elapsed ago"
+        FeedState.RECENT -> "Last feeding started $elapsed ago; last side used ${side.label()}"
+        FeedState.NONE -> "No feeds yet"
+    }
 }
 
 internal fun sleepContentDescription(state: SleepState, since: Instant?, now: Instant): String =
