@@ -198,6 +198,15 @@ tasks.withType<Test> {
     // forces GC churn that visibly slows architecture tests, especially on WSL2.
     maxHeapSize = "2g"
     jvmArgs("-XX:+UseG1GC", "-XX:MaxMetaspaceSize=512m")
+    doFirst {
+        if (!System.getProperty("os.name").startsWith("Windows")) {
+            fileTree(layout.buildDirectory.dir("intermediates/unit_test_config_directory")) {
+                include("**/com/android/tools/test_config.properties")
+            }.forEach { configFile ->
+                configFile.writeText(configFile.readText().replace("\\\\", "/"))
+            }
+        }
+    }
 }
 
 ksp {
