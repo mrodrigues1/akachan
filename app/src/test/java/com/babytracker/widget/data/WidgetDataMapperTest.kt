@@ -4,6 +4,10 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.sharing.domain.model.BabySnapshot
+import com.babytracker.sharing.domain.model.SessionSnapshot
+import com.babytracker.sharing.domain.model.ShareSnapshot
+import com.babytracker.sharing.domain.model.SleepSnapshot
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
@@ -179,5 +183,117 @@ class WidgetDataMapperTest {
 
         assertEquals(BreastSide.RIGHT, result.lastFeedSide)
         assertEquals(SleepState.SLEEPING, result.sleepState)
+    }
+
+    private fun snapshot(
+        babyName: String = "Akira",
+        sessions: List<SessionSnapshot> = emptyList(),
+        sleeps: List<SleepSnapshot> = emptyList(),
+    ) = ShareSnapshot(
+        lastSyncAt = Instant.parse("2026-05-24T12:00:00Z"),
+        baby = BabySnapshot(name = babyName, birthDateMs = 0L, allergies = emptyList()),
+        sessions = sessions,
+        sleepRecords = sleeps,
+    )
+
+    private fun sessionSnapshot(
+        id: Long = 1,
+        startMs: Long = Instant.parse("2026-05-24T10:00:00Z").toEpochMilli(),
+        endMs: Long? = Instant.parse("2026-05-24T10:15:00Z").toEpochMilli(),
+        side: String = "LEFT",
+        switchMs: Long? = null,
+    ) = SessionSnapshot(
+        id = id,
+        startTime = startMs,
+        endTime = endMs,
+        startingSide = side,
+        switchTime = switchMs,
+        pausedDurationMs = 0L,
+        notes = null,
+    )
+
+    private fun sleepSnapshot(
+        id: Long = 1,
+        startMs: Long = Instant.parse("2026-05-24T11:00:00Z").toEpochMilli(),
+        endMs: Long? = null,
+        type: String = "NAP",
+    ) = SleepSnapshot(
+        id = id,
+        startTime = startMs,
+        endTime = endMs,
+        sleepType = type,
+        notes = null,
+    )
+
+    @Test
+    fun `snapshot picks the latest session by startTime`() {
+        val older = sessionSnapshot(id = 1, startMs = Instant.parse("2026-05-24T08:00:00Z").toEpochMilli(), side = "LEFT")
+        val newer = sessionSnapshot(id = 2, startMs = Instant.parse("2026-05-24T10:00:00Z").toEpochMilli(), side = "RIGHT")
+
+        val result = toWidgetData(snapshot(sessions = listOf(older, newer)))
+
+        assertEquals(BreastSide.RIGHT, result.lastFeedSide)
+        assertEquals(Instant.parse("2026-05-24T10:00:00Z"), result.lastFeedStart)
+    }
+
+    @Test
+    fun `snapshot open session maps to ACTIVE`() {
+        val result = toWidgetData(snapshot(sessions = listOf(sessionSnapshot(endMs = null))))
+
+        assertEquals(FeedState.ACTIVE, result.feedState)
+    }
+
+    @Test
+    fun `snapshot closed session maps to RECENT`() {
+        val result = toWidgetData(snapshot(sessions = listOf(sessionSnapshot())))
+
+        assertEquals(FeedState.RECENT, result.feedState)
+    }
+
+    @Test
+    fun `snapshot with no sessions maps to feed NONE`() {
+        val result = toWidgetData(snapshot(sessions = emptyList()))
+
+        assertEquals(FeedState.NONE, result.feedState)
+        assertNull(result.lastFeedSide)
+        assertNull(result.lastFeedStart)
+    }
+
+    @Test
+    fun `snapshot switched session reports opposite side`() {
+        val switched = sessionSnapshot(
+            side = "LEFT",
+            switchMs = Instant.parse("2026-05-24T10:10:00Z").toEpochMilli(),
+        )
+
+        val result = toWidgetData(snapshot(sessions = listOf(switched)))
+
+        assertEquals(BreastSide.RIGHT, result.lastFeedSide)
+    }
+
+    @Test
+    fun `snapshot picks the latest sleep and maps SLEEPING`() {
+        val older = sleepSnapshot(id = 1, startMs = Instant.parse("2026-05-24T09:00:00Z").toEpochMilli(), endMs = Instant.parse("2026-05-24T09:30:00Z").toEpochMilli())
+        val newer = sleepSnapshot(id = 2, startMs = Instant.parse("2026-05-24T11:00:00Z").toEpochMilli(), endMs = null)
+
+        val result = toWidgetData(snapshot(sleeps = listOf(older, newer)))
+
+        assertEquals(SleepState.SLEEPING, result.sleepState)
+        assertEquals(Instant.parse("2026-05-24T11:00:00Z"), result.sleepSince)
+    }
+
+    @Test
+    fun `snapshot with no sleeps maps to sleep NONE`() {
+        val result = toWidgetData(snapshot(sleeps = emptyList()))
+
+        assertEquals(SleepState.NONE, result.sleepState)
+        assertNull(result.sleepSince)
+    }
+
+    @Test
+    fun `snapshot blank baby name falls back to "Baby"`() {
+        val result = toWidgetData(snapshot(babyName = "   "))
+
+        assertEquals("Baby", result.babyName)
     }
 }

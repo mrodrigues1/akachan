@@ -3,6 +3,10 @@ package com.babytracker.widget.data
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.SleepRecord
+import com.babytracker.domain.model.SleepType
+import com.babytracker.sharing.domain.model.SessionSnapshot
+import com.babytracker.sharing.domain.model.ShareSnapshot
+import com.babytracker.sharing.domain.model.SleepSnapshot
 import java.time.Instant
 
 enum class SleepState {
@@ -90,3 +94,38 @@ private fun BreastfeedingSession?.toFeedState(): FeedState =
         pausedAt != null -> FeedState.PAUSED
         else -> FeedState.ACTIVE
     }
+
+fun toWidgetData(snapshot: ShareSnapshot): WidgetData {
+    val lastFeed = snapshot.sessions
+        .maxByOrNull { it.startTime }
+        ?.toDomainSession()
+    val latestSleep = snapshot.sleepRecords
+        .maxByOrNull { it.startTime }
+        ?.toDomainSleep()
+
+    return toWidgetData(
+        babyName = snapshot.baby.name,
+        lastFeed = lastFeed,
+        latestSleep = latestSleep,
+    )
+}
+
+// Snapshot rows carry no pausedAt, so partner feeds never derive PAUSED (accepted limitation:
+// the shared snapshot model has no pause state — the dashboard has the same blind spot).
+private fun SessionSnapshot.toDomainSession(): BreastfeedingSession =
+    BreastfeedingSession(
+        id = id,
+        startTime = Instant.ofEpochMilli(startTime),
+        endTime = endTime?.let(Instant::ofEpochMilli),
+        startingSide = BreastSide.valueOf(startingSide),
+        switchTime = switchTime?.let(Instant::ofEpochMilli),
+        pausedAt = null,
+    )
+
+private fun SleepSnapshot.toDomainSleep(): SleepRecord =
+    SleepRecord(
+        id = id,
+        startTime = Instant.ofEpochMilli(startTime),
+        endTime = endTime?.let(Instant::ofEpochMilli),
+        sleepType = SleepType.valueOf(sleepType),
+    )
