@@ -19,6 +19,8 @@ class BabyWidgetTest {
         assertTrue(BabyWidget.RESPONSIVE_SIZES.contains(BabyWidget.FOUR_BY_ONE_SIZE))
         assertTrue(BabyWidget.RESPONSIVE_SIZES.contains(BabyWidget.MEDIUM_SIZE))
         assertTrue(BabyWidget.RESPONSIVE_SIZES.contains(BabyWidget.THREE_BY_THREE_SIZE))
+        assertTrue(BabyWidget.RESPONSIVE_SIZES.contains(BabyWidget.TWO_BY_FOUR_SIZE))
+        assertTrue(BabyWidget.RESPONSIVE_SIZES.contains(BabyWidget.THREE_BY_FOUR_SIZE))
         assertTrue(BabyWidget.RESPONSIVE_SIZES.contains(BabyWidget.FOUR_BY_TWO_SIZE))
         assertTrue(BabyWidget.RESPONSIVE_SIZES.contains(BabyWidget.FOUR_BY_THREE_SIZE))
         assertTrue(BabyWidget.RESPONSIVE_SIZES.contains(BabyWidget.FOUR_BY_FOUR_SIZE))
@@ -47,11 +49,17 @@ class BabyWidgetTest {
     fun `keeps square and tall sizes on medium layout`() {
         assertEquals(WidgetLayout.MEDIUM, widgetLayoutForSize(DpSize(width = 110.dp, height = 110.dp)))
         assertEquals(WidgetLayout.MEDIUM, widgetLayoutForSize(DpSize(width = 180.dp, height = 110.dp)))
+        assertEquals(WidgetLayout.MEDIUM, widgetLayoutForSize(BabyWidget.TWO_BY_FOUR_SIZE))
     }
 
     @Test
     fun `uses explicit layout for three by three size`() {
         assertEquals(WidgetLayout.THREE_BY_THREE, widgetLayoutForSize(BabyWidget.THREE_BY_THREE_SIZE))
+    }
+
+    @Test
+    fun `uses explicit layout for three by four size`() {
+        assertEquals(WidgetLayout.THREE_BY_FOUR, widgetLayoutForSize(BabyWidget.THREE_BY_FOUR_SIZE))
     }
 
     @Test

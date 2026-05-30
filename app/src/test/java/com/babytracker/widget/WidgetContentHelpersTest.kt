@@ -52,6 +52,14 @@ class WidgetContentHelpersTest {
     }
 
     @Test
+    fun `feedContextSupporting avoids repeating elapsed timing`() {
+        assertEquals("Current side Right", feedContextSupporting(BreastSide.RIGHT, FeedState.ACTIVE))
+        assertEquals("Paused", feedContextSupporting(BreastSide.RIGHT, FeedState.PAUSED))
+        assertEquals("Last side Right", feedContextSupporting(BreastSide.RIGHT, FeedState.RECENT))
+        assertNull(feedContextSupporting(null, FeedState.NONE))
+    }
+
+    @Test
     fun `sleepLabel maps each state`() {
         assertEquals("Sleeping", sleepLabel(SleepState.SLEEPING))
         assertEquals("Awake", sleepLabel(SleepState.AWAKE))
@@ -78,6 +86,13 @@ class WidgetContentHelpersTest {
         assertEquals("Awake 20m", sleepSupporting(SleepState.AWAKE, awakeSince, now))
 
         assertNull(sleepSupporting(SleepState.NONE, null, now))
+    }
+
+    @Test
+    fun `sleepContextSupporting avoids repeating elapsed timing`() {
+        assertEquals("Currently asleep", sleepContextSupporting(SleepState.SLEEPING))
+        assertEquals("Currently awake", sleepContextSupporting(SleepState.AWAKE))
+        assertNull(sleepContextSupporting(SleepState.NONE))
     }
 
     @Test
@@ -135,6 +150,24 @@ class WidgetContentHelpersTest {
     }
 
     @Test
+    fun `widgetStateLabel favors active care state without elapsed timing`() {
+        val feedingData = WidgetData.EMPTY.copy(
+            lastFeedSide = BreastSide.LEFT,
+            lastFeedStart = now.minus(Duration.ofMinutes(15)),
+            feedState = FeedState.ACTIVE,
+            sleepState = SleepState.SLEEPING,
+            sleepSince = now.minus(Duration.ofMinutes(45)),
+        )
+        assertEquals("Feeding", widgetStateLabel(feedingData))
+
+        val sleepingData = WidgetData.EMPTY.copy(
+            sleepState = SleepState.SLEEPING,
+            sleepSince = now.minus(Duration.ofMinutes(45)),
+        )
+        assertEquals("Sleeping", widgetStateLabel(sleepingData))
+    }
+
+    @Test
     fun `careSummary combines feed and sleep state`() {
         val data = WidgetData.EMPTY.copy(
             lastFeedSide = BreastSide.RIGHT,
@@ -145,5 +178,18 @@ class WidgetContentHelpersTest {
         )
 
         assertEquals("Fed 1h 20m ago, Awake 20m", careSummary(data, now))
+    }
+
+    @Test
+    fun `careContextSummary combines feed and sleep state without elapsed timing`() {
+        val data = WidgetData.EMPTY.copy(
+            lastFeedSide = BreastSide.RIGHT,
+            lastFeedStart = now.minus(Duration.ofMinutes(80)),
+            feedState = FeedState.RECENT,
+            sleepState = SleepState.AWAKE,
+            sleepSince = now.minus(Duration.ofMinutes(20)),
+        )
+
+        assertEquals("Last side Right, Awake now", careContextSummary(data))
     }
 }
