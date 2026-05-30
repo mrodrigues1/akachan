@@ -12,7 +12,9 @@ import io.mockk.slot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import android.database.sqlite.SQLiteConstraintException
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -162,5 +164,56 @@ class SleepRepositoryImplTest {
         repository.deleteRecord(42L)
 
         assertEquals(42L, slot.captured)
+    }
+
+    @Test
+    fun insertRecordActiveConstraintViolationReturnsExistingId() = runTest {
+        val activeRecord = SleepRecord(
+            startTime = Instant.ofEpochMilli(startEpoch),
+            sleepType = SleepType.NAP
+        )
+        val existingEntity = entity.copy(endTime = null, id = 55L)
+        coEvery { dao.insertRecord(any()) } throws SQLiteConstraintException("UNIQUE constraint failed")
+        coEvery { dao.getActiveRecord() } returns existingEntity
+
+        val id = repository.insertRecord(activeRecord)
+
+        assertEquals(55L, id)
+    }
+
+    @Test
+    fun insertRecordActiveConstraintViolationNoActiveRowRethrows() = runTest {
+        val activeRecord = SleepRecord(
+            startTime = Instant.ofEpochMilli(startEpoch),
+            sleepType = SleepType.NAP
+        )
+        coEvery { dao.insertRecord(any()) } throws SQLiteConstraintException("UNIQUE constraint failed")
+        coEvery { dao.getActiveRecord() } returns null
+
+        var thrown: SQLiteConstraintException? = null
+        try {
+            repository.insertRecord(activeRecord)
+        } catch (e: SQLiteConstraintException) {
+            thrown = e
+        }
+        assertNotNull(thrown)
+    }
+
+    @Test
+    fun insertRecordCompletedConstraintViolationAlwaysRethrows() = runTest {
+        val completedRecord = SleepRecord(
+            startTime = Instant.ofEpochMilli(startEpoch),
+            endTime = Instant.ofEpochMilli(endEpoch),
+            sleepType = SleepType.NAP
+        )
+        coEvery { dao.insertRecord(any()) } throws SQLiteConstraintException("UNIQUE constraint failed")
+
+        var thrown: SQLiteConstraintException? = null
+        try {
+            repository.insertRecord(completedRecord)
+        } catch (e: SQLiteConstraintException) {
+            thrown = e
+        }
+        assertNotNull(thrown)
     }
 }
