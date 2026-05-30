@@ -16,8 +16,8 @@ start/stop writes** directly through the existing use cases.
 
 ## Goals
 
-- Start/stop a feeding session from a QS tile, silently (no unlock, no app navigation).
-- Start/stop a sleep session from a QS tile, silently.
+- Start/stop a feeding session from a QS tile, silently (no app navigation) **when unlocked**.
+- Start/stop a sleep session from a QS tile, silently when unlocked.
 - Tile visually reflects state: Active / Inactive / Unavailable.
 - Tile shows elapsed time for an active session (Android 10+).
 - Long-press routes into the app's full session screen.
@@ -28,6 +28,7 @@ start/stop writes** directly through the existing use cases.
 - Side-switch from the tile — from the project brief.
 - Live-ticking elapsed time (Android refreshes a tile only on panel open / explicit update).
 - Live external-change push (tile re-resolves on next panel open; see Known Limitations).
+- Silent writes from a secure lockscreen — explicitly excluded; locked taps open the app (see Security).
 
 ## Decisions (resolved during brainstorming)
 
@@ -35,7 +36,8 @@ start/stop writes** directly through the existing use cases.
 |---|---|
 | "Start Feed" needs a breast side | **Alternate** from the last completed session (LEFT↔RIGHT); default **LEFT** if no history. |
 | "Start Sleep" needs a sleep type | **Time-of-day heuristic**: local 19:00–06:00 → `NIGHT_SLEEP`, else `NAP`. |
-| Single tap | **Silent start/stop toggle** — no app launch, no unlock. |
+| Single tap (unlocked) | **Silent start/stop toggle** — no app launch. |
+| Single tap (locked + secure keyguard) | **Opens the app behind the keyguard** (`startActivityAndCollapse`) at the relevant session screen — **no silent write**. See Security below. |
 | Long-press | Opens the **full session screen** in-app (feeding / sleep). |
 | PARTNER mode / pre-onboarding | Tile renders **Unavailable**; tap **opens the app** (partner dashboard / onboarding). No silent writes possible. |
 | Number of tiles | **Two**: Feed, Sleep. |
@@ -62,7 +64,7 @@ Rejected alternatives:
 | `SleepTileService` | `TileService` | Same, sleep variant. |
 | `TileEntryPoint` | Hilt `@EntryPoint` (`SingletonComponent`) | Exposes to the non-DI services: `SettingsRepository`, `BreastfeedingRepository`, `SleepRepository`, the four start/stop use cases, and `GlanceWidgetUpdater`. |
 | `TileStateResolver` | pure class (`Clock` injected) | Reads app-mode + onboarding flag + active session → `TileRenderState(state, label, subtitle)` where `state ∈ {Active, Inactive, Unavailable}`. |
-| `TileToggleHandler` | pure class | Branches start/stop. Feed: active → `stop(session)` else `start(alternateSide(last))`. Sleep: in-progress → `stop(id)` else `start(sleepTypeFor(now))`. |
+| `TileToggleHandler` | `@Singleton` | Branches start/stop behind a single-flight `Mutex`. Feed: active → `stopActive()` else `startIfNone(alternateSide(last))`. Sleep: in-progress → `stopActive()` else `startIfNone(sleepTypeFor(now))`. Calls the **atomic** repository ops (see Concurrency). |
 | `TileSideAndType.kt` | pure functions | `alternateSide(last: BreastfeedingSession?): BreastSide` (LEFT↔RIGHT, default LEFT); `sleepTypeFor(now: Instant, zone: ZoneId): SleepType` (19:00–06:00 → NIGHT_SLEEP, else NAP). |
 
 ### Existing seams reused
@@ -105,17 +107,68 @@ Launch on a service `CoroutineScope`, call `TileStateResolver`, then `qsTile.upd
 
 ### `onClick`
 
-- **Unavailable** (PARTNER / pre-onboarding) → `startActivityAndCollapse` to the app (partner
-  dashboard or onboarding).
-- **Otherwise** → `TileToggleHandler` performs the start/stop silently (no activity launched, so no
-  unlock required), then `updateTile()` flips the state, then `GlanceWidgetUpdater.updateAll()` keeps
-  the widget in sync.
+Resolve state first, then branch in this order:
+
+1. **Unavailable** (PARTNER / pre-onboarding) → `startActivityAndCollapse` to the app (partner
+   dashboard or onboarding).
+2. **Locked + secure** (`isSecure && isLocked` — `TileService.isLocked()` /
+   `KeyguardManager.isKeyguardLocked` + `isDeviceSecure`) → `startActivityAndCollapse` to the relevant
+   session screen. The system raises the keyguard; the write happens inside the app after unlock. **No
+   silent tile write.** See Security.
+3. **Unlocked & available** → `TileToggleHandler` performs the start/stop silently (no activity
+   launched), then `updateTile()` flips the state, then `GlanceWidgetUpdater.updateAll()` keeps the
+   widget in sync.
+
+A non-secure device (no PIN/pattern/biometric) has no trust boundary to honor, so case 2 does not
+apply and case 3 toggles silently as before.
 
 ### Elapsed subtitle constraint
 
 `Tile.setSubtitle` is API 29+; the app's `minSdk` is 26. Therefore elapsed time renders as a subtitle
 on Android 10+ and is omitted on 26–28 (label only). The value is computed at render time and cannot
 live-tick; it refreshes on panel open or on our own `updateTile`.
+
+## Security — lockscreen trust boundary
+
+The tile records are the primary local source of truth; an unintended start/stop corrupts history
+timestamps. A QS tile is tappable from the lockscreen, so a silent write there would let anyone with
+physical access (or an accidental tap) mutate tracking data with no authentication gate.
+
+**Policy:** on a **secure + locked** device, a tile tap never writes silently — it opens the app
+behind the keyguard (`onClick` case 2 above), forcing the user past the keyguard before any record
+changes. Silent toggles are allowed only when the device is unlocked, or when it has no secure
+keyguard at all (nothing to protect). This keeps the "no app navigation" convenience for the common
+unlocked case while closing the unauthenticated-write hole.
+
+This policy is part of the spec and must be covered by tests (see Testing): locked+secure → open-app,
+not-locked → toggle, not-secure → toggle.
+
+## Concurrency & idempotency
+
+The existing data layer has **no uniqueness guard**: `BreastfeedingDao.getActiveSession()` is
+`SELECT … WHERE end_time IS NULL LIMIT 1` and `insertSession` is a plain insert (sleep is analogous).
+Two rapid taps — or a tile tap racing the app / widget / notification path — can both observe "no
+active session" and both insert, producing **two concurrent active sessions**; symmetrically a
+double-tap can stop a session twice or stop one a competing path just created.
+
+Two layers of defense, both in scope:
+
+1. **Atomic repository ops (the real guard).** Add transactional methods so check-then-act is one
+   DB unit of work:
+   - Feed: `@Transaction startSessionIfNone(side): Long?` (inserts only if no `end_time IS NULL` row
+     exists; returns the new id, or `null` if one already ran) and `stopActiveSession(): Boolean`
+     (stamps `end_time` on the single active row inside the transaction).
+   - Sleep: analogous `startRecordIfNone(type): Long?` / `stopActiveRecord(): Boolean`.
+
+   These are surfaced through the repositories and consumed by the tile path. The existing
+   `Start*UseCase`/`Stop*UseCase` are left untouched for the app's own flows; the tile uses the
+   atomic ops directly (a later, separate change may migrate other call sites — out of scope here, no
+   forced refactor).
+
+2. **Per-process single-flight.** `TileToggleHandler` is `@Singleton` and serializes its toggle body
+   with a `Mutex`, collapsing a burst of rapid tile taps into one logical operation and avoiding
+   wasted DB churn. The Mutex guards intra-process re-entrancy; the transaction guards true
+   cross-path concurrency.
 
 ## Error handling
 
@@ -139,6 +192,13 @@ JUnit 5 + MockK, runnable in the `-PfastTests` fast loop (no architecture-tag de
   session {active, inactive} → expected `{Active, Inactive, Unavailable}` + label/subtitle.
 - `TileToggleHandler` — start branch verifies correct side/type (`coVerify`); stop branch verifies the
   active session / in-progress id is passed.
+- **Concurrency** — two near-simultaneous toggles via the handler `Mutex` resolve to a single start
+  (not two); atomic `startSessionIfNone` returns `null` when an active session already exists
+  (instrumented Room test with `inMemoryDatabaseBuilder`, since it asserts a DB transaction
+  invariant). Symmetric double-stop test.
+- **Lockscreen policy** — a decision helper (`shouldOpenAppOnTap(isSecure, isLocked, state)`) is
+  pure and unit-tested: secure+locked → open-app, unlocked → toggle, not-secure → toggle, Unavailable
+  → open-app. Keeps the `isLocked` branching out of the framework `TileService` and testable on the JVM.
 
 The `TileService` subclasses are kept thin enough that they need no framework tests; an optional
 Robolectric `onClick` smoke test may be added later.
@@ -147,6 +207,10 @@ Robolectric `onClick` smoke test may be added later.
 
 Fits a single implementation plan / one Linear issue, delivered across a few commits:
 
-1. Pure helpers (`TileSideAndType`, `TileStateResolver`, `TileToggleHandler`) + their unit tests.
-2. `TileEntryPoint` + the two `TileService`s + manifest entries + icons.
-3. Long-press `QS_TILE_PREFERENCES` activity + deep-link routing.
+1. Atomic repository ops (`startSessionIfNone` / `stopActiveSession` + sleep equivalents, via
+   `@Transaction` DAO methods) + Room concurrency tests.
+2. Pure helpers (`TileSideAndType`, `TileStateResolver`, `shouldOpenAppOnTap`, `TileToggleHandler`
+   with its `Mutex`) + their unit tests.
+3. `TileEntryPoint` + the two `TileService`s (with the locked/secure `onClick` branching) + manifest
+   entries + icons.
+4. Long-press `QS_TILE_PREFERENCES` activity + deep-link routing.
