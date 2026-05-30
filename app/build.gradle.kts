@@ -187,6 +187,7 @@ dependencies {
     androidTestImplementation(libs.mockk.android)
     androidTestImplementation(libs.test.rules)
     androidTestImplementation(libs.espresso.intents)
+    androidTestImplementation(libs.room.testing)
 
     // Android Testing — JUnit 5 support
     androidTestImplementation(libs.junit5.api)

@@ -22,7 +22,7 @@ import com.babytracker.data.local.entity.SleepEntity
         PumpingEntity::class,
         MilkBagEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -85,4 +85,76 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
             "CREATE INDEX IF NOT EXISTS index_milk_bags_source_session_id ON milk_bags(source_session_id)"
         )
     }
+}
+
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Repair any pre-existing duplicate active rows before installing the
+        // single-active-row invariant: keep only the newest active row (latest
+        // start_time, then highest id) per table and stamp the survivor's
+        // start_time as end_time on every other active row so closed rows
+        // retain a plausible, non-negative duration.
+        database.execSQL(
+            """
+            UPDATE breastfeeding_sessions
+            SET end_time = (
+                SELECT kept.start_time
+                FROM breastfeeding_sessions AS kept
+                WHERE kept.end_time IS NULL
+                ORDER BY kept.start_time DESC, kept.id DESC
+                LIMIT 1
+            )
+            WHERE end_time IS NULL
+              AND id NOT IN (
+                  SELECT kept.id
+                  FROM breastfeeding_sessions AS kept
+                  WHERE kept.end_time IS NULL
+                  ORDER BY kept.start_time DESC, kept.id DESC
+                  LIMIT 1
+              )
+            """.trimIndent()
+        )
+        database.execSQL(
+            """
+            UPDATE sleep_records
+            SET end_time = (
+                SELECT kept.start_time
+                FROM sleep_records AS kept
+                WHERE kept.end_time IS NULL
+                ORDER BY kept.start_time DESC, kept.id DESC
+                LIMIT 1
+            )
+            WHERE end_time IS NULL
+              AND id NOT IN (
+                  SELECT kept.id
+                  FROM sleep_records AS kept
+                  WHERE kept.end_time IS NULL
+                  ORDER BY kept.start_time DESC, kept.id DESC
+                  LIMIT 1
+              )
+            """.trimIndent()
+        )
+
+        // pumping_sessions active-row invariant is out of scope for this migration.
+        database.installActiveSessionInvariantIndexes()
+    }
+}
+
+// Applied in both MIGRATION_3_4 (upgrades) and the RoomDatabase.Callback.onCreate
+// (fresh installs) so the invariant is present regardless of install path.
+fun SupportSQLiteDatabase.installActiveSessionInvariantIndexes() {
+    execSQL(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_feed
+        ON breastfeeding_sessions(1)
+        WHERE end_time IS NULL
+        """.trimIndent()
+    )
+    execSQL(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_sleep
+        ON sleep_records(1)
+        WHERE end_time IS NULL
+        """.trimIndent()
+    )
 }
