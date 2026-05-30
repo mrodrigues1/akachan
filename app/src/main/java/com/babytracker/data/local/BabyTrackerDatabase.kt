@@ -136,25 +136,35 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         )
 
         // pumping_sessions active-row invariant is out of scope for this migration.
-        database.installActiveSessionInvariantIndexes()
+        database.installActiveSessionInvariantTriggers()
     }
 }
 
 // Applied in both MIGRATION_3_4 (upgrades) and the RoomDatabase.Callback.onCreate
 // (fresh installs) so the invariant is present regardless of install path.
-fun SupportSQLiteDatabase.installActiveSessionInvariantIndexes() {
+// Triggers (not partial unique indexes) are used so Room's schema validator does not
+// see unexpected index entries — Room ignores triggers during schema comparison.
+fun SupportSQLiteDatabase.installActiveSessionInvariantTriggers() {
     execSQL(
         """
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_feed
-        ON breastfeeding_sessions(1)
-        WHERE end_time IS NULL
+        CREATE TRIGGER IF NOT EXISTS trg_one_active_feed
+        BEFORE INSERT ON breastfeeding_sessions
+        WHEN NEW.end_time IS NULL
+        BEGIN
+          SELECT RAISE(ABORT, 'only one active breastfeeding session allowed')
+          WHERE (SELECT COUNT(*) FROM breastfeeding_sessions WHERE end_time IS NULL) > 0;
+        END
         """.trimIndent()
     )
     execSQL(
         """
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_sleep
-        ON sleep_records(1)
-        WHERE end_time IS NULL
+        CREATE TRIGGER IF NOT EXISTS trg_one_active_sleep
+        BEFORE INSERT ON sleep_records
+        WHEN NEW.end_time IS NULL
+        BEGIN
+          SELECT RAISE(ABORT, 'only one active sleep record allowed')
+          WHERE (SELECT COUNT(*) FROM sleep_records WHERE end_time IS NULL) > 0;
+        END
         """.trimIndent()
     )
 }

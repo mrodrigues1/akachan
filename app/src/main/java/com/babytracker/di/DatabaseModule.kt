@@ -6,7 +6,7 @@ import com.babytracker.data.local.BabyTrackerDatabase
 import com.babytracker.data.local.MIGRATION_1_2
 import com.babytracker.data.local.MIGRATION_2_3
 import com.babytracker.data.local.MIGRATION_3_4
-import com.babytracker.data.local.installActiveSessionInvariantIndexes
+import com.babytracker.data.local.installActiveSessionInvariantTriggers
 import com.babytracker.data.local.dao.BreastfeedingDao
 import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.data.local.dao.PumpingDao
@@ -37,7 +37,7 @@ object DatabaseModule {
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)
-                    db.installActiveSessionInvariantIndexes()
+                    db.installActiveSessionInvariantTriggers()
                 }
             })
             .build()
