@@ -35,14 +35,32 @@ class BabyWidget : GlanceAppWidget() {
             WidgetLayout.COMPACT_WIDE -> SmallContent(data = data, now = now)
             WidgetLayout.COMPACT_NARROW -> SmallNarrowContent(data = data, now = now)
             WidgetLayout.MEDIUM -> MediumContent(data = data, now = now)
+            WidgetLayout.THREE_BY_THREE -> ThreeByThreeContent(data = data, now = now)
+            WidgetLayout.FOUR_BY_TWO -> FourByTwoContent(data = data, now = now)
+            WidgetLayout.FOUR_BY_THREE -> FourByThreeContent(data = data, now = now)
+            WidgetLayout.FOUR_BY_FOUR -> FourByFourContent(data = data, now = now)
         }
     }
 
     companion object {
         val COMPACT_NARROW_SIZE: DpSize = DpSize(110.dp, 64.dp)
         val COMPACT_WIDE_SIZE: DpSize = DpSize(180.dp, 64.dp)
+        val FOUR_BY_ONE_SIZE: DpSize = DpSize(250.dp, 64.dp)
         val MEDIUM_SIZE: DpSize = DpSize(110.dp, 110.dp)
-        val RESPONSIVE_SIZES: Set<DpSize> = setOf(COMPACT_NARROW_SIZE, COMPACT_WIDE_SIZE, MEDIUM_SIZE)
+        val THREE_BY_THREE_SIZE: DpSize = DpSize(180.dp, 180.dp)
+        val FOUR_BY_TWO_SIZE: DpSize = DpSize(250.dp, 110.dp)
+        val FOUR_BY_THREE_SIZE: DpSize = DpSize(250.dp, 180.dp)
+        val FOUR_BY_FOUR_SIZE: DpSize = DpSize(250.dp, 250.dp)
+        val RESPONSIVE_SIZES: Set<DpSize> = setOf(
+            COMPACT_NARROW_SIZE,
+            COMPACT_WIDE_SIZE,
+            FOUR_BY_ONE_SIZE,
+            MEDIUM_SIZE,
+            THREE_BY_THREE_SIZE,
+            FOUR_BY_TWO_SIZE,
+            FOUR_BY_THREE_SIZE,
+            FOUR_BY_FOUR_SIZE,
+        )
     }
 }
 
@@ -50,10 +68,22 @@ internal enum class WidgetLayout {
     COMPACT_WIDE,
     COMPACT_NARROW,
     MEDIUM,
+    THREE_BY_THREE,
+    FOUR_BY_TWO,
+    FOUR_BY_THREE,
+    FOUR_BY_FOUR,
 }
 
 internal fun widgetLayoutForSize(size: DpSize): WidgetLayout =
     when {
+        size.width >= BabyWidget.FOUR_BY_FOUR_SIZE.width &&
+            size.height >= BabyWidget.FOUR_BY_FOUR_SIZE.height -> WidgetLayout.FOUR_BY_FOUR
+        size.width >= BabyWidget.FOUR_BY_THREE_SIZE.width &&
+            size.height >= BabyWidget.FOUR_BY_THREE_SIZE.height -> WidgetLayout.FOUR_BY_THREE
+        size.width >= BabyWidget.FOUR_BY_TWO_SIZE.width &&
+            size.height >= BabyWidget.FOUR_BY_TWO_SIZE.height -> WidgetLayout.FOUR_BY_TWO
+        size.width >= BabyWidget.THREE_BY_THREE_SIZE.width &&
+            size.height >= BabyWidget.THREE_BY_THREE_SIZE.height -> WidgetLayout.THREE_BY_THREE
         size.height >= BabyWidget.MEDIUM_SIZE.height -> WidgetLayout.MEDIUM
         size.width >= BabyWidget.COMPACT_WIDE_SIZE.width -> WidgetLayout.COMPACT_WIDE
         else -> WidgetLayout.COMPACT_NARROW
