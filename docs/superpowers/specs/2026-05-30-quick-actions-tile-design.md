@@ -151,24 +151,51 @@ Two rapid taps — or a tile tap racing the app / widget / notification path —
 active session" and both insert, producing **two concurrent active sessions**; symmetrically a
 double-tap can stop a session twice or stop one a competing path just created.
 
-Two layers of defense, both in scope:
+Three layers of defense:
 
-1. **Atomic repository ops (the real guard).** Add transactional methods so check-then-act is one
-   DB unit of work:
-   - Feed: `@Transaction startSessionIfNone(side): Long?` (inserts only if no `end_time IS NULL` row
-     exists; returns the new id, or `null` if one already ran) and `stopActiveSession(): Boolean`
-     (stamps `end_time` on the single active row inside the transaction).
+1. **Global DB invariant (the real guard — covers *every* writer).** Enforce "at most one active
+   row per table" at the database, so the app, tile, widget, and notification paths are all bound by
+   it without rerouting any of them. A plain unique index cannot express this — SQLite treats each
+   `NULL` `end_time` as distinct — so use a **partial unique index on a constant expression**, added
+   in a Room migration (DB **v2 → v3**):
+
+   ```sql
+   CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_feed
+       ON breastfeeding_sessions(1) WHERE end_time IS NULL;
+   CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_sleep
+       ON sleep_records(1) WHERE end_time IS NULL;
+   ```
+
+   A second concurrent active insert now fails with `SQLiteConstraintException` — the loser of a race
+   never creates a duplicate.
+
+   **Room caveat (must verify during impl):** Room's `@Index` cannot model a partial/filtered index,
+   and an index present in the DB but absent from the generated `TableInfo` can trip Room's schema
+   validation on open. Two acceptable resolutions, decided at implementation time by testing against
+   `MigrationTestHelper`:
+   - **Preferred:** if validation tolerates the unmodeled partial index, ship it as above.
+   - **Fallback:** if it does not, enforce the same invariant with a `BEFORE INSERT` **trigger**
+     (`SELECT RAISE(ABORT, …) WHERE EXISTS(… end_time IS NULL)`), which Room does **not** validate, so
+     no `identityHash` conflict. Same guarantee, same `SQLiteConstraintException` surfaced to callers.
+
+   Because the guard is global, **existing `insertSession` / `insertRecord` callers can now throw on a
+   true race.** The losing writer must treat the constraint violation as "a session is already
+   active" (re-read the active row, no-op) rather than crashing. This is a small, contained change to
+   the existing insert call sites — not a reroute of their logic — and is in scope for this work.
+
+2. **Atomic start-if-none on the tile path (ergonomics).** The tile reads-then-writes through
+   transactional repository ops so its own check-then-act is one DB unit of work and it can branch
+   cleanly without relying on catching an exception:
+   - Feed: `@Transaction startSessionIfNone(side): Long?` (returns the new id, or `null` if one
+     already ran) and `stopActiveSession(): Boolean`.
    - Sleep: analogous `startRecordIfNone(type): Long?` / `stopActiveRecord(): Boolean`.
 
-   These are surfaced through the repositories and consumed by the tile path. The existing
-   `Start*UseCase`/`Stop*UseCase` are left untouched for the app's own flows; the tile uses the
-   atomic ops directly (a later, separate change may migrate other call sites — out of scope here, no
-   forced refactor).
+   The transaction plus the layer-1 index together make the tile race-free; the index is the backstop
+   if a non-tile path inserts between this transaction's read and write.
 
-2. **Per-process single-flight.** `TileToggleHandler` is `@Singleton` and serializes its toggle body
+3. **Per-process single-flight.** `TileToggleHandler` is `@Singleton` and serializes its toggle body
    with a `Mutex`, collapsing a burst of rapid tile taps into one logical operation and avoiding
-   wasted DB churn. The Mutex guards intra-process re-entrancy; the transaction guards true
-   cross-path concurrency.
+   wasted DB churn / spurious constraint hits from the same process.
 
 ## Error handling
 
@@ -192,10 +219,14 @@ JUnit 5 + MockK, runnable in the `-PfastTests` fast loop (no architecture-tag de
   session {active, inactive} → expected `{Active, Inactive, Unavailable}` + label/subtitle.
 - `TileToggleHandler` — start branch verifies correct side/type (`coVerify`); stop branch verifies the
   active session / in-progress id is passed.
-- **Concurrency** — two near-simultaneous toggles via the handler `Mutex` resolve to a single start
-  (not two); atomic `startSessionIfNone` returns `null` when an active session already exists
-  (instrumented Room test with `inMemoryDatabaseBuilder`, since it asserts a DB transaction
-  invariant). Symmetric double-stop test.
+- **Concurrency** — instrumented Room tests (`inMemoryDatabaseBuilder`): the partial-unique-index /
+  trigger invariant rejects a **second active insert** with `SQLiteConstraintException`, including a
+  **mixed-path** case (a plain `insertSession` racing a tile `startSessionIfNone`, not just two tile
+  calls); existing callers swallow the violation as "already active". Handler `Mutex` collapses two
+  near-simultaneous tile toggles to a single start; atomic `startSessionIfNone` returns `null` when
+  one already runs; symmetric double-stop test.
+- **Migration** — `MigrationTestHelper` v2 → v3: schema validates on open (confirming the chosen
+  index/trigger mechanism does not break Room's `identityHash`), and pre-existing rows survive.
 - **Lockscreen policy** — a decision helper (`shouldOpenAppOnTap(isSecure, isLocked, state)`) is
   pure and unit-tested: secure+locked → open-app, unlocked → toggle, not-secure → toggle, Unavailable
   → open-app. Keeps the `isLocked` branching out of the framework `TileService` and testable on the JVM.
@@ -207,10 +238,14 @@ Robolectric `onClick` smoke test may be added later.
 
 Fits a single implementation plan / one Linear issue, delivered across a few commits:
 
-1. Atomic repository ops (`startSessionIfNone` / `stopActiveSession` + sleep equivalents, via
-   `@Transaction` DAO methods) + Room concurrency tests.
-2. Pure helpers (`TileSideAndType`, `TileStateResolver`, `shouldOpenAppOnTap`, `TileToggleHandler`
+1. **Global DB invariant.** Migration v2 → v3 adding the partial unique index (or trigger fallback)
+   on both tables; bump DB version + exported schema JSON; make existing `insertSession` /
+   `insertRecord` callers tolerate `SQLiteConstraintException` as "already active". Migration +
+   mixed-path race tests.
+2. Atomic repository ops (`startSessionIfNone` / `stopActiveSession` + sleep equivalents, via
+   `@Transaction` DAO methods) + their tests.
+3. Pure helpers (`TileSideAndType`, `TileStateResolver`, `shouldOpenAppOnTap`, `TileToggleHandler`
    with its `Mutex`) + their unit tests.
-3. `TileEntryPoint` + the two `TileService`s (with the locked/secure `onClick` branching) + manifest
+4. `TileEntryPoint` + the two `TileService`s (with the locked/secure `onClick` branching) + manifest
    entries + icons.
-4. Long-press `QS_TILE_PREFERENCES` activity + deep-link routing.
+5. Long-press `QS_TILE_PREFERENCES` activity + deep-link routing.
