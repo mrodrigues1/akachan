@@ -36,7 +36,23 @@ import com.babytracker.util.UpdateChecker
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
-private val ALLOWED_NAV_ROUTES = setOf(Routes.HOME, Routes.BREASTFEEDING, Routes.SLEEP_TRACKING)
+internal val ALLOWED_NAV_ROUTES = setOf(Routes.HOME, Routes.BREASTFEEDING, Routes.SLEEP_TRACKING)
+
+internal enum class PendingNavAction { NAVIGATE, CLEAR, WAIT }
+
+internal fun pendingNavAction(
+    pending: String?,
+    allowedRoutes: Set<String>,
+    appMode: AppMode?,
+    isOnboardingComplete: Boolean?,
+): PendingNavAction {
+    pending ?: return PendingNavAction.WAIT
+    if (pending !in allowedRoutes) return PendingNavAction.CLEAR
+    if (appMode == null) return PendingNavAction.WAIT
+    if (appMode == AppMode.PARTNER) return PendingNavAction.CLEAR
+    if (isOnboardingComplete != true) return PendingNavAction.WAIT
+    return PendingNavAction.NAVIGATE
+}
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -148,20 +164,16 @@ private fun HandlePendingNavRoute(
     onClear: () -> Unit,
 ) {
     LaunchedEffect(pending, isOnboardingComplete, appMode) {
-        val route = pending ?: return@LaunchedEffect
-        if (route !in ALLOWED_NAV_ROUTES) {
-            onClear()
-            return@LaunchedEffect
+        when (pendingNavAction(pending, ALLOWED_NAV_ROUTES, appMode, isOnboardingComplete)) {
+            PendingNavAction.WAIT -> Unit
+            PendingNavAction.CLEAR -> onClear()
+            PendingNavAction.NAVIGATE -> {
+                navController.navigate(pending!!) {
+                    launchSingleTop = true
+                    popUpTo(Routes.HOME) { inclusive = false; saveState = true }
+                }
+                onClear()
+            }
         }
-        if (appMode == AppMode.PARTNER) {
-            onClear()
-            return@LaunchedEffect
-        }
-        if (isOnboardingComplete != true) return@LaunchedEffect
-        navController.navigate(route) {
-            launchSingleTop = true
-            popUpTo(Routes.HOME) { inclusive = false; saveState = true }
-        }
-        onClear()
     }
 }
