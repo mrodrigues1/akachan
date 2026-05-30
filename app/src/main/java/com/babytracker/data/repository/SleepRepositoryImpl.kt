@@ -1,5 +1,6 @@
 package com.babytracker.data.repository
 
+import android.database.sqlite.SQLiteConstraintException
 import com.babytracker.data.local.dao.SleepDao
 import com.babytracker.data.local.entity.toDomain
 import com.babytracker.data.local.entity.toEntity
@@ -34,7 +35,15 @@ class SleepRepositoryImpl @Inject constructor(
         dao.getLatestRecord()?.toDomain()
 
     override suspend fun insertRecord(record: SleepRecord): Long =
-        dao.insertRecord(record.toEntity())
+        try {
+            dao.insertRecord(record.toEntity())
+        } catch (e: SQLiteConstraintException) {
+            if (record.endTime == null) {
+                dao.getActiveRecord()?.id ?: throw e
+            } else {
+                throw e
+            }
+        }
 
     override suspend fun updateRecord(record: SleepRecord) =
         dao.updateRecord(record.toEntity())
