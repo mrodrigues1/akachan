@@ -3,17 +3,33 @@ package com.babytracker.data.local
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
+import androidx.room.Room
+import androidx.room.RoomDatabase
 import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.babytracker.data.local.dao.BreastfeedingDao
+import com.babytracker.data.local.dao.SleepDao
+import com.babytracker.data.local.entity.BreastfeedingEntity
+import com.babytracker.data.local.entity.SleepEntity
+import com.babytracker.data.repository.BreastfeedingRepositoryImpl
+import com.babytracker.data.repository.SleepRepositoryImpl
+import com.babytracker.domain.model.BreastSide
+import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.SleepRecord
+import com.babytracker.domain.model.SleepType
+import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.Instant
 
 /**
  * Verifies the version-4 active-session DB invariant: at most one active
@@ -278,5 +294,84 @@ class ActiveSessionInvariantMigrationTest {
 
     private companion object {
         private const val TEST_DB = "invariant-test"
+    }
+}
+
+/**
+ * Verifies the mixed-path invariant: inserting an active row directly via the
+ * DAO, then attempting a second active insert through the repository, does NOT
+ * create a duplicate active row. The repository catches [SQLiteConstraintException]
+ * and returns the existing row's id instead.
+ */
+@RunWith(AndroidJUnit4::class)
+class MixedPathInvariantTest {
+
+    private lateinit var db: BabyTrackerDatabase
+    private lateinit var breastfeedingDao: BreastfeedingDao
+    private lateinit var sleepDao: SleepDao
+    private lateinit var breastfeedingRepo: BreastfeedingRepositoryImpl
+    private lateinit var sleepRepo: SleepRepositoryImpl
+
+    @Before
+    fun setUp() {
+        val context = InstrumentationRegistry.getInstrumentation().context
+        db = Room.inMemoryDatabaseBuilder(context, BabyTrackerDatabase::class.java)
+            .addCallback(object : RoomDatabase.Callback() {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    super.onCreate(db)
+                    db.installActiveSessionInvariantIndexes()
+                }
+            })
+            .allowMainThreadQueries()
+            .build()
+        breastfeedingDao = db.breastfeedingDao()
+        sleepDao = db.sleepDao()
+        breastfeedingRepo = BreastfeedingRepositoryImpl(breastfeedingDao)
+        sleepRepo = SleepRepositoryImpl(sleepDao)
+    }
+
+    @After
+    fun tearDown() {
+        db.close()
+    }
+
+    @Test
+    fun breastfeeding_daoInsertActiveRow_thenRepoInsert_doesNotCreateDuplicate() = runBlocking {
+        // Insert an active row directly via DAO (bypasses repository constraint handling).
+        val firstId = breastfeedingDao.insertSession(
+            BreastfeedingEntity(startTime = 1_000L, startingSide = "LEFT"),
+        )
+
+        // Attempt a second active insert via repository — must return the first row's id.
+        val secondId = breastfeedingRepo.insertSession(
+            BreastfeedingSession(startTime = Instant.ofEpochMilli(2_000L), startingSide = BreastSide.LEFT),
+        )
+
+        // The repository must have returned the existing row's id, not a new one.
+        assertEquals(firstId, secondId)
+
+        // Only one active row must exist.
+        assertNotNull(breastfeedingDao.getActiveSessionOnce())
+        assertEquals(firstId, breastfeedingDao.getActiveSessionOnce()?.id)
+    }
+
+    @Test
+    fun sleep_daoInsertActiveRow_thenRepoInsert_doesNotCreateDuplicate() = runBlocking {
+        // Insert an active row directly via DAO (bypasses repository constraint handling).
+        val firstId = sleepDao.insertRecord(
+            SleepEntity(startTime = 1_000L, sleepType = "NAP"),
+        )
+
+        // Attempt a second active insert via repository — must return the first row's id.
+        val secondId = sleepRepo.insertRecord(
+            SleepRecord(startTime = Instant.ofEpochMilli(2_000L), sleepType = SleepType.NAP),
+        )
+
+        // The repository must have returned the existing row's id, not a new one.
+        assertEquals(firstId, secondId)
+
+        // Only one active row must exist.
+        assertNotNull(sleepDao.getActiveRecord())
+        assertEquals(firstId, sleepDao.getActiveRecord()?.id)
     }
 }
