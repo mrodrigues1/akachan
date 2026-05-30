@@ -12,7 +12,9 @@ import io.mockk.slot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import android.database.sqlite.SQLiteConstraintException
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -158,5 +160,56 @@ class BreastfeedingRepositoryImplTest {
         assertEquals(switchEpoch, slot.captured.switchTime)
         assertEquals(pauseEpoch, slot.captured.pausedAt)
         assertEquals(5_000L, slot.captured.pausedDurationMs)
+    }
+
+    @Test
+    fun insertSessionActiveConstraintViolationReturnsExistingId() = runTest {
+        val activeSession = BreastfeedingSession(
+            startTime = Instant.ofEpochMilli(startEpoch),
+            startingSide = BreastSide.LEFT
+        )
+        val existingEntity = entity.copy(endTime = null, id = 42L)
+        coEvery { dao.insertSession(any()) } throws SQLiteConstraintException("UNIQUE constraint failed")
+        coEvery { dao.getActiveSessionOnce() } returns existingEntity
+
+        val id = repository.insertSession(activeSession)
+
+        assertEquals(42L, id)
+    }
+
+    @Test
+    fun insertSessionActiveConstraintViolationNoActiveRowRethrows() = runTest {
+        val activeSession = BreastfeedingSession(
+            startTime = Instant.ofEpochMilli(startEpoch),
+            startingSide = BreastSide.LEFT
+        )
+        coEvery { dao.insertSession(any()) } throws SQLiteConstraintException("UNIQUE constraint failed")
+        coEvery { dao.getActiveSessionOnce() } returns null
+
+        var thrown: SQLiteConstraintException? = null
+        try {
+            repository.insertSession(activeSession)
+        } catch (e: SQLiteConstraintException) {
+            thrown = e
+        }
+        assertNotNull(thrown)
+    }
+
+    @Test
+    fun insertSessionCompletedConstraintViolationAlwaysRethrows() = runTest {
+        val completedSession = BreastfeedingSession(
+            startTime = Instant.ofEpochMilli(startEpoch),
+            endTime = Instant.ofEpochMilli(endEpoch),
+            startingSide = BreastSide.LEFT
+        )
+        coEvery { dao.insertSession(any()) } throws SQLiteConstraintException("UNIQUE constraint failed")
+
+        var thrown: SQLiteConstraintException? = null
+        try {
+            repository.insertSession(completedSession)
+        } catch (e: SQLiteConstraintException) {
+            thrown = e
+        }
+        assertNotNull(thrown)
     }
 }
