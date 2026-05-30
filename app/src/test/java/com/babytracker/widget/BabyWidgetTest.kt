@@ -15,10 +15,25 @@ class BabyWidgetTest {
     }
 
     @Test
+    fun `responsive sizes include medium and large widget targets`() {
+        assertTrue(BabyWidget.RESPONSIVE_SIZES.contains(BabyWidget.FOUR_BY_ONE_SIZE))
+        assertTrue(BabyWidget.RESPONSIVE_SIZES.contains(BabyWidget.MEDIUM_SIZE))
+        assertTrue(BabyWidget.RESPONSIVE_SIZES.contains(BabyWidget.THREE_BY_THREE_SIZE))
+        assertTrue(BabyWidget.RESPONSIVE_SIZES.contains(BabyWidget.FOUR_BY_TWO_SIZE))
+        assertTrue(BabyWidget.RESPONSIVE_SIZES.contains(BabyWidget.FOUR_BY_THREE_SIZE))
+        assertTrue(BabyWidget.RESPONSIVE_SIZES.contains(BabyWidget.FOUR_BY_FOUR_SIZE))
+    }
+
+    @Test
     fun `uses compact wide layout for wide one-row size`() {
         val size = DpSize(width = 180.dp, height = 64.dp)
 
         assertEquals(WidgetLayout.COMPACT_WIDE, widgetLayoutForSize(size))
+    }
+
+    @Test
+    fun `keeps four by one layout compact wide`() {
+        assertEquals(WidgetLayout.COMPACT_WIDE, widgetLayoutForSize(BabyWidget.FOUR_BY_ONE_SIZE))
     }
 
     @Test
@@ -32,5 +47,25 @@ class BabyWidgetTest {
     fun `keeps square and tall sizes on medium layout`() {
         assertEquals(WidgetLayout.MEDIUM, widgetLayoutForSize(DpSize(width = 110.dp, height = 110.dp)))
         assertEquals(WidgetLayout.MEDIUM, widgetLayoutForSize(DpSize(width = 180.dp, height = 110.dp)))
+    }
+
+    @Test
+    fun `uses explicit layout for three by three size`() {
+        assertEquals(WidgetLayout.THREE_BY_THREE, widgetLayoutForSize(BabyWidget.THREE_BY_THREE_SIZE))
+    }
+
+    @Test
+    fun `uses explicit layout for four by two size`() {
+        assertEquals(WidgetLayout.FOUR_BY_TWO, widgetLayoutForSize(BabyWidget.FOUR_BY_TWO_SIZE))
+    }
+
+    @Test
+    fun `uses explicit layout for four by three size`() {
+        assertEquals(WidgetLayout.FOUR_BY_THREE, widgetLayoutForSize(BabyWidget.FOUR_BY_THREE_SIZE))
+    }
+
+    @Test
+    fun `uses explicit layout for four by four size`() {
+        assertEquals(WidgetLayout.FOUR_BY_FOUR, widgetLayoutForSize(BabyWidget.FOUR_BY_FOUR_SIZE))
     }
 }
