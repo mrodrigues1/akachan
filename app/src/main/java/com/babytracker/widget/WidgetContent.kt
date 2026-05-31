@@ -206,7 +206,16 @@ fun ThreeByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier
             .background(ImageProvider(R.drawable.widget_bg_surface))
             .padding(14.dp),
     ) {
-        WidgetHeader(data = data, status = widgetStatusSummary(data, now), titleSize = 14.sp, statusSize = 11.sp)
+        Text(
+            text = data.babyName,
+            maxLines = 1,
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurface,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+            ),
+            modifier = GlanceModifier.fillMaxWidth().clickable(openHomeAction()),
+        )
         Spacer(modifier = GlanceModifier.height(10.dp))
         DomainBlock(
             backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
@@ -218,7 +227,7 @@ fun ThreeByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier
             },
             sizes = ThreeByThreeBlockSizes,
             onClick = openBreastfeedingAction(),
-            showSupporting = true,
+            showSupporting = false,
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
         )
         Spacer(modifier = GlanceModifier.height(10.dp))
@@ -228,7 +237,7 @@ fun ThreeByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier
             contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
             sizes = ThreeByThreeBlockSizes,
             onClick = openSleepAction(),
-            showSupporting = true,
+            showSupporting = false,
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
         )
     }
