@@ -14,4 +14,6 @@ interface SleepRepository {
     suspend fun insertRecord(record: SleepRecord): Long
     suspend fun updateRecord(record: SleepRecord)
     suspend fun deleteRecord(id: Long)
+    suspend fun startRecordIfNone(record: SleepRecord): Long?
+    suspend fun stopActiveRecord(endTime: Instant): Boolean
 }

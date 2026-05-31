@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -234,5 +236,62 @@ class SleepDaoTest {
 
         assertEquals(5000L, result?.startTime)
         assertEquals(9000L, result?.endTime)
+    }
+
+    @Test
+    fun startRecordIfNoneInsertsAndReturnsIdWhenNoActiveRecord() = runTest {
+        val entity = SleepEntity(startTime = System.currentTimeMillis(), sleepType = "NAP")
+
+        val id = dao.startRecordIfNone(entity)
+
+        assertNotNull(id)
+        assertTrue(id!! > 0)
+        assertNotNull(dao.getActiveRecordOnce())
+    }
+
+    @Test
+    fun startRecordIfNoneReturnsNullAndDoesNotInsertWhenActiveExists() = runTest {
+        val existing = SleepEntity(startTime = System.currentTimeMillis(), sleepType = "NAP")
+        dao.insertRecord(existing)
+
+        val id = dao.startRecordIfNone(
+            SleepEntity(startTime = System.currentTimeMillis() + 1000, sleepType = "NIGHT_SLEEP")
+        )
+
+        assertNull(id)
+        assertEquals(1, dao.getAllRecords().first().size)
+    }
+
+    @Test
+    fun startRecordIfNoneReturnsNullOnConstraintLoss() = runTest {
+        val existing = SleepEntity(startTime = System.currentTimeMillis(), sleepType = "NAP")
+        dao.insertRecord(existing)
+
+        val id = dao.startRecordIfNone(
+            SleepEntity(startTime = System.currentTimeMillis() + 500, sleepType = "NIGHT_SLEEP")
+        )
+
+        assertNull(id)
+        assertNotNull(dao.getActiveRecordOnce())
+    }
+
+    @Test
+    fun stopActiveRecordReturnsTrueAndSetsEndTime() = runTest {
+        val entity = SleepEntity(startTime = System.currentTimeMillis(), sleepType = "NAP")
+        dao.insertRecord(entity)
+        val endTime = System.currentTimeMillis() + 60_000L
+
+        val stopped = dao.stopActiveRecord(endTime)
+
+        assertTrue(stopped)
+        assertNull(dao.getActiveRecordOnce())
+        assertEquals(endTime, dao.getAllRecords().first()[0].endTime)
+    }
+
+    @Test
+    fun stopActiveRecordReturnsFalseWhenNoActiveRecord() = runTest {
+        val stopped = dao.stopActiveRecord(System.currentTimeMillis())
+
+        assertFalse(stopped)
     }
 }

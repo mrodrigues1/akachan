@@ -50,4 +50,10 @@ class SleepRepositoryImpl @Inject constructor(
 
     override suspend fun deleteRecord(id: Long) =
         dao.deleteRecord(id)
+
+    override suspend fun startRecordIfNone(record: SleepRecord): Long? =
+        dao.startRecordIfNone(record.toEntity())
+
+    override suspend fun stopActiveRecord(endTime: Instant): Boolean =
+        dao.stopActiveRecord(endTime.toEpochMilli())
 }

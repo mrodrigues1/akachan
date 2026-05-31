@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.runTest
 import android.database.sqlite.SQLiteConstraintException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -215,5 +216,63 @@ class SleepRepositoryImplTest {
             thrown = e
         }
         assertNotNull(thrown)
+    }
+
+    @Test
+    fun startRecordIfNoneConvertsToEntityAndReturnsId() = runTest {
+        val record = SleepRecord(
+            startTime = Instant.ofEpochMilli(startEpoch),
+            sleepType = SleepType.NAP
+        )
+        val slot = slot<SleepEntity>()
+        coEvery { dao.startRecordIfNone(capture(slot)) } returns 12L
+
+        val result = repository.startRecordIfNone(record)
+
+        assertEquals(12L, result)
+        assertEquals("NAP", slot.captured.sleepType)
+        assertEquals(startEpoch, slot.captured.startTime)
+    }
+
+    @Test
+    fun startRecordIfNoneReturnsNullWhenDaoReturnsNull() = runTest {
+        val record = SleepRecord(
+            startTime = Instant.ofEpochMilli(startEpoch),
+            sleepType = SleepType.NIGHT_SLEEP
+        )
+        coEvery { dao.startRecordIfNone(any()) } returns null
+
+        val result = repository.startRecordIfNone(record)
+
+        assertNull(result)
+    }
+
+    @Test
+    fun stopActiveRecordPassesEpochMillisToDao() = runTest {
+        val endInstant = Instant.ofEpochMilli(endEpoch)
+        val slot = slot<Long>()
+        coEvery { dao.stopActiveRecord(capture(slot)) } returns true
+
+        repository.stopActiveRecord(endInstant)
+
+        assertEquals(endEpoch, slot.captured)
+    }
+
+    @Test
+    fun stopActiveRecordReturnsTrueWhenDaoReturnsTrue() = runTest {
+        coEvery { dao.stopActiveRecord(any()) } returns true
+
+        val result = repository.stopActiveRecord(Instant.ofEpochMilli(endEpoch))
+
+        assertEquals(true, result)
+    }
+
+    @Test
+    fun stopActiveRecordReturnsFalseWhenDaoReturnsFalse() = runTest {
+        coEvery { dao.stopActiveRecord(any()) } returns false
+
+        val result = repository.stopActiveRecord(Instant.ofEpochMilli(endEpoch))
+
+        assertEquals(false, result)
     }
 }

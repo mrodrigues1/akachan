@@ -8,7 +8,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -78,5 +81,62 @@ class BreastfeedingDaoTest {
 
         val sessions = dao.getAllSessions().first()
         assertEquals(endTime, sessions[0].endTime)
+    }
+
+    @Test
+    fun startSessionIfNoneInsertsAndReturnsIdWhenNoActiveSession() = runTest {
+        val entity = BreastfeedingEntity(startTime = System.currentTimeMillis(), startingSide = "LEFT")
+
+        val id = dao.startSessionIfNone(entity)
+
+        assertNotNull(id)
+        assertTrue(id!! > 0)
+        assertNotNull(dao.getActiveSessionOnce())
+    }
+
+    @Test
+    fun startSessionIfNoneReturnsNullAndDoesNotInsertWhenActiveExists() = runTest {
+        val existing = BreastfeedingEntity(startTime = System.currentTimeMillis(), startingSide = "RIGHT")
+        dao.insertSession(existing)
+
+        val id = dao.startSessionIfNone(
+            BreastfeedingEntity(startTime = System.currentTimeMillis() + 1000, startingSide = "LEFT")
+        )
+
+        assertNull(id)
+        assertEquals(1, dao.getAllSessions().first().size)
+    }
+
+    @Test
+    fun startSessionIfNoneReturnsNullOnConstraintLoss() = runTest {
+        val existing = BreastfeedingEntity(startTime = System.currentTimeMillis(), startingSide = "RIGHT")
+        dao.insertSession(existing)
+
+        val id = dao.startSessionIfNone(
+            BreastfeedingEntity(startTime = System.currentTimeMillis() + 500, startingSide = "LEFT")
+        )
+
+        assertNull(id)
+        assertNotNull(dao.getActiveSessionOnce())
+    }
+
+    @Test
+    fun stopActiveSessionReturnsTrueAndSetsEndTime() = runTest {
+        val entity = BreastfeedingEntity(startTime = System.currentTimeMillis(), startingSide = "LEFT")
+        dao.insertSession(entity)
+        val endTime = System.currentTimeMillis() + 60_000L
+
+        val stopped = dao.stopActiveSession(endTime)
+
+        assertTrue(stopped)
+        assertNull(dao.getActiveSessionOnce())
+        assertEquals(endTime, dao.getAllSessions().first()[0].endTime)
+    }
+
+    @Test
+    fun stopActiveSessionReturnsFalseWhenNoActiveSession() = runTest {
+        val stopped = dao.stopActiveSession(System.currentTimeMillis())
+
+        assertFalse(stopped)
     }
 }
