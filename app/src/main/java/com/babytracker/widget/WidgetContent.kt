@@ -196,6 +196,47 @@ fun MediumContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Gla
     }
 }
 
+/**
+ * Two-by-four widget: two full-width domain tiles with no header or footer. The extra vertical
+ * space is divided equally between the feeding and sleep tiles so each timer reads large and
+ * uncluttered. Header → removed to reduce cognitive load at a glance.
+ */
+@Composable
+fun TwoByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier) {
+    val feedingActive = data.hasActiveFeed()
+    val sleeping = data.sleepState == SleepState.SLEEPING
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(ImageProvider(R.drawable.widget_bg_surface))
+            .padding(12.dp),
+    ) {
+        DomainBlock(
+            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
+            content = feedBlockContent(data, now),
+            contentColor = if (feedingActive) {
+                GlanceTheme.colors.onPrimary
+            } else {
+                GlanceTheme.colors.onPrimaryContainer
+            },
+            sizes = MediumBlockSizes,
+            onClick = openBreastfeedingAction(),
+            showSupporting = false,
+            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
+        )
+        Spacer(modifier = GlanceModifier.height(8.dp))
+        DomainBlock(
+            backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
+            content = sleepBlockContent(data, now),
+            contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
+            sizes = MediumBlockSizes,
+            onClick = openSleepAction(),
+            showSupporting = false,
+            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
+        )
+    }
+}
+
 @Composable
 fun ThreeByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier) {
     val feedingActive = data.hasActiveFeed()
