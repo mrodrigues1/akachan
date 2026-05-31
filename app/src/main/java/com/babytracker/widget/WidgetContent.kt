@@ -63,11 +63,6 @@ private data class DomainBlockContent(
     val description: String,
 )
 
-private enum class DomainCopyMode {
-    Detailed,
-    NonDuplicative,
-}
-
 /**
  * Legal narrow-short launcher bounds cannot fit the medium stack. Keep both domains tappable
  * with compact labels and screen-reader descriptions instead of clipping the 2x2 layout.
@@ -249,11 +244,20 @@ fun ThreeByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier 
             .background(ImageProvider(R.drawable.widget_bg_surface))
             .padding(14.dp),
     ) {
-        WidgetHeader(data = data, status = widgetStateLabel(data), titleSize = 14.sp, statusSize = 11.sp)
+        Text(
+            text = data.babyName,
+            maxLines = 1,
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurface,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+            ),
+            modifier = GlanceModifier.fillMaxWidth().clickable(openHomeAction()),
+        )
         Spacer(modifier = GlanceModifier.height(10.dp))
         DomainBlock(
             backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
-            content = feedBlockContent(data, now, DomainCopyMode.NonDuplicative),
+            content = feedBlockContent(data, now),
             contentColor = if (feedingActive) {
                 GlanceTheme.colors.onPrimary
             } else {
@@ -261,17 +265,17 @@ fun ThreeByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier 
             },
             sizes = ThreeByThreeBlockSizes,
             onClick = openBreastfeedingAction(),
-            showSupporting = true,
+            showSupporting = false,
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
         )
         Spacer(modifier = GlanceModifier.height(10.dp))
         DomainBlock(
             backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-            content = sleepBlockContent(data, now, DomainCopyMode.NonDuplicative),
+            content = sleepBlockContent(data, now),
             contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
             sizes = ThreeByThreeBlockSizes,
             onClick = openSleepAction(),
-            showSupporting = true,
+            showSupporting = false,
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
         )
     }
@@ -332,7 +336,16 @@ fun FourByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier 
             .background(ImageProvider(R.drawable.widget_bg_surface))
             .padding(14.dp),
     ) {
-        WidgetHeader(data = data, status = widgetStateLabel(data), titleSize = 15.sp, statusSize = 11.sp)
+        Text(
+            text = data.babyName,
+            maxLines = 1,
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurface,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+            ),
+            modifier = GlanceModifier.fillMaxWidth().clickable(openHomeAction()),
+        )
         Spacer(modifier = GlanceModifier.height(10.dp))
         Row(
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
@@ -340,7 +353,7 @@ fun FourByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier 
         ) {
             DomainBlock(
                 backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
-                content = feedBlockContent(data, now, DomainCopyMode.NonDuplicative),
+                content = feedBlockContent(data, now),
                 contentColor = if (feedingActive) {
                     GlanceTheme.colors.onPrimary
                 } else {
@@ -349,18 +362,18 @@ fun FourByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier 
                 sizes = FourByThreeBlockSizes,
                 onClick = openBreastfeedingAction(),
                 stacked = true,
-                showSupporting = true,
+                showSupporting = false,
                 modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
             )
             Spacer(modifier = GlanceModifier.width(12.dp))
             DomainBlock(
                 backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-                content = sleepBlockContent(data, now, DomainCopyMode.NonDuplicative),
+                content = sleepBlockContent(data, now),
                 contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
                 sizes = FourByThreeBlockSizes,
                 onClick = openSleepAction(),
                 stacked = true,
-                showSupporting = true,
+                showSupporting = false,
                 modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
             )
         }
@@ -377,11 +390,20 @@ fun FourByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier =
             .background(ImageProvider(R.drawable.widget_bg_surface))
             .padding(16.dp),
     ) {
-        WidgetHeader(data = data, status = widgetStateLabel(data), titleSize = 16.sp, statusSize = 12.sp)
+        Text(
+            text = data.babyName,
+            maxLines = 1,
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurface,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+            ),
+            modifier = GlanceModifier.fillMaxWidth().clickable(openHomeAction()),
+        )
         Spacer(modifier = GlanceModifier.height(12.dp))
         DomainBlock(
             backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
-            content = feedBlockContent(data, now, DomainCopyMode.NonDuplicative),
+            content = feedBlockContent(data, now),
             contentColor = if (feedingActive) {
                 GlanceTheme.colors.onPrimary
             } else {
@@ -389,29 +411,18 @@ fun FourByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier =
             },
             sizes = FourByFourBlockSizes,
             onClick = openBreastfeedingAction(),
-            showSupporting = true,
+            showSupporting = false,
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
         )
         Spacer(modifier = GlanceModifier.height(12.dp))
         DomainBlock(
             backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-            content = sleepBlockContent(data, now, DomainCopyMode.NonDuplicative),
+            content = sleepBlockContent(data, now),
             contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
             sizes = FourByFourBlockSizes,
             onClick = openSleepAction(),
-            showSupporting = true,
+            showSupporting = false,
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-        )
-        Spacer(modifier = GlanceModifier.height(10.dp))
-        Text(
-            text = careContextSummary(data),
-            maxLines = 1,
-            style = TextStyle(
-                color = GlanceTheme.colors.onSurfaceVariant,
-                fontWeight = FontWeight.Medium,
-                fontSize = 11.sp,
-            ),
-            modifier = GlanceModifier.fillMaxWidth(),
         )
     }
 }
@@ -544,30 +555,22 @@ private fun BlockSupporting(text: String, color: ColorProvider, size: TextUnit) 
 private fun feedBlockContent(
     data: WidgetData,
     now: Instant,
-    copyMode: DomainCopyMode = DomainCopyMode.Detailed,
 ) = DomainBlockContent(
     emoji = FEED_EMOJI,
     label = feedLabel(data.lastFeedSide, data.feedState),
     value = feedValue(data.lastFeedStart, data.feedState, now),
-    supporting = when (copyMode) {
-        DomainCopyMode.Detailed -> feedSupporting(data.lastFeedSide, data.feedState, data.lastFeedStart, now)
-        DomainCopyMode.NonDuplicative -> feedContextSupporting(data.lastFeedSide, data.feedState)
-    },
+    supporting = feedSupporting(data.lastFeedSide, data.feedState, data.lastFeedStart, now),
     description = feedContentDescription(data.lastFeedSide, data.feedState, data.lastFeedStart, now),
 )
 
 private fun sleepBlockContent(
     data: WidgetData,
     now: Instant,
-    copyMode: DomainCopyMode = DomainCopyMode.Detailed,
 ) = DomainBlockContent(
     emoji = SLEEP_EMOJI,
     label = sleepLabel(data.sleepState),
     value = sleepValue(data.sleepState, data.sleepSince, now),
-    supporting = when (copyMode) {
-        DomainCopyMode.Detailed -> sleepSupporting(data.sleepState, data.sleepSince, now)
-        DomainCopyMode.NonDuplicative -> sleepContextSupporting(data.sleepState)
-    },
+    supporting = sleepSupporting(data.sleepState, data.sleepSince, now),
     description = sleepContentDescription(data.sleepState, data.sleepSince, now),
 )
 
@@ -602,14 +605,6 @@ internal fun feedSupporting(side: BreastSide?, state: FeedState, start: Instant?
         FeedState.NONE -> null
     }
 
-internal fun feedContextSupporting(side: BreastSide?, state: FeedState): String? =
-    when (state) {
-        FeedState.ACTIVE -> side?.let { "Current side ${it.label()}" }
-        FeedState.PAUSED -> "Paused"
-        FeedState.RECENT -> side?.let { "Last side ${it.label()}" }
-        FeedState.NONE -> null
-    }
-
 internal fun sleepLabel(state: SleepState): String = when (state) {
     SleepState.SLEEPING -> "Sleeping"
     SleepState.AWAKE -> "Awake"
@@ -629,21 +624,6 @@ internal fun sleepSupporting(state: SleepState, since: Instant?, now: Instant): 
         SleepState.AWAKE -> since?.let { "Awake ${Duration.between(it, now).formatElapsedShort()}" } ?: "Awake now"
     }
 
-internal fun sleepContextSupporting(state: SleepState): String? =
-    when (state) {
-        SleepState.NONE -> null
-        SleepState.SLEEPING -> "Currently asleep"
-        SleepState.AWAKE -> "Currently awake"
-    }
-
-internal fun widgetStateLabel(data: WidgetData): String =
-    when {
-        data.feedState == FeedState.ACTIVE -> "Feeding"
-        data.feedState == FeedState.PAUSED -> "Feed paused"
-        data.sleepState == SleepState.SLEEPING -> "Sleeping"
-        else -> "Ready"
-    }
-
 internal fun widgetStatusSummary(data: WidgetData, now: Instant): String =
     when {
         data.feedState == FeedState.ACTIVE -> feedValue(data.lastFeedStart, data.feedState, now)?.let { "Feeding $it" }
@@ -652,48 +632,6 @@ internal fun widgetStatusSummary(data: WidgetData, now: Instant): String =
         data.sleepState == SleepState.SLEEPING -> sleepValue(data.sleepState, data.sleepSince, now)?.let { "Sleeping $it" }
             ?: "Sleeping"
         else -> "Ready"
-    }
-
-internal fun careSummary(data: WidgetData, now: Instant): String {
-    val feed = feedSummary(data, now)
-    val sleep = sleepSummary(data, now)
-    return "$feed, $sleep"
-}
-
-internal fun careContextSummary(data: WidgetData): String {
-    val feed = feedContextSummary(data)
-    val sleep = sleepContextSummary(data)
-    return "$feed, $sleep"
-}
-
-private fun feedSummary(data: WidgetData, now: Instant): String =
-    when (data.feedState) {
-        FeedState.ACTIVE -> feedValue(data.lastFeedStart, data.feedState, now)?.let { "Feeding $it" } ?: "Feeding"
-        FeedState.PAUSED -> "Feed paused"
-        FeedState.RECENT -> feedValue(data.lastFeedStart, data.feedState, now)?.let { "Fed $it" } ?: "Feed logged"
-        FeedState.NONE -> "No feeds yet"
-    }
-
-private fun sleepSummary(data: WidgetData, now: Instant): String =
-    when (data.sleepState) {
-        SleepState.SLEEPING -> sleepValue(data.sleepState, data.sleepSince, now)?.let { "Sleeping $it" } ?: "Sleeping"
-        SleepState.AWAKE -> sleepValue(data.sleepState, data.sleepSince, now)?.let { "Awake $it" } ?: "Awake"
-        SleepState.NONE -> "No sleep yet"
-    }
-
-private fun feedContextSummary(data: WidgetData): String =
-    when (data.feedState) {
-        FeedState.ACTIVE -> data.lastFeedSide?.let { "Feeding ${it.label()}" } ?: "Feeding"
-        FeedState.PAUSED -> data.lastFeedSide?.let { "Paused ${it.label()}" } ?: "Feed paused"
-        FeedState.RECENT -> data.lastFeedSide?.let { "Last side ${it.label()}" } ?: "Feed logged"
-        FeedState.NONE -> "No feeds yet"
-    }
-
-private fun sleepContextSummary(data: WidgetData): String =
-    when (data.sleepState) {
-        SleepState.SLEEPING -> "Sleeping now"
-        SleepState.AWAKE -> "Awake now"
-        SleepState.NONE -> "No sleep yet"
     }
 
 // Screen-reader copy: each tile merges emoji + label + value into one spoken phrase with the
