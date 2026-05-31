@@ -53,4 +53,10 @@ class BreastfeedingRepositoryImpl @Inject constructor(
 
     override suspend fun deleteSession(session: BreastfeedingSession) =
         dao.deleteSession(session.toEntity())
+
+    override suspend fun startSessionIfNone(session: BreastfeedingSession): Long? =
+        dao.startSessionIfNone(session.toEntity())
+
+    override suspend fun stopActiveSession(endTime: Instant): Boolean =
+        dao.stopActiveSession(endTime.toEpochMilli())
 }

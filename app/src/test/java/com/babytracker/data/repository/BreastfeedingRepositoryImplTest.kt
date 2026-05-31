@@ -212,4 +212,62 @@ class BreastfeedingRepositoryImplTest {
         }
         assertNotNull(thrown)
     }
+
+    @Test
+    fun startSessionIfNoneConvertsToEntityAndReturnsId() = runTest {
+        val session = BreastfeedingSession(
+            startTime = Instant.ofEpochMilli(startEpoch),
+            startingSide = BreastSide.LEFT
+        )
+        val slot = slot<BreastfeedingEntity>()
+        coEvery { dao.startSessionIfNone(capture(slot)) } returns 7L
+
+        val result = repository.startSessionIfNone(session)
+
+        assertEquals(7L, result)
+        assertEquals("LEFT", slot.captured.startingSide)
+        assertEquals(startEpoch, slot.captured.startTime)
+    }
+
+    @Test
+    fun startSessionIfNoneReturnsNullWhenDaoReturnsNull() = runTest {
+        val session = BreastfeedingSession(
+            startTime = Instant.ofEpochMilli(startEpoch),
+            startingSide = BreastSide.RIGHT
+        )
+        coEvery { dao.startSessionIfNone(any()) } returns null
+
+        val result = repository.startSessionIfNone(session)
+
+        assertNull(result)
+    }
+
+    @Test
+    fun stopActiveSessionPassesEpochMillisToDao() = runTest {
+        val endInstant = Instant.ofEpochMilli(endEpoch)
+        val slot = slot<Long>()
+        coEvery { dao.stopActiveSession(capture(slot)) } returns true
+
+        repository.stopActiveSession(endInstant)
+
+        assertEquals(endEpoch, slot.captured)
+    }
+
+    @Test
+    fun stopActiveSessionReturnsTrueWhenDaoReturnsTrue() = runTest {
+        coEvery { dao.stopActiveSession(any()) } returns true
+
+        val result = repository.stopActiveSession(Instant.ofEpochMilli(endEpoch))
+
+        assertEquals(true, result)
+    }
+
+    @Test
+    fun stopActiveSessionReturnsFalseWhenDaoReturnsFalse() = runTest {
+        coEvery { dao.stopActiveSession(any()) } returns false
+
+        val result = repository.stopActiveSession(Instant.ofEpochMilli(endEpoch))
+
+        assertEquals(false, result)
+    }
 }

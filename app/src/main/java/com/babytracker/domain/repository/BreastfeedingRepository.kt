@@ -14,4 +14,6 @@ interface BreastfeedingRepository {
     suspend fun insertSession(session: BreastfeedingSession): Long
     suspend fun updateSession(session: BreastfeedingSession)
     suspend fun deleteSession(session: BreastfeedingSession)
+    suspend fun startSessionIfNone(session: BreastfeedingSession): Long?
+    suspend fun stopActiveSession(endTime: Instant): Boolean
 }
