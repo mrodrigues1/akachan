@@ -6,9 +6,11 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.receiver.NapReminderReceiver
 import com.babytracker.receiver.NapReminderReceiver.Companion.EXTRA_TRIGGER_AT_MS
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.first
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,6 +18,7 @@ import javax.inject.Singleton
 @Singleton
 class NapReminderManager @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val settingsRepository: SettingsRepository,
 ) : NapReminderScheduler {
 
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
@@ -40,6 +43,14 @@ class NapReminderManager @Inject constructor(
 
     override fun cancel() {
         alarmManager.cancel(buildPendingIntent())
+    }
+
+    override suspend fun scheduleIfEnabled(napEndTime: Instant) {
+        val enabled = settingsRepository.getNapReminderEnabled().first()
+        if (enabled) {
+            val delayMinutes = settingsRepository.getNapReminderDelayMinutes().first()
+            schedule(napEndTime, delayMinutes)
+        }
     }
 
     private fun buildPendingIntent(triggerAtMs: Long = -1L): PendingIntent {
