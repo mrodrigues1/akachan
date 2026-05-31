@@ -46,10 +46,14 @@ class BabyWidgetTest {
     }
 
     @Test
-    fun `keeps square and tall sizes on medium layout`() {
+    fun `keeps square and short-but-wide sizes on medium layout`() {
         assertEquals(WidgetLayout.MEDIUM, widgetLayoutForSize(DpSize(width = 110.dp, height = 110.dp)))
         assertEquals(WidgetLayout.MEDIUM, widgetLayoutForSize(DpSize(width = 180.dp, height = 110.dp)))
-        assertEquals(WidgetLayout.MEDIUM, widgetLayoutForSize(BabyWidget.TWO_BY_FOUR_SIZE))
+    }
+
+    @Test
+    fun `uses explicit layout for two by four size`() {
+        assertEquals(WidgetLayout.TWO_BY_FOUR, widgetLayoutForSize(BabyWidget.TWO_BY_FOUR_SIZE))
     }
 
     @Test

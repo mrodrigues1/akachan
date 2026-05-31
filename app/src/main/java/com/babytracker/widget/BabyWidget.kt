@@ -35,6 +35,7 @@ class BabyWidget : GlanceAppWidget() {
             WidgetLayout.COMPACT_WIDE -> SmallContent(data = data, now = now)
             WidgetLayout.COMPACT_NARROW -> SmallNarrowContent(data = data, now = now)
             WidgetLayout.MEDIUM -> MediumContent(data = data, now = now)
+            WidgetLayout.TWO_BY_FOUR -> TwoByFourContent(data = data, now = now)
             WidgetLayout.THREE_BY_THREE -> ThreeByThreeContent(data = data, now = now)
             WidgetLayout.THREE_BY_FOUR -> ThreeByFourContent(data = data, now = now)
             WidgetLayout.FOUR_BY_TWO -> FourByTwoContent(data = data, now = now)
@@ -73,6 +74,7 @@ internal enum class WidgetLayout {
     COMPACT_WIDE,
     COMPACT_NARROW,
     MEDIUM,
+    TWO_BY_FOUR,
     THREE_BY_THREE,
     THREE_BY_FOUR,
     FOUR_BY_TWO,
@@ -92,6 +94,8 @@ internal fun widgetLayoutForSize(size: DpSize): WidgetLayout =
             size.height >= BabyWidget.THREE_BY_FOUR_SIZE.height -> WidgetLayout.THREE_BY_FOUR
         size.width >= BabyWidget.THREE_BY_THREE_SIZE.width &&
             size.height >= BabyWidget.THREE_BY_THREE_SIZE.height -> WidgetLayout.THREE_BY_THREE
+        size.width < BabyWidget.THREE_BY_FOUR_SIZE.width &&
+            size.height >= BabyWidget.TWO_BY_FOUR_SIZE.height -> WidgetLayout.TWO_BY_FOUR
         size.height >= BabyWidget.MEDIUM_SIZE.height -> WidgetLayout.MEDIUM
         size.width >= BabyWidget.COMPACT_WIDE_SIZE.width -> WidgetLayout.COMPACT_WIDE
         else -> WidgetLayout.COMPACT_NARROW
