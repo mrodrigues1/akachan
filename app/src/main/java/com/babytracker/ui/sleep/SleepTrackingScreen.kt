@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -197,6 +198,11 @@ fun SleepTrackingScreen(
                     )
                 }
             }
+            if (activeSleepSession == null) {
+                item {
+                    LastSleepSummaryRow(summary = uiState.lastSleepSummary)
+                }
+            }
             item {
                 Text(
                     text = "TODAY'S WAKE TIME",
@@ -248,6 +254,75 @@ fun SleepTrackingScreen(
                     )
                 ) {
                     Text("Log Past Sleep", style = MaterialTheme.typography.titleSmall)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LastSleepSummaryRow(summary: LastSleepSummaryState) {
+    val description = when (summary) {
+        LastSleepSummaryState.Empty -> "Last sleep. No sleep logged yet."
+        is LastSleepSummaryState.Populated -> "Last sleep. ${summary.awakeForLabel}. ${summary.endedAtLabel}."
+    }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = description
+            },
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f),
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondaryContainer)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Bedtime,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(22.dp)
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "LAST SLEEP",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                when (summary) {
+                    LastSleepSummaryState.Empty -> {
+                        Text(
+                            text = "No sleep logged yet",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                    is LastSleepSummaryState.Populated -> {
+                        Text(
+                            text = summary.awakeForLabel,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Text(
+                            text = summary.endedAtLabel,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
                 }
             }
         }

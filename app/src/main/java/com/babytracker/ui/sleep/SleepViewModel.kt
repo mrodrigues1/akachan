@@ -17,13 +17,20 @@ import com.babytracker.domain.usecase.sleep.UpdateSleepEntryUseCase
 import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.SleepNotificationScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.util.formatElapsedShort
+import com.babytracker.util.formatTime12h
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -36,10 +43,20 @@ import javax.inject.Inject
 
 enum class SleepTimePickerTarget { WAKE, ENTRY_START, ENTRY_END }
 
+sealed class LastSleepSummaryState {
+    object Empty : LastSleepSummaryState()
+    data class Populated(
+        val record: SleepRecord,
+        val awakeForLabel: String,
+        val endedAtLabel: String,
+    ) : LastSleepSummaryState()
+}
+
 data class SleepUiState(
     val schedule: SleepSchedule? = null,
     val isLoading: Boolean = false,
     val wakeTime: LocalTime? = null,
+    val lastSleepSummary: LastSleepSummaryState = LastSleepSummaryState.Empty,
     val showEntrySheet: Boolean = false,
     val entryType: SleepType = SleepType.NAP,
     val entryStartTime: LocalTime = LocalTime.now(),
@@ -93,6 +110,24 @@ class SleepViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.getWakeTime().collect { wakeTime ->
                 _uiState.value = _uiState.value.copy(wakeTime = wakeTime)
+            }
+        }
+        viewModelScope.launch {
+            val ticker = flow<Unit> {
+                emit(Unit)
+                emitAll(
+                    flow<Unit> {
+                        while (true) {
+                            kotlinx.coroutines.delay(LAST_SLEEP_TICK_MS)
+                            emit(Unit)
+                        }
+                    }.flowOn(Dispatchers.Default)
+                )
+            }
+            combine(history, ticker) { records, _ ->
+                buildLastSleepSummary(records)
+            }.collect { summary ->
+                _uiState.value = _uiState.value.copy(lastSleepSummary = summary)
             }
         }
         loadSchedule()
@@ -289,5 +324,26 @@ class SleepViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
+    }
+
+    private fun buildLastSleepSummary(records: List<SleepRecord>): LastSleepSummaryState {
+        if (records.any { it.isInProgress }) return LastSleepSummaryState.Empty
+
+        val latestCompleted = records
+            .filter { it.endTime != null }
+            .maxByOrNull { it.endTime!! }
+            ?: return LastSleepSummaryState.Empty
+        val endTime = latestCompleted.endTime ?: return LastSleepSummaryState.Empty
+        val awakeDuration = Duration.between(endTime, Instant.now()).coerceAtLeast(Duration.ZERO)
+
+        return LastSleepSummaryState.Populated(
+            record = latestCompleted,
+            awakeForLabel = "Awake for ${awakeDuration.formatElapsedShort()}",
+            endedAtLabel = "Ended at ${endTime.formatTime12h()}",
+        )
+    }
+
+    private companion object {
+        const val LAST_SLEEP_TICK_MS = 60_000L
     }
 }
