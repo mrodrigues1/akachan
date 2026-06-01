@@ -22,7 +22,35 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
+
+        <service
+            android:name=".tile.FeedTileService"
+            android:description="@string/tile_feed_description"
+            android:exported="true"
+            android:icon="@drawable/ic_qs_feed"
+            android:label="@string/tile_feed_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".tile.SleepTileService"
+            android:description="@string/tile_sleep_description"
+            android:exported="true"
+            android:icon="@drawable/ic_qs_sleep"
+            android:label="@string/tile_sleep_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
 
         <receiver
             android:name=".receiver.BreastfeedingNotificationReceiver"
