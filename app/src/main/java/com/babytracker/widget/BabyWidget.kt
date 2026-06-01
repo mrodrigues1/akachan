@@ -13,38 +13,42 @@ import androidx.glance.appwidget.provideContent
 import com.babytracker.widget.data.WidgetData
 import com.babytracker.widget.theme.BabyWidgetColors
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicBoolean
 
 class BabyWidget : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Responsive(RESPONSIVE_SIZES)
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val isRefreshing = refreshingActive.get()
         val data = loadWidgetData(context)
         val now = Instant.now()
 
         provideContent {
             GlanceTheme(colors = BabyWidgetColors) {
-                WidgetBody(data = data, now = now)
+                WidgetBody(data = data, now = now, isRefreshing = isRefreshing)
             }
         }
     }
 
     @Composable
-    private fun WidgetBody(data: WidgetData, now: Instant) {
+    private fun WidgetBody(data: WidgetData, now: Instant, isRefreshing: Boolean) {
         when (widgetLayoutForSize(LocalSize.current)) {
             WidgetLayout.COMPACT_WIDE -> SmallContent(data = data, now = now)
             WidgetLayout.COMPACT_NARROW -> SmallNarrowContent(data = data, now = now)
-            WidgetLayout.MEDIUM -> MediumContent(data = data, now = now)
-            WidgetLayout.TWO_BY_FOUR -> TwoByFourContent(data = data, now = now)
-            WidgetLayout.THREE_BY_THREE -> ThreeByThreeContent(data = data, now = now)
-            WidgetLayout.THREE_BY_FOUR -> ThreeByFourContent(data = data, now = now)
-            WidgetLayout.FOUR_BY_TWO -> FourByTwoContent(data = data, now = now)
-            WidgetLayout.FOUR_BY_THREE -> FourByThreeContent(data = data, now = now)
-            WidgetLayout.FOUR_BY_FOUR -> FourByFourContent(data = data, now = now)
+            WidgetLayout.MEDIUM -> MediumContent(data = data, now = now, isRefreshing = isRefreshing)
+            WidgetLayout.TWO_BY_FOUR -> TwoByFourContent(data = data, now = now, isRefreshing = isRefreshing)
+            WidgetLayout.THREE_BY_THREE -> ThreeByThreeContent(data = data, now = now, isRefreshing = isRefreshing)
+            WidgetLayout.THREE_BY_FOUR -> ThreeByFourContent(data = data, now = now, isRefreshing = isRefreshing)
+            WidgetLayout.FOUR_BY_TWO -> FourByTwoContent(data = data, now = now, isRefreshing = isRefreshing)
+            WidgetLayout.FOUR_BY_THREE -> FourByThreeContent(data = data, now = now, isRefreshing = isRefreshing)
+            WidgetLayout.FOUR_BY_FOUR -> FourByFourContent(data = data, now = now, isRefreshing = isRefreshing)
         }
     }
 
     companion object {
+        val refreshingActive: AtomicBoolean = AtomicBoolean(false)
+
         val COMPACT_NARROW_SIZE: DpSize = DpSize(110.dp, 64.dp)
         val COMPACT_WIDE_SIZE: DpSize = DpSize(180.dp, 64.dp)
         val FOUR_BY_ONE_SIZE: DpSize = DpSize(250.dp, 64.dp)

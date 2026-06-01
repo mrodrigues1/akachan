@@ -11,6 +11,7 @@ class GlanceWidgetUpdater @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : WidgetUpdater {
     override suspend fun updateAll() {
+        BabyWidget.refreshingActive.set(false)
         BabyWidget().updateAll(context)
     }
 }
