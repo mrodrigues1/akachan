@@ -13,14 +13,14 @@ import androidx.glance.appwidget.provideContent
 import com.babytracker.widget.data.WidgetData
 import com.babytracker.widget.theme.BabyWidgetColors
 import java.time.Instant
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.ConcurrentHashMap
 
 class BabyWidget : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Responsive(RESPONSIVE_SIZES)
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val isRefreshing = refreshingActive.get()
+        val isRefreshing = refreshingInstances.contains(id)
         val data = loadWidgetData(context)
         val now = Instant.now()
 
@@ -47,7 +47,7 @@ class BabyWidget : GlanceAppWidget() {
     }
 
     companion object {
-        val refreshingActive: AtomicBoolean = AtomicBoolean(false)
+        val refreshingInstances: MutableSet<GlanceId> = ConcurrentHashMap.newKeySet()
 
         val COMPACT_NARROW_SIZE: DpSize = DpSize(110.dp, 64.dp)
         val COMPACT_WIDE_SIZE: DpSize = DpSize(180.dp, 64.dp)
