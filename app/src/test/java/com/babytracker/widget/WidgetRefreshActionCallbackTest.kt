@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.glance.GlanceId
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -23,13 +24,12 @@ class WidgetRefreshActionCallbackTest {
     }
 
     @Test
-    fun `refresh marks widget refreshing before first render and schedules immediate work`() = runTest {
-        var updateCalled = false
+    fun `refresh shows temporary updating state then clears it after scheduling immediate work`() = runTest {
+        val updateStates = mutableListOf<Boolean>()
         var scheduled = false
         val handler = WidgetRefreshActionHandler(
             updateWidget = { _, id ->
-                updateCalled = true
-                assertTrue(BabyWidget.refreshingInstances.contains(id))
+                updateStates += BabyWidget.refreshingInstances.contains(id)
             },
             schedulerProvider = {
                 testScheduler { scheduled = true }
@@ -38,9 +38,9 @@ class WidgetRefreshActionCallbackTest {
 
         handler.refresh(context, glanceId)
 
-        assertTrue(updateCalled)
+        assertEquals(listOf(true, false), updateStates)
         assertTrue(scheduled)
-        assertTrue(BabyWidget.refreshingInstances.contains(glanceId))
+        assertFalse(BabyWidget.refreshingInstances.contains(glanceId))
     }
 
     @Test
@@ -56,6 +56,24 @@ class WidgetRefreshActionCallbackTest {
         handler.refresh(context, glanceId)
 
         assertFalse(scheduled)
+        assertFalse(BabyWidget.refreshingInstances.contains(glanceId))
+    }
+
+    @Test
+    fun `refresh clears updating state when scheduling fails`() = runTest {
+        val updateStates = mutableListOf<Boolean>()
+        val handler = WidgetRefreshActionHandler(
+            updateWidget = { _, id ->
+                updateStates += BabyWidget.refreshingInstances.contains(id)
+            },
+            schedulerProvider = {
+                testScheduler { error("work manager unavailable") }
+            },
+        )
+
+        handler.refresh(context, glanceId)
+
+        assertEquals(listOf(true, false), updateStates)
         assertFalse(BabyWidget.refreshingInstances.contains(glanceId))
     }
 

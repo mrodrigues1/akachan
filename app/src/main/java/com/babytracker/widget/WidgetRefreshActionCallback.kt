@@ -6,6 +6,9 @@ import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
+
+private const val REFRESH_FEEDBACK_MS = 450L
 
 class WidgetRefreshActionCallback : ActionCallback {
 
@@ -36,6 +39,17 @@ internal class WidgetRefreshActionHandler(
             BabyWidget.refreshingInstances.remove(glanceId)
             return
         }
-        schedulerProvider(context).scheduleImmediateRefresh()
+        delay(REFRESH_FEEDBACK_MS)
+        runCatching {
+            schedulerProvider(context).scheduleImmediateRefresh()
+        }.onFailure { t ->
+            if (t is CancellationException) throw t
+        }
+        BabyWidget.refreshingInstances.remove(glanceId)
+        runCatching {
+            updateWidget(context, glanceId)
+        }.onFailure { t ->
+            if (t is CancellationException) throw t
+        }
     }
 }
