@@ -204,11 +204,6 @@ fun MediumContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Gla
     }
 }
 
-/**
- * Two-by-four widget: two full-width domain tiles with no header or footer. The extra vertical
- * space is divided equally between the feeding and sleep tiles so each timer reads large and
- * uncluttered. Header → removed to reduce cognitive load at a glance.
- */
 @Composable
 fun TwoByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier) {
     val feedingActive = data.hasActiveFeed()
@@ -219,11 +214,23 @@ fun TwoByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier = 
             .background(ImageProvider(R.drawable.widget_bg_surface))
             .padding(12.dp),
     ) {
-        Row(modifier = GlanceModifier.fillMaxWidth()) {
-            Spacer(modifier = GlanceModifier.defaultWeight())
+        Row(
+            modifier = GlanceModifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = data.babyName,
+                maxLines = 1,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurface,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                ),
+                modifier = GlanceModifier.defaultWeight().clickable(openHomeAction()),
+            )
             RefreshButton()
         }
-        Spacer(modifier = GlanceModifier.height(4.dp))
+        Spacer(modifier = GlanceModifier.height(10.dp))
         DomainBlock(
             backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
             content = feedBlockContent(data, now),
@@ -237,7 +244,7 @@ fun TwoByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier = 
             showSupporting = false,
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
         )
-        Spacer(modifier = GlanceModifier.height(8.dp))
+        Spacer(modifier = GlanceModifier.height(10.dp))
         DomainBlock(
             backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
             content = sleepBlockContent(data, now),
