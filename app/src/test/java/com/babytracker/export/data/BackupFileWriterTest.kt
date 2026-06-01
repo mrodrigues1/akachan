@@ -1,8 +1,15 @@
 package com.babytracker.export.data
 
+import android.content.Context
+import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.test.core.app.ApplicationProvider
+import io.mockk.every
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
+import java.io.File
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -10,34 +17,40 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class BackupFileWriterTest {
 
-    private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+    private val context = ApplicationProvider.getApplicationContext<Context>()
     private val writer = BackupFileWriter(context)
+    private val providedFiles = mutableListOf<File>()
 
     /**
-     * Robolectric 4.x shares the FileProvider class (and its static path-strategy cache) across
-     * test methods in the same JVM. Each test gets a fresh Application with a different cacheDir,
-     * so cached absolute roots from a previous test's cacheDir become invalid. Clearing the
-     * static cache before each test forces FileProvider to re-resolve paths from the current
-     * test's cacheDir.
+     * AndroidX FileProvider's JVM path check uses '/' as the root separator. On Windows,
+     * File.canonicalPath uses '\', so valid cache files are rejected before the writer can return.
+     * Keep these tests focused on the writer's behavior and mock the static provider boundary.
      */
     @Before
-    fun clearFileProviderCache() {
-        val cacheField = FileProvider::class.java.getDeclaredField("sCache")
-        cacheField.isAccessible = true
-        (cacheField.get(null) as? MutableMap<*, *>)?.clear()
+    fun setupFileProvider() {
+        providedFiles.clear()
+        mockkStatic(FileProvider::class)
+        every { FileProvider.getUriForFile(any(), any(), any()) } answers {
+            val file = thirdArg<File>()
+            providedFiles += file
+            Uri.parse("content://com.babytracker.fileprovider/${file.parentFile?.name}/${file.name}")
+        }
+    }
+
+    @After
+    fun tearDownFileProvider() {
+        unmockkStatic(FileProvider::class)
     }
 
     @Test
     fun `writeCacheFile returns a readable content uri with the given content`() = runTest {
         val uri = writer.writeCacheFile("backup.json", "{\"x\":1}")
         assertEquals("content", uri.scheme)
-        val read = context.contentResolver.openInputStream(uri)!!.use { it.readBytes().decodeToString() }
-        assertEquals("{\"x\":1}", read)
+        assertEquals("{\"x\":1}", providedFiles.single().readText())
     }
 
     @Test
@@ -46,12 +59,8 @@ class BackupFileWriterTest {
         val second = writer.writeCacheFile("backup.json", "SECOND")
         // Distinct Uris (unique per-export subdir) and the first is still intact after the second.
         assertTrue(first != second)
-        val firstContent = context.contentResolver.openInputStream(first)!!
-            .use { it.readBytes().decodeToString() }
-        val secondContent = context.contentResolver.openInputStream(second)!!
-            .use { it.readBytes().decodeToString() }
-        assertEquals("FIRST", firstContent)
-        assertEquals("SECOND", secondContent)
+        assertEquals("FIRST", providedFiles[0].readText())
+        assertEquals("SECOND", providedFiles[1].readText())
     }
 
     @Test
@@ -95,7 +104,7 @@ class BackupFileWriterTest {
     fun `writeCacheBytes returns readable content uri and rejects traversal`() = runTest {
         val uri = writer.writeCacheBytes("report.pdf", byteArrayOf(37, 80, 68, 70)) // %PDF
         assertEquals("content", uri.scheme)
-        val read = context.contentResolver.openInputStream(uri)!!.use { it.readBytes() }
+        val read = providedFiles.single().readBytes()
         assertEquals("%PDF", read.decodeToString())
 
         assertThrows(IllegalArgumentException::class.java) {
