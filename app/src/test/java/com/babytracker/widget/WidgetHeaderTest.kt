@@ -32,6 +32,8 @@ class WidgetHeaderTest {
         provideComposable {
             GlanceTheme(colors = BabyWidgetColors) { MediumContent(data, now, isRefreshing = true) }
         }
+        onNode(hasText(UPDATING_LABEL)).assertExists()
+        onNode(hasContentDescription(UPDATING_DESCRIPTION)).assertExists()
         onNode(hasContentDescription(REFRESH_DESCRIPTION)).assertDoesNotExist()
     }
 
@@ -110,5 +112,7 @@ class WidgetHeaderTest {
     private companion object {
         const val BABY_NAME = "Akira"
         const val REFRESH_DESCRIPTION = "Refresh widget"
+        const val UPDATING_DESCRIPTION = "Updating widget"
+        const val UPDATING_LABEL = "Updating"
     }
 }

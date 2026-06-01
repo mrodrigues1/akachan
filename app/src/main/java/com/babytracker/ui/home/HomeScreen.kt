@@ -1,9 +1,15 @@
 package com.babytracker.ui.home
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -29,6 +35,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
@@ -53,6 +60,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,6 +86,8 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
+
+private val EaseOutQuart = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -192,9 +203,27 @@ fun HomeScreen(
                 ) {
                     // Breastfeeding card
                     val isActiveFeeding = activeSession != null
+                    val feedingContainerColor by animateColorAsState(
+                        targetValue = if (isActiveFeeding) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.primaryContainer
+                        },
+                        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+                        label = "feedingContainerColor",
+                    )
+                    val feedingContentColor by animateColorAsState(
+                        targetValue = if (isActiveFeeding) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        },
+                        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+                        label = "feedingContentColor",
+                    )
                     val feedingElevation by animateDpAsState(
-                        targetValue = if (isActiveFeeding) 4.dp else 1.dp,
-                        animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing),
+                        targetValue = if (isActiveFeeding) 6.dp else 1.dp,
+                        animationSpec = tween(durationMillis = 240, easing = EaseOutQuart),
                         label = "feedingElevation",
                     )
                     Card(
@@ -211,11 +240,15 @@ fun HomeScreen(
                             },
                         shape = MaterialTheme.shapes.large,
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                            containerColor = feedingContainerColor
                         ),
                         elevation = CardDefaults.cardElevation(defaultElevation = feedingElevation),
                     ) {
-                        Column(modifier = Modifier.padding(20.dp).animateContentSize(animationSpec = tween(200, easing = LinearOutSlowInEasing))) {
+                        Column(
+                            modifier = Modifier
+                                .padding(20.dp)
+                                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
+                        ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -224,46 +257,31 @@ fun HomeScreen(
                                 Text(
                                     text = "🍼",
                                     style = MaterialTheme.typography.headlineMedium,
+                                    color = feedingContentColor,
                                     modifier = Modifier.clearAndSetSemantics {},
                                 )
                                 AnimatedVisibility(
                                     visible = activeSession != null,
-                                    enter = fadeIn(tween(150)) + scaleIn(initialScale = 0.7f, animationSpec = tween(150)),
-                                    exit = fadeOut(tween(100)) + scaleOut(targetScale = 0.7f, animationSpec = tween(100)),
+                                    enter = fadeIn(tween(180, easing = EaseOutQuart)) +
+                                        scaleIn(initialScale = 0.82f, animationSpec = tween(180, easing = EaseOutQuart)),
+                                    exit = fadeOut(tween(120)) + scaleOut(targetScale = 0.82f, animationSpec = tween(120)),
                                 ) {
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.primary,
-                                        shape = MaterialTheme.shapes.extraLarge,
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = if (activeSession?.isPaused == true) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onPrimary,
-                                                modifier = Modifier.size(10.dp)
-                                            )
-                                            Text(
-                                                text = if (activeSession?.isPaused == true) "Paused" else "Live",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onPrimary,
-                                            )
-                                        }
-                                    }
+                                    ActiveStatusBadge(
+                                        paused = activeSession?.isPaused == true,
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    )
                                 }
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "Breastfeeding",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                color = feedingContentColor,
                             )
                             if (activeSession != null) {
                                 Spacer(modifier = Modifier.height(4.dp))
-                                ActiveFeedingTimer(session = activeSession)
+                                ActiveFeedingTimer(session = activeSession, color = feedingContentColor)
                             } else {
                                 val lastStart = uiState.lastSessionStartTime
                                 if (lastStart != null) {
@@ -278,9 +296,27 @@ fun HomeScreen(
 
                     // Sleep card
                     val isActiveSleep = activeSleepRecord != null
+                    val sleepContainerColor by animateColorAsState(
+                        targetValue = if (isActiveSleep) {
+                            MaterialTheme.colorScheme.secondary
+                        } else {
+                            MaterialTheme.colorScheme.secondaryContainer
+                        },
+                        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+                        label = "sleepContainerColor",
+                    )
+                    val sleepContentColor by animateColorAsState(
+                        targetValue = if (isActiveSleep) {
+                            MaterialTheme.colorScheme.onSecondary
+                        } else {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        },
+                        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+                        label = "sleepContentColor",
+                    )
                     val sleepElevation by animateDpAsState(
-                        targetValue = if (isActiveSleep) 4.dp else 1.dp,
-                        animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing),
+                        targetValue = if (isActiveSleep) 6.dp else 1.dp,
+                        animationSpec = tween(durationMillis = 240, easing = EaseOutQuart),
                         label = "sleepElevation",
                     )
                     Card(
@@ -297,11 +333,15 @@ fun HomeScreen(
                             },
                         shape = MaterialTheme.shapes.large,
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            containerColor = sleepContainerColor
                         ),
                         elevation = CardDefaults.cardElevation(defaultElevation = sleepElevation),
                     ) {
-                        Column(modifier = Modifier.padding(20.dp).animateContentSize(animationSpec = tween(200, easing = LinearOutSlowInEasing))) {
+                        Column(
+                            modifier = Modifier
+                                .padding(20.dp)
+                                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
+                        ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -310,46 +350,31 @@ fun HomeScreen(
                                 Text(
                                     text = "🌙",
                                     style = MaterialTheme.typography.headlineMedium,
+                                    color = sleepContentColor,
                                     modifier = Modifier.clearAndSetSemantics {},
                                 )
                                 AnimatedVisibility(
                                     visible = isActiveSleep,
-                                    enter = fadeIn(tween(150)) + scaleIn(initialScale = 0.7f, animationSpec = tween(150)),
-                                    exit = fadeOut(tween(100)) + scaleOut(targetScale = 0.7f, animationSpec = tween(100)),
+                                    enter = fadeIn(tween(180, easing = EaseOutQuart)) +
+                                        scaleIn(initialScale = 0.82f, animationSpec = tween(180, easing = EaseOutQuart)),
+                                    exit = fadeOut(tween(120)) + scaleOut(targetScale = 0.82f, animationSpec = tween(120)),
                                 ) {
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.secondary,
-                                        shape = MaterialTheme.shapes.extraLarge,
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.PlayArrow,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSecondary,
-                                                modifier = Modifier.size(10.dp)
-                                            )
-                                            Text(
-                                                text = "Live",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSecondary,
-                                            )
-                                        }
-                                    }
+                                    ActiveStatusBadge(
+                                        paused = false,
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    )
                                 }
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "Sleep",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                color = sleepContentColor,
                             )
                             if (activeSleepRecord != null) {
                                 Spacer(modifier = Modifier.height(4.dp))
-                                ActiveSleepTimer(record = activeSleepRecord)
+                                ActiveSleepTimer(record = activeSleepRecord, color = sleepContentColor)
                             } else {
                                 val lastEnd = uiState.lastSleepEndTime
                                 if (lastEnd != null) {
@@ -551,9 +576,19 @@ internal fun PumpingHomeCard(
     modifier: Modifier = Modifier,
 ) {
     val isPumping = active != null
+    val containerColor by animateColorAsState(
+        targetValue = if (isPumping) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.tertiaryContainer,
+        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+        label = "pumpingContainerColor",
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isPumping) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onTertiaryContainer,
+        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+        label = "pumpingContentColor",
+    )
     val pumpingElevation by animateDpAsState(
-        targetValue = if (isPumping) 4.dp else 1.dp,
-        animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing),
+        targetValue = if (isPumping) 6.dp else 1.dp,
+        animationSpec = tween(durationMillis = 240, easing = EaseOutQuart),
         label = "pumpingElevation",
     )
     Card(
@@ -565,17 +600,17 @@ internal fun PumpingHomeCard(
                     "Pumping, session active. Open pumping screen."
                 else
                     "Pumping. Open pumping screen."
-            },
+        },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+            containerColor = containerColor
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = pumpingElevation),
     ) {
         Column(
             modifier = Modifier
                 .padding(20.dp)
-                .animateContentSize(animationSpec = tween(200, easing = LinearOutSlowInEasing)),
+                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -585,51 +620,36 @@ internal fun PumpingHomeCard(
                 Text(
                     text = "🥛",
                     style = MaterialTheme.typography.headlineMedium,
+                    color = contentColor,
                     modifier = Modifier.clearAndSetSemantics {},
                 )
                 AnimatedVisibility(
                     visible = isPumping,
-                    enter = fadeIn(tween(150)) + scaleIn(initialScale = 0.7f, animationSpec = tween(150)),
-                    exit = fadeOut(tween(100)) + scaleOut(targetScale = 0.7f, animationSpec = tween(100)),
+                    enter = fadeIn(tween(180, easing = EaseOutQuart)) +
+                        scaleIn(initialScale = 0.82f, animationSpec = tween(180, easing = EaseOutQuart)),
+                    exit = fadeOut(tween(120)) + scaleOut(targetScale = 0.82f, animationSpec = tween(120)),
                 ) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.tertiary,
-                        shape = MaterialTheme.shapes.extraLarge,
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp),
-                        ) {
-                            Icon(
-                                imageVector = if (active?.isPaused == true) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onTertiary,
-                                modifier = Modifier.size(10.dp),
-                            )
-                            Text(
-                                text = if (active?.isPaused == true) "Paused" else "Live",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onTertiary,
-                            )
-                        }
-                    }
+                    ActiveStatusBadge(
+                        paused = active?.isPaused == true,
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Pumping",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                color = contentColor,
             )
             Spacer(modifier = Modifier.height(4.dp))
             if (active != null) {
-                ActivePumpingTimer(session = active)
+                ActivePumpingTimer(session = active, color = contentColor)
             } else {
                 Text(
                     text = "Tap to log",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    color = contentColor,
                 )
             }
         }
@@ -686,7 +706,63 @@ internal fun InventoryHomeCard(
 }
 
 @Composable
-private fun ActivePumpingTimer(session: PumpingSession) {
+private fun ActiveStatusBadge(
+    paused: Boolean,
+    containerColor: Color,
+    contentColor: Color,
+) {
+    val pulseTransition = rememberInfiniteTransition(label = "activeStatusPulse")
+    val dotScale by pulseTransition.animateFloat(
+        initialValue = 0.82f,
+        targetValue = 1.18f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = EaseOutQuart),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "activeStatusDotScale",
+    )
+    val dotAlpha by pulseTransition.animateFloat(
+        initialValue = 0.58f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = EaseOutQuart),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "activeStatusDotAlpha",
+    )
+    Surface(
+        color = containerColor,
+        shape = MaterialTheme.shapes.extraLarge,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            Surface(
+                color = contentColor.copy(alpha = if (paused) 1f else dotAlpha),
+                shape = CircleShape,
+                modifier = Modifier
+                    .size(7.dp)
+                    .scale(if (paused) 1f else dotScale),
+            ) {}
+            Icon(
+                imageVector = if (paused) Icons.Default.Pause else Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(10.dp),
+            )
+            Text(
+                text = if (paused) "Paused" else "Live",
+                style = MaterialTheme.typography.labelSmall,
+                color = contentColor,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActivePumpingTimer(session: PumpingSession, color: Color) {
     val elapsedSeconds by produceState(
         initialValue = computePumpingElapsed(session, Instant.now()),
         key1 = session,
@@ -700,7 +776,7 @@ private fun ActivePumpingTimer(session: PumpingSession) {
     Text(
         text = Duration.ofSeconds(elapsedSeconds).formatDuration(),
         style = MaterialTheme.typography.titleLarge,
-        color = MaterialTheme.colorScheme.onTertiaryContainer,
+        color = color,
     )
 }
 
@@ -714,7 +790,7 @@ private fun computePumpingElapsed(session: PumpingSession, now: Instant): Long {
 }
 
 @Composable
-private fun ActiveFeedingTimer(session: BreastfeedingSession) {
+private fun ActiveFeedingTimer(session: BreastfeedingSession, color: Color) {
     val elapsedSeconds by produceState(
         initialValue = computeFeedingElapsed(session, Instant.now()),
         key1 = session,
@@ -728,7 +804,7 @@ private fun ActiveFeedingTimer(session: BreastfeedingSession) {
     Text(
         text = elapsedSeconds.formatMinutesSeconds(),
         style = MaterialTheme.typography.titleLarge,
-        color = MaterialTheme.colorScheme.onPrimaryContainer,
+        color = color,
     )
 }
 
@@ -772,7 +848,7 @@ private fun LastSleepAgoText(endTime: Instant) {
 }
 
 @Composable
-private fun ActiveSleepTimer(record: SleepRecord) {
+private fun ActiveSleepTimer(record: SleepRecord, color: Color) {
     val elapsedSeconds by produceState(
         initialValue = ((Instant.now().toEpochMilli() - record.startTime.toEpochMilli()) / 1000).coerceAtLeast(0L),
         key1 = record.startTime,
@@ -785,6 +861,6 @@ private fun ActiveSleepTimer(record: SleepRecord) {
     Text(
         text = Duration.ofSeconds(elapsedSeconds).formatDuration(),
         style = MaterialTheme.typography.titleLarge,
-        color = MaterialTheme.colorScheme.onSecondaryContainer,
+        color = color,
     )
 }

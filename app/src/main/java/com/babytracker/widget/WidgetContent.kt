@@ -567,9 +567,27 @@ private fun WidgetHeader(
 @Composable
 private fun RefreshButton(isRefreshing: Boolean) {
     if (isRefreshing) {
-        CircularProgressIndicator(
-            modifier = GlanceModifier.width(20.dp).height(20.dp),
-        )
+        Row(
+            modifier = GlanceModifier
+                .background(ImageProvider(R.drawable.widget_feed_badge))
+                .padding(horizontal = 8.dp, vertical = 5.dp)
+                .semantics { contentDescription = "Updating widget" },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CircularProgressIndicator(
+                modifier = GlanceModifier.width(14.dp).height(14.dp),
+            )
+            Spacer(modifier = GlanceModifier.width(5.dp))
+            Text(
+                text = "Updating",
+                maxLines = 1,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onPrimaryContainer,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 10.sp,
+                ),
+            )
+        }
     } else {
         Image(
             provider = ImageProvider(R.drawable.ic_widget_refresh),
