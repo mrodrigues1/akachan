@@ -4,8 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.action.Action
 import androidx.glance.action.clickable
@@ -159,16 +161,22 @@ fun MediumContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Gla
             .background(ImageProvider(R.drawable.widget_bg_surface))
             .padding(12.dp),
     ) {
-        Text(
-            text = data.babyName,
-            maxLines = 1,
-            style = TextStyle(
-                color = GlanceTheme.colors.onSurfaceVariant,
-                fontWeight = FontWeight.Medium,
-                fontSize = 12.sp,
-            ),
-            modifier = GlanceModifier.fillMaxWidth().clickable(openHomeAction()),
-        )
+        Row(
+            modifier = GlanceModifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = data.babyName,
+                maxLines = 1,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp,
+                ),
+                modifier = GlanceModifier.defaultWeight().clickable(openHomeAction()),
+            )
+            RefreshButton()
+        }
         Spacer(modifier = GlanceModifier.height(8.dp))
         DomainBlock(
             backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
@@ -211,6 +219,11 @@ fun TwoByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier = 
             .background(ImageProvider(R.drawable.widget_bg_surface))
             .padding(12.dp),
     ) {
+        Row(modifier = GlanceModifier.fillMaxWidth()) {
+            Spacer(modifier = GlanceModifier.defaultWeight())
+            RefreshButton()
+        }
+        Spacer(modifier = GlanceModifier.height(4.dp))
         DomainBlock(
             backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
             content = feedBlockContent(data, now),
@@ -247,16 +260,22 @@ fun ThreeByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier
             .background(ImageProvider(R.drawable.widget_bg_surface))
             .padding(14.dp),
     ) {
-        Text(
-            text = data.babyName,
-            maxLines = 1,
-            style = TextStyle(
-                color = GlanceTheme.colors.onSurface,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-            ),
-            modifier = GlanceModifier.fillMaxWidth().clickable(openHomeAction()),
-        )
+        Row(
+            modifier = GlanceModifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = data.babyName,
+                maxLines = 1,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurface,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                ),
+                modifier = GlanceModifier.defaultWeight().clickable(openHomeAction()),
+            )
+            RefreshButton()
+        }
         Spacer(modifier = GlanceModifier.height(10.dp))
         DomainBlock(
             backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
@@ -294,16 +313,22 @@ fun ThreeByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier 
             .background(ImageProvider(R.drawable.widget_bg_surface))
             .padding(14.dp),
     ) {
-        Text(
-            text = data.babyName,
-            maxLines = 1,
-            style = TextStyle(
-                color = GlanceTheme.colors.onSurface,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-            ),
-            modifier = GlanceModifier.fillMaxWidth().clickable(openHomeAction()),
-        )
+        Row(
+            modifier = GlanceModifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = data.babyName,
+                maxLines = 1,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurface,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                ),
+                modifier = GlanceModifier.defaultWeight().clickable(openHomeAction()),
+            )
+            RefreshButton()
+        }
         Spacer(modifier = GlanceModifier.height(10.dp))
         DomainBlock(
             backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
@@ -386,16 +411,22 @@ fun FourByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier 
             .background(ImageProvider(R.drawable.widget_bg_surface))
             .padding(14.dp),
     ) {
-        Text(
-            text = data.babyName,
-            maxLines = 1,
-            style = TextStyle(
-                color = GlanceTheme.colors.onSurface,
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-            ),
-            modifier = GlanceModifier.fillMaxWidth().clickable(openHomeAction()),
-        )
+        Row(
+            modifier = GlanceModifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = data.babyName,
+                maxLines = 1,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurface,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                ),
+                modifier = GlanceModifier.defaultWeight().clickable(openHomeAction()),
+            )
+            RefreshButton()
+        }
         Spacer(modifier = GlanceModifier.height(10.dp))
         Row(
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
@@ -440,16 +471,22 @@ fun FourByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier =
             .background(ImageProvider(R.drawable.widget_bg_surface))
             .padding(16.dp),
     ) {
-        Text(
-            text = data.babyName,
-            maxLines = 1,
-            style = TextStyle(
-                color = GlanceTheme.colors.onSurface,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-            ),
-            modifier = GlanceModifier.fillMaxWidth().clickable(openHomeAction()),
-        )
+        Row(
+            modifier = GlanceModifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = data.babyName,
+                maxLines = 1,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurface,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                ),
+                modifier = GlanceModifier.defaultWeight().clickable(openHomeAction()),
+            )
+            RefreshButton()
+        }
         Spacer(modifier = GlanceModifier.height(12.dp))
         DomainBlock(
             backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
@@ -480,30 +517,50 @@ fun FourByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier =
 @Composable
 private fun WidgetHeader(data: WidgetData, status: String, titleSize: TextUnit, statusSize: TextUnit) {
     Row(
-        modifier = GlanceModifier.fillMaxWidth().clickable(openHomeAction()),
+        modifier = GlanceModifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = data.babyName,
-            maxLines = 1,
-            style = TextStyle(
-                color = GlanceTheme.colors.onSurface,
-                fontWeight = FontWeight.Bold,
-                fontSize = titleSize,
-            ),
-            modifier = GlanceModifier.defaultWeight(),
-        )
-        Spacer(modifier = GlanceModifier.width(8.dp))
-        Text(
-            text = status,
-            maxLines = 1,
-            style = TextStyle(
-                color = GlanceTheme.colors.onSurfaceVariant,
-                fontWeight = FontWeight.Medium,
-                fontSize = statusSize,
-            ),
-        )
+        Row(
+            modifier = GlanceModifier.defaultWeight().clickable(openHomeAction()),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = data.babyName,
+                maxLines = 1,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurface,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = titleSize,
+                ),
+                modifier = GlanceModifier.defaultWeight(),
+            )
+            Spacer(modifier = GlanceModifier.width(8.dp))
+            Text(
+                text = status,
+                maxLines = 1,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = statusSize,
+                ),
+            )
+        }
+        Spacer(modifier = GlanceModifier.width(4.dp))
+        RefreshButton()
     }
+}
+
+@Composable
+private fun RefreshButton() {
+    Image(
+        provider = ImageProvider(R.drawable.ic_widget_refresh),
+        contentDescription = "Refresh widget",
+        colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurfaceVariant),
+        modifier = GlanceModifier
+            .width(20.dp)
+            .height(20.dp)
+            .clickable(refreshAction()),
+    )
 }
 
 @Composable

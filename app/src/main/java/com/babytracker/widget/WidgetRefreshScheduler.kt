@@ -1,8 +1,8 @@
 package com.babytracker.widget
 
 /**
- * Enqueues an out-of-band widget refresh so the partner widget populates promptly (on connect, or
- * when the render path sees an empty cache) rather than waiting for the 15-min periodic worker.
+ * Enqueues an out-of-band immediate widget refresh, bypassing the 15-minute periodic schedule.
+ * Used both for cache-miss auto-refresh in partner mode and for user-initiated manual refresh.
  */
 interface WidgetRefreshScheduler {
     fun scheduleImmediateRefresh()
