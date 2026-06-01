@@ -3,6 +3,7 @@ package com.babytracker.widget
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -79,5 +80,47 @@ class BabyWidgetTest {
     @Test
     fun `uses explicit layout for four by four size`() {
         assertEquals(WidgetLayout.FOUR_BY_FOUR, widgetLayoutForSize(BabyWidget.FOUR_BY_FOUR_SIZE))
+    }
+
+    @Test
+    fun `compact layouts do not support refresh button`() {
+        assertFalse(WidgetLayout.COMPACT_NARROW.supportsRefreshButton)
+        assertFalse(WidgetLayout.COMPACT_WIDE.supportsRefreshButton)
+    }
+
+    @Test
+    fun `all non-compact layouts support refresh button`() {
+        val nonCompact = listOf(
+            WidgetLayout.MEDIUM,
+            WidgetLayout.TWO_BY_FOUR,
+            WidgetLayout.THREE_BY_THREE,
+            WidgetLayout.THREE_BY_FOUR,
+            WidgetLayout.FOUR_BY_TWO,
+            WidgetLayout.FOUR_BY_THREE,
+            WidgetLayout.FOUR_BY_FOUR,
+        )
+        nonCompact.forEach { assertTrue(it.supportsRefreshButton) }
+    }
+
+    @Test
+    fun `compact sizes resolve to layouts that do not support refresh button`() {
+        assertFalse(widgetLayoutForSize(BabyWidget.COMPACT_NARROW_SIZE).supportsRefreshButton)
+        assertFalse(widgetLayoutForSize(BabyWidget.COMPACT_WIDE_SIZE).supportsRefreshButton)
+        assertFalse(widgetLayoutForSize(BabyWidget.FOUR_BY_ONE_SIZE).supportsRefreshButton)
+    }
+
+    @Test
+    fun `eligible sizes resolve to layouts that support refresh button`() {
+        listOf(
+            BabyWidget.MEDIUM_SIZE,
+            BabyWidget.TWO_BY_FOUR_SIZE,
+            BabyWidget.THREE_BY_THREE_SIZE,
+            BabyWidget.THREE_BY_FOUR_SIZE,
+            BabyWidget.FOUR_BY_TWO_SIZE,
+            BabyWidget.FOUR_BY_THREE_SIZE,
+            BabyWidget.FOUR_BY_FOUR_SIZE,
+        ).forEach { size ->
+            assertTrue(widgetLayoutForSize(size).supportsRefreshButton)
+        }
     }
 }

@@ -1,9 +1,7 @@
 package com.babytracker.widget
 
 import android.content.Context
-import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -16,15 +14,11 @@ class WorkManagerWidgetRefreshScheduler @Inject constructor(
 ) : WidgetRefreshScheduler {
 
     override fun scheduleImmediateRefresh() {
-        val request = OneTimeWorkRequestBuilder<WidgetRefreshWorker>()
-            .setConstraints(
-                Constraints.Builder()
-                    .setRequiredNetworkType(NetworkType.CONNECTED)
-                    .build(),
-            )
-            .build()
-        // Unique name distinct from the periodic UNIQUE_NAME; KEEP dedupes bursts (e.g. the 60s
-        // sync timer repeatedly hitting an empty cache) into a single pending refresh.
+        val request = OneTimeWorkRequestBuilder<WidgetRefreshWorker>().build()
+        // Unique name distinct from the periodic UNIQUE_NAME; KEEP dedupes bursts (e.g. manual
+        // refresh taps or the 60s sync timer repeatedly hitting an empty cache) into one pending
+        // item. No network constraint: primary mode reads local repos; partner mode handles
+        // transient failures by keeping the stale cache and retrying.
         WorkManager.getInstance(context).enqueueUniqueWork(
             IMMEDIATE_UNIQUE_NAME,
             ExistingWorkPolicy.KEEP,

@@ -3,6 +3,7 @@ package com.babytracker.widget
 import android.content.ComponentName
 import android.content.Intent
 import androidx.glance.action.Action
+import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
 import com.babytracker.MainActivity
 import com.babytracker.navigation.Routes
@@ -19,6 +20,8 @@ internal fun openBreastfeedingAction(): Action = actionStartActivity(
 internal fun openSleepAction(): Action = actionStartActivity(
     intent = mainActivityIntent(route = Routes.SLEEP_TRACKING),
 )
+
+internal fun refreshAction(): Action = actionRunCallback<WidgetRefreshActionCallback>()
 
 private fun mainActivityIntent(route: String): Intent {
     val intent = Intent()

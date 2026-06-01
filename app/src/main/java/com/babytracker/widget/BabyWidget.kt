@@ -82,6 +82,9 @@ internal enum class WidgetLayout {
     FOUR_BY_FOUR,
 }
 
+internal val WidgetLayout.supportsRefreshButton: Boolean
+    get() = this != WidgetLayout.COMPACT_NARROW && this != WidgetLayout.COMPACT_WIDE
+
 internal fun widgetLayoutForSize(size: DpSize): WidgetLayout =
     when {
         size.width >= BabyWidget.FOUR_BY_FOUR_SIZE.width &&
