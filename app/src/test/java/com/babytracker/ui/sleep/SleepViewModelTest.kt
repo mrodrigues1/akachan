@@ -14,6 +14,7 @@ import com.babytracker.domain.usecase.sleep.UpdateSleepEntryUseCase
 import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.SleepNotificationScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.util.formatTime12h
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -293,6 +295,55 @@ class SleepViewModelTest {
 
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `lastSleepSummary shows latest completed sleep end context`() = runTest {
+        val latestEnd = Instant.now().minusSeconds(3660)
+        val older = SleepRecord(
+            id = 1L,
+            startTime = latestEnd.minusSeconds(7200),
+            endTime = latestEnd.minusSeconds(3600),
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        val latest = SleepRecord(
+            id = 2L,
+            startTime = latestEnd.minusSeconds(1800),
+            endTime = latestEnd,
+            sleepType = SleepType.NAP,
+        )
+        every { getSleepHistory() } returns flowOf(listOf(older, latest))
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val summary = viewModel.uiState.value.lastSleepSummary
+
+        assertTrue(summary is LastSleepSummaryState.Populated)
+        summary as LastSleepSummaryState.Populated
+        assertEquals(latest, summary.record)
+        assertTrue(summary.awakeForLabel.startsWith("Awake for "))
+        assertEquals("Ended at ${latestEnd.formatTime12h()}", summary.endedAtLabel)
+    }
+
+    @Test
+    fun `lastSleepSummary is empty while a sleep session is active`() = runTest {
+        val completed = SleepRecord(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(7200),
+            endTime = Instant.now().minusSeconds(3600),
+            sleepType = SleepType.NAP,
+        )
+        val inProgress = SleepRecord(
+            id = 2L,
+            startTime = Instant.now().minusSeconds(600),
+            endTime = null,
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        every { getSleepHistory() } returns flowOf(listOf(completed, inProgress))
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(LastSleepSummaryState.Empty, viewModel.uiState.value.lastSleepSummary)
     }
 
     @Test
