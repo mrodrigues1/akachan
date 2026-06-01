@@ -38,6 +38,7 @@ class WidgetRefreshWorker @AssistedInject constructor(
             }
         }.getOrElse { t ->
             if (t is CancellationException) throw t
+            BabyWidget.refreshingInstances.clear()
             Log.w(TAG, "Periodic widget refresh failed; will retry", t)
             Result.retry()
         }

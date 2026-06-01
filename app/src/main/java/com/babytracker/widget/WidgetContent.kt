@@ -156,9 +156,7 @@ fun SmallContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Glan
 fun MediumContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier, isRefreshing: Boolean = false) {
     val feedingActive = data.hasActiveFeed()
     val sleeping = data.sleepState == SleepState.SLEEPING
-    val effectiveFeedingActive = feedingActive && !isRefreshing
-    val effectiveSleeping = sleeping && !isRefreshing
-    Column(
+Column(
         modifier = modifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg_surface))
@@ -182,9 +180,9 @@ fun MediumContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Gla
         }
         Spacer(modifier = GlanceModifier.height(8.dp))
         DomainBlock(
-            backgroundRes = if (effectiveFeedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
+            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
             content = feedBlockContent(data, now),
-            contentColor = if (effectiveFeedingActive) {
+            contentColor = if (feedingActive) {
                 GlanceTheme.colors.onPrimary
             } else {
                 GlanceTheme.colors.onPrimaryContainer
@@ -196,9 +194,9 @@ fun MediumContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Gla
         )
         Spacer(modifier = GlanceModifier.height(8.dp))
         DomainBlock(
-            backgroundRes = if (effectiveSleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
+            backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
             content = sleepBlockContent(data, now),
-            contentColor = if (effectiveSleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
+            contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
             sizes = MediumBlockSizes,
             onClick = openSleepAction(),
             showSupporting = false,
@@ -211,9 +209,7 @@ fun MediumContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Gla
 fun TwoByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier, isRefreshing: Boolean = false) {
     val feedingActive = data.hasActiveFeed()
     val sleeping = data.sleepState == SleepState.SLEEPING
-    val effectiveFeedingActive = feedingActive && !isRefreshing
-    val effectiveSleeping = sleeping && !isRefreshing
-    Column(
+Column(
         modifier = modifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg_surface))
@@ -237,9 +233,9 @@ fun TwoByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier = 
         }
         Spacer(modifier = GlanceModifier.height(10.dp))
         DomainBlock(
-            backgroundRes = if (effectiveFeedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
+            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
             content = feedBlockContent(data, now),
-            contentColor = if (effectiveFeedingActive) {
+            contentColor = if (feedingActive) {
                 GlanceTheme.colors.onPrimary
             } else {
                 GlanceTheme.colors.onPrimaryContainer
@@ -251,9 +247,9 @@ fun TwoByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier = 
         )
         Spacer(modifier = GlanceModifier.height(10.dp))
         DomainBlock(
-            backgroundRes = if (effectiveSleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
+            backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
             content = sleepBlockContent(data, now),
-            contentColor = if (effectiveSleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
+            contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
             sizes = MediumBlockSizes,
             onClick = openSleepAction(),
             showSupporting = false,
@@ -266,9 +262,7 @@ fun TwoByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier = 
 fun ThreeByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier, isRefreshing: Boolean = false) {
     val feedingActive = data.hasActiveFeed()
     val sleeping = data.sleepState == SleepState.SLEEPING
-    val effectiveFeedingActive = feedingActive && !isRefreshing
-    val effectiveSleeping = sleeping && !isRefreshing
-    Column(
+Column(
         modifier = modifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg_surface))
@@ -292,9 +286,9 @@ fun ThreeByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier
         }
         Spacer(modifier = GlanceModifier.height(10.dp))
         DomainBlock(
-            backgroundRes = if (effectiveFeedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
+            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
             content = feedBlockContent(data, now),
-            contentColor = if (effectiveFeedingActive) {
+            contentColor = if (feedingActive) {
                 GlanceTheme.colors.onPrimary
             } else {
                 GlanceTheme.colors.onPrimaryContainer
@@ -306,9 +300,9 @@ fun ThreeByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier
         )
         Spacer(modifier = GlanceModifier.height(10.dp))
         DomainBlock(
-            backgroundRes = if (effectiveSleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
+            backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
             content = sleepBlockContent(data, now),
-            contentColor = if (effectiveSleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
+            contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
             sizes = ThreeByThreeBlockSizes,
             onClick = openSleepAction(),
             showSupporting = false,
@@ -321,9 +315,7 @@ fun ThreeByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier
 fun ThreeByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier, isRefreshing: Boolean = false) {
     val feedingActive = data.hasActiveFeed()
     val sleeping = data.sleepState == SleepState.SLEEPING
-    val effectiveFeedingActive = feedingActive && !isRefreshing
-    val effectiveSleeping = sleeping && !isRefreshing
-    Column(
+Column(
         modifier = modifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg_surface))
@@ -347,9 +339,9 @@ fun ThreeByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier 
         }
         Spacer(modifier = GlanceModifier.height(10.dp))
         DomainBlock(
-            backgroundRes = if (effectiveFeedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
+            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
             content = feedBlockContent(data, now),
-            contentColor = if (effectiveFeedingActive) {
+            contentColor = if (feedingActive) {
                 GlanceTheme.colors.onPrimary
             } else {
                 GlanceTheme.colors.onPrimaryContainer
@@ -361,9 +353,9 @@ fun ThreeByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier 
         )
         Spacer(modifier = GlanceModifier.height(10.dp))
         DomainBlock(
-            backgroundRes = if (effectiveSleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
+            backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
             content = sleepBlockContent(data, now),
-            contentColor = if (effectiveSleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
+            contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
             sizes = ThreeByThreeBlockSizes,
             onClick = openSleepAction(),
             showSupporting = false,
@@ -376,9 +368,7 @@ fun ThreeByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier 
 fun FourByTwoContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier, isRefreshing: Boolean = false) {
     val feedingActive = data.hasActiveFeed()
     val sleeping = data.sleepState == SleepState.SLEEPING
-    val effectiveFeedingActive = feedingActive && !isRefreshing
-    val effectiveSleeping = sleeping && !isRefreshing
-    Column(
+Column(
         modifier = modifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg_surface))
@@ -391,9 +381,9 @@ fun FourByTwoContent(data: WidgetData, now: Instant, modifier: GlanceModifier = 
             verticalAlignment = Alignment.CenterVertically,
         ) {
             DomainBlock(
-                backgroundRes = if (effectiveFeedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
+                backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
                 content = feedBlockContent(data, now),
-                contentColor = if (effectiveFeedingActive) {
+                contentColor = if (feedingActive) {
                     GlanceTheme.colors.onPrimary
                 } else {
                     GlanceTheme.colors.onPrimaryContainer
@@ -406,9 +396,9 @@ fun FourByTwoContent(data: WidgetData, now: Instant, modifier: GlanceModifier = 
             )
             Spacer(modifier = GlanceModifier.width(10.dp))
             DomainBlock(
-                backgroundRes = if (effectiveSleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
+                backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
                 content = sleepBlockContent(data, now),
-                contentColor = if (effectiveSleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
+                contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
                 sizes = FourByTwoBlockSizes,
                 onClick = openSleepAction(),
                 stacked = true,
@@ -423,9 +413,7 @@ fun FourByTwoContent(data: WidgetData, now: Instant, modifier: GlanceModifier = 
 fun FourByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier, isRefreshing: Boolean = false) {
     val feedingActive = data.hasActiveFeed()
     val sleeping = data.sleepState == SleepState.SLEEPING
-    val effectiveFeedingActive = feedingActive && !isRefreshing
-    val effectiveSleeping = sleeping && !isRefreshing
-    Column(
+Column(
         modifier = modifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg_surface))
@@ -453,9 +441,9 @@ fun FourByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier 
             verticalAlignment = Alignment.CenterVertically,
         ) {
             DomainBlock(
-                backgroundRes = if (effectiveFeedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
+                backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
                 content = feedBlockContent(data, now),
-                contentColor = if (effectiveFeedingActive) {
+                contentColor = if (feedingActive) {
                     GlanceTheme.colors.onPrimary
                 } else {
                     GlanceTheme.colors.onPrimaryContainer
@@ -468,9 +456,9 @@ fun FourByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier 
             )
             Spacer(modifier = GlanceModifier.width(12.dp))
             DomainBlock(
-                backgroundRes = if (effectiveSleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
+                backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
                 content = sleepBlockContent(data, now),
-                contentColor = if (effectiveSleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
+                contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
                 sizes = FourByThreeBlockSizes,
                 onClick = openSleepAction(),
                 stacked = true,
@@ -485,9 +473,7 @@ fun FourByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier 
 fun FourByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier, isRefreshing: Boolean = false) {
     val feedingActive = data.hasActiveFeed()
     val sleeping = data.sleepState == SleepState.SLEEPING
-    val effectiveFeedingActive = feedingActive && !isRefreshing
-    val effectiveSleeping = sleeping && !isRefreshing
-    Column(
+Column(
         modifier = modifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg_surface))
@@ -511,9 +497,9 @@ fun FourByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier =
         }
         Spacer(modifier = GlanceModifier.height(12.dp))
         DomainBlock(
-            backgroundRes = if (effectiveFeedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
+            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
             content = feedBlockContent(data, now),
-            contentColor = if (effectiveFeedingActive) {
+            contentColor = if (feedingActive) {
                 GlanceTheme.colors.onPrimary
             } else {
                 GlanceTheme.colors.onPrimaryContainer
@@ -525,9 +511,9 @@ fun FourByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier =
         )
         Spacer(modifier = GlanceModifier.height(12.dp))
         DomainBlock(
-            backgroundRes = if (effectiveSleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
+            backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
             content = sleepBlockContent(data, now),
-            contentColor = if (effectiveSleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
+            contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
             sizes = FourByFourBlockSizes,
             onClick = openSleepAction(),
             showSupporting = false,
