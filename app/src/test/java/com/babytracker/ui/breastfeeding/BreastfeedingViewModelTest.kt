@@ -7,6 +7,7 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.DeleteBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
+import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
@@ -55,6 +56,7 @@ class BreastfeedingViewModelTest {
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
+    private lateinit var predictNextFeed: PredictNextFeedUseCase
 
     private lateinit var viewModel: BreastfeedingViewModel
     private val testDispatcher = StandardTestDispatcher()
@@ -75,12 +77,14 @@ class BreastfeedingViewModelTest {
         settingsRepository = mockk()
         notificationCoordinator = mockk()
         syncToFirestore = mockk()
+        predictNextFeed = mockk()
 
         every { getHistory() } returns flowOf(emptyList())
         every { repository.getActiveSession() } returns activeSessionFlow
         every { settingsRepository.getMaxPerBreastMinutes() } returns maxPerBreastFlow
         every { settingsRepository.getMaxTotalFeedMinutes() } returns maxTotalFlow
         every { settingsRepository.getRichNotificationsEnabled() } returns flowOf(false)
+        every { predictNextFeed() } returns flowOf(null)
         pauseSession = mockk()
         resumeSession = mockk()
         updateSession = mockk()
@@ -119,6 +123,7 @@ class BreastfeedingViewModelTest {
         settingsRepository,
         notificationCoordinator,
         syncToFirestore,
+        predictNextFeed,
     )
 
     private fun awaitLastFeedingSummaryPopulated(): LastFeedingSummaryState.Populated {

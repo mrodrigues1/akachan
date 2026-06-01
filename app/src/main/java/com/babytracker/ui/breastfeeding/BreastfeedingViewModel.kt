@@ -4,11 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.DeleteBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
+import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
@@ -70,6 +72,7 @@ data class BreastfeedingUiState(
     val maxPerBreastMinutes: Int = 0,
     val maxTotalFeedMinutes: Int = 0,
     val lastFeedingSummary: LastFeedingSummaryState = LastFeedingSummaryState.Empty,
+    val nextFeedPrediction: FeedPrediction? = null,
     val error: String? = null,
     val currentSide: BreastSide? = null,
     val editSheet: EditSheetState? = null,
@@ -89,6 +92,7 @@ class BreastfeedingViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val notificationCoordinator: BreastfeedingSessionNotificationCoordinator,
     private val syncToFirestore: SyncToFirestoreUseCase,
+    predictNextFeed: PredictNextFeedUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BreastfeedingUiState())
@@ -149,6 +153,12 @@ class BreastfeedingViewModel @Inject constructor(
                     _uiState.value.selectedSide
                 }
                 _uiState.value = _uiState.value.copy(lastFeedingSummary = summary, selectedSide = autoSide)
+            }
+        }
+
+        viewModelScope.launch {
+            predictNextFeed().collect { prediction ->
+                _uiState.value = _uiState.value.copy(nextFeedPrediction = prediction)
             }
         }
 

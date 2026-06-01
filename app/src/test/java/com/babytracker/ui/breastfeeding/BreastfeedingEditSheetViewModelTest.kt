@@ -8,6 +8,7 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.DeleteBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
+import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
@@ -55,6 +56,7 @@ class BreastfeedingEditSheetViewModelTest {
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
+    private lateinit var predictNextFeed: PredictNextFeedUseCase
 
     private val sampleSession = BreastfeedingSession(
         id = 42L,
@@ -79,10 +81,12 @@ class BreastfeedingEditSheetViewModelTest {
         syncToFirestore = mockk()
 
         getHistory = mockk()
+        predictNextFeed = mockk()
         every { getHistory() } returns flowOf(emptyList())
         every { repository.getActiveSession() } returns MutableStateFlow(null)
         every { settingsRepository.getMaxPerBreastMinutes() } returns flowOf(0)
         every { settingsRepository.getMaxTotalFeedMinutes() } returns flowOf(0)
+        every { predictNextFeed() } returns flowOf(null)
         coEvery { syncToFirestore(any()) } returns Unit
     }
 
@@ -94,7 +98,7 @@ class BreastfeedingEditSheetViewModelTest {
     private fun viewModel() = BreastfeedingViewModel(
         startSession, stopSession, switchSide, getHistory, pauseSession, resumeSession,
         updateSession, deleteSession, repository, settingsRepository,
-        notificationCoordinator, syncToFirestore,
+        notificationCoordinator, syncToFirestore, predictNextFeed,
     )
 
     @Test

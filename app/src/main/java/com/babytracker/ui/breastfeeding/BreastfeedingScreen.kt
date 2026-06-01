@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -69,16 +70,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.model.displayName
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.SideSelector
@@ -88,6 +92,7 @@ import com.babytracker.util.formatTime12h
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -594,6 +599,7 @@ private fun IdleSessionContent(
             Spacer(modifier = Modifier.height(24.dp))
             LastFeedingSummaryCard(
                 summary = summary,
+                prediction = uiState.nextFeedPrediction,
                 onEditSession = viewModel::onEditSessionClick,
             )
         }
@@ -611,8 +617,63 @@ private fun isNotificationPermissionGranted(context: Context): Boolean {
 }
 
 @Composable
+private fun LikelyHungryRow(
+    prediction: FeedPrediction,
+    modifier: Modifier = Modifier,
+) {
+    val subtitle = remember(prediction) { PredictionCopy.forPrediction(prediction) }
+    val isOverdue = prediction.isOverdue && abs(prediction.minutesUntil) >= 5
+    val accentColor = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    Row(
+        verticalAlignment = Alignment.Top,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = subtitle.contentDescription
+            },
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Schedule,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .size(16.dp)
+                .padding(top = 2.dp),
+        )
+        Spacer(Modifier.width(4.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = subtitle.primary,
+                style = MaterialTheme.typography.bodyMedium,
+                color = accentColor,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val detail = buildString {
+                subtitle.secondary?.let { append(it) }
+                if (subtitle.lowConfidence) {
+                    if (isNotEmpty()) append(" · ")
+                    append("low confidence")
+                }
+            }
+            if (detail.isNotEmpty()) {
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun LastFeedingSummaryCard(
     summary: LastFeedingSummaryState.Populated,
+    prediction: FeedPrediction?,
     onEditSession: (BreastfeedingSession) -> Unit,
 ) {
     val session = summary.lastSession
@@ -631,6 +692,9 @@ private fun LastFeedingSummaryCard(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
+        if (prediction != null) {
+            LikelyHungryRow(prediction = prediction)
+        }
 
         Spacer(modifier = Modifier.height(12.dp))
 
