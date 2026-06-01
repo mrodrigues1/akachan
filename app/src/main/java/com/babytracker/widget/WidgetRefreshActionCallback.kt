@@ -13,6 +13,8 @@ class WidgetRefreshActionCallback : ActionCallback {
         glanceId: GlanceId,
         parameters: ActionParameters,
     ) {
+        BabyWidget.refreshingActive.set(true)
+        BabyWidget().update(context, glanceId)
         EntryPointAccessors.fromApplication(
             context.applicationContext,
             WidgetEntryPoint::class.java,
