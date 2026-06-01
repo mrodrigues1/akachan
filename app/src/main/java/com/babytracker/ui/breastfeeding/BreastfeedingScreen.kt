@@ -69,6 +69,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -87,6 +88,11 @@ import com.babytracker.domain.model.displayName
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.SideSelector
 import com.babytracker.ui.component.TimerDisplay
+import com.babytracker.ui.theme.LocalDarkTheme
+import com.babytracker.ui.theme.OnWarningContainerAmber
+import com.babytracker.ui.theme.OnWarningContainerAmberDark
+import com.babytracker.ui.theme.WarningContainerAmber
+import com.babytracker.ui.theme.WarningContainerAmberDark
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
 import kotlinx.coroutines.delay
@@ -623,12 +629,27 @@ private fun LikelyHungryRow(
 ) {
     val subtitle = remember(prediction) { PredictionCopy.forPrediction(prediction) }
     val isOverdue = prediction.isOverdue && abs(prediction.minutesUntil) >= 5
-    val accentColor = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    val isDark = LocalDarkTheme.current
+
+    val containerColor = when {
+        isOverdue && isDark -> WarningContainerAmberDark
+        isOverdue -> WarningContainerAmber
+        else -> MaterialTheme.colorScheme.primaryContainer
+    }
+    val contentColor = when {
+        isOverdue && isDark -> OnWarningContainerAmberDark
+        isOverdue -> OnWarningContainerAmber
+        else -> MaterialTheme.colorScheme.onPrimaryContainer
+    }
+
     Row(
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = 4.dp)
+            .padding(top = 8.dp)
+            .clip(MaterialTheme.shapes.small)
+            .background(containerColor)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
             .semantics(mergeDescendants = true) {
                 contentDescription = subtitle.contentDescription
             },
@@ -636,17 +657,15 @@ private fun LikelyHungryRow(
         Icon(
             imageVector = Icons.Outlined.Schedule,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .size(16.dp)
-                .padding(top = 2.dp),
+            tint = contentColor,
+            modifier = Modifier.size(20.dp),
         )
-        Spacer(Modifier.width(4.dp))
+        Spacer(Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = subtitle.primary,
-                style = MaterialTheme.typography.bodyMedium,
-                color = accentColor,
+                style = MaterialTheme.typography.titleSmall,
+                color = contentColor,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -661,7 +680,7 @@ private fun LikelyHungryRow(
                 Text(
                     text = detail,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = contentColor.copy(alpha = 0.75f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
