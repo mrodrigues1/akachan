@@ -2,6 +2,7 @@ package com.babytracker.widget
 
 import androidx.glance.GlanceTheme
 import androidx.glance.appwidget.testing.unit.runGlanceAppWidgetUnitTest
+import androidx.glance.testing.unit.assertHasClickAction
 import androidx.glance.testing.unit.hasContentDescription
 import androidx.glance.testing.unit.hasText
 import com.babytracker.widget.data.WidgetData
@@ -23,7 +24,15 @@ class WidgetHeaderTest {
             GlanceTheme(colors = BabyWidgetColors) { MediumContent(data, now) }
         }
         onNode(hasText(BABY_NAME)).assertExists()
-        onNode(hasContentDescription(REFRESH_DESCRIPTION)).assertExists()
+        onNode(hasContentDescription(REFRESH_DESCRIPTION)).assertHasClickAction()
+    }
+
+    @Test
+    fun `medium content shows progress instead of refresh action while refreshing`() = runGlanceAppWidgetUnitTest {
+        provideComposable {
+            GlanceTheme(colors = BabyWidgetColors) { MediumContent(data, now, isRefreshing = true) }
+        }
+        onNode(hasContentDescription(REFRESH_DESCRIPTION)).assertDoesNotExist()
     }
 
     @Test

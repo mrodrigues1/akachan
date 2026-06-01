@@ -13,18 +13,29 @@ class WidgetRefreshActionCallback : ActionCallback {
         context: Context,
         glanceId: GlanceId,
         parameters: ActionParameters,
-    ) {
+    ) = WidgetRefreshActionHandler().refresh(context, glanceId)
+}
+
+internal class WidgetRefreshActionHandler(
+    private val updateWidget: suspend (Context, GlanceId) -> Unit = { context, glanceId ->
+        BabyWidget().update(context, glanceId)
+    },
+    private val schedulerProvider: (Context) -> WidgetRefreshScheduler = { context ->
+        EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            WidgetEntryPoint::class.java,
+        ).widgetRefreshScheduler()
+    },
+) {
+    suspend fun refresh(context: Context, glanceId: GlanceId) {
         BabyWidget.refreshingInstances.add(glanceId)
         runCatching {
-            BabyWidget().update(context, glanceId)
+            updateWidget(context, glanceId)
         }.onFailure { t ->
             if (t is CancellationException) throw t
             BabyWidget.refreshingInstances.remove(glanceId)
             return
         }
-        EntryPointAccessors.fromApplication(
-            context.applicationContext,
-            WidgetEntryPoint::class.java,
-        ).widgetRefreshScheduler().scheduleImmediateRefresh()
+        schedulerProvider(context).scheduleImmediateRefresh()
     }
 }
