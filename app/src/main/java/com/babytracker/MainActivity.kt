@@ -1,8 +1,10 @@
 package com.babytracker
 
+import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.service.quicksettings.TileService
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,16 +22,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.core.content.IntentCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.UpdateInfo
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.navigation.AppNavGraph
 import com.babytracker.navigation.Routes
+import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.tile.FeedTileService
+import com.babytracker.tile.SleepTileService
 import com.babytracker.ui.theme.BabyTrackerTheme
 import com.babytracker.util.NotificationHelper
 import com.babytracker.util.UpdateChecker
@@ -54,6 +59,24 @@ internal fun pendingNavAction(
     return PendingNavAction.NAVIGATE
 }
 
+internal fun navRouteFromIntent(intent: Intent): String? =
+    intent.getStringExtra(NotificationHelper.EXTRA_NAV_ROUTE)
+        ?: tilePreferencesRoute(intent)
+
+private fun tilePreferencesRoute(intent: Intent): String? {
+    if (intent.action != TileService.ACTION_QS_TILE_PREFERENCES) return null
+    val componentName = IntentCompat.getParcelableExtra(
+        intent,
+        Intent.EXTRA_COMPONENT_NAME,
+        ComponentName::class.java,
+    )
+    return when (componentName?.className) {
+        FeedTileService::class.java.name -> Routes.BREASTFEEDING
+        SleepTileService::class.java.name -> Routes.SLEEP_TRACKING
+        else -> Routes.HOME
+    }
+}
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -70,7 +93,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        pendingNavRoute.value = intent.getStringExtra(NotificationHelper.EXTRA_NAV_ROUTE)
+        pendingNavRoute.value = navRouteFromIntent(intent)
         enableEdgeToEdge()
         setContent {
             val isOnboardingComplete by babyRepository
@@ -151,7 +174,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        pendingNavRoute.value = intent.getStringExtra(NotificationHelper.EXTRA_NAV_ROUTE)
+        pendingNavRoute.value = navRouteFromIntent(intent)
     }
 }
 
