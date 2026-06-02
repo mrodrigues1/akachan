@@ -36,6 +36,7 @@ class BabyTrackerApp : Application(), Configuration.Provider {
         super.onCreate()
         NotificationHelper.createBreastfeedingNotificationChannel(this)
         NotificationHelper.createSleepNotificationChannel(this)
+        NotificationHelper.createStashExpirationNotificationChannel(this)
         createPredictiveFeedNotificationChannel(this)
         predictiveCoordinator.start()
         widgetSyncManager.start()
