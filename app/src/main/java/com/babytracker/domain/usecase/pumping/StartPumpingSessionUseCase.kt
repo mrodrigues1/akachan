@@ -11,6 +11,7 @@ class StartPumpingSessionUseCase @Inject constructor(
     private val now: () -> Instant,
 ) {
     suspend operator fun invoke(breast: PumpingBreast): Long {
+        if (repository.getActiveSessionOnce() != null) return 0L
         val session = PumpingSession(startTime = now(), breast = breast)
         return repository.insert(session)
     }
