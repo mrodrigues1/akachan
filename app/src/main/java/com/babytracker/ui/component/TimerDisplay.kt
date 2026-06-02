@@ -52,6 +52,7 @@ fun TimerDisplay(
     ringColor: Color = Color.Unspecified,
     trackColor: Color = Color.Unspecified,
     frozenElapsedSeconds: Long? = null,
+    elapsedFormatter: (Long) -> String = ::formatElapsedAsMinutesSeconds,
 ) {
     var elapsedSeconds by remember { mutableLongStateOf(frozenElapsedSeconds ?: 0L) }
 
@@ -66,7 +67,7 @@ fun TimerDisplay(
         }
     }
 
-    val timeText = formatElapsedAsMinutesSeconds(elapsedSeconds)
+    val timeText = elapsedFormatter(elapsedSeconds)
     val hasRing = maxDurationSeconds > 0
 
     val progress = if (hasRing) (elapsedSeconds.toFloat() / maxDurationSeconds).coerceIn(0f, 1f) else 0f
@@ -170,6 +171,17 @@ internal fun formatElapsedAsMinutesSeconds(elapsedSeconds: Long): String {
     val totalMinutes = elapsedSeconds / 60
     val seconds = elapsedSeconds % 60
     return String.format(Locale.US, "%02d:%02d", totalMinutes, seconds)
+}
+
+internal fun formatElapsedAsClock(elapsedSeconds: Long): String {
+    val hours = elapsedSeconds / 3600
+    val minutes = (elapsedSeconds / 60) % 60
+    val seconds = elapsedSeconds % 60
+    return if (hours > 0) {
+        String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format(Locale.US, "%02d:%02d", minutes, seconds)
+    }
 }
 
 internal fun shouldAnimateTimerRing(hasRing: Boolean, isRunning: Boolean): Boolean = hasRing && isRunning
