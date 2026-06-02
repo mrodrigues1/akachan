@@ -65,7 +65,8 @@ Navigation: gear icon (`Icons.Default.Settings`) in `InventoryScreen` TopAppBar 
 | `domain/usecase/inventory/ObserveInventoryWithExpirationUseCase.kt` | Combines bags Flow + settings Flow → `Flow<List<MilkBagWithExpiration>>` |
 | `manager/StashExpirationScheduler.kt` | Interface: `scheduleDaily(minuteOfDay)` + `cancel()` |
 | `manager/StashExpirationNotificationManager.kt` | AlarmManager impl; reschedules on settings save |
-| `receiver/StashExpirationReceiver.kt` | `@AndroidEntryPoint` BroadcastReceiver; goAsync + coroutine; queries bags, fires notification |
+| `receiver/StashExpirationReceiver.kt` | `@AndroidEntryPoint` BroadcastReceiver; goAsync + coroutine; guards on both toggles; queries bags, fires notification |
+| `receiver/StashExpirationBootReceiver.kt` | `@AndroidEntryPoint` BroadcastReceiver; handles `BOOT_COMPLETED` + `TIME_SET`; restores daily alarm if both toggles enabled |
 | `ui/inventory/InventorySettingsScreen.kt` | Settings UI composable |
 | `ui/inventory/InventorySettingsViewModel.kt` | Injects `InventorySettingsRepository` directly (no use-case wrapper — pure CRUD) |
 | `di/InventorySettingsModule.kt` | `@Binds` repo + scheduler |
@@ -80,7 +81,7 @@ Navigation: gear icon (`Icons.Default.Settings`) in `InventoryScreen` TopAppBar 
 | `ui/inventory/InventoryViewModel.kt` | Swap `GetInventoryUseCase` → `ObserveInventoryWithExpirationUseCase`; change `bags` type to `List<MilkBagWithExpiration>` |
 | `util/NotificationHelper.kt` | Add `STASH_EXPIRATION_CHANNEL_ID`, `STASH_EXPIRATION_NOTIFICATION_ID = 1009`, `showStashExpiration(context, count, totalMl)` |
 | `BabyTrackerApp.kt` | Register new `stash_expiration_notifications` channel |
-| `AndroidManifest.xml` | Register `StashExpirationReceiver` |
+| `AndroidManifest.xml` | Register `StashExpirationReceiver` + `StashExpirationBootReceiver`; add `RECEIVE_BOOT_COMPLETED` permission |
 
 ---
 
@@ -106,7 +107,15 @@ combine(getActiveBags(), getExpirationEnabled(), getExpirationDays()) { bags, en
 
 ### `StashExpirationReceiver` query
 
-Filters `getActiveBags()` (one-shot) for bags where `expiryDate ≤ today`. Notification fires only when count > 0.
+On receive, read `getExpirationEnabled().first()` **and** `getExpirationNotifEnabled().first()` — bail if either is false. Then filter `getAllBagsOnce()` (active bags only) for bags where `expiryDate ≤ today`. Notification fires only when count > 0.
+
+### Master toggle cancellation
+
+When the user disables the master expiration toggle (`setExpirationEnabled(false)`), `InventorySettingsViewModel` must also call `StashExpirationScheduler.cancel()` to remove any scheduled alarm immediately — do not rely solely on `StashExpirationReceiver`'s runtime guard.
+
+### Boot resilience
+
+`AlarmManager` alarms do not survive device reboot. A dedicated `StashExpirationBootReceiver` listens for `android.intent.action.BOOT_COMPLETED` (and `android.intent.action.TIME_SET` to handle clock corrections). On trigger, it reads both `getExpirationEnabled()` and `getExpirationNotifEnabled()` — only if both are true does it call `StashExpirationScheduler.scheduleDaily(timeMinuteOfDay)` to restore the alarm.
 
 ---
 
@@ -122,7 +131,8 @@ Filters `getActiveBags()` (one-shot) for bags where `expiryDate ≤ today`. Noti
 | Tap action | Opens `InventoryScreen` via `EXTRA_NAV_ROUTE` |
 | Scheduling | `AlarmManager.setRepeating` (inexact daily) at user-set `minuteOfDay` |
 | Re-schedule trigger | VM saves notif settings → calls `StashExpirationScheduler.scheduleDaily(time)` |
-| Cancel trigger | User disables notif toggle → calls `StashExpirationScheduler.cancel()` |
+| Cancel trigger | User disables notif toggle **or** master toggle → VM calls `StashExpirationScheduler.cancel()` |
+| Boot recovery | `StashExpirationBootReceiver` on `BOOT_COMPLETED` / `TIME_SET` → reschedules if both toggles enabled |
 
 ---
 
