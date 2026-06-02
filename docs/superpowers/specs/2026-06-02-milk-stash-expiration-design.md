@@ -77,8 +77,8 @@ Navigation: gear icon (`Icons.Default.Settings`) in `InventoryScreen` TopAppBar 
 |------|--------|
 | `navigation/Routes.kt` | Add `INVENTORY_SETTINGS = "inventory/settings"` |
 | `navigation/AppNavGraph.kt` | Add `InventorySettingsScreen` composable destination |
-| `ui/inventory/InventoryScreen.kt` | Add gear icon to TopAppBar; update `MilkBagRow` to accept `ExpirationStatus`; add `onNavigateToSettings` param |
-| `ui/inventory/InventoryViewModel.kt` | Swap `GetInventoryUseCase` → `ObserveInventoryWithExpirationUseCase`; change `bags` type to `List<MilkBagWithExpiration>` |
+| `ui/inventory/InventoryScreen.kt` | Add gear icon to TopAppBar; update `MilkBagRow` to accept `ExpirationStatus`; add `onNavigateToSettings` param; call `viewModel.onResume()` via `Lifecycle.repeatOnLifecycle(RESUMED)` |
+| `ui/inventory/InventoryViewModel.kt` | Swap `GetInventoryUseCase` → `ObserveInventoryWithExpirationUseCase`; add `currentDate: MutableStateFlow<LocalDate>` + `onResume()`; change `bags` type to `List<MilkBagWithExpiration>` |
 | `util/NotificationHelper.kt` | Add `STASH_EXPIRATION_CHANNEL_ID`, `STASH_EXPIRATION_NOTIFICATION_ID = 1009`, `showStashExpiration(context, count, totalMl)` |
 | `BabyTrackerApp.kt` | Register new `stash_expiration_notifications` channel |
 | `AndroidManifest.xml` | Register `StashExpirationReceiver` + `StashExpirationBootReceiver`; add `RECEIVE_BOOT_COMPLETED` permission |
@@ -89,10 +89,13 @@ Navigation: gear icon (`Icons.Default.Settings`) in `InventoryScreen` TopAppBar 
 
 ### `ObserveInventoryWithExpirationUseCase`
 
+Takes a `dateFlow: Flow<LocalDate>` parameter (not `LocalDate.now()` inline — calling `now()` inside a static `combine` transform only evaluates at emission time of upstream flows, not at midnight).
+
+`InventoryViewModel` owns a `private val currentDate = MutableStateFlow(LocalDate.now())` and exposes `fun onResume() { currentDate.value = LocalDate.now() }`. The screen calls `viewModel.onResume()` via `Lifecycle.repeatOnLifecycle(RESUMED)` so statuses recompute every time the user returns to the screen.
+
 ```
-combine(getActiveBags(), getExpirationEnabled(), getExpirationDays()) { bags, enabled, days ->
+combine(getActiveBags(), getExpirationEnabled(), getExpirationDays(), dateFlow) { bags, enabled, days, today ->
     if (!enabled) return bags.map { MilkBagWithExpiration(it, NONE) }
-    val today = LocalDate.now()
     bags.map { bag ->
         val expiryDate = bag.collectionDate.atZone(ZoneId.systemDefault()).toLocalDate().plusDays(days.toLong())
         val status = when {
@@ -107,7 +110,7 @@ combine(getActiveBags(), getExpirationEnabled(), getExpirationDays()) { bags, en
 
 ### `StashExpirationReceiver` query
 
-On receive, read `getExpirationEnabled().first()` **and** `getExpirationNotifEnabled().first()` — bail if either is false. Then filter `getAllBagsOnce()` (active bags only) for bags where `expiryDate ≤ today`. Notification fires only when count > 0.
+On receive, read `getExpirationEnabled().first()` **and** `getExpirationNotifEnabled().first()` — bail if either is false. Then filter `getAllBagsOnce()` (active bags only) for bags where `expiryDate == today` (exact date equality — already-expired bags are excluded to avoid alarm fatigue from the same stale bags re-triggering daily). Notification fires only when count > 0.
 
 ### Master toggle cancellation
 
