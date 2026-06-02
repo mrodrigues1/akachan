@@ -225,7 +225,7 @@ class NotificationHelperTest {
         assertTrue(functionBody.contains("notif_action_switch_sides"), "active feeding running state must include R.string.notif_action_switch_sides")
         assertEquals("Switch sides", stringsXmlValue(strings, "notif_action_switch_sides"), "notif_action_switch_sides must be 'Switch sides'")
         assertTrue(functionBody.contains("RC_SWITCH_BF_ACTIVE"), "active feeding must use RC_SWITCH_BF_ACTIVE request code")
-        assertTrue(functionBody.contains("!isPaused"), "switch sides action must be guarded by !isPaused")
+        assertTrue(functionBody.contains("!isPaused && content.canSwitchSides"), "switch sides action must be guarded by !isPaused && content.canSwitchSides")
         assertTrue(source.contains("RC_SWITCH_BF_ACTIVE = 2010"), "RC_SWITCH_BF_ACTIVE must be 2010 — no collision with existing codes")
     }
 

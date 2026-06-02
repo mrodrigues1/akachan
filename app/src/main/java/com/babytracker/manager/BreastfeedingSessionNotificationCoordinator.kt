@@ -60,7 +60,8 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
             pausedDurationMs = pausedDurationMs,
             richEnabled = settings.richNotificationsEnabled,
             maxTotalMinutes = settings.maxTotalFeedMinutes,
-            pausedAtEpochMs = null
+            pausedAtEpochMs = null,
+            canSwitchSides = session.switchTime == null
         )
     }
 
@@ -74,7 +75,8 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
             pausedDurationMs = session.pausedDurationMs,
             richEnabled = settings.richNotificationsEnabled,
             maxTotalMinutes = settings.maxTotalFeedMinutes,
-            pausedAtEpochMs = pausedAt.toEpochMilli()
+            pausedAtEpochMs = pausedAt.toEpochMilli(),
+            canSwitchSides = session.switchTime == null
         )
     }
 

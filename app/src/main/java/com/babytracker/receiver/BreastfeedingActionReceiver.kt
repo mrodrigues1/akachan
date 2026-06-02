@@ -104,7 +104,8 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
             sessionStartEpochMs = session.startTime.toEpochMilli(),
             pausedDurationMs = session.pausedDurationMs,
             richEnabled = settings.richNotificationsEnabled,
-            maxTotalMinutes = settings.maxTotalFeedMinutes
+            maxTotalMinutes = settings.maxTotalFeedMinutes,
+            canSwitchSides = false
         )
     }
 
@@ -157,7 +158,8 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
             sessionStartEpochMs = session.startTime.toEpochMilli(),
             pausedDurationMs = session.pausedDurationMs,
             richEnabled = settings.richNotificationsEnabled,
-            maxTotalMinutes = settings.maxTotalFeedMinutes
+            maxTotalMinutes = settings.maxTotalFeedMinutes,
+            canSwitchSides = session.switchTime == null
         )
     }
 
