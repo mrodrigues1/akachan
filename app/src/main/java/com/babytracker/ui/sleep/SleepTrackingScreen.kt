@@ -70,6 +70,7 @@ import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.TimerDisplay
+import com.babytracker.ui.component.formatElapsedAsClock
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
 import java.time.Duration
@@ -641,7 +642,8 @@ private fun ActiveSleepCard(record: SleepRecord, onStop: () -> Unit) {
                 startTimeMillis = record.startTime.toEpochMilli(),
                 isRunning = true,
                 ringColor = MaterialTheme.colorScheme.secondary,
-                trackColor = MaterialTheme.colorScheme.secondaryContainer
+                trackColor = MaterialTheme.colorScheme.secondaryContainer,
+                elapsedFormatter = ::formatElapsedAsClock,
             )
             Button(
                 onClick = onStop,

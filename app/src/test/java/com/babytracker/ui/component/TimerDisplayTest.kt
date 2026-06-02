@@ -21,6 +21,16 @@ class TimerDisplayTest {
     }
 
     @Test
+    fun formatElapsedAsClock_underOneHour_formatsAsMmSs() {
+        assertEquals("12:34", formatElapsedAsClock(754))
+    }
+
+    @Test
+    fun formatElapsedAsClock_overOneHour_formatsAsHhMmSs() {
+        assertEquals("01:02:03", formatElapsedAsClock(3723))
+    }
+
+    @Test
     fun shouldAnimateTimerRing_runningWithRing_returnsTrue() {
         assertEquals(true, shouldAnimateTimerRing(hasRing = true, isRunning = true))
     }
