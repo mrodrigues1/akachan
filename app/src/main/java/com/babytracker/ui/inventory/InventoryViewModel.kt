@@ -4,11 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.MilkBag
+import com.babytracker.domain.model.MilkBagWithExpiration
 import com.babytracker.domain.usecase.inventory.AddMilkBagUseCase
 import com.babytracker.domain.usecase.inventory.DeleteMilkBagUseCase
 import com.babytracker.domain.usecase.inventory.GetInventorySummaryUseCase
-import com.babytracker.domain.usecase.inventory.GetInventoryUseCase
 import com.babytracker.domain.usecase.inventory.MarkBagUsedUseCase
+import com.babytracker.domain.usecase.inventory.ObserveInventoryWithExpirationUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.time.ZoneId
 import javax.inject.Inject
 
 data class AddBagSheetState(
@@ -28,14 +30,14 @@ data class AddBagSheetState(
 
 data class InventoryUiState(
     val summary: InventorySummary = InventorySummary.Empty,
-    val bags: List<MilkBag> = emptyList(),
+    val bags: List<MilkBagWithExpiration> = emptyList(),
     val addSheet: AddBagSheetState? = null,
     val error: String? = null,
 )
 
 @HiltViewModel
 class InventoryViewModel @Inject constructor(
-    getInventory: GetInventoryUseCase,
+    observeInventory: ObserveInventoryWithExpirationUseCase,
     getSummary: GetInventorySummaryUseCase,
     private val addBag: AddMilkBagUseCase,
     private val markUsed: MarkBagUsedUseCase,
@@ -46,13 +48,19 @@ class InventoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(InventoryUiState())
     val uiState: StateFlow<InventoryUiState> = _uiState.asStateFlow()
 
+    private val currentDate = MutableStateFlow(today())
+
     init {
         viewModelScope.launch {
-            combine(getInventory(), getSummary()) { bags, summary -> bags to summary }
+            combine(observeInventory(currentDate), getSummary()) { bags, summary -> bags to summary }
                 .collect { (bags, summary) ->
                     _uiState.value = _uiState.value.copy(bags = bags, summary = summary)
                 }
         }
+    }
+
+    fun onResume() {
+        currentDate.value = today()
     }
 
     fun onAddBagClicked() {
@@ -120,4 +128,6 @@ class InventoryViewModel @Inject constructor(
     fun onErrorDismissed() {
         _uiState.value = _uiState.value.copy(error = null)
     }
+
+    private fun today() = now().atZone(ZoneId.systemDefault()).toLocalDate()
 }

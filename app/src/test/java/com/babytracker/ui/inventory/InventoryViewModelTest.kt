@@ -1,12 +1,14 @@
 package com.babytracker.ui.inventory
 
+import com.babytracker.domain.model.ExpirationStatus
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.MilkBag
+import com.babytracker.domain.model.MilkBagWithExpiration
 import com.babytracker.domain.usecase.inventory.AddMilkBagUseCase
 import com.babytracker.domain.usecase.inventory.DeleteMilkBagUseCase
 import com.babytracker.domain.usecase.inventory.GetInventorySummaryUseCase
-import com.babytracker.domain.usecase.inventory.GetInventoryUseCase
 import com.babytracker.domain.usecase.inventory.MarkBagUsedUseCase
+import com.babytracker.domain.usecase.inventory.ObserveInventoryWithExpirationUseCase
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
@@ -15,6 +17,7 @@ import io.mockk.mockk
 import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -27,11 +30,12 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class InventoryViewModelTest {
 
-    private lateinit var getInventory: GetInventoryUseCase
+    private lateinit var observeInventory: ObserveInventoryWithExpirationUseCase
     private lateinit var getSummary: GetInventorySummaryUseCase
     private lateinit var addBag: AddMilkBagUseCase
     private lateinit var markUsed: MarkBagUsedUseCase
@@ -39,7 +43,7 @@ class InventoryViewModelTest {
     private lateinit var viewModel: InventoryViewModel
 
     private val testDispatcher = StandardTestDispatcher()
-    private val bagsFlow = MutableStateFlow<List<MilkBag>>(emptyList())
+    private val bagsFlow = MutableStateFlow<List<MilkBagWithExpiration>>(emptyList())
     private val summaryFlow = MutableStateFlow(InventorySummary.Empty)
     private val fixedNow = Instant.ofEpochSecond(1_700_000_000L)
 
@@ -53,15 +57,15 @@ class InventoryViewModelTest {
     @BeforeEach
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        getInventory = mockk()
+        observeInventory = mockk()
         getSummary = mockk()
         addBag = mockk()
         markUsed = mockk()
         deleteBag = mockk()
-        every { getInventory() } returns bagsFlow
+        every { observeInventory(any<Flow<LocalDate>>()) } returns bagsFlow
         every { getSummary() } returns summaryFlow
         viewModel = InventoryViewModel(
-            getInventory = getInventory,
+            observeInventory = observeInventory,
             getSummary = getSummary,
             addBag = addBag,
             markUsed = markUsed,
@@ -79,12 +83,25 @@ class InventoryViewModelTest {
     @Test
     fun `combined flow updates bags and summary when both repositories emit`() = runTest {
         val summary = InventorySummary(totalMl = 120, bagCount = 1, oldestBagDate = sampleBag.collectionDate)
-        bagsFlow.value = listOf(sampleBag)
+        val bagWithExpiration = MilkBagWithExpiration(sampleBag, ExpirationStatus.EXPIRING_OR_EXPIRED)
+        bagsFlow.value = listOf(bagWithExpiration)
         summaryFlow.value = summary
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(listOf(sampleBag), viewModel.uiState.value.bags)
+        assertEquals(listOf(bagWithExpiration), viewModel.uiState.value.bags)
         assertEquals(summary, viewModel.uiState.value.summary)
+    }
+
+    @Test
+    fun `onResume does not clear expiration-aware bags`() = runTest {
+        val bagWithExpiration = MilkBagWithExpiration(sampleBag, ExpirationStatus.EXPIRING_SOON)
+        bagsFlow.value = listOf(bagWithExpiration)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onResume()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf(bagWithExpiration), viewModel.uiState.value.bags)
     }
 
     @Test

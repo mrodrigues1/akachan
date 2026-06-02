@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -48,9 +49,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import com.babytracker.domain.model.ExpirationStatus
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.MilkBag
+import com.babytracker.ui.theme.LocalDarkTheme
+import com.babytracker.ui.theme.OnWarningContainerAmber
+import com.babytracker.ui.theme.OnWarningContainerAmberDark
+import com.babytracker.ui.theme.WarningContainerAmber
+import com.babytracker.ui.theme.WarningContainerAmberDark
 import com.babytracker.util.formatDateTime
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatElapsedCompact
@@ -62,15 +72,23 @@ import java.time.Instant
 fun InventoryScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateToSettings: () -> Unit = {},
     viewModel: InventoryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     LaunchedEffect(state.error) {
         val message = state.error ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(message)
         viewModel.onErrorDismissed()
+    }
+
+    LaunchedEffect(lifecycleOwner, viewModel) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.onResume()
+        }
     }
 
     Scaffold(
@@ -81,6 +99,11 @@ fun InventoryScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Milk stash settings")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -161,13 +184,14 @@ internal fun InventoryContent(
                 SummaryCard(summary = state.summary)
                 Spacer(Modifier.height(8.dp))
             }
-            items(state.bags, key = { it.id }) { bag ->
-                val isOldest = bag.id == state.bags.first().id
+            items(state.bags, key = { it.bag.id }) { item ->
+                val isOldest = item.bag.id == state.bags.first().bag.id
                 MilkBagRow(
-                    bag = bag,
+                    bag = item.bag,
+                    expirationStatus = item.status,
                     isOldest = isOldest,
-                    onMarkUsed = { onMarkUsed(bag) },
-                    onDelete = { onDelete(bag) },
+                    onMarkUsed = { onMarkUsed(item.bag) },
+                    onDelete = { onDelete(item.bag) },
                 )
             }
         }
@@ -255,21 +279,50 @@ private fun StatColumn(
 @Composable
 private fun MilkBagRow(
     bag: MilkBag,
+    expirationStatus: ExpirationStatus,
     isOldest: Boolean,
     onMarkUsed: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
-    val containerColor = if (isOldest) {
-        MaterialTheme.colorScheme.tertiaryContainer
+    val isDark = LocalDarkTheme.current
+    val warningContainerColor = if (isDark) {
+        WarningContainerAmberDark
     } else {
-        MaterialTheme.colorScheme.surface
+        WarningContainerAmber
     }
-    val contentColor = if (isOldest) {
-        MaterialTheme.colorScheme.onTertiaryContainer
+    val onWarningContainerColor = if (isDark) {
+        OnWarningContainerAmberDark
     } else {
-        MaterialTheme.colorScheme.onSurface
+        OnWarningContainerAmber
+    }
+    val containerColor = when (expirationStatus) {
+        ExpirationStatus.EXPIRING_OR_EXPIRED -> warningContainerColor
+        ExpirationStatus.EXPIRING_SOON -> warningContainerColor.copy(alpha = 0.45f)
+        ExpirationStatus.NONE -> if (isOldest) {
+            MaterialTheme.colorScheme.tertiaryContainer
+        } else {
+            MaterialTheme.colorScheme.surface
+        }
+    }
+    val contentColor = when (expirationStatus) {
+        ExpirationStatus.NONE -> if (isOldest) {
+            MaterialTheme.colorScheme.onTertiaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
+        else -> onWarningContainerColor
+    }
+    val supportingColor = when {
+        expirationStatus != ExpirationStatus.NONE -> contentColor.copy(alpha = 0.82f)
+        isOldest -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val markUsedColor = when {
+        expirationStatus != ExpirationStatus.NONE -> contentColor
+        isOldest -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.primary
     }
 
     Card(
@@ -299,11 +352,7 @@ private fun MilkBagRow(
                 Text(
                     text = "Pumped ${Duration.between(bag.collectionDate, Instant.now()).formatElapsedAgo()}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (isOldest) {
-                        MaterialTheme.colorScheme.tertiary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+                    color = supportingColor,
                 )
             }
 
@@ -311,11 +360,7 @@ private fun MilkBagRow(
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = "Mark used",
-                    tint = if (isOldest) {
-                        MaterialTheme.colorScheme.tertiary
-                    } else {
-                        MaterialTheme.colorScheme.primary
-                    },
+                    tint = markUsedColor,
                 )
             }
 
