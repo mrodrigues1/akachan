@@ -41,7 +41,7 @@ import com.babytracker.util.UpdateChecker
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
-internal val ALLOWED_NAV_ROUTES = setOf(Routes.HOME, Routes.BREASTFEEDING, Routes.SLEEP_TRACKING)
+internal val ALLOWED_NAV_ROUTES = setOf(Routes.HOME, Routes.BREASTFEEDING, Routes.SLEEP_TRACKING, Routes.INVENTORY)
 
 internal enum class PendingNavAction { NAVIGATE, CLEAR, WAIT }
 

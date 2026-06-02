@@ -16,4 +16,5 @@ object Routes {
     const val PUMPING = "pumping"
     const val PUMPING_HISTORY = "pumping/history"
     const val INVENTORY = "inventory"
+    const val INVENTORY_SETTINGS = "inventory/settings"
 }
