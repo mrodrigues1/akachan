@@ -81,7 +81,7 @@ class BreastfeedingActionReceiverTest {
         coEvery { notificationCoordinator.rearmAfterKeepGoing(any(), any()) } returns Unit
         mockkObject(NotificationHelper)
         every { NotificationHelper.cancelNotification(any(), any()) } returns Unit
-        every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any(), any()) } returns Unit
+        every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Unit
     }
 
     @AfterEach
@@ -103,7 +103,8 @@ class BreastfeedingActionReceiverTest {
                 sessionStartEpochMs = activeSession.startTime.toEpochMilli(),
                 pausedDurationMs = 0L,
                 richEnabled = false,
-                maxTotalMinutes = 30
+                maxTotalMinutes = 30,
+                canSwitchSides = false
             )
         }
         verify { NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID) }
@@ -256,7 +257,29 @@ class BreastfeedingActionReceiverTest {
                 sessionStartEpochMs = activeSession.startTime.toEpochMilli(),
                 pausedDurationMs = 0L,
                 richEnabled = false,
-                maxTotalMinutes = 30
+                maxTotalMinutes = 30,
+                canSwitchSides = true
+            )
+        }
+    }
+
+    @Test
+    fun `ACTION_REFRESH_ACTIVE passes canSwitchSides false for already-switched session`() = runTest {
+        val switchedSession = activeSession.copy(switchTime = Instant.now().minusSeconds(30))
+        coEvery { repository.getActiveSession() } returns flowOf(switchedSession)
+
+        receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_REFRESH_ACTIVE, 42L))
+
+        verify {
+            NotificationHelper.showBreastfeedingActive(
+                context = context,
+                sessionId = 42L,
+                currentSide = "RIGHT",
+                sessionStartEpochMs = switchedSession.startTime.toEpochMilli(),
+                pausedDurationMs = 0L,
+                richEnabled = false,
+                maxTotalMinutes = 30,
+                canSwitchSides = false
             )
         }
     }

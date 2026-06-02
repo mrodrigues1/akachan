@@ -234,7 +234,8 @@ object NotificationHelper {
         pausedDurationMs: Long,
         richEnabled: Boolean,
         maxTotalMinutes: Int = 0,
-        pausedAtEpochMs: Long? = null
+        pausedAtEpochMs: Long? = null,
+        canSwitchSides: Boolean = true
     ) {
         val sideLabel = if (currentSide == "LEFT") context.getString(R.string.notif_side_left) else context.getString(R.string.notif_side_right)
         val isPaused = pausedAtEpochMs != null
@@ -265,7 +266,8 @@ object NotificationHelper {
                     pausedAtEpochMs = pausedAtEpochMs,
                     maxTotalMinutes = maxTotalMinutes,
                     title = title,
-                    body = body
+                    body = body,
+                    canSwitchSides = canSwitchSides
                 )
             )
         } else {
@@ -324,7 +326,7 @@ object NotificationHelper {
             )
             .addAction(0, pauseResumeLabel(content.context, isPaused), pauseResumePendingIntent(content.context, content.sessionId, isPaused))
 
-        if (!isPaused) {
+        if (!isPaused && content.canSwitchSides) {
             addAction(
                 0,
                 content.context.getString(R.string.notif_action_switch_sides),

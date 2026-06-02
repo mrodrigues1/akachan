@@ -36,6 +36,7 @@ internal data class ActiveNotificationContent(
     val maxTotalMinutes: Int,
     val title: String,
     val body: String,
+    val canSwitchSides: Boolean = true,
 )
 
 internal fun buildProgressBigView(
