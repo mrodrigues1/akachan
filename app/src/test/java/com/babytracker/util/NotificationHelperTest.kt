@@ -204,15 +204,29 @@ class NotificationHelperTest {
     }
 
     @Test
-    fun `active breastfeeding stop action is stop feeding`() {
+    fun `active breastfeeding stop action is stop session`() {
         val source = notificationHelperSource()
         val strings = notificationStringsXml()
         val functionBody = Regex("applyBreastfeedingActiveRichContent[\\s\\S]*?private fun breastfeedingActiveProgress")
             .find(source)?.value ?: error("applyBreastfeedingActiveRichContent body not found")
 
-        assertTrue(functionBody.contains("notif_action_stop_feeding"), "active feeding stop action must reference R.string.notif_action_stop_feeding")
-        assertEquals("Stop feeding", stringsXmlValue(strings, "notif_action_stop_feeding"), "notif_action_stop_feeding must be 'Stop feeding'")
-        assertFalse(functionBody.contains("\"Stop Session\""), "stale 'Stop Session' must not appear in active feeding")
+        assertTrue(functionBody.contains("notif_action_stop_session"), "active feeding stop action must reference R.string.notif_action_stop_session")
+        assertEquals("Stop session", stringsXmlValue(strings, "notif_action_stop_session"), "notif_action_stop_session must be 'Stop session'")
+        assertFalse(functionBody.contains("\"Stop Session\""), "stale 'Stop Session' literal must not appear in active feeding")
+    }
+
+    @Test
+    fun `active breastfeeding running state includes switch sides action with unique request code`() {
+        val source = notificationHelperSource()
+        val strings = notificationStringsXml()
+        val functionBody = Regex("applyBreastfeedingActiveRichContent[\\s\\S]*?private fun breastfeedingActiveProgress")
+            .find(source)?.value ?: error("applyBreastfeedingActiveRichContent body not found")
+
+        assertTrue(functionBody.contains("notif_action_switch_sides"), "active feeding running state must include R.string.notif_action_switch_sides")
+        assertEquals("Switch sides", stringsXmlValue(strings, "notif_action_switch_sides"), "notif_action_switch_sides must be 'Switch sides'")
+        assertTrue(functionBody.contains("RC_SWITCH_BF_ACTIVE"), "active feeding must use RC_SWITCH_BF_ACTIVE request code")
+        assertTrue(functionBody.contains("!isPaused"), "switch sides action must be guarded by !isPaused")
+        assertTrue(source.contains("RC_SWITCH_BF_ACTIVE = 2010"), "RC_SWITCH_BF_ACTIVE must be 2010 — no collision with existing codes")
     }
 
     @Test

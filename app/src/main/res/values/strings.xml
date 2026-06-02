@@ -16,6 +16,8 @@
     <string name="notif_action_end_sleep">End sleep</string>
     <string name="notif_action_pause">Pause</string>
     <string name="notif_action_resume">Resume</string>
+    <string name="notif_action_switch_sides">Switch sides</string>
+    <string name="notif_action_stop_session">Stop session</string>
 
     <!-- Notification titles -->
     <string name="notif_title_breastfeeding_group">Breastfeeding</string>

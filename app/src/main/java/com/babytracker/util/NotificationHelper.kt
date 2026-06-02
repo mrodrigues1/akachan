@@ -48,6 +48,7 @@ object NotificationHelper {
     private const val RC_REFRESH_BF_ACTIVE = 2007
     private const val RC_PAUSE_BF_ACTIVE = 2008
     private const val RC_RESUME_BF_ACTIVE = 2009
+    private const val RC_SWITCH_BF_ACTIVE = 2010
     private const val RC_NAP_REMINDER_TAP = 3002
     private const val TAG = "NotificationHelper"
     private const val SECONDS_PER_MINUTE = 60
@@ -322,16 +323,25 @@ object NotificationHelper {
                 )
             )
             .addAction(0, pauseResumeLabel(content.context, isPaused), pauseResumePendingIntent(content.context, content.sessionId, isPaused))
-            .addAction(
+
+        if (!isPaused) {
+            addAction(
                 0,
-                content.context.getString(R.string.notif_action_stop_feeding),
-                breastfeedingActionPi(
-                    content.context,
-                    content.sessionId,
-                    BreastfeedingActionReceiver.ACTION_STOP,
-                    RC_STOP_BF_ACTIVE
-                )
+                content.context.getString(R.string.notif_action_switch_sides),
+                breastfeedingActionPi(content.context, content.sessionId, BreastfeedingActionReceiver.ACTION_SWITCH, RC_SWITCH_BF_ACTIVE)
             )
+        }
+
+        addAction(
+            0,
+            content.context.getString(R.string.notif_action_stop_session),
+            breastfeedingActionPi(
+                content.context,
+                content.sessionId,
+                BreastfeedingActionReceiver.ACTION_STOP,
+                RC_STOP_BF_ACTIVE
+            )
+        )
 
         if (progress.isEnabled && !isPaused) {
             scheduleBreastfeedingActiveRefresh(content.context, content.sessionId)
