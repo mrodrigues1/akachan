@@ -98,6 +98,15 @@
     <string name="notif_title_nap_reminder">Next nap window approaching</string>
     <string name="notif_body_nap_reminder">Consider starting the next nap soon</string>
 
+    <!-- Stash expiration notification -->
+    <string name="notif_channel_stash_expiration_name">Stash expiration</string>
+    <string name="notif_channel_stash_expiration_description">Daily reminder when milk bags are expiring</string>
+    <string name="notif_title_stash_expiration">Milk expiring today</string>
+    <plurals name="notif_body_stash_expiration">
+        <item quantity="one">%1$d bag (%2$d mL) is expiring today</item>
+        <item quantity="other">%1$d bags (%2$d mL) are expiring today</item>
+    </plurals>
+
     <!-- Widget -->
     <string name="widget_description">Feeding side, elapsed feed time, and current sleep status</string>
     <string name="widget_loading">Just a moment…</string>
