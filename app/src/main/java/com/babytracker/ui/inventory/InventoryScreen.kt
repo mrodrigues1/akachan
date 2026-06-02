@@ -42,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -297,9 +298,14 @@ private fun MilkBagRow(
     } else {
         OnWarningContainerAmber
     }
+    val expiringSoonContainerColor = lerp(
+        start = MaterialTheme.colorScheme.surface,
+        stop = warningContainerColor,
+        fraction = 0.45f,
+    )
     val containerColor = when (expirationStatus) {
         ExpirationStatus.EXPIRING_OR_EXPIRED -> warningContainerColor
-        ExpirationStatus.EXPIRING_SOON -> warningContainerColor.copy(alpha = 0.45f)
+        ExpirationStatus.EXPIRING_SOON -> expiringSoonContainerColor
         ExpirationStatus.NONE -> if (isOldest) {
             MaterialTheme.colorScheme.tertiaryContainer
         } else {
