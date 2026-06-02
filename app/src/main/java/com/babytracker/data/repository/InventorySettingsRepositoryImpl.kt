@@ -22,7 +22,7 @@ class InventorySettingsRepositoryImpl @Inject constructor(
         val NOTIF_ENABLED = booleanPreferencesKey("stash_expiration_notif_enabled")
         val NOTIF_TIME_MINUTES = intPreferencesKey("stash_expiration_notif_time_minutes")
 
-        const val DEFAULT_DAYS = 4
+        const val DEFAULT_DAYS = 15
         const val MIN_DAYS = 1
         const val DEFAULT_NOTIF_TIME_MINUTES = 480 // 08:00
         const val MAX_MINUTE_OF_DAY = 1439
