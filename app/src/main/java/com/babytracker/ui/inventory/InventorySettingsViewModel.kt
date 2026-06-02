@@ -134,7 +134,7 @@ class InventorySettingsViewModel @Inject constructor(
     )
 }
 
-private const val DEFAULT_DAYS = 4
+private const val DEFAULT_DAYS = 15
 private const val DEFAULT_NOTIFICATION_TIME_MINUTES = 480
 private const val MIN_DAYS = 1
 private const val MIN_MINUTE_OF_DAY = 0

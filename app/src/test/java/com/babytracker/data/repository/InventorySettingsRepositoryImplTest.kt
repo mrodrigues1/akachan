@@ -39,7 +39,7 @@ class InventorySettingsRepositoryImplTest {
     @Test
     fun `defaults when nothing stored`() = runTest {
         assertEquals(false, repo.getExpirationEnabled().first())
-        assertEquals(4, repo.getExpirationDays().first())
+        assertEquals(15, repo.getExpirationDays().first())
         assertEquals(false, repo.getExpirationNotifEnabled().first())
         assertEquals(480, repo.getExpirationNotifTimeMinutes().first())
     }
