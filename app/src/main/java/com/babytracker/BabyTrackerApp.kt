@@ -5,7 +5,9 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.babytracker.BuildConfig
 import com.babytracker.debug.DebugDataSeeder
+import com.babytracker.domain.repository.InventorySettingsRepository
 import com.babytracker.manager.PredictiveFeedNotificationCoordinator
+import com.babytracker.manager.StashExpirationScheduler
 import com.babytracker.util.NotificationHelper
 import com.babytracker.util.createPredictiveFeedNotificationChannel
 import com.babytracker.widget.WidgetSyncManager
@@ -13,6 +15,7 @@ import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,6 +26,8 @@ class BabyTrackerApp : Application(), Configuration.Provider {
     @Inject lateinit var debugDataSeeder: DebugDataSeeder
     @Inject lateinit var widgetSyncManager: WidgetSyncManager
     @Inject lateinit var workerFactory: HiltWorkerFactory
+    @Inject lateinit var inventorySettings: InventorySettingsRepository
+    @Inject lateinit var stashExpirationScheduler: StashExpirationScheduler
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -40,8 +45,24 @@ class BabyTrackerApp : Application(), Configuration.Provider {
         createPredictiveFeedNotificationChannel(this)
         predictiveCoordinator.start()
         widgetSyncManager.start()
+        reconcileStashExpirationAlarm()
         if (BuildConfig.DEBUG) {
             appScope.launch { debugDataSeeder.seedIfEmpty() }
+        }
+    }
+
+    private fun reconcileStashExpirationAlarm() {
+        appScope.launch {
+            runCatching {
+                if (
+                    inventorySettings.getExpirationEnabled().first() &&
+                    inventorySettings.getExpirationNotifEnabled().first()
+                ) {
+                    stashExpirationScheduler.scheduleDaily(
+                        inventorySettings.getExpirationNotifTimeMinutes().first(),
+                    )
+                }
+            }
         }
     }
 }
