@@ -9,8 +9,10 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.babytracker.domain.model.ExpirationStatus
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.MilkBag
+import com.babytracker.domain.model.MilkBagWithExpiration
 import com.babytracker.ui.theme.BabyTrackerTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -34,6 +36,11 @@ class InventoryScreenTest {
         createdAt = baseNow.minusSeconds(id * 3600),
     )
 
+    private fun bagWithExpiration(id: Long, volumeMl: Int = 120) = MilkBagWithExpiration(
+        bag = bag(id, volumeMl),
+        status = ExpirationStatus.NONE,
+    )
+
     @Test
     fun summaryCardShowsTotalsFromState() {
         val summary = InventorySummary(totalMl = 240, bagCount = 2, oldestBagDate = baseNow.minusSeconds(3600))
@@ -42,7 +49,7 @@ class InventoryScreenTest {
                 InventoryContent(
                     state = InventoryUiState(
                         summary = summary,
-                        bags = listOf(bag(1), bag(2)),
+                        bags = listOf(bagWithExpiration(1), bagWithExpiration(2)),
                     ),
                     onMarkUsed = {},
                     onDelete = {},
@@ -87,7 +94,7 @@ class InventoryScreenTest {
     @Test
     fun tapMarkUsedButtonInvokesOnMarkUsedForCorrectBag() {
         var markedBag: MilkBag? = null
-        val bags = listOf(bag(1), bag(2))
+        val bags = listOf(bagWithExpiration(1), bagWithExpiration(2))
         composeRule.setContent {
             BabyTrackerTheme {
                 InventoryContent(
@@ -109,7 +116,7 @@ class InventoryScreenTest {
     @Test
     fun tappingOverflowAndDeleteInvokesOnDelete() {
         var deletedBag: MilkBag? = null
-        val bags = listOf(bag(1))
+        val bags = listOf(bagWithExpiration(1))
         composeRule.setContent {
             BabyTrackerTheme {
                 InventoryContent(
@@ -131,7 +138,7 @@ class InventoryScreenTest {
 
     @Test
     fun bagRowShowsVolumeAndIsDisplayed() {
-        val bags = listOf(bag(1, volumeMl = 180))
+        val bags = listOf(bagWithExpiration(1, volumeMl = 180))
         composeRule.setContent {
             BabyTrackerTheme {
                 InventoryContent(
