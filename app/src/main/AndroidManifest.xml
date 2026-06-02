@@ -95,6 +95,10 @@
         </receiver>
 
         <receiver
+            android:name=".receiver.StashExpirationReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name="com.babytracker.widget.BabyWidgetReceiver"
             android:exported="false">
             <intent-filter>
