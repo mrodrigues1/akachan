@@ -6,6 +6,7 @@ import com.babytracker.data.local.entity.toEntity
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.repository.PumpingRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,6 +21,8 @@ class PumpingRepositoryImpl @Inject constructor(
 
     override fun getActiveSession(): Flow<PumpingSession?> =
         dao.getActiveSession().map { it?.toDomain() }
+
+    override suspend fun getActiveSessionOnce(): PumpingSession? = getActiveSession().first()
 
     override suspend fun getById(id: Long): PumpingSession? = dao.getById(id)?.toDomain()
 

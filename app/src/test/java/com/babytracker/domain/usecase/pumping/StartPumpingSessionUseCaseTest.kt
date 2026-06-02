@@ -23,6 +23,7 @@ class StartPumpingSessionUseCaseTest {
     @BeforeEach
     fun setup() {
         repository = mockk()
+        coEvery { repository.getActiveSessionOnce() } returns null
         useCase = StartPumpingSessionUseCase(repository) { fixedNow }
     }
 
@@ -55,5 +56,16 @@ class StartPumpingSessionUseCaseTest {
         useCase(PumpingBreast.BOTH)
 
         coVerify(exactly = 1) { repository.insert(any()) }
+    }
+
+    @Test
+    fun invokeIsNoOpWhenActiveSessionExists() = runTest {
+        val activeSession = PumpingSession(id = 1L, startTime = fixedNow, breast = PumpingBreast.LEFT)
+        coEvery { repository.getActiveSessionOnce() } returns activeSession
+
+        val result = useCase(PumpingBreast.RIGHT)
+
+        assertEquals(0L, result)
+        coVerify(exactly = 0) { repository.insert(any()) }
     }
 }
