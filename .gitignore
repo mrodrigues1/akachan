@@ -40,5 +40,7 @@ google-services.json
 /.superpowers/
 /.claude/settings.local.json
 /.claude/*.lock
+/.claude/skills
+/.agents/skills
 
 .codex-remote-attachments/
