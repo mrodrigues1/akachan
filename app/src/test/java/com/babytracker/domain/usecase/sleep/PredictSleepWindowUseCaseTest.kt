@@ -110,6 +110,15 @@ class PredictSleepWindowUseCaseTest {
         sleepType = SleepType.NAP,
     )
 
+    // Open record with a future startTime (clock skew / bad import) → predicate rejects it because
+    // startTime > now, so CurrentlySleeping is not emitted.
+    private fun futureSleepRecord() = SleepRecord(
+        id = 97,
+        startTime = fixedNow.plus(Duration.ofHours(1)),
+        endTime = null,
+        sleepType = SleepType.NAP,
+    )
+
     // Open record started 20h ago — older than MAX_OPEN_SLEEP_AGE_HOURS (18h) → staleness filter
     // discards it, so CurrentlySleeping is not emitted.
     private fun staleSleepRecord() = SleepRecord(
@@ -148,6 +157,23 @@ class PredictSleepWindowUseCaseTest {
             useCase().test {
                 val state = awaitItem()
                 assertTrue(state is SleepPredictionState.CurrentlySleeping)
+                awaitComplete()
+            }
+        }
+
+        @Test
+        fun `future-dated open sleep record does not emit CurrentlySleeping`() = runTest {
+            // startTime 1h in the future — clock skew or bad import. Negative age subtraction
+            // must not satisfy the staleness bound; requires explicit startTime <= now check.
+            every { sleepRepository.getAllRecords() } returns flowOf(listOf(futureSleepRecord()))
+            every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
+            every { babyRepository.getBabyProfile() } returns flowOf(babyOfWeeks(12))
+
+            useCase().test {
+                val state = awaitItem()
+                assertTrue(state !is SleepPredictionState.CurrentlySleeping) {
+                    "Future-dated open sleep record must not trigger CurrentlySleeping — got $state"
+                }
                 awaitComplete()
             }
         }
