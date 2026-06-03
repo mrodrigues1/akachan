@@ -36,6 +36,22 @@ interface MilkBagDao {
     @Update
     suspend fun update(entity: MilkBagEntity)
 
+    @Query(
+        """
+        UPDATE milk_bags
+        SET collection_date = :collectionDate,
+            volume_ml = :volumeMl,
+            notes = :notes
+        WHERE id = :id AND used_at IS NULL
+        """
+    )
+    suspend fun updateActiveDetails(
+        id: Long,
+        collectionDate: Long,
+        volumeMl: Int,
+        notes: String?,
+    ): Int
+
     @Delete
     suspend fun delete(entity: MilkBagEntity)
 }

@@ -10,6 +10,7 @@ import com.babytracker.domain.usecase.inventory.DeleteMilkBagUseCase
 import com.babytracker.domain.usecase.inventory.GetInventorySummaryUseCase
 import com.babytracker.domain.usecase.inventory.MarkBagUsedUseCase
 import com.babytracker.domain.usecase.inventory.ObserveInventoryWithExpirationUseCase
+import com.babytracker.domain.usecase.inventory.UpdateMilkBagUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +33,14 @@ data class InventoryUiState(
     val summary: InventorySummary = InventorySummary.Empty,
     val bags: List<MilkBagWithExpiration> = emptyList(),
     val addSheet: AddBagSheetState? = null,
+    val editSheet: EditBagSheetState? = null,
     val error: String? = null,
+)
+
+data class EditBagSheetState(
+    val bagId: Long,
+    val form: AddBagSheetState,
+    val saveToken: Long = 0,
 )
 
 @HiltViewModel
@@ -40,6 +48,7 @@ class InventoryViewModel @Inject constructor(
     observeInventory: ObserveInventoryWithExpirationUseCase,
     getSummary: GetInventorySummaryUseCase,
     private val addBag: AddMilkBagUseCase,
+    private val updateBag: UpdateMilkBagUseCase,
     private val markUsed: MarkBagUsedUseCase,
     private val deleteBag: DeleteMilkBagUseCase,
     private val now: () -> Instant,
@@ -64,15 +73,20 @@ class InventoryViewModel @Inject constructor(
     }
 
     fun onAddBagClicked() {
-        _uiState.value = _uiState.value.copy(addSheet = AddBagSheetState(collectionDate = now()))
+        _uiState.value = _uiState.value.copy(
+            addSheet = AddBagSheetState(collectionDate = now()),
+            editSheet = null,
+        )
     }
 
     fun onAddBagFieldChange(transform: (AddBagSheetState) -> AddBagSheetState) {
         val current = _uiState.value.addSheet ?: return
+        if (current.isSaving) return
         _uiState.value = _uiState.value.copy(addSheet = transform(current))
     }
 
     fun onAddBagDismiss() {
+        if (_uiState.value.addSheet?.isSaving == true) return
         _uiState.value = _uiState.value.copy(addSheet = null)
     }
 
@@ -107,6 +121,90 @@ class InventoryViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     addSheet = sheet.copy(isSaving = false, validationError = "Could not save"),
                 )
+            }
+        }
+    }
+
+    fun onEditBagClicked(bag: MilkBag) {
+        _uiState.value = _uiState.value.copy(
+            addSheet = null,
+            editSheet = EditBagSheetState(
+                bagId = bag.id,
+                form = AddBagSheetState(
+                    collectionDate = bag.collectionDate,
+                    volumeMl = bag.volumeMl.toString(),
+                    notes = bag.notes.orEmpty(),
+                ),
+            ),
+        )
+    }
+
+    fun onEditBagFieldChange(transform: (AddBagSheetState) -> AddBagSheetState) {
+        val current = _uiState.value.editSheet ?: return
+        if (current.form.isSaving) return
+        _uiState.value = _uiState.value.copy(
+            editSheet = current.copy(form = transform(current.form)),
+        )
+    }
+
+    fun onEditBagDismiss() {
+        if (_uiState.value.editSheet?.form?.isSaving == true) return
+        _uiState.value = _uiState.value.copy(editSheet = null)
+    }
+
+    fun onEditBagConfirm() {
+        val sheet = _uiState.value.editSheet ?: return
+        val form = sheet.form
+        if (form.isSaving) return
+        val volume = form.volumeMl.toIntOrNull()
+        if (volume == null || volume <= 0) {
+            _uiState.value = _uiState.value.copy(
+                editSheet = sheet.copy(form = form.copy(validationError = "Volume must be greater than 0")),
+            )
+            return
+        }
+        if (form.collectionDate.isAfter(now())) {
+            _uiState.value = _uiState.value.copy(
+                editSheet = sheet.copy(form = form.copy(validationError = "Collection date cannot be in the future")),
+            )
+            return
+        }
+        val saveToken = sheet.saveToken + 1
+        _uiState.value = _uiState.value.copy(
+            editSheet = sheet.copy(
+                form = form.copy(isSaving = true),
+                saveToken = saveToken,
+            ),
+        )
+        viewModelScope.launch {
+            runCatching {
+                updateBag(
+                    bagId = sheet.bagId,
+                    collectionDate = form.collectionDate,
+                    volumeMl = volume,
+                    notes = form.notes.ifBlank { null },
+                )
+            }.onSuccess { syncSucceeded ->
+                val current = _uiState.value.editSheet
+                if (current?.bagId == sheet.bagId && current.saveToken == saveToken) {
+                    _uiState.value = _uiState.value.copy(
+                        editSheet = null,
+                        error = if (syncSucceeded) {
+                            _uiState.value.error
+                        } else {
+                            "Saved locally. Partner sync may update later."
+                        },
+                    )
+                }
+            }.onFailure {
+                val current = _uiState.value.editSheet
+                if (current?.bagId == sheet.bagId && current.saveToken == saveToken) {
+                    _uiState.value = _uiState.value.copy(
+                        editSheet = current.copy(
+                            form = current.form.copy(isSaving = false, validationError = "Could not save"),
+                        ),
+                    )
+                }
             }
         }
     }

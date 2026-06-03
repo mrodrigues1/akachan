@@ -4,6 +4,8 @@ import app.cash.turbine.test
 import com.babytracker.data.local.dao.InventorySummaryRow
 import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.data.local.entity.MilkBagEntity
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
@@ -66,5 +68,39 @@ class InventoryRepositoryImplTest {
             assertEquals(Instant.ofEpochMilli(100L), summary.oldestBagDate)
             awaitComplete()
         }
+    }
+
+    @Test
+    fun `updateDetails forwards editable fields and returns whether row was updated`() = runTest {
+        val collectionDate = Instant.ofEpochMilli(500L)
+        coEvery {
+            dao.updateActiveDetails(id = 7L, collectionDate = 500L, volumeMl = 120, notes = "Top shelf")
+        } returns 1
+
+        val updated = repository.updateDetails(
+            id = 7L,
+            collectionDate = collectionDate,
+            volumeMl = 120,
+            notes = "Top shelf",
+        )
+
+        assertEquals(true, updated)
+        coVerify(exactly = 1) {
+            dao.updateActiveDetails(id = 7L, collectionDate = 500L, volumeMl = 120, notes = "Top shelf")
+        }
+    }
+
+    @Test
+    fun `updateDetails returns false when dao updates no rows`() = runTest {
+        coEvery { dao.updateActiveDetails(any(), any(), any(), any()) } returns 0
+
+        val updated = repository.updateDetails(
+            id = 7L,
+            collectionDate = Instant.ofEpochMilli(500L),
+            volumeMl = 120,
+            notes = null,
+        )
+
+        assertEquals(false, updated)
     }
 }

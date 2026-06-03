@@ -51,6 +51,7 @@ class InventoryScreenTest {
                         summary = summary,
                         bags = listOf(bagWithExpiration(1), bagWithExpiration(2)),
                     ),
+                    onEdit = {},
                     onMarkUsed = {},
                     onDelete = {},
                 )
@@ -67,6 +68,7 @@ class InventoryScreenTest {
             BabyTrackerTheme {
                 InventoryContent(
                     state = InventoryUiState(),
+                    onEdit = {},
                     onMarkUsed = {},
                     onDelete = {},
                 )
@@ -82,6 +84,7 @@ class InventoryScreenTest {
             BabyTrackerTheme {
                 InventoryContent(
                     state = InventoryUiState(),
+                    onEdit = {},
                     onMarkUsed = {},
                     onDelete = {},
                 )
@@ -99,6 +102,7 @@ class InventoryScreenTest {
             BabyTrackerTheme {
                 InventoryContent(
                     state = InventoryUiState(bags = bags),
+                    onEdit = {},
                     onMarkUsed = { markedBag = it },
                     onDelete = {},
                 )
@@ -121,6 +125,7 @@ class InventoryScreenTest {
             BabyTrackerTheme {
                 InventoryContent(
                     state = InventoryUiState(bags = bags),
+                    onEdit = {},
                     onMarkUsed = {},
                     onDelete = { deletedBag = it },
                 )
@@ -137,12 +142,37 @@ class InventoryScreenTest {
     }
 
     @Test
+    fun tappingOverflowAndEditInvokesOnEdit() {
+        var editedBag: MilkBag? = null
+        val bags = listOf(bagWithExpiration(1))
+        composeRule.setContent {
+            BabyTrackerTheme {
+                InventoryContent(
+                    state = InventoryUiState(bags = bags),
+                    onEdit = { editedBag = it },
+                    onMarkUsed = {},
+                    onDelete = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("More options").performClick()
+        composeRule.onNodeWithText("Edit").performClick()
+
+        composeRule.runOnIdle {
+            assertNotNull(editedBag)
+            assertEquals(1L, editedBag!!.id)
+        }
+    }
+
+    @Test
     fun bagRowShowsVolumeAndIsDisplayed() {
         val bags = listOf(bagWithExpiration(1, volumeMl = 180))
         composeRule.setContent {
             BabyTrackerTheme {
                 InventoryContent(
                     state = InventoryUiState(bags = bags),
+                    onEdit = {},
                     onMarkUsed = {},
                     onDelete = {},
                 )

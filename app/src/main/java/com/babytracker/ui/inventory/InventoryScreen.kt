@@ -121,6 +121,7 @@ fun InventoryScreen(
     ) { padding ->
         InventoryContent(
             state = state,
+            onEdit = viewModel::onEditBagClicked,
             onMarkUsed = viewModel::onMarkUsed,
             onDelete = viewModel::onDelete,
             contentPadding = PaddingValues(
@@ -140,11 +141,23 @@ fun InventoryScreen(
             onDismiss = viewModel::onAddBagDismiss,
         )
     }
+
+    state.editSheet?.let { sheet ->
+        AddBagSheet(
+            state = sheet.form,
+            onFieldChange = viewModel::onEditBagFieldChange,
+            onConfirm = viewModel::onEditBagConfirm,
+            onDismiss = viewModel::onEditBagDismiss,
+            title = "Edit milk bag",
+            confirmLabel = "Save changes",
+        )
+    }
 }
 
 @Composable
 internal fun InventoryContent(
     state: InventoryUiState,
+    onEdit: (MilkBag) -> Unit,
     onMarkUsed: (MilkBag) -> Unit,
     onDelete: (MilkBag) -> Unit,
     modifier: Modifier = Modifier,
@@ -191,6 +204,7 @@ internal fun InventoryContent(
                     bag = item.bag,
                     expirationStatus = item.status,
                     isOldest = isOldest,
+                    onEdit = { onEdit(item.bag) },
                     onMarkUsed = { onMarkUsed(item.bag) },
                     onDelete = { onDelete(item.bag) },
                 )
@@ -282,6 +296,7 @@ private fun MilkBagRow(
     bag: MilkBag,
     expirationStatus: ExpirationStatus,
     isOldest: Boolean,
+    onEdit: () -> Unit,
     onMarkUsed: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -382,6 +397,13 @@ private fun MilkBagRow(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
                 ) {
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        onClick = {
+                            menuExpanded = false
+                            onEdit()
+                        },
+                    )
                     DropdownMenuItem(
                         text = { Text("Delete") },
                         onClick = {

@@ -58,10 +58,14 @@ fun AddBagSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    title: String = "Add milk bag",
+    confirmLabel: String = "Save bag",
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            if (!state.isSaving) onDismiss()
+        },
         sheetState = sheetState,
         shape = MaterialTheme.shapes.large,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -73,7 +77,7 @@ fun AddBagSheet(
                 .padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
             Text(
-                text = "Add milk bag",
+                text = title,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -81,6 +85,7 @@ fun AddBagSheet(
             CollectionDateRow(
                 date = state.collectionDate,
                 onChange = { newDate -> onFieldChange { it.copy(collectionDate = newDate) } },
+                enabled = !state.isSaving,
             )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
@@ -96,6 +101,7 @@ fun AddBagSheet(
                 label = { Text("Volume (mL)") },
                 singleLine = true,
                 isError = state.validationError != null,
+                enabled = !state.isSaving,
                 supportingText = { state.validationError?.let { Text(it) } },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
@@ -105,6 +111,7 @@ fun AddBagSheet(
                 value = state.notes,
                 onValueChange = { value -> onFieldChange { it.copy(notes = value) } },
                 label = { Text("Notes (optional)") },
+                enabled = !state.isSaving,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(20.dp))
@@ -122,11 +129,12 @@ fun AddBagSheet(
                     )
                     Spacer(Modifier.width(8.dp))
                 }
-                Text("Save bag", style = MaterialTheme.typography.labelLarge)
+                Text(confirmLabel, style = MaterialTheme.typography.labelLarge)
             }
             Spacer(Modifier.height(8.dp))
             TextButton(
                 onClick = onDismiss,
+                enabled = !state.isSaving,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Cancel", style = MaterialTheme.typography.labelLarge)
@@ -140,6 +148,7 @@ fun AddBagSheet(
 private fun CollectionDateRow(
     date: Instant,
     onChange: (Instant) -> Unit,
+    enabled: Boolean = true,
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -158,11 +167,13 @@ private fun CollectionDateRow(
             FieldCell(
                 label = date.toDateLabel(),
                 onClick = { showDatePicker = true },
+                enabled = enabled,
                 modifier = Modifier.weight(1f),
             )
             FieldCell(
                 label = date.formatTime12h(),
                 onClick = { showTimePicker = true },
+                enabled = enabled,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -195,6 +206,7 @@ private fun CollectionDateRow(
 private fun FieldCell(
     label: String,
     onClick: () -> Unit,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -204,7 +216,7 @@ private fun FieldCell(
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = MaterialTheme.shapes.medium,
             )
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
