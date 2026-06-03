@@ -19,11 +19,10 @@ This spec was revised after an adversarial review. The original plan front-loade
 
 The revised approach is **evidence-first and incremental**:
 
-1. **Ship a working baseline predictor with zero schema changes first** (Phase 0). It reuses existing entities and the DataStore profile, delivers the full user-visible feature (prediction card + sleep-screen detail + notification), and is the thing we actually validate.
-2. **Build an offline evaluation harness** (Phase 1) before adding any scoring sophistication.
-3. **Add scoring factors one at a time, each gated by offline evaluation** showing it beats the baseline (Phase 2). No factor ships on faith.
-4. **Introduce data-model changes only when a validated factor needs them** (Phase 3), and do them safely (schema-only migration, no DataStore read inside the migration, per-record timezone provenance, singleton profile — no premature multi-baby surface).
-5. **Capture learning telemetry first; defer automatic adaptation** until matching/lifecycle semantics are proven (Phase 4).
+1. **Build a baseline predictor with zero schema changes AND its evaluation harness together in Phase 0.** The predictor reuses existing entities and the DataStore profile and delivers the full user-visible feature (prediction card + sleep-screen detail + notification), but it ships **behind a debug flag** and only reaches general availability once the harness shows the baseline clears explicit quality thresholds. The measurement mechanism never lags the user-facing surface.
+2. **Add scoring factors one at a time, each gated by the same evaluation harness** under hard statistical acceptance criteria (Phase 2). No factor ships on faith or on a noisy single-baby win.
+3. **Introduce data-model changes only when a validated factor needs them** (Phase 3), and do them safely (schema-only migration, no DataStore read inside the migration, per-record timezone provenance, singleton profile — no premature multi-baby surface).
+4. **Capture learning telemetry first; defer automatic adaptation** until matching/lifecycle semantics are proven (Phase 4).
 
 ### Goals
 
@@ -99,7 +98,7 @@ domain/
 │   ├── prior/        # SleepAgePriors — shared age-prior tables (extracted from GenerateSleepScheduleUseCase)
 │   ├── feature/      # entity→interval conversion + metric/quality computation (pure)
 │   ├── predictor/    # baseline predictor (Phase 0); scoring factors added incrementally (Phase 2)
-│   └── eval/         # offline evaluation harness (Phase 1)
+│   └── eval/         # offline evaluation harness (Phase 0; gates GA + later factors)
 └── usecase/sleep/
     └── PredictSleepWindowUseCase.kt   # realtime Flow<SleepPredictionState>
 
@@ -144,7 +143,9 @@ Convert entities → validated `SleepInterval` / `BreastfeedInterval`, then comp
 - `medianBedtimeMinuteOfDay`, `medianMorningWakeMinuteOfDay`.
 - `EvidenceQuality` (§6.3 inputs): recent-last-wake recency, completed-interval count, interval IQR/variance, invalid-record rate, local-day coverage.
 
-All day/night grouping uses an **injected `ZoneId`** with `ZonedDateTime`/`LocalDate` boundaries — never manual millisecond day buckets, never UTC. Phase 0 uses the device's current zone (the only signal available without schema); Phase 3 adds per-record timezone provenance and downgrades confidence for ambiguous legacy rows.
+All day/night grouping uses an **injected `ZoneId`** with `ZonedDateTime`/`LocalDate` boundaries — never manual millisecond day buckets, never UTC. Phase 0 uses the device's current zone (the only signal available without schema).
+
+**Phase 0 timezone caveat (unqualified provenance).** Because the current device zone is unverified — a record created during travel, or before a move, is grouped into the wrong local day with no way to detect it — any feature derived from local-day grouping is treated as **unqualified evidence** in Phase 0: `medianBedtimeMinuteOfDay`, `medianMorningWakeMinuteOfDay`, day-vs-night split, and local-day coverage **never raise confidence and are excluded from the §6.3 gating bar**. Only zone-independent signals (elapsed wake→sleep intervals and their count / recency / IQR — which depend only on epoch deltas, not on which calendar day a timestamp lands in) can unlock a `Window`, and such windows are capped at `MEDIUM` confidence. Phase 3 per-record provenance removes this cap.
 
 A completed interval is only counted when both endpoints are valid completed sleeps with sane durations (reject `end <= start`, naps > 4h, etc. per research §5A.15).
 
@@ -165,7 +166,7 @@ No multi-factor scoring in this phase. The only personalization is the median-wa
 1. Open sleep record → `CurrentlySleeping`.
 2. Corrected/chronological age < `CUE_LED_MAX_AGE_WEEKS` → `CueLed` (cue-led message, no clock window).
 3. `EvidenceQuality` below threshold (§6.3) → `NeedMoreData(progress)` with a concrete "what's needed" hint.
-4. Open feed → `AfterActiveFeed` (anchor after the feed; window generated from `max(now, feedEnd + buffer)`).
+4. Open feed → `AfterActiveFeed` — a **non-window** state. An open breastfeeding session has no `feedEnd`, and feed timing must not move the window (§5.6), so the predictor does **not** synthesize a feed-end or emit a window here. It cancels any pending reminder and shows "feeding now — the next sleep window will appear after this feed ends." When the feed closes, the normal flow resumes (the just-ended feed becomes `lastFeedEnd` for the §5.6 prompt). No notification is ever scheduled from this state.
 5. `now > windowEnd + OVERDUE_GRACE` → `Overdue` (low confidence, "watch for cues / next opportunity soon"); notifications suppressed.
 6. Engine/parse/data error → `Unavailable(reason)` via `catchAndLog` (visible in logs and tests, recoverable in UI). **Not** silently null.
 7. Otherwise → `Window(...)`.
@@ -192,7 +193,7 @@ Mirror the feed stack:
 
 No new navigation routes; additions to existing screens/ViewModels. Robolectric Compose tests per state.
 
-**Phase 0 is shippable and is the unit of validation.**
+**Release gating for Phase 0.** Phase 0 is the unit of validation, but its constants (`MIN_COMPLETED_INTERVALS`, `HALF_WINDOW_MINUTES`, `FRESHNESS_HORIZON_HOURS`, `OVERDUE_GRACE_MINUTES`, etc.) are guesses until measured. To avoid shipping false confidence and bad reminders before the measurement mechanism exists, the **baseline evaluation harness (§7) and its fixtures land within Phase 0, before general availability**, not in a later phase. Until the baseline meets explicit quality thresholds on the fixtures (§7), the predictor ships **behind an internal/debug flag** (`predictiveSleepEnabled` stays unavailable in release UI): cards and notifications are reachable only via the developer menu. GA flips the flag once the baseline passes. So the riskiest user-facing surface (notifications) is never enabled ahead of baseline measurement.
 
 ---
 
@@ -224,27 +225,44 @@ wakeTarget = (1 - 0.6*quality_c) * agePriorMidpoint + (0.6*quality_c) * babyWake
 - Low invalid/overlapping-record rate.
 - No active disruption (Phase 3 cues: sick/teething/travel lower it).
 
-Confidence is then computed from these same dimensions (recency, interval count, variance, invalid rate, age band, timezone provenance), **not** from elapsed logging days. Below the bar → `NeedMoreData` with a concrete hint ("log a few more naps with both sleep and wake times"). Under the cue-led age → `CueLed` regardless of data.
+The gating-bar signals above are all **zone-independent** (epoch deltas, not calendar-day grouping), so they remain valid under the Phase 0 timezone caveat (§5.3). Local-day-derived features are excluded from the bar until Phase 3 provenance exists.
+
+Confidence is then computed from these same dimensions (recency, interval count, variance, invalid rate, age band, timezone provenance), **not** from elapsed logging days. **Timezone provenance is itself a confidence dimension:** in Phase 0 every record carries unqualified provenance, so confidence is **capped at `MEDIUM`** (§5.3); Phase 3 per-record provenance lifts the cap to allow `HIGH`. Below the bar → `NeedMoreData` with a concrete hint ("log a few more naps with both sleep and wake times"). Under the cue-led age → `CueLed` regardless of data.
 
 This directly answers the product requirement — predictions are withheld until there is enough *quality* signal, and the UI tells the parent what is missing.
 
 ---
 
-## 7. Phase 1 — Offline evaluation harness
+## 7. Offline evaluation harness (lands in Phase 0, gates GA and all later factors)
 
-Before any scoring factor is added, build an internal harness (`domain/sleep/eval`, behind a debug entry point) that:
+Build an internal harness (`domain/sleep/eval`, behind a debug entry point) that:
 
-- Replays a baby's historical logs chronologically, asking the predictor for a window at each wake event using only prior data.
-- Computes **MAE** between best estimate and actual next sleep start, and **% of actual starts inside the window**.
-- Compares any candidate factor against the Phase 0 baseline on the same data (and on synthetic fixtures).
+- Replays a baby's historical logs chronologically, asking the predictor for a window at each wake event using **only prior data** (strict no-lookahead).
+- Computes **MAE** between best estimate and actual next sleep start, and **% of actual starts inside the window**, plus a **missed-window rate** (actual sleep far outside the window) tracked separately so a factor can't trade a better mean for worse tail behavior.
 
-A factor is added in Phase 2 **only if** it beats the baseline on this harness. This is the gate the review demanded. The harness also doubles as a regression guard for the pure prediction layers.
+### 7.1 Hard acceptance criteria (so the gate is statistically real, not noise)
+
+A single baby's parent-entered logs are sparse and easy to overfit. The gate is **not** "candidate beat baseline on MAE." A factor or a Phase-0 GA decision is accepted **only when all hold**:
+
+- **Minimum sample size:** at least `EVAL_MIN_ANCHORS` evaluated wake anchors *per segment* (segment = age band × sleep type: nap vs. bedtime). Segments below the minimum are reported as **insufficient data and block** the factor for that segment rather than passing it.
+- **Out-of-sample protocol:** leave-one-day-out (or rolling-origin) replay — never score a factor on data it was fit on.
+- **Effect size, not just sign:** improvement must exceed a defined threshold (e.g. ≥ `EVAL_MIN_MAE_GAIN_MIN` minutes MAE *and* a minimum in-window-% gain), not merely be positive.
+- **Confidence bound:** the improvement's bootstrap/CI lower bound must remain positive — a point estimate is not enough.
+- **No regression on the vulnerable cases:** missed-window rate must not worsen, and performance on the **sparse/noisy fixture set** (single sleep/day, nights-only, naps-only, erratic intervals, edited/overlapping records) must not regress beyond `EVAL_MAX_REGRESSION`.
+- **Insufficient data ⇒ reject, not pass.** When data can't support a conclusion, the factor stays out (baseline behavior continues) rather than shipping unmeasured.
+
+### 7.2 Two jobs
+
+1. **Phase 0 GA gate:** the baseline itself must clear the fixture thresholds (in-window %, missed-window rate) before the debug flag (§ release gating) is flipped to GA.
+2. **Phase 2 factor gate:** each candidate factor must clear §7.1 against the baseline before it ships.
+
+The harness also doubles as a regression guard for the pure prediction layers (baseline fixture metrics must not regress between PRs). New tuning constants: `EVAL_MIN_ANCHORS`, `EVAL_MIN_MAE_GAIN_MIN`, `EVAL_MAX_REGRESSION` (§11).
 
 ---
 
 ## 8. Phase 2 — Incremental scoring factors (each eval-gated, each its own PR)
 
-Move from the baseline toward the research scoring model (§9–§10) **one factor at a time**, each justified by Phase 1 evaluation:
+Move from the baseline toward the research scoring model (§9–§10) **one factor at a time**, each justified by the §7 evaluation gate (§7.1 acceptance criteria):
 
 - Personalized wake percentiles / separate nap-vs-bedtime targets.
 - Sleep-debt adjustment (24h sleep vs. personalized target).
@@ -378,36 +396,40 @@ CUE_LED_MAX_AGE_WEEKS = 6
 LOOKBACK_DAYS = 14
 SHRINK_N = 10                       # Phase 4 bias shrinkage (when/if enabled)
 MAX_BIAS_MINUTES = 15               # conservative cap (Phase 4)
+EVAL_MIN_ANCHORS = 20               # min evaluated anchors per segment; below ⇒ block, not pass (§7.1)
+EVAL_MIN_MAE_GAIN_MIN = 5           # min MAE improvement (minutes) for a factor to be accepted
+EVAL_MAX_REGRESSION = 0             # no missed-window / sparse-fixture regression allowed
 ALGORITHM_VERSION = "sleep-pred-baseline-1"
 ```
+
+`MAX_CONFIDENCE_WITHOUT_TZ_PROVENANCE = MEDIUM` is enforced in Phase 0 (§5.3, §6.3) and lifted in Phase 3.
 
 ---
 
 ## 12. Decomposition into Linear issues (one PR each)
 
-Phases are sequential; **user value ships at the end of Phase 0** (issues 1–5). Later phases are gated by evaluation and need.
+Phases are sequential. Phase 0 is the **internal/debug** vertical slice (issues 1–6); **GA happens only after the evaluation harness (issue 5) clears the baseline thresholds** and the debug flag is flipped (issue 7). Later phases are gated by evaluation and need.
 
-**Phase 0 — baseline predictor (shippable vertical slice, NO schema changes)**
+**Phase 0 — baseline predictor + evaluation gate (NO schema changes; ships behind a debug flag until GA)**
 1. **AKA-### Extract `SleepAgePriors`; refactor `GenerateSleepScheduleUseCase` to delegate.** Pure, behavior-preserving (existing tests guard).
-2. **AKA-### Feature-extraction layer** (`SleepInterval`/`BreastfeedInterval`/`SleepMetrics`/`EvidenceQuality`) — local-tz day logic via injected `ZoneId`, overlap, validity filters. Pure, exhaustively tested.
-3. **AKA-### Baseline `PredictSleepWindowUseCase`** → `Flow<SleepPredictionState>` (sealed states, evidence-quality gating §6.3, median-wake blend §6.2, feed-as-prompt §5.6, explicit `Unavailable`).
-4. **AKA-### Predictive-sleep notification stack + settings + Settings UI + startup wiring.** Schedules only on `Window`; overdue/quiet-hours/past suppression.
-5. **AKA-### Home prediction card + Sleep-screen section** for all states (window / need-more-data+progress / overdue / cue-led / currently-sleeping / after-feed), plus plan-vs-next-window framing.
+2. **AKA-### Feature-extraction layer** (`SleepInterval`/`BreastfeedInterval`/`SleepMetrics`/`EvidenceQuality`) — zone-independent gating signals + local-day features flagged unqualified (§5.3); injected `ZoneId`, overlap, validity filters. Pure, exhaustively tested.
+3. **AKA-### Baseline `PredictSleepWindowUseCase`** → `Flow<SleepPredictionState>` (sealed states, evidence-quality gating §6.3, median-wake blend §6.2, feed-as-prompt §5.6, `AfterActiveFeed` non-window §5.5, `MEDIUM` confidence cap §5.3, explicit `Unavailable`).
+4. **AKA-### Predictive-sleep notification stack + settings + Settings UI + startup wiring** — behind the debug flag. Schedules only on `Window`; overdue/quiet-hours/past/active-feed suppression.
+5. **AKA-### Offline evaluation harness** (`domain/sleep/eval`): no-lookahead chronological replay, MAE + in-window % + missed-window rate, §7.1 acceptance criteria, sparse/noisy fixtures. The **baseline-GA gate** and the regression guard. (Lands here, not later — the measurement mechanism precedes user-facing GA.)
+6. **AKA-### Home prediction card + Sleep-screen section** for all states (window / need-more-data+progress / overdue / cue-led / currently-sleeping / after-feed), plus plan-vs-next-window framing — debug-flagged.
+7. **AKA-### GA flip:** once issue 5 shows the baseline clears thresholds on fixtures, remove the debug flag so `predictiveSleepEnabled` is reachable in release. Pure config/gating + the validation record.
 
-**Phase 1 — evaluation**
-6. **AKA-### Offline evaluation harness** (`domain/sleep/eval`): chronological replay, MAE + in-window %, baseline vs. candidate comparison, synthetic fixtures. Internal/debug entry point.
-
-**Phase 2 — incremental scoring factors (each PR gated by issue 6 results)**
-7. **AKA-### Personalized wake percentiles / nap-vs-bedtime targets** (if it beats baseline).
-8. **AKA-### Sleep-debt + nap-budget adjustments** (each justified; may split into two PRs).
-9. **AKA-### Circadian + history factors** (age-ramped; each justified; may split). Adds explicit overdue/stale candidate handling.
+**Phase 2 — incremental scoring factors (each PR gated by the §7.1 acceptance criteria)**
+8. **AKA-### Personalized wake percentiles / nap-vs-bedtime targets** (only if it clears §7.1).
+9. **AKA-### Sleep-debt + nap-budget adjustments** (each justified; may split into two PRs).
+10. **AKA-### Circadian + history factors** (age-ramped; each justified; may split). Adds explicit overdue/stale candidate handling.
 
 **Phase 3 — data model (only when a Phase 2 factor needs persistence)**
-10. **AKA-### Singleton `BabyProfileEntity` (schema-only migration) + app-level DataStore→Room bootstrap + per-record timezone provenance + stable-enum hardening.** Migration-failure + DST/travel tests. No `babyId` propagation.
-11. **AKA-### `baby_events` + Home quick-tap cue UI** (cues annotate/confidence only).
+11. **AKA-### Singleton `BabyProfileEntity` (schema-only migration) + app-level DataStore→Room bootstrap + per-record timezone provenance + stable-enum hardening.** Lifts the `MEDIUM` confidence cap once provenance exists. Migration-failure + DST/travel tests. No `babyId` propagation.
+12. **AKA-### `baby_events` + Home quick-tap cue UI** (cues annotate/confidence only).
 
 **Phase 4 — learning (telemetry-first)**
-12. **AKA-### Recommendation + feedback tables** with deterministic identity, full lifecycle, and negative outcomes — **telemetry only, no automatic bias correction.** (A later, separate issue may add constrained bias correction once telemetry + harness justify it.)
+13. **AKA-### Recommendation + feedback tables** with deterministic identity, full lifecycle, and negative outcomes — **telemetry only, no automatic bias correction.** (A later, separate issue may add constrained bias correction once telemetry + harness justify it.)
 
 Each issue: own branch, adversarial review before commit, dedicated conventional commit (`feat(sleep|db|notification|usecase|ui): …`).
 
@@ -418,7 +440,8 @@ Each issue: own branch, adversarial review before commit, dedicated conventional
 - **Pure domain** (prior, feature, predictor, eval, later scoring/feedback): JUnit 5 + MockK + fixed `Clock`/`ZoneId`. Cover age bands, median-wake blend, evidence-quality gating, every `SleepPredictionState` branch (including overdue, after-feed, currently-sleeping, cue-led, unavailable), cross-midnight overlap, and copy-safety (extend the `PredictionCopyTest` style — no forbidden phrases).
 - **Sparse-logger & noisy-data tests:** one sleep/day, only nights, only naps, stale last wake, edited records, overlapping records → assert `NeedMoreData`/low confidence rather than false windows.
 - **DST & travel tests:** spring-forward, fall-back, device-timezone change between record creation and prediction.
-- **Evaluation harness** doubles as a regression guard (baseline MAE/in-window % on fixtures must not regress).
+- **Active-feed:** open breastfeeding session → `AfterActiveFeed` (no window, reminder cancelled); on feed close, normal flow resumes — assert no `feedEnd` is ever synthesized.
+- **Evaluation harness:** no-lookahead replay correctness; §7.1 criteria enforced (insufficient-data segments block rather than pass); baseline fixture metrics (MAE / in-window % / missed-window rate) must not regress between PRs.
 - **Migration (Phase 3):** Room migration tests for schema-only creation, then bootstrap-use-case tests for missing/corrupt DataStore, incomplete onboarding, legacy-label normalization, timezone-changed-since-creation. Room never reads DataStore.
 - **Notification:** coordinator unit tests (enabled/disabled, lead, quiet hours, only-Window-schedules, overdue-cancels, past-trigger cancel) mirroring `PredictiveFeedNotificationCoordinatorTest`; receiver instrumentation test mirroring `PredictiveFeedReceiverTest`.
 - **Feedback (Phase 4):** matching/lifecycle tests — multiple recomputations in one wake period dedupe to one record; quiet-hours-suppressed and dismissed and no-sleep outcomes captured; sleeps outside the window classified correctly.
@@ -430,6 +453,10 @@ Each issue: own branch, adversarial review before commit, dedicated conventional
 ## 14. Risks & mitigations
 
 - **Over-precision on weak data** → baseline-first + offline evaluation gate every factor; confidence reflects data quality, not elapsed days; copy avoids prescriptive/medical phrasing.
+- **Eval gate certifying noise on sparse single-baby logs** → §7.1 hard criteria: min anchors per segment, leave-one-day-out, effect size + CI lower bound, missed-window/sparse-fixture regression limits, and insufficient-data-blocks-the-factor.
+- **Phase 0 shipping false confidence before measurement** → evaluation harness lands in Phase 0 and gates GA; predictor/notifications stay behind a debug flag until the baseline clears fixture thresholds.
+- **Phase 0 device-timezone grouping** → local-day-derived features are unqualified evidence (excluded from the gating bar, confidence capped at `MEDIUM`) until Phase 3 per-record provenance; only zone-independent interval signals can unlock a window.
+- **Active feed with no `feedEnd`** → `AfterActiveFeed` is a non-window state that cancels reminders; never synthesizes a feed-end.
 - **Migration on real user data** → deferred to Phase 3, schema-only, no DataStore read in the migration, app-level transactional bootstrap, prediction gated until bootstrap completes; comprehensive failure tests.
 - **Timezone / DST correctness** → injected `ZoneId` + `ZonedDateTime` boundaries; per-record provenance (Phase 3); explicit DST/travel tests; legacy rows lower confidence.
 - **Feedback that learns the parent, not the baby** → telemetry-first; negative outcomes captured; automatic bias correction deferred, scoped, shrunk, disruption-disabled, and convergence-monitored when/if enabled.
