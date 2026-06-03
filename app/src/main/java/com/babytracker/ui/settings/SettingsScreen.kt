@@ -540,6 +540,42 @@ fun SettingsScreen(
                     }),
                     singleLine = true,
                 )
+                if (BuildConfig.DEBUG) {
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                    SettingsSwitchRow(
+                        label = stringResource(R.string.settings_predictive_sleep_toggle_title),
+                        description = stringResource(R.string.settings_predictive_sleep_toggle_subtitle),
+                        checked = uiState.predictiveSleepEnabled,
+                        onCheckedChange = { newValue ->
+                            if (newValue && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                val granted = NotificationManagerCompat.from(context)
+                                    .areNotificationsEnabled()
+                                viewModel.onPredictiveSleepToggleChanged(true)
+                                if (!granted) {
+                                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            } else {
+                                viewModel.onPredictiveSleepToggleChanged(newValue)
+                            }
+                        },
+                        modifier = Modifier.testTag("predictive_sleep_switch"),
+                        leadingIcon = { Icon(Icons.Outlined.Bedtime, contentDescription = null) },
+                    )
+                    LeadTimeSegmentedRow(
+                        enabled = uiState.predictiveSleepEnabled,
+                        selectedMinutes = uiState.predictiveSleepLeadMinutes,
+                        onSelect = viewModel::onSleepLeadMinutesChanged,
+                    )
+                    val is24Hour = DateFormat.is24HourFormat(context)
+                    QuietHoursRow(
+                        enabled = uiState.predictiveSleepEnabled,
+                        startMinute = uiState.quietHoursStartMinute,
+                        endMinute = uiState.quietHoursEndMinute,
+                        is24Hour = is24Hour,
+                        onStartPicked = viewModel::onQuietHoursStartChanged,
+                        onEndPicked = viewModel::onQuietHoursEndChanged,
+                    )
+                }
             }
 
             if (uiState.appMode != null && uiState.appMode != AppMode.PARTNER) {

@@ -98,6 +98,21 @@
     <string name="notif_title_nap_reminder">Next nap window approaching</string>
     <string name="notif_body_nap_reminder">Consider starting the next nap soon</string>
 
+    <!-- Predictive sleep reminder channel -->
+    <string name="notif_channel_predictive_sleep_name">Sleep reminders</string>
+    <string name="notif_channel_predictive_sleep_description">Soft reminders before a likely sleep window</string>
+
+    <!-- Predictive sleep reminder notification -->
+    <string name="notif_title_predictive_sleep">Sleep window likely soon</string>
+    <!-- Args: 1=formatted time, 2=minutes until -->
+    <string name="notif_body_predictive_sleep">Around %1$s (in %2$d min). Estimated from recent sleep.</string>
+    <string name="notif_body_predictive_sleep_now">Around %1$s. Estimated from recent sleep.</string>
+    <string name="notif_action_start_sleep">Start sleep</string>
+
+    <!-- Settings — predictive sleep reminders -->
+    <string name="settings_predictive_sleep_toggle_title">Predictive sleep reminder</string>
+    <string name="settings_predictive_sleep_toggle_subtitle">Notify before next likely sleep window</string>
+
     <!-- Stash expiration notification -->
     <string name="notif_channel_stash_expiration_name">Stash expiration</string>
     <string name="notif_channel_stash_expiration_description">Daily reminder when milk bags are expiring</string>

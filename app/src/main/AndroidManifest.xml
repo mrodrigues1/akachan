@@ -96,6 +96,15 @@
         </receiver>
 
         <receiver
+            android:name=".receiver.PredictiveSleepReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.babytracker.PREDICTIVE_SLEEP_FIRE" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name=".receiver.StashExpirationReceiver"
             android:exported="false" />
 

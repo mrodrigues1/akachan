@@ -2,6 +2,7 @@ package com.babytracker.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.BuildConfig
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.SettingsRepository
@@ -38,6 +39,8 @@ data class SettingsUiState(
     val validIntervalCount: Int = 0,
     val napReminderEnabled: Boolean = false,
     val napReminderDelayMinutes: Int = 60,
+    val predictiveSleepEnabled: Boolean = false,
+    val predictiveSleepLeadMinutes: Int = 15,
 )
 
 @HiltViewModel
@@ -75,6 +78,8 @@ class SettingsViewModel @Inject constructor(
                 _permissionGranted,
                 settingsRepository.getNapReminderEnabled(),
                 settingsRepository.getNapReminderDelayMinutes(),
+                settingsRepository.getPredictiveSleepEnabled(),
+                settingsRepository.getPredictiveSleepLeadMinutes(),
             ) { values ->
                 val baby = values[0] as? Baby
                 val maxPerBreast = values[1] as Int
@@ -91,6 +96,8 @@ class SettingsViewModel @Inject constructor(
                 val permissionGranted = values[12] as Boolean
                 val napReminderEnabled = values[13] as Boolean
                 val napReminderDelayMinutes = values[14] as Int
+                val predictiveSleepEnabled = values[15] as Boolean
+                val predictiveSleepLeadMinutes = values[16] as Int
                 SettingsUiState(
                     baby = baby,
                     maxPerBreastMinutes = maxPerBreast,
@@ -104,10 +111,12 @@ class SettingsViewModel @Inject constructor(
                     quietHoursStartMinute = quietHoursStart,
                     quietHoursEndMinute = quietHoursEnd,
                     notificationsPermissionGranted = permissionGranted,
-                    showPermissionWarning = (predictiveEnabled || napReminderEnabled) && !permissionGranted,
+                    showPermissionWarning = (predictiveEnabled || napReminderEnabled || (BuildConfig.DEBUG && predictiveSleepEnabled)) && !permissionGranted,
                     validIntervalCount = validIntervalCount,
                     napReminderEnabled = napReminderEnabled,
                     napReminderDelayMinutes = napReminderDelayMinutes,
+                    predictiveSleepEnabled = predictiveSleepEnabled,
+                    predictiveSleepLeadMinutes = predictiveSleepLeadMinutes,
                 )
             }.collect { next ->
                 _uiState.update { current -> next.copy(isDisconnected = current.isDisconnected) }
@@ -182,5 +191,13 @@ class SettingsViewModel @Inject constructor(
 
     fun onNapReminderDelayChanged(minutes: Int) {
         viewModelScope.launch { settingsRepository.setNapReminderDelayMinutes(minutes) }
+    }
+
+    fun onPredictiveSleepToggleChanged(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setPredictiveSleepEnabled(enabled) }
+    }
+
+    fun onSleepLeadMinutesChanged(minutes: Int) {
+        viewModelScope.launch { settingsRepository.setPredictiveSleepLeadMinutes(minutes) }
     }
 }
