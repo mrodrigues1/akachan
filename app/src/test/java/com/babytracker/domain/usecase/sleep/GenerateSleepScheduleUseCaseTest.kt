@@ -9,6 +9,7 @@ import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
+import com.babytracker.domain.sleep.prior.SleepAgePriors
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -82,14 +83,14 @@ class GenerateSleepScheduleUseCaseTest {
     inner class WakeWindowTests {
         @Test
         fun `newborn 0-6 weeks has 5 wake windows of 45 minutes`() {
-            val windows = useCase.getDefaultWakeWindows(3)
+            val windows = SleepAgePriors.getDefaultWakeWindows(3)
             assertEquals(5, windows.size)
             assertTrue(windows.all { it == Duration.ofMinutes(45) })
         }
 
         @Test
         fun `6-8 weeks has 4 graduated wake windows`() {
-            val windows = useCase.getDefaultWakeWindows(7)
+            val windows = SleepAgePriors.getDefaultWakeWindows(7)
             assertEquals(4, windows.size)
             assertEquals(Duration.ofMinutes(60), windows[0])
             assertEquals(Duration.ofMinutes(75), windows[3])
@@ -97,7 +98,7 @@ class GenerateSleepScheduleUseCaseTest {
 
         @Test
         fun `2-3 months has 4 graduated wake windows`() {
-            val windows = useCase.getDefaultWakeWindows(10)
+            val windows = SleepAgePriors.getDefaultWakeWindows(10)
             assertEquals(4, windows.size)
             assertEquals(Duration.ofMinutes(75), windows[0])
             assertEquals(Duration.ofMinutes(90), windows[3])
@@ -105,7 +106,7 @@ class GenerateSleepScheduleUseCaseTest {
 
         @Test
         fun `3-4 months has 3 graduated wake windows`() {
-            val windows = useCase.getDefaultWakeWindows(14)
+            val windows = SleepAgePriors.getDefaultWakeWindows(14)
             assertEquals(3, windows.size)
             assertEquals(Duration.ofMinutes(90), windows[0])
             assertEquals(Duration.ofMinutes(120), windows[2])
@@ -113,7 +114,7 @@ class GenerateSleepScheduleUseCaseTest {
 
         @Test
         fun `4-6 months has 3 graduated wake windows`() {
-            val windows = useCase.getDefaultWakeWindows(20)
+            val windows = SleepAgePriors.getDefaultWakeWindows(20)
             assertEquals(3, windows.size)
             assertEquals(Duration.ofMinutes(105), windows[0])
             assertEquals(Duration.ofMinutes(150), windows[2])
@@ -121,7 +122,7 @@ class GenerateSleepScheduleUseCaseTest {
 
         @Test
         fun `6-9 months has 3 graduated wake windows`() {
-            val windows = useCase.getDefaultWakeWindows(30)
+            val windows = SleepAgePriors.getDefaultWakeWindows(30)
             assertEquals(3, windows.size)
             assertEquals(Duration.ofMinutes(150), windows[0])
             assertEquals(Duration.ofMinutes(210), windows[2])
@@ -129,7 +130,7 @@ class GenerateSleepScheduleUseCaseTest {
 
         @Test
         fun `9-12 months has 3 graduated wake windows`() {
-            val windows = useCase.getDefaultWakeWindows(40)
+            val windows = SleepAgePriors.getDefaultWakeWindows(40)
             assertEquals(3, windows.size)
             assertEquals(Duration.ofMinutes(180), windows[0])
             assertEquals(Duration.ofMinutes(240), windows[2])
@@ -139,9 +140,11 @@ class GenerateSleepScheduleUseCaseTest {
         fun `wake windows are graduated - first is shortest, last is longest`() {
             val ageBrackets = listOf(3, 7, 10, 14, 20, 30, 40)
             for (age in ageBrackets) {
-                val windows = useCase.getDefaultWakeWindows(age)
-                assertTrue(windows.first() <= windows.last(),
-                    "Age $age weeks: first window should be <= last window")
+                val windows = SleepAgePriors.getDefaultWakeWindows(age)
+                assertTrue(
+                    windows.first() <= windows.last(),
+                    "Age $age weeks: first window should be <= last window"
+                )
             }
         }
     }
@@ -181,35 +184,35 @@ class GenerateSleepScheduleUseCaseTest {
     inner class BedtimeTests {
         @Test
         fun `newborn bedtime window is 9-11 PM`() {
-            val window = useCase.getBedtimeWindow(3)
+            val window = SleepAgePriors.getBedtimeWindow(3)
             assertEquals(LocalTime.of(21, 0), window.start)
             assertEquals(LocalTime.of(23, 0), window.endInclusive)
         }
 
         @Test
         fun `6-12 week bedtime window is 8-10 PM`() {
-            val window = useCase.getBedtimeWindow(8)
+            val window = SleepAgePriors.getBedtimeWindow(8)
             assertEquals(LocalTime.of(20, 0), window.start)
             assertEquals(LocalTime.of(22, 0), window.endInclusive)
         }
 
         @Test
         fun `3-4 month bedtime window is 7_30-9 PM`() {
-            val window = useCase.getBedtimeWindow(14)
+            val window = SleepAgePriors.getBedtimeWindow(14)
             assertEquals(LocalTime.of(19, 30), window.start)
             assertEquals(LocalTime.of(21, 0), window.endInclusive)
         }
 
         @Test
         fun `5-6 month bedtime window is 7-8 PM`() {
-            val window = useCase.getBedtimeWindow(20)
+            val window = SleepAgePriors.getBedtimeWindow(20)
             assertEquals(LocalTime.of(19, 0), window.start)
             assertEquals(LocalTime.of(20, 0), window.endInclusive)
         }
 
         @Test
         fun `7-12 month bedtime window is 6_30-8 PM`() {
-            val window = useCase.getBedtimeWindow(30)
+            val window = SleepAgePriors.getBedtimeWindow(30)
             assertEquals(LocalTime.of(18, 30), window.start)
             assertEquals(LocalTime.of(20, 0), window.endInclusive)
         }
@@ -219,10 +222,14 @@ class GenerateSleepScheduleUseCaseTest {
             setupEmptyData()
             val schedule = useCase(babyOfAge(30))
             val window = schedule.bedtimeWindow
-            assertTrue(schedule.bedtime >= window.start,
-                "Bedtime ${schedule.bedtime} should be >= ${window.start}")
-            assertTrue(schedule.bedtime <= window.endInclusive,
-                "Bedtime ${schedule.bedtime} should be <= ${window.endInclusive}")
+            assertTrue(
+                schedule.bedtime >= window.start,
+                "Bedtime ${schedule.bedtime} should be >= ${window.start}"
+            )
+            assertTrue(
+                schedule.bedtime <= window.endInclusive,
+                "Bedtime ${schedule.bedtime} should be <= ${window.endInclusive}"
+            )
         }
     }
 
@@ -230,14 +237,14 @@ class GenerateSleepScheduleUseCaseTest {
     inner class TotalSleepTests {
         @Test
         fun `0-4 months recommends 14-17 hours`() {
-            val rec = useCase.getTotalSleepRecommendation(10)
+            val rec = SleepAgePriors.getTotalSleepRecommendation(10)
             assertEquals(Duration.ofHours(14), rec.start)
             assertEquals(Duration.ofHours(17), rec.endInclusive)
         }
 
         @Test
         fun `4-12 months recommends 12-16 hours`() {
-            val rec = useCase.getTotalSleepRecommendation(20)
+            val rec = SleepAgePriors.getTotalSleepRecommendation(20)
             assertEquals(Duration.ofHours(12), rec.start)
             assertEquals(Duration.ofHours(16), rec.endInclusive)
         }
@@ -254,45 +261,45 @@ class GenerateSleepScheduleUseCaseTest {
     inner class RegressionTests {
         @Test
         fun `4 month regression detected at 16 weeks`() {
-            val info = useCase.detectRegression(16)
+            val info = SleepAgePriors.detectRegression(16)
             assertNotNull(info)
             assertEquals("4-Month Sleep Regression", info!!.name)
         }
 
         @Test
         fun `4 month regression detected at 20 weeks`() {
-            val info = useCase.detectRegression(20)
+            val info = SleepAgePriors.detectRegression(20)
             assertNotNull(info)
             assertEquals("4-Month Sleep Regression", info!!.name)
         }
 
         @Test
         fun `8-10 month regression detected at 36 weeks`() {
-            val info = useCase.detectRegression(36)
+            val info = SleepAgePriors.detectRegression(36)
             assertNotNull(info)
             assertEquals("8-10 Month Sleep Regression", info!!.name)
         }
 
         @Test
         fun `12 month regression detected at 50 weeks`() {
-            val info = useCase.detectRegression(50)
+            val info = SleepAgePriors.detectRegression(50)
             assertNotNull(info)
             assertEquals("12-Month Sleep Regression", info!!.name)
         }
 
         @Test
         fun `no regression at 10 weeks`() {
-            assertNull(useCase.detectRegression(10))
+            assertNull(SleepAgePriors.detectRegression(10))
         }
 
         @Test
         fun `no regression at 26 weeks`() {
-            assertNull(useCase.detectRegression(26))
+            assertNull(SleepAgePriors.detectRegression(26))
         }
 
         @Test
         fun `no regression at 46 weeks`() {
-            assertNull(useCase.detectRegression(46))
+            assertNull(SleepAgePriors.detectRegression(46))
         }
     }
 
@@ -384,8 +391,10 @@ class GenerateSleepScheduleUseCaseTest {
             val schedule = useCase(babyOfAge(20))
 
             for (i in 0 until schedule.napTimes.size - 1) {
-                assertTrue(schedule.napTimes[i].startTime < schedule.napTimes[i + 1].startTime,
-                    "Nap ${i + 1} should be before nap ${i + 2}")
+                assertTrue(
+                    schedule.napTimes[i].startTime < schedule.napTimes[i + 1].startTime,
+                    "Nap ${i + 1} should be before nap ${i + 2}"
+                )
             }
         }
 
@@ -407,9 +416,7 @@ class GenerateSleepScheduleUseCaseTest {
         fun `null stored wake time falls back to 7am`() = runTest {
             setupEmptyData()
             val schedule = useCase(babyOfAge(20))
-            // First nap should be after 7:00 AM + first wake window, but not unreasonably late
             assertTrue(schedule.napTimes[0].startTime >= LocalTime.of(7, 0))
-            // Upper bound: 7:00 AM wake + max first wake window (2.5h for 4–6 months) + circadian snap headroom = well before 11 AM
             assertTrue(schedule.napTimes[0].startTime < LocalTime.of(11, 0))
         }
     }

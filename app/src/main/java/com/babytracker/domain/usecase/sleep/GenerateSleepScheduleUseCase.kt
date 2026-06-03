@@ -1,8 +1,6 @@
 package com.babytracker.domain.usecase.sleep
 
 import com.babytracker.domain.model.Baby
-import com.babytracker.domain.model.BreastfeedingSession
-import com.babytracker.domain.model.RegressionInfo
 import com.babytracker.domain.model.ScheduleEntry
 import com.babytracker.domain.model.ScheduleMode
 import com.babytracker.domain.model.SleepRecord
@@ -11,6 +9,7 @@ import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
+import com.babytracker.domain.sleep.prior.SleepAgePriors
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -36,8 +35,8 @@ class GenerateSleepScheduleUseCase @Inject constructor(
         val recentRecords = sleepRepository.getCompletedRecordsSince(sevenDaysAgo)
         val lastFeedSession = breastfeedingRepository.getLastSession()
 
-        val defaultWakeWindows = getDefaultWakeWindows(ageInWeeks)
-        val wakeWindowBounds = getWakeWindowBounds(ageInWeeks)
+        val defaultWakeWindows = SleepAgePriors.getDefaultWakeWindows(ageInWeeks)
+        val wakeWindowBounds = SleepAgePriors.getWakeWindowBounds(ageInWeeks)
 
         val personalizationResult = personalizeFromData(
             recentRecords, defaultWakeWindows, wakeWindowBounds
@@ -61,13 +60,13 @@ class GenerateSleepScheduleUseCase @Inject constructor(
             mode, shortNapAdjustment
         )
 
-        val bedtimeWindow = getBedtimeWindow(ageInWeeks)
+        val bedtimeWindow = SleepAgePriors.getBedtimeWindow(ageInWeeks)
         val bedtime = calculateBedtime(napTimes, wakeWindows, bedtimeWindow)
 
-        val totalSleepRecommendation = getTotalSleepRecommendation(ageInWeeks)
+        val totalSleepRecommendation = SleepAgePriors.getTotalSleepRecommendation(ageInWeeks)
         val totalSleepLogged = calculateAverageDailySleep(recentRecords)
 
-        val regressionWarning = detectRegression(ageInWeeks)
+        val regressionWarning = SleepAgePriors.detectRegression(ageInWeeks)
         val napTransitionSuggestion = detectNapTransition(recentRecords, ageInWeeks)
 
         return SleepSchedule(
@@ -84,28 +83,6 @@ class GenerateSleepScheduleUseCase @Inject constructor(
             lastFeedTime = lastFeedSession?.startTime,
             isPersonalized = isPersonalized
         )
-    }
-
-    // --- Wake Windows ---
-
-    internal fun getDefaultWakeWindows(ageInWeeks: Int): List<Duration> = when {
-        ageInWeeks < 6 -> listOf(45, 45, 45, 45, 45).map { Duration.ofMinutes(it.toLong()) }
-        ageInWeeks < 8 -> listOf(60, 60, 75, 75).map { Duration.ofMinutes(it.toLong()) }
-        ageInWeeks < 12 -> listOf(75, 80, 90, 90).map { Duration.ofMinutes(it.toLong()) }
-        ageInWeeks < 16 -> listOf(90, 105, 120).map { Duration.ofMinutes(it.toLong()) }
-        ageInWeeks < 24 -> listOf(105, 135, 150).map { Duration.ofMinutes(it.toLong()) }
-        ageInWeeks < 36 -> listOf(150, 180, 210).map { Duration.ofMinutes(it.toLong()) }
-        else -> listOf(180, 210, 240).map { Duration.ofMinutes(it.toLong()) }
-    }
-
-    internal fun getWakeWindowBounds(ageInWeeks: Int): Pair<Duration, Duration> = when {
-        ageInWeeks < 6 -> Duration.ofMinutes(30) to Duration.ofMinutes(60)
-        ageInWeeks < 8 -> Duration.ofMinutes(45) to Duration.ofMinutes(90)
-        ageInWeeks < 12 -> Duration.ofMinutes(60) to Duration.ofMinutes(120)
-        ageInWeeks < 16 -> Duration.ofMinutes(75) to Duration.ofMinutes(150)
-        ageInWeeks < 24 -> Duration.ofMinutes(90) to Duration.ofMinutes(180)
-        ageInWeeks < 36 -> Duration.ofMinutes(120) to Duration.ofMinutes(210)
-        else -> Duration.ofMinutes(150) to Duration.ofMinutes(240)
     }
 
     // --- Personalization ---
@@ -127,20 +104,17 @@ class GenerateSleepScheduleUseCase @Inject constructor(
             return PersonalizationResult(defaultWakeWindows, null, false)
         }
 
-        // Calculate average nap duration from logged data
         val avgNapDuration = completedNaps
             .mapNotNull { it.duration }
             .fold(Duration.ZERO) { acc, d -> acc.plus(d) }
             .dividedBy(completedNaps.size.toLong())
 
-        // Calculate actual wake windows from consecutive sleep sessions
         val sortedRecords = recentRecords.sortedBy { it.startTime }
         val actualWakeWindows = mutableListOf<Duration>()
         for (i in 0 until sortedRecords.size - 1) {
             val currentEnd = sortedRecords[i].endTime ?: continue
             val nextStart = sortedRecords[i + 1].startTime
             val gap = Duration.between(currentEnd, nextStart)
-            // Only count positive gaps under 6 hours as wake windows
             if (!gap.isNegative && gap < Duration.ofHours(6)) {
                 actualWakeWindows.add(gap)
             }
@@ -154,7 +128,6 @@ class GenerateSleepScheduleUseCase @Inject constructor(
             .fold(Duration.ZERO) { acc, d -> acc.plus(d) }
             .dividedBy(actualWakeWindows.size.toLong())
 
-        // Blend: 40% age default, 60% actual data
         val (minBound, maxBound) = wakeWindowBounds
         val blendedWindows = defaultWakeWindows.map { defaultWw ->
             val blended = defaultWw.multipliedBy(40).plus(avgActualWakeWindow.multipliedBy(60)).dividedBy(100)
@@ -176,12 +149,11 @@ class GenerateSleepScheduleUseCase @Inject constructor(
     ): List<ScheduleEntry> {
         val naps = mutableListOf<ScheduleEntry>()
         var currentTime = wakeUpTime
-        val napCount = wakeWindows.size - 1 // Last wake window is for bedtime
+        val napCount = wakeWindows.size - 1
 
         for (i in 0 until napCount) {
             var ww = wakeWindows[i]
 
-            // Short nap adjustment: reduce next wake window by 15 min if last nap was short
             val isAdjusted = shortNapAdjustment && i == 0
             if (isAdjusted) {
                 ww = ww.minus(Duration.ofMinutes(15))
@@ -190,7 +162,6 @@ class GenerateSleepScheduleUseCase @Inject constructor(
 
             currentTime = currentTime.plus(ww)
 
-            // Apply circadian alignment for clock-aligned mode
             if (mode == ScheduleMode.CLOCK_ALIGNED) {
                 currentTime = applyCircadianAlignment(currentTime, i, napCount)
             }
@@ -216,14 +187,12 @@ class GenerateSleepScheduleUseCase @Inject constructor(
     }
 
     private fun applyCircadianAlignment(napTime: LocalTime, napIndex: Int, totalNaps: Int): LocalTime {
-        // Bias morning nap toward 9:00-10:00 AM
         if (napIndex == 0) {
             val target = LocalTime.of(9, 30)
             if (isWithinMinutes(napTime, target, 30)) {
                 return shiftToward(napTime, target)
             }
         }
-        // Bias midday nap toward 12:30-14:00
         if (isMiddayNap(napIndex, totalNaps)) {
             val target = LocalTime.of(13, 0)
             if (isWithinMinutes(napTime, target, 45)) {
@@ -243,20 +212,11 @@ class GenerateSleepScheduleUseCase @Inject constructor(
 
     private fun shiftToward(time: LocalTime, target: LocalTime): LocalTime {
         val diffMinutes = Duration.between(time, target).toMinutes()
-        // Shift halfway toward the target
         val shiftMinutes = diffMinutes / 2
         return time.plusMinutes(shiftMinutes)
     }
 
     // --- Bedtime ---
-
-    internal fun getBedtimeWindow(ageInWeeks: Int): ClosedRange<LocalTime> = when {
-        ageInWeeks < 6 -> LocalTime.of(21, 0)..LocalTime.of(23, 0)
-        ageInWeeks < 12 -> LocalTime.of(20, 0)..LocalTime.of(22, 0)
-        ageInWeeks < 16 -> LocalTime.of(19, 30)..LocalTime.of(21, 0)
-        ageInWeeks < 24 -> LocalTime.of(19, 0)..LocalTime.of(20, 0)
-        else -> LocalTime.of(18, 30)..LocalTime.of(20, 0)
-    }
 
     private fun calculateBedtime(
         napTimes: List<ScheduleEntry>,
@@ -274,11 +234,6 @@ class GenerateSleepScheduleUseCase @Inject constructor(
 
     // --- Total Sleep ---
 
-    internal fun getTotalSleepRecommendation(ageInWeeks: Int): ClosedRange<Duration> = when {
-        ageInWeeks < 16 -> Duration.ofHours(14)..Duration.ofHours(17)
-        else -> Duration.ofHours(12)..Duration.ofHours(16)
-    }
-
     private fun calculateAverageDailySleep(recentRecords: List<SleepRecord>): Duration? {
         val completedRecords = recentRecords.filter { it.duration != null }
         if (completedRecords.isEmpty()) return null
@@ -295,30 +250,6 @@ class GenerateSleepScheduleUseCase @Inject constructor(
         return dailySleep
             .fold(Duration.ZERO) { acc, d -> acc.plus(d) }
             .dividedBy(dailySleep.size.toLong())
-    }
-
-    // --- Regression Detection ---
-
-    internal fun detectRegression(ageInWeeks: Int): RegressionInfo? = when {
-        ageInWeeks in 14..22 -> RegressionInfo(
-            name = "4-Month Sleep Regression",
-            description = "Your baby's sleep architecture is maturing from 2-stage to 4-stage cycles. " +
-                "This is a permanent and healthy change. Sleep may be more disrupted than usual.",
-            durationWeeks = "2-6 weeks"
-        )
-        ageInWeeks in 32..44 -> RegressionInfo(
-            name = "8-10 Month Sleep Regression",
-            description = "Object permanence, separation anxiety, and motor milestones (crawling, pulling up) " +
-                "can temporarily disrupt sleep patterns.",
-            durationWeeks = "2-6 weeks"
-        )
-        ageInWeeks in 48..55 -> RegressionInfo(
-            name = "12-Month Sleep Regression",
-            description = "Walking, early language development, and nap resistance may cause temporary " +
-                "sleep disruption.",
-            durationWeeks = "1-3 weeks"
-        )
-        else -> null
     }
 
     // --- Nap Transition Detection ---
@@ -340,7 +271,7 @@ class GenerateSleepScheduleUseCase @Inject constructor(
         }
 
         val avgNapsPerDay = dailyNapCounts.values.average()
-        val expectedNaps = getExpectedNapCount(ageInWeeks)
+        val expectedNaps = SleepAgePriors.getNapTransitionThreshold(ageInWeeks)
 
         val nightRecords = completedRecords.filter { it.sleepType == SleepType.NIGHT_SLEEP }
         val hasNapTransitionPattern = avgNapsPerDay < expectedNaps - 0.5 &&
@@ -367,15 +298,6 @@ class GenerateSleepScheduleUseCase @Inject constructor(
             .dividedBy(nightRecords.size.toLong())
 
         return avgNightSleep >= Duration.ofHours(10)
-    }
-
-    private fun getExpectedNapCount(ageInWeeks: Int): Int = when {
-        ageInWeeks < 6 -> 5
-        ageInWeeks < 12 -> 4
-        ageInWeeks < 16 -> 3
-        ageInWeeks < 24 -> 3
-        ageInWeeks < 36 -> 2
-        else -> 2
     }
 
     // --- Today's Naps ---
