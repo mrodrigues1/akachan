@@ -39,5 +39,17 @@ class InventoryRepositoryImpl @Inject constructor(
 
     override suspend fun update(bag: MilkBag) = dao.update(bag.toEntity())
 
+    override suspend fun updateDetails(
+        id: Long,
+        collectionDate: Instant,
+        volumeMl: Int,
+        notes: String?,
+    ): Boolean = dao.updateActiveDetails(
+        id = id,
+        collectionDate = collectionDate.toEpochMilli(),
+        volumeMl = volumeMl,
+        notes = notes,
+    ) > 0
+
     override suspend fun delete(bag: MilkBag) = dao.delete(bag.toEntity())
 }

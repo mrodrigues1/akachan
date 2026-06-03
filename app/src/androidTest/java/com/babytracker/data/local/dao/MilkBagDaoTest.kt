@@ -92,4 +92,70 @@ class MilkBagDaoTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    @Test
+    fun updateActiveDetailsOnlyUpdatesEditableFields() = runTest {
+        val sessionId = pumpingDao.insert(
+            PumpingEntity(startTime = 800L, breast = "LEFT")
+        )
+        val bagId = bagDao.insert(
+            MilkBagEntity(
+                collectionDate = 1_000L,
+                volumeMl = 100,
+                sourceSessionId = sessionId,
+                usedAt = null,
+                notes = "Old",
+                createdAt = 900L,
+            )
+        )
+
+        val updatedRows = bagDao.updateActiveDetails(
+            id = bagId,
+            collectionDate = 2_000L,
+            volumeMl = 150,
+            notes = "New",
+        )
+
+        assertEquals(1, updatedRows)
+        bagDao.getAllBags().test {
+            val bag = awaitItem().single()
+            assertEquals(2_000L, bag.collectionDate)
+            assertEquals(150, bag.volumeMl)
+            assertEquals("New", bag.notes)
+            assertEquals(sessionId, bag.sourceSessionId)
+            assertNull(bag.usedAt)
+            assertEquals(900L, bag.createdAt)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun updateActiveDetailsDoesNotUpdateUsedBag() = runTest {
+        val bagId = bagDao.insert(
+            MilkBagEntity(
+                collectionDate = 1_000L,
+                volumeMl = 100,
+                usedAt = 1_500L,
+                notes = "Old",
+                createdAt = 900L,
+            )
+        )
+
+        val updatedRows = bagDao.updateActiveDetails(
+            id = bagId,
+            collectionDate = 2_000L,
+            volumeMl = 150,
+            notes = "New",
+        )
+
+        assertEquals(0, updatedRows)
+        bagDao.getAllBags().test {
+            val bag = awaitItem().single()
+            assertEquals(1_000L, bag.collectionDate)
+            assertEquals(100, bag.volumeMl)
+            assertEquals("Old", bag.notes)
+            assertEquals(1_500L, bag.usedAt)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }
