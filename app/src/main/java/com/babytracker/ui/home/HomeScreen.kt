@@ -71,6 +71,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.BuildConfig
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.model.InventorySummary
@@ -78,6 +79,7 @@ import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.ui.breastfeeding.PredictionCopy
+import com.babytracker.ui.sleep.SleepPredictionCard
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatMinutesSeconds
@@ -418,6 +420,10 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                 }
+            }
+
+            if (BuildConfig.DEBUG) {
+                SleepPredictionCard(state = uiState.sleepPrediction)
             }
 
             // Tip card — suggests which side to try next (based on the less-used side last session)

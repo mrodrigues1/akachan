@@ -2,6 +2,8 @@ package com.babytracker.ui.sleep
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.BuildConfig
+import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepSchedule
 import com.babytracker.domain.model.SleepType
@@ -10,6 +12,7 @@ import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.sleep.DeleteSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.GenerateSleepScheduleUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
+import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.domain.usecase.sleep.SaveSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.StartSleepRecordUseCase
 import com.babytracker.domain.usecase.sleep.StopSleepRecordUseCase
@@ -67,6 +70,7 @@ data class SleepUiState(
     val editingRecord: SleepRecord? = null,
     val isRegressionExpanded: Boolean = true,
     val activeTimePicker: SleepTimePickerTarget? = null,
+    val sleepPrediction: SleepPredictionState = SleepPredictionState.Unavailable("loading"),
 )
 
 @HiltViewModel
@@ -83,6 +87,7 @@ class SleepViewModel @Inject constructor(
     private val sleepNotificationScheduler: SleepNotificationScheduler,
     private val napReminderScheduler: NapReminderScheduler,
     private val syncToFirestore: SyncToFirestoreUseCase,
+    private val predictSleepWindow: PredictSleepWindowUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SleepUiState())
@@ -107,6 +112,13 @@ class SleepViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     init {
+        if (BuildConfig.DEBUG) {
+            viewModelScope.launch {
+                predictSleepWindow().collect { prediction ->
+                    _uiState.value = _uiState.value.copy(sleepPrediction = prediction)
+                }
+            }
+        }
         viewModelScope.launch {
             settingsRepository.getWakeTime().collect { wakeTime ->
                 _uiState.value = _uiState.value.copy(wakeTime = wakeTime)

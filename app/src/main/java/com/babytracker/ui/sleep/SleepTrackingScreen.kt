@@ -66,6 +66,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.BuildConfig
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.ui.component.HistoryCard
@@ -223,6 +224,14 @@ fun SleepTrackingScreen(
                     napCount = napCount,
                     nightSleep = nightSleepDuration
                 )
+            }
+            if (BuildConfig.DEBUG) {
+                item {
+                    SleepRecommendationSection(
+                        state = uiState.sleepPrediction,
+                        schedule = uiState.schedule,
+                    )
+                }
             }
             item {
                 Text(

@@ -2,12 +2,14 @@ package com.babytracker.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.BuildConfig
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.PumpingSession
+import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.InventoryRepository
@@ -17,12 +19,14 @@ import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
+import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -45,6 +49,7 @@ data class HomeUiState(
     val pumpingActive: PumpingSession? = null,
     val inventorySummary: InventorySummary = InventorySummary.Empty,
     val nextFeedPrediction: FeedPrediction? = null,
+    val sleepPrediction: SleepPredictionState = SleepPredictionState.Unavailable("loading"),
 )
 
 @HiltViewModel
@@ -57,6 +62,7 @@ class HomeViewModel @Inject constructor(
     pumpingRepository: PumpingRepository,
     inventoryRepository: InventoryRepository,
     predictNextFeed: PredictNextFeedUseCase,
+    predictSleepWindow: PredictSleepWindowUseCase,
 ) : ViewModel() {
 
     val uiState: StateFlow<HomeUiState> = combine(
@@ -109,10 +115,12 @@ class HomeViewModel @Inject constructor(
         },
         pumpingRepository.getActiveSession(),
         inventoryRepository.getSummary(),
-    ) { partial, pumpingActive, inventorySummary ->
+        if (BuildConfig.DEBUG) predictSleepWindow() else flowOf(SleepPredictionState.Unavailable("release")),
+    ) { partial, pumpingActive, inventorySummary, sleepPrediction ->
         partial.copy(
             pumpingActive = pumpingActive,
             inventorySummary = inventorySummary,
+            sleepPrediction = sleepPrediction,
         )
     }.stateIn(
         scope = viewModelScope,
