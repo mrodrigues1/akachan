@@ -57,24 +57,31 @@ class PredictSleepWindowUseCase @Inject constructor(
         feedSessions: List<BreastfeedingSession>,
         baby: Baby?,
     ): SleepPredictionState {
-        if (sleepRecords.any { it.endTime == null }) return SleepPredictionState.CurrentlySleeping
+        val now = Instant.now(clock)
+        // Mirror SleepFeatureExtractor.isPossibleAt() so a stale open record (> MAX_OPEN_SLEEP_AGE_HOURS)
+        // cannot permanently suppress predictions.
+        val maxOpenSleepAgeMillis = Duration.ofHours(SleepPredictionTuning.MAX_OPEN_SLEEP_AGE_HOURS).toMillis()
+        val hasActiveSleep = sleepRecords.any { record ->
+            record.endTime == null && (now.toEpochMilli() - record.startTime.toEpochMilli()) <= maxOpenSleepAgeMillis
+        }
+        if (hasActiveSleep) return SleepPredictionState.CurrentlySleeping
         baby ?: return SleepPredictionState.Unavailable("no baby profile")
-        return predictForBaby(baby, sleepRecords, feedSessions)
+        return predictForBaby(baby, sleepRecords, feedSessions, now)
     }
 
     private fun predictForBaby(
         baby: Baby,
         sleepRecords: List<SleepRecord>,
         feedSessions: List<BreastfeedingSession>,
+        now: Instant,
     ): SleepPredictionState {
         // Baby.ageInWeeks uses LocalDate.now() (no clock injection) — compute from injected clock
         // here so tests with a fixed clock produce deterministic age-gate results.
-        val today = clock.instant().atZone(zoneId).toLocalDate()
+        val today = now.atZone(zoneId).toLocalDate()
         val ageInWeeks = ChronoUnit.WEEKS.between(baby.birthDate, today).toInt()
 
         if (ageInWeeks < SleepPredictionTuning.CUE_LED_MAX_AGE_WEEKS) return SleepPredictionState.CueLed
 
-        val now = Instant.now(clock)
         val lookbackStart = now.minus(Duration.ofDays(SleepPredictionTuning.LOOKBACK_DAYS))
         val features = SleepFeatureExtractor(clock, zoneId)
             .extract(sleepRecords.filter { it.startTime >= lookbackStart }, feedSessions)
