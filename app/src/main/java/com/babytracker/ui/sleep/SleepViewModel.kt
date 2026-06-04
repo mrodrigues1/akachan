@@ -2,7 +2,6 @@ package com.babytracker.ui.sleep
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.babytracker.BuildConfig
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepSchedule
@@ -112,11 +111,9 @@ class SleepViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     init {
-        if (BuildConfig.DEBUG) {
-            viewModelScope.launch {
-                predictSleepWindow().collect { prediction ->
-                    _uiState.value = _uiState.value.copy(sleepPrediction = prediction)
-                }
+        viewModelScope.launch {
+            predictSleepWindow().collect { prediction ->
+                _uiState.value = _uiState.value.copy(sleepPrediction = prediction)
             }
         }
         viewModelScope.launch {
