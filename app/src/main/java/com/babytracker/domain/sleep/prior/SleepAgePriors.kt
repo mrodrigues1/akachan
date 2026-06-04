@@ -54,6 +54,16 @@ object SleepAgePriors {
 
     fun getScheduledNapCount(ageInWeeks: Int): Int = getDefaultWakeWindows(ageInWeeks).size - 1
 
+    fun getNapWakeWindowMidpoint(ageInWeeks: Int): Duration {
+        val windows = getDefaultWakeWindows(ageInWeeks)
+        val napWindows = if (windows.size > 1) windows.dropLast(1) else windows
+        val avgMillis = napWindows.map { it.toMillis() }.average().toLong()
+        return Duration.ofMillis(avgMillis)
+    }
+
+    fun getPreBedtimeWakeWindowMidpoint(ageInWeeks: Int): Duration =
+        getDefaultWakeWindows(ageInWeeks).last()
+
     fun detectRegression(ageInWeeks: Int): RegressionInfo? = when {
         ageInWeeks in 14..22 -> RegressionInfo(
             name = "4-Month Sleep Regression",

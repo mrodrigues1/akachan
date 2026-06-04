@@ -276,6 +276,56 @@ class SleepAgePriorsTest {
     }
 
     @Nested
+    inner class NapAndBedtimePriorMidpoints {
+
+        @Test
+        fun `getNapWakeWindowMidpoint for 20-week baby is average of non-last wake windows`() {
+            // getDefaultWakeWindows(20) = [105, 135, 150] for 16-24w range
+            // Non-last = [105, 135]; average = 120 min
+            val midpoint = SleepAgePriors.getNapWakeWindowMidpoint(20)
+            assertEquals(Duration.ofMinutes(120), midpoint)
+        }
+
+        @Test
+        fun `getPreBedtimeWakeWindowMidpoint for 20-week baby is last wake window`() {
+            // getDefaultWakeWindows(20) = [105, 135, 150] → last = 150 min
+            val midpoint = SleepAgePriors.getPreBedtimeWakeWindowMidpoint(20)
+            assertEquals(Duration.ofMinutes(150), midpoint)
+        }
+
+        @Test
+        fun `pre-bedtime midpoint is greater than or equal to nap midpoint for all age bands`() {
+            listOf(4, 7, 10, 14, 20, 30, 40).forEach { weeks ->
+                val napMid = SleepAgePriors.getNapWakeWindowMidpoint(weeks)
+                val bedMid = SleepAgePriors.getPreBedtimeWakeWindowMidpoint(weeks)
+                assertTrue(
+                    bedMid >= napMid,
+                    "Pre-bedtime midpoint ($bedMid) must be >= nap midpoint ($napMid) at ${weeks}w"
+                )
+            }
+        }
+
+        @Test
+        fun `getNapWakeWindowMidpoint for single-window age band equals that window`() {
+            // getDefaultWakeWindows(4) = [45, 45, 45, 45, 45] for < 6w
+            // Non-last = [45, 45, 45, 45]; average = 45 min
+            val midpoint = SleepAgePriors.getNapWakeWindowMidpoint(4)
+            assertEquals(Duration.ofMinutes(45), midpoint)
+        }
+
+        @Test
+        fun `getNapWakeWindowMidpoint for 8-week baby`() {
+            // getDefaultWakeWindows(8) = [75, 80, 90, 90] for 8-12w range
+            // Non-last = [75, 80, 90]; average = 81.67 → floor = 81 min
+            val midpoint = SleepAgePriors.getNapWakeWindowMidpoint(8)
+            assertTrue(
+                midpoint.toMinutes() in 80L..83L,
+                "Expected ~81 min; got ${midpoint.toMinutes()} min"
+            )
+        }
+    }
+
+    @Nested
     inner class RegressionTests {
         @Test
         fun `4 month regression detected at 16 weeks`() {
