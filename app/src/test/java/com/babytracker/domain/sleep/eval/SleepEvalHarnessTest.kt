@@ -5,6 +5,7 @@ import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepPredictionTuning
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.sleep.feature.SleepFeatures
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -467,6 +468,23 @@ class SleepEvalHarnessTest {
                 "Overlapping cluster should score 0 anchors; got ${report.totalScored}")
             assertTrue(report.segments.all { it.scoredCount == 0 },
                 "Each segment must have scoredCount == 0")
+        }
+    }
+
+    @Nested
+    inner class InjectedPredictor {
+
+        @Test
+        fun `custom predictor function is called instead of default`() {
+            var callCount = 0
+            val countingPredictor: (SleepFeatures, Int, Instant) -> SleepPredictionState = { features, age, now ->
+                callCount++
+                SleepWindowPredictor.predict(features, age, now)
+            }
+            val harness = SleepEvalHarness(zone, countingPredictor)
+            val records = stableNapRecords(30)
+            harness.evaluate(records, emptyList(), baby, baseNow)
+            assertTrue(callCount > 0, "Custom predictor must be called at least once; callCount=$callCount")
         }
     }
 
