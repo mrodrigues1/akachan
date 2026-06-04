@@ -4,10 +4,12 @@ import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepPredictionTuning
+import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.domain.sleep.feature.BreastfeedInterval
 import com.babytracker.domain.sleep.feature.EvidenceQuality
 import com.babytracker.domain.sleep.feature.SleepFeatures
+import com.babytracker.domain.sleep.feature.SleepMetrics
 import com.babytracker.domain.sleep.prior.SleepAgePriors
 import java.time.Duration
 import java.time.Instant
@@ -30,23 +32,23 @@ object SleepWindowPredictor {
         val metrics = features.metrics
         val lastWakeMillis = metrics.lastWakeMillis
             ?: return SleepPredictionState.NeedMoreData(buildProgress(quality))
-        val babyWakeP50Millis = metrics.medianWakeIntervalMillis
-            ?: return SleepPredictionState.NeedMoreData(buildProgress(quality))
 
-        val (minBound, maxBound) = SleepAgePriors.getWakeWindowBounds(ageInWeeks)
-        val agePriorMidpointMillis = (minBound.toMillis() + maxBound.toMillis()) / 2
+        val nextType = resolveNextSleepType(metrics, ageInWeeks)
+        val (priorMidpointMillis, babyP50Millis, typeIntervalCount) =
+            resolveTypeBlend(metrics, nextType, quality.completedIntervalCount, ageInWeeks)
+                ?: return SleepPredictionState.NeedMoreData(buildProgress(quality))
 
-        val qualityC = (quality.completedIntervalCount.toFloat() / SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS)
+        val qualityC = (typeIntervalCount.toFloat() / SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS)
             .coerceIn(0f, 1f)
         val wakeTargetMillis = (
-            (1.0 - 0.6 * qualityC) * agePriorMidpointMillis +
-                0.6 * qualityC * babyWakeP50Millis
+            (1.0 - 0.6 * qualityC) * priorMidpointMillis +
+                0.6 * qualityC * babyP50Millis
             ).toLong()
 
         val bestEstimate = Instant.ofEpochMilli(lastWakeMillis + wakeTargetMillis)
-        val halfWindow = Duration.ofMinutes(SleepPredictionTuning.HALF_WINDOW_MINUTES)
-        val windowStart = bestEstimate.minus(halfWindow)
-        val windowEnd = bestEstimate.plus(halfWindow)
+        val halfWindowDuration = Duration.ofMillis(dynamicHalfWindowMillis(metrics, nextType))
+        val windowStart = bestEstimate.minus(halfWindowDuration)
+        val windowEnd = bestEstimate.plus(halfWindowDuration)
 
         if (now.isAfter(windowEnd.plus(Duration.ofMinutes(SleepPredictionTuning.OVERDUE_GRACE_MINUTES)))) {
             return SleepPredictionState.Overdue
@@ -60,11 +62,68 @@ object SleepWindowPredictor {
                 windowEnd = windowEnd,
                 bestEstimate = bestEstimate,
                 confidence = confidence,
-                reasons = buildReasons(qualityC, ageInWeeks),
+                reasons = buildReasons(qualityC, ageInWeeks, nextType, typeIntervalCount),
                 feedPrompt = computeFeedPrompt(features.feedIntervals, windowStart, windowEnd, now),
                 safetyPrompt = "Always follow your baby's sleep cues — windows are estimates, not schedules.",
             )
         )
+    }
+
+    private fun resolveTypeBlend(
+        metrics: SleepMetrics,
+        nextType: SleepType,
+        combinedIntervalCount: Int,
+        ageInWeeks: Int,
+    ): Triple<Long, Long, Int>? {
+        val combinedP50 = metrics.medianWakeIntervalMillis ?: return null
+        return when (nextType) {
+            SleepType.NAP -> {
+                val prior = SleepAgePriors.getNapWakeWindowMidpoint(ageInWeeks)
+                val (p50, count) = if (metrics.napWakeIntervalCount >= SleepPredictionTuning.MIN_TYPE_INTERVALS &&
+                    metrics.napWakeP50Millis != null
+                ) {
+                    metrics.napWakeP50Millis to metrics.napWakeIntervalCount
+                } else {
+                    combinedP50 to combinedIntervalCount
+                }
+                Triple(prior.toMillis(), p50, count)
+            }
+            SleepType.NIGHT_SLEEP -> {
+                val prior = SleepAgePriors.getPreBedtimeWakeWindowMidpoint(ageInWeeks)
+                val (p50, count) = if (metrics.bedtimeWakeIntervalCount >= SleepPredictionTuning.MIN_TYPE_INTERVALS &&
+                    metrics.bedtimeWakeP50Millis != null
+                ) {
+                    metrics.bedtimeWakeP50Millis to metrics.bedtimeWakeIntervalCount
+                } else {
+                    combinedP50 to combinedIntervalCount
+                }
+                Triple(prior.toMillis(), p50, count)
+            }
+        }
+    }
+
+    internal fun resolveNextSleepType(metrics: SleepMetrics, ageInWeeks: Int): SleepType =
+        when (metrics.lastSleepType) {
+            SleepType.NIGHT_SLEEP -> SleepType.NAP
+            SleepType.NAP -> {
+                val expected = SleepAgePriors.getScheduledNapCount(ageInWeeks)
+                if (metrics.napCountToday < expected) SleepType.NAP else SleepType.NIGHT_SLEEP
+            }
+            null -> SleepType.NAP
+        }
+
+    private fun dynamicHalfWindowMillis(metrics: SleepMetrics, nextType: SleepType): Long {
+        val (p25, p75) = when (nextType) {
+            SleepType.NAP -> metrics.napWakeP25Millis to metrics.napWakeP75Millis
+            SleepType.NIGHT_SLEEP -> metrics.bedtimeWakeP25Millis to metrics.bedtimeWakeP75Millis
+        }
+        val minMillis = Duration.ofMinutes(SleepPredictionTuning.MIN_HALF_WINDOW_MINUTES).toMillis()
+        val maxMillis = Duration.ofMinutes(SleepPredictionTuning.MAX_HALF_WINDOW_MINUTES).toMillis()
+        return if (p25 != null && p75 != null) {
+            ((p75 - p25) / 2).coerceIn(minMillis, maxMillis)
+        } else {
+            minMillis
+        }
     }
 
     private fun buildProgress(quality: EvidenceQuality) = EvidenceProgress(
@@ -75,16 +134,27 @@ object SleepWindowPredictor {
         hint = "log a few more naps with both sleep and wake times",
     )
 
-    private fun buildReasons(qualityC: Float, ageInWeeks: Int): List<String> {
+    private fun buildReasons(
+        qualityC: Float,
+        ageInWeeks: Int,
+        nextType: SleepType,
+        typeIntervalCount: Int,
+    ): List<String> {
         val pct = (qualityC * 100).toInt()
         val (minBound, maxBound) = SleepAgePriors.getWakeWindowBounds(ageInWeeks)
+        val typeLabel = if (nextType == SleepType.NIGHT_SLEEP) "bedtime" else "nap"
         return listOf(
             if (qualityC >= 1f) {
-                "Fully personalized from your baby's wake history"
+                "Fully personalized from your baby's $typeLabel history"
             } else {
-                "Blended from age-based expectations ($pct% personalized from your baby's history)"
+                "Blended from age-based expectations ($pct% personalized from your baby's $typeLabel history)"
             },
             "Typical wake window for ${ageInWeeks}w: ${minBound.toMinutes()}–${maxBound.toMinutes()} min",
+            if (typeIntervalCount >= SleepPredictionTuning.MIN_TYPE_INTERVALS) {
+                "Using your baby's ${typeLabel}-specific wake patterns ($typeIntervalCount intervals)"
+            } else {
+                "Using combined wake history (not enough $typeLabel-specific data yet)"
+            },
         )
     }
 
