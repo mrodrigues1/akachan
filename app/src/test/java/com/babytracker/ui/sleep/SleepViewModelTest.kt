@@ -1,5 +1,6 @@
 package com.babytracker.ui.sleep
 
+import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
@@ -7,6 +8,7 @@ import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.sleep.DeleteSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.GenerateSleepScheduleUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
+import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.domain.usecase.sleep.SaveSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.StartSleepRecordUseCase
 import com.babytracker.domain.usecase.sleep.StopSleepRecordUseCase
@@ -58,6 +60,7 @@ class SleepViewModelTest {
     private lateinit var sleepNotificationScheduler: SleepNotificationScheduler
     private lateinit var napReminderScheduler: NapReminderScheduler
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
+    private lateinit var predictSleepWindow: PredictSleepWindowUseCase
     private lateinit var viewModel: SleepViewModel
     private val testDispatcher = StandardTestDispatcher()
 
@@ -76,12 +79,14 @@ class SleepViewModelTest {
         sleepNotificationScheduler = mockk()
         napReminderScheduler = mockk(relaxed = true)
         syncToFirestore = mockk()
+        predictSleepWindow = mockk()
 
         every { getSleepHistory() } returns flowOf(emptyList())
         every { settingsRepository.getWakeTime() } returns flowOf(null)
         every { getBabyProfile() } returns flowOf(null)
         every { settingsRepository.getNapReminderEnabled() } returns flowOf(false)
         every { settingsRepository.getNapReminderDelayMinutes() } returns flowOf(60)
+        every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("test"))
         coJustRun { syncToFirestore(any()) }
         coJustRun { sleepNotificationScheduler.show(any(), any(), any()) }
         every { sleepNotificationScheduler.cancel() } returns Unit
@@ -105,6 +110,7 @@ class SleepViewModelTest {
         sleepNotificationScheduler,
         napReminderScheduler,
         syncToFirestore,
+        predictSleepWindow,
     )
 
     @Test
@@ -785,5 +791,14 @@ class SleepViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         verify { napReminderScheduler.cancel() }
+    }
+
+    @Test
+    fun `sleepPrediction flowsThroughToUiState`() = runTest {
+        val state = SleepPredictionState.CurrentlySleeping
+        every { predictSleepWindow() } returns flowOf(state)
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(state, viewModel.uiState.value.sleepPrediction)
     }
 }

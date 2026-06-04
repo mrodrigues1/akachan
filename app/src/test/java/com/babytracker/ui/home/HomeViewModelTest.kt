@@ -7,6 +7,7 @@ import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
+import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.InventoryRepository
@@ -16,6 +17,7 @@ import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
+import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coJustRun
@@ -49,6 +51,7 @@ class HomeViewModelTest {
     private lateinit var pumpingRepository: PumpingRepository
     private lateinit var inventoryRepository: InventoryRepository
     private lateinit var predictNextFeed: PredictNextFeedUseCase
+    private lateinit var predictSleepWindow: PredictSleepWindowUseCase
     private lateinit var viewModel: HomeViewModel
     private val testDispatcher = StandardTestDispatcher()
 
@@ -77,6 +80,7 @@ class HomeViewModelTest {
         pumpingRepository = mockk()
         inventoryRepository = mockk()
         predictNextFeed = mockk()
+        predictSleepWindow = mockk()
 
         every { getBabyProfile() } returns flowOf(testBaby)
         every { getBreastfeedingHistory() } returns flowOf(emptyList())
@@ -85,6 +89,7 @@ class HomeViewModelTest {
         every { pumpingRepository.getActiveSession() } returns flowOf(null)
         every { inventoryRepository.getSummary() } returns flowOf(InventorySummary.Empty)
         every { predictNextFeed() } returns flowOf(null)
+        every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("test"))
         coJustRun { syncToFirestore(any()) }
     }
 
@@ -102,6 +107,7 @@ class HomeViewModelTest {
         pumpingRepository,
         inventoryRepository,
         predictNextFeed,
+        predictSleepWindow,
     )
 
     @Test
@@ -357,5 +363,14 @@ class HomeViewModelTest {
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(endTimeA, viewModel.uiState.value.lastSleepEndTime)
+    }
+
+    @Test
+    fun sleepPrediction_flowsThroughToUiState() = runTest {
+        val state = SleepPredictionState.CurrentlySleeping
+        every { predictSleepWindow() } returns flowOf(state)
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(state, viewModel.uiState.value.sleepPrediction)
     }
 }
