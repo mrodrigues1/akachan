@@ -609,5 +609,7 @@ object NotificationHelper {
 
     const val PREDICTIVE_FEED_CHANNEL_ID = "predictive_feed_notifications"
     const val PREDICTIVE_FEED_NOTIFICATION_ID = 1006
+    const val PREDICTIVE_SLEEP_CHANNEL_ID = "predictive_sleep_notifications"
+    const val PREDICTIVE_SLEEP_NOTIFICATION_ID = 1008
     const val EXTRA_NAV_ROUTE = "com.babytracker.nav.route"
 }

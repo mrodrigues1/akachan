@@ -10,6 +10,8 @@ import com.babytracker.manager.NotificationPermissionCheckerImpl
 import com.babytracker.manager.NotificationScheduler
 import com.babytracker.manager.PredictiveFeedScheduler
 import com.babytracker.manager.PredictiveFeedSchedulerImpl
+import com.babytracker.manager.PredictiveSleepScheduler
+import com.babytracker.manager.PredictiveSleepSchedulerImpl
 import com.babytracker.manager.SleepNotificationManager
 import com.babytracker.manager.SleepNotificationScheduler
 import dagger.Binds
@@ -42,6 +44,12 @@ object NotificationSchedulerModule {
     fun providePredictiveFeedScheduler(
         @ApplicationContext context: Context
     ): PredictiveFeedScheduler = PredictiveFeedSchedulerImpl(context)
+
+    @Provides
+    @Singleton
+    fun providePredictiveSleepScheduler(
+        @ApplicationContext context: Context,
+    ): PredictiveSleepScheduler = PredictiveSleepSchedulerImpl(context)
 }
 
 @Module

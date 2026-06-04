@@ -67,6 +67,8 @@ class SettingsViewModelTest {
         every { napReminderScheduler.cancel() } returns Unit
         every { settingsRepository.getNapReminderEnabled() } returns flowOf(false)
         every { settingsRepository.getNapReminderDelayMinutes() } returns flowOf(60)
+        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
+        every { settingsRepository.getPredictiveSleepLeadMinutes() } returns flowOf(15)
 
         viewModel = SettingsViewModel(
             getBabyProfile,
@@ -197,6 +199,24 @@ class SettingsViewModelTest {
     @Test
     fun `showPermissionWarning true when nap reminder enabled and notifications denied`() = runTest {
         every { settingsRepository.getNapReminderEnabled() } returns flowOf(true)
+        val deniedChecker = mockk<NotificationPermissionChecker> {
+            every { areNotificationsEnabled() } returns false
+        }
+        val vm = SettingsViewModel(
+            getBabyProfile,
+            settingsRepository,
+            mockk(),
+            countRecentValidIntervals,
+            deniedChecker,
+            napReminderScheduler,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(vm.uiState.value.showPermissionWarning)
+    }
+
+    @Test
+    fun `showPermissionWarning true when predictive sleep enabled and notifications denied`() = runTest {
+        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
         val deniedChecker = mockk<NotificationPermissionChecker> {
             every { areNotificationsEnabled() } returns false
         }

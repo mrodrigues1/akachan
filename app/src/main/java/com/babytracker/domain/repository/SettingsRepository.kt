@@ -47,6 +47,10 @@ interface SettingsRepository {
     suspend fun setNapReminderEnabled(enabled: Boolean)
     fun getNapReminderDelayMinutes(): Flow<Int>
     suspend fun setNapReminderDelayMinutes(minutes: Int)
+    fun getPredictiveSleepEnabled(): Flow<Boolean>
+    suspend fun setPredictiveSleepEnabled(enabled: Boolean)
+    fun getPredictiveSleepLeadMinutes(): Flow<Int>
+    suspend fun setPredictiveSleepLeadMinutes(minutes: Int)
     fun isImportInProgress(): Flow<Boolean>
     suspend fun markImportInProgress(startedAt: Long)
     suspend fun restoreFromBackup(data: BackupData)

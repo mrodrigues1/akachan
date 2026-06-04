@@ -62,6 +62,8 @@ class SettingsViewModelPredictiveTest {
         every { countRecentValidIntervals() } returns validIntervalCountFlow
         every { settingsRepository.getNapReminderEnabled() } returns flowOf(false)
         every { settingsRepository.getNapReminderDelayMinutes() } returns flowOf(60)
+        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
+        every { settingsRepository.getPredictiveSleepLeadMinutes() } returns flowOf(15)
     }
 
     @AfterEach

@@ -41,6 +41,8 @@ class SettingsRepositoryImpl @Inject constructor(
         val QUIET_HOURS_END_MINUTE = intPreferencesKey("quiet_hours_end_minute")
         val NAP_REMINDER_ENABLED = booleanPreferencesKey("nap_reminder_enabled")
         val NAP_REMINDER_DELAY_MINUTES = intPreferencesKey("nap_reminder_delay_minutes")
+        val PREDICTIVE_SLEEP_ENABLED = booleanPreferencesKey("predictive_sleep_enabled")
+        val PREDICTIVE_SLEEP_LEAD_MINUTES = intPreferencesKey("predictive_sleep_lead_minutes")
         const val DEFAULT_LEAD_MINUTES = 15
         val ALLOWED_LEAD_MINUTES = setOf(5, 10, 15, 30)
         val IMPORT_IN_PROGRESS = booleanPreferencesKey("import_in_progress")
@@ -208,6 +210,24 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setNapReminderDelayMinutes(minutes: Int) {
         dataStore.edit { it[NAP_REMINDER_DELAY_MINUTES] = minutes.coerceIn(1, 480) }
+    }
+
+    override fun getPredictiveSleepEnabled(): Flow<Boolean> =
+        dataStore.data.map { it[PREDICTIVE_SLEEP_ENABLED] ?: false }
+
+    override suspend fun setPredictiveSleepEnabled(enabled: Boolean) {
+        dataStore.edit { it[PREDICTIVE_SLEEP_ENABLED] = enabled }
+    }
+
+    override fun getPredictiveSleepLeadMinutes(): Flow<Int> =
+        dataStore.data.map { prefs ->
+            val stored = prefs[PREDICTIVE_SLEEP_LEAD_MINUTES] ?: DEFAULT_LEAD_MINUTES
+            if (stored in ALLOWED_LEAD_MINUTES) stored else DEFAULT_LEAD_MINUTES
+        }
+
+    override suspend fun setPredictiveSleepLeadMinutes(minutes: Int) {
+        val sanitized = if (minutes in ALLOWED_LEAD_MINUTES) minutes else DEFAULT_LEAD_MINUTES
+        dataStore.edit { it[PREDICTIVE_SLEEP_LEAD_MINUTES] = sanitized }
     }
 
     override fun isImportInProgress(): Flow<Boolean> =

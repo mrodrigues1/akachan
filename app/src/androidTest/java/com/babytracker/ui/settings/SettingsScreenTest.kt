@@ -205,6 +205,11 @@ class SettingsScreenTest {
 
         override suspend fun setNapReminderDelayMinutes(minutes: Int) = Unit
 
+        override fun getPredictiveSleepEnabled(): Flow<Boolean> = flowOf(false)
+        override suspend fun setPredictiveSleepEnabled(enabled: Boolean) = Unit
+        override fun getPredictiveSleepLeadMinutes(): Flow<Int> = flowOf(15)
+        override suspend fun setPredictiveSleepLeadMinutes(minutes: Int) = Unit
+
         override fun isImportInProgress(): Flow<Boolean> = flowOf(false)
 
         override suspend fun markImportInProgress(startedAt: Long) = Unit
