@@ -7,6 +7,7 @@ import com.babytracker.domain.model.SleepPredictionTuning
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.sleep.feature.SleepFeatureExtractor
+import com.babytracker.domain.sleep.feature.SleepFeatures
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -14,7 +15,10 @@ import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
 
-class SleepEvalHarness(private val zoneId: ZoneId) {
+class SleepEvalHarness(
+    private val zoneId: ZoneId,
+    private val predictor: (SleepFeatures, Int, Instant) -> SleepPredictionState = SleepWindowPredictor::predict,
+) {
 
     fun evaluate(
         records: List<SleepRecord>,
@@ -86,7 +90,7 @@ class SleepEvalHarness(private val zoneId: ZoneId) {
             val features = SleepFeatureExtractor(clockAtWake, zoneId)
                 .extract(priorRecords.filter { it.startTime >= lookbackStart }, priorFeeds)
 
-            val predictedState = SleepWindowPredictor.predict(features, ageInWeeks, wakeInstant)
+            val predictedState = predictor(features, ageInWeeks, wakeInstant)
 
             val segmentKey = SegmentKey(ageBandFor(ageInWeeks), nextRecord.sleepType)
             val score = (predictedState as? SleepPredictionState.Window)?.let { windowState ->
