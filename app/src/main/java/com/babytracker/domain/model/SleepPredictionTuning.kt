@@ -15,8 +15,11 @@ object SleepPredictionTuning {
     const val INSTABILITY_CEILING_MINUTES = 45L
     const val MAX_INVALID_RATE = 0.25f
 
-    const val HALF_WINDOW_MINUTES = 15L
+    const val MIN_HALF_WINDOW_MINUTES = 15L    // floor for dynamic window
+    const val MAX_HALF_WINDOW_MINUTES = 60L    // ceiling for dynamic window
+    const val HALF_WINDOW_MINUTES = MIN_HALF_WINDOW_MINUTES  // kept for eval harness score threshold
     const val FULL_PERSONALIZATION_INTERVALS = 14
+    const val MIN_TYPE_INTERVALS = 3           // min type-specific intervals to use type P50
     const val OVERDUE_GRACE_MINUTES = 45L
     const val CUE_LED_MAX_AGE_WEEKS = 6
     const val CANDIDATE_STEP_MINUTES = 5L
@@ -26,5 +29,5 @@ object SleepPredictionTuning {
     const val EVAL_MIN_SCORED = 20
     const val EVAL_MIN_MAE_GAIN_MIN = 5 // TODO(AKA-91): Phase 2 factor gate — enforce in comparison harness
     const val EVAL_MAX_REGRESSION = 0 // TODO(AKA-91): Phase 2 factor gate — no regression allowed vs baseline
-    const val ALGORITHM_VERSION = "sleep-pred-baseline-1"
+    const val ALGORITHM_VERSION = "sleep-pred-phase2-personalized-wake-1"
 }

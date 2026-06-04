@@ -178,4 +178,13 @@ class SleepWindowPredictorTest {
         val window = (result as SleepPredictionState.Window).window
         assertEquals(true, window.feedPrompt == null, "Expected null feedPrompt when no feeds")
     }
+
+    @Test
+    fun `ALGORITHM_VERSION is phase2 personalized wake version`() {
+        assertEquals(
+            "sleep-pred-phase2-personalized-wake-1",
+            SleepPredictionTuning.ALGORITHM_VERSION,
+            "ALGORITHM_VERSION must be bumped when changing prediction algorithm",
+        )
+    }
 }
