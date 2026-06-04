@@ -80,6 +80,26 @@ class SleepEvalHarnessTest {
             assertNotNull(seg.blockReason)
             assertTrue(seg.blockReason!!.isNotBlank())
         }
+
+        @Test
+        fun `BLOCK when anchor count sufficient but zero Window predictions due to filtered wake intervals`() {
+            // 25 NIGHT_SLEEP records, 1 per day with 16h wake intervals.
+            // 24 wake anchors >= EVAL_MIN_ANCHORS, but 16h > MAX_PLAUSIBLE_WAKE_INTERVAL_HOURS (6h)
+            // → all wake intervals filtered → NeedMoreData for all anchors → 0 scored → BLOCK
+            var id = 1L
+            val records = (0 until 25).map { i ->
+                val sleepEnd = baseNow.minus(Duration.ofHours((25 - i) * 24L - 6))
+                val sleepStart = sleepEnd.minus(Duration.ofHours(8))
+                SleepRecord(id++, sleepStart, sleepEnd, SleepType.NIGHT_SLEEP)
+            }
+            val report = harness.evaluate(records, emptyList(), baby, baseNow)
+            assertTrue(report.segments.all { it.status == SegmentStatus.BLOCK_INSUFFICIENT_DATA },
+                "0 scored with sufficient anchors must BLOCK; got: ${report.segments}")
+            val nightSeg = report.segments.firstOrNull { it.key.sleepType == SleepType.NIGHT_SLEEP }
+            assertNotNull(nightSeg)
+            assertNotNull(nightSeg!!.blockReason)
+            assertTrue(nightSeg.blockReason!!.contains("scored"), "blockReason must mention scored anchors: ${nightSeg.blockReason}")
+        }
     }
 
     @Nested
@@ -158,10 +178,10 @@ class SleepEvalHarnessTest {
             assertEquals(reportOriginal.totalScored, reportShifted.totalScored)
             val origSeg = reportOriginal.segments.firstOrNull { it.status == SegmentStatus.PASS }
             val shiftSeg = reportShifted.segments.firstOrNull { it.status == SegmentStatus.PASS }
-            if (origSeg != null && shiftSeg != null) {
-                assertNotEquals(origSeg.maeMinutes, shiftSeg.maeMinutes,
-                    "MAE should differ when ground truth changes")
-            }
+            assertNotNull(origSeg, "expected PASS segment in original report")
+            assertNotNull(shiftSeg, "expected PASS segment in shifted report")
+            assertNotEquals(origSeg!!.maeMinutes, shiftSeg!!.maeMinutes,
+                "MAE should differ when ground truth changes")
         }
 
         @Test
