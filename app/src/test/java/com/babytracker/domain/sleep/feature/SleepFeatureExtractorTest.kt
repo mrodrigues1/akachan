@@ -36,7 +36,7 @@ class SleepFeatureExtractorTest {
         assertTrue(SleepPredictionTuning.LOOKBACK_DAYS > 0)
         assertTrue(SleepPredictionTuning.MAX_NAP_DURATION_HOURS > 0)
         assertTrue(SleepPredictionTuning.HALF_WINDOW_MINUTES > 0)
-        assertEquals("sleep-pred-baseline-1", SleepPredictionTuning.ALGORITHM_VERSION)
+        assertEquals("sleep-pred-phase2-personalized-wake-1", SleepPredictionTuning.ALGORITHM_VERSION)
     }
 
     @Test
