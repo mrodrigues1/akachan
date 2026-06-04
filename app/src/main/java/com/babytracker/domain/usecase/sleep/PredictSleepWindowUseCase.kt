@@ -62,7 +62,9 @@ class PredictSleepWindowUseCase @Inject constructor(
         // cannot permanently suppress predictions.
         val maxOpenSleepAgeMillis = Duration.ofHours(SleepPredictionTuning.MAX_OPEN_SLEEP_AGE_HOURS).toMillis()
         val hasActiveSleep = sleepRecords.any { record ->
-            record.endTime == null && (now.toEpochMilli() - record.startTime.toEpochMilli()) <= maxOpenSleepAgeMillis
+            val startMillis = record.startTime.toEpochMilli()
+            val nowMillis = now.toEpochMilli()
+            record.endTime == null && startMillis <= nowMillis && (nowMillis - startMillis) <= maxOpenSleepAgeMillis
         }
         if (hasActiveSleep) return SleepPredictionState.CurrentlySleeping
         baby ?: return SleepPredictionState.Unavailable("no baby profile")
