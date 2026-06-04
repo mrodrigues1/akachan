@@ -289,4 +289,219 @@ class SleepEvalHarnessTest {
                 "Completed pre-wake feed should not change prediction type")
         }
     }
+
+    @Nested
+    inner class SparseAndNoisyFixtures {
+
+        /**
+         * Sparse logger: one NAP per day for 15 days.
+         * 14 potential anchors < EVAL_MIN_ANCHORS (20) → BLOCK.
+         */
+        @Test
+        fun `sparse logger - one sleep per day produces BLOCK`() {
+            var id = 1L
+            val records = (0 until 15).map { dayAgo ->
+                val napEnd = baseNow.minus(Duration.ofDays(dayAgo.toLong())).minus(Duration.ofHours(2))
+                SleepRecord(id++, napEnd.minus(Duration.ofHours(1)), napEnd, SleepType.NAP)
+            }
+            val report = harness.evaluate(records, emptyList(), baby, baseNow)
+            assertTrue(report.segments.isNotEmpty(),
+                "Sparse logger must still produce segments, not empty report")
+            assertTrue(report.segments.all { it.status == SegmentStatus.BLOCK_INSUFFICIENT_DATA },
+                "Sparse logger (1/day, 15 days) should BLOCK; got: ${report.segments}")
+            // 14 records → 14 anchors, but < EVAL_MIN_ANCHORS; 0 scored because all anchors BLOCK
+            assertTrue(report.totalAnchors <= 14,
+                "Sparse logger must have <= 14 anchors; got ${report.totalAnchors}")
+            assertEquals(0, report.totalScored,
+                "Sparse logger should score 0 anchors; got ${report.totalScored}")
+            assertTrue(report.segments.all { it.scoredCount == 0 },
+                "Each segment must have scoredCount == 0 in sparse logger")
+        }
+
+        /**
+         * Nights-only: 25 NIGHT_SLEEP records with ~15 h wake windows between them.
+         * Wake intervals far exceed MAX_PLAUSIBLE_WAKE_INTERVAL_HOURS (6 h) → filtered out →
+         * completedWakeIntervals = [] → NeedMoreData for all anchors → 0 scored → BLOCK.
+         */
+        @Test
+        fun `nights-only - wake intervals exceed plausibility ceiling, all anchors return NeedMoreData`() {
+            var id = 1L
+            val records = (0 until 25).map { i ->
+                // Night sleep: 10 pm to 6 am → 8 h sleep, 16 h wake window → > MAX (6 h)
+                val sleepEnd = baseNow.minus(Duration.ofHours((25 - i) * 24L - 6))
+                val sleepStart = sleepEnd.minus(Duration.ofHours(8))
+                SleepRecord(id++, sleepStart, sleepEnd, SleepType.NIGHT_SLEEP)
+            }
+            val report = harness.evaluate(records, emptyList(), baby, baseNow)
+            assertTrue(report.segments.isNotEmpty(),
+                "Nights-only must still produce segments, not empty report")
+            assertTrue(report.segments.all { it.status == SegmentStatus.BLOCK_INSUFFICIENT_DATA },
+                "Nights-only with 16h wake windows should BLOCK; got: ${report.segments}")
+            // 24 potential anchors are found but all return NeedMoreData → 0 scored
+            assertTrue(report.totalAnchors >= 24,
+                "Should have 24 anchors from 25 records; got ${report.totalAnchors}")
+            assertEquals(0, report.totalScored,
+                "All anchors return NeedMoreData → 0 scored; got ${report.totalScored}")
+            val nightSeg = report.segments.firstOrNull { it.key.sleepType == SleepType.NIGHT_SLEEP }
+            assertNotNull(nightSeg, "NIGHT_SLEEP segment must be present")
+            assertEquals(0, nightSeg!!.scoredCount,
+                "NIGHT_SLEEP segment scoredCount must be 0; got ${nightSeg.scoredCount}")
+        }
+
+        /**
+         * Naps-only: 15 NAP records.
+         * NAP segment: 14 anchors < 20 → BLOCK.
+         * NIGHT_SLEEP segment: 0 anchors → BLOCK (segment grid materialization ensures it appears).
+         */
+        @Test
+        fun `naps-only - both NAP and NIGHT_SLEEP segments appear as BLOCK`() {
+            var id = 1L
+            val records = (0 until 15).map { i ->
+                val napEnd = baseNow.minus(Duration.ofMinutes(60 + i * 180L))
+                SleepRecord(id++, napEnd.minus(Duration.ofMinutes(90)), napEnd, SleepType.NAP)
+            }
+            val report = harness.evaluate(records, emptyList(), baby, baseNow)
+            // Both segment types must be present — not an empty report
+            assertEquals(SleepType.entries.size, report.segments.size,
+                "Expected one segment per SleepType; got ${report.segments.size}")
+            assertTrue(report.segments.all { it.status == SegmentStatus.BLOCK_INSUFFICIENT_DATA })
+            // NAP segment: up to 14 anchors, all below EVAL_MIN_ANCHORS threshold
+            val napSeg = report.segments.firstOrNull { it.key.sleepType == SleepType.NAP }
+            assertNotNull(napSeg, "NAP segment must be present")
+            assertTrue(napSeg!!.anchorCount <= 14,
+                "NAP segment anchorCount must be <= 14 for 15 records; got ${napSeg.anchorCount}")
+            assertEquals(0, napSeg.scoredCount, "NAP segment scoredCount must be 0")
+            // Segment grid materializes NIGHT_SLEEP with 0 anchors — it must be present as BLOCK,
+            // not silently absent.
+            val nightSeg = report.segments.firstOrNull { it.key.sleepType == SleepType.NIGHT_SLEEP }
+            assertNotNull(nightSeg, "NIGHT_SLEEP segment must appear as BLOCK even with 0 anchors")
+            assertEquals(0, nightSeg!!.anchorCount)
+            assertEquals(0, nightSeg.scoredCount, "NIGHT_SLEEP segment scoredCount must be 0")
+        }
+
+        /**
+         * Very erratic intervals: alternating 60 min and 4 h wake windows.
+         * IQR = 180 min >> INSTABILITY_CEILING_MINUTES (45 min) AND record span < 3 local days →
+         * hasSufficientZoneIndependentEvidence = false → NeedMoreData for all anchors → 0 scored → BLOCK.
+         */
+        @Test
+        fun `erratic intervals - high IQR causes NeedMoreData for all anchors, segment BLOCKS`() {
+            var id = 1L
+            // Alternating short (60 min) and long (240 min) wake intervals between 90-min naps.
+            // Build 25 naps from the end backwards.
+            val records = mutableListOf<SleepRecord>()
+            var cursor = baseNow.minus(Duration.ofMinutes(60)) // end of most recent nap
+            repeat(25) { i ->
+                val napEnd = cursor
+                val napStart = napEnd.minus(Duration.ofMinutes(90))
+                records += SleepRecord(id++, napStart, napEnd, SleepType.NAP)
+                // Alternate wake gap: even iterations use 60 min, odd use 240 min
+                val wakeGap = if (i % 2 == 0) 60L else 240L
+                cursor = napStart.minus(Duration.ofMinutes(wakeGap))
+            }
+            val sorted = records.sortedBy { it.startTime }
+            val report = harness.evaluate(sorted, emptyList(), baby, baseNow)
+            assertTrue(report.segments.isNotEmpty(),
+                "Erratic fixture must still produce segments, not empty report")
+            assertTrue(report.segments.all { it.status == SegmentStatus.BLOCK_INSUFFICIENT_DATA },
+                "Erratic (IQR >> 45 min) fixture should BLOCK; got: ${report.segments}")
+            // Anchors exist (25 records → up to 24 potential) but all return NeedMoreData → 0 scored
+            assertTrue(report.totalAnchors >= SleepPredictionTuning.EVAL_MIN_ANCHORS,
+                "Erratic fixture must have >= EVAL_MIN_ANCHORS (${SleepPredictionTuning.EVAL_MIN_ANCHORS}) anchors, got ${report.totalAnchors}")
+            assertEquals(0, report.totalScored,
+                "All anchors return NeedMoreData due to high IQR → 0 scored; got ${report.totalScored}")
+            assertTrue(report.segments.all { it.scoredCount == 0 },
+                "Each segment must have scoredCount == 0")
+        }
+
+        /**
+         * Overlapping records: 25 naps all overlapping each other within a 2-hour window.
+         * SleepFeatureExtractor.removeOverlapping() drops the entire cluster → 0 completed intervals →
+         * NeedMoreData for all anchors → 0 scored → BLOCK.
+         */
+        @Test
+        fun `overlapping records - all dropped by removeOverlapping, segment BLOCKS`() {
+            var id = 1L
+            // All records start within a 30-min band and end within another 30-min band → one giant cluster
+            val clusterStart = baseNow.minus(Duration.ofHours(4))
+            val records = (0 until 25).map { i ->
+                val start = clusterStart.plus(Duration.ofMinutes(i.toLong()))
+                val end = start.plus(Duration.ofHours(1))
+                SleepRecord(id++, start, end, SleepType.NAP)
+            }
+            val report = harness.evaluate(records, emptyList(), baby, baseNow)
+            assertTrue(report.segments.isNotEmpty(),
+                "Overlapping cluster must still produce segments, not empty report")
+            assertTrue(report.segments.all { it.status == SegmentStatus.BLOCK_INSUFFICIENT_DATA },
+                "Overlapping cluster fixture should BLOCK; got: ${report.segments}")
+            // removeOverlapping drops the cluster → 0 scored anchors
+            assertEquals(0, report.totalScored,
+                "Overlapping cluster should score 0 anchors; got ${report.totalScored}")
+            assertTrue(report.segments.all { it.scoredCount == 0 },
+                "Each segment must have scoredCount == 0")
+        }
+    }
+
+    @Nested
+    inner class ZeroAnchorEdgeCases {
+
+        /**
+         * Empty records: no sleep history at all.
+         * Segment grid derives from baby's current age band → NAP + NIGHT_SLEEP both BLOCK.
+         */
+        @Test
+        fun `empty records - report emits BLOCK segments for baby current age band`() {
+            val report = harness.evaluate(emptyList(), emptyList(), baby, baseNow)
+            assertTrue(report.segments.isNotEmpty(),
+                "Empty records must still produce segments (derived from baby age), not empty report")
+            assertTrue(report.segments.all { it.status == SegmentStatus.BLOCK_INSUFFICIENT_DATA })
+            assertEquals(0, report.totalAnchors)
+            assertEquals(SleepType.entries.size, report.segments.size,
+                "Expected one BLOCK segment per SleepType for baby's current age band")
+        }
+
+        /**
+         * One completed record: valid but no nextRecord → 0 anchors.
+         * Must still emit BLOCK segments, not an empty report.
+         */
+        @Test
+        fun `single completed record - zero anchors emits BLOCK segments`() {
+            val singleRecord = listOf(
+                SleepRecord(
+                    id = 1L,
+                    startTime = baseNow.minus(Duration.ofHours(2)),
+                    endTime = baseNow.minus(Duration.ofHours(1)),
+                    sleepType = SleepType.NAP,
+                )
+            )
+            val report = harness.evaluate(singleRecord, emptyList(), baby, baseNow)
+            assertTrue(report.segments.isNotEmpty())
+            assertTrue(report.segments.all { it.status == SegmentStatus.BLOCK_INSUFFICIENT_DATA })
+            assertEquals(0, report.totalAnchors)
+            assertEquals(0, report.totalScored)
+            assertTrue(report.segments.all { it.anchorCount == 0 && it.scoredCount == 0 })
+        }
+
+        /**
+         * All records belong to a baby under CUE_LED_MAX_AGE_WEEKS — all anchors skipped.
+         * Segment grid still derives from baby's current age band → BLOCK segments emitted.
+         */
+        @Test
+        fun `all-cue-led records - skipped anchors still produce BLOCK segments`() {
+            // Baby born 4 weeks ago → ageInWeeks = 4 < CUE_LED_MAX_AGE_WEEKS (6)
+            val youngBaby = Baby(
+                name = "YoungBaby",
+                birthDate = LocalDate.ofInstant(baseNow, zone).minusWeeks(4),
+            )
+            val records = stableNapRecords(32)
+            val report = harness.evaluate(records, emptyList(), youngBaby, baseNow)
+            assertTrue(report.segments.isNotEmpty(),
+                "Cue-led dataset must still emit segments, not empty report")
+            assertTrue(report.segments.all { it.status == SegmentStatus.BLOCK_INSUFFICIENT_DATA })
+            assertEquals(0, report.totalAnchors)
+            assertEquals(0, report.totalScored)
+            assertTrue(report.segments.all { it.anchorCount == 0 && it.scoredCount == 0 },
+                "All segments must have anchorCount == 0 and scoredCount == 0 for cue-led baby")
+        }
+    }
 }
