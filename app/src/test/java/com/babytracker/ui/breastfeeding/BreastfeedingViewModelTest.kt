@@ -185,13 +185,13 @@ class BreastfeedingViewModelTest {
     @Test
     fun `onStartSession starts session when side is selected`() = runTest {
         viewModel.onSideSelected(BreastSide.LEFT)
-        
+
         val session = BreastfeedingSession(
             id = 1L,
             startTime = Instant.now(),
             startingSide = BreastSide.LEFT
         )
-        
+
         coEvery { startSession(BreastSide.LEFT) } answers {
             activeSessionFlow.value = session
             1L
@@ -348,7 +348,7 @@ class BreastfeedingViewModelTest {
 
         coJustRun { stopSession(session) }
         // Just verify the method can be called without error.
-        
+
         // Just verify the method can be called without error
         // Full notification cancellation testing requires instrumented tests
     }
