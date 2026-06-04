@@ -41,7 +41,7 @@ class SleepEvalHarnessTest {
      * Wake interval between record[i] and record[i+1]: 90 min (constant, IQR ≈ 0).
      * N=32 records span ~95 h (~4 days) → LOCAL_DAYS ≥ 3 ✓ LOOKBACK_DAYS=14 ✓
      */
-    private fun stableNapRecords(count: Int = 32): List<SleepRecord> {
+    private fun stableNapRecords(count: Int = 60): List<SleepRecord> {
         var id = 1L
         return (0 until count).map { i ->
             val napEnd = baseNow.minus(Duration.ofMinutes(60 + i * 180L))
@@ -100,14 +100,42 @@ class SleepEvalHarnessTest {
             assertNotNull(nightSeg!!.blockReason)
             assertTrue(nightSeg.blockReason!!.contains("scored"), "blockReason must mention scored anchors: ${nightSeg.blockReason}")
         }
+
+        @Test
+        fun `PASS segment scoredCount is at least EVAL_MIN_SCORED`() {
+            // Regression guard: EVAL_MIN_SCORED = 20 ensures the scored-anchor CI is statistically
+            // meaningful (±22% at 95% confidence). A segment that scores exactly EVAL_MIN_SCORED - 1
+            // anchors must BLOCK; a segment with >= EVAL_MIN_SCORED scored anchors must PASS.
+            // 60 stable records → ~42 anchors, ~30+ Window-scored → PASS ✓
+            val records = stableNapRecords(60)
+            val report = harness.evaluate(records, emptyList(), baby, baseNow)
+            val passSeg = report.segments.firstOrNull { it.status == SegmentStatus.PASS }
+            assertNotNull(passSeg, "60 stable records must yield a PASS segment")
+            assertTrue(
+                passSeg!!.scoredCount >= SleepPredictionTuning.EVAL_MIN_SCORED,
+                "PASS segment scoredCount=${passSeg.scoredCount} must be >= EVAL_MIN_SCORED (${SleepPredictionTuning.EVAL_MIN_SCORED})",
+            )
+        }
+
+        @Test
+        fun `EVAL_MIN_SCORED constant is 20 - boundary guard against silent regression`() {
+            // Hard-coded sentinel: if EVAL_MIN_SCORED is ever reduced below 20, the statistical
+            // power of the eval harness degrades to a meaningless CI width.
+            // 95% CI half-width for n=20 proportions: ±1.96*sqrt(0.25/20) ≈ ±22% — acceptable floor.
+            // n=5 (old value) gives ±44% — statistically meaningless.
+            // This assertion must fail loudly if anyone reverts the threshold silently.
+            assertEquals(20, SleepPredictionTuning.EVAL_MIN_SCORED,
+                "EVAL_MIN_SCORED must be 20 for statistical validity; " +
+                    "lower values produce CI > ±44% on inWindowPct. Update this test deliberately if the threshold changes.")
+        }
     }
 
     @Nested
     inner class PassSegment {
 
         @Test
-        fun `32 stable records produces a PASS segment with metrics`() {
-            val records = stableNapRecords(32)
+        fun `60 stable records produces a PASS segment with at least EVAL_MIN_SCORED Window predictions`() {
+            val records = stableNapRecords(60)
             val report = harness.evaluate(records, emptyList(), baby, baseNow)
             val passSeg = report.segments.firstOrNull { it.status == SegmentStatus.PASS }
             assertNotNull(passSeg, "Expected at least one PASS segment")
@@ -118,7 +146,7 @@ class SleepEvalHarnessTest {
 
         @Test
         fun `PASS segment anchor count is at least EVAL_MIN_ANCHORS`() {
-            val records = stableNapRecords(32)
+            val records = stableNapRecords(60)
             val report = harness.evaluate(records, emptyList(), baby, baseNow)
             val passSeg = report.segments.first { it.status == SegmentStatus.PASS }
             assertTrue(passSeg.anchorCount >= SleepPredictionTuning.EVAL_MIN_ANCHORS)
@@ -126,7 +154,7 @@ class SleepEvalHarnessTest {
 
         @Test
         fun `PASS segment has positive scoredCount`() {
-            val records = stableNapRecords(32)
+            val records = stableNapRecords(60)
             val report = harness.evaluate(records, emptyList(), baby, baseNow)
             val passSeg = report.segments.first { it.status == SegmentStatus.PASS }
             assertTrue(passSeg.scoredCount > 0)
@@ -134,7 +162,7 @@ class SleepEvalHarnessTest {
 
         @Test
         fun `EvalReport carries correct algorithmVersion and evaluatedAt`() {
-            val records = stableNapRecords(32)
+            val records = stableNapRecords(60)
             val report = harness.evaluate(records, emptyList(), baby, baseNow)
             assertEquals(SleepPredictionTuning.ALGORITHM_VERSION, report.algorithmVersion)
             assertEquals(baseNow, report.evaluatedAt)
@@ -142,7 +170,7 @@ class SleepEvalHarnessTest {
 
         @Test
         fun `inWindowPct is between 0 and 1`() {
-            val records = stableNapRecords(32)
+            val records = stableNapRecords(60)
             val report = harness.evaluate(records, emptyList(), baby, baseNow)
             val passSeg = report.segments.first { it.status == SegmentStatus.PASS }
             val pct = passSeg.inWindowPct!!
@@ -151,7 +179,7 @@ class SleepEvalHarnessTest {
 
         @Test
         fun `missedWindowRate is between 0 and 1`() {
-            val records = stableNapRecords(32)
+            val records = stableNapRecords(60)
             val report = harness.evaluate(records, emptyList(), baby, baseNow)
             val passSeg = report.segments.first { it.status == SegmentStatus.PASS }
             val rate = passSeg.missedWindowRate!!
@@ -164,7 +192,7 @@ class SleepEvalHarnessTest {
 
         @Test
         fun `changing ground-truth record changes MAE but not scored count`() {
-            val records = stableNapRecords(32)
+            val records = stableNapRecords(60)
             // Shift last record 3 hours earlier — changes ground truth for anchor[last-1]
             // but must NOT affect any prediction (predictions use only prior records)
             val shifted = records.dropLast(1) + records.last().copy(
@@ -186,7 +214,7 @@ class SleepEvalHarnessTest {
 
         @Test
         fun `anchor 15 bestEstimate equals direct prior-only SleepWindowPredictor call`() {
-            val records = stableNapRecords(32)
+            val records = stableNapRecords(60)
             val sorted = records.filter { it.endTime != null }.sortedBy { it.startTime }
             val anchorIdx = 15
 
@@ -212,7 +240,7 @@ class SleepEvalHarnessTest {
 
         @Test
         fun `extreme mutation of future records does not change prior anchor predictions`() {
-            val records = stableNapRecords(32)
+            val records = stableNapRecords(60)
             val sorted = records.filter { it.endTime != null }.sortedBy { it.startTime }
             val cutoff = 15 // verify anchors 0..cutoff-1 are unaffected
 
@@ -243,7 +271,7 @@ class SleepEvalHarnessTest {
 
         @Test
         fun `feed crossing wake anchor is seen as active at that anchor`() {
-            val records = stableNapRecords(32)
+            val records = stableNapRecords(60)
             val sorted = records.filter { it.endTime != null }.sortedBy { it.startTime }
             val anchorIdx = 20
             val wakeInstant = sorted[anchorIdx].endTime!!
@@ -266,7 +294,7 @@ class SleepEvalHarnessTest {
 
         @Test
         fun `completed feed entirely before wake anchor is included normally`() {
-            val records = stableNapRecords(32)
+            val records = stableNapRecords(60)
             val sorted = records.filter { it.endTime != null }.sortedBy { it.startTime }
             val anchorIdx = 20
             val wakeInstant = sorted[anchorIdx].endTime!!
@@ -493,7 +521,7 @@ class SleepEvalHarnessTest {
                 name = "YoungBaby",
                 birthDate = LocalDate.ofInstant(baseNow, zone).minusWeeks(4),
             )
-            val records = stableNapRecords(32)
+            val records = stableNapRecords(60)
             val report = harness.evaluate(records, emptyList(), youngBaby, baseNow)
             assertTrue(report.segments.isNotEmpty(),
                 "Cue-led dataset must still emit segments, not empty report")
