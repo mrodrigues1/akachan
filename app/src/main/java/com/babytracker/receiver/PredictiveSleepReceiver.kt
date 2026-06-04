@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import com.babytracker.BuildConfig
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.util.showPredictiveSleepReminder
 import dagger.hilt.android.AndroidEntryPoint
@@ -23,13 +22,6 @@ class PredictiveSleepReceiver : BroadcastReceiver() {
     @Inject lateinit var settingsRepository: SettingsRepository
 
     override fun onReceive(context: Context, intent: Intent) {
-        // Guard against a debug-scheduled alarm firing on a release build after upgrade.
-        // The manifest declares the receiver for all build types (required for AlarmManager
-        // to resolve the PendingIntent), so this is the last line of defence.
-        if (!BuildConfig.DEBUG) {
-            Log.d(TAG, "Dropping alarm in release build")
-            return
-        }
         when (intent.action) {
             ACTION_FIRE -> postReminder(context, intent)
             else -> Log.w(TAG, "Unknown action ${intent.action}")
@@ -77,7 +69,7 @@ class PredictiveSleepReceiver : BroadcastReceiver() {
         const val ACTION_FIRE = "com.babytracker.PREDICTIVE_SLEEP_FIRE"
         const val EXTRA_BEST_ESTIMATE_MS = "best_estimate_ms"
         const val REQUEST_CODE_PREDICTIVE_SLEEP = 1005
-        private const val MAX_STALE_MINUTES = 20L
+        internal const val MAX_STALE_MINUTES = 20L
         private const val TAG = "PredictiveSleepRx"
 
         fun isInsideQuietHours(nowMs: Long, quietStartMinute: Int, quietEndMinute: Int): Boolean {

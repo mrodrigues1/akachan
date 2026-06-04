@@ -2,7 +2,6 @@ package com.babytracker.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.babytracker.BuildConfig
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
@@ -26,7 +25,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -115,7 +113,7 @@ class HomeViewModel @Inject constructor(
         },
         pumpingRepository.getActiveSession(),
         inventoryRepository.getSummary(),
-        if (BuildConfig.DEBUG) predictSleepWindow() else flowOf(SleepPredictionState.Unavailable("release")),
+        predictSleepWindow(),
     ) { partial, pumpingActive, inventorySummary, sleepPrediction ->
         partial.copy(
             pumpingActive = pumpingActive,

@@ -2,7 +2,6 @@ package com.babytracker.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.babytracker.BuildConfig
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.SettingsRepository
@@ -111,7 +110,7 @@ class SettingsViewModel @Inject constructor(
                     quietHoursStartMinute = quietHoursStart,
                     quietHoursEndMinute = quietHoursEnd,
                     notificationsPermissionGranted = permissionGranted,
-                    showPermissionWarning = (predictiveEnabled || napReminderEnabled || (BuildConfig.DEBUG && predictiveSleepEnabled)) && !permissionGranted,
+                    showPermissionWarning = (predictiveEnabled || napReminderEnabled || predictiveSleepEnabled) && !permissionGranted,
                     validIntervalCount = validIntervalCount,
                     napReminderEnabled = napReminderEnabled,
                     napReminderDelayMinutes = napReminderDelayMinutes,

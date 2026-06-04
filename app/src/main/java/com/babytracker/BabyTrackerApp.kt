@@ -47,10 +47,8 @@ class BabyTrackerApp : Application(), Configuration.Provider {
         NotificationHelper.createStashExpirationNotificationChannel(this)
         createPredictiveFeedNotificationChannel(this)
         predictiveCoordinator.start()
-        if (BuildConfig.DEBUG) {
-            createPredictiveSleepNotificationChannel(this)
-            predictiveSleepCoordinator.start()
-        }
+        createPredictiveSleepNotificationChannel(this)
+        predictiveSleepCoordinator.start()
         widgetSyncManager.start()
         reconcileStashExpirationAlarm()
         if (BuildConfig.DEBUG) {
