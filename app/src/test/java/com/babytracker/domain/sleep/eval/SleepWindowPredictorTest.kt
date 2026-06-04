@@ -7,11 +7,9 @@ import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.sleep.feature.BreastfeedInterval
 import com.babytracker.domain.sleep.feature.EvidenceQuality
 import com.babytracker.domain.sleep.feature.SleepFeatures
-import com.babytracker.domain.sleep.feature.SleepInterval
 import com.babytracker.domain.sleep.feature.SleepMetrics
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
@@ -118,9 +116,8 @@ class SleepWindowPredictorTest {
 
     @Test
     fun `returns Overdue when window passed OVERDUE_GRACE_MINUTES ago`() {
-        // lastWake = 5 hours ago, median interval = 90 min → bestEstimate = 3.5h ago
-        // window = bestEstimate ± 15 min → windowEnd = 3h 15min ago
-        // now > windowEnd + 45 min grace → Overdue
+        // lastWake = 5 h ago, qualityC ≈ 0.71 → wakeTarget ≈ 116 min → bestEstimate ≈ 184 min ago
+        // windowEnd ≈ 169 min ago; now - windowEnd ≈ 124 min > 45 min grace → Overdue
         val lastWakeMillis = baseNow.minusSeconds(5 * 3600).toEpochMilli()
         val metrics = sufficientMetrics(
             lastWakeMillis = lastWakeMillis,
@@ -154,5 +151,31 @@ class SleepWindowPredictorTest {
         val result = SleepWindowPredictor.predict(features(quality = lowCountQuality), ageInWeeks, baseNow)
         val window = (result as SleepPredictionState.Window).window
         assertEquals(Confidence.LOW, window.confidence)
+    }
+
+    @Test
+    fun `Window feedPrompt is non-null when predicted next feed overlaps window`() {
+        // Two completed feeds, 3 h apart; avgInterval = 3 h.
+        // lastFeed started at baseNow - 2h → predictedNextFeed = baseNow + 1h.
+        // lastWake = 1h ago, bestEstimate ≈ baseNow + 35 min → window ends ≈ baseNow + 50 min.
+        // predictedNextFeed (baseNow + 1h) is within windowEnd + 30 min tolerance → non-null prompt.
+        val feed1 = BreastfeedInterval(
+            startMillis = baseNow.minusSeconds(2 * 3600).toEpochMilli(),
+            endMillis = baseNow.minusSeconds(2 * 3600 - 1800).toEpochMilli(),
+        )
+        val feed2 = BreastfeedInterval(
+            startMillis = baseNow.minusSeconds(5 * 3600).toEpochMilli(),
+            endMillis = baseNow.minusSeconds(5 * 3600 - 1800).toEpochMilli(),
+        )
+        val result = SleepWindowPredictor.predict(features(feedIntervals = listOf(feed1, feed2)), ageInWeeks, baseNow)
+        val window = (result as SleepPredictionState.Window).window
+        assertEquals(true, window.feedPrompt != null, "Expected non-null feedPrompt when predicted feed overlaps window")
+    }
+
+    @Test
+    fun `Window feedPrompt is null when no recent completed feeds`() {
+        val result = SleepWindowPredictor.predict(features(feedIntervals = emptyList()), ageInWeeks, baseNow)
+        val window = (result as SleepPredictionState.Window).window
+        assertEquals(true, window.feedPrompt == null, "Expected null feedPrompt when no feeds")
     }
 }
