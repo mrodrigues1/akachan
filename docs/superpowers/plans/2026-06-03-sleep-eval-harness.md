@@ -546,15 +546,16 @@ git commit -m "feat(sleep): extract SleepWindowPredictor; PredictSleepWindowUseC
 package com.babytracker.domain.sleep.eval
 
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepPredictionTuning
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.time.Duration
@@ -854,11 +855,15 @@ class SleepEvalHarness(private val zoneId: ZoneId) {
         val sorted = records.filter { it.endTime != null }.sortedBy { it.startTime }
         val anchors = buildAnchors(sorted, feedSessions, baby)
 
-        // Materialize the full grid: all observed age bands × all SleepTypes.
-        // Segments with 0 anchors still appear as BLOCK_INSUFFICIENT_DATA rather than
-        // disappearing silently, which would make the report look cleaner than the coverage is.
-        val observedAgeBands = anchors.map { it.segmentKey.ageBand }.toSet()
-        val allKeys = observedAgeBands.flatMap { band ->
+        // Materialize the full grid: (anchor age bands ∪ baby's current age band) × all SleepTypes.
+        // Including the baby's current age band ensures that even empty logs, single records, or
+        // all-cue-led datasets emit BLOCK_INSUFFICIENT_DATA segments rather than an empty report —
+        // an empty report would silently mask a failed coverage evaluation.
+        val anchorAgeBands = anchors.map { it.segmentKey.ageBand }.toSet()
+        val currentAgeBand = ageBandFor(
+            ChronoUnit.WEEKS.between(baby.birthDate, evaluatedAt.atZone(zoneId).toLocalDate()).toInt()
+        )
+        val allKeys = (anchorAgeBands + currentAgeBand).flatMap { band ->
             SleepType.entries.map { type -> SegmentKey(band, type) }
         }.toSet()
         val grouped = anchors.groupBy { it.segmentKey }
@@ -1110,14 +1115,73 @@ inner class SparseAndNoisyFixtures {
             "Overlapping cluster fixture should BLOCK; got: ${report.segments}")
     }
 }
+
+@Nested
+inner class ZeroAnchorEdgeCases {
+
+    /**
+     * Empty records: no sleep history at all.
+     * Segment grid derives from baby's current age band → NAP + NIGHT_SLEEP both BLOCK.
+     * Without this, the report would silently return an empty segment list.
+     */
+    @Test
+    fun `empty records - report emits BLOCK segments for baby current age band`() {
+        val report = harness.evaluate(emptyList(), emptyList(), baby, baseNow)
+        assertTrue(report.segments.isNotEmpty(),
+            "Empty records must still produce segments (derived from baby age), not empty report")
+        assertTrue(report.segments.all { it.status == SegmentStatus.BLOCK_INSUFFICIENT_DATA })
+        assertEquals(0, report.totalAnchors)
+        assertEquals(SleepType.entries.size, report.segments.size,
+            "Expected one BLOCK segment per SleepType for baby's current age band")
+    }
+
+    /**
+     * One completed record: valid but no nextRecord → 0 anchors.
+     * Must still emit BLOCK segments, not an empty report.
+     */
+    @Test
+    fun `single completed record - zero anchors emits BLOCK segments`() {
+        val singleRecord = listOf(
+            SleepRecord(
+                id = 1L,
+                startTime = baseNow.minus(Duration.ofHours(2)),
+                endTime = baseNow.minus(Duration.ofHours(1)),
+                sleepType = SleepType.NAP,
+            )
+        )
+        val report = harness.evaluate(singleRecord, emptyList(), baby, baseNow)
+        assertTrue(report.segments.isNotEmpty())
+        assertTrue(report.segments.all { it.status == SegmentStatus.BLOCK_INSUFFICIENT_DATA })
+        assertEquals(0, report.totalAnchors)
+    }
+
+    /**
+     * All records belong to a baby under CUE_LED_MAX_AGE_WEEKS — all anchors skipped.
+     * Segment grid still derives from baby's current age band → BLOCK segments emitted.
+     */
+    @Test
+    fun `all-cue-led records - skipped anchors still produce BLOCK segments`() {
+        // Baby born 4 weeks ago → ageInWeeks = 4 < CUE_LED_MAX_AGE_WEEKS (6)
+        val youngBaby = Baby(
+            name = "YoungBaby",
+            birthDate = LocalDate.ofInstant(baseNow, zone).minusWeeks(4),
+        )
+        val records = stableNapRecords(32)
+        val report = harness.evaluate(records, emptyList(), youngBaby, baseNow)
+        assertTrue(report.segments.isNotEmpty(),
+            "Cue-led dataset must still emit segments, not empty report")
+        assertTrue(report.segments.all { it.status == SegmentStatus.BLOCK_INSUFFICIENT_DATA })
+        assertEquals(0, report.totalAnchors)
+    }
+}
 ```
 
 - [ ] **Step 2: Run fixture tests**
 
 ```
-./gradlew :app:testDebugUnitTest --tests "*.SleepEvalHarnessTest.SparseAndNoisyFixtures" 2>&1 | tail -30
+./gradlew :app:testDebugUnitTest --tests "*.SleepEvalHarnessTest.SparseAndNoisyFixtures" --tests "*.SleepEvalHarnessTest.ZeroAnchorEdgeCases" 2>&1 | tail -30
 ```
-Expected: BUILD SUCCESSFUL, all 5 fixture tests pass.
+Expected: BUILD SUCCESSFUL, all 8 fixture/edge-case tests pass (5 sparse + 3 zero-anchor).
 
 - [ ] **Step 3: Run full test suite to verify no regressions**
 
@@ -1156,7 +1220,7 @@ git commit -m "test(sleep): add sparse/noisy fixture tests for SleepEvalHarness 
 | §7.1.2 Out-of-sample replay | Rolling-origin via `subList(0, i+1)` |
 | §7.1.6 Insufficient data → reject not pass | `scoreSegment()` second guard (0 scored → BLOCK) |
 | Point-in-time feed state at each anchor | `buildAnchors()` mapNotNull reconstructs active/completed state |
-| Zero-anchor segments must appear as BLOCK | Segment grid materialized from `observedAgeBands × SleepType.entries` |
+| Zero-anchor segments must appear as BLOCK | Grid = `(anchorAgeBands ∪ currentAgeBand) × SleepType.entries`; `ZeroAnchorEdgeCases` tests empty/single/cue-led |
 | No-lookahead correctness verified by test | `NoLookahead.anchor 15 bestEstimate equals direct...` + mutation test |
 | Feed crossing wake anchor returns AfterActiveFeed | `FeedPointInTime.feed crossing wake anchor is seen as active` |
 | `EVAL_MIN_ANCHORS = 20` in SleepPredictionTuning | Already present — no change needed |
