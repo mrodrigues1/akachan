@@ -14,4 +14,12 @@ data class SleepMetrics(
     val napCountToday: Int,
     val medianBedtimeMinuteOfDay: Int?,
     val medianMorningWakeMinuteOfDay: Int?,
+    val napWakeIntervalCount: Int = 0,
+    val napWakeP25Millis: Long? = null,
+    val napWakeP50Millis: Long? = null,
+    val napWakeP75Millis: Long? = null,
+    val bedtimeWakeIntervalCount: Int = 0,
+    val bedtimeWakeP25Millis: Long? = null,
+    val bedtimeWakeP50Millis: Long? = null,
+    val bedtimeWakeP75Millis: Long? = null,
 )
