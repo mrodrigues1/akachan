@@ -28,23 +28,6 @@ interface PumpingDao {
     @Update
     suspend fun update(entity: PumpingEntity)
 
-    @Query(
-        """
-        UPDATE pumping_sessions
-        SET end_time = :endTime,
-            volume_ml = :volumeMl,
-            paused_at = NULL,
-            paused_duration_ms = :pausedDurationMs
-        WHERE id = :id AND end_time IS NULL
-        """,
-    )
-    suspend fun updateEndTimeIfActive(
-        id: Long,
-        endTime: Long,
-        volumeMl: Int?,
-        pausedDurationMs: Long,
-    ): Int
-
     @Delete
     suspend fun delete(entity: PumpingEntity)
 }
