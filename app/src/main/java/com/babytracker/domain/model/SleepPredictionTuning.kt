@@ -23,6 +23,7 @@ object SleepPredictionTuning {
     const val SHRINK_N = 10
     const val MAX_BIAS_MINUTES = 15L
     const val EVAL_MIN_ANCHORS = 20
+    const val EVAL_MIN_SCORED = 5
     const val EVAL_MIN_MAE_GAIN_MIN = 5
     const val EVAL_MAX_REGRESSION = 0
     const val ALGORITHM_VERSION = "sleep-pred-baseline-1"
