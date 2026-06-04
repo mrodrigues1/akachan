@@ -438,6 +438,34 @@ class SleepFeatureExtractorTest {
         assertTrue(features.metrics.completedWakeIntervals.isEmpty())
     }
 
+    @Test
+    fun `SleepMetrics has napWakeP50Millis and bedtimeWakeP50Millis fields`() {
+        val metrics = SleepMetrics(
+            lastWakeMillis = null,
+            lastSleepType = null,
+            lastSleepDurationMillis = null,
+            completedWakeIntervals = emptyList(),
+            medianWakeIntervalMillis = null,
+            wakeIntervalIqrMillis = null,
+            sleepLast24hMillis = 0L,
+            daySleepTodayMillis = 0L,
+            napCountToday = 0,
+            medianBedtimeMinuteOfDay = null,
+            medianMorningWakeMinuteOfDay = null,
+            napWakeIntervalCount = 0,
+            napWakeP25Millis = null,
+            napWakeP50Millis = null,
+            napWakeP75Millis = null,
+            bedtimeWakeIntervalCount = 0,
+            bedtimeWakeP25Millis = null,
+            bedtimeWakeP50Millis = null,
+            bedtimeWakeP75Millis = null,
+        )
+        assertEquals(0, metrics.napWakeIntervalCount)
+        assertNull(metrics.napWakeP50Millis)
+        assertNull(metrics.bedtimeWakeP50Millis)
+    }
+
     private fun hoursMs(hours: Double): Long = (hours * 3_600_000).toLong()
 
     private fun sleepRecord(
