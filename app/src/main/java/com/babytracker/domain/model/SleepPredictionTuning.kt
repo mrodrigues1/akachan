@@ -23,7 +23,7 @@ object SleepPredictionTuning {
     const val SHRINK_N = 10
     const val MAX_BIAS_MINUTES = 15L
     const val EVAL_MIN_ANCHORS = 20
-    const val EVAL_MIN_SCORED = 5
+    const val EVAL_MIN_SCORED = 20
     const val EVAL_MIN_MAE_GAIN_MIN = 5 // TODO(AKA-91): Phase 2 factor gate — enforce in comparison harness
     const val EVAL_MAX_REGRESSION = 0 // TODO(AKA-91): Phase 2 factor gate — no regression allowed vs baseline
     const val ALGORITHM_VERSION = "sleep-pred-baseline-1"
