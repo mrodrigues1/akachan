@@ -60,6 +60,11 @@ class SleepFeatureExtractor(
         val wakeIntervals = completedWakeIntervals(completed)
         val today = LocalDate.ofInstant(clock.instant(), zoneId)
         val nightSleeps = completed.filter { it.sleepType == SleepType.NIGHT_SLEEP }
+        val typeWakeIntervals = typeAwareWakeIntervals(completed)
+        val napIntervals = typeWakeIntervals[SleepType.NAP] ?: emptyList()
+        val bedtimeIntervals = typeWakeIntervals[SleepType.NIGHT_SLEEP] ?: emptyList()
+        val napQuartiles = quartiles(napIntervals)
+        val bedtimeQuartiles = quartiles(bedtimeIntervals)
 
         return SleepMetrics(
             lastWakeMillis = lastSleep?.endMillis,
@@ -75,6 +80,14 @@ class SleepFeatureExtractor(
             },
             medianBedtimeMinuteOfDay = medianMinuteOfDay(nightSleeps.map { it.startMillis }),
             medianMorningWakeMinuteOfDay = medianMinuteOfDay(nightSleeps.mapNotNull { it.endMillis }),
+            napWakeIntervalCount = napIntervals.size,
+            napWakeP25Millis = napQuartiles?.first,
+            napWakeP50Millis = napQuartiles?.second ?: median(napIntervals),
+            napWakeP75Millis = napQuartiles?.third,
+            bedtimeWakeIntervalCount = bedtimeIntervals.size,
+            bedtimeWakeP25Millis = bedtimeQuartiles?.first,
+            bedtimeWakeP50Millis = bedtimeQuartiles?.second ?: median(bedtimeIntervals),
+            bedtimeWakeP75Millis = bedtimeQuartiles?.third,
         )
     }
 
@@ -222,15 +235,33 @@ class SleepFeatureExtractor(
         }
     }
 
-    private fun iqr(values: List<Long>): Long? {
+    private fun typeAwareWakeIntervals(completed: List<SleepInterval>): Map<SleepType, List<Long>> {
+        val lookbackStartMillis = nowMillis - Duration.ofDays(SleepPredictionTuning.LOOKBACK_DAYS).toMillis()
+        val minMillis = Duration.ofMinutes(SleepPredictionTuning.MIN_PLAUSIBLE_WAKE_INTERVAL_MINUTES).toMillis()
+        val maxMillis = Duration.ofHours(SleepPredictionTuning.MAX_PLAUSIBLE_WAKE_INTERVAL_HOURS).toMillis()
+        return completed
+            .filter { it.endMillis!! >= lookbackStartMillis }
+            .zipWithNext()
+            .mapNotNull { (previous, next) ->
+                val gap = next.startMillis - previous.endMillis!!
+                if (gap in minMillis..maxMillis) next.sleepType to gap else null
+            }
+            .groupBy({ it.first }, { it.second })
+    }
+
+    private fun quartiles(values: List<Long>): Triple<Long, Long, Long>? {
         if (values.size < 4) return null
         val sorted = values.sorted()
+        val p50 = median(sorted) ?: return null
         val lower = sorted.take(sorted.size / 2)
         val upper = sorted.takeLast(sorted.size / 2)
-        val firstQuartile = median(lower) ?: return null
-        val thirdQuartile = median(upper) ?: return null
-        return thirdQuartile - firstQuartile
+        val p25 = median(lower) ?: return null
+        val p75 = median(upper) ?: return null
+        return Triple(p25, p50, p75)
     }
+
+    private fun iqr(values: List<Long>): Long? =
+        quartiles(values)?.let { (p25, _, p75) -> p75 - p25 }
 
     private companion object {
         const val MINUTES_PER_DAY = 1_440

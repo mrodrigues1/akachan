@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -464,6 +465,93 @@ class SleepFeatureExtractorTest {
         assertEquals(0, metrics.napWakeIntervalCount)
         assertNull(metrics.napWakeP50Millis)
         assertNull(metrics.bedtimeWakeP50Millis)
+    }
+
+    // Helper: fixed clock + UTC zone used in type-separation tests
+    private val testZone = ZoneOffset.UTC
+    private val testNow = Instant.parse("2024-06-15T14:00:00Z")
+    private val testClock: Clock = Clock.fixed(testNow, testZone)
+
+    private fun extractor() = SleepFeatureExtractor(testClock, testZone)
+
+    /** 3 NAPs followed by 1 NIGHT_SLEEP in chronological order. */
+    private fun mixedRecords(): List<SleepRecord> {
+        var id = 1L
+        val records = mutableListOf<SleepRecord>()
+        // Nap 1 end=8h ago, Nap 2 end=5h30m ago, Nap 3 end=3h ago, Night end=now-1h
+        val ends = listOf(8 * 3600, 5 * 3600 + 30 * 60, 3 * 3600, 1 * 3600)
+        val types = listOf(SleepType.NAP, SleepType.NAP, SleepType.NAP, SleepType.NIGHT_SLEEP)
+        for (i in ends.indices) {
+            val end = testNow.minusSeconds(ends[i].toLong())
+            val start = end.minusSeconds(5400) // 90-min sleep
+            records += SleepRecord(id++, start, end, types[i])
+        }
+        return records.sortedBy { it.startTime }
+    }
+
+    @Test
+    fun `type-separated - nap wake intervals and P50 computed for NAP-labeled gaps`() {
+        val features = extractor().extract(mixedRecords(), emptyList())
+        val metrics = features.metrics
+        // 3 naps → 2 NAP-labeled wake intervals (between N1→N2, N2→N3)
+        assertEquals(2, metrics.napWakeIntervalCount)
+        assertNotNull(metrics.napWakeP50Millis)
+        // Nap1→Nap2 gap: 8h - 5h30m = 2h30m - 90min nap = 60 min
+        // Nap2→Nap3 gap: 5h30m - 3h = 2h30m - 90min nap = 60 min
+        // Both ≈ 60 min wake interval
+        val expectedNapGapMs = Duration.ofMinutes(60).toMillis()
+        assertTrue(
+            kotlin.math.abs(metrics.napWakeP50Millis!! - expectedNapGapMs) < Duration.ofMinutes(5).toMillis(),
+            "napWakeP50 should be ~60 min; got ${metrics.napWakeP50Millis!! / 60000} min"
+        )
+    }
+
+    @Test
+    fun `type-separated - bedtime wake interval computed for NIGHT_SLEEP-labeled gap`() {
+        val features = extractor().extract(mixedRecords(), emptyList())
+        val metrics = features.metrics
+        // Nap3→Night gap: 3h - 1h = 2h - 90min nap = 30 min (short pre-bedtime window)
+        assertEquals(1, metrics.bedtimeWakeIntervalCount)
+        assertNotNull(metrics.bedtimeWakeP50Millis)
+    }
+
+    @Test
+    fun `type-separated - naps-only produces zero bedtime intervals`() {
+        val napOnly = mixedRecords().filter { it.sleepType == SleepType.NAP }
+        val features = extractor().extract(napOnly, emptyList())
+        assertEquals(0, features.metrics.bedtimeWakeIntervalCount)
+        assertNull(features.metrics.bedtimeWakeP50Millis)
+    }
+
+    @Test
+    fun `type-separated - nights-only produces zero nap intervals`() {
+        // 5 NIGHT_SLEEP records, 16h wake gaps → filtered by MAX_PLAUSIBLE (6h)
+        var id = 1L
+        val nights = (0 until 5).map { i ->
+            val end = testNow.minusSeconds((i * 24 + 6) * 3600L)
+            val start = end.minusSeconds(8 * 3600)
+            SleepRecord(id++, start, end, SleepType.NIGHT_SLEEP)
+        }.sortedBy { it.startTime }
+        val features = extractor().extract(nights, emptyList())
+        assertEquals(0, features.metrics.napWakeIntervalCount)
+        assertNull(features.metrics.napWakeP50Millis)
+    }
+
+    @Test
+    fun `type-separated - P25 and P75 are null when fewer than 4 type-specific intervals`() {
+        // 3 NAP-labeled intervals → P50 valid, P25/P75 null
+        var id = 1L
+        val records = (0 until 4).map { i ->
+            val end = testNow.minusSeconds((i * 3 + 1) * 3600L)
+            val start = end.minusSeconds(5400L)
+            SleepRecord(id++, start, end, SleepType.NAP)
+        }.sortedBy { it.startTime }
+        val features = extractor().extract(records, emptyList())
+        // 3 intervals (4 records → 3 gaps), each ~90 min
+        assertEquals(3, features.metrics.napWakeIntervalCount)
+        assertNotNull(features.metrics.napWakeP50Millis)
+        assertNull(features.metrics.napWakeP25Millis)
+        assertNull(features.metrics.napWakeP75Millis)
     }
 
     private fun hoursMs(hours: Double): Long = (hours * 3_600_000).toLong()
