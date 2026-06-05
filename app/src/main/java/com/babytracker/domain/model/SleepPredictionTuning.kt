@@ -27,7 +27,13 @@ object SleepPredictionTuning {
     const val MAX_BIAS_MINUTES = 15L
     const val EVAL_MIN_ANCHORS = 20
     const val EVAL_MIN_SCORED = 20
-    const val EVAL_MIN_MAE_GAIN_MIN = 5 // TODO(AKA-91): Phase 2 factor gate — enforce in comparison harness
-    const val EVAL_MAX_REGRESSION = 0 // TODO(AKA-91): Phase 2 factor gate — no regression allowed vs baseline
-    const val ALGORITHM_VERSION = "sleep-pred-phase2-personalized-wake-2"
+    const val EVAL_MIN_MAE_GAIN_MIN = 5
+    const val EVAL_MAX_REGRESSION = 0
+    const val CIRCADIAN_MIN_AGE_WEEKS = 6
+    const val CIRCADIAN_FULL_WEIGHT_AGE_WEEKS = 12
+    const val CIRCADIAN_MAX_SHIFT_MINUTES = 20L
+    const val CIRCADIAN_TARGET_NEUTRALITY_MINUTES = 10L
+    const val TIME_OF_DAY_MAX_SHIFT_MINUTES = 15L
+    const val TIME_OF_DAY_MIN_HISTORY_COUNT = 7
+    const val ALGORITHM_VERSION = "sleep-pred-phase2-circadian-history-1"
 }
