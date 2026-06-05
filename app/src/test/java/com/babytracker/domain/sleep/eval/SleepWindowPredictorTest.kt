@@ -477,6 +477,82 @@ class SleepWindowPredictorTest {
     }
 
     @Test
+    fun `circadian factor shifts bedtime estimate toward bedtime slot`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofMinutes(30)).toEpochMilli()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(120).toMillis(),
+            bedtimeWakeIntervalCount = SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS,
+            bedtimeWakeP50Millis = Duration.ofMinutes(120).toMillis(),
+        ).copy(lastSleepType = SleepType.NAP, napCountToday = 2)
+
+        val result = SleepWindowPredictor.predict(
+            features(
+                quality = sufficientQuality(completedCount = SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS),
+                metrics = metrics,
+                currentMinuteOfDay = 18 * 60,
+            ),
+            ageInWeeks,
+            baseNow,
+            circadianFactorProvider = CircadianBiasFactor::adjustment,
+        )
+
+        val window = (result as SleepPredictionState.Window).window
+        assertTrue(
+            window.reasons.any { it.contains("circadian", ignoreCase = true) },
+            "Circadian wiring must expose a reason when the factor changes the candidate",
+        )
+    }
+
+    @Test
+    fun `positive circadian adjustment cannot revive stale raw window`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofHours(8)).toEpochMilli()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+
+        val result = SleepWindowPredictor.predict(
+            features(metrics = metrics, currentMinuteOfDay = 18 * 60),
+            ageInWeeks,
+            baseNow,
+            circadianFactorProvider = { _, _, _, _, _ ->
+                SleepPredictionFactor(Duration.ofMinutes(SleepPredictionTuning.CIRCADIAN_MAX_SHIFT_MINUTES))
+            },
+        )
+
+        assertInstanceOf(
+            SleepPredictionState.Overdue::class.java,
+            result,
+            "Raw stale windows must stay Overdue even when a factor would shift the adjusted estimate forward",
+        )
+    }
+
+    @Test
+    fun `negative circadian adjustment cannot return a stale final window`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofMinutes(150)).toEpochMilli()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+
+        val result = SleepWindowPredictor.predict(
+            features(metrics = metrics, currentMinuteOfDay = 18 * 60),
+            ageInWeeks,
+            baseNow,
+            circadianFactorProvider = { _, _, _, _, _ ->
+                SleepPredictionFactor(Duration.ofMinutes(-SleepPredictionTuning.CIRCADIAN_MAX_SHIFT_MINUTES))
+            },
+        )
+
+        assertInstanceOf(
+            SleepPredictionState.Overdue::class.java,
+            result,
+            "Adjusted windows must be rechecked for staleness before returning Window",
+        )
+    }
+
+    @Test
     fun `returns Window at exact overdue grace boundary`() {
         val lastWakeMillis = baseNow.minus(Duration.ofMinutes(150)).toEpochMilli()
         val metrics = sufficientMetrics(

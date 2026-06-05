@@ -17,7 +17,9 @@ import kotlin.math.abs
 
 class SleepEvalHarness(
     private val zoneId: ZoneId,
-    private val predictor: (SleepFeatures, Int, Instant) -> SleepPredictionState = SleepWindowPredictor::predict,
+    private val predictor: (SleepFeatures, Int, Instant) -> SleepPredictionState = { features, ageInWeeks, now ->
+        SleepWindowPredictor.predict(features, ageInWeeks, now)
+    },
 ) {
 
     fun evaluate(

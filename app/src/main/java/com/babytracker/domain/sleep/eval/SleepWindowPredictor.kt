@@ -16,7 +16,12 @@ import java.time.Instant
 
 object SleepWindowPredictor {
 
-    fun predict(features: SleepFeatures, ageInWeeks: Int, now: Instant): SleepPredictionState {
+    fun predict(
+        features: SleepFeatures,
+        ageInWeeks: Int,
+        now: Instant,
+        circadianFactorProvider: CircadianFactorProvider = { _, _, _, _, _ -> SleepPredictionFactor.Neutral },
+    ): SleepPredictionState {
         val quality = features.quality
         if (!quality.hasSufficientZoneIndependentEvidence || !quality.isLocalDayCoverageSufficient) {
             return SleepPredictionState.NeedMoreData(buildProgress(quality))
@@ -24,10 +29,15 @@ object SleepWindowPredictor {
         if (features.feedIntervals.any { it.endMillis == null }) {
             return SleepPredictionState.AfterActiveFeed
         }
-        return buildWindow(features, ageInWeeks, now)
+        return buildWindow(features, ageInWeeks, now, circadianFactorProvider)
     }
 
-    private fun buildWindow(features: SleepFeatures, ageInWeeks: Int, now: Instant): SleepPredictionState {
+    private fun buildWindow(
+        features: SleepFeatures,
+        ageInWeeks: Int,
+        now: Instant,
+        circadianFactorProvider: CircadianFactorProvider,
+    ): SleepPredictionState {
         val quality = features.quality
         val metrics = features.metrics
         val lastWakeMillis = metrics.lastWakeMillis
@@ -47,10 +57,23 @@ object SleepWindowPredictor {
 
         val bestEstimate = Instant.ofEpochMilli(lastWakeMillis + wakeTargetMillis)
         val halfWindowDuration = Duration.ofMillis(dynamicHalfWindowMillis(metrics, nextType))
-        val windowStart = bestEstimate.minus(halfWindowDuration)
-        val windowEnd = bestEstimate.plus(halfWindowDuration)
-
-        if (isStaleWindow(now, windowEnd)) {
+        val candidateMinute = candidateMinuteOfDay(
+            currentMinuteOfDay = features.currentMinuteOfDay,
+            offsetFromNow = Duration.between(now, bestEstimate),
+        )
+        val circadianFactor = circadianFactorProvider(
+            ageInWeeks,
+            nextType,
+            features.currentMinuteOfDay,
+            candidateMinute,
+            metrics.napCountToday,
+        )
+        val adjustedBestEstimate = bestEstimate.plus(circadianFactor.adjustment)
+        val windowStart = adjustedBestEstimate.minus(halfWindowDuration)
+        val windowEnd = adjustedBestEstimate.plus(halfWindowDuration)
+        // Stale check uses the pre-factor end (so a positive factor cannot revive a stale anchor)
+        // and the post-factor end (so a negative factor cannot produce a stale final window).
+        if (isStaleWindow(now, bestEstimate.plus(halfWindowDuration)) || isStaleWindow(now, windowEnd)) {
             return SleepPredictionState.Overdue
         }
 
@@ -60,9 +83,10 @@ object SleepWindowPredictor {
             SleepWindow(
                 windowStart = windowStart,
                 windowEnd = windowEnd,
-                bestEstimate = bestEstimate,
+                bestEstimate = adjustedBestEstimate,
                 confidence = confidence,
-                reasons = buildReasons(qualityC, ageInWeeks, nextType, typeIntervalCount),
+                reasons = buildReasons(qualityC, ageInWeeks, nextType, typeIntervalCount) +
+                    listOfNotNull(circadianFactor.reason),
                 feedPrompt = computeFeedPrompt(features.feedIntervals, windowStart, windowEnd, now),
                 safetyPrompt = "Always follow your baby's sleep cues — windows are estimates, not schedules.",
             )
@@ -133,6 +157,11 @@ object SleepWindowPredictor {
         val minutesSinceBedtime = (currentMinuteOfDay - bedtimeMinuteOfDay + MINUTES_PER_DAY) % MINUTES_PER_DAY
 
         return minutesUntilBedtime <= thresholdMinutes || minutesSinceBedtime <= thresholdMinutes
+    }
+
+    private fun candidateMinuteOfDay(currentMinuteOfDay: Int?, offsetFromNow: Duration): Int? {
+        if (currentMinuteOfDay == null) return null
+        return Math.floorMod(currentMinuteOfDay + offsetFromNow.toMinutes().toInt(), MINUTES_PER_DAY)
     }
 
     private fun isStaleWindow(now: Instant, windowEnd: Instant): Boolean {
