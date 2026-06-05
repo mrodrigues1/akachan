@@ -134,6 +134,32 @@ class PersonalizedWakeEvalComparisonTest {
     }
 
     /**
+     * Wide-IQR fixture: nap wake intervals = 90 min, bedtime wake intervals = 150 min.
+     *
+     * Combined IQR = P75 - P25 = 150 - 90 = 60 min > INSTABILITY_CEILING_MINUTES (45 min).
+     * Under the old combined-IQR gate every anchor returns NeedMoreData.
+     * Under the type-aware OR-gate both type IQRs are 0 <= ceiling, so the gate passes.
+     */
+    private fun wideIqrMixedDayRecords(days: Int = 42): List<SleepRecord> {
+        var id = 1L
+        val records = mutableListOf<SleepRecord>()
+        val cycleMinutes = (8 * 60 + 90 + 60 + 90 + 60 + 150).toLong()
+        var cursor = baseNow.minus(Duration.ofMinutes(cycleMinutes * days + 60))
+        repeat(days) {
+            val nightEnd = cursor.plus(Duration.ofHours(8))
+            records += SleepRecord(id++, cursor, nightEnd, SleepType.NIGHT_SLEEP)
+            val nap1Start = nightEnd.plus(Duration.ofMinutes(90))
+            val nap1End = nap1Start.plus(Duration.ofMinutes(60))
+            records += SleepRecord(id++, nap1Start, nap1End, SleepType.NAP)
+            val nap2Start = nap1End.plus(Duration.ofMinutes(90))
+            val nap2End = nap2Start.plus(Duration.ofMinutes(60))
+            records += SleepRecord(id++, nap2Start, nap2End, SleepType.NAP)
+            cursor = nap2End.plus(Duration.ofMinutes(150))
+        }
+        return records.filter { it.startTime.isBefore(baseNow) }.sortedBy { it.startTime }
+    }
+
+    /**
      * Baseline predictor: Phase 0 logic — combined median + fixed half-window + single prior midpoint.
      * This is a verbatim copy of SleepWindowPredictor.buildWindow before AKA-93 changes.
      */
@@ -381,6 +407,40 @@ class PersonalizedWakeEvalComparisonTest {
         assertTrue(
             report.segments.all { it.status == SegmentStatus.BLOCK_INSUFFICIENT_DATA },
             "Sparse mixed-day fixture must BLOCK all segments; got: ${report.segments}",
+        )
+    }
+
+    @Test
+    fun `wide combined IQR fixture passes type-aware gate and produces Window anchors`() {
+        val records = wideIqrMixedDayRecords(42)
+        val sorted = records.sortedBy { it.startTime }
+        val extractor = SleepFeatureExtractor(Clock.fixed(baseNow, zone), zone)
+        val lookbackStart = baseNow.minus(Duration.ofDays(SleepPredictionTuning.LOOKBACK_DAYS))
+        val recent = sorted.filter { it.startTime >= lookbackStart }
+        val features = extractor.extract(recent, emptyList())
+
+        assertTrue(
+            features.metrics.wakeIntervalIqrMillis != null &&
+                features.metrics.wakeIntervalIqrMillis!! >
+                Duration.ofMinutes(SleepPredictionTuning.INSTABILITY_CEILING_MINUTES).toMillis(),
+            "Fixture must have combined IQR > ${SleepPredictionTuning.INSTABILITY_CEILING_MINUTES} min; " +
+                "got ${features.metrics.wakeIntervalIqrMillis?.div(60_000)} min",
+        )
+        assertTrue(
+            features.quality.hasSufficientZoneIndependentEvidence,
+            "Type-aware gate must pass when both type-specific IQRs are stable",
+        )
+
+        val newHarness = SleepEvalHarness(zone)
+        val anchors = newHarness.buildAnchors(sorted, emptyList(), baby)
+        val fixtureStart = sorted.first().startTime
+        val scoredRangeStart = fixtureStart.plus(Duration.ofDays(SleepPredictionTuning.LOOKBACK_DAYS))
+        val windowCount = anchors.count { it.wakeInstant >= scoredRangeStart && it.score != null }
+
+        assertTrue(
+            windowCount >= SleepPredictionTuning.EVAL_MIN_ANCHORS,
+            "Wide-IQR fixture must produce >= ${SleepPredictionTuning.EVAL_MIN_ANCHORS} scored anchors " +
+                "in scored range; got $windowCount. Type-aware gate fix is not working.",
         )
     }
 }
