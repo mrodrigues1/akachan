@@ -477,6 +477,36 @@ class SleepWindowPredictorTest {
     }
 
     @Test
+    fun `returns Window at exact overdue grace boundary`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofMinutes(150)).toEpochMilli()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+
+        val result = SleepWindowPredictor.predict(features(metrics = metrics), ageInWeeks, baseNow)
+
+        assertInstanceOf(
+            SleepPredictionState.Window::class.java,
+            result,
+            "Exact windowEnd + grace boundary must still be a Window; stale starts only after grace",
+        )
+    }
+
+    @Test
+    fun `stale anchor returns Overdue instead of shifting best estimate to now`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofHours(8)).toEpochMilli()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+
+        val result = SleepWindowPredictor.predict(features(metrics = metrics), ageInWeeks, baseNow)
+
+        assertInstanceOf(SleepPredictionState.Overdue::class.java, result)
+    }
+
+    @Test
     fun `ALGORITHM_VERSION is phase2 circadian history version`() {
         assertEquals(
             "sleep-pred-phase2-circadian-history-1",

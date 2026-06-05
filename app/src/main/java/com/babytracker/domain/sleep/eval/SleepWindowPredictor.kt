@@ -50,7 +50,7 @@ object SleepWindowPredictor {
         val windowStart = bestEstimate.minus(halfWindowDuration)
         val windowEnd = bestEstimate.plus(halfWindowDuration)
 
-        if (now.isAfter(windowEnd.plus(Duration.ofMinutes(SleepPredictionTuning.OVERDUE_GRACE_MINUTES)))) {
+        if (isStaleWindow(now, windowEnd)) {
             return SleepPredictionState.Overdue
         }
 
@@ -133,6 +133,11 @@ object SleepWindowPredictor {
         val minutesSinceBedtime = (currentMinuteOfDay - bedtimeMinuteOfDay + MINUTES_PER_DAY) % MINUTES_PER_DAY
 
         return minutesUntilBedtime <= thresholdMinutes || minutesSinceBedtime <= thresholdMinutes
+    }
+
+    private fun isStaleWindow(now: Instant, windowEnd: Instant): Boolean {
+        val staleAfter = windowEnd.plus(Duration.ofMinutes(SleepPredictionTuning.OVERDUE_GRACE_MINUTES))
+        return now.isAfter(staleAfter)
     }
 
     private fun dynamicHalfWindowMillis(metrics: SleepMetrics, nextType: SleepType): Long {
