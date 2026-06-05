@@ -24,7 +24,7 @@ import kotlin.math.abs
 /**
  * §7.1 acceptance gate for AKA-93 (personalized wake percentiles + nap-vs-bedtime targets).
  *
- * Fixture: 35 days of realistic mixed sleep — 2 naps + 1 night sleep per day.
+ * Fixture: 42 days of realistic mixed sleep — 2 naps + 1 night sleep per day (default).
  * Nap wake intervals are ~110 min; pre-bedtime wake intervals are ~150 min (wider).
  * Combined IQR = 40 min (≤ INSTABILITY_CEILING_MINUTES = 45 min) — quality gate passes.
  * The type-separated predictor has a structural advantage on this fixture.
@@ -49,7 +49,7 @@ class PersonalizedWakeEvalComparisonTest {
     )
 
     /**
-     * Mixed fixture: 1 NIGHT_SLEEP + 2 NAPs per day for N days, built forward in time.
+     * Mixed fixture: 1 NIGHT_SLEEP + 2 NAPs per day for N days (default 42), built forward in time.
      *
      * Daily cycle (chronological, 1030 min ≈ 17.2 h):
      *   Night:  sleep 8 h
@@ -80,7 +80,7 @@ class PersonalizedWakeEvalComparisonTest {
      * (Nap2-wake anchors have napCountToday ≥ expected naps = 2 for 20w). For NAP
      * no-regression, see napOnlyRecords().
      */
-    private fun mixedDayRecords(days: Int = 35): List<SleepRecord> {
+    private fun mixedDayRecords(days: Int = 42): List<SleepRecord> {
         var id = 1L
         val records = mutableListOf<SleepRecord>()
         // Cycle: 8h night + 110+90+110+90 min nap+wake × 2 + 150 min pre-bedtime = 1030 min
@@ -233,7 +233,10 @@ class PersonalizedWakeEvalComparisonTest {
 
     @Test
     fun `personalized predictor clears section 7-1 acceptance criteria on mixed-day fixture`() {
-        val records = mixedDayRecords(35)
+        // 42 days = 28 scored + 14 days of warm-up pre-history.
+        // All anchors in the scored range (wakeInstant >= fixture_start + LOOKBACK_DAYS) are guaranteed
+        // to have a full 14-day lookback window with >= MIN_COMPLETED_INTERVALS prior intervals.
+        val records = mixedDayRecords(42)
         val sorted = records.sortedBy { it.startTime }
 
         val baselineHarness = SleepEvalHarness(zone, ::baselinePredict)
@@ -242,28 +245,35 @@ class PersonalizedWakeEvalComparisonTest {
         val newAnchors = newHarness.buildAnchors(sorted, emptyList(), baby)
         val baselineByWake = baselineAnchors.associateBy { it.wakeInstant }
 
-        // Primary comparison target: NIGHT_SLEEP segment.
+        // Scored range: exclude warm-up anchors whose lookback window pre-dates the fixture start.
+        // Anchors with wakeInstant < (fixtureStart + LOOKBACK_DAYS) have no full 14-day history and
+        // correctly return NeedMoreData — that is expected gating behaviour, not a predictor bug.
+        val fixtureStart = sorted.first().startTime
+        val scoredRangeStart = fixtureStart.plus(Duration.ofDays(SleepPredictionTuning.LOOKBACK_DAYS))
+
+        // Primary comparison target: NIGHT_SLEEP segment, scored range only.
         // Baseline uses combined median (110 min) for bedtime anchors; actual is 150 min → ~30 min error.
         // Phase 2 uses bedtime-specific P50 (150 min) → near-zero error.
         // This is where type separation has the most unambiguous structural advantage.
-        val nightSegmentAnchors = newAnchors.filter { it.segmentKey.sleepType == SleepType.NIGHT_SLEEP }
+        val nightSegmentAnchors = newAnchors.filter {
+            it.segmentKey.sleepType == SleepType.NIGHT_SLEEP && it.wakeInstant >= scoredRangeStart
+        }
 
         // Criterion 1: sufficient anchors — fail explicitly; the known-good fixture must not BLOCK.
         assertTrue(
             nightSegmentAnchors.size >= SleepPredictionTuning.EVAL_MIN_ANCHORS,
-            "Known-good fixture (35 days) must yield >= ${SleepPredictionTuning.EVAL_MIN_ANCHORS} NIGHT_SLEEP anchors; " +
+            "Known-good fixture (42 days, scored range) must yield >= ${SleepPredictionTuning.EVAL_MIN_ANCHORS} NIGHT_SLEEP anchors; " +
                 "got ${nightSegmentAnchors.size}. Fixture is too small or predictor is gating all anchors as NeedMoreData.",
         )
 
-        // Fail closed: the vast majority of NIGHT_SLEEP anchors must return Window.
-        // A small number (< 5%) may be gated as NeedMoreData at early anchors near the lookback boundary
-        // where insufficient personalized intervals have accumulated.
+        // Fail closed: ALL scored-range NIGHT_SLEEP anchors must return Window.
+        // Warm-up anchors (before scoredRangeStart) are excluded above; within the scored range, every
+        // anchor has a full 14-day lookback and must not be gated as NeedMoreData.
         val unpairedCount = nightSegmentAnchors.count { it.score == null }
-        val maxAllowedUnpaired = (nightSegmentAnchors.size * 0.05).toInt().coerceAtLeast(2)
         assertTrue(
-            unpairedCount <= maxAllowedUnpaired,
-            "New predictor returned non-Window state for $unpairedCount / ${nightSegmentAnchors.size} NIGHT_SLEEP anchors " +
-                "(max allowed: $maxAllowedUnpaired). Check resolveNextSleepType and EvidenceQuality gating.",
+            unpairedCount == 0,
+            "New predictor returned non-Window state for $unpairedCount NIGHT_SLEEP anchors on the known-good fixture. " +
+                "Check resolveNextSleepType (napCountToday vs. expected) and EvidenceQuality gating.",
         )
 
         val pairedScores = nightSegmentAnchors.mapNotNull { newAnchor ->
