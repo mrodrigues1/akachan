@@ -554,6 +554,43 @@ class SleepFeatureExtractorTest {
         assertNull(features.metrics.napWakeP75Millis)
     }
 
+    @Test
+    fun `quality passes when combined IQR wide but both type-specific IQRs are stable`() {
+        val intervals = buildWideIqrMixedIntervals()
+        val metrics = extractor.computeMetrics(intervals)
+        val quality = extractor.computeQuality(intervals, intervals.size, metrics)
+
+        assertTrue(
+            metrics.wakeIntervalIqrMillis != null &&
+                metrics.wakeIntervalIqrMillis!! > Duration.ofMinutes(45).toMillis(),
+            "Fixture combined IQR must exceed 45-min ceiling; got ${metrics.wakeIntervalIqrMillis?.div(60_000)} min",
+        )
+        assertNotNull(metrics.napWakeP25Millis, "Need >= 4 nap intervals (have ${metrics.napWakeIntervalCount})")
+        assertNotNull(metrics.bedtimeWakeP25Millis, "Need >= 4 bedtime intervals (have ${metrics.bedtimeWakeIntervalCount})")
+        assertTrue(
+            quality.hasSufficientZoneIndependentEvidence,
+            "Quality must pass when both type-specific IQRs are stable even if combined IQR exceeds ceiling",
+        )
+    }
+
+    @Test
+    fun `quality fails when combined IQR wide and type-specific quartiles unavailable`() {
+        val intervals = buildThinMixedIntervals()
+        val metrics = extractor.computeMetrics(intervals)
+        val quality = extractor.computeQuality(intervals, intervals.size, metrics)
+
+        assertTrue(
+            metrics.wakeIntervalIqrMillis != null &&
+                metrics.wakeIntervalIqrMillis!! > Duration.ofMinutes(45).toMillis(),
+            "Combined IQR must exceed ceiling; got ${metrics.wakeIntervalIqrMillis?.div(60_000)} min",
+        )
+        assertNull(metrics.napWakeP25Millis, "napWakeP25 must be null with only 3 nap intervals")
+        assertFalse(
+            quality.hasSufficientZoneIndependentEvidence,
+            "Quality must fail when not enough per-type intervals for type-aware stability check",
+        )
+    }
+
     private fun hoursMs(hours: Double): Long = (hours * 3_600_000).toLong()
 
     private fun sleepRecord(
@@ -604,5 +641,41 @@ class SleepFeatureExtractorTest {
             intervals.add(0, SleepInterval.from(nextEndMillis - sleepDurationMillis, nextEndMillis, SleepType.NAP)!!)
         }
         return intervals
+    }
+
+    private fun buildWideIqrMixedIntervals(): List<SleepInterval> {
+        val result = mutableListOf<SleepInterval>()
+        val cycleMs = (8 * 60 + 90 + 60 + 90 + 60 + 150) * 60_000L
+        var cursor = nowInstant.toEpochMilli() - 6 * cycleMs - 30 * 60_000L
+        repeat(6) {
+            val nightEnd = cursor + 8 * 60 * 60_000L
+            result += SleepInterval.from(cursor, nightEnd, SleepType.NIGHT_SLEEP)!!
+            cursor = nightEnd
+            val nap1Start = cursor + 90 * 60_000L
+            val nap1End = nap1Start + 60 * 60_000L
+            result += SleepInterval.from(nap1Start, nap1End, SleepType.NAP)!!
+            cursor = nap1End
+            val nap2Start = cursor + 90 * 60_000L
+            val nap2End = nap2Start + 60 * 60_000L
+            result += SleepInterval.from(nap2Start, nap2End, SleepType.NAP)!!
+            cursor = nap2End + 150 * 60_000L
+        }
+        return result.filter { it.endMillis!! <= nowInstant.toEpochMilli() }.sortedBy { it.startMillis }
+    }
+
+    private fun buildThinMixedIntervals(): List<SleepInterval> {
+        val result = mutableListOf<SleepInterval>()
+        val cycleMs = (8 * 60 + 60 + 60 + 180) * 60_000L
+        var cursor = nowInstant.toEpochMilli() - 3 * cycleMs - 30 * 60_000L
+        repeat(3) {
+            val nightEnd = cursor + 8 * 60 * 60_000L
+            result += SleepInterval.from(cursor, nightEnd, SleepType.NIGHT_SLEEP)!!
+            cursor = nightEnd
+            val napStart = cursor + 60 * 60_000L
+            val napEnd = napStart + 60 * 60_000L
+            result += SleepInterval.from(napStart, napEnd, SleepType.NAP)!!
+            cursor = napEnd + 180 * 60_000L
+        }
+        return result.filter { it.endMillis!! <= nowInstant.toEpochMilli() }.sortedBy { it.startMillis }
     }
 }
