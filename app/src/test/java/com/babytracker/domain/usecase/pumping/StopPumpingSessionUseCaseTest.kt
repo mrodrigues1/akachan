@@ -3,6 +3,7 @@ package com.babytracker.domain.usecase.pumping
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.repository.PumpingRepository
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
@@ -23,6 +24,7 @@ class StopPumpingSessionUseCaseTest {
     @BeforeEach
     fun setup() {
         repository = mockk(relaxed = true)
+        coEvery { repository.updateEndTimeIfActive(any()) } returns true
         useCase = StopPumpingSessionUseCase(repository) { fixedNow }
     }
 
@@ -76,7 +78,7 @@ class StopPumpingSessionUseCaseTest {
         assertEquals(90, result.volumeMl)
         assertNull(result.pausedAt)
         assertEquals(10 * 60 * 1000L, result.pausedDurationMs)
-        coVerify { repository.update(result) }
+        coVerify { repository.updateEndTimeIfActive(result) }
     }
 
     @Test
@@ -91,6 +93,41 @@ class StopPumpingSessionUseCaseTest {
         assertEquals(fixedNow, result.endTime)
         assertEquals(5000L, result.pausedDurationMs)
         assertNull(result.pausedAt)
-        coVerify { repository.update(result) }
+        coVerify { repository.updateEndTimeIfActive(result) }
+    }
+
+    @Test
+    fun returnsExistingStoppedSessionWhenConditionalUpdateAffectsNoRows() = runTest {
+        val firstStop = Instant.parse("2026-05-16T10:20:00Z")
+        val active = PumpingSession(
+            id = 12,
+            startTime = Instant.parse("2026-05-16T10:00:00Z"),
+            breast = PumpingBreast.RIGHT,
+        )
+        val existing = active.copy(endTime = firstStop, volumeMl = 70)
+        coEvery { repository.updateEndTimeIfActive(any()) } returns false
+        coEvery { repository.getById(12) } returns existing
+
+        val result = useCase(active, volumeMl = 90)
+
+        assertEquals(firstStop, result.endTime)
+        assertEquals(70, result.volumeMl)
+        coVerify { repository.updateEndTimeIfActive(match { it.endTime == fixedNow && it.volumeMl == 90 }) }
+        coVerify { repository.getById(12) }
+    }
+
+    @Test
+    fun throwsWhenConditionalUpdateAffectsNoRowsAndStoredSessionIsStillActive() = runTest {
+        val active = PumpingSession(
+            id = 12,
+            startTime = Instant.parse("2026-05-16T10:00:00Z"),
+            breast = PumpingBreast.RIGHT,
+        )
+        coEvery { repository.updateEndTimeIfActive(any()) } returns false
+        coEvery { repository.getById(12) } returns active
+
+        assertThrows<IllegalArgumentException> {
+            runBlocking { useCase(active, volumeMl = 90) }
+        }
     }
 }
