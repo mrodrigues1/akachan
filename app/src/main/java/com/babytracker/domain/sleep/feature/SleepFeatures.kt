@@ -5,4 +5,5 @@ data class SleepFeatures(
     val feedIntervals: List<BreastfeedInterval>,
     val metrics: SleepMetrics,
     val quality: EvidenceQuality,
+    val currentMinuteOfDay: Int? = null,
 )
