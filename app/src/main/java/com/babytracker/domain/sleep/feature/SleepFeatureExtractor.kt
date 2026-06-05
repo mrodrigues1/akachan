@@ -25,7 +25,9 @@ class SleepFeatureExtractor(
         val feedIntervals = buildBreastfeedIntervals(feedSessions)
         val metrics = computeMetrics(validIntervals)
         val quality = computeQuality(validIntervals, sleepRecords.size, metrics)
-        return SleepFeatures(validIntervals, feedIntervals, metrics, quality)
+        val localTime = clock.instant().atZone(zoneId).toLocalTime()
+        val currentMinuteOfDay = localTime.hour * 60 + localTime.minute
+        return SleepFeatures(validIntervals, feedIntervals, metrics, quality, currentMinuteOfDay)
     }
 
     fun buildSleepIntervals(records: List<SleepRecord>): List<SleepInterval> {

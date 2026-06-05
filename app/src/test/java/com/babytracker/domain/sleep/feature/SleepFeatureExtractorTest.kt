@@ -440,6 +440,29 @@ class SleepFeatureExtractorTest {
     }
 
     @Test
+    fun `extract sets currentMinuteOfDay from clock and zone`() {
+        val features = extractor.extract(emptyList(), emptyList())
+
+        assertEquals(
+            14 * 60,
+            features.currentMinuteOfDay,
+            "currentMinuteOfDay must be hour*60+minute from the injected clock",
+        )
+    }
+
+    @Test
+    fun `extract sets currentMinuteOfDay from configured non UTC zone`() {
+        val tokyoExtractor = SleepFeatureExtractor(clock, ZoneId.of("Asia/Tokyo"))
+        val features = tokyoExtractor.extract(emptyList(), emptyList())
+
+        assertEquals(
+            23 * 60,
+            features.currentMinuteOfDay,
+            "currentMinuteOfDay must use the extractor zoneId, not UTC or the device default zone",
+        )
+    }
+
+    @Test
     fun `SleepMetrics has napWakeP50Millis and bedtimeWakeP50Millis fields`() {
         val metrics = SleepMetrics(
             lastWakeMillis = null,
