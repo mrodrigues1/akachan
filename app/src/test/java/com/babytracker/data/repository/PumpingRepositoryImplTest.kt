@@ -68,4 +68,28 @@ class PumpingRepositoryImplTest {
         repository.delete(session)
         coVerify { dao.delete(match { it.id == 9L }) }
     }
+
+    @Test
+    fun `updateEndTimeIfActive forwards stop fields to dao`() = runTest {
+        coEvery {
+            dao.updateEndTimeIfActive(
+                id = 9,
+                endTime = 3_000L,
+                volumeMl = 120,
+                pausedDurationMs = 500L,
+            )
+        } returns 1
+        val session = PumpingSession(
+            id = 9,
+            startTime = Instant.ofEpochMilli(1_000L),
+            endTime = Instant.ofEpochMilli(3_000L),
+            breast = PumpingBreast.RIGHT,
+            volumeMl = 120,
+            pausedDurationMs = 500L,
+        )
+
+        val result = repository.updateEndTimeIfActive(session)
+
+        assertEquals(true, result)
+    }
 }

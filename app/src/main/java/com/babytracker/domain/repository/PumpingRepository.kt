@@ -10,5 +10,6 @@ interface PumpingRepository {
     suspend fun getById(id: Long): PumpingSession?
     suspend fun insert(session: PumpingSession): Long
     suspend fun update(session: PumpingSession)
+    suspend fun updateEndTimeIfActive(session: PumpingSession): Boolean
     suspend fun delete(session: PumpingSession)
 }

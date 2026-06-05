@@ -30,5 +30,15 @@ class PumpingRepositoryImpl @Inject constructor(
 
     override suspend fun update(session: PumpingSession) = dao.update(session.toEntity())
 
+    override suspend fun updateEndTimeIfActive(session: PumpingSession): Boolean {
+        val entity = session.toEntity()
+        return dao.updateEndTimeIfActive(
+            id = entity.id,
+            endTime = requireNotNull(entity.endTime),
+            volumeMl = entity.volumeMl,
+            pausedDurationMs = entity.pausedDurationMs,
+        ) == 1
+    }
+
     override suspend fun delete(session: PumpingSession) = dao.delete(session.toEntity())
 }

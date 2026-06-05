@@ -68,6 +68,31 @@ class PumpingDaoTest {
     }
 
     @Test
+    fun updateEndTimeIfActiveOnlyStopsActiveRows() = runTest {
+        val id = dao.insert(PumpingEntity(startTime = 1_000L, breast = "RIGHT"))
+
+        val firstUpdate = dao.updateEndTimeIfActive(
+            id = id,
+            endTime = 2_000L,
+            volumeMl = 80,
+            pausedDurationMs = 100L,
+        )
+        val secondUpdate = dao.updateEndTimeIfActive(
+            id = id,
+            endTime = 3_000L,
+            volumeMl = 120,
+            pausedDurationMs = 200L,
+        )
+        val stored = dao.getById(id)!!
+
+        assertEquals(1, firstUpdate)
+        assertEquals(0, secondUpdate)
+        assertEquals(2_000L, stored.endTime)
+        assertEquals(80, stored.volumeMl)
+        assertEquals(100L, stored.pausedDurationMs)
+    }
+
+    @Test
     fun deleteRemovesRow() = runTest {
         val id = dao.insert(PumpingEntity(startTime = 1_000L, breast = "BOTH"))
         val entity = dao.getById(id)!!

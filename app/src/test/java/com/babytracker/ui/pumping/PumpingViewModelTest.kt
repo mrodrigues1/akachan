@@ -15,6 +15,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -166,6 +167,99 @@ class PumpingViewModelTest {
 
         coVerify(exactly = 1) { stopUseCase(session, null) }
         assertEquals(0, viewModel.uiState.value.bagPrompt?.volumeMl)
+    }
+
+    @Test
+    fun `duplicate onStopTimer uses persisted stopped volume for bag prompt`() = runTest {
+        val session = PumpingSession(
+            id = 42L,
+            startTime = fixedNow.minusSeconds(600),
+            breast = PumpingBreast.BOTH,
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val stoppedSession = session.copy(endTime = fixedNow, volumeMl = 120)
+        coEvery { stopUseCase(session, 120) } returns stoppedSession
+        coEvery { stopUseCase(session, 90) } returns stoppedSession
+
+        viewModel.onStopTimer(120)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.onStopTimer(90)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { stopUseCase(session, 120) }
+        coVerify(exactly = 0) { stopUseCase(session, 90) }
+        assertEquals(120, viewModel.uiState.value.bagPrompt?.volumeMl)
+    }
+
+    @Test
+    fun `concurrent onStopTimer ignores second request while first is in flight`() = runTest {
+        val session = PumpingSession(
+            id = 42L,
+            startTime = fixedNow.minusSeconds(600),
+            breast = PumpingBreast.BOTH,
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val stopResult = CompletableDeferred<PumpingSession>()
+        coEvery { stopUseCase(session, 120) } coAnswers { stopResult.await() }
+
+        viewModel.onStopTimer(120)
+        testDispatcher.scheduler.runCurrent()
+        viewModel.onStopTimer(90)
+        testDispatcher.scheduler.runCurrent()
+
+        coVerify(exactly = 1) { stopUseCase(session, 120) }
+        coVerify(exactly = 0) { stopUseCase(session, 90) }
+
+        stopResult.complete(session.copy(endTime = fixedNow, volumeMl = 120))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(120, viewModel.uiState.value.bagPrompt?.volumeMl)
+    }
+
+    @Test
+    fun `duplicate onStopTimer after bag confirm does not reopen prompt`() = runTest {
+        val session = PumpingSession(
+            id = 42L,
+            startTime = fixedNow.minusSeconds(600),
+            breast = PumpingBreast.BOTH,
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val stoppedSession = session.copy(endTime = fixedNow, volumeMl = 120)
+        coEvery { stopUseCase(session, 120) } returns stoppedSession
+        coEvery { stopUseCase(session, 90) } returns stoppedSession
+        coEvery {
+            addBag(
+                collectionDate = fixedNow,
+                volumeMl = 120,
+                sourceSessionId = 42L,
+                notes = null,
+            )
+        } returns 1L
+
+        viewModel.onStopTimer(120)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.onBagPromptConfirm()
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.onStopTimer(90)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { stopUseCase(session, 120) }
+        coVerify(exactly = 0) { stopUseCase(session, 90) }
+        coVerify(exactly = 1) {
+            addBag(
+                collectionDate = fixedNow,
+                volumeMl = 120,
+                sourceSessionId = 42L,
+                notes = null,
+            )
+        }
+        assertNull(viewModel.uiState.value.bagPrompt)
     }
 
     @Test

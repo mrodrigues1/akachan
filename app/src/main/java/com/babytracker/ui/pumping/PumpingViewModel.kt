@@ -78,6 +78,9 @@ class PumpingViewModel @Inject constructor(
     val activeSession: StateFlow<PumpingSession?> = pumpingRepository.getActiveSession()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    private val stoppingSessionIds = mutableSetOf<Long>()
+    private val promptedStoppedSessionIds = mutableSetOf<Long>()
+
     init {
         viewModelScope.launch {
             pumpingRepository.getActiveSession().collect { session ->
@@ -122,16 +125,21 @@ class PumpingViewModel @Inject constructor(
 
     fun onStopTimer(volumeMl: Int?) {
         val session = _uiState.value.activeSession ?: return
+        if (!stoppingSessionIds.add(session.id)) return
         viewModelScope.launch {
             runCatching { stopUseCase(session, volumeMl) }
                 .onSuccess { stopped ->
+                    if (!promptedStoppedSessionIds.add(stopped.id)) return@onSuccess
                     openBagPrompt(
                         sessionId = stopped.id,
-                        volumeMl = volumeMl ?: 0,
+                        volumeMl = stopped.volumeMl ?: 0,
                         collectionDate = stopped.endTime!!,
                     )
                 }
-                .onFailure { _uiState.value = _uiState.value.copy(error = "Could not stop session.") }
+                .onFailure {
+                    stoppingSessionIds.remove(session.id)
+                    _uiState.value = _uiState.value.copy(error = "Could not stop session.")
+                }
         }
     }
 

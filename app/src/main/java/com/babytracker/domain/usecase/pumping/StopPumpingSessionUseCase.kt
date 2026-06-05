@@ -25,7 +25,12 @@ class StopPumpingSessionUseCase @Inject constructor(
             pausedAt = null,
             pausedDurationMs = resolvedPausedMs,
         )
-        repository.update(updated)
-        return updated
+        return if (repository.updateEndTimeIfActive(updated)) {
+            updated
+        } else {
+            val stored = repository.getById(session.id)
+            require(stored?.isInProgress == false) { "Pumping session was not stopped" }
+            stored
+        }
     }
 }
