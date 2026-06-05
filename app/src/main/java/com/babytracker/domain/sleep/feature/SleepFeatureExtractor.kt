@@ -112,9 +112,11 @@ class SleepFeatureExtractor(
             0f
         }
         val instabilityCeilingMillis = Duration.ofMinutes(SleepPredictionTuning.INSTABILITY_CEILING_MINUTES).toMillis()
+        val isStable = (metrics.wakeIntervalIqrMillis == null || metrics.wakeIntervalIqrMillis <= instabilityCeilingMillis) ||
+            isTypeAwareStable(metrics, instabilityCeilingMillis)
         val hasSufficientZoneIndependentEvidence = isFresh &&
             metrics.completedWakeIntervals.size >= SleepPredictionTuning.MIN_COMPLETED_INTERVALS &&
-            (metrics.wakeIntervalIqrMillis == null || metrics.wakeIntervalIqrMillis <= instabilityCeilingMillis) &&
+            isStable &&
             invalidRecordRate < SleepPredictionTuning.MAX_INVALID_RATE
 
         return EvidenceQuality(
@@ -262,6 +264,20 @@ class SleepFeatureExtractor(
 
     private fun iqr(values: List<Long>): Long? =
         quartiles(values)?.let { (p25, _, p75) -> p75 - p25 }
+
+    private fun isTypeAwareStable(metrics: SleepMetrics, ceilingMillis: Long): Boolean {
+        val napIqr = if (metrics.napWakeP25Millis != null && metrics.napWakeP75Millis != null) {
+            metrics.napWakeP75Millis - metrics.napWakeP25Millis
+        } else {
+            null
+        }
+        val bedtimeIqr = if (metrics.bedtimeWakeP25Millis != null && metrics.bedtimeWakeP75Millis != null) {
+            metrics.bedtimeWakeP75Millis - metrics.bedtimeWakeP25Millis
+        } else {
+            null
+        }
+        return napIqr != null && bedtimeIqr != null && napIqr <= ceilingMillis && bedtimeIqr <= ceilingMillis
+    }
 
     private companion object {
         const val MINUTES_PER_DAY = 1_440
