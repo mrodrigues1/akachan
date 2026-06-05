@@ -33,7 +33,7 @@ object SleepWindowPredictor {
         val lastWakeMillis = metrics.lastWakeMillis
             ?: return SleepPredictionState.NeedMoreData(buildProgress(quality))
 
-        val nextType = resolveNextSleepType(metrics, ageInWeeks)
+        val nextType = resolveNextSleepType(metrics, ageInWeeks, features.currentMinuteOfDay)
         val (priorMidpointMillis, babyP50Millis, typeIntervalCount) =
             resolveTypeBlend(metrics, nextType, quality.completedIntervalCount, ageInWeeks)
                 ?: return SleepPredictionState.NeedMoreData(buildProgress(quality))
@@ -102,15 +102,38 @@ object SleepWindowPredictor {
         }
     }
 
-    internal fun resolveNextSleepType(metrics: SleepMetrics, ageInWeeks: Int): SleepType =
-        when (metrics.lastSleepType) {
-            SleepType.NIGHT_SLEEP -> SleepType.NAP
-            SleepType.NAP -> {
-                val expected = SleepAgePriors.getScheduledNapCount(ageInWeeks)
-                if (metrics.napCountToday < expected) SleepType.NAP else SleepType.NIGHT_SLEEP
+    internal fun resolveNextSleepType(
+        metrics: SleepMetrics,
+        ageInWeeks: Int,
+        currentMinuteOfDay: Int? = null,
+    ): SleepType = when (metrics.lastSleepType) {
+        SleepType.NIGHT_SLEEP -> SleepType.NAP
+        SleepType.NAP -> {
+            val expected = SleepAgePriors.getScheduledNapCount(ageInWeeks)
+            if (metrics.napCountToday >= expected) {
+                SleepType.NIGHT_SLEEP
+            } else if (isWithinLearnedBedtimeCutoff(currentMinuteOfDay, metrics.medianBedtimeMinuteOfDay, ageInWeeks)) {
+                SleepType.NIGHT_SLEEP
+            } else {
+                SleepType.NAP
             }
-            null -> SleepType.NAP
         }
+        null -> SleepType.NAP
+    }
+
+    private fun isWithinLearnedBedtimeCutoff(
+        currentMinuteOfDay: Int?,
+        bedtimeMinuteOfDay: Int?,
+        ageInWeeks: Int,
+    ): Boolean {
+        if (currentMinuteOfDay == null || bedtimeMinuteOfDay == null) return false
+
+        val thresholdMinutes = SleepAgePriors.getNapWakeWindowMidpoint(ageInWeeks).toMinutes().toInt()
+        val minutesUntilBedtime = (bedtimeMinuteOfDay - currentMinuteOfDay + MINUTES_PER_DAY) % MINUTES_PER_DAY
+        val minutesSinceBedtime = (currentMinuteOfDay - bedtimeMinuteOfDay + MINUTES_PER_DAY) % MINUTES_PER_DAY
+
+        return minutesUntilBedtime <= thresholdMinutes || minutesSinceBedtime <= thresholdMinutes
+    }
 
     private fun dynamicHalfWindowMillis(metrics: SleepMetrics, nextType: SleepType): Long {
         val (p25, p75) = when (nextType) {
@@ -184,4 +207,6 @@ object SleepWindowPredictor {
             null
         }
     }
+
+    private const val MINUTES_PER_DAY = 1_440
 }

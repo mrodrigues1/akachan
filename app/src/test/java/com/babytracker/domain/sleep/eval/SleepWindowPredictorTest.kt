@@ -71,11 +71,13 @@ class SleepWindowPredictorTest {
             medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
         ),
         feedIntervals: List<BreastfeedInterval> = emptyList(),
+        currentMinuteOfDay: Int? = null,
     ) = SleepFeatures(
         validIntervals = emptyList(),
         feedIntervals = feedIntervals,
         metrics = metrics,
         quality = quality,
+        currentMinuteOfDay = currentMinuteOfDay,
     )
 
     @Test
@@ -246,6 +248,131 @@ class SleepWindowPredictorTest {
             medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
         ).copy(lastSleepType = SleepType.NAP, napCountToday = 0)
         assertEquals(SleepType.NAP, SleepWindowPredictor.resolveNextSleepType(metrics, ageInWeeks))
+    }
+
+    @Test
+    fun `resolveNextSleepType returns NIGHT_SLEEP for skipped nap before learned bedtime threshold`() {
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        ).copy(
+            lastSleepType = SleepType.NAP,
+            napCountToday = 1,
+            medianBedtimeMinuteOfDay = 20 * 60,
+        )
+        assertEquals(
+            SleepType.NIGHT_SLEEP,
+            SleepWindowPredictor.resolveNextSleepType(metrics, ageInWeeks, currentMinuteOfDay = 19 * 60),
+            "Skipped nap with time 60 min before learned bedtime must route to NIGHT_SLEEP",
+        )
+    }
+
+    @Test
+    fun `resolveNextSleepType returns NIGHT_SLEEP for skipped nap just after learned bedtime`() {
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        ).copy(
+            lastSleepType = SleepType.NAP,
+            napCountToday = 1,
+            medianBedtimeMinuteOfDay = 20 * 60,
+        )
+        assertEquals(
+            SleepType.NIGHT_SLEEP,
+            SleepWindowPredictor.resolveNextSleepType(metrics, ageInWeeks, currentMinuteOfDay = 20 * 60 + 30),
+            "Skipped nap 30 min after learned bedtime must route to NIGHT_SLEEP",
+        )
+    }
+
+    @Test
+    fun `resolveNextSleepType returns NIGHT_SLEEP for skipped nap after bedtime across midnight`() {
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        ).copy(
+            lastSleepType = SleepType.NAP,
+            napCountToday = 1,
+            medianBedtimeMinuteOfDay = 23 * 60 + 30,
+        )
+        assertEquals(
+            SleepType.NIGHT_SLEEP,
+            SleepWindowPredictor.resolveNextSleepType(metrics, ageInWeeks, currentMinuteOfDay = 10),
+            "Skipped nap 40 min after a 23:30 learned bedtime must route to NIGHT_SLEEP across midnight",
+        )
+    }
+
+    @Test
+    fun `resolveNextSleepType returns NAP for skipped nap when still far from bedtime`() {
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        ).copy(
+            lastSleepType = SleepType.NAP,
+            napCountToday = 1,
+            medianBedtimeMinuteOfDay = 20 * 60,
+        )
+        assertEquals(
+            SleepType.NAP,
+            SleepWindowPredictor.resolveNextSleepType(metrics, ageInWeeks, currentMinuteOfDay = 15 * 60),
+            "Skipped nap with 300 min until learned bedtime must still route to NAP",
+        )
+    }
+
+    @Test
+    fun `resolveNextSleepType returns NAP for skipped nap when no learned bedtime available`() {
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        ).copy(
+            lastSleepType = SleepType.NAP,
+            napCountToday = 1,
+            medianBedtimeMinuteOfDay = null,
+        )
+        assertEquals(
+            SleepType.NAP,
+            SleepWindowPredictor.resolveNextSleepType(metrics, ageInWeeks, currentMinuteOfDay = 20 * 60),
+            "Bedtime override must not fire when medianBedtimeMinuteOfDay is null",
+        )
+    }
+
+    @Test
+    fun `predict routes skipped nap to bedtime model using features currentMinuteOfDay`() {
+        val lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli()
+        val bedtimeP50 = Duration.ofMinutes(150).toMillis()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+            bedtimeWakeIntervalCount = SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS,
+            bedtimeWakeP50Millis = bedtimeP50,
+        ).copy(
+            lastSleepType = SleepType.NAP,
+            napCountToday = 1,
+            medianBedtimeMinuteOfDay = 15 * 60,
+        )
+        val result = SleepWindowPredictor.predict(
+            features(
+                quality = sufficientQuality(completedCount = SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS),
+                metrics = metrics,
+                currentMinuteOfDay = 14 * 60,
+            ),
+            ageInWeeks,
+            baseNow,
+        )
+
+        val window = (result as SleepPredictionState.Window).window
+        val bedtimePriorMillis = Duration.ofMinutes(150).toMillis()
+        val expectedTargetMillis = (0.4 * bedtimePriorMillis + 0.6 * bedtimeP50).toLong()
+        val expectedBestEstimate = Instant.ofEpochMilli(lastWakeMillis + expectedTargetMillis)
+
+        assertEquals(
+            expectedBestEstimate,
+            window.bestEstimate,
+            "predict() must route through the bedtime model when currentMinuteOfDay is within learned bedtime cutoff",
+        )
+        assertTrue(
+            window.reasons.any { it.contains("bedtime-specific wake patterns") },
+            "Window reasons must show the bedtime-specific path; buildWindow likely did not pass features.currentMinuteOfDay",
+        )
     }
 
     @Test
