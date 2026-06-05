@@ -479,7 +479,7 @@ class SleepWindowPredictorTest {
     @Test
     fun `ALGORITHM_VERSION is phase2 personalized wake version`() {
         assertEquals(
-            "sleep-pred-phase2-personalized-wake-1",
+            "sleep-pred-phase2-personalized-wake-2",
             SleepPredictionTuning.ALGORITHM_VERSION,
             "ALGORITHM_VERSION must be bumped when changing prediction algorithm",
         )
