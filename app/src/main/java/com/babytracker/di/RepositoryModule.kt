@@ -6,6 +6,7 @@ import com.babytracker.data.repository.BabyRepositoryImpl
 import com.babytracker.data.repository.BreastfeedingRepositoryImpl
 import com.babytracker.data.repository.InventoryRepositoryImpl
 import com.babytracker.data.repository.PumpingRepositoryImpl
+import com.babytracker.data.repository.SleepRecommendationRepositoryImpl
 import com.babytracker.data.repository.SettingsRepositoryImpl
 import com.babytracker.data.repository.SleepRepositoryImpl
 import com.babytracker.domain.repository.BabyEventRepository
@@ -15,6 +16,7 @@ import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepRecommendationRepository
 import com.babytracker.domain.repository.SleepRepository
 import dagger.Binds
 import dagger.Module
@@ -57,4 +59,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindInventoryRepository(impl: InventoryRepositoryImpl): InventoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSleepRecommendationRepository(
+        impl: SleepRecommendationRepositoryImpl,
+    ): SleepRecommendationRepository
 }
