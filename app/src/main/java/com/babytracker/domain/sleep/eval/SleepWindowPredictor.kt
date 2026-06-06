@@ -21,6 +21,7 @@ object SleepWindowPredictor {
         ageInWeeks: Int,
         now: Instant,
         circadianFactorProvider: CircadianFactorProvider = { _, _, _, _, _ -> SleepPredictionFactor.Neutral },
+        timeOfDayFactorProvider: TimeOfDayFactorProvider = { _, _, _, _ -> SleepPredictionFactor.Disabled },
     ): SleepPredictionState {
         val quality = features.quality
         if (!quality.hasSufficientZoneIndependentEvidence || !quality.isLocalDayCoverageSufficient) {
@@ -29,7 +30,7 @@ object SleepWindowPredictor {
         if (features.feedIntervals.any { it.endMillis == null }) {
             return SleepPredictionState.AfterActiveFeed
         }
-        return buildWindow(features, ageInWeeks, now, circadianFactorProvider)
+        return buildWindow(features, ageInWeeks, now, circadianFactorProvider, timeOfDayFactorProvider)
     }
 
     private fun buildWindow(
@@ -37,6 +38,7 @@ object SleepWindowPredictor {
         ageInWeeks: Int,
         now: Instant,
         circadianFactorProvider: CircadianFactorProvider,
+        timeOfDayFactorProvider: TimeOfDayFactorProvider,
     ): SleepPredictionState {
         val quality = features.quality
         val metrics = features.metrics
@@ -68,7 +70,10 @@ object SleepWindowPredictor {
             candidateMinute,
             metrics.napCountToday,
         )
-        val adjustedBestEstimate = bestEstimate.plus(circadianFactor.adjustment)
+        val timeOfDayFactor = timeOfDayFactorProvider(metrics, nextType, candidateMinute, false)
+        val adjustedBestEstimate = bestEstimate
+            .plus(circadianFactor.adjustment)
+            .plus(timeOfDayFactor.adjustment)
         val windowStart = adjustedBestEstimate.minus(halfWindowDuration)
         val windowEnd = adjustedBestEstimate.plus(halfWindowDuration)
         // Stale check uses the pre-factor end (so a positive factor cannot revive a stale anchor)
@@ -86,7 +91,7 @@ object SleepWindowPredictor {
                 bestEstimate = adjustedBestEstimate,
                 confidence = confidence,
                 reasons = buildReasons(qualityC, ageInWeeks, nextType, typeIntervalCount) +
-                    listOfNotNull(circadianFactor.reason),
+                    listOfNotNull(circadianFactor.reason, timeOfDayFactor.reason),
                 feedPrompt = computeFeedPrompt(features.feedIntervals, windowStart, windowEnd, now),
                 safetyPrompt = "Always follow your baby's sleep cues — windows are estimates, not schedules.",
             )

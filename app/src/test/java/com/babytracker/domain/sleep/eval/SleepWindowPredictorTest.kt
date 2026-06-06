@@ -357,6 +357,7 @@ class SleepWindowPredictorTest {
             ),
             ageInWeeks,
             baseNow,
+            circadianFactorProvider = { _, _, _, _, _ -> SleepPredictionFactor.Neutral },
         )
 
         val window = (result as SleepPredictionState.Window).window
