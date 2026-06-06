@@ -51,6 +51,20 @@ class ValidateBackupUseCaseTest {
     }
 
     @Test
+    fun `canonicalizes legacy sleep type labels`() {
+        val data = backup(
+            sleep = listOf(
+                SleepBackup(1, 10, 20, "Nap", null),
+                SleepBackup(2, 30, 40, "Night Sleep", null),
+            ),
+        )
+
+        val result = useCase(json.encodeToString(BackupData.serializer(), data))
+
+        assertEquals(listOf("NAP", "NIGHT_SLEEP"), result.sleep.map { it.sleepType })
+    }
+
+    @Test
     fun `rejects a newer-than-build backup`() {
         val data = backup(version = CURRENT_BACKUP_FORMAT_VERSION + 1)
         assertThrows(BackupTooNewException::class.java) {

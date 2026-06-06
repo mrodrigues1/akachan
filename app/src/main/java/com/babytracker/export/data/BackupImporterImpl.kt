@@ -9,6 +9,7 @@ import com.babytracker.data.local.entity.SleepEntity
 import com.babytracker.export.domain.BackupImporter
 import com.babytracker.export.domain.ImportCounts
 import com.babytracker.export.domain.model.BackupData
+import com.babytracker.domain.model.toSleepTypeOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -43,15 +44,31 @@ class BackupImporterImpl @Inject constructor(
     }
 
     private suspend fun mergeSleep(data: BackupData): Int {
-        val seen = db.sleepDao().getAllRecordsOnce().map { it.identity() }.toMutableSet()
+        val existingByIdentity = db.sleepDao().getAllRecordsOnce()
+            .associateBy { it.identity() }
+            .toMutableMap()
         var inserted = 0
         for (s in data.sleep) {
             val entity = SleepEntity(
-                startTime = s.startTime, endTime = s.endTime, sleepType = s.sleepType, notes = s.notes,
+                startTime = s.startTime,
+                endTime = s.endTime,
+                sleepType = s.sleepType.toSleepTypeOrNull()?.name ?: s.sleepType,
+                notes = s.notes,
+                timezoneId = s.timezoneId,
             )
-            if (seen.add(entity.identity())) {
-                db.sleepDao().insertRecord(entity)
-                inserted++
+            val key = entity.identity()
+            val existing = existingByIdentity[key]
+            when {
+                existing == null -> {
+                    val newId = db.sleepDao().insertRecord(entity)
+                    existingByIdentity[key] = entity.copy(id = newId)
+                    inserted++
+                }
+                existing.timezoneId == null && entity.timezoneId != null -> {
+                    val repaired = existing.copy(timezoneId = entity.timezoneId)
+                    db.sleepDao().updateRecord(repaired)
+                    existingByIdentity[key] = repaired
+                }
             }
         }
         return inserted

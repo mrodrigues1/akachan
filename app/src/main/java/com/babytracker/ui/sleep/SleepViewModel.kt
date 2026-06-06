@@ -3,6 +3,7 @@ package com.babytracker.ui.sleep
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.SleepPredictionState
+import com.babytracker.domain.model.SleepPredictionTuning
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepSchedule
 import com.babytracker.domain.model.SleepType
@@ -181,7 +182,7 @@ class SleepViewModel @Inject constructor(
     }
 
     fun onEditRecord(record: SleepRecord) {
-        val zone = ZoneId.systemDefault()
+        val zone = zoneForEditing(record)
         val startLocal = record.startTime.atZone(zone).toLocalTime()
         val endLocal = record.endTime?.atZone(zone)?.toLocalTime() ?: LocalTime.now()
         _uiState.value = _uiState.value.copy(
@@ -232,22 +233,41 @@ class SleepViewModel @Inject constructor(
 
     fun onSaveEntry() {
         val state = _uiState.value
-        val zone = ZoneId.systemDefault()
-        val referenceDate = state.editingRecord?.startTime?.atZone(zone)?.toLocalDate() ?: LocalDate.now()
-        var startInstant = state.entryStartTime.atDate(referenceDate).atZone(zone).toInstant()
-        val endInstant = state.entryEndTime.atDate(referenceDate).atZone(zone).toInstant()
-        if (startInstant > endInstant) {
-            startInstant = state.entryStartTime.atDate(referenceDate.minusDays(1)).atZone(zone).toInstant()
+        val editingRecord = state.editingRecord
+        val zone = editingRecord?.let { zoneForEditing(it) } ?: ZoneId.systemDefault()
+        val referenceDate = editingRecord?.startTime?.atZone(zone)?.toLocalDate() ?: LocalDate.now()
+        val startDate = when {
+            editingRecord == null && state.entryEndTime.isBefore(state.entryStartTime) -> referenceDate.minusDays(1)
+            else -> referenceDate
         }
+        val endDate = when {
+            editingRecord != null && state.entryEndTime.isBefore(state.entryStartTime) -> referenceDate.plusDays(1)
+            else -> referenceDate
+        }
+        val startInstant = state.entryStartTime.atDate(startDate).atZone(zone).toInstant()
+        val endInstant = state.entryEndTime.atDate(endDate).atZone(zone).toInstant()
         if (endInstant <= startInstant) {
             _uiState.value = state.copy(
                 entryError = "End time needs to be after start time. Adjust one time to save this sleep."
             )
             return
         }
+        val duration = Duration.between(startInstant, endInstant)
+        if (duration > maxDurationFor(state.entryType)) {
+            _uiState.value = state.copy(
+                entryError = "Sleep duration is too long for this sleep type. Adjust one time to save this sleep."
+            )
+            return
+        }
         viewModelScope.launch {
-            if (state.editingRecord != null) {
-                updateSleepEntry(state.editingRecord.id, startInstant, endInstant, state.entryType)
+            if (editingRecord != null) {
+                updateSleepEntry(
+                    id = editingRecord.id,
+                    startTime = startInstant,
+                    endTime = endInstant,
+                    type = state.entryType,
+                    timezoneId = zone.id,
+                )
             } else {
                 saveSleepEntry(startInstant, endInstant, state.entryType)
             }
@@ -350,6 +370,16 @@ class SleepViewModel @Inject constructor(
             awakeForLabel = "Awake for ${awakeDuration.formatElapsedShort()}",
             endedAtLabel = "Ended at ${endTime.formatTime12h()}",
         )
+    }
+
+    private fun zoneForEditing(record: SleepRecord): ZoneId =
+        record.timezoneId
+            ?.let { runCatching { ZoneId.of(it) }.getOrNull() }
+            ?: ZoneId.systemDefault()
+
+    private fun maxDurationFor(type: SleepType): Duration = when (type) {
+        SleepType.NAP -> Duration.ofHours(SleepPredictionTuning.MAX_NAP_DURATION_HOURS)
+        SleepType.NIGHT_SLEEP -> Duration.ofHours(SleepPredictionTuning.MAX_NIGHT_SLEEP_DURATION_HOURS)
     }
 
     private companion object {

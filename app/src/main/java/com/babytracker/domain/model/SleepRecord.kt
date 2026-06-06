@@ -8,7 +8,8 @@ data class SleepRecord(
     val startTime: Instant,
     val endTime: Instant? = null,
     val sleepType: SleepType,
-    val notes: String? = null
+    val notes: String? = null,
+    val timezoneId: String? = null
 ) {
     val duration: Duration?
         get() = endTime?.let { Duration.between(startTime, it) }

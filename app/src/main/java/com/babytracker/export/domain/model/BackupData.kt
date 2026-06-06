@@ -61,6 +61,7 @@ data class SleepBackup(
     val endTime: Long?,
     val sleepType: String,
     val notes: String?,
+    val timezoneId: String? = null,
 )
 
 @Serializable

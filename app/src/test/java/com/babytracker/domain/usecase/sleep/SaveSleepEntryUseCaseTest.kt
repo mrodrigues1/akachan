@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import java.time.ZoneId
 
 class SaveSleepEntryUseCaseTest {
 
@@ -37,6 +38,7 @@ class SaveSleepEntryUseCaseTest {
         assertEquals(start, slot.captured.startTime)
         assertEquals(end, slot.captured.endTime)
         assertEquals(SleepType.NAP, slot.captured.sleepType)
+        assertEquals(ZoneId.systemDefault().id, slot.captured.timezoneId)
     }
 
     @Test

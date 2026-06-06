@@ -3,8 +3,8 @@ package com.babytracker.export.domain.usecase
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.PumpingBreast
-import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.model.toSleepTypeOrNull
 import com.babytracker.export.domain.BackupTooNewException
 import com.babytracker.export.domain.InvalidBackupException
 import com.babytracker.export.domain.model.BackupData
@@ -18,8 +18,9 @@ class ValidateBackupUseCase @Inject constructor(
     operator fun invoke(jsonString: String): BackupData {
         val parsed = json.decodeFromString(BackupData.serializer(), jsonString)
         val migrated = applyVersionGate(parsed)
-        validateContent(migrated)
-        return migrated
+        val canonical = canonicalizeContent(migrated)
+        validateContent(canonical)
+        return canonical
     }
 
     private fun applyVersionGate(data: BackupData): BackupData = when {
@@ -33,10 +34,19 @@ class ValidateBackupUseCase @Inject constructor(
     private fun migrateOlder(data: BackupData): BackupData =
         throw InvalidBackupException("Unsupported backup format v${data.backupFormatVersion}")
 
+    private fun canonicalizeContent(data: BackupData): BackupData =
+        data.copy(
+            sleep = data.sleep.map { backup ->
+                backup.copy(sleepType = backup.sleepType.toSleepTypeOrNull()?.name ?: backup.sleepType)
+            },
+        )
+
     private fun validateContent(data: BackupData) {
         runCatching {
             data.breastfeeding.forEach { BreastSide.valueOf(it.startingSide) }
-            data.sleep.forEach { SleepType.valueOf(it.sleepType) }
+            data.sleep.forEach {
+                it.sleepType.toSleepTypeOrNull() ?: throw IllegalArgumentException(it.sleepType)
+            }
             data.pumping.forEach { PumpingBreast.valueOf(it.breast) }
             data.baby?.allergies?.forEach { AllergyType.valueOf(it) }
             ThemeConfig.valueOf(data.settings.themeConfig)

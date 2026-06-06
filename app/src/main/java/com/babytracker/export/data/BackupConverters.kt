@@ -21,10 +21,12 @@ fun BreastfeedingBackup.toEntity() = BreastfeedingEntity(
 
 fun SleepEntity.toBackup() = SleepBackup(
     id = id, startTime = startTime, endTime = endTime, sleepType = sleepType, notes = notes,
+    timezoneId = timezoneId,
 )
 
 fun SleepBackup.toEntity() = SleepEntity(
     id = id, startTime = startTime, endTime = endTime, sleepType = sleepType, notes = notes,
+    timezoneId = timezoneId,
 )
 
 fun PumpingEntity.toBackup() = PumpingBackup(

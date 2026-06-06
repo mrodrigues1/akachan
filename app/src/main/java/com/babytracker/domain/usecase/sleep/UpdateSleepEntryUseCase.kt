@@ -9,8 +9,22 @@ import javax.inject.Inject
 class UpdateSleepEntryUseCase @Inject constructor(
     private val repository: SleepRepository
 ) {
-    suspend operator fun invoke(id: Long, startTime: Instant, endTime: Instant, type: SleepType) {
+    suspend operator fun invoke(
+        id: Long,
+        startTime: Instant,
+        endTime: Instant,
+        type: SleepType,
+        timezoneId: String? = null,
+    ) {
         require(endTime > startTime) { "endTime must be after startTime" }
-        repository.updateRecord(SleepRecord(id = id, startTime = startTime, endTime = endTime, sleepType = type))
+        repository.updateRecord(
+            SleepRecord(
+                id = id,
+                startTime = startTime,
+                endTime = endTime,
+                sleepType = type,
+                timezoneId = timezoneId,
+            ),
+        )
     }
 }

@@ -20,7 +20,14 @@ class BackupConvertersTest {
 
     @Test
     fun `sleep entity round-trips through backup dto`() {
-        val entity = SleepEntity(id = 3, startTime = 100, endTime = 900, sleepType = "NAP", notes = null)
+        val entity = SleepEntity(
+            id = 3,
+            startTime = 100,
+            endTime = 900,
+            sleepType = "NAP",
+            notes = null,
+            timezoneId = "America/New_York",
+        )
         assertEquals(entity, entity.toBackup().toEntity())
     }
 

@@ -95,7 +95,11 @@ class TileToggleHandler @Inject constructor(
     }
 
     private suspend fun startSleepRecord(now: Instant): Boolean {
-        val record = SleepRecord(startTime = now, sleepType = sleepTypeFor(now, clock.zone))
+        val record = SleepRecord(
+            startTime = now,
+            sleepType = sleepTypeFor(now, clock.zone),
+            timezoneId = clock.zone.id,
+        )
         val id = sleepRepository.startRecordIfNone(record)
         if (id != null) {
             val created = record.copy(id = id)

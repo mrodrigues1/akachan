@@ -4,6 +4,7 @@ import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SleepRepository
 import java.time.Instant
+import java.time.ZoneId
 import javax.inject.Inject
 
 class SaveSleepEntryUseCase @Inject constructor(
@@ -19,7 +20,8 @@ class SaveSleepEntryUseCase @Inject constructor(
             SleepRecord(
                 startTime = startTime,
                 endTime = endTime,
-                sleepType = type
+                sleepType = type,
+                timezoneId = ZoneId.systemDefault().id,
             )
         )
     }

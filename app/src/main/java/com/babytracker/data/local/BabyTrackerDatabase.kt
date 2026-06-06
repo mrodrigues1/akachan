@@ -6,10 +6,12 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.babytracker.data.local.converter.Converters
+import com.babytracker.data.local.dao.BabyProfileDao
 import com.babytracker.data.local.dao.BreastfeedingDao
 import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.data.local.dao.PumpingDao
 import com.babytracker.data.local.dao.SleepDao
+import com.babytracker.data.local.entity.BabyProfileEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
@@ -21,8 +23,9 @@ import com.babytracker.data.local.entity.SleepEntity
         SleepEntity::class,
         PumpingEntity::class,
         MilkBagEntity::class,
+        BabyProfileEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -31,6 +34,7 @@ abstract class BabyTrackerDatabase : RoomDatabase() {
     abstract fun sleepDao(): SleepDao
     abstract fun pumpingDao(): PumpingDao
     abstract fun milkBagDao(): MilkBagDao
+    abstract fun babyProfileDao(): BabyProfileDao
 }
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -137,6 +141,39 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
 
         // pumping_sessions active-row invariant is out of scope for this migration.
         database.installActiveSessionInvariantTriggers()
+    }
+}
+
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS babies (
+                id INTEGER NOT NULL,
+                date_of_birth INTEGER,
+                due_date INTEGER,
+                due_date_user_provided INTEGER NOT NULL DEFAULT 0,
+                home_timezone_id TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                PRIMARY KEY(id)
+            )
+            """.trimIndent()
+        )
+        database.execSQL(
+            "ALTER TABLE sleep_records ADD COLUMN timezone_id TEXT"
+        )
+        database.execSQL(
+            """
+            UPDATE sleep_records
+            SET sleep_type = CASE
+                WHEN sleep_type = 'Nap' THEN 'NAP'
+                WHEN sleep_type = 'Night Sleep' THEN 'NIGHT_SLEEP'
+                ELSE sleep_type
+            END
+            WHERE sleep_type IN ('Nap', 'Night Sleep')
+            """.trimIndent()
+        )
     }
 }
 

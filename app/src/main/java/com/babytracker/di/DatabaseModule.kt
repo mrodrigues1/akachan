@@ -2,17 +2,19 @@ package com.babytracker.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.babytracker.data.local.BabyTrackerDatabase
 import com.babytracker.data.local.MIGRATION_1_2
 import com.babytracker.data.local.MIGRATION_2_3
 import com.babytracker.data.local.MIGRATION_3_4
+import com.babytracker.data.local.MIGRATION_4_5
 import com.babytracker.data.local.installActiveSessionInvariantTriggers
+import com.babytracker.data.local.dao.BabyProfileDao
 import com.babytracker.data.local.dao.BreastfeedingDao
 import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.data.local.dao.PumpingDao
 import com.babytracker.data.local.dao.SleepDao
-import androidx.room.RoomDatabase
-import androidx.sqlite.db.SupportSQLiteDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,7 +35,7 @@ object DatabaseModule {
             BabyTrackerDatabase::class.java,
             "baby_tracker_db",
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)
@@ -54,6 +56,9 @@ object DatabaseModule {
 
     @Provides
     fun provideMilkBagDao(database: BabyTrackerDatabase): MilkBagDao = database.milkBagDao()
+
+    @Provides
+    fun provideBabyProfileDao(database: BabyTrackerDatabase): BabyProfileDao = database.babyProfileDao()
 
     @Provides
     fun provideNowProvider(): () -> Instant = Instant::now

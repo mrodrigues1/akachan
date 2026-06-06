@@ -67,6 +67,74 @@ class BackupImporterImplTest {
     }
 
     @Test
+    fun `sleep import repairs missing timezone on otherwise identical record`() = runTest {
+        db.sleepDao().insertRecord(
+            SleepEntity(
+                startTime = 10,
+                endTime = 20,
+                sleepType = "NAP",
+                notes = "a",
+                timezoneId = null,
+            ),
+        )
+
+        val counts = importer.merge(
+            backup(
+                sleep = listOf(
+                    SleepBackup(99, 10, 20, "NAP", "a", timezoneId = "UTC"),
+                ),
+            ),
+        )
+
+        val records = db.sleepDao().getAllRecordsOnce()
+        assertEquals(0, counts.sleepInserted)
+        assertEquals(1, records.size)
+        assertEquals("UTC", records.single().timezoneId)
+    }
+
+    @Test
+    fun `sleep import preserves local timezone when backup timezone conflicts`() = runTest {
+        db.sleepDao().insertRecord(
+            SleepEntity(
+                startTime = 10,
+                endTime = 20,
+                sleepType = "NAP",
+                notes = "a",
+                timezoneId = "America/Sao_Paulo",
+            ),
+        )
+
+        val counts = importer.merge(
+            backup(
+                sleep = listOf(
+                    SleepBackup(99, 10, 20, "NAP", "a", timezoneId = "UTC"),
+                ),
+            ),
+        )
+
+        val records = db.sleepDao().getAllRecordsOnce()
+        assertEquals(0, counts.sleepInserted)
+        assertEquals(1, records.size)
+        assertEquals("America/Sao_Paulo", records.single().timezoneId)
+    }
+
+    @Test
+    fun `sleep import canonicalizes legacy sleep type labels`() = runTest {
+        val counts = importer.merge(
+            backup(
+                sleep = listOf(
+                    SleepBackup(99, 10, 20, "Nap", "a", timezoneId = "UTC"),
+                    SleepBackup(98, 30, 40, "Night Sleep", "b", timezoneId = "UTC"),
+                ),
+            ),
+        )
+
+        val records = db.sleepDao().getAllRecordsOnce()
+        assertEquals(2, counts.sleepInserted)
+        assertEquals(setOf("NAP", "NIGHT_SLEEP"), records.map { it.sleepType }.toSet())
+    }
+
+    @Test
     fun `remaps milk bag FK to a newly inserted pumping row`() = runTest {
         val counts = importer.merge(
             backup(

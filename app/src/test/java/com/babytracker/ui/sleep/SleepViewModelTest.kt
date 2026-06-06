@@ -44,6 +44,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.util.TimeZone
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SleepViewModelTest {
@@ -413,7 +414,7 @@ class SleepViewModelTest {
 
     @Test
     fun `onSaveEntry calls updateSleepEntry when editing`() = runTest {
-        coJustRun { updateSleepEntry(any(), any(), any(), any()) }
+        coJustRun { updateSleepEntry(any(), any(), any(), any(), any()) }
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         val record = SleepRecord(
@@ -429,9 +430,144 @@ class SleepViewModelTest {
         viewModel.onSaveEntry()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { updateSleepEntry(eq(11L), any(), any(), any()) }
+        coVerify { updateSleepEntry(eq(11L), any(), any(), any(), any()) }
         coVerify(exactly = 0) { saveSleepEntry(any(), any(), any()) }
         assertNull(viewModel.uiState.value.editingRecord)
+    }
+
+    @Test
+    fun `onSaveEntry edits in record timezone when it differs from device timezone`() = runTest {
+        val originalTimeZone = TimeZone.getDefault()
+        TimeZone.setDefault(TimeZone.getTimeZone("America/Sao_Paulo"))
+        try {
+            coJustRun { updateSleepEntry(any(), any(), any(), any(), any()) }
+            viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
+            val record = SleepRecord(
+                id = 11L,
+                startTime = Instant.parse("2024-01-15T20:00:00Z"),
+                endTime = Instant.parse("2024-01-15T22:00:00Z"),
+                sleepType = SleepType.NAP,
+                timezoneId = "UTC",
+            )
+
+            viewModel.onEditRecord(record)
+            assertEquals(LocalTime.of(20, 0), viewModel.uiState.value.entryStartTime)
+
+            viewModel.onEntryStartTimeChanged(LocalTime.of(21, 0))
+            viewModel.onEntryEndTimeChanged(LocalTime.of(22, 0))
+            viewModel.onSaveEntry()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coVerify {
+                updateSleepEntry(
+                    id = 11L,
+                    startTime = Instant.parse("2024-01-15T21:00:00Z"),
+                    endTime = Instant.parse("2024-01-15T22:00:00Z"),
+                    type = SleepType.NAP,
+                    timezoneId = "UTC",
+                )
+            }
+        } finally {
+            TimeZone.setDefault(originalTimeZone)
+        }
+    }
+
+    @Test
+    fun `onSaveEntry preserves overnight date span when editing`() = runTest {
+        coJustRun { updateSleepEntry(any(), any(), any(), any(), any()) }
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val record = SleepRecord(
+            id = 12L,
+            startTime = Instant.parse("2024-01-15T23:00:00Z"),
+            endTime = Instant.parse("2024-01-16T01:00:00Z"),
+            sleepType = SleepType.NIGHT_SLEEP,
+            timezoneId = "UTC",
+        )
+
+        viewModel.onEditRecord(record)
+        viewModel.onSaveEntry()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify {
+            updateSleepEntry(
+                id = 12L,
+                startTime = Instant.parse("2024-01-15T23:00:00Z"),
+                endTime = Instant.parse("2024-01-16T01:00:00Z"),
+                type = SleepType.NIGHT_SLEEP,
+                timezoneId = "UTC",
+            )
+        }
+    }
+
+    @Test
+    fun `onSaveEntry rejects equal start and end when editing`() = runTest {
+        coJustRun { updateSleepEntry(any(), any(), any(), any(), any()) }
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val record = SleepRecord(
+            id = 13L,
+            startTime = Instant.parse("2024-01-15T09:00:00Z"),
+            endTime = Instant.parse("2024-01-15T10:00:00Z"),
+            sleepType = SleepType.NAP,
+            timezoneId = "UTC",
+        )
+
+        viewModel.onEditRecord(record)
+        viewModel.onEntryStartTimeChanged(LocalTime.of(9, 0))
+        viewModel.onEntryEndTimeChanged(LocalTime.of(9, 0))
+        viewModel.onSaveEntry()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { updateSleepEntry(any(), any(), any(), any(), any()) }
+        assertNotNull(viewModel.uiState.value.entryError)
+    }
+
+    @Test
+    fun `onSaveEntry rejects overlong edited nap`() = runTest {
+        coJustRun { updateSleepEntry(any(), any(), any(), any(), any()) }
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val record = SleepRecord(
+            id = 14L,
+            startTime = Instant.parse("2024-01-15T09:00:00Z"),
+            endTime = Instant.parse("2024-01-15T10:00:00Z"),
+            sleepType = SleepType.NAP,
+            timezoneId = "UTC",
+        )
+
+        viewModel.onEditRecord(record)
+        viewModel.onEntryStartTimeChanged(LocalTime.of(9, 0))
+        viewModel.onEntryEndTimeChanged(LocalTime.of(13, 1))
+        viewModel.onSaveEntry()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { updateSleepEntry(any(), any(), any(), any(), any()) }
+        assertNotNull(viewModel.uiState.value.entryError)
+    }
+
+    @Test
+    fun `onSaveEntry rejects overlong edited night sleep`() = runTest {
+        coJustRun { updateSleepEntry(any(), any(), any(), any(), any()) }
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val record = SleepRecord(
+            id = 15L,
+            startTime = Instant.parse("2024-01-15T18:00:00Z"),
+            endTime = Instant.parse("2024-01-16T06:00:00Z"),
+            sleepType = SleepType.NIGHT_SLEEP,
+            timezoneId = "UTC",
+        )
+
+        viewModel.onEditRecord(record)
+        viewModel.onEntryStartTimeChanged(LocalTime.of(12, 0))
+        viewModel.onEntryEndTimeChanged(LocalTime.of(7, 1))
+        viewModel.onSaveEntry()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { updateSleepEntry(any(), any(), any(), any(), any()) }
+        assertNotNull(viewModel.uiState.value.entryError)
     }
 
     @Test
