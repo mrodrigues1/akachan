@@ -28,8 +28,13 @@ interface SleepRecommendationDao {
         version: String,
     ): SleepRecommendationEntity?
 
-    @Query("UPDATE sleep_recommendations SET lifecycle = :lifecycle WHERE id = :id")
-    suspend fun updateLifecycle(id: Long, lifecycle: String)
+    // Returns 0 when the row is already in a terminal state (FIRED or SUPERSEDED), so callers
+    // can detect stale events without re-reading the row.
+    @Query(
+        "UPDATE sleep_recommendations SET lifecycle = :lifecycle " +
+            "WHERE id = :id AND lifecycle NOT IN ('FIRED', 'SUPERSEDED')",
+    )
+    suspend fun updateLifecycle(id: Long, lifecycle: String): Int
 
     @Query(
         """
