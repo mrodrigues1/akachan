@@ -36,7 +36,7 @@ class SleepFeatureExtractorTest {
         assertTrue(SleepPredictionTuning.LOOKBACK_DAYS > 0)
         assertTrue(SleepPredictionTuning.MAX_NAP_DURATION_HOURS > 0)
         assertTrue(SleepPredictionTuning.HALF_WINDOW_MINUTES > 0)
-        assertEquals("sleep-pred-phase2-sleep-debt-1", SleepPredictionTuning.ALGORITHM_VERSION)
+        assertEquals("sleep-pred-phase3-tz-provenance-1", SleepPredictionTuning.ALGORITHM_VERSION)
     }
 
     @Test
@@ -659,6 +659,91 @@ class SleepFeatureExtractorTest {
             quality.hasSufficientZoneIndependentEvidence,
             "Quality must fail when not enough per-type intervals for type-aware stability check",
         )
+    }
+
+    @Test
+    fun `computeQuality sets hasQualifiedTimezoneProvenance false when no records have timezoneId`() {
+        val records = (1..10).map { i ->
+            SleepRecord(
+                startTime = nowInstant.minusMillis(hoursMs(i * 3.0 + 1)),
+                endTime = nowInstant.minusMillis(hoursMs(i * 3.0)),
+                sleepType = SleepType.NAP,
+                timezoneId = null,
+            )
+        }
+        val intervals = extractor.buildSleepIntervals(records)
+        val metrics = extractor.computeMetrics(intervals)
+        val quality = extractor.computeQuality(intervals, records.size, metrics)
+
+        assertFalse(quality.hasQualifiedTimezoneProvenance)
+    }
+
+    @Test
+    fun `computeQuality sets hasQualifiedTimezoneProvenance true when majority of recent intervals have timezoneId`() {
+        val records = (1..10).map { i ->
+            SleepRecord(
+                startTime = nowInstant.minusMillis(hoursMs(i * 3.0 + 1)),
+                endTime = nowInstant.minusMillis(hoursMs(i * 3.0)),
+                sleepType = SleepType.NAP,
+                timezoneId = if (i <= 8) "America/New_York" else null,
+            )
+        }
+        val intervals = extractor.buildSleepIntervals(records)
+        val metrics = extractor.computeMetrics(intervals)
+        val quality = extractor.computeQuality(intervals, records.size, metrics)
+
+        assertTrue(quality.hasQualifiedTimezoneProvenance)
+    }
+
+    @Test
+    fun `computeQuality sets hasQualifiedTimezoneProvenance false when fewer than MIN_COMPLETED_INTERVALS available`() {
+        val records = (1..3).map { i ->
+            SleepRecord(
+                startTime = nowInstant.minusMillis(hoursMs(i * 3.0 + 1)),
+                endTime = nowInstant.minusMillis(hoursMs(i * 3.0)),
+                sleepType = SleepType.NAP,
+                timezoneId = "UTC",
+            )
+        }
+        val intervals = extractor.buildSleepIntervals(records)
+        val metrics = extractor.computeMetrics(intervals)
+        val quality = extractor.computeQuality(intervals, records.size, metrics)
+
+        assertFalse(quality.hasQualifiedTimezoneProvenance)
+    }
+
+    @Test
+    fun `hasQualifiedTimezoneProvenance true when records have timezoneId from a different zone than current device`() {
+        val records = (1..10).map { i ->
+            SleepRecord(
+                startTime = nowInstant.minusMillis(hoursMs(i * 3.0 + 1)),
+                endTime = nowInstant.minusMillis(hoursMs(i * 3.0)),
+                sleepType = SleepType.NAP,
+                timezoneId = "America/New_York",
+            )
+        }
+        val intervals = extractor.buildSleepIntervals(records)
+        val metrics = extractor.computeMetrics(intervals)
+        val quality = extractor.computeQuality(intervals, records.size, metrics)
+
+        assertTrue(quality.hasQualifiedTimezoneProvenance)
+    }
+
+    @Test
+    fun `hasQualifiedTimezoneProvenance false for legacy records with null timezoneId after device timezone change`() {
+        val records = (1..10).map { i ->
+            SleepRecord(
+                startTime = nowInstant.minusMillis(hoursMs(i * 3.0 + 1)),
+                endTime = nowInstant.minusMillis(hoursMs(i * 3.0)),
+                sleepType = SleepType.NAP,
+                timezoneId = null,
+            )
+        }
+        val intervals = extractor.buildSleepIntervals(records)
+        val metrics = extractor.computeMetrics(intervals)
+        val quality = extractor.computeQuality(intervals, records.size, metrics)
+
+        assertFalse(quality.hasQualifiedTimezoneProvenance)
     }
 
     private fun hoursMs(hours: Double): Long = (hours * 3_600_000).toLong()

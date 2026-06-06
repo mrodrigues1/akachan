@@ -16,12 +16,14 @@ import java.time.LocalDate
 class SaveBabyProfileUseCaseTest {
 
     private lateinit var repository: BabyRepository
+    private lateinit var bootstrap: BootstrapBabyProfileUseCase
     private lateinit var useCase: SaveBabyProfileUseCase
 
     @BeforeEach
     fun setUp() {
         repository = mockk()
-        useCase = SaveBabyProfileUseCase(repository)
+        bootstrap = mockk(relaxed = true)
+        useCase = SaveBabyProfileUseCase(repository, bootstrap)
     }
 
     @Test
@@ -32,6 +34,7 @@ class SaveBabyProfileUseCaseTest {
         useCase(baby)
 
         coVerify(exactly = 1) { repository.saveBabyProfile(baby) }
+        coVerify(exactly = 1) { bootstrap.invoke() }
     }
 
     @Test

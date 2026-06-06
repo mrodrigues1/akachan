@@ -102,7 +102,12 @@ object SleepWindowPredictor {
             return SleepPredictionState.Overdue
         }
 
-        val confidence = if (qualityC >= 0.5f) Confidence.MEDIUM else Confidence.LOW
+        val confidence = when {
+            qualityC >= SleepPredictionTuning.HIGH_CONFIDENCE_QUALITY_C_THRESHOLD &&
+                quality.hasQualifiedTimezoneProvenance -> Confidence.HIGH
+            qualityC >= 0.5f -> Confidence.MEDIUM
+            else -> Confidence.LOW
+        }
 
         return SleepPredictionState.Window(
             SleepWindow(

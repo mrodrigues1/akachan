@@ -658,9 +658,9 @@ class SleepWindowPredictorTest {
     }
 
     @Test
-    fun `ALGORITHM_VERSION is phase2 sleep-debt version`() {
+    fun `ALGORITHM_VERSION is phase3 tz-provenance version`() {
         assertEquals(
-            "sleep-pred-phase2-sleep-debt-1",
+            "sleep-pred-phase3-tz-provenance-1",
             SleepPredictionTuning.ALGORITHM_VERSION,
             "ALGORITHM_VERSION must be bumped when changing prediction algorithm",
         )
@@ -751,5 +751,50 @@ class SleepWindowPredictorTest {
             },
         )
         assertInstanceOf(SleepPredictionState.Window::class.java, result)
+    }
+
+    @Test
+    fun `confidence is MEDIUM without qualified timezone provenance even when qualityC is high`() {
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+        val quality = sufficientQuality(completedCount = SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS)
+            .copy(hasQualifiedTimezoneProvenance = false)
+
+        val result = SleepWindowPredictor.predict(features(quality = quality, metrics = metrics), ageInWeeks, baseNow)
+
+        assertInstanceOf(SleepPredictionState.Window::class.java, result)
+        assertEquals(Confidence.MEDIUM, (result as SleepPredictionState.Window).window.confidence)
+    }
+
+    @Test
+    fun `confidence is HIGH with qualified timezone provenance and high qualityC`() {
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+        val quality = sufficientQuality(completedCount = SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS)
+            .copy(hasQualifiedTimezoneProvenance = true)
+
+        val result = SleepWindowPredictor.predict(features(quality = quality, metrics = metrics), ageInWeeks, baseNow)
+
+        assertInstanceOf(SleepPredictionState.Window::class.java, result)
+        assertEquals(Confidence.HIGH, (result as SleepPredictionState.Window).window.confidence)
+    }
+
+    @Test
+    fun `confidence is LOW when qualityC is low regardless of provenance`() {
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+        val quality = sufficientQuality(completedCount = SleepPredictionTuning.MIN_COMPLETED_INTERVALS)
+            .copy(hasQualifiedTimezoneProvenance = true)
+
+        val result = SleepWindowPredictor.predict(features(quality = quality, metrics = metrics), ageInWeeks, baseNow)
+
+        assertInstanceOf(SleepPredictionState.Window::class.java, result)
+        assertEquals(Confidence.LOW, (result as SleepPredictionState.Window).window.confidence)
     }
 }

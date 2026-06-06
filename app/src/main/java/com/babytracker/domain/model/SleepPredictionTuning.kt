@@ -41,5 +41,7 @@ object SleepPredictionTuning {
     const val SLEEP_DEBT_MIN_HOURS = 1L
     const val NAP_BUDGET_MAX_SHIFT_MINUTES = 20L
     const val NAP_BUDGET_MINUTES_PER_NAP = 10L
-    const val ALGORITHM_VERSION = "sleep-pred-phase2-sleep-debt-1"
+    const val MIN_QUALIFIED_TZ_PROVENANCE_RATE = 0.5f
+    const val HIGH_CONFIDENCE_QUALITY_C_THRESHOLD = 0.8f
+    const val ALGORITHM_VERSION = "sleep-pred-phase3-tz-provenance-1"
 }

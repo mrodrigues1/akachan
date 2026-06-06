@@ -9,4 +9,5 @@ data class EvidenceQuality(
     val wakeIntervalIqrMillis: Long?,
     val invalidRecordRate: Float,
     val hasSufficientZoneIndependentEvidence: Boolean,
+    val hasQualifiedTimezoneProvenance: Boolean = false,
 )

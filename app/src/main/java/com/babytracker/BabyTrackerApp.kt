@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.babytracker.BuildConfig
 import com.babytracker.debug.DebugDataSeeder
+import com.babytracker.domain.usecase.baby.BootstrapBabyProfileUseCase
 import com.babytracker.domain.repository.InventorySettingsRepository
 import com.babytracker.manager.PredictiveFeedNotificationCoordinator
 import com.babytracker.manager.PredictiveSleepNotificationCoordinator
@@ -31,6 +32,7 @@ class BabyTrackerApp : Application(), Configuration.Provider {
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var inventorySettings: InventorySettingsRepository
     @Inject lateinit var stashExpirationScheduler: StashExpirationScheduler
+    @Inject lateinit var bootstrapBabyProfile: BootstrapBabyProfileUseCase
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -51,6 +53,7 @@ class BabyTrackerApp : Application(), Configuration.Provider {
         predictiveSleepCoordinator.start()
         widgetSyncManager.start()
         reconcileStashExpirationAlarm()
+        appScope.launch { runCatching { bootstrapBabyProfile() } }
         if (BuildConfig.DEBUG) {
             appScope.launch { debugDataSeeder.seedIfEmpty() }
         }

@@ -15,6 +15,52 @@ import org.junit.runner.RunWith
 class MigrationTest {
 
     @Test
+    fun migrate4To5_createsBabiesTable_addsTimezoneId_normalizesLegacySleepType() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val dbName = "migration-test-v4-to-v5"
+        try {
+            val helper = FrameworkSQLiteOpenHelperFactory().create(
+                SupportSQLiteOpenHelper.Configuration.builder(context)
+                    .name(dbName)
+                    .callback(V4DatabaseCallback())
+                    .build()
+            )
+            val db = helper.writableDatabase
+
+            db.execSQL("INSERT INTO sleep_records(start_time, sleep_type) VALUES(1000, 'NAP')")
+            db.execSQL("INSERT INTO sleep_records(start_time, sleep_type) VALUES(2000, 'Nap')")
+            db.execSQL("INSERT INTO sleep_records(start_time, sleep_type) VALUES(3000, 'Night Sleep')")
+
+            MIGRATION_4_5.migrate(db)
+
+            db.execSQL(
+                "INSERT INTO babies(id, created_at, updated_at) VALUES(1, ${System.currentTimeMillis()}, ${System.currentTimeMillis()})"
+            )
+            val babiesCursor: Cursor = db.query("SELECT count(*) FROM babies")
+            babiesCursor.moveToFirst()
+            assertEquals(1, babiesCursor.getInt(0))
+            babiesCursor.close()
+
+            db.execSQL("UPDATE sleep_records SET timezone_id = 'UTC' WHERE start_time = 1000")
+
+            val typeCursor: Cursor = db.query(
+                "SELECT sleep_type FROM sleep_records ORDER BY start_time ASC"
+            )
+            typeCursor.moveToFirst()
+            assertEquals("NAP", typeCursor.getString(0))
+            typeCursor.moveToNext()
+            assertEquals("NAP", typeCursor.getString(0))
+            typeCursor.moveToNext()
+            assertEquals("NIGHT_SLEEP", typeCursor.getString(0))
+            typeCursor.close()
+
+            db.close()
+        } finally {
+            context.deleteDatabase(dbName)
+        }
+    }
+
+    @Test
     fun migrate2To3_createsPumpingAndMilkBagsTables() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val dbName = "migration-test-v2-to-v3"
@@ -62,6 +108,38 @@ class MigrationTest {
             context.deleteDatabase(dbName)
         }
     }
+}
+
+private class V4DatabaseCallback : SupportSQLiteOpenHelper.Callback(4) {
+    override fun onCreate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS sleep_records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                start_time INTEGER NOT NULL,
+                end_time INTEGER,
+                sleep_type TEXT NOT NULL,
+                notes TEXT
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS breastfeeding_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                start_time INTEGER NOT NULL,
+                end_time INTEGER,
+                starting_side TEXT NOT NULL,
+                switch_time INTEGER,
+                notes TEXT,
+                paused_at INTEGER DEFAULT NULL,
+                paused_duration_ms INTEGER NOT NULL DEFAULT 0
+            )
+            """.trimIndent()
+        )
+    }
+
+    override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
 }
 
 private class V2DatabaseCallback : SupportSQLiteOpenHelper.Callback(2) {

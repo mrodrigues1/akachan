@@ -122,6 +122,13 @@ class SleepFeatureExtractor(
             isStable &&
             invalidRecordRate < SleepPredictionTuning.MAX_INVALID_RATE
 
+        val recentCompleted = possibleIntervals.filter {
+            it.isCompleted && it.endMillis!! >= lookbackStartMillis
+        }
+        val qualifiedTzCount = recentCompleted.count { it.timezoneId != null }
+        val hasQualifiedTimezoneProvenance = recentCompleted.size >= SleepPredictionTuning.MIN_COMPLETED_INTERVALS &&
+            qualifiedTzCount.toFloat() / recentCompleted.size >= SleepPredictionTuning.MIN_QUALIFIED_TZ_PROVENANCE_RATE
+
         return EvidenceQuality(
             lastWakeRecencyMillis = recencyMillis,
             isFresh = isFresh,
@@ -131,6 +138,7 @@ class SleepFeatureExtractor(
             wakeIntervalIqrMillis = metrics.wakeIntervalIqrMillis,
             invalidRecordRate = invalidRecordRate,
             hasSufficientZoneIndependentEvidence = hasSufficientZoneIndependentEvidence,
+            hasQualifiedTimezoneProvenance = hasQualifiedTimezoneProvenance,
         )
     }
 
