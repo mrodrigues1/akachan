@@ -10,6 +10,7 @@ import com.babytracker.data.local.MIGRATION_2_3
 import com.babytracker.data.local.MIGRATION_3_4
 import com.babytracker.data.local.MIGRATION_4_5
 import com.babytracker.data.local.MIGRATION_5_6
+import com.babytracker.data.local.MIGRATION_6_7
 import com.babytracker.data.local.installActiveSessionInvariantTriggers
 import com.babytracker.data.local.dao.BabyEventDao
 import com.babytracker.data.local.dao.BabyProfileDao
@@ -17,6 +18,7 @@ import com.babytracker.data.local.dao.BreastfeedingDao
 import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.data.local.dao.PumpingDao
 import com.babytracker.data.local.dao.SleepDao
+import com.babytracker.data.local.dao.SleepRecommendationDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -37,7 +39,7 @@ object DatabaseModule {
             BabyTrackerDatabase::class.java,
             "baby_tracker_db",
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)
@@ -64,6 +66,10 @@ object DatabaseModule {
 
     @Provides
     fun provideBabyEventDao(database: BabyTrackerDatabase): BabyEventDao = database.babyEventDao()
+
+    @Provides
+    fun provideSleepRecommendationDao(database: BabyTrackerDatabase): SleepRecommendationDao =
+        database.sleepRecommendationDao()
 
     @Provides
     fun provideNowProvider(): () -> Instant = Instant::now

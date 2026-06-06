@@ -12,12 +12,15 @@ import com.babytracker.data.local.dao.BreastfeedingDao
 import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.data.local.dao.PumpingDao
 import com.babytracker.data.local.dao.SleepDao
+import com.babytracker.data.local.dao.SleepRecommendationDao
 import com.babytracker.data.local.entity.BabyEventEntity
 import com.babytracker.data.local.entity.BabyProfileEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
+import com.babytracker.data.local.entity.SleepRecommendationEntity
+import com.babytracker.data.local.entity.SleepRecommendationFeedbackEntity
 
 @Database(
     entities = [
@@ -27,8 +30,10 @@ import com.babytracker.data.local.entity.SleepEntity
         MilkBagEntity::class,
         BabyProfileEntity::class,
         BabyEventEntity::class,
+        SleepRecommendationEntity::class,
+        SleepRecommendationFeedbackEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -39,6 +44,7 @@ abstract class BabyTrackerDatabase : RoomDatabase() {
     abstract fun milkBagDao(): MilkBagDao
     abstract fun babyProfileDao(): BabyProfileDao
     abstract fun babyEventDao(): BabyEventDao
+    abstract fun sleepRecommendationDao(): SleepRecommendationDao
 }
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -200,6 +206,60 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
         )
         database.execSQL(
             "CREATE INDEX IF NOT EXISTS index_baby_events_event_type ON baby_events(event_type)"
+        )
+    }
+}
+
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS sleep_recommendations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                anchor_sleep_id INTEGER NOT NULL,
+                generated_at INTEGER NOT NULL,
+                recommendation_type TEXT NOT NULL,
+                window_start INTEGER NOT NULL,
+                window_end INTEGER NOT NULL,
+                best_estimate INTEGER NOT NULL,
+                confidence TEXT NOT NULL,
+                lifecycle TEXT NOT NULL,
+                algorithm_version TEXT NOT NULL
+            )
+            """.trimIndent()
+        )
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_sleep_recommendations_generated_at ON sleep_recommendations(generated_at)"
+        )
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_sleep_recommendations_anchor_sleep_id ON sleep_recommendations(anchor_sleep_id)"
+        )
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_sleep_recommendations_recommendation_type ON sleep_recommendations(recommendation_type)"
+        )
+        database.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS index_sleep_recommendations_anchor_sleep_id_recommendation_type_algorithm_version ON sleep_recommendations(anchor_sleep_id, recommendation_type, algorithm_version)"
+        )
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS sleep_recommendation_feedback (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                recommendation_id INTEGER NOT NULL,
+                actual_sleep_record_id INTEGER,
+                error_minutes INTEGER,
+                outcome TEXT NOT NULL,
+                created_at INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_sleep_recommendation_feedback_recommendation_id ON sleep_recommendation_feedback(recommendation_id)"
+        )
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_sleep_recommendation_feedback_actual_sleep_record_id ON sleep_recommendation_feedback(actual_sleep_record_id)"
+        )
+        database.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS index_sleep_recommendation_feedback_recommendation_id_outcome ON sleep_recommendation_feedback(recommendation_id, outcome)"
         )
     }
 }
