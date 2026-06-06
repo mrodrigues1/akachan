@@ -108,6 +108,97 @@ class MigrationTest {
             context.deleteDatabase(dbName)
         }
     }
+
+    @Test
+    fun migrate6To7_createsSleepRecommendationTables_andUniquenessIsEnforced() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val dbName = "migration-test-v6-to-v7"
+        try {
+            val helper = FrameworkSQLiteOpenHelperFactory().create(
+                SupportSQLiteOpenHelper.Configuration.builder(context)
+                    .name(dbName)
+                    .callback(V6DatabaseCallback())
+                    .build()
+            )
+            val db = helper.writableDatabase
+
+            // Seed a v6 row to verify pre-existing data survives
+            db.execSQL(
+                "INSERT INTO baby_events(timestamp, event_type, created_at) VALUES(1000, 'FEVER', 1000)"
+            )
+
+            MIGRATION_6_7.migrate(db)
+
+            // Pre-existing data survives
+            val eventsCursor: Cursor = db.query("SELECT count(*) FROM baby_events")
+            eventsCursor.moveToFirst()
+            assertEquals(1, eventsCursor.getInt(0))
+            eventsCursor.close()
+
+            // sleep_recommendations accepts inserts
+            db.execSQL(
+                "INSERT INTO sleep_recommendations(anchor_sleep_id, generated_at, recommendation_type, window_start, window_end, best_estimate, confidence, lifecycle, algorithm_version)" +
+                    " VALUES(1, 1000, 'NAP', 2000, 3000, 2500, 'MEDIUM', 'GENERATED', 'v1')"
+            )
+            val recCursor: Cursor = db.query("SELECT count(*) FROM sleep_recommendations")
+            recCursor.moveToFirst()
+            assertEquals(1, recCursor.getInt(0))
+            recCursor.close()
+
+            // Unique constraint on (anchor_sleep_id, recommendation_type, algorithm_version) — second insert is silently ignored
+            db.execSQL(
+                "INSERT OR IGNORE INTO sleep_recommendations(anchor_sleep_id, generated_at, recommendation_type, window_start, window_end, best_estimate, confidence, lifecycle, algorithm_version)" +
+                    " VALUES(1, 9999, 'NAP', 2000, 3000, 2500, 'HIGH', 'GENERATED', 'v1')"
+            )
+            val recCursorAfterDup: Cursor = db.query("SELECT count(*) FROM sleep_recommendations")
+            recCursorAfterDup.moveToFirst()
+            assertEquals(1, recCursorAfterDup.getInt(0))
+            recCursorAfterDup.close()
+
+            // sleep_recommendation_feedback accepts inserts
+            db.execSQL(
+                "INSERT INTO sleep_recommendation_feedback(recommendation_id, outcome, created_at)" +
+                    " VALUES(1, 'ACTED_IN_WINDOW', 5000)"
+            )
+            val fbCursor: Cursor = db.query("SELECT count(*) FROM sleep_recommendation_feedback")
+            fbCursor.moveToFirst()
+            assertEquals(1, fbCursor.getInt(0))
+            fbCursor.close()
+
+            // Unique constraint on (recommendation_id, outcome) — duplicate is silently ignored
+            db.execSQL(
+                "INSERT OR IGNORE INTO sleep_recommendation_feedback(recommendation_id, outcome, created_at)" +
+                    " VALUES(1, 'ACTED_IN_WINDOW', 9999)"
+            )
+            val fbCursorAfterDup: Cursor = db.query("SELECT count(*) FROM sleep_recommendation_feedback")
+            fbCursorAfterDup.moveToFirst()
+            assertEquals(1, fbCursorAfterDup.getInt(0))
+            fbCursorAfterDup.close()
+
+            db.close()
+        } finally {
+            context.deleteDatabase(dbName)
+        }
+    }
+}
+
+private class V6DatabaseCallback : SupportSQLiteOpenHelper.Callback(6) {
+    override fun onCreate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS baby_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                timestamp INTEGER NOT NULL,
+                event_type TEXT NOT NULL,
+                intensity INTEGER,
+                notes TEXT,
+                created_at INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+    }
+
+    override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
 }
 
 private class V4DatabaseCallback : SupportSQLiteOpenHelper.Callback(4) {
