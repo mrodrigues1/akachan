@@ -39,5 +39,7 @@ object SleepPredictionTuning {
     const val SLEEP_DEBT_MAX_SHIFT_MINUTES = 20L
     const val SLEEP_DEBT_SCALE_MINUTES_PER_HOUR = 5L
     const val SLEEP_DEBT_MIN_HOURS = 1L
+    const val NAP_BUDGET_MAX_SHIFT_MINUTES = 20L
+    const val NAP_BUDGET_MINUTES_PER_NAP = 10L
     const val ALGORITHM_VERSION = "sleep-pred-phase2-sleep-debt-1"
 }

@@ -35,3 +35,9 @@ typealias SleepDebtFactorProvider = (
     Long?, // avgDailySleepMillis (null if insufficient history)
     Int,   // ageInWeeks
 ) -> SleepPredictionFactor
+
+typealias NapBudgetFactorProvider = (
+    Int,       // napCountToday
+    Int,       // ageInWeeks
+    com.babytracker.domain.model.SleepType, // nextType
+) -> SleepPredictionFactor
