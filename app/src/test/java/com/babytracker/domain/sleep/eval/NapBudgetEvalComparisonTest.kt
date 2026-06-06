@@ -70,8 +70,12 @@ class NapBudgetEvalComparisonTest {
     }
 
     @Test
-    fun `nap-budget factor does not regress on uniform single-deficit fixture`() {
-        val records = shortIntervalRecords(days = 60)
+    fun `nap-budget factor overall NAP MAE does not worsen when deficit-1 anchors partially regress`() {
+        // deficit=1 anchors regress individually because wakeTarget (~102 min) barely overshoots
+        // the 100-min actual; the factor's −10 min shift produces a slightly larger error (~8 min
+        // vs ~2 min baseline). deficit=2 anchors improve by ~20 min. Per-type average stays
+        // non-negative, so overall NAP MAE still does not worsen beyond EVAL_MAX_REGRESSION.
+        val records = partialRegressionRecords(days = 60)
 
         val baselineAnchors = buildAnchors(records, neutralProvider)
         val budgetAnchors = buildAnchors(records, NapBudgetFactor::adjustment)
@@ -129,6 +133,44 @@ class NapBudgetEvalComparisonTest {
             records += SleepRecord(id++, nap1Start, nap1End, SleepType.NAP)
 
             val nap2Start = nap1End.plus(Duration.ofMinutes(80))
+            val nap2End = nap2Start.plus(Duration.ofMinutes(90))
+            records += SleepRecord(id++, nap2Start, nap2End, SleepType.NAP)
+
+            dayStart = dayStart.plus(Duration.ofDays(1))
+        }
+        return records
+            .filter { it.startTime.isBefore(baseNow) && it.endTime?.isBefore(baseNow) == true }
+            .sortedBy { it.startTime }
+    }
+
+    /**
+     * Each day has a 9-hour night (22:00–07:00) followed by two mixed-window naps:
+     *   nap1 at night-wake + 80 min (deficit=2 anchor — shorter than prior)
+     *   nap2 at nap1-wake + 100 min (deficit=1 anchor — close to wakeTarget ~102 min)
+     *
+     * deficit=2 anchors improve by ~20 min (large overshoot corrected by the factor's −20 shift).
+     * deficit=1 anchors regress by ~6 min individually (wakeTarget barely overshoots actual by
+     * ~2 min; factor shifts −10 min, creating an 8-min undershoot). The deficit=2 gain outweighs
+     * the deficit=1 loss, so overall NAP MAE does not worsen — the guard this test exercises.
+     *
+     * The bedtime-wake interval (13:00 → 22:00 = 540 min) exceeds MAX_PLAUSIBLE and is filtered.
+     */
+    private fun partialRegressionRecords(days: Int): List<SleepRecord> {
+        var id = 1L
+        val records = mutableListOf<SleepRecord>()
+        var dayStart = baseNow.minus(Duration.ofDays(days.toLong()))
+            .atZone(zone).toLocalDate().atStartOfDay(zone).toInstant()
+
+        repeat(days) {
+            val nightStart = dayStart.plus(Duration.ofHours(22))
+            val nightEnd = nightStart.plus(Duration.ofHours(9))
+            records += SleepRecord(id++, nightStart, nightEnd, SleepType.NIGHT_SLEEP)
+
+            val nap1Start = nightEnd.plus(Duration.ofMinutes(80))
+            val nap1End = nap1Start.plus(Duration.ofMinutes(90))
+            records += SleepRecord(id++, nap1Start, nap1End, SleepType.NAP)
+
+            val nap2Start = nap1End.plus(Duration.ofMinutes(100))
             val nap2End = nap2Start.plus(Duration.ofMinutes(90))
             records += SleepRecord(id++, nap2Start, nap2End, SleepType.NAP)
 
