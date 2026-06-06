@@ -658,12 +658,109 @@ class SleepWindowPredictorTest {
     }
 
     @Test
-    fun `ALGORITHM_VERSION is phase3 tz-provenance version`() {
+    fun `ALGORITHM_VERSION is phase3 cue-disruption version`() {
         assertEquals(
-            "sleep-pred-phase3-tz-provenance-1",
+            "sleep-pred-phase3-cue-disruption-1",
             SleepPredictionTuning.ALGORITHM_VERSION,
             "ALGORITHM_VERSION must be bumped when changing prediction algorithm",
         )
+    }
+
+    @Test
+    fun `active disruption lowers HIGH confidence to MEDIUM`() {
+        val quality = sufficientQuality(completedCount = SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS)
+            .copy(hasQualifiedTimezoneProvenance = true)
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+        val result = SleepWindowPredictor.predict(
+            features(quality = quality, metrics = metrics).copy(hasActiveDisruption = true),
+            ageInWeeks,
+            baseNow,
+        )
+
+        assertInstanceOf(SleepPredictionState.Window::class.java, result)
+        assertEquals(Confidence.MEDIUM, (result as SleepPredictionState.Window).window.confidence)
+    }
+
+    @Test
+    fun `active disruption lowers MEDIUM confidence to LOW`() {
+        val quality = sufficientQuality(completedCount = 7) // qualityC = 7/14 = 0.5 → MEDIUM
+            .copy(hasQualifiedTimezoneProvenance = false)
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+        val result = SleepWindowPredictor.predict(
+            features(quality = quality, metrics = metrics).copy(hasActiveDisruption = true),
+            ageInWeeks,
+            baseNow,
+        )
+
+        assertInstanceOf(SleepPredictionState.Window::class.java, result)
+        assertEquals(Confidence.LOW, (result as SleepPredictionState.Window).window.confidence)
+    }
+
+    @Test
+    fun `active disruption keeps LOW confidence at LOW`() {
+        val quality = sufficientQuality(completedCount = SleepPredictionTuning.MIN_COMPLETED_INTERVALS)
+            .copy(hasQualifiedTimezoneProvenance = false)
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+        val result = SleepWindowPredictor.predict(
+            features(quality = quality, metrics = metrics).copy(hasActiveDisruption = true),
+            ageInWeeks,
+            baseNow,
+        )
+
+        assertInstanceOf(SleepPredictionState.Window::class.java, result)
+        assertEquals(Confidence.LOW, (result as SleepPredictionState.Window).window.confidence)
+    }
+
+    @Test
+    fun `no disruption leaves confidence unchanged`() {
+        val quality = sufficientQuality(completedCount = SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS)
+            .copy(hasQualifiedTimezoneProvenance = true)
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+        val result = SleepWindowPredictor.predict(
+            features(quality = quality, metrics = metrics).copy(hasActiveDisruption = false),
+            ageInWeeks,
+            baseNow,
+        )
+
+        assertInstanceOf(SleepPredictionState.Window::class.java, result)
+        assertEquals(Confidence.HIGH, (result as SleepPredictionState.Window).window.confidence)
+    }
+
+    @Test
+    fun `cue does not shift window best-estimate time — disruption is annotation only`() {
+        val quality = sufficientQuality(completedCount = 10)
+        val lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli()
+        val medianMillis = Duration.ofMinutes(90).toMillis()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = medianMillis,
+        )
+        val withoutDisruption = SleepWindowPredictor.predict(
+            features(quality = quality, metrics = metrics).copy(hasActiveDisruption = false),
+            ageInWeeks,
+            baseNow,
+        ) as SleepPredictionState.Window
+        val withDisruption = SleepWindowPredictor.predict(
+            features(quality = quality, metrics = metrics).copy(hasActiveDisruption = true),
+            ageInWeeks,
+            baseNow,
+        ) as SleepPredictionState.Window
+
+        assertEquals(withoutDisruption.window.bestEstimate, withDisruption.window.bestEstimate)
+        assertEquals(withoutDisruption.window.windowStart, withDisruption.window.windowStart)
+        assertEquals(withoutDisruption.window.windowEnd, withDisruption.window.windowEnd)
     }
 
     @Test

@@ -6,4 +6,5 @@ data class SleepFeatures(
     val metrics: SleepMetrics,
     val quality: EvidenceQuality,
     val currentMinuteOfDay: Int? = null,
+    val hasActiveDisruption: Boolean = false,
 )

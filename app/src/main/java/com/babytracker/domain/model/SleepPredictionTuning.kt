@@ -43,5 +43,6 @@ object SleepPredictionTuning {
     const val NAP_BUDGET_MINUTES_PER_NAP = 10L
     const val MIN_QUALIFIED_TZ_PROVENANCE_RATE = 0.5f
     const val HIGH_CONFIDENCE_QUALITY_C_THRESHOLD = 0.8f
-    const val ALGORITHM_VERSION = "sleep-pred-phase3-tz-provenance-1"
+    const val DISRUPTION_LOOKBACK_HOURS = 48L
+    const val ALGORITHM_VERSION = "sleep-pred-phase3-cue-disruption-1"
 }

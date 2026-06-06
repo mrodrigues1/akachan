@@ -1,10 +1,12 @@
 package com.babytracker.domain.usecase.sleep
 
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.BabyEvent
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepPredictionTuning
 import com.babytracker.domain.model.SleepRecord
+import com.babytracker.domain.repository.BabyEventRepository
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SleepRepository
@@ -27,17 +29,21 @@ class PredictSleepWindowUseCase @Inject constructor(
     private val sleepRepository: SleepRepository,
     private val breastfeedingRepository: BreastfeedingRepository,
     private val babyRepository: BabyRepository,
+    private val babyEventRepository: BabyEventRepository,
     private val clock: Clock,
     private val zoneId: ZoneId,
 ) {
     operator fun invoke(): Flow<SleepPredictionState> = flow {
+        val disruptionCutoff = Instant.now(clock)
+            .minus(Duration.ofHours(SleepPredictionTuning.DISRUPTION_LOOKBACK_HOURS))
         emitAll(
             combine(
                 sleepRepository.getAllRecords(),
                 breastfeedingRepository.getAllSessions(),
                 babyRepository.getBabyProfile(),
-            ) { sleepRecords, feedSessions, baby ->
-                predict(sleepRecords, feedSessions, baby)
+                babyEventRepository.getEventsSince(disruptionCutoff),
+            ) { sleepRecords, feedSessions, baby, recentEvents ->
+                predict(sleepRecords, feedSessions, baby, recentEvents)
             }
         )
     }.catch { e ->
@@ -48,6 +54,7 @@ class PredictSleepWindowUseCase @Inject constructor(
         sleepRecords: List<SleepRecord>,
         feedSessions: List<BreastfeedingSession>,
         baby: Baby?,
+        recentEvents: List<BabyEvent>,
     ): SleepPredictionState {
         val now = Instant.now(clock)
         val maxOpenSleepAgeMillis = Duration.ofHours(SleepPredictionTuning.MAX_OPEN_SLEEP_AGE_HOURS).toMillis()
@@ -58,13 +65,14 @@ class PredictSleepWindowUseCase @Inject constructor(
         }
         if (hasActiveSleep) return SleepPredictionState.CurrentlySleeping
         baby ?: return SleepPredictionState.Unavailable("no baby profile")
-        return predictForBaby(baby, sleepRecords, feedSessions, now)
+        return predictForBaby(baby, sleepRecords, feedSessions, recentEvents, now)
     }
 
     private fun predictForBaby(
         baby: Baby,
         sleepRecords: List<SleepRecord>,
         feedSessions: List<BreastfeedingSession>,
+        recentEvents: List<BabyEvent>,
         now: Instant,
     ): SleepPredictionState {
         val today = now.atZone(zoneId).toLocalDate()
@@ -72,9 +80,19 @@ class PredictSleepWindowUseCase @Inject constructor(
         if (ageInWeeks < SleepPredictionTuning.CUE_LED_MAX_AGE_WEEKS) return SleepPredictionState.CueLed
 
         val lookbackStart = now.minus(Duration.ofDays(SleepPredictionTuning.LOOKBACK_DAYS))
+        val hasActiveDisruption = recentEvents.any { event ->
+            event.type.isDisruption && event.timestamp <= now
+        }
+
         val features = SleepFeatureExtractor(clock, zoneId)
             .extract(sleepRecords.filter { it.startTime >= lookbackStart }, feedSessions)
+            .copy(hasActiveDisruption = hasActiveDisruption)
 
-        return SleepWindowPredictor.predict(features, ageInWeeks, now, sleepDebtFactorProvider = SleepDebtFactor::adjustment)
+        return SleepWindowPredictor.predict(
+            features,
+            ageInWeeks,
+            now,
+            sleepDebtFactorProvider = SleepDebtFactor::adjustment,
+        )
     }
 }

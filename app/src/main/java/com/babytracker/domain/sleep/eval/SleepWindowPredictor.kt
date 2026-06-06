@@ -102,13 +102,19 @@ object SleepWindowPredictor {
             return SleepPredictionState.Overdue
         }
 
-        val confidence = when {
+        val rawConfidence = when {
             qualityC >= SleepPredictionTuning.HIGH_CONFIDENCE_QUALITY_C_THRESHOLD &&
                 quality.hasQualifiedTimezoneProvenance -> Confidence.HIGH
             qualityC >= 0.5f -> Confidence.MEDIUM
             else -> Confidence.LOW
         }
+        val confidence = if (features.hasActiveDisruption) rawConfidence.loweredByOne() else rawConfidence
 
+        val disruptionReason = if (features.hasActiveDisruption) {
+            "A sick, teething, or travel event in the last 48 h has reduced prediction confidence"
+        } else {
+            null
+        }
         return SleepPredictionState.Window(
             SleepWindow(
                 windowStart = windowStart,
@@ -116,7 +122,7 @@ object SleepWindowPredictor {
                 bestEstimate = adjustedBestEstimate,
                 confidence = confidence,
                 reasons = buildReasons(qualityC, ageInWeeks, nextType, typeIntervalCount) +
-                    listOfNotNull(circadianFactor.reason, timeOfDayFactor.reason, sleepDebtFactor.reason, napBudgetFactor.reason),
+                    listOfNotNull(disruptionReason, circadianFactor.reason, timeOfDayFactor.reason, sleepDebtFactor.reason, napBudgetFactor.reason),
                 feedPrompt = computeFeedPrompt(features.feedIntervals, windowStart, windowEnd, now),
                 safetyPrompt = "Always follow your baby's sleep cues — windows are estimates, not schedules.",
             )
@@ -273,4 +279,10 @@ object SleepWindowPredictor {
     }
 
     private const val MINUTES_PER_DAY = 1_440
+}
+
+private fun Confidence.loweredByOne(): Confidence = when (this) {
+    Confidence.HIGH -> Confidence.MEDIUM
+    Confidence.MEDIUM -> Confidence.LOW
+    Confidence.LOW -> Confidence.LOW
 }

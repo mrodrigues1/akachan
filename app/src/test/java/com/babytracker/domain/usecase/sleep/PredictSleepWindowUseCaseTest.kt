@@ -2,12 +2,15 @@ package com.babytracker.domain.usecase.sleep
 
 import app.cash.turbine.test
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.BabyEvent
+import com.babytracker.domain.model.BabyEventType
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.repository.BabyEventRepository
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SleepRepository
@@ -32,6 +35,7 @@ class PredictSleepWindowUseCaseTest {
     private lateinit var sleepRepository: SleepRepository
     private lateinit var breastfeedingRepository: BreastfeedingRepository
     private lateinit var babyRepository: BabyRepository
+    private lateinit var babyEventRepository: BabyEventRepository
 
     private val fixedNow = Instant.parse("2024-06-15T20:00:00Z")
     private val fixedZoneId = ZoneOffset.UTC
@@ -44,8 +48,10 @@ class PredictSleepWindowUseCaseTest {
         sleepRepository = mockk()
         breastfeedingRepository = mockk()
         babyRepository = mockk()
+        babyEventRepository = mockk()
+        every { babyEventRepository.getEventsSince(any()) } returns flowOf(emptyList())
         useCase = PredictSleepWindowUseCase(
-            sleepRepository, breastfeedingRepository, babyRepository, fixedClock, fixedZoneId,
+            sleepRepository, breastfeedingRepository, babyRepository, babyEventRepository, fixedClock, fixedZoneId,
         )
     }
 
@@ -343,6 +349,7 @@ class PredictSleepWindowUseCaseTest {
                 sleepRepository,
                 breastfeedingRepository,
                 babyRepository,
+                babyEventRepository,
                 Clock.fixed(overdueNow, fixedZoneId),
                 fixedZoneId,
             )
@@ -412,6 +419,76 @@ class PredictSleepWindowUseCaseTest {
                 val state = awaitItem()
                 assertTrue(state is SleepPredictionState.Window)
                 assertEquals(Confidence.LOW, (state as SleepPredictionState.Window).window.confidence)
+                awaitComplete()
+            }
+        }
+    }
+
+    @Nested
+    inner class DisruptionTests {
+
+        private fun sickEventAt(timestamp: Instant) = BabyEvent(
+            timestamp = timestamp,
+            type = BabyEventType.SICK,
+            createdAt = timestamp,
+        )
+
+        // fullyPersonalizedRecords() → qualityC=1.0, but hasQualifiedTimezoneProvenance=false
+        // → base confidence = MEDIUM. Disruption lowers MEDIUM→LOW.
+
+        @Test
+        fun `disruption event within 48h lowers confidence by one level`() = runTest {
+            val recentEvent = sickEventAt(fixedNow.minus(Duration.ofHours(24)))
+            every { sleepRepository.getAllRecords() } returns flowOf(fullyPersonalizedRecords())
+            every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
+            every { babyRepository.getBabyProfile() } returns flowOf(babyOfWeeks(20))
+            every { babyEventRepository.getEventsSince(any()) } returns flowOf(listOf(recentEvent))
+
+            useCase().test {
+                val state = awaitItem()
+                assertTrue(state is SleepPredictionState.Window)
+                assertEquals(Confidence.LOW, (state as SleepPredictionState.Window).window.confidence) {
+                    "Recent SICK event must lower base MEDIUM confidence to LOW"
+                }
+                awaitComplete()
+            }
+        }
+
+        @Test
+        fun `future-dated disruption event does not lower confidence`() = runTest {
+            // getEventsSince returns the event (DAO cutoff = now-48h passes future timestamps too),
+            // but the <= now predicate in predictForBaby must block it.
+            val futureEvent = sickEventAt(fixedNow.plus(Duration.ofHours(1)))
+            every { sleepRepository.getAllRecords() } returns flowOf(fullyPersonalizedRecords())
+            every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
+            every { babyRepository.getBabyProfile() } returns flowOf(babyOfWeeks(20))
+            every { babyEventRepository.getEventsSince(any()) } returns flowOf(listOf(futureEvent))
+
+            useCase().test {
+                val state = awaitItem()
+                assertTrue(state is SleepPredictionState.Window)
+                assertEquals(Confidence.MEDIUM, (state as SleepPredictionState.Window).window.confidence) {
+                    "Future-dated disruption event must not lower base MEDIUM confidence — got ${(state as? SleepPredictionState.Window)?.window?.confidence}"
+                }
+                awaitComplete()
+            }
+        }
+
+        @Test
+        fun `disruption event older than 48h does not lower confidence (excluded by DAO cutoff)`() = runTest {
+            // getEventsSince returns empty list, simulating the DAO correctly excluding events
+            // older than the 48h cutoff.
+            every { sleepRepository.getAllRecords() } returns flowOf(fullyPersonalizedRecords())
+            every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
+            every { babyRepository.getBabyProfile() } returns flowOf(babyOfWeeks(20))
+            every { babyEventRepository.getEventsSince(any()) } returns flowOf(emptyList())
+
+            useCase().test {
+                val state = awaitItem()
+                assertTrue(state is SleepPredictionState.Window)
+                assertEquals(Confidence.MEDIUM, (state as SleepPredictionState.Window).window.confidence) {
+                    "With no recent disruption events, confidence must remain at base MEDIUM"
+                }
                 awaitComplete()
             }
         }
