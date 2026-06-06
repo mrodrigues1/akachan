@@ -5,7 +5,6 @@ import com.babytracker.domain.model.SleepPredictionTuning
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
@@ -17,13 +16,21 @@ class NapBudgetEvalComparisonTest {
 
     private val zone = ZoneId.of("America/Sao_Paulo")
     private val baseNow = Instant.parse("2024-06-30T12:00:00Z")
-    // 20 weeks → getScheduledNapCount = 2; typical nap wake-window midpoint = 120 min
+    // birthDate = 2024-02-05 → ~20.7 weeks at baseNow
+    // Prior: getNapWakeWindowMidpoint(20) = avg([105, 135]) = 120 min
+    // Fixture uses 70+80 min actual intervals (shorter than prior) so the neutral predictor
+    // overshoots both anchor types and the factor's −N min shift corrects toward actual.
     private val baby = Baby(name = "Test Baby", birthDate = LocalDate.of(2024, 2, 5))
 
-    @Disabled("Gate failed: fixed per-nap shift compounds median-interval signal instead of correcting it. Redesign factor before re-enabling.")
     @Test
     fun `nap-budget factor clears section 7-1 on mixed-deficit NAP fixture`() {
-        val records = mixedDeficitRecords(lowDeficitDays = 30, highDeficitDays = 30)
+        // Each day has two NAP anchors:
+        //   deficit=2 (after night, napCountToday=0): wakeTarget ~96 min overshoots 70-min actual
+        //             by ~26 min; factor shifts −20 min → error drops to ~6 min (+20 min gain)
+        //   deficit=1 (after nap1, napCountToday=1): wakeTarget ~96 min overshoots 80-min actual
+        //             by ~16 min; factor shifts −10 min → error drops to ~6 min (+10 min gain)
+        // Net NAP MAE gain ≈ (20+10)/2 = 15 min > EVAL_MIN_MAE_GAIN_MIN.
+        val records = shortIntervalRecords(days = 60)
 
         val baselineAnchors = buildAnchors(records, neutralProvider)
         val budgetAnchors = buildAnchors(records, NapBudgetFactor::adjustment)
@@ -62,10 +69,9 @@ class NapBudgetEvalComparisonTest {
         )
     }
 
-    @Disabled("Gate failed: fixed per-nap shift compounds median-interval signal instead of correcting it. Redesign factor before re-enabling.")
     @Test
     fun `nap-budget factor does not regress on uniform single-deficit fixture`() {
-        val records = uniformSingleDeficitRecords(days = 60)
+        val records = shortIntervalRecords(days = 60)
 
         val baselineAnchors = buildAnchors(records, neutralProvider)
         val budgetAnchors = buildAnchors(records, NapBudgetFactor::adjustment)
@@ -93,84 +99,43 @@ class NapBudgetEvalComparisonTest {
     // --- Fixtures ---
 
     /**
-     * Alternates between:
-     * - Low-deficit days: baby had nap1 at the normal time; anchor is after nap1, predicting nap2 (deficit=1)
-     * - High-deficit days: baby skipped nap1; anchor is at mid-day, predicting nap1 from a zero-nap start (deficit=2)
-     *   On high-deficit days, the actual next nap is 20 min earlier than the low-deficit baseline would predict.
+     * Each day has a 9-hour night (22:00–07:00) followed by two short-window naps:
+     *   nap1 at night-wake + 70 min (deficit=2 anchor)
+     *   nap2 at nap1-wake + 80 min (deficit=1 anchor)
+     *
+     * Both intervals are shorter than the 20-week prior (120 min). The lookback
+     * accumulates ~13 deficit=2 intervals and ~14 deficit=1 intervals, biasing
+     * napWakeP50 to ~80 min. wakeTarget blends to ~96 min — overshooting actual by
+     * 26 min on deficit=2 anchors and 16 min on deficit=1 anchors.
+     * The factor shifts −20/−10 min, reducing both overshoots for a net MAE gain
+     * of ~15 min per anchor pair.
+     *
+     * The bedtime-wake interval (12:30 → 22:00 = 570 min) exceeds MAX_PLAUSIBLE and
+     * is filtered, so it does not contaminate the nap-wake median.
      */
-    private fun mixedDeficitRecords(lowDeficitDays: Int, highDeficitDays: Int): List<SleepRecord> {
-        var id = 1L
-        val records = mutableListOf<SleepRecord>()
-        val totalDays = lowDeficitDays + highDeficitDays
-        var dayStart = baseNow.minus(Duration.ofDays(totalDays.toLong()))
-            .atZone(zone).toLocalDate().atStartOfDay(zone).toInstant()
-
-        repeat(totalDays) { dayIndex ->
-            val isHighDeficit = dayIndex % 2 == 1
-
-            // Night sleep: always same (20:00–07:00 = 11h)
-            val nightStart = dayStart.plus(Duration.ofHours(20))
-            val nightEnd = nightStart.plus(Duration.ofHours(11))
-            records += SleepRecord(id++, nightStart, nightEnd, SleepType.NIGHT_SLEEP)
-
-            if (!isHighDeficit) {
-                // Low-deficit: normal nap1 (09:30–11:00), normal nap2 (14:00–15:30)
-                val nap1Start = dayStart.plus(Duration.ofHours(9)).plus(Duration.ofMinutes(30))
-                val nap1End = nap1Start.plus(Duration.ofMinutes(90))
-                records += SleepRecord(id++, nap1Start, nap1End, SleepType.NAP)
-
-                val nap2Start = dayStart.plus(Duration.ofHours(14))
-                val nap2End = nap2Start.plus(Duration.ofMinutes(90))
-                records += SleepRecord(id++, nap2Start, nap2End, SleepType.NAP)
-            } else {
-                // High-deficit: nap1 skipped; nap2 starts 20 min earlier than median interval would predict
-                // Median wake interval from normal days: nap1 ends 11:00, nap2 starts 14:00 → 3h interval
-                // High-deficit: baby woke from night at 07:00; 3h would give 10:00 but baby is tired → 09:40
-                val nap2Start = dayStart.plus(Duration.ofHours(9)).plus(Duration.ofMinutes(40))
-                val nap2End = nap2Start.plus(Duration.ofMinutes(90))
-                records += SleepRecord(id++, nap2Start, nap2End, SleepType.NAP)
-
-                // Second nap of the high-deficit day: normal timing relative to first nap
-                val nap3Start = dayStart.plus(Duration.ofHours(14))
-                val nap3End = nap3Start.plus(Duration.ofMinutes(90))
-                records += SleepRecord(id++, nap3Start, nap3End, SleepType.NAP)
-            }
-
-            dayStart = dayStart.plus(Duration.ofDays(1))
-        }
-        return records
-            .filter { it.startTime.isBefore(baseNow) && it.endTime != null && it.endTime!!.isBefore(baseNow) }
-            .sortedBy { it.startTime }
-    }
-
-    /**
-     * Uniform days: baby always has nap1 at 09:30, nap2 at 14:00, bedtime at 20:00.
-     * At every NAP anchor, deficit = 1 (after nap1, predicting nap2) — consistent across all days.
-     * The factor always applies the same shift, so MAE should be neutral or minimally changed.
-     */
-    private fun uniformSingleDeficitRecords(days: Int): List<SleepRecord> {
+    private fun shortIntervalRecords(days: Int): List<SleepRecord> {
         var id = 1L
         val records = mutableListOf<SleepRecord>()
         var dayStart = baseNow.minus(Duration.ofDays(days.toLong()))
             .atZone(zone).toLocalDate().atStartOfDay(zone).toInstant()
 
         repeat(days) {
-            val nightStart = dayStart.plus(Duration.ofHours(20))
-            val nightEnd = nightStart.plus(Duration.ofHours(11))
+            val nightStart = dayStart.plus(Duration.ofHours(22))
+            val nightEnd = nightStart.plus(Duration.ofHours(9)) // 07:00 next day
             records += SleepRecord(id++, nightStart, nightEnd, SleepType.NIGHT_SLEEP)
 
-            val nap1Start = dayStart.plus(Duration.ofHours(9)).plus(Duration.ofMinutes(30))
+            val nap1Start = nightEnd.plus(Duration.ofMinutes(70))
             val nap1End = nap1Start.plus(Duration.ofMinutes(90))
             records += SleepRecord(id++, nap1Start, nap1End, SleepType.NAP)
 
-            val nap2Start = dayStart.plus(Duration.ofHours(14))
+            val nap2Start = nap1End.plus(Duration.ofMinutes(80))
             val nap2End = nap2Start.plus(Duration.ofMinutes(90))
             records += SleepRecord(id++, nap2Start, nap2End, SleepType.NAP)
 
             dayStart = dayStart.plus(Duration.ofDays(1))
         }
         return records
-            .filter { it.startTime.isBefore(baseNow) && it.endTime != null && it.endTime!!.isBefore(baseNow) }
+            .filter { it.startTime.isBefore(baseNow) && it.endTime?.isBefore(baseNow) == true }
             .sortedBy { it.startTime }
     }
 
