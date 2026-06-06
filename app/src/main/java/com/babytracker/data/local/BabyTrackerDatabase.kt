@@ -6,11 +6,13 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.babytracker.data.local.converter.Converters
+import com.babytracker.data.local.dao.BabyEventDao
 import com.babytracker.data.local.dao.BabyProfileDao
 import com.babytracker.data.local.dao.BreastfeedingDao
 import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.data.local.dao.PumpingDao
 import com.babytracker.data.local.dao.SleepDao
+import com.babytracker.data.local.entity.BabyEventEntity
 import com.babytracker.data.local.entity.BabyProfileEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
 import com.babytracker.data.local.entity.MilkBagEntity
@@ -24,8 +26,9 @@ import com.babytracker.data.local.entity.SleepEntity
         PumpingEntity::class,
         MilkBagEntity::class,
         BabyProfileEntity::class,
+        BabyEventEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -35,6 +38,7 @@ abstract class BabyTrackerDatabase : RoomDatabase() {
     abstract fun pumpingDao(): PumpingDao
     abstract fun milkBagDao(): MilkBagDao
     abstract fun babyProfileDao(): BabyProfileDao
+    abstract fun babyEventDao(): BabyEventDao
 }
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -173,6 +177,29 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
             END
             WHERE sleep_type IN ('Nap', 'Night Sleep')
             """.trimIndent()
+        )
+    }
+}
+
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS baby_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                timestamp INTEGER NOT NULL,
+                event_type TEXT NOT NULL,
+                intensity INTEGER,
+                notes TEXT,
+                created_at INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_baby_events_timestamp ON baby_events(timestamp)"
+        )
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_baby_events_event_type ON baby_events(event_type)"
         )
     }
 }
