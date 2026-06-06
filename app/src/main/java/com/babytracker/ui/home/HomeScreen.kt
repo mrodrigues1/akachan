@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -52,6 +53,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -71,6 +73,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.domain.model.BabyEventType
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.model.InventorySummary
@@ -87,6 +90,26 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
+
+private val BabyEventType.emoji: String
+    get() = when (this) {
+        BabyEventType.SLEEPY_CUE -> "😪"
+        BabyEventType.HUNGER_CUE -> "😋"
+        BabyEventType.FUSSY -> "😣"
+        BabyEventType.SICK -> "🤒"
+        BabyEventType.TEETHING -> "🦷"
+        BabyEventType.TRAVEL -> "✈️"
+    }
+
+private val BabyEventType.label: String
+    get() = when (this) {
+        BabyEventType.SLEEPY_CUE -> "Sleepy"
+        BabyEventType.HUNGER_CUE -> "Hungry"
+        BabyEventType.FUSSY -> "Fussy"
+        BabyEventType.SICK -> "Sick"
+        BabyEventType.TEETHING -> "Teething"
+        BabyEventType.TRAVEL -> "Travel"
+    }
 
 private val EaseOutQuart = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
 
@@ -422,6 +445,8 @@ fun HomeScreen(
             }
 
             SleepPredictionCard(state = uiState.sleepPrediction)
+
+            CueQuickTapRow(onCueTapped = viewModel::onCueTapped)
 
             // Tip card — suggests which side to try next (based on the less-used side last session)
             AnimatedVisibility(
@@ -848,6 +873,32 @@ private fun LastSleepAgoText(endTime: Instant) {
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSecondaryContainer,
     )
+}
+
+@Composable
+private fun CueQuickTapRow(
+    onCueTapped: (BabyEventType) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val cues = remember { BabyEventType.entries }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        cues.forEach { type ->
+            SuggestionChip(
+                onClick = { onCueTapped(type) },
+                label = {
+                    Text(
+                        text = "${type.emoji} ${type.label}",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                },
+            )
+        }
+    }
 }
 
 @Composable
