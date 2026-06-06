@@ -8,18 +8,23 @@ A native Android baby tracking app for parents of infants (0–12 months). Track
 
 | Layer | Technology |
 |-------|-----------|
+| Build | Android Gradle Plugin 9.1.0, Gradle Version Catalog |
 | Language | Kotlin 2.3.20 |
-| UI | Jetpack Compose (BOM 2026.03.00), Material 3 |
+| UI | Jetpack Compose BOM 2026.03.00, Material 3 1.3.1, Activity Compose 1.9.3 |
+| AndroidX | Core KTX 1.15.0, Lifecycle 2.10.0 |
 | Navigation | Compose Navigation 2.9.7 |
-| DI | Hilt 2.59 (KSP 2.3.6) |
+| DI | Hilt 2.59, Hilt Navigation Compose 1.2.0, Hilt Work 1.2.0, KSP 2.3.6 |
 | Async | Kotlin Coroutines 1.9.0 + Flow |
 | Local DB | Room 2.8.4 |
 | Preferences | DataStore 1.1.1 |
 | Sharing | Firebase BOM 33.7.0 (Firestore KTX, Auth KTX) |
 | Widgets | Glance 1.1.1 (appwidget + material3) |
 | Background work | WorkManager 2.10.0 |
-| Min SDK | 26 | Target SDK 35 | JVM 17 |
-| Testing | JUnit 5, MockK 1.13.13, Turbine 1.2.0, Compose UI Test |
+| Serialization | Kotlinx Serialization JSON 1.8.1 |
+| Quality | ktlint-gradle 12.1.1, ktlint 1.3.1, detekt 1.23.6, Compose detekt rules 0.0.26 |
+| Coverage | Kover 0.9.1 |
+| SDK | Min SDK 26, Compile SDK 35, Target SDK 35, JVM 17 |
+| Testing | JUnit 5.10.3, JUnit 4.13.2, Android JUnit5 2.0.1, MockK 1.13.13, Turbine 1.2.0, Robolectric 4.15.1, Konsist 0.16.0, Compose UI Test, Espresso 3.7.0 |
 
 > Authoritative versions: `gradle/libs.versions.toml`. Update this table whenever that file changes.
 
@@ -40,6 +45,50 @@ A native Android baby tracking app for parents of infants (0–12 months). Track
 ## Repo Map
 
 Read `docs/AI_REPO_MAP.md` first. Use it to identify the minimum files needed.
+
+---
+
+## Validation Commands
+
+Run commands from the repo root. On Windows PowerShell, use `.\gradlew.bat` if `./gradlew` does not execute.
+
+### Default checks
+
+```bash
+# Fast validation for most Kotlin changes
+./gradlew test
+
+# Build validation when production code, resources, manifests, DI, Room, or Gradle files changed
+./gradlew build
+```
+
+### Before commit or PR
+
+```bash
+# Auto-fix Kotlin formatting
+./gradlew ktlintFormat
+
+# Static analysis
+./gradlew detekt
+
+# Full local validation
+./gradlew build
+```
+
+### Targeted checks
+
+```bash
+# Formatting check only
+./gradlew ktlintCheck
+
+# Instrumentation/UI tests; requires emulator or device
+./gradlew connectedAndroidTest
+
+# Release bundle validation
+./gradlew bundleRelease
+```
+
+If a validation command fails, fix the issue and rerun the same command until it passes. Do not guess validation commands.
 
 ---
 
@@ -168,27 +217,9 @@ Check `domain/model/` for pure Kotlin data classes.
 
 ---
 
-## Build & Run
-
-```bash
-# Build (assembles debug APK)
-./gradlew build
-
-# Unit tests (JUnit 5)
-./gradlew test
-
-# Instrumentation tests (requires emulator/device)
-./gradlew connectedAndroidTest
-
-# Release bundle
-./gradlew bundleRelease
-```
-
-Build variants: `debug` (default) and `release` (ProGuard minification enabled via `proguard-android-optimize.txt` + `app/proguard-rules.pro`).
-
----
-
 ## Testing Conventions
+
+Use `Validation Commands` for all test, build, formatting, and static-analysis commands.
 
 Create tests for new features, bug fixes, and edge cases. You do not need to follow strict TDD (test-first); writing tests after the implementation is acceptable. All tests must pass before creating a PR.
 
@@ -260,12 +291,7 @@ Read specs before implementing new features — they define the intended behavio
 - This project uses **ktlint** (via `ktlint-gradle` plugin v12.1.1) for Kotlin formatting and **detekt** (v1.23.6) for static analysis.
 - The detekt config lives at `config/detekt.yml` and is tuned for Jetpack Compose and MVI (Orbit).
 - Formatting is delegated entirely to ktlint; detekt does not enforce formatting rules.
-- **Before committing**, always run `./gradlew ktlintFormat` to auto-fix formatting, then `./gradlew detekt` to catch code smells.
+- Use `Validation Commands` for the required before-commit formatting and static-analysis commands.
 - A pre-commit hook is available at `scripts/pre-commit`. Install it with: `cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit`
 - Both tools run automatically on CI (GitHub Actions) on every push to `main` and on every pull request.
 - If detekt reports a violation, **always fix the code - never suppress with `@Suppress`**. Each fix should be its own commit using the format `fix(detekt): fix <RuleName> violations`.
-- Useful commands:
-  - `./gradlew ktlintCheck` - check formatting
-  - `./gradlew ktlintFormat` - auto-fix formatting
-  - `./gradlew detekt` - run static analysis
-  - `./gradlew detektGenerateConfig` - regenerate the base detekt config (do not overwrite `config/detekt.yml` without review)
