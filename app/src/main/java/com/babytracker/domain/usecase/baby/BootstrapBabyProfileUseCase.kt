@@ -14,16 +14,17 @@ class BootstrapBabyProfileUseCase @Inject constructor(
     private val nowProvider: () -> Instant,
 ) {
     suspend operator fun invoke() {
-        if (profileRepository.getProfile() != null) return
         val baby = babyRepository.getBabyProfile().first() ?: return
+        val existing = profileRepository.getProfile()
+        if (existing != null && existing.dateOfBirth == baby.birthDate) return
         val nowMs = nowProvider().toEpochMilli()
         profileRepository.upsertProfile(
             BabyProfile(
                 dateOfBirth = baby.birthDate,
-                dueDate = null,
-                isDueDateUserProvided = false,
-                homeTimezoneId = ZoneId.systemDefault().id,
-                createdAtEpochMs = nowMs,
+                dueDate = existing?.dueDate,
+                isDueDateUserProvided = existing?.isDueDateUserProvided ?: false,
+                homeTimezoneId = existing?.homeTimezoneId ?: ZoneId.systemDefault().id,
+                createdAtEpochMs = existing?.createdAtEpochMs ?: nowMs,
                 updatedAtEpochMs = nowMs,
             )
         )

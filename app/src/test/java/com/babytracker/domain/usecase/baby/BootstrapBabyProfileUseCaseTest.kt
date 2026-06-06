@@ -36,14 +36,14 @@ class BootstrapBabyProfileUseCaseTest {
     }
 
     @Test
-    fun `copies DataStore profile to Room when no profile exists`() = runTest {
+    fun `inserts Room profile from DataStore when no profile exists`() = runTest {
         val baby = Baby(
             name = "Lila",
             birthDate = LocalDate.of(2025, 12, 1),
             allergies = emptyList(),
         )
-        coEvery { profileRepo.getProfile() } returns null
         coEvery { babyRepo.getBabyProfile() } returns flowOf(baby)
+        coEvery { profileRepo.getProfile() } returns null
         coEvery { profileRepo.upsertProfile(any()) } returns Unit
 
         useCase()
@@ -59,7 +59,12 @@ class BootstrapBabyProfileUseCaseTest {
     }
 
     @Test
-    fun `skips upsert when profile already exists (idempotent)`() = runTest {
+    fun `updates Room when DataStore birthDate changed (no staleness)`() = runTest {
+        val updatedBaby = Baby(
+            name = "Lila",
+            birthDate = LocalDate.of(2025, 12, 15),
+            allergies = emptyList(),
+        )
         val existingProfile = BabyProfile(
             dateOfBirth = LocalDate.of(2025, 12, 1),
             dueDate = null,
@@ -68,6 +73,37 @@ class BootstrapBabyProfileUseCaseTest {
             createdAtEpochMs = 1_000_000L,
             updatedAtEpochMs = 1_000_000L,
         )
+        coEvery { babyRepo.getBabyProfile() } returns flowOf(updatedBaby)
+        coEvery { profileRepo.getProfile() } returns existingProfile
+        coEvery { profileRepo.upsertProfile(any()) } returns Unit
+
+        useCase()
+
+        val slot = slot<BabyProfile>()
+        coVerify { profileRepo.upsertProfile(capture(slot)) }
+        val saved = slot.captured
+        assertEquals(updatedBaby.birthDate, saved.dateOfBirth)
+        assertEquals("UTC", saved.homeTimezoneId)
+        assertEquals(1_000_000L, saved.createdAtEpochMs)
+        assertEquals(fixedNow.toEpochMilli(), saved.updatedAtEpochMs)
+    }
+
+    @Test
+    fun `skips upsert when Room profile exists with same birthDate (idempotent on repeated launch)`() = runTest {
+        val baby = Baby(
+            name = "Lila",
+            birthDate = LocalDate.of(2025, 12, 1),
+            allergies = emptyList(),
+        )
+        val existingProfile = BabyProfile(
+            dateOfBirth = LocalDate.of(2025, 12, 1),
+            dueDate = null,
+            isDueDateUserProvided = false,
+            homeTimezoneId = "UTC",
+            createdAtEpochMs = 1_000_000L,
+            updatedAtEpochMs = 1_000_000L,
+        )
+        coEvery { babyRepo.getBabyProfile() } returns flowOf(baby)
         coEvery { profileRepo.getProfile() } returns existingProfile
 
         useCase()
@@ -77,7 +113,6 @@ class BootstrapBabyProfileUseCaseTest {
 
     @Test
     fun `skips upsert when DataStore has no baby profile (onboarding not complete)`() = runTest {
-        coEvery { profileRepo.getProfile() } returns null
         coEvery { babyRepo.getBabyProfile() } returns flowOf(null)
 
         useCase()
@@ -87,21 +122,20 @@ class BootstrapBabyProfileUseCaseTest {
 
     @Test
     fun `does not throw when DataStore emits null`() = runTest {
-        coEvery { profileRepo.getProfile() } returns null
         coEvery { babyRepo.getBabyProfile() } returns flowOf(null)
 
         useCase()
     }
 
     @Test
-    fun `saved profile has non-null homeTimezoneId`() = runTest {
+    fun `saved profile has non-null homeTimezoneId on first insert`() = runTest {
         val baby = Baby(
             name = "Test",
             birthDate = LocalDate.of(2025, 6, 1),
             allergies = emptyList(),
         )
-        coEvery { profileRepo.getProfile() } returns null
         coEvery { babyRepo.getBabyProfile() } returns flowOf(baby)
+        coEvery { profileRepo.getProfile() } returns null
         coEvery { profileRepo.upsertProfile(any()) } returns Unit
 
         useCase()
