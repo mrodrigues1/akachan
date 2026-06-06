@@ -29,6 +29,7 @@ object SleepPredictionTuning {
     const val EVAL_MIN_SCORED = 20
     const val EVAL_MIN_MAE_GAIN_MIN = 5
     const val EVAL_MAX_REGRESSION = 0
+    const val EVAL_ADVERSE_COHORT_MISSED_RATE_CAP = 0.20  // max missed-window rate regression for adverse personalized cohort
     const val CIRCADIAN_MIN_AGE_WEEKS = 6
     const val CIRCADIAN_FULL_WEIGHT_AGE_WEEKS = 12
     const val CIRCADIAN_MAX_SHIFT_MINUTES = 20L
