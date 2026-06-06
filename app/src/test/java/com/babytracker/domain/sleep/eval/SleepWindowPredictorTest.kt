@@ -584,9 +584,83 @@ class SleepWindowPredictorTest {
     }
 
     @Test
-    fun `ALGORITHM_VERSION is phase2 circadian history version`() {
+    fun `sleep-debt factor shifts window earlier when injected with negative adjustment`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofMinutes(60)).toEpochMilli()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+        val neutralResult = SleepWindowPredictor.predict(
+            features(metrics = metrics), ageInWeeks, baseNow,
+            sleepDebtFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral },
+        )
+        val debtResult = SleepWindowPredictor.predict(
+            features(metrics = metrics), ageInWeeks, baseNow,
+            sleepDebtFactorProvider = { _, _, _ ->
+                SleepPredictionFactor(adjustment = Duration.ofMinutes(-10))
+            },
+        )
+        val neutralEstimate = (neutralResult as SleepPredictionState.Window).window.bestEstimate
+        val debtEstimate = (debtResult as SleepPredictionState.Window).window.bestEstimate
+        assertTrue(debtEstimate.isBefore(neutralEstimate),
+            "Sleep-debt factor with -10 min adjustment must shift bestEstimate earlier")
+    }
+
+    @Test
+    fun `sleep-debt factor reason appears in window reasons`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofMinutes(60)).toEpochMilli()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+        val result = SleepWindowPredictor.predict(
+            features(metrics = metrics), ageInWeeks, baseNow,
+            sleepDebtFactorProvider = { _, _, _ ->
+                SleepPredictionFactor(adjustment = Duration.ofMinutes(-10), reason = "sleep debt reason")
+            },
+        )
+        val window = (result as SleepPredictionState.Window).window
+        assertTrue(window.reasons.contains("sleep debt reason"),
+            "Factor reason must appear in window.reasons")
+    }
+
+    @Test
+    fun `negative sleep-debt adjustment cannot make a raw-fresh window stale`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofMinutes(60)).toEpochMilli()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+        val result = SleepWindowPredictor.predict(
+            features(metrics = metrics), ageInWeeks, baseNow,
+            sleepDebtFactorProvider = { _, _, _ ->
+                SleepPredictionFactor(adjustment = Duration.ofMinutes(-SleepPredictionTuning.SLEEP_DEBT_MAX_SHIFT_MINUTES))
+            },
+        )
+        assertInstanceOf(SleepPredictionState.Window::class.java, result)
+    }
+
+    @Test
+    fun `large negative sleep-debt adjustment on near-stale window returns Overdue`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofHours(5)).toEpochMilli()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+        val result = SleepWindowPredictor.predict(
+            features(metrics = metrics), ageInWeeks, baseNow,
+            sleepDebtFactorProvider = { _, _, _ ->
+                SleepPredictionFactor(adjustment = Duration.ofMinutes(-SleepPredictionTuning.SLEEP_DEBT_MAX_SHIFT_MINUTES))
+            },
+        )
+        assertInstanceOf(SleepPredictionState.Overdue::class.java, result,
+            "Raw-stale window must return Overdue even when debt factor is applied")
+    }
+
+    @Test
+    fun `ALGORITHM_VERSION is phase2 sleep-debt version`() {
         assertEquals(
-            "sleep-pred-phase2-circadian-history-1",
+            "sleep-pred-phase2-sleep-debt-1",
             SleepPredictionTuning.ALGORITHM_VERSION,
             "ALGORITHM_VERSION must be bumped when changing prediction algorithm",
         )

@@ -36,5 +36,8 @@ object SleepPredictionTuning {
     const val CIRCADIAN_TARGET_NEUTRALITY_MINUTES = 10L
     const val TIME_OF_DAY_MAX_SHIFT_MINUTES = 15L
     const val TIME_OF_DAY_MIN_HISTORY_COUNT = 7
-    const val ALGORITHM_VERSION = "sleep-pred-phase2-circadian-history-1"
+    const val SLEEP_DEBT_MAX_SHIFT_MINUTES = 20L
+    const val SLEEP_DEBT_SCALE_MINUTES_PER_HOUR = 5L
+    const val SLEEP_DEBT_MIN_HOURS = 1L
+    const val ALGORITHM_VERSION = "sleep-pred-phase2-sleep-debt-1"
 }

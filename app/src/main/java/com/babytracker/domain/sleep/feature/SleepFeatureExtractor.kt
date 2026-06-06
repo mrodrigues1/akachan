@@ -90,6 +90,7 @@ class SleepFeatureExtractor(
             bedtimeWakeP25Millis = bedtimeQuartiles?.first,
             bedtimeWakeP50Millis = bedtimeQuartiles?.second ?: median(bedtimeIntervals),
             bedtimeWakeP75Millis = bedtimeQuartiles?.third,
+            avgDailySleepMillis = avgDailySleepMillis(completed),
         )
     }
 
@@ -266,6 +267,27 @@ class SleepFeatureExtractor(
 
     private fun iqr(values: List<Long>): Long? =
         quartiles(values)?.let { (p25, _, p75) -> p75 - p25 }
+
+    private fun avgDailySleepMillis(completed: List<SleepInterval>): Long? {
+        val lookbackStartMillis = nowMillis - Duration.ofDays(SleepPredictionTuning.LOOKBACK_DAYS).toMillis()
+        val inLookback = completed.filter { it.endMillis!! >= lookbackStartMillis }
+        if (inLookback.size < SleepPredictionTuning.MIN_COMPLETED_INTERVALS) return null
+        val totalSleepMillis = inLookback.sumOf { interval ->
+            val overlapStart = maxOf(interval.startMillis, lookbackStartMillis)
+            (interval.endMillis!! - overlapStart).coerceAtLeast(0L)
+        }
+        val observedDays = inLookback
+            .flatMap { interval ->
+                val start = Instant.ofEpochMilli(interval.startMillis).atZone(zoneId).toLocalDate()
+                val end = Instant.ofEpochMilli(interval.endMillis!!).atZone(zoneId).toLocalDate()
+                generateSequence(start) { if (it < end) it.plusDays(1) else null }.toList()
+            }
+            .toSet()
+            .size
+            .toLong()
+            .coerceAtLeast(1L)
+        return totalSleepMillis / observedDays
+    }
 
     private fun isTypeAwareStable(metrics: SleepMetrics, ceilingMillis: Long): Boolean {
         val napIqr = if (metrics.napWakeP25Millis != null && metrics.napWakeP75Millis != null) {

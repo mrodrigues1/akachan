@@ -36,7 +36,7 @@ class SleepFeatureExtractorTest {
         assertTrue(SleepPredictionTuning.LOOKBACK_DAYS > 0)
         assertTrue(SleepPredictionTuning.MAX_NAP_DURATION_HOURS > 0)
         assertTrue(SleepPredictionTuning.HALF_WINDOW_MINUTES > 0)
-        assertEquals("sleep-pred-phase2-circadian-history-1", SleepPredictionTuning.ALGORITHM_VERSION)
+        assertEquals("sleep-pred-phase2-sleep-debt-1", SleepPredictionTuning.ALGORITHM_VERSION)
     }
 
     @Test
@@ -575,6 +575,53 @@ class SleepFeatureExtractorTest {
         assertNotNull(features.metrics.napWakeP50Millis)
         assertNull(features.metrics.napWakeP25Millis)
         assertNull(features.metrics.napWakeP75Millis)
+    }
+
+    @Test
+    fun `avgDailySleepMillis is null when fewer than MIN_COMPLETED_INTERVALS completed sleeps in lookback`() {
+        val clock = Clock.fixed(Instant.parse("2024-06-15T14:00:00Z"), utcZone)
+        val extractor = SleepFeatureExtractor(clock, utcZone)
+        val records = listOf(
+            SleepRecord(1, Instant.parse("2024-06-14T20:00:00Z"), Instant.parse("2024-06-15T06:00:00Z"), SleepType.NIGHT_SLEEP)
+        )
+        val features = extractor.extract(records, emptyList())
+        assertNull(features.metrics.avgDailySleepMillis)
+    }
+
+    @Test
+    fun `avgDailySleepMillis computes total lookback sleep divided by observed day count`() {
+        val now = Instant.parse("2024-06-15T14:00:00Z")
+        val clock = Clock.fixed(now, utcZone)
+        val extractor = SleepFeatureExtractor(clock, utcZone)
+        val lookbackStart = now.minus(Duration.ofDays(SleepPredictionTuning.LOOKBACK_DAYS))
+        // Each record starts at 23:00 UTC and ends at 00:00 UTC next day, spanning 2 days each.
+        // 5 records × 2 days = {Jun 1..Jun 6} → 6 distinct observed days.
+        val records = (0 until 5).map { i ->
+            val start = lookbackStart.plus(Duration.ofDays(i.toLong())).plus(Duration.ofHours(9))
+            SleepRecord(i.toLong() + 1, start, start.plus(Duration.ofHours(1)), SleepType.NAP)
+        }
+        val features = extractor.extract(records, emptyList())
+        val expectedMillis = Duration.ofHours(5).toMillis() / 6L
+        assertEquals(expectedMillis, features.metrics.avgDailySleepMillis)
+    }
+
+    @Test
+    fun `avgDailySleepMillis clips sleep that started before lookback window`() {
+        val now = Instant.parse("2024-06-15T14:00:00Z")
+        val clock = Clock.fixed(now, utcZone)
+        val extractor = SleepFeatureExtractor(clock, utcZone)
+        val lookbackStart = now.minus(Duration.ofDays(SleepPredictionTuning.LOOKBACK_DAYS))
+        val preStart = lookbackStart.minus(Duration.ofHours(2))
+        val preEnd = lookbackStart.plus(Duration.ofHours(1))
+        val extras = (0 until 4).map { i ->
+            val start = lookbackStart.plus(Duration.ofDays(i.toLong() + 1L)).plus(Duration.ofHours(9))
+            SleepRecord(i.toLong() + 2, start, start.plus(Duration.ofHours(1)), SleepType.NAP)
+        }
+        val records = listOf(SleepRecord(1, preStart, preEnd, SleepType.NIGHT_SLEEP)) + extras
+        val features = extractor.extract(records, emptyList())
+        // Clipped record spans only Jun 1; extras span {Jun 2+3, Jun 3+4, Jun 4+5, Jun 5+6} → 6 distinct days.
+        val expectedMillis = Duration.ofHours(5).toMillis() / 6L
+        assertEquals(expectedMillis, features.metrics.avgDailySleepMillis)
     }
 
     @Test

@@ -8,6 +8,7 @@ import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SleepRepository
+import com.babytracker.domain.sleep.eval.SleepDebtFactor
 import com.babytracker.domain.sleep.eval.SleepWindowPredictor
 import com.babytracker.domain.sleep.feature.SleepFeatureExtractor
 import kotlinx.coroutines.flow.Flow
@@ -74,6 +75,6 @@ class PredictSleepWindowUseCase @Inject constructor(
         val features = SleepFeatureExtractor(clock, zoneId)
             .extract(sleepRecords.filter { it.startTime >= lookbackStart }, feedSessions)
 
-        return SleepWindowPredictor.predict(features, ageInWeeks, now)
+        return SleepWindowPredictor.predict(features, ageInWeeks, now, sleepDebtFactorProvider = SleepDebtFactor::adjustment)
     }
 }

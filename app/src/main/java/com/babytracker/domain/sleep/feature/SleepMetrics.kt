@@ -22,4 +22,5 @@ data class SleepMetrics(
     val bedtimeWakeP25Millis: Long? = null,
     val bedtimeWakeP50Millis: Long? = null,
     val bedtimeWakeP75Millis: Long? = null,
+    val avgDailySleepMillis: Long? = null,
 )

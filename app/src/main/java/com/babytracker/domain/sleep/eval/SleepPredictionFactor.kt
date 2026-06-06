@@ -29,3 +29,9 @@ typealias TimeOfDayFactorProvider = (
     Int?,
     Boolean,
 ) -> SleepPredictionFactor
+
+typealias SleepDebtFactorProvider = (
+    Long,  // sleepLast24hMillis
+    Long?, // avgDailySleepMillis (null if insufficient history)
+    Int,   // ageInWeeks
+) -> SleepPredictionFactor
