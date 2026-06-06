@@ -14,7 +14,9 @@ import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.model.BabyEventType
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
+import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
@@ -61,6 +63,7 @@ class HomeViewModel @Inject constructor(
     inventoryRepository: InventoryRepository,
     predictNextFeed: PredictNextFeedUseCase,
     predictSleepWindow: PredictSleepWindowUseCase,
+    private val logBabyEvent: LogBabyEventUseCase,
 ) : ViewModel() {
 
     val uiState: StateFlow<HomeUiState> = combine(
@@ -125,6 +128,10 @@ class HomeViewModel @Inject constructor(
         started = SharingStarted.Eagerly,
         initialValue = HomeUiState()
     )
+
+    fun onCueTapped(type: BabyEventType) {
+        viewModelScope.launch { runCatching { logBabyEvent(type) } }
+    }
 
     init {
         viewModelScope.launch { runCatching { syncToFirestore() } }

@@ -13,7 +13,9 @@ import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.model.BabyEventType
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
+import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
@@ -52,6 +54,7 @@ class HomeViewModelTest {
     private lateinit var inventoryRepository: InventoryRepository
     private lateinit var predictNextFeed: PredictNextFeedUseCase
     private lateinit var predictSleepWindow: PredictSleepWindowUseCase
+    private lateinit var logBabyEvent: LogBabyEventUseCase
     private lateinit var viewModel: HomeViewModel
     private val testDispatcher = StandardTestDispatcher()
 
@@ -81,6 +84,7 @@ class HomeViewModelTest {
         inventoryRepository = mockk()
         predictNextFeed = mockk()
         predictSleepWindow = mockk()
+        logBabyEvent = mockk()
 
         every { getBabyProfile() } returns flowOf(testBaby)
         every { getBreastfeedingHistory() } returns flowOf(emptyList())
@@ -91,6 +95,7 @@ class HomeViewModelTest {
         every { predictNextFeed() } returns flowOf(null)
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("test"))
         coJustRun { syncToFirestore(any()) }
+        coJustRun { logBabyEvent(any()) }
     }
 
     @AfterEach
@@ -108,6 +113,7 @@ class HomeViewModelTest {
         inventoryRepository,
         predictNextFeed,
         predictSleepWindow,
+        logBabyEvent,
     )
 
     @Test
@@ -372,5 +378,16 @@ class HomeViewModelTest {
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(state, viewModel.uiState.value.sleepPrediction)
+    }
+
+    @Test
+    fun onCueTapped_delegatesToLogBabyEventUseCase() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onCueTapped(BabyEventType.SLEEPY_CUE)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { logBabyEvent(BabyEventType.SLEEPY_CUE) }
     }
 }
