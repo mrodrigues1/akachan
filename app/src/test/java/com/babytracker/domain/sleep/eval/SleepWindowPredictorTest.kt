@@ -658,9 +658,9 @@ class SleepWindowPredictorTest {
     }
 
     @Test
-    fun `ALGORITHM_VERSION is phase2 nap-budget version`() {
+    fun `ALGORITHM_VERSION is phase2 sleep-debt version`() {
         assertEquals(
-            "sleep-pred-phase2-nap-budget-1",
+            "sleep-pred-phase2-sleep-debt-1",
             SleepPredictionTuning.ALGORITHM_VERSION,
             "ALGORITHM_VERSION must be bumped when changing prediction algorithm",
         )
