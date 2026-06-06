@@ -1,5 +1,6 @@
 package com.babytracker.di
 
+import com.babytracker.data.repository.BabyEventRepositoryImpl
 import com.babytracker.data.repository.BabyProfileRepositoryImpl
 import com.babytracker.data.repository.BabyRepositoryImpl
 import com.babytracker.data.repository.BreastfeedingRepositoryImpl
@@ -7,6 +8,7 @@ import com.babytracker.data.repository.InventoryRepositoryImpl
 import com.babytracker.data.repository.PumpingRepositoryImpl
 import com.babytracker.data.repository.SettingsRepositoryImpl
 import com.babytracker.data.repository.SleepRepositoryImpl
+import com.babytracker.domain.repository.BabyEventRepository
 import com.babytracker.domain.repository.BabyProfileRepository
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
@@ -23,6 +25,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindBabyEventRepository(impl: BabyEventRepositoryImpl): BabyEventRepository
 
     @Binds
     @Singleton
