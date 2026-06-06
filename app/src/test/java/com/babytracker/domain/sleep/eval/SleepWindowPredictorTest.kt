@@ -658,11 +658,98 @@ class SleepWindowPredictorTest {
     }
 
     @Test
-    fun `ALGORITHM_VERSION is phase2 sleep-debt version`() {
+    fun `ALGORITHM_VERSION is phase2 nap-budget version`() {
         assertEquals(
-            "sleep-pred-phase2-sleep-debt-1",
+            "sleep-pred-phase2-nap-budget-1",
             SleepPredictionTuning.ALGORITHM_VERSION,
             "ALGORITHM_VERSION must be bumped when changing prediction algorithm",
         )
+    }
+
+    @Test
+    fun `nap-budget factor shifts NAP window earlier when injected with negative adjustment`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofMinutes(60)).toEpochMilli()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        ).copy(lastSleepType = SleepType.NAP, napCountToday = 1)
+
+        val neutralResult = SleepWindowPredictor.predict(
+            features(metrics = metrics), ageInWeeks, baseNow,
+            napBudgetFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral },
+        )
+        val budgetResult = SleepWindowPredictor.predict(
+            features(metrics = metrics), ageInWeeks, baseNow,
+            napBudgetFactorProvider = { _, _, _ ->
+                SleepPredictionFactor(adjustment = Duration.ofMinutes(-15))
+            },
+        )
+        val neutralEstimate = (neutralResult as SleepPredictionState.Window).window.bestEstimate
+        val budgetEstimate = (budgetResult as SleepPredictionState.Window).window.bestEstimate
+        assertTrue(
+            budgetEstimate.isBefore(neutralEstimate),
+            "Nap-budget factor with -15 min adjustment must shift bestEstimate earlier",
+        )
+    }
+
+    @Test
+    fun `nap-budget factor does not apply to NIGHT_SLEEP predictions (real factor returns Neutral)`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofMinutes(60)).toEpochMilli()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(150).toMillis(),
+        ).copy(lastSleepType = SleepType.NAP, napCountToday = 2)
+
+        val neutralResult = SleepWindowPredictor.predict(
+            features(metrics = metrics), ageInWeeks, baseNow,
+            napBudgetFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral },
+        )
+        val realBudgetResult = SleepWindowPredictor.predict(
+            features(metrics = metrics), ageInWeeks, baseNow,
+            napBudgetFactorProvider = NapBudgetFactor::adjustment,
+        )
+        val neutralEstimate = (neutralResult as SleepPredictionState.Window).window.bestEstimate
+        val realEstimate = (realBudgetResult as SleepPredictionState.Window).window.bestEstimate
+        assertEquals(
+            neutralEstimate,
+            realEstimate,
+            "Real NapBudgetFactor must return Neutral for NIGHT_SLEEP -> bestEstimate unchanged",
+        )
+    }
+
+    @Test
+    fun `nap-budget factor reason appears in window reasons`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofMinutes(60)).toEpochMilli()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+        val result = SleepWindowPredictor.predict(
+            features(metrics = metrics), ageInWeeks, baseNow,
+            napBudgetFactorProvider = { _, _, _ ->
+                SleepPredictionFactor(adjustment = Duration.ofMinutes(-10), reason = "nap budget reason")
+            },
+        )
+        val window = (result as SleepPredictionState.Window).window
+        assertTrue(
+            window.reasons.contains("nap budget reason"),
+            "Factor reason must appear in window.reasons",
+        )
+    }
+
+    @Test
+    fun `large negative nap-budget adjustment cannot make a raw-fresh window stale`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofMinutes(60)).toEpochMilli()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+        val result = SleepWindowPredictor.predict(
+            features(metrics = metrics), ageInWeeks, baseNow,
+            napBudgetFactorProvider = { _, _, _ ->
+                SleepPredictionFactor(adjustment = Duration.ofMinutes(-SleepPredictionTuning.NAP_BUDGET_MAX_SHIFT_MINUTES))
+            },
+        )
+        assertInstanceOf(SleepPredictionState.Window::class.java, result)
     }
 }

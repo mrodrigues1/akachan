@@ -23,6 +23,7 @@ object SleepWindowPredictor {
         circadianFactorProvider: CircadianFactorProvider = { _, _, _, _, _ -> SleepPredictionFactor.Neutral },
         timeOfDayFactorProvider: TimeOfDayFactorProvider = { _, _, _, _ -> SleepPredictionFactor.Disabled },
         sleepDebtFactorProvider: SleepDebtFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral },
+        napBudgetFactorProvider: NapBudgetFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral },
     ): SleepPredictionState {
         val quality = features.quality
         if (!quality.hasSufficientZoneIndependentEvidence || !quality.isLocalDayCoverageSufficient) {
@@ -31,7 +32,11 @@ object SleepWindowPredictor {
         if (features.feedIntervals.any { it.endMillis == null }) {
             return SleepPredictionState.AfterActiveFeed
         }
-        return buildWindow(features, ageInWeeks, now, circadianFactorProvider, timeOfDayFactorProvider, sleepDebtFactorProvider)
+        return buildWindow(
+            features, ageInWeeks, now,
+            circadianFactorProvider, timeOfDayFactorProvider,
+            sleepDebtFactorProvider, napBudgetFactorProvider,
+        )
     }
 
     private fun buildWindow(
@@ -41,6 +46,7 @@ object SleepWindowPredictor {
         circadianFactorProvider: CircadianFactorProvider,
         timeOfDayFactorProvider: TimeOfDayFactorProvider,
         sleepDebtFactorProvider: SleepDebtFactorProvider,
+        napBudgetFactorProvider: NapBudgetFactorProvider,
     ): SleepPredictionState {
         val quality = features.quality
         val metrics = features.metrics
@@ -78,10 +84,16 @@ object SleepWindowPredictor {
             metrics.avgDailySleepMillis,
             ageInWeeks,
         )
+        val napBudgetFactor = napBudgetFactorProvider(
+            metrics.napCountToday,
+            ageInWeeks,
+            nextType,
+        )
         val adjustedBestEstimate = bestEstimate
             .plus(circadianFactor.adjustment)
             .plus(timeOfDayFactor.adjustment)
             .plus(sleepDebtFactor.adjustment)
+            .plus(napBudgetFactor.adjustment)
         val windowStart = adjustedBestEstimate.minus(halfWindowDuration)
         val windowEnd = adjustedBestEstimate.plus(halfWindowDuration)
         // Stale check uses the pre-factor end (so a positive factor cannot revive a stale anchor)
@@ -99,7 +111,7 @@ object SleepWindowPredictor {
                 bestEstimate = adjustedBestEstimate,
                 confidence = confidence,
                 reasons = buildReasons(qualityC, ageInWeeks, nextType, typeIntervalCount) +
-                    listOfNotNull(circadianFactor.reason, timeOfDayFactor.reason, sleepDebtFactor.reason),
+                    listOfNotNull(circadianFactor.reason, timeOfDayFactor.reason, sleepDebtFactor.reason, napBudgetFactor.reason),
                 feedPrompt = computeFeedPrompt(features.feedIntervals, windowStart, windowEnd, now),
                 safetyPrompt = "Always follow your baby's sleep cues — windows are estimates, not schedules.",
             )
