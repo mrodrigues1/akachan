@@ -1,5 +1,17 @@
 # Repo map
 
+Three-layer clean architecture with unidirectional data flow:
+
+```
+UI Layer       Compose Screens → ViewModels → StateFlow<*UiState>
+                    ↑                               |
+Domain Layer   Use Cases ← ViewModels              |
+                    ↓                               |
+Data Layer     Repository Impls → Room DAOs / DataStore
+                                        ↓
+                                  Flow<T> bubbles up
+```
+
 ## Android app
 - `app/src/main/java/com/babytracker/ui`: Compose screens, reusable components, theme, and feature ViewModels.
 - `app/src/main/java/com/babytracker/data`: Room database, entities, DAOs, converters, and repository implementations.

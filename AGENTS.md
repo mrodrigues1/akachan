@@ -1,4 +1,4 @@
-# CLAUDE.md — BabyTracker (Akachan)
+# AGENTS.md — BabyTracker (Akachan)
 
 A native Android baby tracking app for parents of infants (0–12 months). Tracks breastfeeding sessions, sleep patterns, and allergies. Core tracking data is stored locally. An optional partner-sharing feature syncs a read-only snapshot to Firebase Firestore via anonymous Firebase Auth.
 
@@ -27,18 +27,6 @@ A native Android baby tracking app for parents of infants (0–12 months). Track
 
 ## Architecture
 
-Three-layer clean architecture with unidirectional data flow:
-
-```
-UI Layer       Compose Screens → ViewModels → StateFlow<*UiState>
-                    ↑                               |
-Domain Layer   Use Cases ← ViewModels              |
-                    ↓                               |
-Data Layer     Repository Impls → Room DAOs / DataStore
-                                        ↓
-                                  Flow<T> bubbles up
-```
-
 **Key principles (from `specs/SPEC-001-APP-STRUCTURE.md`):**
 - SOLID: depend on abstractions (repository interfaces), single-responsibility use cases
 - KISS: flat packages, no mapper classes, no base classes, no sealed `Result<>` wrappers
@@ -49,87 +37,9 @@ Data Layer     Repository Impls → Room DAOs / DataStore
 
 ---
 
-## Package Structure
+## Repo Map
 
-```
-app/src/main/java/com/babytracker/
-├── BabyTrackerApp.kt          # @HiltAndroidApp Application class
-├── MainActivity.kt            # Single activity, edge-to-edge Compose host
-├── navigation/
-│   ├── AppNavGraph.kt         # 12 routes: onboarding, home, breastfeeding,
-│   │                          #   breastfeeding_history, sleep, sleep_history,
-│   │                          #   sleep_schedule, settings, design_system_preview,
-│   │                          #   connect_partner, partner_dashboard, manage_sharing
-│   └── Routes.kt              # Route string constants object
-├── di/
-│   ├── DatabaseModule.kt      # Provides Room DB + DAOs
-│   ├── DataStoreModule.kt     # Provides DataStore<Preferences>
-│   ├── RepositoryModule.kt    # Binds core interfaces → implementations
-│   ├── NotificationSchedulerModule.kt  # Binds notification schedulers → impls
-│   └── SharingModule.kt       # Binds SharingRepository; provides FirebaseFirestore + FirebaseAuth
-├── domain/
-│   ├── model/                 # Pure data classes: Baby, BreastfeedingSession,
-│   │                          #   SleepRecord, SleepSchedule, ThemeConfig, UpdateInfo
-│   │                          # Enums: AllergyType, BreastSide, SleepType
-│   ├── repository/            # Interfaces: BabyRepository, BreastfeedingRepository,
-│   │                          #   SleepRepository, SettingsRepository
-│   └── usecase/
-│       ├── baby/              # GetBabyProfile, SaveBabyProfile
-│       ├── breastfeeding/     # StartSession, StopSession, GetHistory, SwitchSide,
-│       │                      #   PauseSession, ResumeSession
-│       └── sleep/             # StartRecord, StopRecord, GetHistory, GenerateSchedule
-├── data/
-│   ├── local/
-│   │   ├── BabyTrackerDatabase.kt   # Room DB v2, entities: breastfeeding_sessions, sleep_records
-│   │   ├── dao/               # BreastfeedingDao, SleepDao
-│   │   ├── entity/            # BreastfeedingEntity, SleepEntity
-│   │   └── converter/         # TypeConverter: Instant ↔ Long (epoch ms)
-│   └── repository/            # BabyRepositoryImpl, BreastfeedingRepositoryImpl,
-│                              #   SleepRepositoryImpl, SettingsRepositoryImpl
-├── manager/
-│   ├── NotificationScheduler.kt              # Interface: schedule/cancel AlarmManager alarms (breastfeeding)
-│   ├── BreastfeedingNotificationManager.kt   # Impl: schedules max-time and per-breast alarms
-│   ├── BreastfeedingSessionNotificationCoordinator.kt  # Orchestrates full session notification lifecycle
-│   ├── SleepNotificationScheduler.kt         # Interface: schedule/cancel sleep alarms
-│   └── SleepNotificationManager.kt           # Impl: schedules sleep limit alarms
-├── receiver/
-│   ├── BreastfeedingActionReceiver.kt   # @AndroidEntryPoint BroadcastReceiver for session actions
-│   ├── BreastfeedingNotificationReceiver.kt  # @AndroidEntryPoint BroadcastReceiver for alarm triggers
-│   └── SleepActionReceiver.kt           # @AndroidEntryPoint BroadcastReceiver for sleep actions
-├── sharing/
-│   ├── data/
-│   │   ├── firebase/          # FirestoreSharingService.kt (Firestore + Auth operations)
-│   │   └── repository/        # SharingRepositoryImpl.kt
-│   ├── domain/
-│   │   ├── model/             # AppMode.kt (enum: NONE/PRIMARY/PARTNER),
-│   │   │                      #   ShareSnapshot.kt, BabySnapshot.kt,
-│   │   │                      #   SessionSnapshot.kt, SleepSnapshot.kt,
-│   │   │                      #   PartnerInfo.kt, ShareCode.kt,
-│   │   │                      #   DomainToSnapshot.kt (extension fns)
-│   │   └── repository/        # SharingRepository.kt (interface)
-│   └── usecase/               # ConnectAsPartnerUseCase, FetchPartnerDataUseCase,
-│                              #   GenerateShareCodeUseCase, RevokePartnerUseCase,
-│                              #   SyncToFirestoreUseCase
-├── ui/
-│   ├── onboarding/            # OnboardingScreen + OnboardingViewModel
-│   │   └── components/        # Reusable onboarding sub-composables
-│   ├── home/                  # HomeScreen + HomeViewModel
-│   ├── breastfeeding/         # BreastfeedingScreen, BreastfeedingHistoryScreen + VMs
-│   ├── sleep/                 # SleepTrackingScreen, SleepHistoryScreen, SleepScheduleScreen + VMs
-│   ├── settings/              # SettingsScreen + SettingsViewModel
-│   ├── partner/               # PartnerDashboardScreen + PartnerDashboardViewModel
-│   ├── sharing/               # ConnectPartnerScreen + VM, ManageSharingScreen + VM
-│   ├── component/             # Reusable: TimerDisplay, HistoryCard, SideSelector
-│   └── theme/                 # Theme.kt, Color.kt, Shape.kt, Type.kt,
-│                              #   DesignSystemPreviewScreen.kt (debug catalog)
-└── util/
-    ├── DateTimeExt.kt         # Instant.formatTime(), formatDateTime(), Duration.formatDuration(),
-    │                          #   Duration.formatElapsedAgo()
-    ├── FlowExt.kt             # Flow.catchAndLog()
-    ├── NotificationHelper.kt  # Cancel/show notification helpers — builds design-system-themed
-    │                          #   notifications (per-type small icon + accent color via setColor())
-    └── UpdateChecker.kt       # In-app update check utility
-```
+Read `docs/AI_REPO_MAP.md` first. Use it to identify the minimum files needed.
 
 ---
 
@@ -252,32 +162,9 @@ fun BreastfeedingSession.toEntity(): BreastfeedingEntity = ...
 
 ---
 
-## Database Schema
+## Domain
 
-**Database:** `baby_tracker_db` (Room v2)
-
-**`breastfeeding_sessions`**
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | Long PK autoGenerate | |
-| `start_time` | Long NOT NULL | epoch ms |
-| `end_time` | Long NULLABLE | null = in progress |
-| `starting_side` | String NOT NULL | "LEFT" or "RIGHT" |
-| `switch_time` | Long NULLABLE | epoch ms when sides switched |
-| `notes` | String NULLABLE | |
-| `paused_at` | Long NULLABLE | epoch ms when session was paused; null = running |
-| `paused_duration_ms` | Long NOT NULL | accumulated paused time in ms (default 0) |
-
-**`sleep_records`**
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | Long PK autoGenerate | |
-| `start_time` | Long NOT NULL | epoch ms |
-| `end_time` | Long NULLABLE | null = in progress |
-| `sleep_type` | String NOT NULL | "NAP" or "NIGHT_SLEEP" |
-| `notes` | String NULLABLE | |
-
-**DataStore (`baby_tracker_prefs`):** baby name, birth date, allergies, onboarding flag, feed timing limits.
+Check `domain/model/` for pure Kotlin data classes.
 
 ---
 
@@ -350,9 +237,7 @@ All repository and service implementations are `@Singleton` scoped.
 
 ## Specifications
 
-Detailed feature specs live in `specs/`:
-
-- `specs/SPEC-001-APP-STRUCTURE.md` — architecture, package layout, design principles, DB schema
+Detailed feature specs live in `specs/`
 
 Read specs before implementing new features — they define the intended behaviour and non-goals.
 
