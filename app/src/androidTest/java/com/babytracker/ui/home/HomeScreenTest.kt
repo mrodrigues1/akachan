@@ -24,6 +24,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.time.Instant
+import com.babytracker.ui.component.CueQuickTapRow
 
 @RunWith(AndroidJUnit4::class)
 class HomeScreenTest {
