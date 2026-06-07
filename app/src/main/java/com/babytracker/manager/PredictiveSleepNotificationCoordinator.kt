@@ -122,6 +122,7 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
 
         val triggerAt = window.bestEstimate.minus(Duration.ofMinutes(leadMinutes.toLong()))
         if (triggerAt.isBefore(Instant.now())) {
+            clearScheduledWindowState()
             scheduler.cancelPredictiveReminder()
             return
         }
@@ -130,6 +131,7 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
                 recommendation.createFeedback(recId, RecommendationOutcome.QUIET_HOURS_SUPPRESSED)
                 quietHoursFeedbackCreated = true
             }
+            clearScheduledWindowState()
             scheduler.cancelPredictiveReminder()
             return
         }
@@ -149,10 +151,14 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
         recommendation.createFeedback(id, RecommendationOutcome.SUPERSEDED)
         activeRecommendationId = null
         activeAnchorId = null
+        clearScheduledWindowState()
+        quietHoursFeedbackCreated = false
+    }
+
+    private fun clearScheduledWindowState() {
         scheduledWindowStart = null
         scheduledWindowEnd = null
         scheduledBestEstimate = null
-        quietHoursFeedbackCreated = false
     }
 
     private fun deriveRecommendationType(bestEstimate: Instant): String =

@@ -375,6 +375,54 @@ class PredictiveSleepNotificationCoordinatorTest {
         coVerify(exactly = 0) { createFeedback(any(), RecommendationOutcome.ACTED_OUTSIDE, any(), any(), any()) }
     }
 
+    @Test
+    fun `sleep completion does not create ACTED feedback after alarm cancelled by past-trigger re-reconcile`() = runTest {
+        // Regression: scheduled window state must be cleared when alarm is cancelled due to past-trigger,
+        // otherwise sleep-completion collector creates false ACTED feedback.
+        val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
+        coEvery { persist(any(), any(), any()) } returns 10L
+        val createFeedback = mockk<CreateSleepRecommendationFeedbackUseCase>(relaxed = true)
+        val bestEstimate = Instant.now().plusSeconds(3600)
+        val completedRecord = mockk<com.babytracker.domain.model.SleepRecord> {
+            every { id } returns 7L
+            every { isInProgress } returns false
+            every { startTime } returns bestEstimate
+        }
+        val sleepFlow = MutableStateFlow<com.babytracker.domain.model.SleepRecord?>(null)
+        val anchor = mockk<com.babytracker.domain.model.SleepRecord>().also { every { it.id } returns 1L }
+        val customSleepRepo = mockk<SleepRepository>(relaxed = true).also {
+            coEvery { it.getLatestRecord() } returns anchor
+            every { it.observeLatestRecord() } returns sleepFlow
+        }
+        // lead = 15 → triggerAt = now + 45min (future, alarm scheduled on first reconcile)
+        val leadFlow = MutableStateFlow(15)
+
+        val coordinator = buildCoordinator(
+            stateFlow = MutableStateFlow(windowState(bestEstimate)),
+            enabledFlow = MutableStateFlow(true),
+            leadFlow = leadFlow,
+            sleepRepository = customSleepRepo,
+            recommendation = SleepRecommendationUseCases(
+                persist = persist,
+                updateLifecycle = mockk(relaxed = true),
+                createFeedback = createFeedback,
+            ),
+        )
+        coordinator.start()
+        advanceTimeBy(300) // first reconcile: alarm scheduled, window state set
+
+        // Increase lead so triggerAt = bestEstimate - 90min < now → past-trigger, alarm cancelled
+        leadFlow.value = 90
+        advanceTimeBy(300) // second reconcile: past-trigger, window state must be cleared
+
+        // Sleep completion arrives after alarm was cancelled
+        sleepFlow.value = completedRecord
+        advanceTimeBy(300)
+
+        coVerify(exactly = 0) { createFeedback(any(), RecommendationOutcome.ACTED_IN_WINDOW, any(), any(), any()) }
+        coVerify(exactly = 0) { createFeedback(any(), RecommendationOutcome.ACTED_OUTSIDE, any(), any(), any()) }
+    }
+
     private fun TestScope.buildCoordinator(
         scheduler: PredictiveSleepScheduler = mockk(relaxed = true),
         stateFlow: MutableStateFlow<SleepPredictionState>,
