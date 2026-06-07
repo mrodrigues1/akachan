@@ -60,7 +60,7 @@ class SleepFeatureExtractor(
             .sortedBy { it.startMillis }
         val lastSleep = completed.maxByOrNull { it.endMillis!! }
         val wakeIntervals = completedWakeIntervals(completed)
-        val today = LocalDate.ofInstant(clock.instant(), zoneId)
+        val today = clock.instant().atZone(zoneId).toLocalDate()
         val nightSleeps = completed.filter { it.sleepType == SleepType.NIGHT_SLEEP }
         val typeWakeIntervals = typeAwareWakeIntervals(completed)
         val napIntervals = typeWakeIntervals[SleepType.NAP] ?: emptyList()
@@ -78,7 +78,7 @@ class SleepFeatureExtractor(
             sleepLast24hMillis = sumOverlap(completed, nowMillis - Duration.ofHours(24).toMillis(), nowMillis),
             daySleepTodayMillis = sumTodayDaySleep(completed, today),
             napCountToday = completed.count {
-                it.sleepType == SleepType.NAP && LocalDate.ofInstant(Instant.ofEpochMilli(it.startMillis), zoneId) == today
+                it.sleepType == SleepType.NAP && Instant.ofEpochMilli(it.startMillis).atZone(zoneId).toLocalDate() == today
             },
             medianBedtimeMinuteOfDay = medianMinuteOfDay(nightSleeps.map { it.startMillis }),
             medianMorningWakeMinuteOfDay = medianMinuteOfDay(nightSleeps.mapNotNull { it.endMillis }),
@@ -106,7 +106,7 @@ class SleepFeatureExtractor(
         val lookbackStartMillis = nowMillis - Duration.ofDays(SleepPredictionTuning.LOOKBACK_DAYS).toMillis()
         val localDayCoverage = possibleIntervals
             .filter { it.isCompleted && it.endMillis!! >= lookbackStartMillis }
-            .map { LocalDate.ofInstant(Instant.ofEpochMilli(it.startMillis), zoneId) }
+            .map { Instant.ofEpochMilli(it.startMillis).atZone(zoneId).toLocalDate() }
             .toSet()
             .size
         val invalidRecordRate = if (rawRecordCount > 0) {

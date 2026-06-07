@@ -1,5 +1,6 @@
 package com.babytracker.tile
 
+import android.annotation.SuppressLint
 import android.app.KeyguardManager
 import android.app.PendingIntent
 import android.content.Intent
@@ -105,6 +106,7 @@ abstract class BaseBabyTileService : TileService() {
             )
             startActivityAndCollapse(pendingIntent)
         } else {
+            @SuppressLint("StartActivityAndCollapseDeprecated")
             startActivityAndCollapse(intent)
         }
     }
