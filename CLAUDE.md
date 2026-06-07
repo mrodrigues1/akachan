@@ -48,6 +48,49 @@ Read `docs/AI_REPO_MAP.md` first. Use it to identify the minimum files needed.
 
 ---
 
+## Search Efficiency
+
+Minimize token usage. Search first, read second. Never scan the whole repo.
+
+### Preferred commands
+
+Find content:
+
+```bash
+rg "SymbolName"
+rg "functionName\(" -g "*.kt"
+rg -l "SymbolName"
+
+findstr /S /N /I "SymbolName" *.kt
+```
+
+Find files:
+
+```bash
+rg --files | rg "Dashboard|Partner"
+
+dir /S /B *Dashboard*
+where /R . *Dashboard*
+```
+
+Read only relevant sections (never whole large files):
+
+```bash
+powershell -Command "Get-Content path\to\file.kt | Select-Object -Skip 120 -First 100"
+
+sed -n '120,220p' path/to/file
+```
+
+### Rules
+
+- Prefer "rg"; fallback to native Windows commands ("findstr", "dir", "where", PowerShell).
+- Read files in small chunks only (±50–100 lines around matches).
+- Narrow searches to relevant folders/file types.
+- Avoid scanning unrelated modules, generated files, "build/", ".gradle/", lockfiles.
+- Make the smallest reasonable change.
+
+---
+
 ## Validation Commands
 
 Run commands from the repo root. On Windows PowerShell, use `.\gradlew.bat` if `./gradlew` does not execute.
@@ -223,6 +266,8 @@ Use `Validation Commands` for all test, build, formatting, and static-analysis c
 
 Create tests for new features, bug fixes, and edge cases. You do not need to follow strict TDD (test-first); writing tests after the implementation is acceptable. All tests must pass before creating a PR.
 
+**Do not run the full test suite after every task.** After each task, run only the tests related to changed code (e.g., `./gradlew test --tests "com.example.foo.BarTest"`). Run the full suite (`./gradlew test`) only before committing.
+
 After the feature is complete, run all tests. If there are any broken tests, fix them and re-run until all pass.
 
 ### Unit Tests (`src/test/`)
@@ -295,3 +340,4 @@ Read specs before implementing new features — they define the intended behavio
 - A pre-commit hook is available at `scripts/pre-commit`. Install it with: `cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit`
 - Both tools run automatically on CI (GitHub Actions) on every push to `main` and on every pull request.
 - If detekt reports a violation, **always fix the code - never suppress with `@Suppress`**. Each fix should be its own commit using the format `fix(detekt): fix <RuleName> violations`.
+- **Do not run `ktlintFormat` or `detekt` manually after finishing a task.** The pre-commit hook runs both automatically on every commit. Only run them manually if you need to diagnose a specific failure.

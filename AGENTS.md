@@ -266,6 +266,8 @@ Use `Validation Commands` for all test, build, formatting, and static-analysis c
 
 Create tests for new features, bug fixes, and edge cases. You do not need to follow strict TDD (test-first); writing tests after the implementation is acceptable. All tests must pass before creating a PR.
 
+**Do not run the full test suite after every task.** After each task, run only the tests related to changed code (e.g., `./gradlew test --tests "com.example.foo.BarTest"`). Run the full suite (`./gradlew test`) only before committing.
+
 After the feature is complete, run all tests. If there are any broken tests, fix them and re-run until all pass.
 
 ### Unit Tests (`src/test/`)
