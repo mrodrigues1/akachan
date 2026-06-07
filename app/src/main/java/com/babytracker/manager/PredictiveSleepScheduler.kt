@@ -1,12 +1,14 @@
 package com.babytracker.manager
 
 import android.app.AlarmManager
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
 import com.babytracker.receiver.PredictiveSleepReceiver
+import com.babytracker.util.NotificationHelper
 import java.time.Instant
 
 interface PredictiveSleepScheduler {
@@ -48,6 +50,8 @@ class PredictiveSleepSchedulerImpl(private val context: Context) : PredictiveSle
 
     override fun cancelPredictiveReminder() {
         alarmManager.cancel(buildPendingIntent(Instant.EPOCH))
+        context.getSystemService(NotificationManager::class.java)
+            .cancel(NotificationHelper.PREDICTIVE_SLEEP_NOTIFICATION_ID)
     }
 
     private fun buildPendingIntent(bestEstimate: Instant): PendingIntent {

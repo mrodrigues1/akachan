@@ -1,13 +1,20 @@
 package com.babytracker.manager
 
-import android.app.NotificationManager
-import android.content.Context
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
+import com.babytracker.domain.model.RecommendationLifecycle
+import com.babytracker.domain.model.RecommendationOutcome
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepRepository
+import com.babytracker.domain.usecase.sleep.CreateSleepRecommendationFeedbackUseCase
+import com.babytracker.domain.usecase.sleep.PersistSleepRecommendationUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
+import com.babytracker.domain.usecase.sleep.SleepRecommendationUseCases
+import com.babytracker.domain.usecase.sleep.UpdateRecommendationLifecycleUseCase
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -205,13 +212,178 @@ class PredictiveSleepNotificationCoordinatorTest {
         verify(exactly = 0) { scheduler.cancelPredictiveReminder() }
     }
 
+    @Test
+    fun `persists recommendation when Window state received and enabled`() = runTest {
+        val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
+        coEvery { persist(any(), any(), any()) } returns 1L
+        val bestEstimate = Instant.now().plusSeconds(3600)
+
+        val coordinator = buildCoordinator(
+            stateFlow = MutableStateFlow(windowState(bestEstimate)),
+            enabledFlow = MutableStateFlow(true),
+            leadFlow = MutableStateFlow(15),
+            recommendation = SleepRecommendationUseCases(
+                persist = persist,
+                updateLifecycle = mockk(relaxed = true),
+                createFeedback = mockk(relaxed = true),
+            ),
+        )
+        coordinator.start()
+        advanceTimeBy(300)
+
+        coVerify(atLeast = 1) { persist(any(), any(), any()) }
+    }
+
+    @Test
+    fun `writes SCHEDULED lifecycle when alarm is set`() = runTest {
+        val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
+        coEvery { persist(any(), any(), any()) } returns 42L
+        val updateLifecycle = mockk<UpdateRecommendationLifecycleUseCase>(relaxed = true)
+        val bestEstimate = Instant.now().plusSeconds(3600)
+
+        val coordinator = buildCoordinator(
+            stateFlow = MutableStateFlow(windowState(bestEstimate)),
+            enabledFlow = MutableStateFlow(true),
+            leadFlow = MutableStateFlow(15),
+            recommendation = SleepRecommendationUseCases(
+                persist = persist,
+                updateLifecycle = updateLifecycle,
+                createFeedback = mockk(relaxed = true),
+            ),
+        )
+        coordinator.start()
+        advanceTimeBy(300)
+
+        coVerify { updateLifecycle(42L, RecommendationLifecycle.SCHEDULED) }
+    }
+
+    @Test
+    fun `writes SUPERSEDED lifecycle when feature is disabled`() = runTest {
+        val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
+        coEvery { persist(any(), any(), any()) } returns 55L
+        val updateLifecycle = mockk<UpdateRecommendationLifecycleUseCase>(relaxed = true)
+        val bestEstimate = Instant.now().plusSeconds(3600)
+        val enabled = MutableStateFlow(true)
+
+        val coordinator = buildCoordinator(
+            stateFlow = MutableStateFlow(windowState(bestEstimate)),
+            enabledFlow = enabled,
+            leadFlow = MutableStateFlow(15),
+            recommendation = SleepRecommendationUseCases(
+                persist = persist,
+                updateLifecycle = updateLifecycle,
+                createFeedback = mockk(relaxed = true),
+            ),
+        )
+        coordinator.start()
+        advanceTimeBy(300)
+        enabled.value = false
+        advanceTimeBy(300)
+
+        coVerify { updateLifecycle(55L, RecommendationLifecycle.SUPERSEDED) }
+    }
+
+    @Test
+    fun `creates QUIET_HOURS_SUPPRESSED feedback when trigger falls in quiet hours`() = runTest {
+        val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
+        coEvery { persist(any(), any(), any()) } returns 77L
+        val createFeedback = mockk<CreateSleepRecommendationFeedbackUseCase>(relaxed = true)
+        // bestEstimate = now + 2h, lead = 60min → triggerAt = now + 1h (future, in full-day quiet hours)
+        val bestEstimate = Instant.now().plusSeconds(7200)
+
+        val coordinator = buildCoordinator(
+            stateFlow = MutableStateFlow(windowState(bestEstimate)),
+            enabledFlow = MutableStateFlow(true),
+            leadFlow = MutableStateFlow(60),
+            quietStartFlow = MutableStateFlow(0),
+            quietEndFlow = MutableStateFlow(1439),
+            recommendation = SleepRecommendationUseCases(
+                persist = persist,
+                updateLifecycle = mockk(relaxed = true),
+                createFeedback = createFeedback,
+            ),
+        )
+        coordinator.start()
+        advanceTimeBy(300)
+
+        coVerify { createFeedback(77L, RecommendationOutcome.QUIET_HOURS_SUPPRESSED) }
+    }
+
+    @Test
+    fun `quiet-hours suppressed feedback is created only once per recommendation across repeated reconciles`() = runTest {
+        val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
+        coEvery { persist(any(), any(), any()) } returns 88L
+        val createFeedback = mockk<CreateSleepRecommendationFeedbackUseCase>(relaxed = true)
+        val bestEstimate = Instant.now().plusSeconds(7200)
+        val stateFlow = MutableStateFlow<SleepPredictionState>(windowState(bestEstimate))
+
+        val coordinator = buildCoordinator(
+            stateFlow = stateFlow,
+            enabledFlow = MutableStateFlow(true),
+            leadFlow = MutableStateFlow(60),
+            quietStartFlow = MutableStateFlow(0),
+            quietEndFlow = MutableStateFlow(1439),
+            recommendation = SleepRecommendationUseCases(
+                persist = persist,
+                updateLifecycle = mockk(relaxed = true),
+                createFeedback = createFeedback,
+            ),
+        )
+        coordinator.start()
+        advanceTimeBy(300)
+        stateFlow.value = windowState(bestEstimate.plusSeconds(1))
+        advanceTimeBy(300)
+
+        coVerify(exactly = 1) { createFeedback(88L, RecommendationOutcome.QUIET_HOURS_SUPPRESSED) }
+    }
+
+    @Test
+    fun `sleep completion does not create feedback when recommendation was suppressed by quiet hours`() = runTest {
+        val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
+        coEvery { persist(any(), any(), any()) } returns 99L
+        val createFeedback = mockk<CreateSleepRecommendationFeedbackUseCase>(relaxed = true)
+        val bestEstimate = Instant.now().plusSeconds(7200)
+        val completedRecord = mockk<com.babytracker.domain.model.SleepRecord> {
+            every { id } returns 5L
+            every { isInProgress } returns false
+            every { startTime } returns bestEstimate
+        }
+        val sleepFlow = MutableStateFlow<com.babytracker.domain.model.SleepRecord?>(completedRecord)
+        val anchor = mockk<com.babytracker.domain.model.SleepRecord>().also { every { it.id } returns 1L }
+        val customSleepRepo = mockk<SleepRepository>(relaxed = true).also {
+            coEvery { it.getLatestRecord() } returns anchor
+            every { it.observeLatestRecord() } returns sleepFlow
+        }
+
+        val coordinator = buildCoordinator(
+            stateFlow = MutableStateFlow(windowState(bestEstimate)),
+            enabledFlow = MutableStateFlow(true),
+            leadFlow = MutableStateFlow(60),
+            quietStartFlow = MutableStateFlow(0),
+            quietEndFlow = MutableStateFlow(1439),
+            sleepRepository = customSleepRepo,
+            recommendation = SleepRecommendationUseCases(
+                persist = persist,
+                updateLifecycle = mockk(relaxed = true),
+                createFeedback = createFeedback,
+            ),
+        )
+        coordinator.start()
+        advanceTimeBy(300)
+
+        coVerify(exactly = 0) { createFeedback(any(), RecommendationOutcome.ACTED_IN_WINDOW, any(), any(), any()) }
+        coVerify(exactly = 0) { createFeedback(any(), RecommendationOutcome.ACTED_OUTSIDE, any(), any(), any()) }
+    }
+
     private fun TestScope.buildCoordinator(
-        scheduler: PredictiveSleepScheduler,
+        scheduler: PredictiveSleepScheduler = mockk(relaxed = true),
         stateFlow: MutableStateFlow<SleepPredictionState>,
         enabledFlow: MutableStateFlow<Boolean>,
         leadFlow: MutableStateFlow<Int>,
         quietStartFlow: MutableStateFlow<Int> = MutableStateFlow(0),
         quietEndFlow: MutableStateFlow<Int> = MutableStateFlow(0),
+        sleepRepository: SleepRepository = defaultSleepRepository(),
+        recommendation: SleepRecommendationUseCases = defaultRecommendationUseCases(),
     ): PredictiveSleepNotificationCoordinator {
         val useCase = mockk<PredictSleepWindowUseCase>().also {
             every { it.invoke() } returns stateFlow
@@ -222,16 +394,28 @@ class PredictiveSleepNotificationCoordinatorTest {
             every { it.getQuietHoursStartMinute() } returns quietStartFlow
             every { it.getQuietHoursEndMinute() } returns quietEndFlow
         }
-        val nm = mockk<NotificationManager>(relaxed = true)
-        val context = mockk<Context>(relaxed = true).also {
-            every { it.getSystemService(NotificationManager::class.java) } returns nm
-        }
         return PredictiveSleepNotificationCoordinator(
             predictSleepWindow = useCase,
             settingsRepository = settings,
             scheduler = scheduler,
-            context = context,
+            sleepRepository = sleepRepository,
+            recommendation = recommendation,
             applicationScope = backgroundScope,
         )
+    }
+
+    private fun defaultRecommendationUseCases(): SleepRecommendationUseCases {
+        val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
+        val update = mockk<UpdateRecommendationLifecycleUseCase>(relaxed = true)
+        val feedback = mockk<CreateSleepRecommendationFeedbackUseCase>(relaxed = true)
+        return SleepRecommendationUseCases(persist, update, feedback)
+    }
+
+    private fun defaultSleepRepository(): SleepRepository {
+        val mock = mockk<SleepRepository>(relaxed = true)
+        val anchor = mockk<com.babytracker.domain.model.SleepRecord>(relaxed = true)
+        coEvery { mock.getLatestRecord() } returns anchor
+        every { mock.observeLatestRecord() } returns MutableStateFlow<com.babytracker.domain.model.SleepRecord?>(null)
+        return mock
     }
 }

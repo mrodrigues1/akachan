@@ -1,13 +1,13 @@
 package com.babytracker.manager
 
-import android.app.NotificationManager
-import android.content.Context
 import com.babytracker.di.ApplicationScope
+import com.babytracker.domain.model.RecommendationLifecycle
+import com.babytracker.domain.model.RecommendationOutcome
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
-import com.babytracker.util.NotificationHelper
-import dagger.hilt.android.qualifiers.ApplicationContext
+import com.babytracker.domain.usecase.sleep.SleepRecommendationUseCases
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.combine
@@ -24,9 +24,19 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
     private val predictSleepWindow: PredictSleepWindowUseCase,
     private val settingsRepository: SettingsRepository,
     private val scheduler: PredictiveSleepScheduler,
-    @ApplicationContext private val context: Context,
+    private val sleepRepository: SleepRepository,
+    private val recommendation: SleepRecommendationUseCases,
     @ApplicationScope private val applicationScope: CoroutineScope,
 ) {
+
+    private var activeRecommendationId: Long? = null
+    private var activeAnchorId: Long? = null
+    // Only set when alarm is actually scheduled — guards ACTED_* feedback from past-trigger/quiet-hours paths.
+    private var scheduledWindowStart: Instant? = null
+    private var scheduledWindowEnd: Instant? = null
+    private var scheduledBestEstimate: Instant? = null
+    private var quietHoursFeedbackCreated: Boolean = false
+    private var lastSeenCompletedSleepId: Long? = null
 
     @OptIn(FlowPreview::class)
     fun start() {
@@ -51,9 +61,35 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
                     )
                 }
         }
+
+        applicationScope.launch {
+            sleepRepository.observeLatestRecord().collect { record ->
+                val completed = record?.takeIf { !it.isInProgress } ?: return@collect
+                if (completed.id == lastSeenCompletedSleepId) return@collect
+                lastSeenCompletedSleepId = completed.id
+
+                val recId = activeRecommendationId ?: return@collect
+                val winStart = scheduledWindowStart ?: return@collect
+                val winEnd = scheduledWindowEnd ?: return@collect
+                val bestEst = scheduledBestEstimate ?: return@collect
+
+                val outcome = if (completed.startTime in winStart..winEnd) {
+                    RecommendationOutcome.ACTED_IN_WINDOW
+                } else {
+                    RecommendationOutcome.ACTED_OUTSIDE
+                }
+                recommendation.createFeedback(
+                    recommendationId = recId,
+                    outcome = outcome,
+                    actualSleepRecordId = completed.id,
+                    sleepStartTime = completed.startTime,
+                    windowBestEstimate = bestEst,
+                )
+            }
+        }
     }
 
-    private fun reconcile(
+    private suspend fun reconcile(
         state: SleepPredictionState,
         enabled: Boolean,
         leadMinutes: Int,
@@ -62,26 +98,65 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
     ) {
         val window = (state as? SleepPredictionState.Window)?.window
         if (!enabled || window == null) {
-            cancelAll()
+            supersedeCurrent()
+            scheduler.cancelPredictiveReminder()
             return
         }
+
+        val anchorId = sleepRepository.getLatestRecord()?.id ?: run {
+            supersedeCurrent()
+            scheduler.cancelPredictiveReminder()
+            return
+        }
+
+        if (anchorId != activeAnchorId) {
+            supersedeCurrent()
+            quietHoursFeedbackCreated = false
+        }
+
+        val recommendationType = deriveRecommendationType(window.bestEstimate)
+        val recId = recommendation.persist(anchorId, window, recommendationType)
+
+        activeRecommendationId = recId
+        activeAnchorId = anchorId
+
         val triggerAt = window.bestEstimate.minus(Duration.ofMinutes(leadMinutes.toLong()))
         if (triggerAt.isBefore(Instant.now())) {
-            cancelAll()
+            scheduler.cancelPredictiveReminder()
             return
         }
         if (isInQuietHours(triggerAt, quietStartMinute, quietEndMinute, ZoneId.systemDefault())) {
-            cancelAll()
+            if (!quietHoursFeedbackCreated) {
+                recommendation.createFeedback(recId, RecommendationOutcome.QUIET_HOURS_SUPPRESSED)
+                quietHoursFeedbackCreated = true
+            }
+            scheduler.cancelPredictiveReminder()
             return
         }
+
+        scheduledWindowStart = window.windowStart
+        scheduledWindowEnd = window.windowEnd
+        scheduledBestEstimate = window.bestEstimate
+        quietHoursFeedbackCreated = false
+
         scheduler.schedulePredictiveReminderAt(triggerAt, window.bestEstimate)
+        recommendation.updateLifecycle(recId, RecommendationLifecycle.SCHEDULED)
     }
 
-    private fun cancelAll() {
-        scheduler.cancelPredictiveReminder()
-        context.getSystemService(NotificationManager::class.java)
-            .cancel(NotificationHelper.PREDICTIVE_SLEEP_NOTIFICATION_ID)
+    private suspend fun supersedeCurrent() {
+        val id = activeRecommendationId ?: return
+        recommendation.updateLifecycle(id, RecommendationLifecycle.SUPERSEDED)
+        recommendation.createFeedback(id, RecommendationOutcome.SUPERSEDED)
+        activeRecommendationId = null
+        activeAnchorId = null
+        scheduledWindowStart = null
+        scheduledWindowEnd = null
+        scheduledBestEstimate = null
+        quietHoursFeedbackCreated = false
     }
+
+    private fun deriveRecommendationType(bestEstimate: Instant): String =
+        if (bestEstimate.atZone(ZoneId.systemDefault()).hour < 18) "NAP" else "NIGHT_SLEEP"
 
     private data class ReconcileParams(
         val state: SleepPredictionState,

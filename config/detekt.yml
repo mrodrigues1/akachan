@@ -75,7 +75,7 @@ complexity:
     excludes: ['**/ui/**', '**/screen/**', '**/composable/**', '**/component/**']
     ignoreDefaultParameters: true
     ignoreDataClasses: true
-    ignoreAnnotatedParameter: ['Preview']
+    ignoreAnnotatedParameter: ['Preview', 'ApplicationContext', 'ApplicationScope']
   MethodOverloading:
     active: false
   NamedArguments:
