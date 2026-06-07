@@ -7,6 +7,7 @@ import com.babytracker.domain.model.SleepWindow
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRecommendationRepository
 import com.babytracker.domain.repository.SleepRecommendationSnapshot
+import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.manager.PredictiveSleepScheduler
 import io.mockk.coEvery
@@ -26,6 +27,7 @@ class PredictiveSleepBootReceiverTest {
     private lateinit var settings: SettingsRepository
     private lateinit var useCase: PredictSleepWindowUseCase
     private lateinit var scheduler: PredictiveSleepScheduler
+    private lateinit var sleepRepository: SleepRepository
     private lateinit var recommendationRepository: SleepRecommendationRepository
     private lateinit var context: Context
     private lateinit var receiver: PredictiveSleepBootReceiver
@@ -35,6 +37,8 @@ class PredictiveSleepBootReceiverTest {
         settings = mockk()
         useCase = mockk()
         scheduler = mockk(relaxed = true)
+        sleepRepository = mockk(relaxed = true)
+        coEvery { sleepRepository.getLatestRecord() } returns null
         recommendationRepository = mockk(relaxed = true)
         coEvery { recommendationRepository.getLatestScheduledRecommendation() } returns null
         context = mockk(relaxed = true)
@@ -42,6 +46,7 @@ class PredictiveSleepBootReceiverTest {
             settingsRepository = settings
             predictSleepWindow = useCase
             this.scheduler = this@PredictiveSleepBootReceiverTest.scheduler
+            this.sleepRepository = this@PredictiveSleepBootReceiverTest.sleepRepository
             sleepRecommendationRepository = this@PredictiveSleepBootReceiverTest.recommendationRepository
         }
         every { settings.getPredictiveSleepLeadMinutes() } returns flowOf(15)
@@ -139,7 +144,7 @@ class PredictiveSleepBootReceiverTest {
     }
 
     @Test
-    fun `passes recommendation ID from repository to scheduler`() = runTest {
+    fun `passes recommendation ID when snapshot anchor matches current sleep record`() = runTest {
         val bestEstimate = Instant.now().plusSeconds(3600)
         val window = SleepPredictionState.Window(
             SleepWindow(
@@ -154,18 +159,53 @@ class PredictiveSleepBootReceiverTest {
         )
         val snapshot = SleepRecommendationSnapshot(
             id = 42L,
-            anchorSleepId = 1L,
+            anchorSleepId = 7L,
             windowStartMs = bestEstimate.minusSeconds(900).toEpochMilli(),
             windowEndMs = bestEstimate.plusSeconds(900).toEpochMilli(),
             bestEstimateMs = bestEstimate.toEpochMilli(),
         )
+        val anchorRecord = mockk<com.babytracker.domain.model.SleepRecord> { every { id } returns 7L }
         every { settings.getPredictiveSleepEnabled() } returns flowOf(true)
         every { useCase() } returns flowOf(window)
+        coEvery { sleepRepository.getLatestRecord() } returns anchorRecord
         coEvery { recommendationRepository.getLatestScheduledRecommendation() } returns snapshot
 
         receiver.handle(context)
 
         verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate, 42L) }
+    }
+
+    @Test
+    fun `passes 0L when snapshot anchor does not match current sleep record (stale recommendation)`() = runTest {
+        val bestEstimate = Instant.now().plusSeconds(3600)
+        val window = SleepPredictionState.Window(
+            SleepWindow(
+                windowStart = bestEstimate.minusSeconds(900),
+                windowEnd = bestEstimate.plusSeconds(900),
+                bestEstimate = bestEstimate,
+                confidence = Confidence.HIGH,
+                reasons = emptyList(),
+                feedPrompt = null,
+                safetyPrompt = "",
+            )
+        )
+        val snapshot = SleepRecommendationSnapshot(
+            id = 42L,
+            anchorSleepId = 5L,
+            windowStartMs = bestEstimate.minusSeconds(900).toEpochMilli(),
+            windowEndMs = bestEstimate.plusSeconds(900).toEpochMilli(),
+            bestEstimateMs = bestEstimate.toEpochMilli(),
+        )
+        // Current latest record has id=9 — different anchor than snapshot's anchorSleepId=5
+        val anchorRecord = mockk<com.babytracker.domain.model.SleepRecord> { every { id } returns 9L }
+        every { settings.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { useCase() } returns flowOf(window)
+        coEvery { sleepRepository.getLatestRecord() } returns anchorRecord
+        coEvery { recommendationRepository.getLatestScheduledRecommendation() } returns snapshot
+
+        receiver.handle(context)
+
+        verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate, 0L) }
     }
 
     @Test
