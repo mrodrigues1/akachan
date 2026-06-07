@@ -6,10 +6,13 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -53,15 +56,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
@@ -89,7 +95,9 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private val BabyEventType.emoji: String
     get() = when (this) {
@@ -876,11 +884,15 @@ private fun LastSleepAgoText(endTime: Instant) {
 }
 
 @Composable
-private fun CueQuickTapRow(
+internal fun CueQuickTapRow(
     onCueTapped: (BabyEventType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val cues = remember { BabyEventType.entries }
+    val tappedCues = remember { mutableStateSetOf<BabyEventType>() }
+    val removalJobs = remember { mutableStateMapOf<BabyEventType, Job>() }
+    val scope = rememberCoroutineScope()
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -888,14 +900,31 @@ private fun CueQuickTapRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         cues.forEach { type ->
-            SuggestionChip(
-                onClick = { onCueTapped(type) },
+            val selected = type in tappedCues
+            val scale by animateFloatAsState(
+                targetValue = if (selected) 1.08f else 1.0f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "cue-chip-scale-${type.name}",
+            )
+            FilterChip(
+                selected = selected,
+                onClick = {
+                    onCueTapped(type)
+                    tappedCues.add(type)
+                    removalJobs[type]?.cancel()
+                    removalJobs[type] = scope.launch {
+                        delay(1_200L)
+                        tappedCues.remove(type)
+                        removalJobs.remove(type)
+                    }
+                },
                 label = {
                     Text(
                         text = "${type.emoji} ${type.label}",
                         style = MaterialTheme.typography.labelMedium,
                     )
                 },
+                modifier = Modifier.scale(scale),
             )
         }
     }
