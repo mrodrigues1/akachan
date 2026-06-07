@@ -7,11 +7,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.babytracker.domain.model.BabyEventType
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
@@ -123,5 +126,72 @@ class HomeScreenTest {
         }
         composeRule.onNodeWithText("Pumping").assertIsDisplayed()
         composeRule.onNodeWithText("Inventory").assertIsDisplayed()
+    }
+
+    @Test
+    fun cueRow_allChipsDisplayed() {
+        composeRule.setContent {
+            BabyTrackerTheme {
+                CueQuickTapRow(onCueTapped = {})
+            }
+        }
+        composeRule.onNodeWithText("😪 Sleepy").assertIsDisplayed()
+        composeRule.onNodeWithText("😋 Hungry").assertIsDisplayed()
+        composeRule.onNodeWithText("😣 Fussy").assertIsDisplayed()
+        composeRule.onNodeWithText("🤒 Sick").assertIsDisplayed()
+    }
+
+    @Test
+    fun cueRow_tapCallsCallback() {
+        var tappedType: BabyEventType? = null
+        composeRule.setContent {
+            BabyTrackerTheme {
+                CueQuickTapRow(onCueTapped = { tappedType = it })
+            }
+        }
+        composeRule.onNodeWithText("😪 Sleepy").performClick()
+        assertTrue(tappedType == BabyEventType.SLEEPY_CUE)
+    }
+
+    @Test
+    fun cueRow_chipIsSelectedThenReturnsToUnselectedAfterDelay() {
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            BabyTrackerTheme {
+                CueQuickTapRow(onCueTapped = {})
+            }
+        }
+        composeRule.onNodeWithText("😪 Sleepy").performClick()
+        composeRule.mainClock.advanceTimeBy(100L)
+        // Chip must be selected immediately after tap
+        composeRule.onNodeWithText("😪 Sleepy").assertIsSelected()
+        // Advance past the 1 200 ms window
+        composeRule.mainClock.advanceTimeBy(1_300L)
+        // Chip must return to unselected
+        composeRule.onNodeWithText("😪 Sleepy").assertIsNotSelected()
+        composeRule.mainClock.autoAdvance = true
+    }
+
+    @Test
+    fun cueRow_repeatedTapExtendsSelectedWindow() {
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            BabyTrackerTheme {
+                CueQuickTapRow(onCueTapped = {})
+            }
+        }
+        // First tap
+        composeRule.onNodeWithText("😪 Sleepy").performClick()
+        composeRule.mainClock.advanceTimeBy(800L)
+        // Second tap at 800 ms — would expire at 2 000 ms if timer is reset
+        composeRule.onNodeWithText("😪 Sleepy").performClick()
+        // Advance to 1 900 ms total (past first tap's 1 200 ms, but only 1 100 ms past second tap)
+        composeRule.mainClock.advanceTimeBy(1_100L)
+        // First removal job should have been cancelled — chip still selected
+        composeRule.onNodeWithText("😪 Sleepy").assertIsSelected()
+        // Advance 300 ms more (2 200 ms total; 1 400 ms past second tap)
+        composeRule.mainClock.advanceTimeBy(300L)
+        composeRule.onNodeWithText("😪 Sleepy").assertIsNotSelected()
+        composeRule.mainClock.autoAdvance = true
     }
 }
