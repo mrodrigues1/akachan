@@ -6,6 +6,7 @@ import android.content.Intent
 import android.util.Log
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepRecommendationRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.manager.PredictiveSleepScheduler
 import com.babytracker.util.createPredictiveSleepNotificationChannel
@@ -28,6 +29,7 @@ class PredictiveSleepBootReceiver : BroadcastReceiver() {
     @Inject lateinit var settingsRepository: SettingsRepository
     @Inject lateinit var predictSleepWindow: PredictSleepWindowUseCase
     @Inject lateinit var scheduler: PredictiveSleepScheduler
+    @Inject lateinit var sleepRecommendationRepository: SleepRecommendationRepository
 
     override fun onReceive(context: Context, intent: Intent) {
         if (!shouldHandle(intent.action)) return
@@ -75,7 +77,8 @@ class PredictiveSleepBootReceiver : BroadcastReceiver() {
             scheduler.cancelPredictiveReminder()
             return
         }
-        scheduler.schedulePredictiveReminderAt(effectiveTrigger, window.bestEstimate, 0L)
+        val recommendationId = sleepRecommendationRepository.getLatestScheduledRecommendation()?.id ?: 0L
+        scheduler.schedulePredictiveReminderAt(effectiveTrigger, window.bestEstimate, recommendationId)
         Log.d(TAG, "Restored predictive sleep alarm at $triggerAt")
     }
 

@@ -1,12 +1,15 @@
 package com.babytracker.receiver
 
 import android.content.Context
-import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.Confidence
+import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepRecommendationRepository
+import com.babytracker.domain.repository.SleepRecommendationSnapshot
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.manager.PredictiveSleepScheduler
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -23,6 +26,7 @@ class PredictiveSleepBootReceiverTest {
     private lateinit var settings: SettingsRepository
     private lateinit var useCase: PredictSleepWindowUseCase
     private lateinit var scheduler: PredictiveSleepScheduler
+    private lateinit var recommendationRepository: SleepRecommendationRepository
     private lateinit var context: Context
     private lateinit var receiver: PredictiveSleepBootReceiver
 
@@ -31,11 +35,14 @@ class PredictiveSleepBootReceiverTest {
         settings = mockk()
         useCase = mockk()
         scheduler = mockk(relaxed = true)
+        recommendationRepository = mockk(relaxed = true)
+        coEvery { recommendationRepository.getLatestScheduledRecommendation() } returns null
         context = mockk(relaxed = true)
         receiver = PredictiveSleepBootReceiver().apply {
             settingsRepository = settings
             predictSleepWindow = useCase
             this.scheduler = this@PredictiveSleepBootReceiverTest.scheduler
+            sleepRecommendationRepository = this@PredictiveSleepBootReceiverTest.recommendationRepository
         }
         every { settings.getPredictiveSleepLeadMinutes() } returns flowOf(15)
         every { settings.getQuietHoursStartMinute() } returns flowOf(0)
@@ -129,6 +136,59 @@ class PredictiveSleepBootReceiverTest {
 
         verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate, any()) }
         verify(exactly = 0) { scheduler.cancelPredictiveReminder() }
+    }
+
+    @Test
+    fun `passes recommendation ID from repository to scheduler`() = runTest {
+        val bestEstimate = Instant.now().plusSeconds(3600)
+        val window = SleepPredictionState.Window(
+            SleepWindow(
+                windowStart = bestEstimate.minusSeconds(900),
+                windowEnd = bestEstimate.plusSeconds(900),
+                bestEstimate = bestEstimate,
+                confidence = Confidence.HIGH,
+                reasons = emptyList(),
+                feedPrompt = null,
+                safetyPrompt = "",
+            )
+        )
+        val snapshot = SleepRecommendationSnapshot(
+            id = 42L,
+            anchorSleepId = 1L,
+            windowStartMs = bestEstimate.minusSeconds(900).toEpochMilli(),
+            windowEndMs = bestEstimate.plusSeconds(900).toEpochMilli(),
+            bestEstimateMs = bestEstimate.toEpochMilli(),
+        )
+        every { settings.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { useCase() } returns flowOf(window)
+        coEvery { recommendationRepository.getLatestScheduledRecommendation() } returns snapshot
+
+        receiver.handle(context)
+
+        verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate, 42L) }
+    }
+
+    @Test
+    fun `passes 0L recommendation ID when no scheduled recommendation exists`() = runTest {
+        val bestEstimate = Instant.now().plusSeconds(3600)
+        val window = SleepPredictionState.Window(
+            SleepWindow(
+                windowStart = bestEstimate.minusSeconds(900),
+                windowEnd = bestEstimate.plusSeconds(900),
+                bestEstimate = bestEstimate,
+                confidence = Confidence.HIGH,
+                reasons = emptyList(),
+                feedPrompt = null,
+                safetyPrompt = "",
+            )
+        )
+        every { settings.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { useCase() } returns flowOf(window)
+        coEvery { recommendationRepository.getLatestScheduledRecommendation() } returns null
+
+        receiver.handle(context)
+
+        verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate, 0L) }
     }
 
     @Test
