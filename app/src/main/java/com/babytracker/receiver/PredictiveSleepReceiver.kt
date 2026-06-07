@@ -4,7 +4,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.babytracker.domain.model.RecommendationLifecycle
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.usecase.sleep.UpdateRecommendationLifecycleUseCase
 import com.babytracker.util.showPredictiveSleepReminder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -20,6 +22,7 @@ import javax.inject.Inject
 class PredictiveSleepReceiver : BroadcastReceiver() {
 
     @Inject lateinit var settingsRepository: SettingsRepository
+    @Inject lateinit var updateRecommendationLifecycle: UpdateRecommendationLifecycleUseCase
 
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
@@ -34,6 +37,7 @@ class PredictiveSleepReceiver : BroadcastReceiver() {
             Log.w(TAG, "Missing bestEstimate; dropping fire")
             return
         }
+        val recommendationId = intent.getLongExtra(EXTRA_RECOMMENDATION_ID, 0L)
         val nowMs = System.currentTimeMillis()
         val staleAfterMs = bestEstimateMs + MAX_STALE_MINUTES * 60_000L
         if (nowMs > staleAfterMs) {
@@ -57,6 +61,11 @@ class PredictiveSleepReceiver : BroadcastReceiver() {
                     return@launch
                 }
                 showPredictiveSleepReminder(context = context, bestEstimateMs = bestEstimateMs)
+                if (recommendationId > 0L) {
+                    runCatching {
+                        updateRecommendationLifecycle(recommendationId, RecommendationLifecycle.FIRED)
+                    }
+                }
             } catch (e: SecurityException) {
                 Log.w(TAG, "POST_NOTIFICATIONS denied; skipping reminder", e)
             } finally {
@@ -68,6 +77,7 @@ class PredictiveSleepReceiver : BroadcastReceiver() {
     companion object {
         const val ACTION_FIRE = "com.babytracker.PREDICTIVE_SLEEP_FIRE"
         const val EXTRA_BEST_ESTIMATE_MS = "best_estimate_ms"
+        const val EXTRA_RECOMMENDATION_ID = "recommendation_id"
         const val REQUEST_CODE_PREDICTIVE_SLEEP = 1005
         internal const val MAX_STALE_MINUTES = 20L
         private const val TAG = "PredictiveSleepRx"

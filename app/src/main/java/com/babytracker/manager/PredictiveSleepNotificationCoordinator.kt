@@ -141,7 +141,7 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
         scheduledBestEstimate = window.bestEstimate
         quietHoursFeedbackCreated = false
 
-        scheduler.schedulePredictiveReminderAt(triggerAt, window.bestEstimate)
+        scheduler.schedulePredictiveReminderAt(triggerAt, window.bestEstimate, recId)
         recommendation.updateLifecycle(recId, RecommendationLifecycle.SCHEDULED)
     }
 

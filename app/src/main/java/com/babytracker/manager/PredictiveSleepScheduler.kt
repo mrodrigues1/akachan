@@ -12,7 +12,7 @@ import com.babytracker.util.NotificationHelper
 import java.time.Instant
 
 interface PredictiveSleepScheduler {
-    fun schedulePredictiveReminderAt(triggerTime: Instant, bestEstimate: Instant)
+    fun schedulePredictiveReminderAt(triggerTime: Instant, bestEstimate: Instant, recommendationId: Long)
     fun cancelPredictiveReminder()
 }
 
@@ -23,8 +23,9 @@ class PredictiveSleepSchedulerImpl(private val context: Context) : PredictiveSle
     override fun schedulePredictiveReminderAt(
         triggerTime: Instant,
         bestEstimate: Instant,
+        recommendationId: Long,
     ) {
-        val pi = buildPendingIntent(bestEstimate)
+        val pi = buildPendingIntent(bestEstimate, recommendationId)
         alarmManager.cancel(pi)
         val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
             alarmManager.canScheduleExactAlarms()
@@ -49,15 +50,16 @@ class PredictiveSleepSchedulerImpl(private val context: Context) : PredictiveSle
     }
 
     override fun cancelPredictiveReminder() {
-        alarmManager.cancel(buildPendingIntent(Instant.EPOCH))
+        alarmManager.cancel(buildPendingIntent(Instant.EPOCH, 0L))
         context.getSystemService(NotificationManager::class.java)
             .cancel(NotificationHelper.PREDICTIVE_SLEEP_NOTIFICATION_ID)
     }
 
-    private fun buildPendingIntent(bestEstimate: Instant): PendingIntent {
+    private fun buildPendingIntent(bestEstimate: Instant, recommendationId: Long): PendingIntent {
         val intent = Intent(context, PredictiveSleepReceiver::class.java).apply {
             action = PredictiveSleepReceiver.ACTION_FIRE
             putExtra(PredictiveSleepReceiver.EXTRA_BEST_ESTIMATE_MS, bestEstimate.toEpochMilli())
+            putExtra(PredictiveSleepReceiver.EXTRA_RECOMMENDATION_ID, recommendationId)
         }
         return PendingIntent.getBroadcast(
             context,

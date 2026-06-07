@@ -64,7 +64,7 @@ class PredictiveSleepNotificationCoordinatorTest {
         )
         coordinator.start()
         advanceTimeBy(300)
-        verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate) }
+        verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate, any()) }
         verify(exactly = 0) { scheduler.cancelPredictiveReminder() }
     }
 
@@ -113,7 +113,7 @@ class PredictiveSleepNotificationCoordinatorTest {
         )
         coordinator.start()
         advanceTimeBy(300)
-        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any()) }
+        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any(), any()) }
         verify(exactly = 1) { scheduler.cancelPredictiveReminder() }
     }
 
@@ -129,7 +129,7 @@ class PredictiveSleepNotificationCoordinatorTest {
         )
         coordinator.start()
         advanceTimeBy(300)
-        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any()) }
+        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any(), any()) }
         verify(exactly = 1) { scheduler.cancelPredictiveReminder() }
     }
 
@@ -148,7 +148,7 @@ class PredictiveSleepNotificationCoordinatorTest {
         advanceTimeBy(300)
         lead.value = 30
         advanceTimeBy(300)
-        verify(exactly = 2) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate) }
+        verify(exactly = 2) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate, any()) }
     }
 
     @Test
@@ -167,7 +167,7 @@ class PredictiveSleepNotificationCoordinatorTest {
         advanceTimeBy(50)
         stateFlow.value = windowState(Instant.now().plusSeconds(3800))
         advanceTimeBy(300)
-        verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), any()) }
+        verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), any(), any()) }
     }
 
     @Test
@@ -190,7 +190,7 @@ class PredictiveSleepNotificationCoordinatorTest {
         )
         coordinator.start()
         advanceTimeBy(300)
-        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any()) }
+        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any(), any()) }
         verify(exactly = 1) { scheduler.cancelPredictiveReminder() }
     }
 
@@ -208,7 +208,7 @@ class PredictiveSleepNotificationCoordinatorTest {
         )
         coordinator.start()
         advanceTimeBy(300)
-        verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate) }
+        verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate, any()) }
         verify(exactly = 0) { scheduler.cancelPredictiveReminder() }
     }
 

@@ -61,7 +61,7 @@ class PredictiveSleepBootReceiverTest {
 
         receiver.handle(context)
 
-        verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate) }
+        verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate, any()) }
     }
 
     @Test
@@ -70,7 +70,7 @@ class PredictiveSleepBootReceiverTest {
 
         receiver.handle(context)
 
-        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any()) }
+        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any(), any()) }
     }
 
     @Test
@@ -81,7 +81,7 @@ class PredictiveSleepBootReceiverTest {
         receiver.handle(context)
 
         verify(exactly = 1) { scheduler.cancelPredictiveReminder() }
-        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any()) }
+        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any(), any()) }
     }
 
     @Test
@@ -104,7 +104,7 @@ class PredictiveSleepBootReceiverTest {
         receiver.handle(context)
 
         verify(exactly = 1) { scheduler.cancelPredictiveReminder() }
-        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any()) }
+        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any(), any()) }
     }
 
     @Test
@@ -127,7 +127,7 @@ class PredictiveSleepBootReceiverTest {
 
         receiver.handle(context)
 
-        verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate) }
+        verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate, any()) }
         verify(exactly = 0) { scheduler.cancelPredictiveReminder() }
     }
 

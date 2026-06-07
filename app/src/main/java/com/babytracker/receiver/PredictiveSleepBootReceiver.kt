@@ -75,7 +75,7 @@ class PredictiveSleepBootReceiver : BroadcastReceiver() {
             scheduler.cancelPredictiveReminder()
             return
         }
-        scheduler.schedulePredictiveReminderAt(effectiveTrigger, window.bestEstimate)
+        scheduler.schedulePredictiveReminderAt(effectiveTrigger, window.bestEstimate, 0L)
         Log.d(TAG, "Restored predictive sleep alarm at $triggerAt")
     }
 
