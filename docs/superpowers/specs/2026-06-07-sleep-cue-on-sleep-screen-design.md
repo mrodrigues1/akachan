@@ -99,7 +99,7 @@ No conditional rendering — cues are always accessible, matching home screen be
 
 ## HomeScreen Changes
 
-Remove private extension props (`BabyEventType.emoji`, `BabyEventType.label`) and private `CueQuickTapRow` composable. Add import from the new component file. Wire site unchanged:
+Remove private extension props (`BabyEventType.emoji`, `BabyEventType.label`) and the `internal CueQuickTapRow` composable. Add import from the new component file. Wire site unchanged:
 
 ```kotlin
 CueQuickTapRow(onCueTapped = viewModel::onCueTapped)
@@ -112,15 +112,16 @@ CueQuickTapRow(onCueTapped = viewModel::onCueTapped)
 | File | Action | Change |
 |------|--------|--------|
 | `ui/component/CueQuickTapRow.kt` | Create | Composable + private emoji/label extensions |
-| `ui/home/HomeScreen.kt` | Modify | Remove private copies; import from component |
+| `ui/home/HomeScreen.kt` | Modify | Remove private copies + internal composable; import from component |
 | `ui/sleep/SleepViewModel.kt` | Modify | Inject `LogBabyEventUseCase`; add `onCueTapped` |
 | `ui/sleep/SleepTrackingScreen.kt` | Modify | Add `CueQuickTapRow` item after `SleepRecommendationSection` |
+| `ui/home/HomeScreenTest.kt` | Modify | Add `import com.babytracker.ui.component.CueQuickTapRow` |
 
 ---
 
 ## Testing
 
-**No new test file for `CueQuickTapRow` component** — `HomeScreenTest` already exercises chip tap, selected state, and 6-chip presence. Those tests continue passing after extraction because `HomeScreen` renders the same composable from its new location.
+**No new test file for `CueQuickTapRow` component** — `HomeScreenTest` already exercises chip tap, selected state, and 6-chip presence. However, `HomeScreenTest` is in package `com.babytracker.ui.home` and references `CueQuickTapRow` without an explicit import, relying on same-package resolution of the current `internal` declaration. After extraction to `com.babytracker.ui.component`, that implicit resolution breaks. `HomeScreenTest.kt` must add `import com.babytracker.ui.component.CueQuickTapRow`.
 
 **`SleepTrackingScreenTest`** — add one test asserting all 6 cue chips are present on the sleep screen. No ViewModel interaction test needed; `SleepViewModel.onCueTapped` is structurally identical to `HomeViewModel.onCueTapped`, which is already covered.
 
