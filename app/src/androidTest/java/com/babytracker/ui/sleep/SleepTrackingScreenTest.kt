@@ -24,6 +24,7 @@ import org.junit.runner.RunWith
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
+import com.babytracker.ui.component.CueQuickTapRow
 
 @RunWith(AndroidJUnit4::class)
 class SleepTrackingScreenTest {
@@ -145,6 +146,21 @@ class SleepTrackingScreenTest {
         ).assertIsDisplayed()
         composeRule.onNodeWithText("Save Nap")
             .assertIsNotEnabled()
+    }
+
+    @Test
+    fun cueRow_allSixChipsDisplayed() {
+        composeRule.setContent {
+            BabyTrackerTheme {
+                CueQuickTapRow(onCueTapped = {})
+            }
+        }
+        composeRule.onNodeWithText("😪 Sleepy").assertIsDisplayed()
+        composeRule.onNodeWithText("😋 Hungry").assertIsDisplayed()
+        composeRule.onNodeWithText("😣 Fussy").assertIsDisplayed()
+        composeRule.onNodeWithText("🤒 Sick").assertIsDisplayed()
+        composeRule.onNodeWithText("🦷 Teething").assertIsDisplayed()
+        composeRule.onNodeWithText("✈️ Travel").assertIsDisplayed()
     }
 
     private fun sheetState(sleepType: SleepType) = SleepUiState(
