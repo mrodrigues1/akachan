@@ -63,7 +63,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -890,7 +889,7 @@ internal fun CueQuickTapRow(
 ) {
     val cues = remember { BabyEventType.entries }
     val tappedCues = remember { mutableStateSetOf<BabyEventType>() }
-    val removalJobs = remember { mutableStateMapOf<BabyEventType, Job>() }
+    val removalJobs = remember { HashMap<BabyEventType, Job>() }
     val scope = rememberCoroutineScope()
 
     Row(

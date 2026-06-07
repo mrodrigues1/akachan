@@ -139,6 +139,8 @@ class HomeScreenTest {
         composeRule.onNodeWithText("😋 Hungry").assertIsDisplayed()
         composeRule.onNodeWithText("😣 Fussy").assertIsDisplayed()
         composeRule.onNodeWithText("🤒 Sick").assertIsDisplayed()
+        composeRule.onNodeWithText("🦷 Teething").assertIsDisplayed()
+        composeRule.onNodeWithText("✈️ Travel").assertIsDisplayed()
     }
 
     @Test
