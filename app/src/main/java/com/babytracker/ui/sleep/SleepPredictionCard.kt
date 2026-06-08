@@ -1,8 +1,6 @@
 package com.babytracker.ui.sleep
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,34 +8,24 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.ChildCare
 import androidx.compose.material.icons.outlined.HourglassEmpty
-import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -62,7 +50,7 @@ internal fun SleepPredictionCard(
         shape = MaterialTheme.shapes.large,
         modifier = modifier.fillMaxWidth(),
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -73,7 +61,7 @@ internal fun SleepPredictionCard(
                         imageVector = Icons.Outlined.Bedtime,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(16.dp),
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
@@ -86,7 +74,7 @@ internal fun SleepPredictionCard(
                     ConfidenceDots(confidence = state.window.confidence)
                 }
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
             when (state) {
                 is SleepPredictionState.Window -> WindowCardContent(window = state.window)
                 is SleepPredictionState.NeedMoreData -> NeedMoreDataCardContent(progress = state.progress)
@@ -102,8 +90,6 @@ internal fun SleepPredictionCard(
 
 @Composable
 private fun WindowCardContent(window: SleepWindow) {
-    var safetyExpanded by remember { mutableStateOf(false) }
-
     Column {
         Text(
             text = "~${window.bestEstimate.formatTime()}",
@@ -113,88 +99,12 @@ private fun WindowCardContent(window: SleepWindow) {
                 contentDescription = "Next sleep around ${window.bestEstimate.formatTime()}"
             },
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(2.dp))
         Text(
             text = "${window.windowStart.formatTime()}–${window.windowEnd.formatTime()}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.65f),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.55f),
         )
-        if (window.reasons.isNotEmpty()) {
-            Spacer(Modifier.height(12.dp))
-            window.reasons.forEach { reason ->
-                Row(
-                    verticalAlignment = Alignment.Top,
-                    modifier = Modifier.padding(vertical = 2.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .padding(top = 6.dp, end = 6.dp)
-                            .size(4.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.4f),
-                                shape = CircleShape,
-                            ),
-                    )
-                    Text(
-                        text = reason,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
-                    )
-                }
-            }
-        }
-        window.feedPrompt?.let { prompt ->
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.Top) {
-                Icon(
-                    imageVector = Icons.Outlined.Restaurant,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier
-                        .padding(top = 2.dp)
-                        .size(14.dp),
-                )
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    text = prompt,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
-                )
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        HorizontalDivider()
-        Spacer(Modifier.height(4.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .clickable(role = Role.Button) { safetyExpanded = !safetyExpanded }
-                .semantics {
-                    contentDescription =
-                        if (safetyExpanded) "Collapse safe-sleep tip" else "Expand safe-sleep tip"
-                },
-        ) {
-            Text(
-                text = "Safe sleep",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-            Spacer(Modifier.width(2.dp))
-            Icon(
-                imageVector = if (safetyExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-            )
-        }
-        AnimatedVisibility(visible = safetyExpanded) {
-            Text(
-                text = window.safetyPrompt,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
     }
 }
 
@@ -218,7 +128,7 @@ private fun ConfidenceDots(confidence: Confidence, modifier: Modifier = Modifier
             val filled = i < filledCount
             Box(
                 modifier = Modifier
-                    .size(8.dp)
+                    .size(7.dp)
                     .background(
                         color = if (filled) {
                             MaterialTheme.colorScheme.secondary
@@ -238,10 +148,10 @@ private fun NeedMoreDataCardContent(progress: EvidenceProgress) {
     val filled = progress.completedIntervals.coerceAtMost(total)
     val a11yLabel = "Learning your baby's patterns. $filled of $total sleep intervals recorded."
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = progress.hint,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
         Row(
@@ -252,7 +162,7 @@ private fun NeedMoreDataCardContent(progress: EvidenceProgress) {
                 val isFilled = i < filled
                 Box(
                     modifier = Modifier
-                        .size(10.dp)
+                        .size(8.dp)
                         .background(
                             color = if (isFilled) {
                                 MaterialTheme.colorScheme.secondary
@@ -263,13 +173,6 @@ private fun NeedMoreDataCardContent(progress: EvidenceProgress) {
                         ),
                 )
             }
-        }
-        if (progress.localDays > 0) {
-            Text(
-                text = "${progress.localDays} of ${progress.requiredLocalDays} days tracked",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.65f),
-            )
         }
     }
 }
@@ -286,12 +189,12 @@ private fun StatusRow(
             imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.secondary.copy(alpha = iconAlpha),
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(8.dp))
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = textAlpha),
         )
     }
@@ -301,7 +204,7 @@ private fun StatusRow(
 private fun OverdueCardContent() {
     StatusRow(
         icon = Icons.Outlined.HourglassEmpty,
-        text = "Watch for cues — the window may open soon",
+        text = "Watch for cues",
     )
 }
 
@@ -309,7 +212,7 @@ private fun OverdueCardContent() {
 private fun CueLedCardContent() {
     StatusRow(
         icon = Icons.Outlined.Visibility,
-        text = "Watching baby's cues — no fixed window right now",
+        text = "No fixed window — watching cues",
     )
 }
 
@@ -327,6 +230,6 @@ private fun CurrentlySleepingCardContent() {
 private fun AfterActiveFeedCardContent() {
     StatusRow(
         icon = Icons.Outlined.ChildCare,
-        text = "Feeding now — sleep window appears after feed ends",
+        text = "Window appears after feed",
     )
 }
