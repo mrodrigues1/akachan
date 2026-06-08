@@ -1,242 +1,128 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-05-10T00:00:00Z",
+  "generatedAt": "2026-06-08T00:00:00Z",
   "title": "Design System: Akachan",
   "extensions": {
     "colorMeta": {
-      "carnation-pink": {
-        "role": "primary",
-        "displayName": "Carnation Pink",
-        "canonical": "oklch(46% 0.21 353)",
-        "tonalRamp": [
-          "oklch(20% 0.12 353)",
-          "oklch(30% 0.17 353)",
-          "oklch(38% 0.20 353)",
-          "oklch(46% 0.21 353)",
-          "oklch(58% 0.18 353)",
-          "oklch(71% 0.13 353)",
-          "oklch(82% 0.08 353)",
-          "oklch(94% 0.03 353)"
-        ]
-      },
-      "carnation-pink-container": {
-        "role": "primary-container",
-        "displayName": "Carnation Pink Container",
-        "canonical": "oklch(84% 0.07 353)",
-        "tonalRamp": [
-          "oklch(20% 0.12 353)",
-          "oklch(30% 0.17 353)",
-          "oklch(38% 0.20 353)",
-          "oklch(46% 0.21 353)",
-          "oklch(58% 0.18 353)",
-          "oklch(71% 0.13 353)",
-          "oklch(84% 0.07 353)",
-          "oklch(96% 0.02 353)"
-        ]
-      },
-      "sleep-blue": {
-        "role": "secondary",
-        "displayName": "Sleep Blue",
-        "canonical": "oklch(52% 0.18 255)",
-        "tonalRamp": [
-          "oklch(22% 0.12 255)",
-          "oklch(30% 0.16 255)",
-          "oklch(38% 0.17 255)",
-          "oklch(52% 0.18 255)",
-          "oklch(62% 0.16 255)",
-          "oklch(74% 0.12 255)",
-          "oklch(85% 0.07 255)",
-          "oklch(94% 0.03 255)"
-        ]
-      },
-      "threshold-green": {
-        "role": "tertiary",
-        "displayName": "Threshold Green",
-        "canonical": "oklch(54% 0.15 143)",
-        "tonalRamp": [
-          "oklch(22% 0.09 143)",
-          "oklch(32% 0.12 143)",
-          "oklch(42% 0.14 143)",
-          "oklch(54% 0.15 143)",
-          "oklch(65% 0.13 143)",
-          "oklch(76% 0.10 143)",
-          "oklch(86% 0.06 143)",
-          "oklch(95% 0.02 143)"
-        ]
-      },
-      "warning-amber": {
-        "role": "extended-warning",
-        "displayName": "Warning Amber",
-        "canonical": "oklch(54% 0.20 44)",
-        "note": "Non-M3 extended token. Import directly from Color.kt as WarningAmber — never through MaterialTheme.colorScheme.",
-        "tonalRamp": [
-          "oklch(22% 0.10 44)",
-          "oklch(32% 0.15 44)",
-          "oklch(40% 0.18 44)",
-          "oklch(54% 0.20 44)",
-          "oklch(67% 0.18 44)",
-          "oklch(78% 0.14 44)",
-          "oklch(88% 0.08 44)",
-          "oklch(95% 0.03 44)"
-        ]
-      },
-      "warm-cream": {
-        "role": "surface",
-        "displayName": "Warm Cream",
-        "canonical": "oklch(99% 0.02 93)",
-        "note": "The identity of the app surface. Never replaced with pure white.",
-        "tonalRamp": [
-          "oklch(15% 0.01 93)",
-          "oklch(28% 0.01 93)",
-          "oklch(42% 0.01 93)",
-          "oklch(57% 0.01 93)",
-          "oklch(70% 0.01 93)",
-          "oklch(82% 0.01 93)",
-          "oklch(92% 0.02 93)",
-          "oklch(99% 0.02 93)"
-        ]
-      },
-      "near-black": {
-        "role": "on-surface",
-        "displayName": "Near-Black",
-        "canonical": "oklch(18% 0.005 353)",
-        "tonalRamp": [
-          "oklch(10% 0.004 353)",
-          "oklch(18% 0.005 353)",
-          "oklch(30% 0.005 353)",
-          "oklch(45% 0.005 353)",
-          "oklch(60% 0.005 353)",
-          "oklch(75% 0.005 353)",
-          "oklch(88% 0.003 353)",
-          "oklch(97% 0.001 353)"
-        ]
-      },
-      "dark-surface": {
-        "role": "surface-dark",
-        "displayName": "Dark Surface",
-        "canonical": "oklch(14% 0.007 289)",
-        "note": "M3 baseline dark surface with purple undertone.",
-        "tonalRamp": [
-          "oklch(8% 0.005 289)",
-          "oklch(14% 0.007 289)",
-          "oklch(22% 0.007 289)",
-          "oklch(32% 0.007 289)",
-          "oklch(45% 0.006 289)",
-          "oklch(60% 0.005 289)",
-          "oklch(75% 0.004 289)",
-          "oklch(90% 0.002 289)"
-        ]
-      }
+      "carnation-pink":           { "role": "primary",   "displayName": "Carnation Pink",            "canonical": "#C2185B", "tonalRamp": ["#3D0018", "#6B0030", "#880E4F", "#C2185B", "#E91E8C", "#F48FB1", "#F8BBD0", "#FCE4EC"] },
+      "carnation-pink-container": { "role": "primary",   "displayName": "Carnation Pink Container",  "canonical": "#F8BBD0", "tonalRamp": ["#880E4F", "#C2185B", "#F06292", "#F48FB1", "#F8BBD0", "#FCE4EC", "#FFF0F3", "#FFF8FA"] },
+      "on-carnation-pink-container": { "role": "primary", "displayName": "Deep Carnation",           "canonical": "#880E4F", "tonalRamp": ["#1A0010", "#3D0018", "#6B0030", "#880E4F", "#C2185B", "#E91E8C", "#F48FB1", "#F8BBD0"] },
+      "pale-carnation":           { "role": "primary",   "displayName": "Pale Carnation",            "canonical": "#F4C2C2", "tonalRamp": ["#880E4F", "#C2185B", "#E57373", "#F4C2C2", "#FFCDD2", "#FFEBEE", "#FFF5F5", "#FFF9F9"] },
+      "sleep-blue":               { "role": "secondary", "displayName": "Sleep Blue",                "canonical": "#1976D2", "tonalRamp": ["#0A2472", "#0D47A1", "#1565C0", "#1976D2", "#2196F3", "#64B5F6", "#B3E5FC", "#E3F2FD"] },
+      "sleep-blue-container":     { "role": "secondary", "displayName": "Sleep Blue Container",      "canonical": "#B3E5FC", "tonalRamp": ["#0D47A1", "#1976D2", "#64B5F6", "#90CAF9", "#B3E5FC", "#E3F2FD", "#F0F9FF", "#F8FCFF"] },
+      "on-sleep-blue-container":  { "role": "secondary", "displayName": "Deep Sleep Blue",           "canonical": "#0D47A1", "tonalRamp": ["#020E30", "#0A2472", "#0D47A1", "#1565C0", "#1976D2", "#2196F3", "#64B5F6", "#B3E5FC"] },
+      "threshold-green":          { "role": "tertiary",  "displayName": "Threshold Green",           "canonical": "#388E3C", "tonalRamp": ["#0A1E0B", "#1B5E20", "#2E7D32", "#388E3C", "#43A047", "#81C784", "#C8E6C9", "#F1F8E9"] },
+      "threshold-green-container":{ "role": "tertiary",  "displayName": "Threshold Green Container", "canonical": "#C8E6C9", "tonalRamp": ["#1B5E20", "#388E3C", "#81C784", "#A5D6A7", "#C8E6C9", "#E8F5E9", "#F4FBF4", "#FAFDF9"] },
+      "warning-amber":            { "role": "extended",  "displayName": "Warning Amber",             "canonical": "#E65100", "tonalRamp": ["#3B1100", "#6D2A00", "#BF360C", "#E65100", "#FF6D00", "#FFAB40", "#FFE0B2", "#FFF3E0"] },
+      "warm-cream":               { "role": "neutral",   "displayName": "Warm Cream",                "canonical": "#FFFDE7", "tonalRamp": ["#1A1A16", "#3A3A30", "#6D6A55", "#B0A890", "#D4CDB8", "#EDE8D8", "#F5F0E0", "#FFFDE7"] },
+      "cream-variant":            { "role": "neutral",   "displayName": "Cream Variant",             "canonical": "#F0EDE0", "tonalRamp": ["#1A1A14", "#38382E", "#6B6A5A", "#A8A695", "#C8C6B5", "#E0DDD0", "#ECEAE0", "#F0EDE0"] },
+      "near-black":               { "role": "neutral",   "displayName": "Near-Black",                "canonical": "#1A1A1A", "tonalRamp": ["#1A1A1A", "#2E2E2E", "#424242", "#616161", "#9E9E9E", "#BDBDBD", "#E0E0E0", "#F5F5F5"] },
+      "muted-grey":               { "role": "neutral",   "displayName": "Muted Grey",                "canonical": "#6D6A64", "tonalRamp": ["#1A1918", "#353330", "#504E4A", "#6D6A64", "#9C9A94", "#C4C2BC", "#E4E2DC", "#F0EEE8"] },
+      "outline":                  { "role": "neutral",   "displayName": "Outline",                   "canonical": "#79747E", "tonalRamp": ["#1A191C", "#38363D", "#504E55", "#79747E", "#9E99A3", "#C4C0C9", "#E4E0EA", "#F2F0F7"] },
+      "outline-variant":          { "role": "neutral",   "displayName": "Outline Variant",           "canonical": "#CAC4D0", "tonalRamp": ["#38363D", "#504E55", "#79747E", "#9E99A3", "#C4C0C9", "#CAC4D0", "#E4E0EA", "#F2F0F7"] },
+      "error":                    { "role": "error",     "displayName": "Error",                     "canonical": "#B00020", "tonalRamp": ["#410002", "#690005", "#93000A", "#B00020", "#CF3A4A", "#E57373", "#FFCDD2", "#FFEBEE"] },
+      "dark-surface":             { "role": "neutral",   "displayName": "Dark Surface",              "canonical": "#1C1B1F", "tonalRamp": ["#0D0D10", "#1C1B1F", "#2B2930", "#3B383E", "#4B474E", "#79747E", "#9E99A3", "#CAC4D0"] }
     },
     "typographyMeta": {
-      "display": {
-        "displayName": "Timer Display",
-        "purpose": "Live elapsed-time readout inside TimerDisplay. Used nowhere else. ExtraBold 800 at 36sp with -1sp tracking is the hierarchy anchor."
-      },
-      "headline": {
-        "displayName": "Screen Headline",
-        "purpose": "Screen-level titles. Appears once per screen at most, never inside a card."
-      },
-      "title": {
-        "displayName": "TopAppBar Title",
-        "purpose": "Navigation-level orientation. The first text a user reads when they arrive at a screen."
-      },
-      "body": {
-        "displayName": "Body Copy",
-        "purpose": "Descriptions and supporting text. Normal weight keeps it recessive; let titles carry the hierarchy."
-      },
-      "label": {
-        "displayName": "Section Header / Button",
-        "purpose": "LabelMedium (12sp Bold, 0.8sp tracking) is UPPERCASE for day-group headers only. LabelLarge (14sp SemiBold) is used for button text and control labels."
-      }
+      "display":   { "displayName": "Display",   "purpose": "Live elapsed-time readout inside TimerDisplay only." },
+      "headline":  { "displayName": "Headline",  "purpose": "Screen-level titles and SleepPredictionCard primary time value." },
+      "title":     { "displayName": "Title",     "purpose": "TopAppBar titles and section headings." },
+      "body":      { "displayName": "Body",      "purpose": "Main copy, supporting info, card descriptions." },
+      "label":     { "displayName": "Label",     "purpose": "Button labels, UPPERCASE section headers, chip text, badge text." }
     },
     "shadows": [
-      {
-        "name": "ambient-card",
-        "value": "0 1dp 3dp rgba(0,0,0,0.08), 0 1dp 2dp rgba(0,0,0,0.06)",
-        "elevation": "1dp",
-        "purpose": "Passive card lift. Applied to HistoryCard and content cards at rest. Swapped for a 1dp outlineVariant border in dark mode."
-      },
-      {
-        "name": "active-selection",
-        "value": "0 6dp 16dp rgba(0,0,0,0.16)",
-        "elevation": "6dp",
-        "purpose": "Active/selected state for SideSelector tiles. The step from 0 to 6dp is the committed-choice signal."
-      }
+      { "name": "ambient-card",     "value": "0 1dp elevation (Material3)",  "purpose": "HistoryCard and home summary cards at rest. Swapped for 1dp outlineVariant border in dark mode." },
+      { "name": "active-selection", "value": "0 6dp elevation (Material3)",  "purpose": "SideSelector selected tile and home summary cards with an active session." }
     ],
     "motion": [
-      {
-        "name": "timer-pulse",
-        "value": "scale 1.0→1.04→1.0",
-        "duration": "2500ms",
-        "easing": "ease-in-out",
-        "purpose": "TimerDisplay ring pulse while session is running. Stops immediately on pause. Communicates liveness without visual noise."
-      },
-      {
-        "name": "state-transition",
-        "value": "tween",
-        "duration": "300ms",
-        "easing": "FastOutSlowIn (cubic-bezier(0.4, 0.0, 0.2, 1))",
-        "purpose": "Default for state changes: idle→active session banners, SideSelector selection, card color transitions."
-      }
-    ]
+      { "name": "ease-out-quart",   "value": "CubicBezierEasing(0.25, 1.0, 0.5, 1.0)", "purpose": "Default easing for all state-driven color, elevation, and content transitions. 200-240ms duration." },
+      { "name": "ease-out-linear",  "value": "LinearOutSlowInEasing",                   "purpose": "animateContentSize fallback for cards with less dramatic state changes." },
+      { "name": "tap-confirm-seq",  "value": "0.80 to 1.25 to 0.94 to 1.0 scale (65+190+110+130ms)", "purpose": "CueChip tap confirmation microinteraction. The only place spring-style motion appears." },
+      { "name": "timer-pulse",      "value": "1.0 to 1.04 to 1.0 scale, 2500ms ease-in-out infinite", "purpose": "TimerDisplay pulse while session is running. Stops on pause." },
+      { "name": "badge-pulse",      "value": "0.82 to 1.18 scale + 0.58 to 1.0 alpha, 900ms EaseOutQuart infinite", "purpose": "ActiveStatusBadge dot pulse while session is live. Stops on pause." }
+    ],
+    "breakpoints": []
   },
   "components": [
     {
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Full-width primary action. Pill shape. Appears as 'Start Session', 'Stop Session', and 'Start Tracking'.",
-      "html": "<button class=\"ds-btn-primary\">Start Session</button>",
-      "css": ".ds-btn-primary { display: block; width: 100%; background-color: #C2185B; color: #FFFFFF; padding: 16px 24px; border: none; border-radius: 50px; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; cursor: pointer; min-height: 48px; transition: background-color 0.2s ease; } .ds-btn-primary:hover { background-color: #A01648; } .ds-btn-primary:focus-visible { outline: 3px solid #F8BBD0; outline-offset: 2px; } .ds-btn-primary:active { background-color: #880E4F; transform: scale(0.98); }"
+      "description": "Full-width pill button for the primary action on a tracking screen.",
+      "html": "<button class=\"ds-btn-primary\">Start Feeding</button>",
+      "css": ".ds-btn-primary { background: #C2185B; color: #FFFFFF; padding: 16px 24px; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; border: none; border-radius: 50px; min-height: 48px; width: 100%; cursor: pointer; transition: background 0.22s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.22s cubic-bezier(0.25, 1, 0.5, 1); } .ds-btn-primary:hover { background: #A31550; box-shadow: 0 4px 16px rgba(194, 24, 91, 0.28); } .ds-btn-primary:focus-visible { outline: 3px solid #F8BBD0; outline-offset: 2px; } .ds-btn-primary:active { background: #880E4F; transform: scale(0.98); }"
     },
     {
       "name": "Outline Button",
       "kind": "button",
       "refersTo": "button-outline",
-      "description": "Secondary action with transparent fill and a 2dp border. Used for 'View History', 'Schedule', contextual secondary actions.",
+      "description": "Secondary action button with transparent fill and domain-colored border.",
       "html": "<button class=\"ds-btn-outline\">View History</button>",
-      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; background-color: transparent; color: #1976D2; padding: 14px 24px; border: 2px solid #1976D2; border-radius: 50px; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; cursor: pointer; min-height: 48px; transition: background-color 0.2s ease, color 0.2s ease; } .ds-btn-outline:hover { background-color: #B3E5FC; } .ds-btn-outline:focus-visible { outline: 3px solid #90CAF9; outline-offset: 2px; }"
+      "css": ".ds-btn-outline { background: transparent; color: #1976D2; padding: 14px 24px; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; border: 2px solid #1976D2; border-radius: 50px; min-height: 48px; cursor: pointer; transition: background 0.2s cubic-bezier(0.25, 1, 0.5, 1); } .ds-btn-outline:hover { background: rgba(25, 118, 210, 0.08); } .ds-btn-outline:focus-visible { outline: 3px solid #B3E5FC; outline-offset: 2px; } .ds-btn-outline:active { background: rgba(25, 118, 210, 0.14); }"
     },
     {
-      "name": "SideSelector — Selected",
-      "kind": "custom",
+      "name": "SideSelector Selected",
+      "kind": "button",
       "refersTo": "side-selector-selected",
-      "description": "Active breast-side tile. 88dp tall, medium radius, Carnation Pink fill. Left arrow icon above label.",
-      "html": "<div class=\"ds-side-selected\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M15 18l-6-6 6-6\" stroke=\"#FFFFFF\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><span>Left</span></div>",
-      "css": ".ds-side-selected { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background-color: #C2185B; color: #FFFFFF; border-radius: 16px; height: 88px; width: 100%; box-shadow: 0 6px 16px rgba(0,0,0,0.16); font-size: 14px; font-weight: 600; letter-spacing: 0.1px; cursor: pointer; }"
+      "description": "Selected breast-side chooser tile. Carnation Pink fill with elevation jump.",
+      "html": "<button class=\"ds-side-selected\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"white\"><path d=\"M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z\"/></svg><span>LEFT</span></button>",
+      "css": ".ds-side-selected { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: #C2185B; color: #FFFFFF; border: none; border-radius: 16px; height: 88px; flex: 1; cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,0.22); font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; }"
     },
     {
-      "name": "SideSelector — Unselected",
-      "kind": "custom",
+      "name": "SideSelector Unselected",
+      "kind": "button",
       "refersTo": "side-selector-unselected",
-      "description": "Inactive breast-side tile. Warm Cream fill, 2dp Carnation Pink Container border, muted icon.",
-      "html": "<div class=\"ds-side-unselected\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M9 18l6-6-6-6\" stroke=\"rgba(26,26,26,0.4)\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><span>Right</span></div>",
-      "css": ".ds-side-unselected { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background-color: #FFFDE7; color: rgba(26,26,26,0.6); border: 2px solid #F8BBD0; border-radius: 16px; height: 88px; width: 100%; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; cursor: pointer; transition: border-color 0.15s ease; } .ds-side-unselected:hover { border-color: #C2185B; }"
+      "description": "Unselected breast-side tile. Warm cream fill with faint pink border.",
+      "html": "<button class=\"ds-side-unselected\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"rgba(194,24,91,0.4)\"><path d=\"M4 11h12.17l-5.59-5.59L12 4l8 8-8 8-1.41-1.41L16.17 13H4v-2z\"/></svg><span>RIGHT</span></button>",
+      "css": ".ds-side-unselected { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: #FFFDE7; color: #1A1A1A; border: 2px solid #F8BBD0; border-radius: 16px; height: 88px; flex: 1; cursor: pointer; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; }"
     },
     {
-      "name": "HistoryCard",
+      "name": "History Card",
       "kind": "card",
       "refersTo": "card-history",
-      "description": "Session history list item. Badge + title + subtitle + trailing duration. 1dp ambient shadow; border stroke in dark mode.",
-      "html": "<div class=\"ds-history-card\"><div class=\"ds-history-badge\">🍼</div><div class=\"ds-history-text\"><span class=\"ds-history-title\">Left side</span><span class=\"ds-history-subtitle\">08:42 AM</span></div><span class=\"ds-history-trailing\">14m</span></div>",
-      "css": ".ds-history-card { display: flex; align-items: center; gap: 12px; background-color: #FFFDE7; border-radius: 16px; padding: 12px 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin: 4px 0; } .ds-history-badge { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background-color: #F8BBD0; border-radius: 8px; font-size: 20px; flex-shrink: 0; } .ds-history-text { display: flex; flex-direction: column; flex: 1; } .ds-history-title { font-size: 14px; font-weight: 600; color: #1A1A1A; letter-spacing: 0.1px; } .ds-history-subtitle { font-size: 12px; font-weight: 400; color: #757575; letter-spacing: 0.4px; } .ds-history-trailing { font-size: 14px; font-weight: 400; color: #C2185B; flex-shrink: 0; }"
+      "description": "Row-layout list item for session history. Badge + text column + trailing duration.",
+      "html": "<div class=\"ds-history-card\"><div class=\"ds-history-badge\">🍼</div><div class=\"ds-history-text\"><span class=\"ds-history-title\">Left breast</span><span class=\"ds-history-sub\">10:32 AM</span></div><span class=\"ds-history-trail\">14m</span></div>",
+      "css": ".ds-history-card { display: flex; align-items: center; gap: 12px; background: #FFFDE7; border-radius: 16px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.10); margin-bottom: 4px; } .ds-history-badge { width: 44px; height: 44px; border-radius: 8px; background: #F8BBD0; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; } .ds-history-text { display: flex; flex-direction: column; flex: 1; gap: 2px; } .ds-history-title { font-family: system-ui; font-size: 14px; font-weight: 600; color: #1A1A1A; letter-spacing: 0.1px; } .ds-history-sub { font-family: system-ui; font-size: 12px; font-weight: 400; color: #6D6A64; letter-spacing: 0.4px; } .ds-history-trail { font-family: system-ui; font-size: 14px; font-weight: 400; color: #C2185B; white-space: nowrap; }"
+    },
+    {
+      "name": "Home Summary Card — Idle",
+      "kind": "card",
+      "refersTo": "card-summary-idle",
+      "description": "Idle home screen domain card. Container color fill, 1dp elevation, emoji + label.",
+      "html": "<div class=\"ds-summary-idle\"><div class=\"ds-summary-row\"><span class=\"ds-summary-emoji\">🍼</span></div><span class=\"ds-summary-label\">Breastfeeding</span><span class=\"ds-summary-sub\">42 min ago</span></div>",
+      "css": ".ds-summary-idle { background: #F8BBD0; border-radius: 24px; padding: 20px; min-height: 140px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.10); cursor: pointer; transition: background 0.22s cubic-bezier(0.25,1,0.5,1), box-shadow 0.24s cubic-bezier(0.25,1,0.5,1); } .ds-summary-row { display: flex; justify-content: space-between; align-items: flex-start; } .ds-summary-emoji { font-size: 28px; line-height: 1; } .ds-summary-label { font-family: system-ui; font-size: 18px; font-weight: 600; color: #880E4F; letter-spacing: 0.15px; } .ds-summary-sub { font-family: system-ui; font-size: 14px; font-weight: 400; color: #880E4F; letter-spacing: 0.25px; } .ds-summary-idle:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.14); }"
+    },
+    {
+      "name": "Home Summary Card — Active",
+      "kind": "card",
+      "refersTo": "card-summary-active",
+      "description": "Active session home card. Full role color fill, 6dp elevation, live timer.",
+      "html": "<div class=\"ds-summary-active\"><div class=\"ds-summary-active-row\"><span class=\"ds-summary-emoji-active\">🍼</span><span class=\"ds-active-badge\"><span class=\"ds-dot\"></span>Live</span></div><span class=\"ds-summary-active-label\">Breastfeeding</span><span class=\"ds-summary-active-time\">04:32</span></div>",
+      "css": ".ds-summary-active { background: #C2185B; border-radius: 24px; padding: 20px; min-height: 140px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.22); cursor: pointer; } .ds-summary-active-row { display: flex; justify-content: space-between; align-items: flex-start; } .ds-summary-emoji-active { font-size: 28px; line-height: 1; } .ds-active-badge { display: flex; align-items: center; gap: 5px; background: #F8BBD0; border-radius: 50px; padding: 4px 8px; font-family: system-ui; font-size: 11px; font-weight: 500; color: #880E4F; letter-spacing: 0.5px; } .ds-dot { width: 7px; height: 7px; border-radius: 50%; background: #880E4F; animation: badge-pulse 0.9s ease-out infinite alternate; } @keyframes badge-pulse { from { transform: scale(0.82); opacity: 0.58; } to { transform: scale(1.18); opacity: 1; } } .ds-summary-active-label { font-family: system-ui; font-size: 18px; font-weight: 600; color: #FFFFFF; letter-spacing: 0.15px; } .ds-summary-active-time { font-family: system-ui; font-size: 22px; font-weight: 600; color: #FFFFFF; }"
+    },
+    {
+      "name": "Sleep Prediction Card",
+      "kind": "card",
+      "refersTo": "sleep-prediction-card",
+      "description": "Sleep window card on HomeScreen. Flat secondaryContainer background, confidence dots, multiple state variants.",
+      "html": "<div class=\"ds-sleep-pred\"><div class=\"ds-pred-header\"><div class=\"ds-pred-title-row\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"#1976D2\"><path d=\"M12 3a9 9 0 0 0 9 9 9 9 0 0 1-9 9 9 9 0 0 1-9-9 9 9 0 0 0 9-9z\"/></svg><span class=\"ds-pred-label\">SLEEP PREDICTION</span></div><div class=\"ds-conf-dots\"><span class=\"ds-dot-filled\"></span><span class=\"ds-dot-filled\"></span><span class=\"ds-dot-empty\"></span></div></div><p class=\"ds-pred-time\">~9:45 PM</p><p class=\"ds-pred-range\">9:20 PM–10:10 PM</p></div>",
+      "css": ".ds-sleep-pred { background: #B3E5FC; border-radius: 24px; padding: 16px; width: 100%; } .ds-pred-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; } .ds-pred-title-row { display: flex; align-items: center; gap: 6px; } .ds-pred-label { font-family: system-ui; font-size: 12px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #1976D2; } .ds-conf-dots { display: flex; gap: 4px; align-items: center; } .ds-dot-filled { width: 8px; height: 8px; border-radius: 50%; background: #1976D2; } .ds-dot-empty { width: 8px; height: 8px; border-radius: 50%; background: rgba(25, 118, 210, 0.22); } .ds-pred-time { font-family: system-ui; font-size: 32px; font-weight: 700; color: #0D47A1; line-height: 1.1; margin: 0 0 2px; } .ds-pred-range { font-family: system-ui; font-size: 14px; font-weight: 400; color: rgba(13, 71, 161, 0.55); margin: 0; letter-spacing: 0.25px; }"
+    },
+    {
+      "name": "Cue Chip",
+      "kind": "chip",
+      "refersTo": "cue-chip",
+      "description": "One-tap baby event chip in the CueQuickTapRow. Tap triggers a scale bounce and auto-deselects after 1.5s.",
+      "html": "<button class=\"ds-cue-chip\">😪 Sleepy</button>",
+      "css": ".ds-cue-chip { display: inline-flex; align-items: center; gap: 4px; background: transparent; color: #1A1A1A; font-family: system-ui; font-size: 12px; font-weight: 700; letter-spacing: 0.8px; border: 1px solid #CAC4D0; border-radius: 50px; padding: 8px 16px; cursor: pointer; white-space: nowrap; transition: background 0.16s ease, border-color 0.16s ease; } .ds-cue-chip:hover { background: rgba(194, 24, 91, 0.06); border-color: #C2185B; } .ds-cue-chip.selected { background: #F8BBD0; color: #880E4F; border-color: #F8BBD0; } .ds-cue-chip:focus-visible { outline: 3px solid #F8BBD0; outline-offset: 2px; }"
     },
     {
       "name": "Allergy Chip",
       "kind": "chip",
       "refersTo": "chip-allergy",
-      "description": "Display-only allergy tag in Settings. Carnation Pink Container fill, Deep Carnation text.",
-      "html": "<span class=\"ds-chip-allergy\">Gluten</span>",
-      "css": ".ds-chip-allergy { display: inline-block; background-color: #F8BBD0; color: #880E4F; border-radius: 8px; padding: 4px 12px; font-size: 12px; font-weight: 600; letter-spacing: 0.1px; }"
-    },
-    {
-      "name": "Section Day Header",
-      "kind": "custom",
-      "refersTo": null,
-      "description": "UPPERCASE section header for day groups in history lists. LabelMedium style: 12sp Bold, 0.8sp tracking.",
-      "html": "<p class=\"ds-day-header\">Today · 3 sessions · 36m total</p>",
-      "css": ".ds-day-header { font-size: 12px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #C2185B; padding: 8px 0 6px; margin: 0; }"
+      "description": "Display-only allergy tag in Settings. Non-interactive.",
+      "html": "<span class=\"ds-allergy-chip\">Peanuts</span>",
+      "css": ".ds-allergy-chip { display: inline-flex; align-items: center; background: #F8BBD0; color: #880E4F; font-family: system-ui; font-size: 11px; font-weight: 500; letter-spacing: 0.5px; border-radius: 8px; padding: 4px 12px; }"
     }
   ],
   "narrative": {
@@ -244,70 +130,47 @@
     "overview": "Akachan is a tool for care, not performance. Its design language answers one question: what does a parent need when one arm is occupied and exhaustion has blurred the edges of thought? Everything else is secondary. The visual system is warm and legible first; it carries personality through restraint, not decoration.\n\nThe palette anchors on a soft cream surface (#FFFDE7) that reads like a familiar page, not a product interface. Carnation Pink identifies feeding. Sleep Blue identifies rest. These are deliberate semantic assignments, not aesthetic preferences. The system's warmth lives in the surface and the containment colors; the action colors are decisive, dark enough to read instantly against any background the eye lands on.\n\nThe system explicitly rejects the aesthetics it competes against: clinical white-and-teal apps that feel like patient intake forms, loud baby-brand UIs saturated with primary colors and bubble fonts, and fitness-tracker dashboards that treat care as a performance metric. Akachan does not count reps. It records moments.",
     "keyCharacteristics": [
       "Warm cream (#FFFDE7) as the single app surface — no alternating backgrounds",
-      "Semantic color assignment: Pink = Feeding, Blue = Sleep, Green = over-limit threshold",
+      "Semantic color assignment: Pink = Feeding, Blue = Sleep, Green = over-limit threshold and Pumping",
       "Generous touch targets (88dp interactive height for primary selectors; 48dp for buttons)",
       "System font (Roboto on Android) set across all weights; personality through weight contrast",
       "Elevation communicates state, not hierarchy; surfaces are flat at rest",
-      "Dark mode is a first-class citizen, tuned for 3am low-light legibility"
+      "Dark mode is a first-class citizen, tuned for 3am low-light legibility",
+      "Home screen uses a 2x2 summary card grid where active sessions animate color and elevation in real time"
     ],
     "rules": [
-      {
-        "name": "The Semantic Assignment Rule",
-        "body": "Carnation Pink is the feeding color. Sleep Blue is the sleep color. They never appear as decorative interchangeables. If a screen handles both domains, the active domain's hue dominates; the other domain's color appears only in summarizing contexts.",
-        "section": "colors"
-      },
-      {
-        "name": "The No Pure White Rule",
-        "body": "The app surface is always Warm Cream (#FFFDE7). Pure white (#FFFFFF) appears only as text on filled Carnation Pink or Sleep Blue buttons; it is not a background value.",
-        "section": "colors"
-      },
-      {
-        "name": "The Direct Import Rule",
-        "body": "Warning tokens (WarningAmber, WarningContainerAmber, OnWarningContainerAmber and their dark variants) must be imported by name from Color.kt. Never access them through MaterialTheme.colorScheme, which does not carry them.",
-        "section": "colors"
-      },
-      {
-        "name": "The ExtraBold Timer Rule",
-        "body": "displaySmall (36sp ExtraBold) is used exclusively for the live elapsed-time readout inside TimerDisplay. Assigning it to any other text element collapses the hierarchy at the moment a parent glances at an active session.",
-        "section": "typography"
-      },
-      {
-        "name": "The UPPERCASE Header Rule",
-        "body": "Day-group headers in history lists use labelMedium with uppercase text transformation. This is the only place uppercase text appears in the system.",
-        "section": "typography"
-      },
-      {
-        "name": "The Flat-By-Default Rule",
-        "body": "Surfaces are flat at rest. Shadows appear only in response to user-initiated state change. A card that appears elevated before the user has touched it has confused decoration with state.",
-        "section": "elevation"
-      },
-      {
-        "name": "The Dark Mode Swap Rule",
-        "body": "Ambient shadows (1dp) are not visible on dark surfaces. Swap them explicitly for an outlineVariant border stroke (1dp, #CAC4D0) in dark mode rather than increasing shadow opacity.",
-        "section": "elevation"
-      }
+      { "name": "The Semantic Assignment Rule", "body": "Carnation Pink is the feeding color. Sleep Blue is the sleep color. Threshold Green is the over-limit and pumping color. They never appear as decorative interchangeables.", "section": "colors" },
+      { "name": "The No Pure White Rule", "body": "The app surface is always Warm Cream (#FFFDE7). Pure white (#FFFFFF) appears only as text on filled Carnation Pink or Sleep Blue buttons; it is not a background value.", "section": "colors" },
+      { "name": "The Direct Import Rule", "body": "Warning tokens (WarningAmber, WarningContainerAmber, OnWarningContainerAmber and their dark variants) must be imported by name from Color.kt. Never access them through MaterialTheme.colorScheme.", "section": "colors" },
+      { "name": "The ExtraBold Timer Rule", "body": "displaySmall (36sp ExtraBold) is used exclusively for the live elapsed-time readout inside TimerDisplay. Assigning it to any other text element collapses the hierarchy.", "section": "typography" },
+      { "name": "The UPPERCASE Header Rule", "body": "Day-group headers in history lists and the SleepPredictionCard section label use labelMedium with uppercase text. This is the only context where uppercase text appears in the system.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. Shadows appear only in response to user-initiated state change.", "section": "elevation" },
+      { "name": "The Dark Mode Swap Rule", "body": "Ambient shadows (1dp) are not visible on dark surfaces. Swap them explicitly for an outlineVariant border stroke (1dp) in dark mode.", "section": "elevation" },
+      { "name": "The Two-Step Vocabulary Rule", "body": "The system has exactly two active elevation steps: 1dp ambient and 6dp selected. A third step breaks the grammar.", "section": "elevation" },
+      { "name": "The Outline-Border Pattern", "body": "When a card is informational (not actionable, not domain-colored), use a 1dp outlineVariant border on the surface color instead of a container fill.", "section": "components" }
     ],
     "dos": [
-      "Do use Warm Cream (#FFFDE7) for all app backgrounds. It is the identity of the surface.",
-      "Do assign color by domain: Carnation Pink for feeding screens and states, Sleep Blue for sleep screens and states.",
-      "Do use the pill shape (50dp radius) for primary action buttons and the medium radius (16dp) for cards and interactive tiles.",
-      "Do give all primary interactive elements a minimum 48dp tap height. SideSelector-style toggle tiles should be 88dp.",
-      "Do replace ambient card shadows with outlineVariant border strokes (1dp) in dark mode.",
-      "Do use LabelMedium (12sp Bold, 0.8sp tracking) with uppercase text for day-group headers in history lists only.",
-      "Do communicate an active session visually at the screen level: a banner, status pill, or TimerDisplay must indicate 'something is running' at a glance.",
-      "Do access Warning tokens by importing them directly from Color.kt. Do not route them through MaterialTheme.colorScheme.",
-      "Do treat dark mode as a first-class requirement. Every new component needs explicit dark-mode color assignments."
+      "Do use Warm Cream (#FFFDE7) for all app backgrounds.",
+      "Do assign color by domain: Carnation Pink for feeding, Sleep Blue for sleep, Threshold Green for pumping and limit-exceeded states.",
+      "Do use pill shape (50dp) for primary buttons and large radius (24dp) for home summary cards; medium radius (16dp) for history cards and selector tiles.",
+      "Do give all primary interactive elements a minimum 48dp tap height. SideSelector-style tiles: 88dp.",
+      "Do replace ambient card shadows with outlineVariant border strokes (1dp, #CAC4D0) in dark mode.",
+      "Do use LabelMedium (12sp Bold, 0.8sp tracking, uppercase) for day-group headers and section labels inside cards.",
+      "Do communicate an active session visually at screen level via ActiveStatusBadge, a banner, or TimerDisplay.",
+      "Do access Warning tokens by importing directly from Color.kt.",
+      "Do treat dark mode as a first-class requirement with explicit color assignments.",
+      "Do use tween(200-240ms, EaseOutQuart) for all state-driven color and elevation transitions."
     ],
     "donts": [
-      "Don't build clinical white or sterile layouts. Akachan is a family tool, not a hospital intake form.",
+      "Don't build clinical white or sterile layouts.",
       "Don't use oversaturated cartoon palettes, bubble fonts, or primary-color noise.",
-      "Don't treat tracking as a performance metric. No concentric stat rings, no hero metrics, no 'you hit your goal' SaaS patterns.",
-      "Don't use gradient text or background-clip decorative effects. All text is a single solid color.",
-      "Don't use side-stripe borders (a colored border-left or border-right wider than 1dp as an accent on cards or list items).",
-      "Don't reach for a modal dialog as the first editing solution. Use bottom sheets that reuse onboarding step composables.",
+      "Don't treat tracking as a performance metric — no concentric stat rings, no dashboard hero metrics.",
+      "Don't use gradient text or background-clip: text decorative effects.",
+      "Don't use side-stripe borders wider than 1dp as colored card accents.",
+      "Don't reach for a modal dialog as the first editing solution.",
       "Don't introduce shadows deeper than 6dp or multi-layer shadow compositions.",
       "Don't use Carnation Pink and Sleep Blue interchangeably or on the same surface as stylistic choices.",
-      "Don't use displaySmall (36sp ExtraBold) for anything other than the live timer readout."
+      "Don't use FontFamily.Default at displaySmall for anything other than the live timer readout.",
+      "Don't animate layout properties or use bounce/elastic easing for transitions."
     ]
   }
 }
