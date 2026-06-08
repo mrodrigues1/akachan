@@ -84,6 +84,7 @@ class SleepViewModelTest {
         syncToFirestore = mockk()
         predictSleepWindow = mockk()
         logBabyEvent = mockk()
+        coJustRun { logBabyEvent(any()) }
 
         every { getSleepHistory() } returns flowOf(emptyList())
         every { settingsRepository.getWakeTime() } returns flowOf(null)
