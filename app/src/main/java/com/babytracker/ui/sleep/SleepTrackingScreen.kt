@@ -68,6 +68,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.ui.component.CueQuickTapRow
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.TimerDisplay
 import com.babytracker.ui.component.formatElapsedAsClock
@@ -229,6 +230,9 @@ fun SleepTrackingScreen(
                     state = uiState.sleepPrediction,
                     schedule = uiState.schedule,
                 )
+            }
+            item {
+                CueQuickTapRow(onCueTapped = viewModel::onCueTapped)
             }
             item {
                 Text(
