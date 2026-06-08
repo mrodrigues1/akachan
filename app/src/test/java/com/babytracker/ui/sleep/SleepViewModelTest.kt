@@ -5,6 +5,7 @@ import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
+import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
 import com.babytracker.domain.usecase.sleep.DeleteSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.GenerateSleepScheduleUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
@@ -62,6 +63,7 @@ class SleepViewModelTest {
     private lateinit var napReminderScheduler: NapReminderScheduler
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
     private lateinit var predictSleepWindow: PredictSleepWindowUseCase
+    private lateinit var logBabyEvent: LogBabyEventUseCase
     private lateinit var viewModel: SleepViewModel
     private val testDispatcher = StandardTestDispatcher()
 
@@ -81,6 +83,7 @@ class SleepViewModelTest {
         napReminderScheduler = mockk(relaxed = true)
         syncToFirestore = mockk()
         predictSleepWindow = mockk()
+        logBabyEvent = mockk()
 
         every { getSleepHistory() } returns flowOf(emptyList())
         every { settingsRepository.getWakeTime() } returns flowOf(null)
@@ -112,6 +115,7 @@ class SleepViewModelTest {
         napReminderScheduler,
         syncToFirestore,
         predictSleepWindow,
+        logBabyEvent,
     )
 
     @Test

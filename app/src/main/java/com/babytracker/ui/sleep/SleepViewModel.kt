@@ -20,6 +20,8 @@ import com.babytracker.domain.usecase.sleep.UpdateSleepEntryUseCase
 import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.SleepNotificationScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.domain.model.BabyEventType
+import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
 import com.babytracker.util.formatElapsedShort
 import com.babytracker.util.formatTime12h
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -88,6 +90,7 @@ class SleepViewModel @Inject constructor(
     private val napReminderScheduler: NapReminderScheduler,
     private val syncToFirestore: SyncToFirestoreUseCase,
     private val predictSleepWindow: PredictSleepWindowUseCase,
+    private val logBabyEvent: LogBabyEventUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SleepUiState())
@@ -324,6 +327,10 @@ class SleepViewModel @Inject constructor(
 
     fun refreshSchedule() {
         loadSchedule()
+    }
+
+    fun onCueTapped(type: BabyEventType) {
+        viewModelScope.launch { runCatching { logBabyEvent(type) } }
     }
 
     fun onToggleRegression() {
