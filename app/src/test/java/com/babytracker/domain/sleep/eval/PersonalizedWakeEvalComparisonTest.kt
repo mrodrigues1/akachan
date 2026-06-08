@@ -179,7 +179,14 @@ class PersonalizedWakeEvalComparisonTest {
                     requiredIntervals = SleepPredictionTuning.MIN_COMPLETED_INTERVALS,
                     localDays = quality.localDayCoverage,
                     requiredLocalDays = SleepPredictionTuning.MIN_LOCAL_DAYS,
-                    hint = "log a few more naps with both sleep and wake times",
+                    hint = when {
+                        quality.completedIntervalCount < SleepPredictionTuning.MIN_COMPLETED_INTERVALS ->
+                            "log a few more naps with both sleep and wake times"
+                        !quality.isLocalDayCoverageSufficient ->
+                            "keep logging over the next few days to complete the pattern"
+                        !quality.isFresh -> "log a sleep or wake time — prediction needs a recent record"
+                        else -> "sleep pattern is still settling — keep logging over the next few days"
+                    },
                 )
             )
         }

@@ -128,7 +128,7 @@ private fun ConfidenceDots(confidence: Confidence, modifier: Modifier = Modifier
             val filled = i < filledCount
             Box(
                 modifier = Modifier
-                    .size(7.dp)
+                    .size(8.dp)
                     .background(
                         color = if (filled) {
                             MaterialTheme.colorScheme.secondary
@@ -146,7 +146,7 @@ private fun ConfidenceDots(confidence: Confidence, modifier: Modifier = Modifier
 private fun NeedMoreDataCardContent(progress: EvidenceProgress) {
     val total = progress.requiredIntervals.coerceAtMost(7)
     val filled = progress.completedIntervals.coerceAtMost(total)
-    val a11yLabel = "Learning your baby's patterns. $filled of $total sleep intervals recorded."
+    val a11yLabel = "Learning your baby's patterns. $filled of $total sleep sessions recorded."
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -155,6 +155,7 @@ private fun NeedMoreDataCardContent(progress: EvidenceProgress) {
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = a11yLabel },
         ) {
@@ -162,7 +163,7 @@ private fun NeedMoreDataCardContent(progress: EvidenceProgress) {
                 val isFilled = i < filled
                 Box(
                     modifier = Modifier
-                        .size(8.dp)
+                        .size(10.dp)
                         .background(
                             color = if (isFilled) {
                                 MaterialTheme.colorScheme.secondary
@@ -173,6 +174,12 @@ private fun NeedMoreDataCardContent(progress: EvidenceProgress) {
                         ),
                 )
             }
+            Spacer(Modifier.width(2.dp))
+            Text(
+                text = "$filled of $total sleep sessions",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.65f),
+            )
         }
     }
 }
@@ -204,7 +211,7 @@ private fun StatusRow(
 private fun OverdueCardContent() {
     StatusRow(
         icon = Icons.Outlined.HourglassEmpty,
-        text = "Watch for cues",
+        text = "Watch for cues — the window may open soon",
     )
 }
 
@@ -212,7 +219,7 @@ private fun OverdueCardContent() {
 private fun CueLedCardContent() {
     StatusRow(
         icon = Icons.Outlined.Visibility,
-        text = "No fixed window — watching cues",
+        text = "Watching baby's cues — no fixed window right now",
     )
 }
 
@@ -230,6 +237,6 @@ private fun CurrentlySleepingCardContent() {
 private fun AfterActiveFeedCardContent() {
     StatusRow(
         icon = Icons.Outlined.ChildCare,
-        text = "Window appears after feed",
+        text = "Feeding now — sleep window appears after feed ends",
     )
 }
