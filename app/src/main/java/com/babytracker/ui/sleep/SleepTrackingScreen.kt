@@ -526,7 +526,8 @@ private fun SleepQuickStartRow(
                 .heightIn(min = 88.dp),
             shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary,
             )
         ) {
             Text(
@@ -542,7 +543,8 @@ private fun SleepQuickStartRow(
                 .heightIn(min = 88.dp),
             shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary,
             )
         ) {
             Text(
@@ -590,7 +592,8 @@ private fun ActiveSleepCard(record: SleepRecord, onStop: () -> Unit) {
                     .heightIn(min = 48.dp),
                 shape = MaterialTheme.shapes.extraLarge,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary,
                 )
             ) {
                 Text("Stop Session", style = MaterialTheme.typography.labelLarge)
@@ -790,7 +793,8 @@ internal fun AddSleepEntrySheetContent(
                 .heightIn(min = 48.dp),
             shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary,
             )
         ) {
             Text(saveLabel, style = MaterialTheme.typography.titleSmall)
