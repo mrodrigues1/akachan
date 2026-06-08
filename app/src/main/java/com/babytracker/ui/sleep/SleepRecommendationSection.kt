@@ -1,27 +1,45 @@
 package com.babytracker.ui.sleep
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Bedtime
+import androidx.compose.material.icons.outlined.ChildCare
+import androidx.compose.material.icons.outlined.HourglassEmpty
+import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
@@ -51,20 +69,29 @@ internal fun SleepRecommendationSection(
         shape = MaterialTheme.shapes.large,
         modifier = modifier.fillMaxWidth(),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Outlined.Bedtime,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = "SLEEP RECOMMENDATION",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.secondary,
-                )
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.Bedtime,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "SLEEP RECOMMENDATION",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
+                if (state is SleepPredictionState.Window) {
+                    ConfidenceDots(confidence = state.window.confidence)
+                }
             }
             Spacer(Modifier.height(12.dp))
             when (state) {
@@ -84,37 +111,47 @@ internal fun SleepRecommendationSection(
 
 @Composable
 private fun WindowSectionContent(window: SleepWindow, schedule: SleepSchedule?, now: LocalTime) {
+    var safetyExpanded by remember { mutableStateOf(false) }
+
     Column {
         Text(
             text = "~${window.bestEstimate.formatTime()}",
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
+        Spacer(Modifier.height(4.dp))
         Text(
             text = "${window.windowStart.formatTime()}–${window.windowEnd.formatTime()}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.65f),
         )
-
-        Spacer(Modifier.height(8.dp))
-        ConfidenceBadge(confidence = window.confidence)
-
         if (window.reasons.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
             window.reasons.forEach { reason ->
-                Row(modifier = Modifier.padding(vertical = 1.dp)) {
-                    Text(
-                        text = "·",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(end = 4.dp),
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier.padding(vertical = 2.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 6.dp, end = 6.dp)
+                            .size(4.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.4f),
+                                shape = CircleShape,
+                            ),
                     )
-                    Text(text = reason, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = reason,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
+                    )
                 }
             }
         }
-
         val nextNap = schedule?.napTimes?.firstOrNull { it.startTime >= now }
         if (nextNap != null) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
             HorizontalDivider()
             Spacer(Modifier.height(8.dp))
             Row(
@@ -145,88 +182,190 @@ private fun WindowSectionContent(window: SleepWindow, schedule: SleepSchedule?, 
                 }
             }
         }
-
         window.feedPrompt?.let { prompt ->
             Spacer(Modifier.height(8.dp))
-            HorizontalDivider()
-            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.Top) {
+                Icon(
+                    imageVector = Icons.Outlined.Restaurant,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier
+                        .padding(top = 2.dp)
+                        .size(14.dp),
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = prompt,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        HorizontalDivider()
+        Spacer(Modifier.height(4.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .clickable(role = Role.Button) { safetyExpanded = !safetyExpanded }
+                .semantics {
+                    contentDescription =
+                        if (safetyExpanded) "Collapse safe-sleep tip" else "Expand safe-sleep tip"
+                },
+        ) {
             Text(
-                text = prompt,
-                style = MaterialTheme.typography.bodySmall,
+                text = "Safe sleep",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Spacer(Modifier.width(2.dp))
+            Icon(
+                imageVector = if (safetyExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
             )
         }
-
-        Spacer(Modifier.height(8.dp))
-        HorizontalDivider()
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = window.safetyPrompt,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
-        )
+        AnimatedVisibility(visible = safetyExpanded) {
+            Text(
+                text = window.safetyPrompt,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
     }
 }
 
 @Composable
-private fun ConfidenceBadge(confidence: Confidence) {
-    val (bg, fg) = when (confidence) {
-        Confidence.LOW ->
-            MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-        Confidence.MEDIUM ->
-            MaterialTheme.colorScheme.surface to MaterialTheme.colorScheme.onSurface
-        Confidence.HIGH ->
-            MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+private fun ConfidenceDots(confidence: Confidence, modifier: Modifier = Modifier) {
+    val filledCount = when (confidence) {
+        Confidence.LOW -> 1
+        Confidence.MEDIUM -> 2
+        Confidence.HIGH -> 3
     }
-    Surface(shape = MaterialTheme.shapes.extraSmall, color = bg) {
-        Text(
-            text = confidence.name,
-            style = MaterialTheme.typography.labelSmall,
-            color = fg,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-        )
+    val label = when (confidence) {
+        Confidence.LOW -> "Low confidence prediction"
+        Confidence.MEDIUM -> "Medium confidence prediction"
+        Confidence.HIGH -> "High confidence prediction"
+    }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = modifier.semantics(mergeDescendants = true) { contentDescription = label },
+    ) {
+        repeat(3) { i ->
+            val filled = i < filledCount
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(
+                        color = if (filled) {
+                            MaterialTheme.colorScheme.secondary
+                        } else {
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f)
+                        },
+                        shape = CircleShape,
+                    ),
+            )
+        }
     }
 }
 
 @Composable
 private fun NeedMoreDataSectionContent(progress: EvidenceProgress) {
-    Column {
-        LinearProgressIndicator(
-            progress = { progress.completedIntervals.toFloat() / progress.requiredIntervals.coerceAtLeast(1) },
-            modifier = Modifier.fillMaxWidth(),
+    val total = progress.requiredIntervals.coerceAtMost(7)
+    val filled = progress.completedIntervals.coerceAtMost(total)
+    val a11yLabel = "Learning your baby's patterns. $filled of $total sleep intervals recorded."
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = progress.hint,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
-        Spacer(Modifier.height(6.dp))
-        Text(text = progress.hint, style = MaterialTheme.typography.bodyMedium)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = a11yLabel },
+        ) {
+            repeat(total) { i ->
+                val isFilled = i < filled
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(
+                            color = if (isFilled) {
+                                MaterialTheme.colorScheme.secondary
+                            } else {
+                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f)
+                            },
+                            shape = CircleShape,
+                        ),
+                )
+            }
+        }
+        if (progress.localDays > 0) {
+            Text(
+                text = "${progress.localDays} of ${progress.requiredLocalDays} days tracked",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.65f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatusRow(
+    icon: ImageVector,
+    text: String,
+    iconAlpha: Float = 1f,
+    textAlpha: Float = 1f,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.secondary.copy(alpha = iconAlpha),
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = textAlpha),
+        )
     }
 }
 
 @Composable
 private fun OverdueSectionContent() {
-    Text(
-        text = "Watch for sleep cues — the window may open soon.",
-        style = MaterialTheme.typography.bodyMedium,
+    StatusRow(
+        icon = Icons.Outlined.HourglassEmpty,
+        text = "Watch for cues — the window may open soon",
     )
 }
 
 @Composable
 private fun CueLedSectionContent() {
-    Text(
-        text = "Watching baby's cues — no fixed window right now.",
-        style = MaterialTheme.typography.bodyMedium,
+    StatusRow(
+        icon = Icons.Outlined.Visibility,
+        text = "Watching baby's cues — no fixed window right now",
     )
 }
 
 @Composable
 private fun CurrentlySleepingSectionContent() {
-    Text(
-        text = "Baby is currently sleeping. Next window prediction will appear after wake.",
-        style = MaterialTheme.typography.bodyMedium,
+    StatusRow(
+        icon = Icons.Outlined.Bedtime,
+        text = "Baby is sleeping",
+        iconAlpha = 0.7f,
+        textAlpha = 0.8f,
     )
 }
 
 @Composable
 private fun AfterActiveFeedSectionContent() {
-    Text(
-        text = "A feed is in progress. Sleep window prediction appears after the feed ends.",
-        style = MaterialTheme.typography.bodyMedium,
+    StatusRow(
+        icon = Icons.Outlined.ChildCare,
+        text = "Feeding now — sleep window appears after feed ends",
     )
 }
