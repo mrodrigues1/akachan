@@ -2,7 +2,6 @@ package com.babytracker.ui.home
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
@@ -23,7 +22,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.time.Duration
 import java.time.Instant
 import com.babytracker.ui.component.CueQuickTapRow
 
@@ -59,44 +57,24 @@ class HomeScreenTest {
     }
 
     @Test
-    fun inventoryStripCard_showsNoBagsStored_whenSummaryIsEmpty() {
+    fun inventoryHomeCard_showsNoBagsStored_whenSummaryIsEmpty() {
         composeRule.setContent {
             BabyTrackerTheme {
-                InventoryStripCard(summary = InventorySummary.Empty, onClick = {})
+                InventoryHomeCard(summary = InventorySummary.Empty, onClick = {})
             }
         }
         composeRule.onNodeWithText("No bags stored").assertIsDisplayed()
     }
 
     @Test
-    fun inventoryStripCard_showsBagCount_whenSummaryHasBags() {
+    fun inventoryHomeCard_showsBagCount_whenSummaryHasBags() {
         val summary = InventorySummary(totalMl = 240, bagCount = 3, oldestBagDate = null)
         composeRule.setContent {
             BabyTrackerTheme {
-                InventoryStripCard(summary = summary, onClick = {})
+                InventoryHomeCard(summary = summary, onClick = {})
             }
         }
         composeRule.onNodeWithText("240 mL · 3 bags").assertIsDisplayed()
-    }
-
-    @Test
-    fun lastNightSleepCard_showsNoDataYet_whenDurationIsNull() {
-        composeRule.setContent {
-            BabyTrackerTheme {
-                LastNightSleepCard(duration = null, onClick = {})
-            }
-        }
-        composeRule.onNodeWithText("No data yet").assertIsDisplayed()
-    }
-
-    @Test
-    fun lastNightSleepCard_showsDuration_whenDurationIsSet() {
-        composeRule.setContent {
-            BabyTrackerTheme {
-                LastNightSleepCard(duration = Duration.ofHours(6).plusMinutes(42), onClick = {})
-            }
-        }
-        composeRule.onNodeWithText("6h 42m").assertIsDisplayed()
     }
 
     @Test
@@ -112,11 +90,11 @@ class HomeScreenTest {
     }
 
     @Test
-    fun inventoryStripCard_click_invokesCallback() {
+    fun inventoryHomeCard_click_invokesCallback() {
         var tapped = false
         composeRule.setContent {
             BabyTrackerTheme {
-                InventoryStripCard(summary = InventorySummary.Empty, onClick = { tapped = true })
+                InventoryHomeCard(summary = InventorySummary.Empty, onClick = { tapped = true })
             }
         }
         composeRule.onNodeWithText("Inventory").performClick()
@@ -124,34 +102,27 @@ class HomeScreenTest {
     }
 
     @Test
-    fun secondRowCards_pumpingAndLastNight_areDisplayed() {
+    fun secondRowCards_pumpingAndInventory_areDisplayed() {
         composeRule.setContent {
             BabyTrackerTheme {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        PumpingHomeCard(
-                            active = null,
-                            onClick = {},
-                            modifier = Modifier.weight(1f),
-                        )
-                        LastNightSleepCard(
-                            duration = null,
-                            onClick = {},
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    InventoryStripCard(
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    PumpingHomeCard(
+                        active = null,
+                        onClick = {},
+                        modifier = Modifier.weight(1f),
+                    )
+                    InventoryHomeCard(
                         summary = InventorySummary.Empty,
                         onClick = {},
+                        modifier = Modifier.weight(1f),
                     )
                 }
             }
         }
         composeRule.onNodeWithText("Pumping").assertIsDisplayed()
-        composeRule.onNodeWithText("LAST NIGHT").assertIsDisplayed()
         composeRule.onNodeWithText("Inventory").assertIsDisplayed()
     }
 
