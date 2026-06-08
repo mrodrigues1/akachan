@@ -3,6 +3,7 @@ package com.babytracker.ui.sleep
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -202,28 +204,15 @@ fun SleepTrackingScreen(
             }
             if (activeSleepSession == null) {
                 item {
-                    LastSleepSummaryRow(summary = uiState.lastSleepSummary)
+                    TodayContextCard(
+                        summary = uiState.lastSleepSummary,
+                        wakeTime = uiState.wakeTime,
+                        totalSleep = totalSleepToday,
+                        napCount = napCount,
+                        nightSleep = nightSleepDuration,
+                        onWakeTimeClick = { viewModel.onShowTimePicker(SleepTimePickerTarget.WAKE) },
+                    )
                 }
-            }
-            item {
-                Text(
-                    text = "TODAY'S WAKE TIME",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            }
-            item {
-                WakeTimeChip(
-                    wakeTime = uiState.wakeTime,
-                    onClick = { viewModel.onShowTimePicker(SleepTimePickerTarget.WAKE) }
-                )
-            }
-            item {
-                SleepSummaryRow(
-                    totalSleep = totalSleepToday,
-                    napCount = napCount,
-                    nightSleep = nightSleepDuration
-                )
             }
             item {
                 SleepRecommendationSection(
@@ -232,13 +221,20 @@ fun SleepTrackingScreen(
                 )
             }
             item {
-                CueQuickTapRow(onCueTapped = viewModel::onCueTapped)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "CUES",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                    CueQuickTapRow(onCueTapped = viewModel::onCueTapped)
+                }
             }
             item {
                 Text(
                     text = "TODAY",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.secondary
+                    color = MaterialTheme.colorScheme.secondary,
                 )
             }
             if (todayEntries.isEmpty()) {
@@ -272,71 +268,137 @@ fun SleepTrackingScreen(
 }
 
 @Composable
-private fun LastSleepSummaryRow(summary: LastSleepSummaryState) {
-    val description = when (summary) {
+private fun TodayContextCard(
+    summary: LastSleepSummaryState,
+    wakeTime: LocalTime?,
+    totalSleep: Duration,
+    napCount: Int,
+    nightSleep: Duration,
+    onWakeTimeClick: () -> Unit,
+) {
+    val formatter = remember { DateTimeFormatter.ofPattern("h:mm a").withLocale(java.util.Locale.getDefault()) }
+    val semanticDescription = when (summary) {
         LastSleepSummaryState.Empty -> "Last sleep. No sleep logged yet."
         is LastSleepSummaryState.Populated -> "Last sleep. ${summary.awakeForLabel}. ${summary.endedAtLabel}."
     }
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .semantics(mergeDescendants = true) {
-                contentDescription = description
-            },
+            .semantics(mergeDescendants = true) { contentDescription = semanticDescription },
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f),
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondaryContainer)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondaryContainer),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Bedtime,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(22.dp)
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "LAST SLEEP",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.secondary
+                Icon(
+                    imageVector = Icons.Outlined.Bedtime,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(20.dp),
                 )
-                when (summary) {
-                    LastSleepSummaryState.Empty -> {
-                        Text(
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = "LAST SLEEP",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                    when (summary) {
+                        LastSleepSummaryState.Empty -> Text(
                             text = "No sleep logged yet",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
-                    }
-                    is LastSleepSummaryState.Populated -> {
-                        Text(
-                            text = summary.awakeForLabel,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        Text(
-                            text = summary.endedAtLabel,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
+                        is LastSleepSummaryState.Populated -> {
+                            Text(
+                                text = summary.awakeForLabel,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = summary.endedAtLabel,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
+                            )
+                        }
                     }
                 }
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.secondaryContainer)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onWakeTimeClick)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = if (wakeTime != null) "🌅 Woke at ${wakeTime.format(formatter)}" else "🌅 Set today's wake time",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (wakeTime != null) FontWeight.Medium else FontWeight.Normal,
+                )
+                Icon(
+                    imageVector = if (wakeTime != null) Icons.Default.Edit else Icons.Default.Add,
+                    contentDescription = if (wakeTime != null) "Edit wake time" else "Set wake time",
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.secondary,
+                )
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.secondaryContainer)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                TodayStatItem(
+                    label = "Sleep today",
+                    value = if (totalSleep.isZero) "—" else totalSleep.formatDuration(),
+                    modifier = Modifier.weight(1f),
+                )
+                TodayStatItem(
+                    label = "Naps",
+                    value = if (napCount == 0) "—" else napCount.toString(),
+                    modifier = Modifier.weight(1f),
+                )
+                TodayStatItem(
+                    label = "Night sleep",
+                    value = if (nightSleep.isZero) "—" else nightSleep.formatDuration(),
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun TodayStatItem(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.secondary,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -424,140 +486,6 @@ internal fun SleepDeleteConfirmationDialog(
     )
 }
 
-@Composable
-private fun WakeTimeChip(wakeTime: LocalTime?, onClick: () -> Unit) {
-    val formatter = remember { DateTimeFormatter.ofPattern("h:mm a").withLocale(java.util.Locale.getDefault()) }
-    if (wakeTime != null) {
-        Card(
-            onClick = onClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp),
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "🌅 Woke at ${wakeTime.format(formatter)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit wake time",
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            }
-        }
-    } else {
-        OutlinedCard(
-            onClick = onClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp),
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.outlinedCardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.secondary
-            ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "🌅 Tap to set today's wake time",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Set wake time",
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.secondary
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SleepSummaryRow(
-    totalSleep: Duration,
-    napCount: Int,
-    nightSleep: Duration
-) {
-    Card(
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            SummaryStatColumn(
-                label = "Sleep today",
-                value = if (totalSleep.isZero) "—" else totalSleep.formatDuration(),
-                modifier = Modifier.weight(1f)
-            )
-            SummaryStatColumn(
-                label = "Naps",
-                value = if (napCount == 0) "—" else napCount.toString(),
-                modifier = Modifier.weight(1f)
-            )
-            SummaryStatColumn(
-                label = "Night sleep",
-                value = if (nightSleep.isZero) "—" else nightSleep.formatDuration(),
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun SummaryStatColumn(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.secondary,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-    }
-}
 
 @Composable
 private fun TodayEmptyState() {
