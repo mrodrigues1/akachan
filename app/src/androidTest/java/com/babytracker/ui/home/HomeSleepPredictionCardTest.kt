@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -54,23 +55,23 @@ class HomeSleepPredictionCardTest {
         composeRule.setContent {
             BabyTrackerTheme { SleepPredictionCard(state = windowState()) }
         }
-        composeRule.onNodeWithText("Next sleep", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Next sleep", substring = true).assertIsDisplayed()
     }
 
     @Test
-    fun windowState_lowConfidence_showsLowConfidenceText() {
+    fun windowState_lowConfidence_showsLowConfidenceIndicator() {
         composeRule.setContent {
             BabyTrackerTheme { SleepPredictionCard(state = windowState(confidence = Confidence.LOW)) }
         }
-        composeRule.onNodeWithText("low confidence").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Low confidence prediction").assertIsDisplayed()
     }
 
     @Test
-    fun windowState_mediumConfidence_doesNotShowLowConfidenceText() {
+    fun windowState_mediumConfidence_showsMediumConfidenceIndicator() {
         composeRule.setContent {
             BabyTrackerTheme { SleepPredictionCard(state = windowState(confidence = Confidence.MEDIUM)) }
         }
-        composeRule.onNodeWithText("low confidence").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Medium confidence prediction").assertIsDisplayed()
     }
 
     @Test
