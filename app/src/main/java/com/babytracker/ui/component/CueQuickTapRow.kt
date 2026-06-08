@@ -1,16 +1,21 @@
 package com.babytracker.ui.component
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
@@ -38,6 +43,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+private val EaseOutQuart = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
+
 private val BabyEventType.emoji: String
 	get() = when (this) {
 		BabyEventType.SLEEPY_CUE -> "😪"
@@ -63,14 +70,49 @@ fun CueQuickTapRow(
 	onCueTapped: (BabyEventType) -> Unit,
 	modifier: Modifier = Modifier,
 ) {
-	Row(
-		modifier = modifier
-			.fillMaxWidth()
-			.horizontalScroll(rememberScrollState()),
-		horizontalArrangement = Arrangement.spacedBy(8.dp),
-	) {
-		BabyEventType.entries.forEach { type ->
-			CueChip(type = type, onTapped = onCueTapped)
+	var lastTappedLabel by remember { mutableStateOf<String?>(null) }
+	val confirmScope = rememberCoroutineScope()
+	val confirmJob = remember { arrayOfNulls<Job>(1) }
+
+	Column(modifier = modifier) {
+		Text(
+			text = "LOG A CUE",
+			style = MaterialTheme.typography.labelMedium,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		Spacer(Modifier.height(4.dp))
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.horizontalScroll(rememberScrollState()),
+			horizontalArrangement = Arrangement.spacedBy(8.dp),
+		) {
+			BabyEventType.entries.forEach { type ->
+				CueChip(
+					type = type,
+					onTapped = { tapped ->
+						onCueTapped(tapped)
+						confirmJob[0]?.cancel()
+						lastTappedLabel = tapped.label
+						confirmJob[0] = confirmScope.launch {
+							delay(2_000L)
+							lastTappedLabel = null
+						}
+					},
+				)
+			}
+		}
+		AnimatedVisibility(
+			visible = lastTappedLabel != null,
+			enter = fadeIn(tween(160, easing = EaseOutQuart)),
+			exit = fadeOut(tween(200, easing = EaseOutQuart)),
+		) {
+			Text(
+				text = "${lastTappedLabel ?: ""} logged",
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				modifier = Modifier.padding(top = 6.dp),
+			)
 		}
 	}
 }
@@ -96,11 +138,7 @@ private fun CueChip(
 	)
 	val checkScale by animateFloatAsState(
 		targetValue = if (selected) 1f else 0f,
-		animationSpec = if (selected) {
-			spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh)
-		} else {
-			tween(durationMillis = 180)
-		},
+		animationSpec = tween(durationMillis = if (selected) 160 else 180, easing = EaseOutQuart),
 		label = "check-scale-${type.name}",
 	)
 
@@ -111,10 +149,10 @@ private fun CueChip(
 	LaunchedEffect(tapCount) {
 		if (tapCount > 0) {
 			scaleAnim.stop()
-			scaleAnim.animateTo(0.80f, tween(65, easing = FastOutSlowInEasing))
-			scaleAnim.animateTo(1.25f, tween(190, easing = FastOutSlowInEasing))
-			scaleAnim.animateTo(0.94f, tween(110, easing = FastOutSlowInEasing))
-			scaleAnim.animateTo(1.0f, tween(130, easing = FastOutSlowInEasing))
+			scaleAnim.animateTo(0.80f, tween(65, easing = EaseOutQuart))
+			scaleAnim.animateTo(1.25f, tween(190, easing = EaseOutQuart))
+			scaleAnim.animateTo(0.94f, tween(110, easing = EaseOutQuart))
+			scaleAnim.animateTo(1.0f, tween(130, easing = EaseOutQuart))
 		}
 	}
 
@@ -153,6 +191,6 @@ private fun CueChip(
 		},
 		modifier = Modifier
 			.scale(scaleAnim.value)
-			.animateContentSize(tween(durationMillis = 180, easing = FastOutSlowInEasing)),
+			.animateContentSize(tween(durationMillis = 180, easing = EaseOutQuart)),
 	)
 }

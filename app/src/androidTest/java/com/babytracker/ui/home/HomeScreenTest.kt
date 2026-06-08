@@ -23,6 +23,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.Duration
 import java.time.Instant
 import com.babytracker.ui.component.CueQuickTapRow
 
@@ -58,24 +59,44 @@ class HomeScreenTest {
     }
 
     @Test
-    fun inventoryCard_showsNoBagsStored_whenSummaryIsEmpty() {
+    fun inventoryStripCard_showsNoBagsStored_whenSummaryIsEmpty() {
         composeRule.setContent {
             BabyTrackerTheme {
-                InventoryHomeCard(summary = InventorySummary.Empty, onClick = {})
+                InventoryStripCard(summary = InventorySummary.Empty, onClick = {})
             }
         }
         composeRule.onNodeWithText("No bags stored").assertIsDisplayed()
     }
 
     @Test
-    fun inventoryCard_showsBagCount_whenSummaryHasBags() {
+    fun inventoryStripCard_showsBagCount_whenSummaryHasBags() {
         val summary = InventorySummary(totalMl = 240, bagCount = 3, oldestBagDate = null)
         composeRule.setContent {
             BabyTrackerTheme {
-                InventoryHomeCard(summary = summary, onClick = {})
+                InventoryStripCard(summary = summary, onClick = {})
             }
         }
         composeRule.onNodeWithText("240 mL · 3 bags").assertIsDisplayed()
+    }
+
+    @Test
+    fun lastNightSleepCard_showsNoDataYet_whenDurationIsNull() {
+        composeRule.setContent {
+            BabyTrackerTheme {
+                LastNightSleepCard(duration = null, onClick = {})
+            }
+        }
+        composeRule.onNodeWithText("No data yet").assertIsDisplayed()
+    }
+
+    @Test
+    fun lastNightSleepCard_showsDuration_whenDurationIsSet() {
+        composeRule.setContent {
+            BabyTrackerTheme {
+                LastNightSleepCard(duration = Duration.ofHours(6).plusMinutes(42), onClick = {})
+            }
+        }
+        composeRule.onNodeWithText("6h 42m").assertIsDisplayed()
     }
 
     @Test
@@ -91,11 +112,11 @@ class HomeScreenTest {
     }
 
     @Test
-    fun inventoryCard_click_invokesCallback() {
+    fun inventoryStripCard_click_invokesCallback() {
         var tapped = false
         composeRule.setContent {
             BabyTrackerTheme {
-                InventoryHomeCard(summary = InventorySummary.Empty, onClick = { tapped = true })
+                InventoryStripCard(summary = InventorySummary.Empty, onClick = { tapped = true })
             }
         }
         composeRule.onNodeWithText("Inventory").performClick()
@@ -103,7 +124,7 @@ class HomeScreenTest {
     }
 
     @Test
-    fun allFourSummaryCards_areDisplayed_inTwoRows() {
+    fun secondRowCards_pumpingAndLastNight_areDisplayed() {
         composeRule.setContent {
             BabyTrackerTheme {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -116,16 +137,21 @@ class HomeScreenTest {
                             onClick = {},
                             modifier = Modifier.weight(1f),
                         )
-                        InventoryHomeCard(
-                            summary = InventorySummary.Empty,
+                        LastNightSleepCard(
+                            duration = null,
                             onClick = {},
                             modifier = Modifier.weight(1f),
                         )
                     }
+                    InventoryStripCard(
+                        summary = InventorySummary.Empty,
+                        onClick = {},
+                    )
                 }
             }
         }
         composeRule.onNodeWithText("Pumping").assertIsDisplayed()
+        composeRule.onNodeWithText("LAST NIGHT").assertIsDisplayed()
         composeRule.onNodeWithText("Inventory").assertIsDisplayed()
     }
 

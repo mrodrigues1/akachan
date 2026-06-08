@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,20 +36,25 @@ import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.util.formatTime
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SleepPredictionCard(
     state: SleepPredictionState,
     modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
 ) {
     if (state is SleepPredictionState.Unavailable) return
 
     Card(
+        onClick = onClick,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         ),
         shape = MaterialTheme.shapes.large,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = "Sleep prediction. Open sleep screen." },
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -92,7 +98,7 @@ internal fun SleepPredictionCard(
 private fun WindowCardContent(window: SleepWindow) {
     Column {
         Text(
-            text = "~${window.bestEstimate.formatTime()}",
+            text = "Around ${window.bestEstimate.formatTime()}",
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             modifier = Modifier.semantics {

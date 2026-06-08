@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
@@ -29,7 +28,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,8 +41,6 @@ import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -142,40 +138,6 @@ fun HomeScreen(
                 )
             )
         },
-        bottomBar = {
-            Surface(color = MaterialTheme.colorScheme.surface) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = onNavigateToBreastfeeding,
-                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                        shape = MaterialTheme.shapes.extraLarge,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                    ) {
-                        Text("Feeding", style = MaterialTheme.typography.labelLarge)
-                    }
-                    Button(
-                        onClick = onNavigateToSleep,
-                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                        shape = MaterialTheme.shapes.extraLarge,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary,
-                            contentColor = MaterialTheme.colorScheme.onSecondary
-                        ),
-                    ) {
-                        Text("Sleep", style = MaterialTheme.typography.labelLarge)
-                    }
-                }
-            }
-        }
     ) { padding ->
         Box(
             modifier = Modifier
@@ -383,18 +345,8 @@ fun HomeScreen(
                                     LastSleepAgoText(endTime = lastEnd)
                                 } else {
                                     Text(
-                                        text = "No sleep recorded yet",
+                                        text = "Ready when you are",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    )
-                                }
-                                val nightLabel = uiState.lastNightSleepDuration
-                                    ?.formatDuration()
-                                    ?.let { "$it last night" }
-                                if (nightLabel != null) {
-                                    Text(
-                                        text = nightLabel,
-                                        style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                                     )
                                 }
@@ -414,15 +366,23 @@ fun HomeScreen(
                         onClick = onNavigateToPumping,
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
-                    InventoryHomeCard(
-                        summary = uiState.inventorySummary,
-                        onClick = onNavigateToInventory,
+                    LastNightSleepCard(
+                        duration = uiState.lastNightSleepDuration,
+                        onClick = onNavigateToSleep,
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                 }
             }
 
-            SleepPredictionCard(state = uiState.sleepPrediction)
+            InventoryStripCard(
+                summary = uiState.inventorySummary,
+                onClick = onNavigateToInventory,
+            )
+
+            SleepPredictionCard(
+                state = uiState.sleepPrediction,
+                onClick = onNavigateToSleep,
+            )
 
             CueQuickTapRow(onCueTapped = viewModel::onCueTapped)
 
@@ -541,7 +501,7 @@ internal fun FeedingPredictionSubtitle(
         Icon(
             imageVector = Icons.Outlined.Schedule,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            tint = primaryColor,
             modifier = Modifier
                 .size(16.dp)
                 .padding(top = 2.dp),
@@ -663,7 +623,61 @@ internal fun PumpingHomeCard(
 }
 
 @Composable
-internal fun InventoryHomeCard(
+internal fun LastNightSleepCard(
+    duration: Duration?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val durationText = duration?.formatDuration()
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .heightIn(min = 120.dp)
+            .semantics {
+                contentDescription = if (durationText != null)
+                    "Last night's sleep, $durationText. Open sleep screen."
+                else
+                    "Last night's sleep, no data yet. Open sleep screen."
+            },
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = "LAST NIGHT",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            if (durationText != null) {
+                Text(
+                    text = durationText,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "total sleep",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
+            } else {
+                Text(
+                    text = "No data yet",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun InventoryStripCard(
     summary: InventorySummary,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -672,7 +686,7 @@ internal fun InventoryHomeCard(
     Card(
         onClick = onClick,
         modifier = modifier
-            .heightIn(min = 120.dp)
+            .fillMaxWidth()
             .semantics {
                 contentDescription = if (hasBags)
                     "Milk inventory, ${summary.bagCount} bags, ${summary.totalMl} milliliters. Open inventory screen."
@@ -685,23 +699,26 @@ internal fun InventoryHomeCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .padding(20.dp)
-                .animateContentSize(animationSpec = tween(200, easing = LinearOutSlowInEasing)),
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(
-                text = "🧊",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.clearAndSetSemantics {},
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Inventory",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = "🧊",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.clearAndSetSemantics {},
+                )
+                Text(
+                    text = "Inventory",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Text(
                 text = if (hasBags) "${summary.totalMl} mL · ${summary.bagCount} bags" else "No bags stored",
                 style = MaterialTheme.typography.bodyMedium,
@@ -756,7 +773,7 @@ private fun ActiveStatusBadge(
                 imageVector = if (paused) Icons.Default.Pause else Icons.Default.PlayArrow,
                 contentDescription = null,
                 tint = contentColor,
-                modifier = Modifier.size(10.dp),
+                modifier = Modifier.size(12.dp),
             )
             Text(
                 text = if (paused) "Paused" else "Live",
