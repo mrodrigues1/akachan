@@ -62,22 +62,31 @@ internal fun SleepPredictionCard(
         shape = MaterialTheme.shapes.large,
         modifier = modifier.fillMaxWidth(),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Outlined.Bedtime,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = "SLEEP PREDICTION",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.secondary,
-                )
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.Bedtime,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "SLEEP PREDICTION",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
+                if (state is SleepPredictionState.Window) {
+                    ConfidenceDots(confidence = state.window.confidence)
+                }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
             when (state) {
                 is SleepPredictionState.Window -> WindowCardContent(window = state.window)
                 is SleepPredictionState.NeedMoreData -> NeedMoreDataCardContent(progress = state.progress)
@@ -98,26 +107,20 @@ private fun WindowCardContent(window: SleepWindow) {
     Column {
         Text(
             text = "~${window.bestEstimate.formatTime()}",
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             modifier = Modifier.semantics {
                 contentDescription = "Next sleep around ${window.bestEstimate.formatTime()}"
             },
         )
         Spacer(Modifier.height(4.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = "${window.windowStart.formatTime()}–${window.windowEnd.formatTime()}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
-            )
-            ConfidenceDots(confidence = window.confidence)
-        }
-        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "${window.windowStart.formatTime()}–${window.windowEnd.formatTime()}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.65f),
+        )
         if (window.reasons.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
             window.reasons.forEach { reason ->
                 Row(
                     verticalAlignment = Alignment.Top,
@@ -125,7 +128,7 @@ private fun WindowCardContent(window: SleepWindow) {
                 ) {
                     Box(
                         modifier = Modifier
-                            .padding(top = 5.dp, end = 6.dp)
+                            .padding(top = 6.dp, end = 6.dp)
                             .size(4.dp)
                             .background(
                                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.4f),
@@ -134,14 +137,14 @@ private fun WindowCardContent(window: SleepWindow) {
                     )
                     Text(
                         text = reason,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
                     )
                 }
             }
         }
         window.feedPrompt?.let { prompt ->
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.Top) {
                 Icon(
                     imageVector = Icons.Outlined.Restaurant,
@@ -159,7 +162,7 @@ private fun WindowCardContent(window: SleepWindow) {
                 )
             }
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
         HorizontalDivider()
         Spacer(Modifier.height(4.dp))
         Row(
@@ -215,12 +218,12 @@ private fun ConfidenceDots(confidence: Confidence, modifier: Modifier = Modifier
             val filled = i < filledCount
             Box(
                 modifier = Modifier
-                    .size(6.dp)
+                    .size(8.dp)
                     .background(
                         color = if (filled) {
                             MaterialTheme.colorScheme.secondary
                         } else {
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.25f)
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f)
                         },
                         shape = CircleShape,
                     ),
@@ -235,10 +238,10 @@ private fun NeedMoreDataCardContent(progress: EvidenceProgress) {
     val filled = progress.completedIntervals.coerceAtMost(total)
     val a11yLabel = "Learning your baby's patterns. $filled of $total sleep intervals recorded."
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
             text = progress.hint,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
         Row(
@@ -249,7 +252,7 @@ private fun NeedMoreDataCardContent(progress: EvidenceProgress) {
                 val isFilled = i < filled
                 Box(
                     modifier = Modifier
-                        .size(8.dp)
+                        .size(10.dp)
                         .background(
                             color = if (isFilled) {
                                 MaterialTheme.colorScheme.secondary
@@ -283,12 +286,12 @@ private fun StatusRow(
             imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.secondary.copy(alpha = iconAlpha),
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(20.dp),
         )
-        Spacer(Modifier.width(6.dp))
+        Spacer(Modifier.width(8.dp))
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = textAlpha),
         )
     }
