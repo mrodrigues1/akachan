@@ -275,7 +275,7 @@ private fun ConfidenceDots(confidence: Confidence, modifier: Modifier = Modifier
 private fun NeedMoreDataSectionContent(progress: EvidenceProgress) {
     val total = progress.requiredIntervals.coerceAtMost(7)
     val filled = progress.completedIntervals.coerceAtMost(total)
-    val a11yLabel = "Learning your baby's patterns. $filled of $total sleep intervals recorded."
+    val a11yLabel = "Learning your baby's patterns. $filled of $total sleep sessions recorded."
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
@@ -284,6 +284,7 @@ private fun NeedMoreDataSectionContent(progress: EvidenceProgress) {
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = a11yLabel },
         ) {
@@ -302,10 +303,16 @@ private fun NeedMoreDataSectionContent(progress: EvidenceProgress) {
                         ),
                 )
             }
-        }
-        if (progress.localDays > 0) {
+            Spacer(Modifier.width(2.dp))
             Text(
-                text = "${progress.localDays} of ${progress.requiredLocalDays} days tracked",
+                text = "$filled of $total sleep sessions",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.65f),
+            )
+        }
+        if (progress.localDays in 1 until progress.requiredLocalDays) {
+            Text(
+                text = "Day ${progress.localDays} of ${progress.requiredLocalDays}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.65f),
             )
