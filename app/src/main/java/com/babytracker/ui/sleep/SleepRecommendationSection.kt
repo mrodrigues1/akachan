@@ -79,14 +79,14 @@ internal fun SleepRecommendationSection(
                     Icon(
                         imageVector = Icons.Outlined.Bedtime,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.size(20.dp),
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
                         text = "SLEEP RECOMMENDATION",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.secondary,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }
                 if (state is SleepPredictionState.Window) {

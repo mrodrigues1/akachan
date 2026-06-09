@@ -46,8 +46,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.Confidence
@@ -70,6 +73,23 @@ internal fun SleepPredictionCard(
         visibleState = state
     }
 
+    val cardDescription = when (visibleState) {
+        is SleepPredictionState.Window ->
+            "Next sleep around ${(visibleState as SleepPredictionState.Window).window.bestEstimate.formatTime()}. Open sleep screen."
+        is SleepPredictionState.NeedMoreData ->
+            "Sleep prediction: still learning patterns. Open sleep screen."
+        SleepPredictionState.Overdue ->
+            "Sleep prediction: watch for cues. Open sleep screen."
+        SleepPredictionState.CurrentlySleeping ->
+            "Baby is sleeping. Open sleep screen."
+        SleepPredictionState.CueLed ->
+            "Sleep prediction: cue-led. Open sleep screen."
+        SleepPredictionState.AfterActiveFeed ->
+            "Sleep prediction: window appears after feed. Open sleep screen."
+        is SleepPredictionState.Unavailable ->
+            "Sleep prediction. Open sleep screen."
+    }
+
     AnimatedVisibility(
         visible = state !is SleepPredictionState.Unavailable,
         enter = fadeIn(tween(200, easing = EaseOutQuart)),
@@ -85,7 +105,7 @@ internal fun SleepPredictionCard(
             shape = MaterialTheme.shapes.large,
             modifier = Modifier
                 .fillMaxWidth()
-                .semantics { contentDescription = "Sleep prediction. Open sleep screen." },
+                .semantics { contentDescription = cardDescription },
         ) {
             Column(
                 modifier = Modifier
@@ -101,14 +121,14 @@ internal fun SleepPredictionCard(
                         Icon(
                             imageVector = Icons.Outlined.Bedtime,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.size(20.dp),
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
                             text = "SLEEP PREDICTION",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.secondary,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                     }
                     AnimatedVisibility(
@@ -163,7 +183,7 @@ private fun WindowCardContent(window: SleepWindow) {
         Text(
             text = "${window.windowStart.formatTime()}–${window.windowEnd.formatTime()}",
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.65f),
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
         if (window.reasons.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
@@ -184,7 +204,7 @@ private fun WindowCardContent(window: SleepWindow) {
                     Text(
                         text = reason,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }
             }
@@ -204,7 +224,7 @@ private fun WindowCardContent(window: SleepWindow) {
                 Text(
                     text = prompt,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
             }
         }
@@ -218,8 +238,8 @@ private fun WindowCardContent(window: SleepWindow) {
                 .heightIn(min = 48.dp)
                 .clickable(role = Role.Button) { safetyExpanded = !safetyExpanded }
                 .semantics {
-                    contentDescription =
-                        if (safetyExpanded) "Collapse safe-sleep tip" else "Expand safe-sleep tip"
+                    contentDescription = "Safe sleep tip"
+                    stateDescription = if (safetyExpanded) "Expanded" else "Collapsed"
                 },
         ) {
             Text(
@@ -242,7 +262,9 @@ private fun WindowCardContent(window: SleepWindow) {
             Text(
                 text = window.safetyPrompt,
                 style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 4.dp),
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
     }
@@ -320,14 +342,14 @@ private fun NeedMoreDataCardContent(progress: EvidenceProgress) {
             Text(
                 text = "$filled of $total sleep sessions",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.65f),
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
         if (progress.localDays in 1 until progress.requiredLocalDays) {
             Text(
                 text = "Day ${progress.localDays} of ${progress.requiredLocalDays}",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.65f),
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
     }
@@ -338,7 +360,6 @@ private fun StatusRow(
     icon: ImageVector,
     text: String,
     iconAlpha: Float = 1f,
-    textAlpha: Float = 1f,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
@@ -351,7 +372,7 @@ private fun StatusRow(
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = textAlpha),
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
     }
 }
@@ -378,7 +399,6 @@ private fun CurrentlySleepingCardContent() {
         icon = Icons.Outlined.Bedtime,
         text = "Baby is sleeping",
         iconAlpha = 0.7f,
-        textAlpha = 0.8f,
     )
 }
 
