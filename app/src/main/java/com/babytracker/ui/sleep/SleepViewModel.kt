@@ -64,6 +64,7 @@ data class SleepUiState(
     val lastSleepSummary: LastSleepSummaryState = LastSleepSummaryState.Empty,
     val showEntrySheet: Boolean = false,
     val entryType: SleepType = SleepType.NAP,
+    val entryDate: LocalDate = LocalDate.now(),
     val entryStartTime: LocalTime = LocalTime.now(),
     val entryEndTime: LocalTime = LocalTime.now(),
     val entryError: String? = null,
@@ -160,11 +161,24 @@ class SleepViewModel @Inject constructor(
         viewModelScope.launch {
             val stoppedRecord = stopRecord(session.id)
             sleepNotificationScheduler.cancel()
-            if (stoppedRecord != null && stoppedRecord.sleepType == SleepType.NAP) {
-                val enabled = settingsRepository.getNapReminderEnabled().first()
-                if (enabled) {
-                    val delayMinutes = settingsRepository.getNapReminderDelayMinutes().first()
-                    napReminderScheduler.schedule(Instant.now(), delayMinutes)
+            if (stoppedRecord != null) {
+                when (stoppedRecord.sleepType) {
+                    SleepType.NIGHT_SLEEP -> {
+                        val endTime = stoppedRecord.endTime
+                        if (endTime != null) {
+                            val zone = ZoneId.systemDefault()
+                            if (endTime.atZone(zone).toLocalDate() == LocalDate.now()) {
+                                settingsRepository.setWakeTime(endTime.atZone(zone).toLocalTime())
+                            }
+                        }
+                    }
+                    SleepType.NAP -> {
+                        val enabled = settingsRepository.getNapReminderEnabled().first()
+                        if (enabled) {
+                            val delayMinutes = settingsRepository.getNapReminderDelayMinutes().first()
+                            napReminderScheduler.schedule(Instant.now(), delayMinutes)
+                        }
+                    }
                 }
             }
             runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
@@ -177,6 +191,7 @@ class SleepViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             showEntrySheet = true,
             editingRecord = null,
+            entryDate = LocalDate.now(),
             entryStartTime = start,
             entryEndTime = end,
             entryError = null,
@@ -188,10 +203,12 @@ class SleepViewModel @Inject constructor(
         val zone = zoneForEditing(record)
         val startLocal = record.startTime.atZone(zone).toLocalTime()
         val endLocal = record.endTime?.atZone(zone)?.toLocalTime() ?: LocalTime.now()
+        val dateLocal = record.startTime.atZone(zone).toLocalDate()
         _uiState.value = _uiState.value.copy(
             showEntrySheet = true,
             editingRecord = record,
             entryType = record.sleepType,
+            entryDate = dateLocal,
             entryStartTime = startLocal,
             entryEndTime = endLocal,
             entryError = null,
@@ -224,29 +241,16 @@ class SleepViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(entryType = type)
     }
 
-    fun onEntryStartTimeChanged(time: LocalTime) {
-        val newState = _uiState.value.copy(entryStartTime = time, entryError = null)
-        _uiState.value = newState.copy(entryDurationPreview = computeDurationPreview(time, newState.entryEndTime))
-    }
-
-    fun onEntryEndTimeChanged(time: LocalTime) {
-        val newState = _uiState.value.copy(entryEndTime = time, entryError = null)
-        _uiState.value = newState.copy(entryDurationPreview = computeDurationPreview(newState.entryStartTime, time))
+    fun onEntryDateChanged(date: LocalDate) {
+        _uiState.value = _uiState.value.copy(entryDate = date, entryError = null)
     }
 
     fun onSaveEntry() {
         val state = _uiState.value
         val editingRecord = state.editingRecord
         val zone = editingRecord?.let { zoneForEditing(it) } ?: ZoneId.systemDefault()
-        val referenceDate = editingRecord?.startTime?.atZone(zone)?.toLocalDate() ?: LocalDate.now()
-        val startDate = when {
-            editingRecord == null && state.entryEndTime.isBefore(state.entryStartTime) -> referenceDate.minusDays(1)
-            else -> referenceDate
-        }
-        val endDate = when {
-            editingRecord != null && state.entryEndTime.isBefore(state.entryStartTime) -> referenceDate.plusDays(1)
-            else -> referenceDate
-        }
+        val startDate = state.entryDate
+        val endDate = if (state.entryEndTime.isBefore(state.entryStartTime)) startDate.plusDays(1) else startDate
         val startInstant = state.entryStartTime.atDate(startDate).atZone(zone).toInstant()
         val endInstant = state.entryEndTime.atDate(endDate).atZone(zone).toInstant()
         if (endInstant <= startInstant) {
@@ -262,6 +266,21 @@ class SleepViewModel @Inject constructor(
             )
             return
         }
+        if (state.entryType == SleepType.NIGHT_SLEEP) {
+            val now = Instant.now()
+            val hasOverlap = history.value.any { existing ->
+                if (existing.sleepType != SleepType.NIGHT_SLEEP) return@any false
+                if (editingRecord != null && existing.id == editingRecord.id) return@any false
+                val existingEnd = existing.endTime ?: now
+                startInstant < existingEnd && endInstant > existing.startTime
+            }
+            if (hasOverlap) {
+                _uiState.value = state.copy(
+                    entryError = "Night sleep overlaps with an existing record. Adjust the times to save this sleep."
+                )
+                return
+            }
+        }
         viewModelScope.launch {
             if (editingRecord != null) {
                 updateSleepEntry(
@@ -273,6 +292,22 @@ class SleepViewModel @Inject constructor(
                 )
             } else {
                 saveSleepEntry(startInstant, endInstant, state.entryType)
+            }
+            if (state.entryType == SleepType.NIGHT_SLEEP) {
+                val sysZone = ZoneId.systemDefault()
+                if (endInstant.atZone(sysZone).toLocalDate() == LocalDate.now()) {
+                    val latestOtherEnd = history.value
+                        .filter { r ->
+                            r.sleepType == SleepType.NIGHT_SLEEP &&
+                                r.endTime?.atZone(sysZone)?.toLocalDate() == LocalDate.now() &&
+                                (editingRecord == null || r.id != editingRecord.id)
+                        }
+                        .mapNotNull { it.endTime }
+                        .maxOrNull()
+                    if (latestOtherEnd == null || endInstant >= latestOtherEnd) {
+                        settingsRepository.setWakeTime(endInstant.atZone(sysZone).toLocalTime())
+                    }
+                }
             }
             _uiState.value = _uiState.value.copy(showEntrySheet = false, entryError = null, editingRecord = null)
             runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }

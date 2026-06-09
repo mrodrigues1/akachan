@@ -158,8 +158,10 @@ class SleepViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onAddEntryClick()
-        viewModel.onEntryStartTimeChanged(LocalTime.of(20, 0))
-        viewModel.onEntryEndTimeChanged(LocalTime.of(22, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(20, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(22, 0))
         viewModel.onSaveEntry()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -184,8 +186,10 @@ class SleepViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onAddEntryClick()
-        viewModel.onEntryStartTimeChanged(LocalTime.of(20, 0))
-        viewModel.onEntryEndTimeChanged(LocalTime.of(20, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(20, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(20, 0))
         viewModel.onSaveEntry()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -199,8 +203,10 @@ class SleepViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onAddEntryClick()
-        viewModel.onEntryStartTimeChanged(LocalTime.of(20, 0))
-        viewModel.onEntryEndTimeChanged(LocalTime.of(20, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(20, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(20, 0))
         viewModel.onSaveEntry()
 
         assertEquals(
@@ -406,6 +412,7 @@ class SleepViewModelTest {
             startTime = Instant.parse("2024-01-15T20:00:00Z"),
             endTime = Instant.parse("2024-01-15T22:00:00Z"),
             sleepType = SleepType.NIGHT_SLEEP,
+            timezoneId = "UTC",
         )
 
         viewModel.onEditRecord(record)
@@ -415,6 +422,49 @@ class SleepViewModelTest {
         assertEquals(record, state.editingRecord)
         assertEquals(SleepType.NIGHT_SLEEP, state.entryType)
         assertNotNull(state.entryDurationPreview)
+        assertEquals(LocalDate.of(2024, 1, 15), state.entryDate)
+    }
+
+    @Test
+    fun `onEntryDateChanged updates entryDate`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAddEntryClick()
+        val newDate = LocalDate.of(2024, 3, 10)
+        viewModel.onEntryDateChanged(newDate)
+
+        assertEquals(newDate, viewModel.uiState.value.entryDate)
+    }
+
+    @Test
+    fun `onSaveEntry uses entryDate as start date`() = runTest {
+        val originalZone = TimeZone.getDefault()
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+        try {
+            coEvery { saveSleepEntry(any(), any(), any()) } returns 1L
+            viewModel = createViewModel()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.onAddEntryClick()
+            viewModel.onEntryDateChanged(LocalDate.of(2024, 6, 5))
+            viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+            viewModel.onConfirmTimePicker(LocalTime.of(14, 0))
+            viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+            viewModel.onConfirmTimePicker(LocalTime.of(15, 30))
+            viewModel.onSaveEntry()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coVerify {
+                saveSleepEntry(
+                    startTime = Instant.parse("2024-06-05T14:00:00Z"),
+                    endTime = Instant.parse("2024-06-05T15:30:00Z"),
+                    type = SleepType.NAP,
+                )
+            }
+        } finally {
+            TimeZone.setDefault(originalZone)
+        }
     }
 
     @Test
@@ -430,8 +480,10 @@ class SleepViewModelTest {
         )
 
         viewModel.onEditRecord(record)
-        viewModel.onEntryStartTimeChanged(LocalTime.of(10, 0))
-        viewModel.onEntryEndTimeChanged(LocalTime.of(11, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(10, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(11, 0))
         viewModel.onSaveEntry()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -459,8 +511,10 @@ class SleepViewModelTest {
             viewModel.onEditRecord(record)
             assertEquals(LocalTime.of(20, 0), viewModel.uiState.value.entryStartTime)
 
-            viewModel.onEntryStartTimeChanged(LocalTime.of(21, 0))
-            viewModel.onEntryEndTimeChanged(LocalTime.of(22, 0))
+            viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+            viewModel.onConfirmTimePicker(LocalTime.of(21, 0))
+            viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+            viewModel.onConfirmTimePicker(LocalTime.of(22, 0))
             viewModel.onSaveEntry()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -520,8 +574,10 @@ class SleepViewModelTest {
         )
 
         viewModel.onEditRecord(record)
-        viewModel.onEntryStartTimeChanged(LocalTime.of(9, 0))
-        viewModel.onEntryEndTimeChanged(LocalTime.of(9, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(9, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(9, 0))
         viewModel.onSaveEntry()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -543,8 +599,10 @@ class SleepViewModelTest {
         )
 
         viewModel.onEditRecord(record)
-        viewModel.onEntryStartTimeChanged(LocalTime.of(9, 0))
-        viewModel.onEntryEndTimeChanged(LocalTime.of(13, 1))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(9, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(13, 1))
         viewModel.onSaveEntry()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -566,8 +624,10 @@ class SleepViewModelTest {
         )
 
         viewModel.onEditRecord(record)
-        viewModel.onEntryStartTimeChanged(LocalTime.of(12, 0))
-        viewModel.onEntryEndTimeChanged(LocalTime.of(7, 1))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(12, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(7, 1))
         viewModel.onSaveEntry()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -941,5 +1001,239 @@ class SleepViewModelTest {
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(state, viewModel.uiState.value.sleepPrediction)
+    }
+
+    @Test
+    fun `onStopRecord sets wake time when NIGHT_SLEEP stops today`() = runTest {
+        val now = Instant.now()
+        val inProgress = SleepRecord(id = 2L, startTime = now.minusSeconds(28800), sleepType = SleepType.NIGHT_SLEEP)
+        val stopped = inProgress.copy(endTime = now)
+        every { getSleepHistory() } returns flowOf(listOf(inProgress))
+        coEvery { stopRecord(2L) } returns stopped
+        coJustRun { settingsRepository.setWakeTime(any()) }
+        viewModel = createViewModel()
+
+        val collectJob = launch { viewModel.activeSleepSession.collect {} }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onStopRecord()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val expectedWakeTime = now.atZone(ZoneId.systemDefault()).toLocalTime()
+        coVerify { settingsRepository.setWakeTime(expectedWakeTime) }
+        collectJob.cancel()
+    }
+
+    @Test
+    fun `onStopRecord does not set wake time when stopRecord returns null endTime`() = runTest {
+        val inProgress = SleepRecord(id = 2L, startTime = Instant.now().minusSeconds(28800), sleepType = SleepType.NIGHT_SLEEP)
+        every { getSleepHistory() } returns flowOf(listOf(inProgress))
+        coEvery { stopRecord(2L) } returns inProgress
+        viewModel = createViewModel()
+
+        val collectJob = launch { viewModel.activeSleepSession.collect {} }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onStopRecord()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { settingsRepository.setWakeTime(any()) }
+        collectJob.cancel()
+    }
+
+    @Test
+    fun `onSaveEntry sets wake time when NIGHT_SLEEP ends today`() = runTest {
+        coEvery { saveSleepEntry(any(), any(), any()) } returns 1L
+        coJustRun { settingsRepository.setWakeTime(any()) }
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAddEntryClick()
+        viewModel.onEntryTypeChanged(SleepType.NIGHT_SLEEP)
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(2, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(8, 0))
+        viewModel.onSaveEntry()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { settingsRepository.setWakeTime(LocalTime.of(8, 0)) }
+    }
+
+    @Test
+    fun `onSaveEntry does not set wake time when NIGHT_SLEEP ends on past day`() = runTest {
+        coEvery { saveSleepEntry(any(), any(), any()) } returns 1L
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val twoDaysAgo = LocalDate.now().minusDays(2)
+        viewModel.onAddEntryClick()
+        viewModel.onEntryTypeChanged(SleepType.NIGHT_SLEEP)
+        viewModel.onEntryDateChanged(twoDaysAgo)
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(22, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(7, 0))
+        viewModel.onSaveEntry()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { settingsRepository.setWakeTime(any()) }
+    }
+
+    @Test
+    fun `onSaveEntry does not set wake time when entry type is NAP`() = runTest {
+        coEvery { saveSleepEntry(any(), any(), any()) } returns 1L
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAddEntryClick()
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(13, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(14, 30))
+        viewModel.onSaveEntry()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { settingsRepository.setWakeTime(any()) }
+    }
+
+    @Test
+    fun `onSaveEntry blocks NIGHT_SLEEP save when it overlaps an existing record`() = runTest {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now()
+        val existing = SleepRecord(
+            id = 5L,
+            startTime = today.minusDays(1).atTime(LocalTime.of(22, 0)).atZone(zone).toInstant(),
+            endTime = today.atTime(LocalTime.of(6, 0)).atZone(zone).toInstant(),
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        every { getSleepHistory() } returns flowOf(listOf(existing))
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAddEntryClick()
+        viewModel.onEntryTypeChanged(SleepType.NIGHT_SLEEP)
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(5, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(8, 0))
+        viewModel.onSaveEntry()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "Night sleep overlaps with an existing record. Adjust the times to save this sleep.",
+            viewModel.uiState.value.entryError,
+        )
+        coVerify(exactly = 0) { saveSleepEntry(any(), any(), any()) }
+    }
+
+    @Test
+    fun `onSaveEntry allows NIGHT_SLEEP save when it does not overlap existing record`() = runTest {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now()
+        val existing = SleepRecord(
+            id = 5L,
+            startTime = today.minusDays(1).atTime(LocalTime.of(22, 0)).atZone(zone).toInstant(),
+            endTime = today.atTime(LocalTime.of(4, 0)).atZone(zone).toInstant(),
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        every { getSleepHistory() } returns flowOf(listOf(existing))
+        coEvery { saveSleepEntry(any(), any(), any()) } returns 2L
+        coJustRun { settingsRepository.setWakeTime(any()) }
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAddEntryClick()
+        viewModel.onEntryTypeChanged(SleepType.NIGHT_SLEEP)
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(5, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(8, 0))
+        viewModel.onSaveEntry()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.entryError)
+        coVerify { saveSleepEntry(any(), any(), eq(SleepType.NIGHT_SLEEP)) }
+    }
+
+    @Test
+    fun `onSaveEntry does not flag overlap when editing the record itself`() = runTest {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now()
+        val record = SleepRecord(
+            id = 7L,
+            startTime = today.minusDays(1).atTime(LocalTime.of(22, 0)).atZone(zone).toInstant(),
+            endTime = today.atTime(LocalTime.of(6, 0)).atZone(zone).toInstant(),
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        every { getSleepHistory() } returns flowOf(listOf(record))
+        coJustRun { updateSleepEntry(any(), any(), any(), any(), any()) }
+        coJustRun { settingsRepository.setWakeTime(any()) }
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onEditRecord(record)
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(8, 0))
+        viewModel.onSaveEntry()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.entryError)
+        coVerify { updateSleepEntry(eq(7L), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `onSaveEntry does not update wake time when a later night sleep already exists today`() = runTest {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now()
+        val laterRecord = SleepRecord(
+            id = 8L,
+            startTime = today.atTime(LocalTime.of(5, 0)).atZone(zone).toInstant(),
+            endTime = today.atTime(LocalTime.of(8, 0)).atZone(zone).toInstant(),
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        every { getSleepHistory() } returns flowOf(listOf(laterRecord))
+        coEvery { saveSleepEntry(any(), any(), any()) } returns 9L
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAddEntryClick()
+        viewModel.onEntryTypeChanged(SleepType.NIGHT_SLEEP)
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(0, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(4, 0))
+        viewModel.onSaveEntry()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { settingsRepository.setWakeTime(any()) }
+    }
+
+    @Test
+    fun `onSaveEntry updates wake time when new night sleep is the most recent ending today`() = runTest {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now()
+        val earlierRecord = SleepRecord(
+            id = 10L,
+            startTime = today.atTime(LocalTime.of(0, 0)).atZone(zone).toInstant(),
+            endTime = today.atTime(LocalTime.of(4, 0)).atZone(zone).toInstant(),
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        every { getSleepHistory() } returns flowOf(listOf(earlierRecord))
+        coEvery { saveSleepEntry(any(), any(), any()) } returns 11L
+        coJustRun { settingsRepository.setWakeTime(any()) }
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAddEntryClick()
+        viewModel.onEntryTypeChanged(SleepType.NIGHT_SLEEP)
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(5, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(8, 0))
+        viewModel.onSaveEntry()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { settingsRepository.setWakeTime(LocalTime.of(8, 0)) }
     }
 }

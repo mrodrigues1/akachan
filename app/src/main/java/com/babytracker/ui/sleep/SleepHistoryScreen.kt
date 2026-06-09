@@ -84,6 +84,7 @@ fun SleepHistoryScreen(
                 onTypeChanged = viewModel::onEntryTypeChanged,
                 onStartTimeClick = { viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START) },
                 onEndTimeClick = { viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END) },
+                onDateChanged = viewModel::onEntryDateChanged,
                 onSave = viewModel::onSaveEntry
             )
         }

@@ -16,6 +16,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +40,7 @@ fun HistoryCard(
     trailingColor: Color = MaterialTheme.colorScheme.primary,
     trailingIcon: ImageVector? = null,
     trailingIconDescription: String? = null,
+    trailingContent: (@Composable RowScope.() -> Unit)? = null,
     onClick: (() -> Unit)? = null,
 ) {
     val isDark = LocalDarkTheme.current
@@ -98,14 +100,17 @@ fun HistoryCard(
                 color = trailingColor,
             )
 
-            if (trailingIcon != null) {
-                Spacer(modifier = Modifier.width(6.dp))
-                Icon(
-                    imageVector = trailingIcon,
-                    contentDescription = trailingIconDescription,
-                    tint = trailingColor,
-                    modifier = Modifier.size(18.dp),
-                )
+            when {
+                trailingContent != null -> trailingContent()
+                trailingIcon != null -> {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        imageVector = trailingIcon,
+                        contentDescription = trailingIconDescription,
+                        tint = trailingColor,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
         }
     }

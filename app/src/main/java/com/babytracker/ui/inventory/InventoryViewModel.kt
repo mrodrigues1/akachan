@@ -34,6 +34,7 @@ data class InventoryUiState(
     val bags: List<MilkBagWithExpiration> = emptyList(),
     val addSheet: AddBagSheetState? = null,
     val editSheet: EditBagSheetState? = null,
+    val pendingDeleteBag: MilkBag? = null,
     val error: String? = null,
 )
 
@@ -216,7 +217,17 @@ class InventoryViewModel @Inject constructor(
         }
     }
 
-    fun onDelete(bag: MilkBag) {
+    fun onDeleteRequest(bag: MilkBag) {
+        _uiState.value = _uiState.value.copy(pendingDeleteBag = bag)
+    }
+
+    fun onDismissDelete() {
+        _uiState.value = _uiState.value.copy(pendingDeleteBag = null)
+    }
+
+    fun onConfirmDelete() {
+        val bag = _uiState.value.pendingDeleteBag ?: return
+        _uiState.value = _uiState.value.copy(pendingDeleteBag = null)
         viewModelScope.launch {
             runCatching { deleteBag(bag) }
                 .onFailure { _uiState.value = _uiState.value.copy(error = "Could not delete bag") }

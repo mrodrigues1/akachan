@@ -421,13 +421,31 @@ class InventoryViewModelTest {
     }
 
     @Test
-    fun `onDelete calls deleteBag use case`() = runTest {
+    fun `onDeleteRequest sets pendingDeleteBag`() = runTest {
+        viewModel.onDeleteRequest(sampleBag)
+
+        assertEquals(sampleBag, viewModel.uiState.value.pendingDeleteBag)
+    }
+
+    @Test
+    fun `onDismissDelete clears pendingDeleteBag without deleting`() = runTest {
+        viewModel.onDeleteRequest(sampleBag)
+        viewModel.onDismissDelete()
+
+        assertNull(viewModel.uiState.value.pendingDeleteBag)
+        coVerify(exactly = 0) { deleteBag(any()) }
+    }
+
+    @Test
+    fun `onConfirmDelete calls deleteBag and clears pendingDeleteBag`() = runTest {
         coJustRun { deleteBag(sampleBag) }
 
-        viewModel.onDelete(sampleBag)
+        viewModel.onDeleteRequest(sampleBag)
+        viewModel.onConfirmDelete()
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { deleteBag(sampleBag) }
+        assertNull(viewModel.uiState.value.pendingDeleteBag)
     }
 
     @Test
@@ -441,10 +459,11 @@ class InventoryViewModelTest {
     }
 
     @Test
-    fun `onDelete sets error when deleteBag throws`() = runTest {
+    fun `onConfirmDelete sets error when deleteBag throws`() = runTest {
         coEvery { deleteBag(sampleBag) } throws RuntimeException("db error")
 
-        viewModel.onDelete(sampleBag)
+        viewModel.onDeleteRequest(sampleBag)
+        viewModel.onConfirmDelete()
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals("Could not delete bag", viewModel.uiState.value.error)

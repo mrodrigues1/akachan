@@ -4,7 +4,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -31,6 +31,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -48,19 +52,21 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -77,9 +83,11 @@ import com.babytracker.ui.component.formatElapsedAsClock
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -111,9 +119,13 @@ fun SleepTrackingScreen(
     val napCount = remember(todayEntries) {
         todayEntries.count { it.sleepType == SleepType.NAP }
     }
-    val nightSleepDuration = remember(todayEntries) {
-        todayEntries
-            .filter { it.sleepType == SleepType.NIGHT_SLEEP && it.endTime != null }
+    val nightSleepDuration = remember(history) {
+        val today = LocalDate.now()
+        history
+            .filter { record ->
+                record.sleepType == SleepType.NIGHT_SLEEP &&
+                    record.endTime?.atZone(zone)?.toLocalDate() == today
+            }
             .mapNotNull { record -> record.endTime?.let { Duration.between(record.startTime, it) } }
             .fold(Duration.ZERO) { acc, d -> acc + d }
     }
@@ -152,6 +164,7 @@ fun SleepTrackingScreen(
                 onTypeChanged = viewModel::onEntryTypeChanged,
                 onStartTimeClick = { viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START) },
                 onEndTimeClick = { viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END) },
+                onDateChanged = viewModel::onEntryDateChanged,
                 onSave = viewModel::onSaveEntry
             )
         }
@@ -415,17 +428,11 @@ internal fun SwipeableSleepEntry(
         enableDismissFromStartToEnd = false,
         backgroundContent = { SleepEntryDeleteBackground(dismissState.targetValue) }
     ) {
-        Box(
-            modifier = Modifier.combinedClickable(
-                role = Role.Button,
-                onClickLabel = "Edit sleep entry",
-                onLongClickLabel = "Edit sleep entry",
-                onLongClick = { onEditRecord(record) },
-                onClick = { onEditRecord(record) }
-            )
-        ) {
-            SleepEntryCard(record = record)
-        }
+        SleepEntryCard(
+            record = record,
+            onEdit = { onEditRecord(record) },
+            onDelete = { onDeleteRequest(record) },
+        )
     }
 }
 
@@ -595,7 +602,12 @@ private fun ActiveSleepCard(record: SleepRecord, onStop: () -> Unit) {
 }
 
 @Composable
-internal fun SleepEntryCard(record: SleepRecord) {
+internal fun SleepEntryCard(
+    record: SleepRecord,
+    onEdit: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
     HistoryCard(
         title = record.sleepType.label,
         subtitle = buildString {
@@ -608,8 +620,38 @@ internal fun SleepEntryCard(record: SleepRecord) {
         badgeEmoji = record.sleepType.emoji,
         badgeColor = MaterialTheme.colorScheme.secondaryContainer,
         trailingColor = MaterialTheme.colorScheme.secondary,
-        trailingIcon = Icons.Default.Edit,
-        trailingIconDescription = "Edit sleep entry",
+        trailingContent = if (onEdit != null && onDelete != null) {
+            {
+                Box {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "More options",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Edit") },
+                            onClick = {
+                                menuExpanded = false
+                                onEdit()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            onClick = {
+                                menuExpanded = false
+                                onDelete()
+                            },
+                        )
+                    }
+                }
+            }
+        } else null,
     )
 }
 
@@ -620,10 +662,34 @@ internal fun AddSleepEntrySheetContent(
     onTypeChanged: (SleepType) -> Unit,
     onStartTimeClick: () -> Unit,
     onEndTimeClick: () -> Unit,
+    onDateChanged: (LocalDate) -> Unit,
     onSave: () -> Unit,
     isEditing: Boolean = false,
 ) {
-    val formatter = remember { DateTimeFormatter.ofPattern("h:mm a").withLocale(java.util.Locale.getDefault()) }
+    val timeFormatter = remember { DateTimeFormatter.ofPattern("h:mm a").withLocale(java.util.Locale.getDefault()) }
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("EEE, MMM d").withLocale(java.util.Locale.getDefault()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    if (showDatePicker) {
+        val initialMillis = uiState.entryDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val millis = datePickerState.selectedDateMillis ?: return@TextButton
+                    val picked = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
+                    onDateChanged(picked)
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -655,6 +721,32 @@ internal fun AddSleepEntrySheetContent(
             }
         }
 
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "DATE",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedCard(
+                onClick = { showDatePicker = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .semantics { contentDescription = "Change date" },
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+            ) {
+                Text(
+                    text = uiState.entryDate.format(dateFormatter),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                )
+            }
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -674,7 +766,7 @@ internal fun AddSleepEntrySheetContent(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text(
-                        text = uiState.entryStartTime.format(formatter),
+                        text = uiState.entryStartTime.format(timeFormatter),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
@@ -699,7 +791,7 @@ internal fun AddSleepEntrySheetContent(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text(
-                        text = uiState.entryEndTime.format(formatter),
+                        text = uiState.entryEndTime.format(timeFormatter),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,

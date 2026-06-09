@@ -18,6 +18,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -32,6 +35,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -123,7 +127,7 @@ fun InventoryScreen(
             state = state,
             onEdit = viewModel::onEditBagClicked,
             onMarkUsed = viewModel::onMarkUsed,
-            onDelete = viewModel::onDelete,
+            onDelete = viewModel::onDeleteRequest,
             contentPadding = PaddingValues(
                 top = padding.calculateTopPadding() + 8.dp,
                 bottom = padding.calculateBottomPadding() + 8.dp,
@@ -150,6 +154,14 @@ fun InventoryScreen(
             onDismiss = viewModel::onEditBagDismiss,
             title = "Edit milk bag",
             confirmLabel = "Save changes",
+        )
+    }
+
+    state.pendingDeleteBag?.let { bag ->
+        MilkBagDeleteConfirmationDialog(
+            bag = bag,
+            onDismiss = viewModel::onDismissDelete,
+            onConfirm = viewModel::onConfirmDelete,
         )
     }
 }
@@ -415,4 +427,26 @@ private fun MilkBagRow(
             }
         }
     }
+}
+
+@Composable
+private fun MilkBagDeleteConfirmationDialog(
+    bag: MilkBag,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete bag?") },
+        text = { Text("${bag.volumeMl} mL bag will be removed.") },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) { Text("Delete") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
