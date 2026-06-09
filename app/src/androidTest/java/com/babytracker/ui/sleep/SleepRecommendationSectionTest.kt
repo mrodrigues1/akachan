@@ -1,9 +1,10 @@
 package com.babytracker.ui.sleep
 
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.Confidence
@@ -104,7 +105,7 @@ class SleepRecommendationSectionTest {
                 SleepRecommendationSection(state = windowState(feedPrompt = null))
             }
         }
-        composeRule.onNodeWithText("a breastfeed may be due near this window").assertDoesNotExist()
+        composeRule.onAllNodesWithText("a breastfeed may be due near this window").assertCountEquals(0)
     }
 
     @Test
@@ -164,6 +165,6 @@ class SleepRecommendationSectionTest {
                 )
             }
         }
-        composeRule.onNodeWithText("SLEEP PREDICTION").assertDoesNotExist()
+        composeRule.onAllNodesWithText("SLEEP PREDICTION").assertCountEquals(0)
     }
 }

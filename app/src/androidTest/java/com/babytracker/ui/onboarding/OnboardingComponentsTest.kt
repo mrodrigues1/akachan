@@ -36,6 +36,7 @@ import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
+import io.mockk.mockk
 import com.babytracker.ui.onboarding.components.AllergiesStepContent
 import com.babytracker.ui.onboarding.components.BabyInfoStepContent
 import com.babytracker.ui.onboarding.components.WelcomeStepContent
@@ -179,7 +180,7 @@ class OnboardingComponentsTest {
     @Test
     fun onboardingScreenShowsSaveFailureSnackbar() {
         val viewModel = OnboardingViewModel(
-            SaveBabyProfileUseCase(FailingBabyRepository()),
+            SaveBabyProfileUseCase(FailingBabyRepository(), mockk(relaxed = true)),
         )
 
         composeRule.setContent {

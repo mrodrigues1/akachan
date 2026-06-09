@@ -65,7 +65,7 @@ class SettingsScreenPredictionTest {
         return SettingsViewModel(
             getBabyProfile = GetBabyProfileUseCase(babyRepository),
             settingsRepository = settingsRepository,
-            saveBabyProfile = SaveBabyProfileUseCase(babyRepository),
+            saveBabyProfile = SaveBabyProfileUseCase(babyRepository, mockk(relaxed = true)),
             countRecentValidIntervals = countRecentValidIntervals,
             notificationPermissionChecker = permissionChecker,
             napReminderScheduler = mockk(relaxed = true),

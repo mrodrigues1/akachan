@@ -93,6 +93,7 @@ class SleepTrackingScreenTest {
                     onTypeChanged = {},
                     onStartTimeClick = {},
                     onEndTimeClick = {},
+                    onDateChanged = {},
                     onSave = {},
                 )
             }
@@ -113,6 +114,7 @@ class SleepTrackingScreenTest {
                     onTypeChanged = {},
                     onStartTimeClick = {},
                     onEndTimeClick = {},
+                    onDateChanged = {},
                     onSave = {},
                 )
             }
@@ -135,6 +137,7 @@ class SleepTrackingScreenTest {
                     onTypeChanged = {},
                     onStartTimeClick = {},
                     onEndTimeClick = {},
+                    onDateChanged = {},
                     onSave = {},
                 )
             }

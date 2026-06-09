@@ -48,7 +48,7 @@ class SettingsScreenTest {
         return SettingsViewModel(
             getBabyProfile = GetBabyProfileUseCase(babyRepository),
             settingsRepository = settingsRepository,
-            saveBabyProfile = SaveBabyProfileUseCase(babyRepository),
+            saveBabyProfile = SaveBabyProfileUseCase(babyRepository, mockk(relaxed = true)),
             countRecentValidIntervals = countRecentValidIntervals,
             notificationPermissionChecker = NotificationPermissionChecker { true },
             napReminderScheduler = mockk(relaxed = true),
@@ -117,7 +117,7 @@ class SettingsScreenTest {
         val viewModel = SettingsViewModel(
             getBabyProfile = GetBabyProfileUseCase(babyRepo),
             settingsRepository = settingsRepo,
-            saveBabyProfile = SaveBabyProfileUseCase(babyRepo),
+            saveBabyProfile = SaveBabyProfileUseCase(babyRepo, mockk(relaxed = true)),
             countRecentValidIntervals = countRecentValidIntervals,
             notificationPermissionChecker = NotificationPermissionChecker { true },
             napReminderScheduler = mockk(relaxed = true),

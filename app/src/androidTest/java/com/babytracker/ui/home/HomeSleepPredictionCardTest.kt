@@ -1,9 +1,11 @@
 package com.babytracker.ui.home
 
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.Confidence
@@ -133,6 +135,6 @@ class HomeSleepPredictionCardTest {
         composeRule.setContent {
             BabyTrackerTheme { SleepPredictionCard(state = SleepPredictionState.Unavailable("no data")) }
         }
-        composeRule.onNodeWithText("SLEEP PREDICTION").assertDoesNotExist()
+        composeRule.onAllNodesWithText("SLEEP PREDICTION").assertCountEquals(0)
     }
 }
