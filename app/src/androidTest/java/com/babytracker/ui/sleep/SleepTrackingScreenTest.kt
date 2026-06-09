@@ -55,6 +55,7 @@ class SleepTrackingScreenTest {
         composeRule.onNode(
             SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button) and hasClickAction(),
         ).performClick()
+        composeRule.onNodeWithText("Edit").performClick()
 
         composeRule.runOnIdle {
             assertEquals(record, editedRecord)
@@ -163,7 +164,7 @@ class SleepTrackingScreenTest {
         composeRule.onNodeWithText("😣 Fussy").assertIsDisplayed()
         composeRule.onNodeWithText("🤒 Sick").assertIsDisplayed()
         composeRule.onNodeWithText("🦷 Teething").assertIsDisplayed()
-        composeRule.onNodeWithText("✈️ Travel").assertIsDisplayed()
+        composeRule.onNodeWithText("✈️ Travel").performScrollTo().assertIsDisplayed()
     }
 
     private fun sheetState(sleepType: SleepType) = SleepUiState(

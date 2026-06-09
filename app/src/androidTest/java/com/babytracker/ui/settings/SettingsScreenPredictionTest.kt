@@ -4,6 +4,7 @@ import android.provider.Settings as AndroidSettings
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -89,8 +90,8 @@ class SettingsScreenPredictionTest {
 
         // Toggle OFF: "Notify ahead by" row exists (just dimmed by alpha). Clicking "30m"
         // should be a no-op because enabled=false on the segmented button.
-        composeRule.onNodeWithText("Notify ahead by").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("30m").performScrollTo().performClick()
+        composeRule.onAllNodesWithText("Notify ahead by")[0].performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText("30m")[0].performScrollTo().performClick()
         composeRule.waitForIdle()
         // No state change when disabled.
         assertEquals(
@@ -104,7 +105,7 @@ class SettingsScreenPredictionTest {
         composeRule.waitForIdle()
 
         // Now click "30m" - it should update.
-        composeRule.onNodeWithText("30m").performScrollTo().performClick()
+        composeRule.onAllNodesWithText("30m")[0].performScrollTo().performClick()
         composeRule.waitForIdle()
         assertEquals(
             "Expected lead minutes to be 30 after toggle ON",
@@ -126,7 +127,7 @@ class SettingsScreenPredictionTest {
             SettingsScreen(onNavigateBack = {}, viewModel = vm, dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText(TEXT_QUIET_HOURS_DISABLED).performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText(TEXT_QUIET_HOURS_DISABLED)[0].performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -144,7 +145,7 @@ class SettingsScreenPredictionTest {
         }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("30m").performScrollTo().performClick()
+        composeRule.onAllNodesWithText("30m")[0].performScrollTo().performClick()
         composeRule.waitForIdle()
 
         assertEquals(

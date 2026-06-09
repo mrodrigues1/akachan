@@ -5,7 +5,9 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
@@ -56,7 +58,7 @@ class SleepRecommendationSectionTest {
                 SleepRecommendationSection(state = windowState(confidence = Confidence.MEDIUM))
             }
         }
-        composeRule.onNodeWithText("MEDIUM").assertIsDisplayed()
+        composeRule.onNodeWithText("Confidence: Medium").assertIsDisplayed()
     }
 
     @Test
@@ -66,7 +68,7 @@ class SleepRecommendationSectionTest {
                 SleepRecommendationSection(state = windowState(confidence = Confidence.LOW))
             }
         }
-        composeRule.onNodeWithText("LOW").assertIsDisplayed()
+        composeRule.onNodeWithText("Confidence: Low").assertIsDisplayed()
     }
 
     @Test
@@ -83,6 +85,8 @@ class SleepRecommendationSectionTest {
         composeRule.setContent {
             BabyTrackerTheme { SleepRecommendationSection(state = windowState()) }
         }
+        composeRule.onNodeWithContentDescription("Safe sleep tip").performClick()
+        composeRule.waitForIdle()
         composeRule.onNodeWithText("Always place baby on their back to sleep.").assertIsDisplayed()
     }
 
@@ -143,7 +147,7 @@ class SleepRecommendationSectionTest {
                 SleepRecommendationSection(state = SleepPredictionState.CurrentlySleeping)
             }
         }
-        composeRule.onNodeWithText("Baby is currently sleeping", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Baby is sleeping", substring = true).assertIsDisplayed()
     }
 
     @Test

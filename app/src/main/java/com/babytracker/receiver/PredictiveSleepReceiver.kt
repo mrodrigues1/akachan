@@ -69,7 +69,7 @@ class PredictiveSleepReceiver : BroadcastReceiver() {
             } catch (e: SecurityException) {
                 Log.w(TAG, "POST_NOTIFICATIONS denied; skipping reminder", e)
             } finally {
-                result.finish()
+                result?.finish()
             }
         }
     }
