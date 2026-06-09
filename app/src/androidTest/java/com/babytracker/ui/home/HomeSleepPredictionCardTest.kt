@@ -4,9 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
@@ -59,36 +57,35 @@ class HomeSleepPredictionCardTest {
     }
 
     @Test
-    fun windowState_lowConfidence_showsLowConfidenceIndicator() {
+    fun windowState_lowConfidence_showsLowConfidenceLabel() {
         composeRule.setContent {
             BabyTrackerTheme { SleepPredictionCard(state = windowState(confidence = Confidence.LOW)) }
         }
-        composeRule.onNodeWithContentDescription("Low confidence prediction").assertIsDisplayed()
+        composeRule.onNodeWithText("Confidence: Low").assertIsDisplayed()
     }
 
     @Test
-    fun windowState_mediumConfidence_showsMediumConfidenceIndicator() {
+    fun windowState_mediumConfidence_showsMediumConfidenceLabel() {
         composeRule.setContent {
             BabyTrackerTheme { SleepPredictionCard(state = windowState(confidence = Confidence.MEDIUM)) }
         }
-        composeRule.onNodeWithContentDescription("Medium confidence prediction").assertIsDisplayed()
+        composeRule.onNodeWithText("Confidence: Medium").assertIsDisplayed()
     }
 
     @Test
-    fun windowState_safeSleepCollapsed_byDefault() {
+    fun windowState_highConfidence_showsHighConfidenceLabel() {
         composeRule.setContent {
-            BabyTrackerTheme { SleepPredictionCard(state = windowState()) }
+            BabyTrackerTheme { SleepPredictionCard(state = windowState(confidence = Confidence.HIGH)) }
         }
-        composeRule.onNodeWithText("Always place baby on their back to sleep.").assertDoesNotExist()
+        composeRule.onNodeWithText("Confidence: High").assertIsDisplayed()
     }
 
     @Test
-    fun windowState_safeSleepExpandsOnToggle() {
+    fun windowState_showsWindowRange() {
         composeRule.setContent {
             BabyTrackerTheme { SleepPredictionCard(state = windowState()) }
         }
-        composeRule.onNodeWithText("Safe sleep").performClick()
-        composeRule.onNodeWithText("Always place baby on their back to sleep.").assertIsDisplayed()
+        composeRule.onNodeWithText("14:20", substring = true).assertIsDisplayed()
     }
 
     @Test

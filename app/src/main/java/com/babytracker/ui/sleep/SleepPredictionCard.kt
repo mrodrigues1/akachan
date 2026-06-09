@@ -10,7 +10,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,23 +17,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.ChildCare
 import androidx.compose.material.icons.outlined.HourglassEmpty
-import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,11 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.Confidence
@@ -114,32 +104,20 @@ internal fun SleepPredictionCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Outlined.Bedtime,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = "SLEEP PREDICTION",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        )
-                    }
-                    AnimatedVisibility(
-                        visible = visibleState is SleepPredictionState.Window,
-                        enter = fadeIn(tween(150, easing = EaseOutQuart)),
-                        exit = fadeOut(tween(120, easing = EaseOutQuart)),
-                    ) {
-                        val confidence = (visibleState as? SleepPredictionState.Window)
-                            ?.window?.confidence ?: Confidence.LOW
-                        ConfidenceDots(confidence = confidence)
-                    }
+                    Icon(
+                        imageVector = Icons.Outlined.Bedtime,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "SLEEP PREDICTION",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
                 }
                 Spacer(Modifier.height(12.dp))
                 AnimatedContent(
@@ -168,8 +146,11 @@ internal fun SleepPredictionCard(
 
 @Composable
 private fun WindowCardContent(window: SleepWindow) {
-    var safetyExpanded by remember { mutableStateOf(false) }
-
+    val confidenceLabel = when (window.confidence) {
+        Confidence.LOW -> "Confidence: Low"
+        Confidence.MEDIUM -> "Confidence: Medium"
+        Confidence.HIGH -> "Confidence: High"
+    }
     Column {
         Text(
             text = "Around ${window.bestEstimate.formatTime()}",
@@ -185,123 +166,12 @@ private fun WindowCardContent(window: SleepWindow) {
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
-        if (window.reasons.isNotEmpty()) {
-            Spacer(Modifier.height(12.dp))
-            window.reasons.forEach { reason ->
-                Row(
-                    verticalAlignment = Alignment.Top,
-                    modifier = Modifier.padding(vertical = 2.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .padding(top = 6.dp, end = 6.dp)
-                            .size(4.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.4f),
-                                shape = CircleShape,
-                            ),
-                    )
-                    Text(
-                        text = reason,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                }
-            }
-        }
-        window.feedPrompt?.let { prompt ->
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.Top) {
-                Icon(
-                    imageVector = Icons.Outlined.Restaurant,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier
-                        .padding(top = 2.dp)
-                        .size(14.dp),
-                )
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    text = prompt,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        HorizontalDivider()
         Spacer(Modifier.height(4.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .clickable(role = Role.Button) { safetyExpanded = !safetyExpanded }
-                .semantics {
-                    contentDescription = "Safe sleep tip"
-                    stateDescription = if (safetyExpanded) "Expanded" else "Collapsed"
-                },
-        ) {
-            Text(
-                text = "Safe sleep",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-            Spacer(Modifier.width(2.dp))
-            Icon(
-                imageVector = if (safetyExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-            )
-        }
-        AnimatedVisibility(
-            visible = safetyExpanded,
-            enter = fadeIn(tween(150, easing = EaseOutQuart)),
-            exit = fadeOut(tween(120, easing = EaseOutQuart)),
-        ) {
-            Text(
-                text = window.safetyPrompt,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .semantics { liveRegion = LiveRegionMode.Polite },
-            )
-        }
-    }
-}
-
-@Composable
-private fun ConfidenceDots(confidence: Confidence, modifier: Modifier = Modifier) {
-    val filledCount = when (confidence) {
-        Confidence.LOW -> 1
-        Confidence.MEDIUM -> 2
-        Confidence.HIGH -> 3
-    }
-    val label = when (confidence) {
-        Confidence.LOW -> "Low confidence prediction"
-        Confidence.MEDIUM -> "Medium confidence prediction"
-        Confidence.HIGH -> "High confidence prediction"
-    }
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = modifier.semantics(mergeDescendants = true) { contentDescription = label },
-    ) {
-        repeat(3) { i ->
-            val filled = i < filledCount
-            val alpha by animateFloatAsState(
-                targetValue = if (filled) 1f else 0.22f,
-                animationSpec = tween(150, easing = EaseOutQuart),
-                label = "confidence_dot_$i",
-            )
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.secondary.copy(alpha = alpha),
-                        shape = CircleShape,
-                    ),
-            )
-        }
+        Text(
+            text = confidenceLabel,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
+        )
     }
 }
 
