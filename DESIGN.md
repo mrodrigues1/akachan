@@ -285,7 +285,7 @@ Appears on HomeScreen below the summary grid. Surfaces the ML-driven next-sleep 
 
 ### CueQuickTapRow (Signature Component)
 A horizontally scrollable row of six `FilterChip`s for one-tap baby event logging.
-- **Position:** Below SleepPredictionCard on HomeScreen.
+- **Position:** Below SleepPredictionCard on SleepTrackingScreen only — not present on HomeScreen.
 - **Chips:** Emoji + label in `labelMedium`. Event types: Sleepy, Hungry, Fussy, Sick, Teething, Travel. Spaced 8dp apart.
 - **Tap sequence:** Scale 0.80 → 1.25 → 0.94 → 1.0 across four keyframes (65ms, 190ms, 110ms, 130ms). Communicates confirmation without a separate success state.
 - **Selection state:** Chip shows a check icon (16dp, animated scale + alpha) and a filter-chip selected background. Auto-deselects after 1.5s. Multiple chips can be independently selected.
