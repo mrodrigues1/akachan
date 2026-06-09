@@ -221,14 +221,7 @@ fun SleepTrackingScreen(
                 )
             }
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "CUES",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.secondary,
-                    )
-                    CueQuickTapRow(onCueTapped = viewModel::onCueTapped)
-                }
+                CueQuickTapRow(onCueTapped = viewModel::onCueTapped)
             }
             item {
                 Text(

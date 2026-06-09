@@ -78,7 +78,7 @@ fun CueQuickTapRow(
 		Text(
 			text = "LOG A CUE",
 			style = MaterialTheme.typography.labelMedium,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
+			color = MaterialTheme.colorScheme.secondary,
 		)
 		Spacer(Modifier.height(4.dp))
 		Row(
