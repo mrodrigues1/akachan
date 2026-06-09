@@ -8,18 +8,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
-import com.babytracker.domain.model.ScheduleEntry
-import com.babytracker.domain.model.ScheduleMode
 import com.babytracker.domain.model.SleepPredictionState
-import com.babytracker.domain.model.SleepSchedule
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.ui.theme.BabyTrackerTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.time.Duration
 import java.time.Instant
-import java.time.LocalTime
 
 @RunWith(AndroidJUnit4::class)
 class SleepRecommendationSectionTest {
@@ -53,26 +48,11 @@ class SleepRecommendationSectionTest {
         )
     )
 
-    private fun scheduleWithNapAt(napTime: LocalTime) = SleepSchedule(
-        ageInWeeks = 20,
-        mode = ScheduleMode.CLOCK_ALIGNED,
-        wakeWindows = emptyList(),
-        napTimes = listOf(ScheduleEntry(startTime = napTime, duration = Duration.ofMinutes(90), label = "Nap")),
-        bedtime = LocalTime.of(19, 0),
-        bedtimeWindow = LocalTime.of(18, 30)..LocalTime.of(19, 30),
-        totalSleepRecommendation = Duration.ofHours(14)..Duration.ofHours(16),
-        totalSleepLogged = null,
-        regressionWarning = null,
-        napTransitionSuggestion = null,
-        lastFeedTime = null,
-        isPersonalized = false,
-    )
-
     @Test
     fun windowState_showsConfidenceBadge_medium() {
         composeRule.setContent {
             BabyTrackerTheme {
-                SleepRecommendationSection(state = windowState(confidence = Confidence.MEDIUM), schedule = null)
+                SleepRecommendationSection(state = windowState(confidence = Confidence.MEDIUM))
             }
         }
         composeRule.onNodeWithText("MEDIUM").assertIsDisplayed()
@@ -82,7 +62,7 @@ class SleepRecommendationSectionTest {
     fun windowState_showsConfidenceBadge_low() {
         composeRule.setContent {
             BabyTrackerTheme {
-                SleepRecommendationSection(state = windowState(confidence = Confidence.LOW), schedule = null)
+                SleepRecommendationSection(state = windowState(confidence = Confidence.LOW))
             }
         }
         composeRule.onNodeWithText("LOW").assertIsDisplayed()
@@ -91,7 +71,7 @@ class SleepRecommendationSectionTest {
     @Test
     fun windowState_showsReasons() {
         composeRule.setContent {
-            BabyTrackerTheme { SleepRecommendationSection(state = windowState(), schedule = null) }
+            BabyTrackerTheme { SleepRecommendationSection(state = windowState()) }
         }
         composeRule.onNodeWithText("awake 2h05").assertIsDisplayed()
         composeRule.onNodeWithText("based on recent wake patterns").assertIsDisplayed()
@@ -100,7 +80,7 @@ class SleepRecommendationSectionTest {
     @Test
     fun windowState_safetyPromptAlwaysShown() {
         composeRule.setContent {
-            BabyTrackerTheme { SleepRecommendationSection(state = windowState(), schedule = null) }
+            BabyTrackerTheme { SleepRecommendationSection(state = windowState()) }
         }
         composeRule.onNodeWithText("Always place baby on their back to sleep.").assertIsDisplayed()
     }
@@ -111,7 +91,6 @@ class SleepRecommendationSectionTest {
             BabyTrackerTheme {
                 SleepRecommendationSection(
                     state = windowState(feedPrompt = "a breastfeed may be due near this window"),
-                    schedule = null,
                 )
             }
         }
@@ -122,7 +101,7 @@ class SleepRecommendationSectionTest {
     fun windowState_feedPromptNotShown_whenNull() {
         composeRule.setContent {
             BabyTrackerTheme {
-                SleepRecommendationSection(state = windowState(feedPrompt = null), schedule = null)
+                SleepRecommendationSection(state = windowState(feedPrompt = null))
             }
         }
         composeRule.onNodeWithText("a breastfeed may be due near this window").assertDoesNotExist()
@@ -131,7 +110,7 @@ class SleepRecommendationSectionTest {
     @Test
     fun needMoreDataState_showsHint() {
         composeRule.setContent {
-            BabyTrackerTheme { SleepRecommendationSection(state = needMoreDataState(), schedule = null) }
+            BabyTrackerTheme { SleepRecommendationSection(state = needMoreDataState()) }
         }
         composeRule.onNodeWithText("Log a few more naps with both sleep and wake times.", substring = true).assertIsDisplayed()
     }
@@ -140,7 +119,7 @@ class SleepRecommendationSectionTest {
     fun overdueState_showsMessage() {
         composeRule.setContent {
             BabyTrackerTheme {
-                SleepRecommendationSection(state = SleepPredictionState.Overdue, schedule = null)
+                SleepRecommendationSection(state = SleepPredictionState.Overdue)
             }
         }
         composeRule.onNodeWithText("Watch for sleep cues", substring = true).assertIsDisplayed()
@@ -150,7 +129,7 @@ class SleepRecommendationSectionTest {
     fun cueLedState_showsMessage() {
         composeRule.setContent {
             BabyTrackerTheme {
-                SleepRecommendationSection(state = SleepPredictionState.CueLed, schedule = null)
+                SleepRecommendationSection(state = SleepPredictionState.CueLed)
             }
         }
         composeRule.onNodeWithText("Watching baby's cues", substring = true).assertIsDisplayed()
@@ -160,7 +139,7 @@ class SleepRecommendationSectionTest {
     fun currentlySleepingState_showsMessage() {
         composeRule.setContent {
             BabyTrackerTheme {
-                SleepRecommendationSection(state = SleepPredictionState.CurrentlySleeping, schedule = null)
+                SleepRecommendationSection(state = SleepPredictionState.CurrentlySleeping)
             }
         }
         composeRule.onNodeWithText("Baby is currently sleeping", substring = true).assertIsDisplayed()
@@ -170,7 +149,7 @@ class SleepRecommendationSectionTest {
     fun afterActiveFeedState_showsMessage() {
         composeRule.setContent {
             BabyTrackerTheme {
-                SleepRecommendationSection(state = SleepPredictionState.AfterActiveFeed, schedule = null)
+                SleepRecommendationSection(state = SleepPredictionState.AfterActiveFeed)
             }
         }
         composeRule.onNodeWithText("A feed is in progress", substring = true).assertIsDisplayed()
@@ -182,34 +161,9 @@ class SleepRecommendationSectionTest {
             BabyTrackerTheme {
                 SleepRecommendationSection(
                     state = SleepPredictionState.Unavailable("no data"),
-                    schedule = null,
                 )
             }
         }
-        composeRule.onNodeWithText("SLEEP RECOMMENDATION").assertDoesNotExist()
-    }
-
-    @Test
-    fun windowState_planVsPredictorRow_appearsWhenFutureNapExists() {
-        val now = LocalTime.of(14, 0)
-        val schedule = scheduleWithNapAt(LocalTime.of(15, 0))
-        composeRule.setContent {
-            BabyTrackerTheme {
-                SleepRecommendationSection(state = windowState(), schedule = schedule, now = now)
-            }
-        }
-        composeRule.onNodeWithText("DAY PLAN").assertIsDisplayed()
-    }
-
-    @Test
-    fun windowState_planVsPredictorRow_hiddenWhenAllNapsPast() {
-        val now = LocalTime.of(16, 0)
-        val schedule = scheduleWithNapAt(LocalTime.of(15, 0))
-        composeRule.setContent {
-            BabyTrackerTheme {
-                SleepRecommendationSection(state = windowState(), schedule = schedule, now = now)
-            }
-        }
-        composeRule.onNodeWithText("DAY PLAN").assertDoesNotExist()
+        composeRule.onNodeWithText("SLEEP PREDICTION").assertDoesNotExist()
     }
 }

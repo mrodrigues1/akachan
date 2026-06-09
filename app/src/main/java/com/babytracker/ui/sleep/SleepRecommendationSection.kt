@@ -1,6 +1,14 @@
 package com.babytracker.ui.sleep
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,93 +45,122 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.SleepPredictionState
-import com.babytracker.domain.model.SleepSchedule
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.util.formatTime
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 
-private val TIME_FORMATTER = DateTimeFormatter.ofPattern("h:mm a")
+private val EaseOutQuart = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
 
 @Composable
 internal fun SleepRecommendationSection(
     state: SleepPredictionState,
-    schedule: SleepSchedule?,
     modifier: Modifier = Modifier,
-    now: LocalTime = LocalTime.now(),
 ) {
-    if (state is SleepPredictionState.Unavailable) return
+    var visibleState by remember { mutableStateOf(state) }
+    if (state !is SleepPredictionState.Unavailable) {
+        visibleState = state
+    }
 
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        ),
-        shape = MaterialTheme.shapes.large,
-        modifier = modifier.fillMaxWidth(),
+    AnimatedVisibility(
+        visible = state !is SleepPredictionState.Unavailable,
+        enter = fadeIn(tween(200, easing = EaseOutQuart)),
+        exit = fadeOut(tween(150, easing = EaseOutQuart)),
+        modifier = modifier,
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ),
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Outlined.Bedtime,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = "SLEEP RECOMMENDATION",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Outlined.Bedtime,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "SLEEP PREDICTION",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+                    AnimatedVisibility(
+                        visible = visibleState is SleepPredictionState.Window,
+                        enter = fadeIn(tween(150, easing = EaseOutQuart)),
+                        exit = fadeOut(tween(120, easing = EaseOutQuart)),
+                    ) {
+                        val confidence = (visibleState as? SleepPredictionState.Window)
+                            ?.window?.confidence ?: Confidence.LOW
+                        ConfidenceDots(confidence = confidence)
+                    }
                 }
-                if (state is SleepPredictionState.Window) {
-                    ConfidenceDots(confidence = state.window.confidence)
+                Spacer(Modifier.height(12.dp))
+                AnimatedContent(
+                    targetState = visibleState,
+                    transitionSpec = {
+                        fadeIn(tween(200, easing = EaseOutQuart)) togetherWith
+                            fadeOut(tween(150, easing = EaseOutQuart))
+                    },
+                    contentKey = { it::class },
+                    label = "SleepRecommendationSectionContent",
+                ) { targetState ->
+                    when (targetState) {
+                        is SleepPredictionState.Window -> WindowSectionContent(window = targetState.window)
+                        is SleepPredictionState.NeedMoreData -> NeedMoreDataSectionContent(progress = targetState.progress)
+                        SleepPredictionState.Overdue -> OverdueSectionContent()
+                        SleepPredictionState.CueLed -> CueLedSectionContent()
+                        SleepPredictionState.CurrentlySleeping -> CurrentlySleepingSectionContent()
+                        SleepPredictionState.AfterActiveFeed -> AfterActiveFeedSectionContent()
+                        is SleepPredictionState.Unavailable -> Unit
+                    }
                 }
-            }
-            Spacer(Modifier.height(12.dp))
-            when (state) {
-                is SleepPredictionState.Window ->
-                    WindowSectionContent(window = state.window, schedule = schedule, now = now)
-                is SleepPredictionState.NeedMoreData ->
-                    NeedMoreDataSectionContent(progress = state.progress)
-                SleepPredictionState.Overdue -> OverdueSectionContent()
-                SleepPredictionState.CueLed -> CueLedSectionContent()
-                SleepPredictionState.CurrentlySleeping -> CurrentlySleepingSectionContent()
-                SleepPredictionState.AfterActiveFeed -> AfterActiveFeedSectionContent()
-                is SleepPredictionState.Unavailable -> Unit
             }
         }
     }
 }
 
 @Composable
-private fun WindowSectionContent(window: SleepWindow, schedule: SleepSchedule?, now: LocalTime) {
+private fun WindowSectionContent(window: SleepWindow) {
     var safetyExpanded by remember { mutableStateOf(false) }
 
     Column {
         Text(
-            text = "~${window.bestEstimate.formatTime()}",
+            text = "Around ${window.bestEstimate.formatTime()}",
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.semantics {
+                contentDescription = "Next sleep around ${window.bestEstimate.formatTime()}"
+            },
         )
         Spacer(Modifier.height(4.dp))
         Text(
             text = "${window.windowStart.formatTime()}–${window.windowEnd.formatTime()}",
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.65f),
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
         if (window.reasons.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
@@ -144,40 +181,7 @@ private fun WindowSectionContent(window: SleepWindow, schedule: SleepSchedule?, 
                     Text(
                         text = reason,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
-                    )
-                }
-            }
-        }
-        val nextNap = schedule?.napTimes?.firstOrNull { it.startTime >= now }
-        if (nextNap != null) {
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider()
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(horizontalAlignment = Alignment.Start) {
-                    Text(
-                        text = "DAY PLAN",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
-                    )
-                    Text(
-                        text = nextNap.startTime.format(TIME_FORMATTER),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "NEXT WINDOW",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
-                    )
-                    Text(
-                        text = "~${window.bestEstimate.formatTime()}",
-                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }
             }
@@ -197,7 +201,7 @@ private fun WindowSectionContent(window: SleepWindow, schedule: SleepSchedule?, 
                 Text(
                     text = prompt,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
             }
         }
@@ -211,8 +215,8 @@ private fun WindowSectionContent(window: SleepWindow, schedule: SleepSchedule?, 
                 .heightIn(min = 48.dp)
                 .clickable(role = Role.Button) { safetyExpanded = !safetyExpanded }
                 .semantics {
-                    contentDescription =
-                        if (safetyExpanded) "Collapse safe-sleep tip" else "Expand safe-sleep tip"
+                    contentDescription = "Safe sleep tip"
+                    stateDescription = if (safetyExpanded) "Expanded" else "Collapsed"
                 },
         ) {
             Text(
@@ -227,11 +231,17 @@ private fun WindowSectionContent(window: SleepWindow, schedule: SleepSchedule?, 
                 modifier = Modifier.size(14.dp),
             )
         }
-        AnimatedVisibility(visible = safetyExpanded) {
+        AnimatedVisibility(
+            visible = safetyExpanded,
+            enter = fadeIn(tween(150, easing = EaseOutQuart)),
+            exit = fadeOut(tween(120, easing = EaseOutQuart)),
+        ) {
             Text(
                 text = window.safetyPrompt,
                 style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 4.dp),
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
     }
@@ -255,15 +265,16 @@ private fun ConfidenceDots(confidence: Confidence, modifier: Modifier = Modifier
     ) {
         repeat(3) { i ->
             val filled = i < filledCount
+            val alpha by animateFloatAsState(
+                targetValue = if (filled) 1f else 0.22f,
+                animationSpec = tween(150, easing = EaseOutQuart),
+                label = "confidence_dot_$i",
+            )
             Box(
                 modifier = Modifier
                     .size(8.dp)
                     .background(
-                        color = if (filled) {
-                            MaterialTheme.colorScheme.secondary
-                        } else {
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f)
-                        },
+                        color = MaterialTheme.colorScheme.secondary.copy(alpha = alpha),
                         shape = CircleShape,
                     ),
             )
@@ -290,15 +301,16 @@ private fun NeedMoreDataSectionContent(progress: EvidenceProgress) {
         ) {
             repeat(total) { i ->
                 val isFilled = i < filled
+                val alpha by animateFloatAsState(
+                    targetValue = if (isFilled) 1f else 0.22f,
+                    animationSpec = tween(200, easing = EaseOutQuart),
+                    label = "progress_dot_$i",
+                )
                 Box(
                     modifier = Modifier
                         .size(10.dp)
                         .background(
-                            color = if (isFilled) {
-                                MaterialTheme.colorScheme.secondary
-                            } else {
-                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f)
-                            },
+                            color = MaterialTheme.colorScheme.secondary.copy(alpha = alpha),
                             shape = CircleShape,
                         ),
                 )
@@ -307,14 +319,14 @@ private fun NeedMoreDataSectionContent(progress: EvidenceProgress) {
             Text(
                 text = "$filled of $total sleep sessions",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.65f),
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
         if (progress.localDays in 1 until progress.requiredLocalDays) {
             Text(
                 text = "Day ${progress.localDays} of ${progress.requiredLocalDays}",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.65f),
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
     }
@@ -325,7 +337,6 @@ private fun StatusRow(
     icon: ImageVector,
     text: String,
     iconAlpha: Float = 1f,
-    textAlpha: Float = 1f,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
@@ -338,7 +349,7 @@ private fun StatusRow(
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = textAlpha),
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
     }
 }
@@ -365,7 +376,6 @@ private fun CurrentlySleepingSectionContent() {
         icon = Icons.Outlined.Bedtime,
         text = "Baby is sleeping",
         iconAlpha = 0.7f,
-        textAlpha = 0.8f,
     )
 }
 

@@ -217,7 +217,6 @@ fun SleepTrackingScreen(
             item {
                 SleepRecommendationSection(
                     state = uiState.sleepPrediction,
-                    schedule = uiState.schedule,
                 )
             }
             item {
