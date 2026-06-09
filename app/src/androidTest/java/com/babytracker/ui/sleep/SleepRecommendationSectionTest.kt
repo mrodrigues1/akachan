@@ -127,7 +127,7 @@ class SleepRecommendationSectionTest {
                 SleepRecommendationSection(state = SleepPredictionState.Overdue)
             }
         }
-        composeRule.onNodeWithText("Watch for sleep cues", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Watch for cues", substring = true).assertIsDisplayed()
     }
 
     @Test
@@ -157,7 +157,7 @@ class SleepRecommendationSectionTest {
                 SleepRecommendationSection(state = SleepPredictionState.AfterActiveFeed)
             }
         }
-        composeRule.onNodeWithText("A feed is in progress", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Feeding now", substring = true).assertIsDisplayed()
     }
 
     @Test

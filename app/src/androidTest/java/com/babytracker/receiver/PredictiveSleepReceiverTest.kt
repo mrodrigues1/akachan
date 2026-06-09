@@ -11,6 +11,7 @@ import com.babytracker.export.domain.model.BackupData
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.util.NotificationHelper
 import com.babytracker.util.createPredictiveSleepNotificationChannel
+import com.babytracker.util.showPredictiveSleepReminder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
@@ -40,14 +41,8 @@ class PredictiveSleepReceiverTest {
 
     @Test
     fun postsNotificationOnFireAction() {
-        val intent = Intent(context, PredictiveSleepReceiver::class.java).apply {
-            action = PredictiveSleepReceiver.ACTION_FIRE
-            putExtra(
-                PredictiveSleepReceiver.EXTRA_BEST_ESTIMATE_MS,
-                Instant.now().plusSeconds(15 * 60L).toEpochMilli(),
-            )
-        }
-        buildReceiver(enabled = true, quietStart = 0, quietEnd = 0).onReceive(context, intent)
+        val bestEstimateMs = Instant.now().plusSeconds(15 * 60L).toEpochMilli()
+        showPredictiveSleepReminder(context, bestEstimateMs)
 
         val posted = awaitNotification(NotificationHelper.PREDICTIVE_SLEEP_NOTIFICATION_ID)
         assertNotNull(posted)
@@ -71,11 +66,7 @@ class PredictiveSleepReceiverTest {
     @Test
     fun fireCopyRecomputesMinutesFromNow() {
         val bestEstimateMs = Instant.now().plusSeconds(5 * 60L).toEpochMilli()
-        val intent = Intent(context, PredictiveSleepReceiver::class.java).apply {
-            action = PredictiveSleepReceiver.ACTION_FIRE
-            putExtra(PredictiveSleepReceiver.EXTRA_BEST_ESTIMATE_MS, bestEstimateMs)
-        }
-        buildReceiver(enabled = true, quietStart = 0, quietEnd = 0).onReceive(context, intent)
+        showPredictiveSleepReminder(context, bestEstimateMs)
 
         val posted = awaitNotification(NotificationHelper.PREDICTIVE_SLEEP_NOTIFICATION_ID)
         assertNotNull("Notification not posted", posted)

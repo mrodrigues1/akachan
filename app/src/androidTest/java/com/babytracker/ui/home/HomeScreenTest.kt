@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.BabyEventType
@@ -138,7 +139,7 @@ class HomeScreenTest {
         composeRule.onNodeWithText("😣 Fussy").assertIsDisplayed()
         composeRule.onNodeWithText("🤒 Sick").assertIsDisplayed()
         composeRule.onNodeWithText("🦷 Teething").assertIsDisplayed()
-        composeRule.onNodeWithText("✈️ Travel").assertIsDisplayed()
+        composeRule.onNodeWithText("✈️ Travel").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -165,8 +166,8 @@ class HomeScreenTest {
         composeRule.mainClock.advanceTimeBy(100L)
         // Chip must be selected immediately after tap
         composeRule.onNodeWithText("😪 Sleepy").assertIsSelected()
-        // Advance past the 1 200 ms window
-        composeRule.mainClock.advanceTimeBy(1_300L)
+        // Advance past the 1 500 ms deselection delay
+        composeRule.mainClock.advanceTimeBy(1_600L)
         // Chip must return to unselected
         composeRule.onNodeWithText("😪 Sleepy").assertIsNotSelected()
         composeRule.mainClock.autoAdvance = true
@@ -183,14 +184,14 @@ class HomeScreenTest {
         // First tap
         composeRule.onNodeWithText("😪 Sleepy").performClick()
         composeRule.mainClock.advanceTimeBy(800L)
-        // Second tap at 800 ms — would expire at 2 000 ms if timer is reset
+        // Second tap at 800 ms — resets the 1 500 ms deselection timer
         composeRule.onNodeWithText("😪 Sleepy").performClick()
-        // Advance to 1 900 ms total (past first tap's 1 200 ms, but only 1 100 ms past second tap)
+        // Advance to 1 900 ms total (past first tap's 1 500 ms, but only 1 100 ms past second tap)
         composeRule.mainClock.advanceTimeBy(1_100L)
         // First removal job should have been cancelled — chip still selected
         composeRule.onNodeWithText("😪 Sleepy").assertIsSelected()
-        // Advance 300 ms more (2 200 ms total; 1 400 ms past second tap)
-        composeRule.mainClock.advanceTimeBy(300L)
+        // Advance 500 ms more (2 400 ms total; 1 600 ms past second tap — past the 1 500 ms window)
+        composeRule.mainClock.advanceTimeBy(500L)
         composeRule.onNodeWithText("😪 Sleepy").assertIsNotSelected()
         composeRule.mainClock.autoAdvance = true
     }

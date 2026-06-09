@@ -82,7 +82,7 @@ class SleepTrackingScreenTest {
             }
         }
 
-        composeRule.onNodeWithContentDescription("Edit sleep entry")
+        composeRule.onNodeWithContentDescription("More options")
             .assertIsDisplayed()
     }
 
