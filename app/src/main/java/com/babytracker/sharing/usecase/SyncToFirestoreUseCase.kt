@@ -5,6 +5,7 @@ import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
+import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.ShareCode
@@ -23,7 +24,8 @@ class SyncToFirestoreUseCase @Inject constructor(
     private val breastfeedingRepository: BreastfeedingRepository,
     private val sleepRepository: SleepRepository,
     private val inventoryRepository: InventoryRepository,
-    private val now: () -> Instant,
+    private val predictSleepWindow: PredictSleepWindowUseCase,
+    private val now: () -> Instant = Instant::now,
 ) {
     enum class SyncType { FULL, SESSIONS, SLEEP_RECORDS, BABY, INVENTORY }
 
@@ -45,6 +47,11 @@ class SyncToFirestoreUseCase @Inject constructor(
         val sleepRecords = sleepRepository.getRecentRecords(SYNC_LIMIT)
         val summary = inventoryRepository.currentSummary()
         val updatedAtMs = now().toEpochMilli()
+        val prediction = if (settingsRepository.getPredictiveSleepEnabled().first()) {
+            predictSleepWindow().first().toSnapshot(updatedAtMs)
+        } else {
+            null
+        }
         sharingRepository.syncFullSnapshot(
             code,
             ShareSnapshot(
@@ -55,6 +62,7 @@ class SyncToFirestoreUseCase @Inject constructor(
                 inventoryTotalMl = summary.totalMl,
                 inventoryBagCount = summary.bagCount,
                 inventoryUpdatedAt = updatedAtMs,
+                sleepPrediction = prediction,
             ),
         )
     }

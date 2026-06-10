@@ -2,6 +2,7 @@ package com.babytracker.sharing.domain.model
 
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import java.time.ZoneOffset
 
@@ -28,3 +29,30 @@ fun SleepRecord.toSnapshot(): SleepSnapshot = SleepSnapshot(
     sleepType = sleepType.name,
     notes = notes,
 )
+
+fun SleepPredictionState.toSnapshot(
+    generatedAt: Long = System.currentTimeMillis(),
+): SleepPredictionSnapshot? =
+    when (this) {
+        is SleepPredictionState.Window -> SleepPredictionSnapshot(
+            stateLabel = "WINDOW",
+            windowStart = window.windowStart.toEpochMilli(),
+            windowEnd = window.windowEnd.toEpochMilli(),
+            bestEstimate = window.bestEstimate.toEpochMilli(),
+            confidence = window.confidence.name,
+            reasons = window.reasons,
+            feedPrompt = window.feedPrompt,
+            generatedAt = generatedAt,
+        )
+        is SleepPredictionState.NeedMoreData ->
+            SleepPredictionSnapshot(stateLabel = "NEED_MORE_DATA", generatedAt = generatedAt)
+        SleepPredictionState.CueLed ->
+            SleepPredictionSnapshot(stateLabel = "CUE_LED", generatedAt = generatedAt)
+        SleepPredictionState.CurrentlySleeping ->
+            SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt)
+        SleepPredictionState.AfterActiveFeed ->
+            SleepPredictionSnapshot(stateLabel = "AFTER_ACTIVE_FEED", generatedAt = generatedAt)
+        SleepPredictionState.Overdue ->
+            SleepPredictionSnapshot(stateLabel = "OVERDUE", generatedAt = generatedAt)
+        is SleepPredictionState.Unavailable -> null
+    }

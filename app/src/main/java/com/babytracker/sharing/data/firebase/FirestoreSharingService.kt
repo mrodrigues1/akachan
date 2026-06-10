@@ -5,6 +5,7 @@ import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
+import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
@@ -130,6 +131,18 @@ class FirestoreSharingService @Inject constructor(
         "inventoryTotalMl" to snapshot.inventoryTotalMl,
         "inventoryBagCount" to snapshot.inventoryBagCount,
         "inventoryUpdatedAt" to snapshot.inventoryUpdatedAt,
+        "sleepPrediction" to snapshot.sleepPrediction?.let { predictionToMap(it) },
+    )
+
+    private fun predictionToMap(prediction: SleepPredictionSnapshot): Map<String, Any?> = mapOf(
+        "stateLabel" to prediction.stateLabel,
+        "windowStart" to prediction.windowStart,
+        "windowEnd" to prediction.windowEnd,
+        "bestEstimate" to prediction.bestEstimate,
+        "confidence" to prediction.confidence,
+        "reasons" to prediction.reasons,
+        "feedPrompt" to prediction.feedPrompt,
+        "generatedAt" to prediction.generatedAt,
     )
 
     private fun babyToMap(baby: BabySnapshot): Map<String, Any> = mapOf(
@@ -170,6 +183,7 @@ class FirestoreSharingService @Inject constructor(
             ?.filterIsInstance<Map<*, *>>()
             ?.map { mapToSleep(it) }
             .orEmpty()
+        val sleepPrediction = (data["sleepPrediction"] as? Map<*, *>)?.let { mapToPrediction(it) }
         return ShareSnapshot(
             lastSyncAt = lastSyncAt,
             baby = baby,
@@ -178,8 +192,20 @@ class FirestoreSharingService @Inject constructor(
             inventoryTotalMl = (data["inventoryTotalMl"] as? Number)?.toInt(),
             inventoryBagCount = (data["inventoryBagCount"] as? Number)?.toInt(),
             inventoryUpdatedAt = (data["inventoryUpdatedAt"] as? Number)?.toLong(),
+            sleepPrediction = sleepPrediction,
         )
     }
+
+    private fun mapToPrediction(map: Map<*, *>): SleepPredictionSnapshot = SleepPredictionSnapshot(
+        stateLabel = map["stateLabel"] as? String ?: "UNAVAILABLE",
+        windowStart = (map["windowStart"] as? Number)?.toLong(),
+        windowEnd = (map["windowEnd"] as? Number)?.toLong(),
+        bestEstimate = (map["bestEstimate"] as? Number)?.toLong(),
+        confidence = map["confidence"] as? String,
+        reasons = (map["reasons"] as? List<*>)?.filterIsInstance<String>().orEmpty(),
+        feedPrompt = map["feedPrompt"] as? String,
+        generatedAt = (map["generatedAt"] as? Number)?.toLong() ?: 0L,
+    )
 
     private fun mapToBaby(map: Map<*, *>): BabySnapshot = BabySnapshot(
         name = map["name"] as? String ?: "",
