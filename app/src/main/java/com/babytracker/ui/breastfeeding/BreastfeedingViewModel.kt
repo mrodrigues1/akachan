@@ -82,6 +82,7 @@ data class BreastfeedingUiState(
     val error: String? = null,
     val currentSide: BreastSide? = null,
     val editSheet: EditSheetState? = null,
+    val pendingDeleteSession: BreastfeedingSession? = null,
     val showManualEntrySheet: Boolean = false,
     // Placeholder defaults are clock-free on purpose; real values are set in onAddEntryClick.
     // Calling LocalDate.now()/LocalTime.now() here would route through Instant statics and break
@@ -139,6 +140,7 @@ class BreastfeedingViewModel @Inject constructor(
                     error = previous.error,
                     currentSide = session?.currentSide(),
                     editSheet = previous.editSheet,
+                    pendingDeleteSession = previous.pendingDeleteSession,
                     showManualEntrySheet = previous.showManualEntrySheet,
                     manualEntryDate = previous.manualEntryDate,
                     manualEntryStartTime = previous.manualEntryStartTime,
@@ -278,31 +280,17 @@ class BreastfeedingViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(editSheet = state)
     }
 
-    fun onEditStartChanged(newStart: Instant) {
+    fun onEditTimeChanged(newStart: Instant, newEnd: Instant?) {
         val current = _uiState.value.editSheet ?: return
-        val (projectedPausedMs, _) = foldPause(current.original, newStart, current.editedEnd)
+        val (projectedPausedMs, _) = foldPause(current.original, newStart, newEnd)
         val error = validateBreastfeedingEdit(
             startTime = newStart,
-            endTime = current.editedEnd,
-            pausedDurationMs = projectedPausedMs,
-            now = Instant.now(),
-        )
-        _uiState.value = _uiState.value.copy(
-            editSheet = current.copy(editedStart = newStart, validationError = error)
-        )
-    }
-
-    fun onEditEndChanged(newEnd: Instant?) {
-        val current = _uiState.value.editSheet ?: return
-        val (projectedPausedMs, _) = foldPause(current.original, current.editedStart, newEnd)
-        val error = validateBreastfeedingEdit(
-            startTime = current.editedStart,
             endTime = newEnd,
             pausedDurationMs = projectedPausedMs,
             now = Instant.now(),
         )
         _uiState.value = _uiState.value.copy(
-            editSheet = current.copy(editedEnd = newEnd, validationError = error)
+            editSheet = current.copy(editedStart = newStart, editedEnd = newEnd, validationError = error)
         )
     }
 
@@ -335,35 +323,57 @@ class BreastfeedingViewModel @Inject constructor(
         }
     }
 
-    fun onDeleteRequested() {
+    fun onEditDeleteConfirm(show: Boolean) {
         val current = _uiState.value.editSheet ?: return
-        _uiState.value = _uiState.value.copy(editSheet = current.copy(deleteConfirm = true))
-    }
-
-    fun onDeleteCancelled() {
-        val current = _uiState.value.editSheet ?: return
-        _uiState.value = _uiState.value.copy(editSheet = current.copy(deleteConfirm = false))
+        _uiState.value = _uiState.value.copy(editSheet = current.copy(deleteConfirm = show))
     }
 
     fun onDeleteConfirmed() {
         val current = _uiState.value.editSheet ?: return
-        val wasInProgress = current.original.endTime == null
         _uiState.value = _uiState.value.copy(editSheet = current.copy(isDeleting = true))
         viewModelScope.launch {
-            val result = runCatching { deleteSession(current.original) }
-            if (result.isFailure) {
+            if (deleteSessionInternal(current.original)) {
+                _uiState.value = _uiState.value.copy(editSheet = null)
+            } else {
                 _uiState.value = _uiState.value.copy(
                     editSheet = current.copy(isDeleting = false, deleteConfirm = false),
                     error = "Could not delete session. Please try again.",
                 )
-                return@launch
             }
-            if (wasInProgress) {
-                notificationCoordinator.cancelAllSessionNotifications()
-            }
-            _uiState.value = _uiState.value.copy(editSheet = null)
-            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
         }
+    }
+
+    /** Sets the session pending card-level delete confirmation, or clears it when null. */
+    fun onPendingDeleteSessionChanged(session: BreastfeedingSession?) {
+        _uiState.value = _uiState.value.copy(pendingDeleteSession = session)
+    }
+
+    fun onConfirmDeleteSession() {
+        val session = _uiState.value.pendingDeleteSession ?: return
+        _uiState.value = _uiState.value.copy(pendingDeleteSession = null)
+        viewModelScope.launch {
+            if (!deleteSessionInternal(session)) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Could not delete session. Please try again.",
+                )
+            }
+        }
+    }
+
+    /**
+     * Shared delete body used by both the edit-sheet flow ([onDeleteConfirmed]) and the
+     * card overflow-menu flow ([onConfirmDeleteSession]). Deletes the session, cancels its
+     * notifications if it was still in progress, and syncs to Firestore. Returns true on
+     * success so callers can update their own UI state accordingly.
+     */
+    private suspend fun deleteSessionInternal(session: BreastfeedingSession): Boolean {
+        val result = runCatching { deleteSession(session) }
+        if (result.isFailure) return false
+        if (session.endTime == null) {
+            notificationCoordinator.cancelAllSessionNotifications()
+        }
+        runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+        return true
     }
 
     fun onAddEntryClick() {

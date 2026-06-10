@@ -1,6 +1,7 @@
 package com.babytracker.ui.breastfeeding
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -12,18 +13,29 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
@@ -33,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.domain.model.BreastSide
+import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
@@ -60,9 +73,17 @@ fun BreastfeedingHistoryScreen(
                 Triple(date, sessions, totalDuration)
             }
     }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.error) {
+        val message = uiState.error ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message)
+        viewModel.onErrorDismissed()
+    }
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Feeding History") },
@@ -126,16 +147,10 @@ fun BreastfeedingHistoryScreen(
                     }
 
                     items(sessions, key = { it.id }) { session ->
-                        val isLeft = session.startingSide == BreastSide.LEFT
-                        HistoryCard(
-                            title = if (isLeft) "Left side" else "Right side",
-                            subtitle = session.startTime.formatTime12h(),
-                            trailing = session.activeDuration?.formatDuration() ?: "In progress",
-                            badgeEmoji = "🍼",
-                            badgeColor = MaterialTheme.colorScheme.primaryContainer,
-                            onClick = { viewModel.onEditSessionClick(session) },
-                            trailingIcon = Icons.Default.Edit,
-                            trailingIconDescription = "Edit session",
+                        FeedHistoryCard(
+                            session = session,
+                            onEdit = { viewModel.onEditSessionClick(session) },
+                            onDelete = { viewModel.onPendingDeleteSessionChanged(session) },
                         )
                     }
                 }
@@ -147,13 +162,89 @@ fun BreastfeedingHistoryScreen(
     if (editSheet != null) {
         EditBreastfeedingSessionSheet(
             state = editSheet,
-            onStartChanged = viewModel::onEditStartChanged,
-            onEndChanged = viewModel::onEditEndChanged,
+            onStartChanged = { viewModel.onEditTimeChanged(it, editSheet.editedEnd) },
+            onEndChanged = { viewModel.onEditTimeChanged(editSheet.editedStart, it) },
             onDismiss = viewModel::onEditDismiss,
             onSave = viewModel::onEditSave,
-            onDeleteRequested = viewModel::onDeleteRequested,
+            onDeleteRequested = { viewModel.onEditDeleteConfirm(true) },
             onDeleteConfirmed = viewModel::onDeleteConfirmed,
-            onDeleteCancelled = viewModel::onDeleteCancelled,
+            onDeleteCancelled = { viewModel.onEditDeleteConfirm(false) },
         )
     }
+
+    if (uiState.pendingDeleteSession != null) {
+        BreastfeedingDeleteConfirmationDialog(
+            onConfirm = viewModel::onConfirmDeleteSession,
+            onDismiss = { viewModel.onPendingDeleteSessionChanged(null) },
+        )
+    }
+}
+
+@Composable
+internal fun FeedHistoryCard(
+    session: BreastfeedingSession,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    val isLeft = session.startingSide == BreastSide.LEFT
+    HistoryCard(
+        title = if (isLeft) "Left side" else "Right side",
+        subtitle = session.startTime.formatTime12h(),
+        trailing = session.activeDuration?.formatDuration() ?: "In progress",
+        badgeEmoji = "🍼",
+        badgeColor = MaterialTheme.colorScheme.primaryContainer,
+        onClick = onEdit,
+        trailingContent = {
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        onClick = {
+                            menuExpanded = false
+                            onEdit()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete") },
+                        onClick = {
+                            menuExpanded = false
+                            onDelete()
+                        },
+                    )
+                }
+            }
+        },
+    )
+}
+
+@Composable
+internal fun BreastfeedingDeleteConfirmationDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete this session?") },
+        text = { Text("It can't be undone.") },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) { Text("Delete") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
