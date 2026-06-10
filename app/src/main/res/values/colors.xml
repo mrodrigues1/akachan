@@ -16,4 +16,7 @@
     <color name="widget_on_sleep">#0D47A1</color>
     <color name="widget_on_sleep_active">#FFFFFF</color>
     <color name="widget_on_surface_variant">#6D6A64</color>
+
+    <!-- Milk stash widget — tertiary container surface for the loading/preview layout. -->
+    <color name="widget_tertiary_container">#C8E6C9</color>
 </resources>
