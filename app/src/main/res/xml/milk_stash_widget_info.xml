@@ -5,6 +5,8 @@
     android:minHeight="40dp"
     android:minResizeWidth="40dp"
     android:minResizeHeight="40dp"
+    android:maxResizeWidth="200dp"
+    android:maxResizeHeight="200dp"
     android:targetCellWidth="1"
     android:targetCellHeight="1"
     android:previewLayout="@layout/milk_stash_widget_loading"
