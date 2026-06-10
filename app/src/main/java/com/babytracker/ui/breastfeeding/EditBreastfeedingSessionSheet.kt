@@ -16,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -25,7 +24,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -64,9 +62,6 @@ fun EditBreastfeedingSessionSheet(
     onEndChanged: (Instant?) -> Unit,
     onDismiss: () -> Unit,
     onSave: () -> Unit,
-    onDeleteRequested: () -> Unit,
-    onDeleteConfirmed: () -> Unit,
-    onDeleteCancelled: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -83,9 +78,6 @@ fun EditBreastfeedingSessionSheet(
             onEndChanged = onEndChanged,
             onDismiss = onDismiss,
             onSave = onSave,
-            onDeleteRequested = onDeleteRequested,
-            onDeleteConfirmed = onDeleteConfirmed,
-            onDeleteCancelled = onDeleteCancelled,
         )
     }
 }
@@ -98,9 +90,6 @@ private fun EditSheetBody(
     onEndChanged: (Instant?) -> Unit,
     onDismiss: () -> Unit,
     onSave: () -> Unit,
-    onDeleteRequested: () -> Unit,
-    onDeleteConfirmed: () -> Unit,
-    onDeleteCancelled: () -> Unit,
 ) {
     var datePickerFor by remember { mutableStateOf<EditField?>(null) }
     var timePickerFor by remember { mutableStateOf<EditField?>(null) }
@@ -158,37 +147,20 @@ private fun EditSheetBody(
         DurationOrError(state = state)
 
         Spacer(Modifier.height(24.dp))
-        if (state.deleteConfirm) {
-            DeleteConfirmRow(
-                isDeleting = state.isDeleting,
-                onCancel = onDeleteCancelled,
-                onConfirm = onDeleteConfirmed,
-            )
-        } else {
-            Button(
-                onClick = onSave,
-                enabled = state.canSave,
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.extraLarge,
-            ) {
-                if (state.isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                } else {
-                    Text("Save changes", style = MaterialTheme.typography.labelLarge)
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            TextButton(
-                onClick = onDeleteRequested,
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.extraLarge,
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-            ) {
-                Text("Delete", style = MaterialTheme.typography.labelLarge)
+        Button(
+            onClick = onSave,
+            enabled = state.canSave,
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.extraLarge,
+        ) {
+            if (state.isSaving) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            } else {
+                Text("Save changes", style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -311,62 +283,6 @@ private fun DurationOrError(state: EditSheetState) {
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-}
-
-@Composable
-private fun DeleteConfirmRow(
-    isDeleting: Boolean,
-    onCancel: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "Delete this session?",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = "It can't be undone.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(16.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OutlinedButton(
-                onClick = onCancel,
-                modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.extraLarge,
-                enabled = !isDeleting,
-            ) {
-                Text("Cancel", style = MaterialTheme.typography.labelLarge)
-            }
-            Button(
-                onClick = onConfirm,
-                modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.extraLarge,
-                enabled = !isDeleting,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                ),
-            ) {
-                if (isDeleting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onError,
-                    )
-                } else {
-                    Text("Delete", style = MaterialTheme.typography.labelLarge)
-                }
-            }
-        }
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
