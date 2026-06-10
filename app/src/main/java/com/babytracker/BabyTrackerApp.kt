@@ -13,6 +13,7 @@ import com.babytracker.manager.StashExpirationScheduler
 import com.babytracker.util.NotificationHelper
 import com.babytracker.util.createPredictiveFeedNotificationChannel
 import com.babytracker.util.createPredictiveSleepNotificationChannel
+import com.babytracker.widget.MilkStashWidgetSyncManager
 import com.babytracker.widget.WidgetSyncManager
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -29,6 +30,7 @@ class BabyTrackerApp : Application(), Configuration.Provider {
     @Inject lateinit var predictiveSleepCoordinator: PredictiveSleepNotificationCoordinator
     @Inject lateinit var debugDataSeeder: DebugDataSeeder
     @Inject lateinit var widgetSyncManager: WidgetSyncManager
+    @Inject lateinit var milkStashWidgetSyncManager: MilkStashWidgetSyncManager
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var inventorySettings: InventorySettingsRepository
     @Inject lateinit var stashExpirationScheduler: StashExpirationScheduler
@@ -52,6 +54,7 @@ class BabyTrackerApp : Application(), Configuration.Provider {
         createPredictiveSleepNotificationChannel(this)
         predictiveSleepCoordinator.start()
         widgetSyncManager.start()
+        milkStashWidgetSyncManager.start()
         reconcileStashExpirationAlarm()
         appScope.launch { runCatching { bootstrapBabyProfile() } }
         if (BuildConfig.DEBUG) {

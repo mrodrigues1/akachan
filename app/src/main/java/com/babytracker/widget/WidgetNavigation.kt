@@ -21,6 +21,10 @@ internal fun openSleepAction(): Action = actionStartActivity(
     intent = mainActivityIntent(route = Routes.SLEEP_TRACKING),
 )
 
+internal fun openInventoryAction(): Action = actionStartActivity(
+    intent = mainActivityIntent(route = Routes.INVENTORY),
+)
+
 internal fun refreshAction(): Action = actionRunCallback<WidgetRefreshActionCallback>()
 
 private fun mainActivityIntent(route: String): Intent {

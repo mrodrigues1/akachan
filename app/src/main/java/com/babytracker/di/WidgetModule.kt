@@ -1,6 +1,8 @@
 package com.babytracker.di
 
+import com.babytracker.widget.GlanceMilkStashWidgetUpdater
 import com.babytracker.widget.GlanceWidgetUpdater
+import com.babytracker.widget.MilkStashWidgetUpdater
 import com.babytracker.widget.PartnerWidgetCache
 import com.babytracker.widget.PartnerWidgetCacheImpl
 import com.babytracker.widget.WidgetRefreshScheduler
@@ -19,6 +21,10 @@ abstract class WidgetModule {
     @Binds
     @Singleton
     abstract fun bindWidgetUpdater(impl: GlanceWidgetUpdater): WidgetUpdater
+
+    @Binds
+    @Singleton
+    abstract fun bindMilkStashWidgetUpdater(impl: GlanceMilkStashWidgetUpdater): MilkStashWidgetUpdater
 
     @Binds
     @Singleton
