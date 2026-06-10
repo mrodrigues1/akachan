@@ -38,7 +38,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
@@ -230,9 +229,13 @@ fun BreastfeedingScreen(
             onEndChanged = { viewModel.onEditTimeChanged(editSheet.editedStart, it) },
             onDismiss = viewModel::onEditDismiss,
             onSave = viewModel::onEditSave,
-            onDeleteRequested = { viewModel.onEditDeleteConfirm(true) },
-            onDeleteConfirmed = viewModel::onDeleteConfirmed,
-            onDeleteCancelled = { viewModel.onEditDeleteConfirm(false) },
+        )
+    }
+
+    if (uiState.pendingDeleteSession != null) {
+        BreastfeedingDeleteConfirmationDialog(
+            onConfirm = viewModel::onConfirmDeleteSession,
+            onDismiss = { viewModel.onPendingDeleteSessionChanged(null) },
         )
     }
 
@@ -641,6 +644,7 @@ private fun IdleSessionContent(
                 summary = summary,
                 prediction = uiState.nextFeedPrediction,
                 onEditSession = viewModel::onEditSessionClick,
+                onDeleteSession = viewModel::onPendingDeleteSessionChanged,
             )
         }
 
@@ -749,6 +753,7 @@ private fun LastFeedingSummaryCard(
     summary: LastFeedingSummaryState.Populated,
     prediction: FeedPrediction?,
     onEditSession: (BreastfeedingSession) -> Unit,
+    onDeleteSession: (BreastfeedingSession) -> Unit,
 ) {
     val session = summary.lastSession
     val secondSide = if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
@@ -779,8 +784,12 @@ private fun LastFeedingSummaryCard(
             badgeEmoji = "🍼",
             badgeColor = MaterialTheme.colorScheme.primaryContainer,
             onClick = { onEditSession(session) },
-            trailingIcon = Icons.Default.Edit,
-            trailingIconDescription = "Edit session",
+            trailingContent = {
+                FeedSessionOverflowMenu(
+                    onEdit = { onEditSession(session) },
+                    onDelete = { onDeleteSession(session) },
+                )
+            },
         )
 
         if (summary.secondSideDuration != null) {
@@ -791,8 +800,6 @@ private fun LastFeedingSummaryCard(
                 badgeEmoji = "🍼",
                 badgeColor = MaterialTheme.colorScheme.primaryContainer,
                 onClick = { onEditSession(session) },
-                trailingIcon = Icons.Default.Edit,
-                trailingIconDescription = "Edit session",
             )
         }
     }

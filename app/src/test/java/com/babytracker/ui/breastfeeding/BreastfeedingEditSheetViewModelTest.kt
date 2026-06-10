@@ -35,7 +35,6 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -174,45 +173,6 @@ class BreastfeedingEditSheetViewModelTest {
     }
 
     @Test
-    fun onEditDeleteConfirmTrueShowsConfirm() = runTest(testDispatcher) {
-        val vm = viewModel()
-        advanceUntilIdle()
-        vm.onEditSessionClick(sampleSession)
-
-        vm.onEditDeleteConfirm(true)
-
-        assertTrue(vm.uiState.value.editSheet!!.deleteConfirm)
-    }
-
-    @Test
-    fun onEditDeleteConfirmFalseHidesConfirm() = runTest(testDispatcher) {
-        val vm = viewModel()
-        advanceUntilIdle()
-        vm.onEditSessionClick(sampleSession)
-        vm.onEditDeleteConfirm(true)
-
-        vm.onEditDeleteConfirm(false)
-
-        val sheet = vm.uiState.value.editSheet!!
-        assertEquals(false, sheet.deleteConfirm)
-    }
-
-    @Test
-    fun onDeleteConfirmedCallsDeleteAndClosesSheet() = runTest(testDispatcher) {
-        coJustRun { deleteSession(any()) }
-        val vm = viewModel()
-        advanceUntilIdle()
-        vm.onEditSessionClick(sampleSession)
-        vm.onEditDeleteConfirm(true)
-
-        vm.onDeleteConfirmed()
-        advanceUntilIdle()
-
-        coVerify(exactly = 1) { deleteSession(sampleSession) }
-        assertNull(vm.uiState.value.editSheet)
-    }
-
-    @Test
     fun savingInProgressEndTriggersNotificationCancel() = runTest(testDispatcher) {
         coJustRun { updateSession(any(), any(), any()) }
         val inProgress = sampleSession.copy(endTime = null)
@@ -253,35 +213,6 @@ class BreastfeedingEditSheetViewModelTest {
         vm.onEditTimeChanged(sampleSession.startTime, newEnd)
 
         vm.onEditSave()
-        advanceUntilIdle()
-
-        coVerify(exactly = 0) { syncToFirestore(any()) }
-        assertNotNull(vm.uiState.value.editSheet)
-    }
-
-    @Test
-    fun onDeleteConfirmedTriggersFirestoreSync() = runTest(testDispatcher) {
-        coJustRun { deleteSession(any()) }
-        val vm = viewModel()
-        advanceUntilIdle()
-        vm.onEditSessionClick(sampleSession)
-        vm.onEditDeleteConfirm(true)
-
-        vm.onDeleteConfirmed()
-        advanceUntilIdle()
-
-        coVerify(exactly = 1) { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
-    }
-
-    @Test
-    fun onDeleteConfirmedDoesNotSyncWhenDeleteFails() = runTest(testDispatcher) {
-        coEvery { deleteSession(any()) } throws RuntimeException("DB error")
-        val vm = viewModel()
-        advanceUntilIdle()
-        vm.onEditSessionClick(sampleSession)
-        vm.onEditDeleteConfirm(true)
-
-        vm.onDeleteConfirmed()
         advanceUntilIdle()
 
         coVerify(exactly = 0) { syncToFirestore(any()) }

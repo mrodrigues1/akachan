@@ -166,9 +166,6 @@ fun BreastfeedingHistoryScreen(
             onEndChanged = { viewModel.onEditTimeChanged(editSheet.editedStart, it) },
             onDismiss = viewModel::onEditDismiss,
             onSave = viewModel::onEditSave,
-            onDeleteRequested = { viewModel.onEditDeleteConfirm(true) },
-            onDeleteConfirmed = viewModel::onDeleteConfirmed,
-            onDeleteCancelled = { viewModel.onEditDeleteConfirm(false) },
         )
     }
 
@@ -186,7 +183,6 @@ internal fun FeedHistoryCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
     val isLeft = session.startingSide == BreastSide.LEFT
     HistoryCard(
         title = if (isLeft) "Left side" else "Right side",
@@ -195,37 +191,48 @@ internal fun FeedHistoryCard(
         badgeEmoji = "🍼",
         badgeColor = MaterialTheme.colorScheme.primaryContainer,
         onClick = onEdit,
-        trailingContent = {
-            Box {
-                IconButton(onClick = { menuExpanded = true }) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "More options",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Edit") },
-                        onClick = {
-                            menuExpanded = false
-                            onEdit()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Delete") },
-                        onClick = {
-                            menuExpanded = false
-                            onDelete()
-                        },
-                    )
-                }
-            }
-        },
+        trailingContent = { FeedSessionOverflowMenu(onEdit = onEdit, onDelete = onDelete) },
     )
+}
+
+/**
+ * Three-dots overflow menu (Edit / Delete) shared by the feed history cards and the
+ * last-feeding card on the main screen, mirroring the sleep card menu.
+ */
+@Composable
+internal fun FeedSessionOverflowMenu(
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { menuExpanded = true }) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "More options",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        DropdownMenu(
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text("Edit") },
+                onClick = {
+                    menuExpanded = false
+                    onEdit()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Delete") },
+                onClick = {
+                    menuExpanded = false
+                    onDelete()
+                },
+            )
+        }
+    }
 }
 
 @Composable

@@ -62,14 +62,12 @@ data class EditSheetState(
     val editedEnd: Instant?,
     val validationError: String? = null,
     val isSaving: Boolean = false,
-    val deleteConfirm: Boolean = false,
-    val isDeleting: Boolean = false,
 ) {
     val isDirty: Boolean
         get() = editedStart != original.startTime || editedEnd != original.endTime
 
     val canSave: Boolean
-        get() = isDirty && validationError == null && !isSaving && !isDeleting
+        get() = isDirty && validationError == null && !isSaving
 }
 
 data class BreastfeedingUiState(
@@ -323,26 +321,6 @@ class BreastfeedingViewModel @Inject constructor(
         }
     }
 
-    fun onEditDeleteConfirm(show: Boolean) {
-        val current = _uiState.value.editSheet ?: return
-        _uiState.value = _uiState.value.copy(editSheet = current.copy(deleteConfirm = show))
-    }
-
-    fun onDeleteConfirmed() {
-        val current = _uiState.value.editSheet ?: return
-        _uiState.value = _uiState.value.copy(editSheet = current.copy(isDeleting = true))
-        viewModelScope.launch {
-            if (deleteSessionInternal(current.original)) {
-                _uiState.value = _uiState.value.copy(editSheet = null)
-            } else {
-                _uiState.value = _uiState.value.copy(
-                    editSheet = current.copy(isDeleting = false, deleteConfirm = false),
-                    error = "Could not delete session. Please try again.",
-                )
-            }
-        }
-    }
-
     /** Sets the session pending card-level delete confirmation, or clears it when null. */
     fun onPendingDeleteSessionChanged(session: BreastfeedingSession?) {
         _uiState.value = _uiState.value.copy(pendingDeleteSession = session)
@@ -361,10 +339,9 @@ class BreastfeedingViewModel @Inject constructor(
     }
 
     /**
-     * Shared delete body used by both the edit-sheet flow ([onDeleteConfirmed]) and the
-     * card overflow-menu flow ([onConfirmDeleteSession]). Deletes the session, cancels its
-     * notifications if it was still in progress, and syncs to Firestore. Returns true on
-     * success so callers can update their own UI state accordingly.
+     * Shared delete body behind the card overflow-menu flow ([onConfirmDeleteSession]).
+     * Deletes the session, cancels its notifications if it was still in progress, and syncs
+     * to Firestore. Returns true on success so callers can update their own UI state.
      */
     private suspend fun deleteSessionInternal(session: BreastfeedingSession): Boolean {
         val result = runCatching { deleteSession(session) }
