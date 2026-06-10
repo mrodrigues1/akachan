@@ -10,6 +10,7 @@ import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCa
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
+import com.babytracker.domain.usecase.breastfeeding.SaveBreastfeedingEntryUseCase
 import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
@@ -52,6 +53,7 @@ class BreastfeedingEditSheetViewModelTest {
     private lateinit var resumeSession: ResumeBreastfeedingSessionUseCase
     private lateinit var updateSession: UpdateBreastfeedingSessionUseCase
     private lateinit var deleteSession: DeleteBreastfeedingSessionUseCase
+    private lateinit var saveBreastfeedingEntry: SaveBreastfeedingEntryUseCase
     private lateinit var repository: BreastfeedingRepository
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
@@ -75,6 +77,7 @@ class BreastfeedingEditSheetViewModelTest {
         resumeSession = mockk()
         updateSession = mockk()
         deleteSession = mockk()
+        saveBreastfeedingEntry = mockk()
         repository = mockk()
         settingsRepository = mockk()
         notificationCoordinator = mockk(relaxed = true)
@@ -97,7 +100,7 @@ class BreastfeedingEditSheetViewModelTest {
 
     private fun viewModel() = BreastfeedingViewModel(
         startSession, stopSession, switchSide, getHistory, pauseSession, resumeSession,
-        updateSession, deleteSession, repository, settingsRepository,
+        updateSession, deleteSession, saveBreastfeedingEntry, repository, settingsRepository,
         notificationCoordinator, syncToFirestore, predictNextFeed,
     )
 

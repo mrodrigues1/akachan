@@ -12,6 +12,7 @@ import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCa
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
+import com.babytracker.domain.usecase.breastfeeding.SaveBreastfeedingEntryUseCase
 import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
@@ -37,7 +38,12 @@ import kotlinx.coroutines.launch
 import com.babytracker.util.formatElapsedAgo
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
 import javax.inject.Inject
+
+enum class FeedTimePickerTarget { ENTRY_START, ENTRY_END }
 
 sealed class LastFeedingSummaryState {
     object Empty : LastFeedingSummaryState()
@@ -76,7 +82,20 @@ data class BreastfeedingUiState(
     val error: String? = null,
     val currentSide: BreastSide? = null,
     val editSheet: EditSheetState? = null,
+    val showManualEntrySheet: Boolean = false,
+    // Placeholder defaults are clock-free on purpose; real values are set in onAddEntryClick.
+    // Calling LocalDate.now()/LocalTime.now() here would route through Instant statics and break
+    // tests that use mockkStatic(Instant::class).
+    val manualEntryDate: LocalDate = LocalDate.EPOCH,
+    val manualEntryStartTime: LocalTime = LocalTime.MIN,
+    val manualEntryEndTime: LocalTime = LocalTime.MIN,
+    // Seeds the sheet's initial side selection; the chip selection itself is local sheet state.
+    val manualEntrySide: BreastSide = BreastSide.LEFT,
+    val manualEntryError: String? = null,
+    val manualEntryDurationPreview: Duration? = null,
 )
+
+private const val MANUAL_ENTRY_DEFAULT_MINUTES = 15L
 
 @HiltViewModel
 class BreastfeedingViewModel @Inject constructor(
@@ -88,6 +107,7 @@ class BreastfeedingViewModel @Inject constructor(
     private val resumeSession: ResumeBreastfeedingSessionUseCase,
     private val updateSession: UpdateBreastfeedingSessionUseCase,
     private val deleteSession: DeleteBreastfeedingSessionUseCase,
+    private val saveBreastfeedingEntry: SaveBreastfeedingEntryUseCase,
     private val repository: BreastfeedingRepository,
     private val settingsRepository: SettingsRepository,
     private val notificationCoordinator: BreastfeedingSessionNotificationCoordinator,
@@ -108,15 +128,24 @@ class BreastfeedingViewModel @Inject constructor(
                 settingsRepository.getMaxPerBreastMinutes(),
                 settingsRepository.getMaxTotalFeedMinutes()
             ) { session, maxPerBreast, maxTotal ->
+                val previous = _uiState.value
                 BreastfeedingUiState(
                     activeSession = session,
-                    selectedSide = _uiState.value.selectedSide,
+                    selectedSide = previous.selectedSide,
                     maxPerBreastMinutes = maxPerBreast,
                     maxTotalFeedMinutes = maxTotal,
-                    lastFeedingSummary = _uiState.value.lastFeedingSummary,
-                    error = _uiState.value.error,
+                    lastFeedingSummary = previous.lastFeedingSummary,
+                    nextFeedPrediction = previous.nextFeedPrediction,
+                    error = previous.error,
                     currentSide = session?.currentSide(),
-                    editSheet = _uiState.value.editSheet,
+                    editSheet = previous.editSheet,
+                    showManualEntrySheet = previous.showManualEntrySheet,
+                    manualEntryDate = previous.manualEntryDate,
+                    manualEntryStartTime = previous.manualEntryStartTime,
+                    manualEntryEndTime = previous.manualEntryEndTime,
+                    manualEntrySide = previous.manualEntrySide,
+                    manualEntryError = previous.manualEntryError,
+                    manualEntryDurationPreview = previous.manualEntryDurationPreview,
                 )
             }.collect { newState ->
                 _uiState.value = newState
@@ -335,6 +364,75 @@ class BreastfeedingViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(editSheet = null)
             runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
         }
+    }
+
+    fun onAddEntryClick() {
+        val end = LocalTime.now()
+        val start = end.minusMinutes(MANUAL_ENTRY_DEFAULT_MINUTES)
+        val summary = _uiState.value.lastFeedingSummary
+        val recommendedSide = (summary as? LastFeedingSummaryState.Populated)?.nextRecommendedSide ?: BreastSide.LEFT
+        _uiState.value = _uiState.value.copy(
+            showManualEntrySheet = true,
+            manualEntryDate = LocalDate.now(),
+            manualEntryStartTime = start,
+            manualEntryEndTime = end,
+            manualEntrySide = recommendedSide,
+            manualEntryError = null,
+            manualEntryDurationPreview = computeDurationPreview(start, end, LocalDate.now()),
+        )
+    }
+
+    fun onDismissManualEntry() {
+        _uiState.value = _uiState.value.copy(showManualEntrySheet = false, manualEntryError = null)
+    }
+
+    /**
+     * Patches the editable manual-entry fields. Each argument defaults to its current value so
+     * callers can change a single field (date, start, or end) without touching the others. The
+     * duration preview is recomputed from the resulting date + times on every change.
+     */
+    fun onManualEntryChanged(
+        date: LocalDate = _uiState.value.manualEntryDate,
+        startTime: LocalTime = _uiState.value.manualEntryStartTime,
+        endTime: LocalTime = _uiState.value.manualEntryEndTime,
+    ) {
+        _uiState.value = _uiState.value.copy(
+            manualEntryDate = date,
+            manualEntryStartTime = startTime,
+            manualEntryEndTime = endTime,
+            manualEntryError = null,
+            manualEntryDurationPreview = computeDurationPreview(startTime, endTime, date),
+        )
+    }
+
+    fun onSaveManualEntry(side: BreastSide) {
+        val state = _uiState.value
+        val zone = ZoneId.systemDefault()
+        var startInstant = state.manualEntryStartTime.atDate(state.manualEntryDate).atZone(zone).toInstant()
+        val endInstant = state.manualEntryEndTime.atDate(state.manualEntryDate).atZone(zone).toInstant()
+        if (startInstant > endInstant) {
+            startInstant = state.manualEntryStartTime.atDate(state.manualEntryDate.minusDays(1)).atZone(zone).toInstant()
+        }
+        if (endInstant <= startInstant) {
+            _uiState.value = state.copy(manualEntryError = "End time must be after start time")
+            return
+        }
+        viewModelScope.launch {
+            saveBreastfeedingEntry(startInstant, endInstant, side)
+            _uiState.value = _uiState.value.copy(showManualEntrySheet = false, manualEntryError = null)
+            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+        }
+    }
+
+    private fun computeDurationPreview(start: LocalTime, end: LocalTime, date: LocalDate): Duration? {
+        val zone = ZoneId.systemDefault()
+        var startInstant = start.atDate(date).atZone(zone).toInstant()
+        val endInstant = end.atDate(date).atZone(zone).toInstant()
+        if (startInstant > endInstant) {
+            startInstant = start.atDate(date.minusDays(1)).atZone(zone).toInstant()
+        }
+        val d = Duration.between(startInstant, endInstant)
+        return if (d.isNegative || d.isZero) null else d
     }
 
     private fun BreastfeedingSession.currentSide(): BreastSide =

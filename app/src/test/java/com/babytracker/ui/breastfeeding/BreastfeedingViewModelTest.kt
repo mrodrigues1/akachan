@@ -9,6 +9,7 @@ import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCa
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
+import com.babytracker.domain.usecase.breastfeeding.SaveBreastfeedingEntryUseCase
 import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
@@ -21,6 +22,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.slot
 import io.mockk.unmockkAll
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +35,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -40,6 +43,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BreastfeedingViewModelTest {
@@ -52,6 +58,7 @@ class BreastfeedingViewModelTest {
     private lateinit var resumeSession: ResumeBreastfeedingSessionUseCase
     private lateinit var updateSession: UpdateBreastfeedingSessionUseCase
     private lateinit var deleteSession: DeleteBreastfeedingSessionUseCase
+    private lateinit var saveBreastfeedingEntry: SaveBreastfeedingEntryUseCase
     private lateinit var repository: BreastfeedingRepository
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
@@ -89,6 +96,8 @@ class BreastfeedingViewModelTest {
         resumeSession = mockk()
         updateSession = mockk()
         deleteSession = mockk()
+        saveBreastfeedingEntry = mockk()
+        coEvery { saveBreastfeedingEntry(any(), any(), any()) } returns 1L
         coJustRun { startSession(any()) }
         coJustRun { pauseSession(any()) }
         coJustRun { resumeSession(any()) }
@@ -119,6 +128,7 @@ class BreastfeedingViewModelTest {
         resumeSession,
         updateSession,
         deleteSession,
+        saveBreastfeedingEntry,
         repository,
         settingsRepository,
         notificationCoordinator,
@@ -975,5 +985,129 @@ class BreastfeedingViewModelTest {
         } finally {
             unmockkAll()
         }
+    }
+
+    @Test
+    fun `onAddEntryClick opens sheet with default times and side LEFT when no last feeding`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAddEntryClick()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.showManualEntrySheet)
+        assertEquals(BreastSide.LEFT, state.manualEntrySide)
+        assertNull(state.manualEntryError)
+        assertEquals(Duration.ofMinutes(15), state.manualEntryDurationPreview)
+        assertEquals(LocalDate.now(), state.manualEntryDate)
+    }
+
+    @Test
+    fun `onAddEntryClick defaults side to recommended next side`() = runTest {
+        // Ended on LEFT without switch → next recommended side is RIGHT.
+        val session = BreastfeedingSession(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(7200),
+            endTime = Instant.now().minusSeconds(6000),
+            startingSide = BreastSide.LEFT,
+            switchTime = null,
+        )
+        every { getHistory() } returns flowOf(listOf(session))
+        viewModel = createViewModel()
+        awaitLastFeedingSummaryPopulated()
+
+        viewModel.onAddEntryClick()
+
+        assertEquals(BreastSide.RIGHT, viewModel.uiState.value.manualEntrySide)
+    }
+
+    @Test
+    fun `onManualEntryChanged updates end time and recomputes duration preview`() = runTest {
+        viewModel.onAddEntryClick()
+        val date = viewModel.uiState.value.manualEntryDate
+        val start = viewModel.uiState.value.manualEntryStartTime
+
+        viewModel.onManualEntryChanged(endTime = start.plusMinutes(30))
+
+        val state = viewModel.uiState.value
+        assertEquals(start.plusMinutes(30), state.manualEntryEndTime)
+        assertEquals(date, state.manualEntryDate)
+        assertEquals(start, state.manualEntryStartTime)
+        assertEquals(Duration.ofMinutes(30), state.manualEntryDurationPreview)
+    }
+
+    @Test
+    fun `onSaveManualEntry saves completed session with selected side and dismisses sheet`() = runTest {
+        val startSlot = slot<Instant>()
+        val endSlot = slot<Instant>()
+        coEvery {
+            saveBreastfeedingEntry(capture(startSlot), capture(endSlot), BreastSide.RIGHT)
+        } returns 7L
+
+        viewModel.onAddEntryClick()
+        val date = LocalDate.of(2026, 6, 1)
+        viewModel.onManualEntryChanged(date = date)
+        viewModel.onManualEntryChanged(startTime = LocalTime.of(10, 0))
+        viewModel.onManualEntryChanged(endTime = LocalTime.of(10, 20))
+
+        viewModel.onSaveManualEntry(BreastSide.RIGHT)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { saveBreastfeedingEntry(any(), any(), BreastSide.RIGHT) }
+        assertFalse(viewModel.uiState.value.showManualEntrySheet)
+        assertNull(viewModel.uiState.value.manualEntryError)
+        val zone = ZoneId.systemDefault()
+        assertEquals(LocalTime.of(10, 0).atDate(date).atZone(zone).toInstant(), startSlot.captured)
+        assertEquals(LocalTime.of(10, 20).atDate(date).atZone(zone).toInstant(), endSlot.captured)
+        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+    }
+
+    @Test
+    fun `onSaveManualEntry sets error and does not save when start equals end`() = runTest {
+        viewModel.onAddEntryClick()
+        viewModel.onManualEntryChanged(startTime = LocalTime.of(10, 0))
+        viewModel.onManualEntryChanged(endTime = LocalTime.of(10, 0))
+
+        viewModel.onSaveManualEntry(BreastSide.LEFT)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("End time must be after start time", viewModel.uiState.value.manualEntryError)
+        assertTrue(viewModel.uiState.value.showManualEntrySheet)
+        coVerify(exactly = 0) { saveBreastfeedingEntry(any(), any(), any()) }
+    }
+
+    @Test
+    fun `onSaveManualEntry handles cross-midnight session by shifting start back a day`() = runTest {
+        val startSlot = slot<Instant>()
+        val endSlot = slot<Instant>()
+        coEvery { saveBreastfeedingEntry(capture(startSlot), capture(endSlot), any()) } returns 9L
+
+        viewModel.onAddEntryClick()
+        val date = LocalDate.of(2026, 6, 1)
+        viewModel.onManualEntryChanged(date = date)
+        // start 23:00, end 01:00 on the same picked date → start must shift to previous day
+        viewModel.onManualEntryChanged(startTime = LocalTime.of(23, 0))
+        viewModel.onManualEntryChanged(endTime = LocalTime.of(1, 0))
+
+        viewModel.onSaveManualEntry(BreastSide.LEFT)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val zone = ZoneId.systemDefault()
+        assertEquals(LocalTime.of(23, 0).atDate(date.minusDays(1)).atZone(zone).toInstant(), startSlot.captured)
+        assertEquals(LocalTime.of(1, 0).atDate(date).atZone(zone).toInstant(), endSlot.captured)
+        assertEquals(Duration.ofHours(2), Duration.between(startSlot.captured, endSlot.captured))
+        assertNull(viewModel.uiState.value.manualEntryError)
+    }
+
+    @Test
+    fun `onDismissManualEntry closes sheet and clears error`() = runTest {
+        viewModel.onAddEntryClick()
+        viewModel.onManualEntryChanged(startTime = LocalTime.of(10, 0))
+        viewModel.onManualEntryChanged(endTime = LocalTime.of(10, 0))
+        viewModel.onSaveManualEntry(BreastSide.LEFT)
+
+        viewModel.onDismissManualEntry()
+
+        assertFalse(viewModel.uiState.value.showManualEntrySheet)
+        assertNull(viewModel.uiState.value.manualEntryError)
     }
 }
