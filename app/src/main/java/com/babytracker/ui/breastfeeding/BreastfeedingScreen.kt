@@ -650,23 +650,18 @@ private fun IdleSessionContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(
+        OutlinedButton(
             onClick = viewModel::onAddEntryClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 48.dp),
             shape = MaterialTheme.shapes.extraLarge,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.primary,
             ),
         ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Log Feed", style = MaterialTheme.typography.labelLarge)
+            Text("Log Past Feed", style = MaterialTheme.typography.titleSmall)
         }
 
         Spacer(modifier = Modifier.height(32.dp))
