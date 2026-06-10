@@ -226,13 +226,13 @@ fun BreastfeedingScreen(
     if (editSheet != null) {
         EditBreastfeedingSessionSheet(
             state = editSheet,
-            onStartChanged = viewModel::onEditStartChanged,
-            onEndChanged = viewModel::onEditEndChanged,
+            onStartChanged = { viewModel.onEditTimeChanged(it, editSheet.editedEnd) },
+            onEndChanged = { viewModel.onEditTimeChanged(editSheet.editedStart, it) },
             onDismiss = viewModel::onEditDismiss,
             onSave = viewModel::onEditSave,
-            onDeleteRequested = viewModel::onDeleteRequested,
+            onDeleteRequested = { viewModel.onEditDeleteConfirm(true) },
             onDeleteConfirmed = viewModel::onDeleteConfirmed,
-            onDeleteCancelled = viewModel::onDeleteCancelled,
+            onDeleteCancelled = { viewModel.onEditDeleteConfirm(false) },
         )
     }
 

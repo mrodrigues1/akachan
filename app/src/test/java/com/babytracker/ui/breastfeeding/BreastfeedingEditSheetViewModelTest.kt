@@ -125,7 +125,7 @@ class BreastfeedingEditSheetViewModelTest {
         advanceUntilIdle()
         vm.onEditSessionClick(sampleSession)
 
-        vm.onEditEndChanged(sampleSession.startTime.minusSeconds(60))
+        vm.onEditTimeChanged(sampleSession.startTime, sampleSession.startTime.minusSeconds(60))
 
         val sheet = vm.uiState.value.editSheet!!
         assertEquals("End time must be after start time", sheet.validationError)
@@ -150,7 +150,7 @@ class BreastfeedingEditSheetViewModelTest {
         advanceUntilIdle()
         vm.onEditSessionClick(sampleSession)
         val newEnd = sampleSession.startTime.plusSeconds(2400)
-        vm.onEditEndChanged(newEnd)
+        vm.onEditTimeChanged(sampleSession.startTime, newEnd)
 
         vm.onEditSave()
         advanceUntilIdle()
@@ -164,7 +164,7 @@ class BreastfeedingEditSheetViewModelTest {
         val vm = viewModel()
         advanceUntilIdle()
         vm.onEditSessionClick(sampleSession)
-        vm.onEditEndChanged(sampleSession.startTime.minusSeconds(60))
+        vm.onEditTimeChanged(sampleSession.startTime, sampleSession.startTime.minusSeconds(60))
 
         vm.onEditSave()
         advanceUntilIdle()
@@ -174,24 +174,24 @@ class BreastfeedingEditSheetViewModelTest {
     }
 
     @Test
-    fun onDeleteRequestedShowsConfirm() = runTest(testDispatcher) {
+    fun onEditDeleteConfirmTrueShowsConfirm() = runTest(testDispatcher) {
         val vm = viewModel()
         advanceUntilIdle()
         vm.onEditSessionClick(sampleSession)
 
-        vm.onDeleteRequested()
+        vm.onEditDeleteConfirm(true)
 
         assertTrue(vm.uiState.value.editSheet!!.deleteConfirm)
     }
 
     @Test
-    fun onDeleteCancelledHidesConfirmKeepsSheet() = runTest(testDispatcher) {
+    fun onEditDeleteConfirmFalseHidesConfirm() = runTest(testDispatcher) {
         val vm = viewModel()
         advanceUntilIdle()
         vm.onEditSessionClick(sampleSession)
-        vm.onDeleteRequested()
+        vm.onEditDeleteConfirm(true)
 
-        vm.onDeleteCancelled()
+        vm.onEditDeleteConfirm(false)
 
         val sheet = vm.uiState.value.editSheet!!
         assertEquals(false, sheet.deleteConfirm)
@@ -203,7 +203,7 @@ class BreastfeedingEditSheetViewModelTest {
         val vm = viewModel()
         advanceUntilIdle()
         vm.onEditSessionClick(sampleSession)
-        vm.onDeleteRequested()
+        vm.onEditDeleteConfirm(true)
 
         vm.onDeleteConfirmed()
         advanceUntilIdle()
@@ -220,7 +220,7 @@ class BreastfeedingEditSheetViewModelTest {
         advanceUntilIdle()
         vm.onEditSessionClick(inProgress)
         val newEnd = inProgress.startTime.plusSeconds(1800)
-        vm.onEditEndChanged(newEnd)
+        vm.onEditTimeChanged(sampleSession.startTime, newEnd)
 
         vm.onEditSave()
         advanceUntilIdle()
@@ -235,7 +235,7 @@ class BreastfeedingEditSheetViewModelTest {
         advanceUntilIdle()
         vm.onEditSessionClick(sampleSession)
         val newEnd = sampleSession.startTime.plusSeconds(2400)
-        vm.onEditEndChanged(newEnd)
+        vm.onEditTimeChanged(sampleSession.startTime, newEnd)
 
         vm.onEditSave()
         advanceUntilIdle()
@@ -250,7 +250,7 @@ class BreastfeedingEditSheetViewModelTest {
         advanceUntilIdle()
         vm.onEditSessionClick(sampleSession)
         val newEnd = sampleSession.startTime.plusSeconds(2400)
-        vm.onEditEndChanged(newEnd)
+        vm.onEditTimeChanged(sampleSession.startTime, newEnd)
 
         vm.onEditSave()
         advanceUntilIdle()
@@ -265,7 +265,7 @@ class BreastfeedingEditSheetViewModelTest {
         val vm = viewModel()
         advanceUntilIdle()
         vm.onEditSessionClick(sampleSession)
-        vm.onDeleteRequested()
+        vm.onEditDeleteConfirm(true)
 
         vm.onDeleteConfirmed()
         advanceUntilIdle()
@@ -279,7 +279,7 @@ class BreastfeedingEditSheetViewModelTest {
         val vm = viewModel()
         advanceUntilIdle()
         vm.onEditSessionClick(sampleSession)
-        vm.onDeleteRequested()
+        vm.onEditDeleteConfirm(true)
 
         vm.onDeleteConfirmed()
         advanceUntilIdle()
@@ -300,5 +300,71 @@ class BreastfeedingEditSheetViewModelTest {
         assertNotNull(sheet)
         assertEquals(99L, sheet!!.original.id)
         assertEquals(BreastSide.RIGHT, sheet.original.startingSide)
+    }
+
+    @Test
+    fun onPendingDeleteSessionChangedSetsPendingDeleteSession() = runTest(testDispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.onPendingDeleteSessionChanged(sampleSession)
+
+        assertEquals(sampleSession, vm.uiState.value.pendingDeleteSession)
+    }
+
+    @Test
+    fun onPendingDeleteSessionChangedNullClearsPendingWithoutDeleting() = runTest(testDispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onPendingDeleteSessionChanged(sampleSession)
+
+        vm.onPendingDeleteSessionChanged(null)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.pendingDeleteSession)
+        coVerify(exactly = 0) { deleteSession(any()) }
+    }
+
+    @Test
+    fun onConfirmDeleteSessionDeletesSyncsAndClearsPending() = runTest(testDispatcher) {
+        coJustRun { deleteSession(any()) }
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onPendingDeleteSessionChanged(sampleSession)
+
+        vm.onConfirmDeleteSession()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { deleteSession(sampleSession) }
+        coVerify(exactly = 1) { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+        assertNull(vm.uiState.value.pendingDeleteSession)
+    }
+
+    @Test
+    fun onConfirmDeleteSessionForInProgressCancelsNotifications() = runTest(testDispatcher) {
+        coJustRun { deleteSession(any()) }
+        val inProgress = sampleSession.copy(endTime = null)
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onPendingDeleteSessionChanged(inProgress)
+
+        vm.onConfirmDeleteSession()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { notificationCoordinator.cancelAllSessionNotifications() }
+    }
+
+    @Test
+    fun onConfirmDeleteSessionSetsErrorAndSkipsSyncWhenDeleteFails() = runTest(testDispatcher) {
+        coEvery { deleteSession(any()) } throws RuntimeException("DB error")
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onPendingDeleteSessionChanged(sampleSession)
+
+        vm.onConfirmDeleteSession()
+        advanceUntilIdle()
+
+        assertEquals("Could not delete session. Please try again.", vm.uiState.value.error)
+        coVerify(exactly = 0) { syncToFirestore(any()) }
     }
 }
