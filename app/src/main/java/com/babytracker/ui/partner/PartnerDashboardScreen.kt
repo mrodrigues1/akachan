@@ -398,6 +398,11 @@ private fun CompactDashboardContent(
             now = now,
         )
 
+        snapshot.sleepPrediction?.let { prediction ->
+            Spacer(modifier = Modifier.height(16.dp))
+            PartnerSleepPredictionCard(prediction = prediction, now = now)
+        }
+
         val inventoryTotalMl = snapshot.inventoryTotalMl
         val inventoryBagCount = snapshot.inventoryBagCount
         if (inventoryTotalMl != null && inventoryBagCount != null && inventoryBagCount > 0) {
@@ -474,6 +479,9 @@ private fun WideDashboardContent(
                 allergyCount = snapshot.baby.allergies.size,
                 now = now,
             )
+            snapshot.sleepPrediction?.let { prediction ->
+                PartnerSleepPredictionCard(prediction = prediction, now = now)
+            }
             val inventoryTotalMl = snapshot.inventoryTotalMl
             val inventoryBagCount = snapshot.inventoryBagCount
             if (inventoryTotalMl != null && inventoryBagCount != null && inventoryBagCount > 0) {

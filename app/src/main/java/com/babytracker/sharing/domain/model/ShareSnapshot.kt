@@ -10,6 +10,7 @@ data class ShareSnapshot(
     val inventoryTotalMl: Int? = null,
     val inventoryBagCount: Int? = null,
     val inventoryUpdatedAt: Long? = null,
+    val sleepPrediction: SleepPredictionSnapshot? = null,
 )
 
 data class BabySnapshot(
