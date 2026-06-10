@@ -800,6 +800,12 @@ private fun LastFeedingSummaryCard(
                 badgeEmoji = "🍼",
                 badgeColor = MaterialTheme.colorScheme.primaryContainer,
                 onClick = { onEditSession(session) },
+                trailingContent = {
+                    FeedSessionOverflowMenu(
+                        onEdit = { onEditSession(session) },
+                        onDelete = { onDeleteSession(session) },
+                    )
+                },
             )
         }
     }
