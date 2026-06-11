@@ -217,12 +217,13 @@ private fun BagPicker(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = BagPickerMaxHeight)
-                .testTag(BAG_PICKER_LIST_TAG),
+                .heightIn(max = BagPickerMaxHeight),
         ) {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(BagPickerItemSpacing),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(BAG_PICKER_LIST_TAG),
             ) {
                 items(items = bags, key = { it.id }) { bag ->
                     val isSelected = bag.id == selectedBagId
