@@ -378,16 +378,23 @@ fun HomeScreen(
                     )
                 }
 
-                BottleFeedHomeCard(
-                    onClick = onNavigateToBottleFeed,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                FeedingHistoryHomeCard(
-                    summary = uiState.todayFeedingSummary,
-                    volumeUnit = uiState.volumeUnit,
-                    onClick = onNavigateToFeedingHistory,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Max),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    BottleFeedHomeCard(
+                        onClick = onNavigateToBottleFeed,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
+                    FeedingHistoryHomeCard(
+                        summary = uiState.todayFeedingSummary,
+                        volumeUnit = uiState.volumeUnit,
+                        onClick = onNavigateToFeedingHistory,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
+                }
             }
 
             SleepPredictionCard(
@@ -690,7 +697,7 @@ internal fun BottleFeedHomeCard(
     Card(
         onClick = onClick,
         modifier = modifier
-            .heightIn(min = 72.dp)
+            .heightIn(min = 120.dp)
             .semantics { contentDescription = "Log a bottle feed. Open bottle feed screen." },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
@@ -698,31 +705,28 @@ internal fun BottleFeedHomeCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(20.dp)
+                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
         ) {
             Text(
                 text = "🍼",
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.clearAndSetSemantics {},
             )
-            Column {
-                Text(
-                    text = "Bottle feed",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Log a bottle or formula feed",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Bottle feed",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Tap to log",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
         }
     }
 }
@@ -736,7 +740,7 @@ internal fun FeedingHistoryHomeCard(
 ) {
     val feedsLabel = if (summary.totalFeedCount == 1) "feed" else "feeds"
     val summaryText = when {
-        !summary.hasAny -> "No feeds logged yet today"
+        !summary.hasAny -> "No feeds today"
         summary.bottleVolumeMl > 0 ->
             "${formatVolume(summary.bottleVolumeMl, volumeUnit)} · ${summary.totalFeedCount} $feedsLabel today"
         else -> "${summary.totalFeedCount} $feedsLabel today"
@@ -744,7 +748,7 @@ internal fun FeedingHistoryHomeCard(
     Card(
         onClick = onClick,
         modifier = modifier
-            .heightIn(min = 72.dp)
+            .heightIn(min = 120.dp)
             .semantics {
                 contentDescription = "Feeding history. $summaryText. Open combined feeding history."
             },
@@ -755,32 +759,28 @@ internal fun FeedingHistoryHomeCard(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
                 .padding(20.dp)
                 .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
                 text = "📋",
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.clearAndSetSemantics {},
             )
-            Column {
-                Text(
-                    text = "Feeding history",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = summaryText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Feeding history",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = summaryText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
