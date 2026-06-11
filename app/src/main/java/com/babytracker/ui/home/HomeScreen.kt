@@ -72,6 +72,7 @@ import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepRecord
+import com.babytracker.domain.model.TodayFeedingSummary
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.ui.breastfeeding.PredictionCopy
@@ -383,6 +384,11 @@ fun HomeScreen(
                 )
                 FeedingHistoryHomeCard(
                     onClick = onNavigateToFeedingHistory,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TodayFeedingSummaryCard(
+                    summary = uiState.todayFeedingSummary,
+                    volumeUnit = uiState.volumeUnit,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -720,6 +726,51 @@ internal fun BottleFeedHomeCard(
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }
+        }
+    }
+}
+
+@Composable
+internal fun TodayFeedingSummaryCard(
+    summary: TodayFeedingSummary,
+    volumeUnit: VolumeUnit,
+    modifier: Modifier = Modifier,
+) {
+    val feedsLabel = if (summary.totalFeedCount == 1) "feed" else "feeds"
+    val valueText = when {
+        !summary.hasAny -> "No feeds logged yet today"
+        summary.bottleVolumeMl > 0 ->
+            "${formatVolume(summary.bottleVolumeMl, volumeUnit)} · ${summary.totalFeedCount} $feedsLabel"
+        else -> "${summary.totalFeedCount} $feedsLabel"
+    }
+    Card(
+        modifier = modifier
+            .heightIn(min = 72.dp)
+            .semantics { contentDescription = "Today's feeding. $valueText." },
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
+        ) {
+            Text(
+                text = "Today's feeding",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = valueText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
