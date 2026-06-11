@@ -54,6 +54,10 @@ import com.babytracker.domain.model.FeedEntry
 import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.FeedingDayGroup
 import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.ui.breastfeeding.BreastfeedingDeleteConfirmationDialog
+import com.babytracker.ui.breastfeeding.BreastfeedingViewModel
+import com.babytracker.ui.breastfeeding.EditBreastfeedingSessionSheet
+import com.babytracker.ui.breastfeeding.FeedSessionOverflowMenu
 import com.babytracker.ui.bottlefeed.BottleFeedSheet
 import com.babytracker.ui.bottlefeed.BottleFeedViewModel
 import com.babytracker.ui.component.HistoryCard
@@ -69,9 +73,11 @@ fun UnifiedFeedingHistoryScreen(
     modifier: Modifier = Modifier,
     viewModel: FeedingHistoryViewModel = hiltViewModel(),
     bottleViewModel: BottleFeedViewModel = hiltViewModel(),
+    breastfeedingViewModel: BreastfeedingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val bottleState by bottleViewModel.uiState.collectAsStateWithLifecycle()
+    val breastfeedingState by breastfeedingViewModel.uiState.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<BottleFeed?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -90,6 +96,12 @@ fun UnifiedFeedingHistoryScreen(
         val message = state.deleteError ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(message)
         viewModel.onDeleteErrorShown()
+    }
+
+    LaunchedEffect(breastfeedingState.error) {
+        val message = breastfeedingState.error ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message)
+        breastfeedingViewModel.onErrorDismissed()
     }
 
     Scaffold(
@@ -123,6 +135,8 @@ fun UnifiedFeedingHistoryScreen(
                 editing = true
             },
             onDeleteBottle = { pendingDelete = it },
+            onEditBreastfeeding = breastfeedingViewModel::onEditSessionClick,
+            onDeleteBreastfeeding = breastfeedingViewModel::onPendingDeleteSessionChanged,
             contentPadding = PaddingValues(
                 top = padding.calculateTopPadding() + 8.dp,
                 bottom = padding.calculateBottomPadding() + 8.dp,
@@ -154,6 +168,24 @@ fun UnifiedFeedingHistoryScreen(
             confirmEnabled = !state.isDeleting,
         )
     }
+
+    val editSheet = breastfeedingState.editSheet
+    if (editSheet != null) {
+        EditBreastfeedingSessionSheet(
+            state = editSheet,
+            onStartChanged = { breastfeedingViewModel.onEditTimeChanged(it, editSheet.editedEnd) },
+            onEndChanged = { breastfeedingViewModel.onEditTimeChanged(editSheet.editedStart, it) },
+            onDismiss = breastfeedingViewModel::onEditDismiss,
+            onSave = breastfeedingViewModel::onEditSave,
+        )
+    }
+
+    if (breastfeedingState.pendingDeleteSession != null) {
+        BreastfeedingDeleteConfirmationDialog(
+            onConfirm = breastfeedingViewModel::onConfirmDeleteSession,
+            onDismiss = { breastfeedingViewModel.onPendingDeleteSessionChanged(null) },
+        )
+    }
 }
 
 @Composable
@@ -161,6 +193,8 @@ internal fun UnifiedFeedingHistoryContent(
     state: FeedingHistoryUiState,
     onEditBottle: (BottleFeed) -> Unit,
     onDeleteBottle: (BottleFeed) -> Unit,
+    onEditBreastfeeding: (BreastfeedingSession) -> Unit,
+    onDeleteBreastfeeding: (BreastfeedingSession) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
 ) {
@@ -173,6 +207,8 @@ internal fun UnifiedFeedingHistoryContent(
                 volumeUnit = state.volumeUnit,
                 onEditBottle = onEditBottle,
                 onDeleteBottle = onDeleteBottle,
+                onEditBreastfeeding = onEditBreastfeeding,
+                onDeleteBreastfeeding = onDeleteBreastfeeding,
                 contentPadding = contentPadding,
             )
         }
@@ -185,6 +221,8 @@ private fun FeedingHistoryList(
     volumeUnit: VolumeUnit,
     onEditBottle: (BottleFeed) -> Unit,
     onDeleteBottle: (BottleFeed) -> Unit,
+    onEditBreastfeeding: (BreastfeedingSession) -> Unit,
+    onDeleteBreastfeeding: (BreastfeedingSession) -> Unit,
     contentPadding: PaddingValues,
 ) {
     LazyColumn(
@@ -204,7 +242,11 @@ private fun FeedingHistoryList(
                         onDelete = { onDeleteBottle(entry.feed) },
                     )
 
-                    is FeedEntry.Breastfeeding -> BreastfeedingFeedHistoryCard(session = entry.session)
+                    is FeedEntry.Breastfeeding -> BreastfeedingFeedHistoryCard(
+                        session = entry.session,
+                        onEdit = { onEditBreastfeeding(entry.session) },
+                        onDelete = { onDeleteBreastfeeding(entry.session) },
+                    )
                 }
             }
         }
@@ -253,7 +295,11 @@ internal fun BottleFeedHistoryCard(
 }
 
 @Composable
-internal fun BreastfeedingFeedHistoryCard(session: BreastfeedingSession) {
+internal fun BreastfeedingFeedHistoryCard(
+    session: BreastfeedingSession,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
     val sideLabel = if (session.startingSide == BreastSide.LEFT) "Left side" else "Right side"
     HistoryCard(
         title = sideLabel,
@@ -261,6 +307,8 @@ internal fun BreastfeedingFeedHistoryCard(session: BreastfeedingSession) {
         trailing = session.activeDuration?.formatDuration() ?: "In progress",
         badgeEmoji = "🤱",
         badgeColor = MaterialTheme.colorScheme.primaryContainer,
+        onClick = onEdit,
+        trailingContent = { FeedSessionOverflowMenu(onEdit = onEdit, onDelete = onDelete) },
     )
 }
 
