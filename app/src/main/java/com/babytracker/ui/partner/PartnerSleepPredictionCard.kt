@@ -51,6 +51,7 @@ internal fun PartnerSleepPredictionCard(
     prediction: SleepPredictionSnapshot?,
     now: Instant,
     modifier: Modifier = Modifier,
+    activeSleepType: String? = null,
 ) {
     if (prediction == null) return
     val variant = prediction.toVariant(now) ?: return
@@ -88,7 +89,9 @@ internal fun PartnerSleepPredictionCard(
                     secondary = "Next opportunity soon",
                 )
                 PredictionVariant.CURRENTLY_SLEEPING -> TwoLineContent(
-                    primary = "Nap in progress",
+                    primary = activeSleepType
+                        ?.let { "${sleepTypeLabel(it)} in progress" }
+                        ?: "Sleep in progress",
                     secondary = "Next window appears after wake",
                 )
                 PredictionVariant.AFTER_ACTIVE_FEED -> SingleLineContent(

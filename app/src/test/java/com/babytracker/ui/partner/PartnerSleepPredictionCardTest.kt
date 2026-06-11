@@ -23,10 +23,14 @@ class PartnerSleepPredictionCardTest {
     private val now = Instant.parse("2026-05-16T11:00:00Z")
     private val generatedAt = now.minusSeconds(8 * 60).toEpochMilli()
 
-    private fun setCard(prediction: SleepPredictionSnapshot?) {
+    private fun setCard(prediction: SleepPredictionSnapshot?, activeSleepType: String? = null) {
         composeRule.setContent {
             MaterialTheme {
-                PartnerSleepPredictionCard(prediction = prediction, now = now)
+                PartnerSleepPredictionCard(
+                    prediction = prediction,
+                    now = now,
+                    activeSleepType = activeSleepType,
+                )
             }
         }
     }
@@ -89,11 +93,31 @@ class PartnerSleepPredictionCardTest {
     }
 
     @Test
-    fun `currently sleeping renders nap copy`() {
+    fun `currently sleeping without type renders type neutral copy`() {
         setCard(SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt))
 
         composeRule.onNodeWithText("SLEEPING", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Sleep in progress", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `currently sleeping renders nap copy for active nap`() {
+        setCard(
+            SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt),
+            activeSleepType = "NAP",
+        )
+
         composeRule.onNodeWithText("Nap in progress", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `currently sleeping renders night sleep copy for active night sleep`() {
+        setCard(
+            SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt),
+            activeSleepType = "NIGHT_SLEEP",
+        )
+
+        composeRule.onNodeWithText("Night sleep in progress", useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test
