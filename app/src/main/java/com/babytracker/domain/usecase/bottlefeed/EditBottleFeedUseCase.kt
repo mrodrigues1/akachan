@@ -35,5 +35,6 @@ class EditBottleFeedUseCase @Inject constructor(
         ) { "Bottle feed no longer exists" }
 
         runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.INVENTORY) }
+        runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS) }
     }
 }

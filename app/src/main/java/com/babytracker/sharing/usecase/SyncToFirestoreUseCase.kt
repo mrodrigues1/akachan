@@ -1,11 +1,6 @@
 package com.babytracker.sharing.usecase
 
-import com.babytracker.domain.repository.BabyRepository
-import com.babytracker.domain.repository.BreastfeedingRepository
-import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.domain.repository.SleepRepository
-import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.ShareCode
@@ -20,14 +15,10 @@ import javax.inject.Inject
 class SyncToFirestoreUseCase @Inject constructor(
     private val sharingRepository: SharingRepository,
     private val settingsRepository: SettingsRepository,
-    private val babyRepository: BabyRepository,
-    private val breastfeedingRepository: BreastfeedingRepository,
-    private val sleepRepository: SleepRepository,
-    private val inventoryRepository: InventoryRepository,
-    private val predictSleepWindow: PredictSleepWindowUseCase,
+    private val sources: SnapshotSources,
     private val now: () -> Instant = Instant::now,
 ) {
-    enum class SyncType { FULL, SESSIONS, SLEEP_RECORDS, BABY, INVENTORY }
+    enum class SyncType { FULL, SESSIONS, SLEEP_RECORDS, BABY, INVENTORY, BOTTLE_FEEDS }
 
     suspend operator fun invoke(syncType: SyncType = SyncType.FULL) {
         if (settingsRepository.getAppMode().first() != AppMode.PRIMARY) return
@@ -38,17 +29,19 @@ class SyncToFirestoreUseCase @Inject constructor(
             SyncType.SLEEP_RECORDS -> syncSleepRecords(code)
             SyncType.BABY -> syncBaby(code)
             SyncType.INVENTORY -> syncInventory(code)
+            SyncType.BOTTLE_FEEDS -> syncBottleFeeds(code)
         }
     }
 
     private suspend fun syncFull(code: ShareCode) {
-        val baby = babyRepository.getBabyProfile().first()
-        val sessions = breastfeedingRepository.getRecentSessions(SYNC_LIMIT)
-        val sleepRecords = sleepRepository.getRecentRecords(SYNC_LIMIT)
-        val summary = inventoryRepository.currentSummary()
+        val baby = sources.baby.getBabyProfile().first()
+        val sessions = sources.breastfeeding.getRecentSessions(SYNC_LIMIT)
+        val sleepRecords = sources.sleep.getRecentRecords(SYNC_LIMIT)
+        val summary = sources.inventory.currentSummary()
+        val bottleFeeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
         val updatedAtMs = now().toEpochMilli()
         val prediction = if (settingsRepository.getPredictiveSleepEnabled().first()) {
-            predictSleepWindow().first().toSnapshot(updatedAtMs)
+            sources.predictSleepWindow().first().toSnapshot(updatedAtMs)
         } else {
             null
         }
@@ -59,6 +52,7 @@ class SyncToFirestoreUseCase @Inject constructor(
                 baby = baby?.toSnapshot() ?: BabySnapshot("", 0L, emptyList()),
                 sessions = sessions.map { it.toSnapshot() },
                 sleepRecords = sleepRecords.map { it.toSnapshot() },
+                bottleFeeds = bottleFeeds.map { it.toSnapshot() },
                 inventoryTotalMl = summary.totalMl,
                 inventoryBagCount = summary.bagCount,
                 inventoryUpdatedAt = updatedAtMs,
@@ -68,26 +62,31 @@ class SyncToFirestoreUseCase @Inject constructor(
     }
 
     private suspend fun syncSessions(code: ShareCode) {
-        val sessions = breastfeedingRepository.getRecentSessions(SYNC_LIMIT)
+        val sessions = sources.breastfeeding.getRecentSessions(SYNC_LIMIT)
         sharingRepository.syncSessions(code, sessions.map { it.toSnapshot() })
     }
 
     private suspend fun syncSleepRecords(code: ShareCode) {
-        val sleepRecords = sleepRepository.getRecentRecords(SYNC_LIMIT)
+        val sleepRecords = sources.sleep.getRecentRecords(SYNC_LIMIT)
         sharingRepository.syncSleepRecords(code, sleepRecords.map { it.toSnapshot() })
     }
 
     private suspend fun syncBaby(code: ShareCode) {
-        val baby = babyRepository.getBabyProfile().first()
+        val baby = sources.baby.getBabyProfile().first()
         sharingRepository.syncBaby(code, baby?.toSnapshot() ?: BabySnapshot("", 0L, emptyList()))
     }
 
     private suspend fun syncInventory(code: ShareCode) {
-        val summary = inventoryRepository.currentSummary()
+        val summary = sources.inventory.currentSummary()
         sharingRepository.syncInventory(
             code,
             summary.toSnapshotFields(updatedAtMs = now().toEpochMilli()),
         )
+    }
+
+    private suspend fun syncBottleFeeds(code: ShareCode) {
+        val feeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
+        sharingRepository.syncBottleFeeds(code, feeds.map { it.toSnapshot() })
     }
 
     companion object {

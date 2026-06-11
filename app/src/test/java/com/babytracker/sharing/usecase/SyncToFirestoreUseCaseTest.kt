@@ -1,15 +1,18 @@
 package com.babytracker.sharing.usecase
 
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.BottleFeed
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.Confidence
+import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.domain.repository.BabyRepository
+import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
@@ -44,6 +47,7 @@ class SyncToFirestoreUseCaseTest {
     private val breastfeedingRepository: BreastfeedingRepository = mockk()
     private val sleepRepository: SleepRepository = mockk()
     private val inventoryRepository: InventoryRepository = mockk()
+    private val bottleFeedRepository: BottleFeedRepository = mockk()
     private val predictSleepWindow: PredictSleepWindowUseCase = mockk()
     private val fixedNow = Instant.parse("2026-05-16T10:00:00Z")
 
@@ -61,17 +65,27 @@ class SyncToFirestoreUseCaseTest {
         startTime = Instant.now(),
         sleepType = SleepType.NAP,
     )
+    private val mockBottleFeed = BottleFeed(
+        id = 1L,
+        timestamp = Instant.parse("2026-05-16T09:00:00Z"),
+        volumeMl = 120,
+        type = FeedType.FORMULA,
+        createdAt = Instant.parse("2026-05-16T09:00:00Z"),
+    )
 
     @BeforeEach
     fun setUp() {
         useCase = SyncToFirestoreUseCase(
             sharingRepository,
             settingsRepository,
-            babyRepository,
-            breastfeedingRepository,
-            sleepRepository,
-            inventoryRepository,
-            predictSleepWindow,
+            SnapshotSources(
+                babyRepository,
+                breastfeedingRepository,
+                sleepRepository,
+                inventoryRepository,
+                bottleFeedRepository,
+                predictSleepWindow,
+            ),
         ) { fixedNow }
         every { settingsRepository.getShareCode() } returns flowOf(shareCode.value)
         every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
@@ -79,11 +93,13 @@ class SyncToFirestoreUseCaseTest {
         coEvery { breastfeedingRepository.getRecentSessions(any()) } returns listOf(mockSession)
         coEvery { sleepRepository.getRecentRecords(any()) } returns listOf(mockSleep)
         coEvery { inventoryRepository.currentSummary() } returns InventorySummary.Empty
+        every { bottleFeedRepository.getAll() } returns flowOf(listOf(mockBottleFeed))
         coEvery { sharingRepository.syncFullSnapshot(any(), any()) } just Runs
         coEvery { sharingRepository.syncSessions(any(), any()) } just Runs
         coEvery { sharingRepository.syncSleepRecords(any(), any()) } just Runs
         coEvery { sharingRepository.syncBaby(any(), any()) } just Runs
         coEvery { sharingRepository.syncInventory(any(), any()) } just Runs
+        coEvery { sharingRepository.syncBottleFeeds(any(), any()) } just Runs
     }
 
     @Test
@@ -140,6 +156,31 @@ class SyncToFirestoreUseCaseTest {
         useCase(SyncType.BABY)
 
         coVerify { sharingRepository.syncBaby(shareCode, any()) }
+    }
+
+    @Test
+    fun bottleFeedsSyncCallsSyncBottleFeeds() = runTest {
+        every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
+        val feeds = slot<List<com.babytracker.sharing.domain.model.BottleFeedSnapshot>>()
+        coEvery { sharingRepository.syncBottleFeeds(any(), capture(feeds)) } just Runs
+
+        useCase(SyncType.BOTTLE_FEEDS)
+
+        coVerify { sharingRepository.syncBottleFeeds(shareCode, any()) }
+        coVerify(exactly = 0) { sharingRepository.syncFullSnapshot(any(), any()) }
+        assertEquals(120, feeds.captured.single().volumeMl)
+        assertEquals("FORMULA", feeds.captured.single().type)
+    }
+
+    @Test
+    fun fullSyncIncludesBottleFeeds() = runTest {
+        every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
+        val snapshot = slot<ShareSnapshot>()
+        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshot)) } just Runs
+
+        useCase(SyncType.FULL)
+
+        assertEquals(120, snapshot.captured.bottleFeeds.single().volumeMl)
     }
 
     @Test

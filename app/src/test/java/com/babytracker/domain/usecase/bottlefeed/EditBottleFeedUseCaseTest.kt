@@ -54,6 +54,7 @@ class EditBottleFeedUseCaseTest {
             )
         }
         coVerify { sync(SyncToFirestoreUseCase.SyncType.INVENTORY) }
+        coVerify { sync(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS) }
     }
 
     @Test

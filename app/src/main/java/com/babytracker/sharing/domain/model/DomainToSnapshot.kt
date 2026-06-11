@@ -1,6 +1,7 @@
 package com.babytracker.sharing.domain.model
 
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.BottleFeed
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
@@ -20,6 +21,12 @@ fun BreastfeedingSession.toSnapshot(): SessionSnapshot = SessionSnapshot(
     switchTime = switchTime?.toEpochMilli(),
     pausedDurationMs = pausedDurationMs,
     notes = notes,
+)
+
+fun BottleFeed.toSnapshot(): BottleFeedSnapshot = BottleFeedSnapshot(
+    timestamp = timestamp.toEpochMilli(),
+    volumeMl = volumeMl,
+    type = type.name,
 )
 
 fun SleepRecord.toSnapshot(): SleepSnapshot = SleepSnapshot(

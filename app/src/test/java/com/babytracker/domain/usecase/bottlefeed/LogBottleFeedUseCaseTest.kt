@@ -5,6 +5,7 @@ import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.usecase.inventory.MarkBagUsedUseCase
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -21,6 +22,7 @@ class LogBottleFeedUseCaseTest {
 
     private lateinit var repository: BottleFeedRepository
     private lateinit var markBagUsed: MarkBagUsedUseCase
+    private lateinit var syncToFirestore: SyncToFirestoreUseCase
     private val now = Instant.ofEpochMilli(10_000)
     private lateinit var useCase: LogBottleFeedUseCase
 
@@ -28,7 +30,8 @@ class LogBottleFeedUseCaseTest {
     fun setup() {
         repository = mockk()
         markBagUsed = mockk(relaxed = true)
-        useCase = LogBottleFeedUseCase(repository, markBagUsed) { now }
+        syncToFirestore = mockk(relaxed = true)
+        useCase = LogBottleFeedUseCase(repository, markBagUsed, syncToFirestore) { now }
     }
 
     @Test
@@ -48,6 +51,7 @@ class LogBottleFeedUseCaseTest {
         assertEquals(FeedType.FORMULA, captured.captured.type)
         assertEquals(null, captured.captured.linkedMilkBagId)
         coVerify(exactly = 0) { markBagUsed(any()) }
+        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS) }
     }
 
     @Test
