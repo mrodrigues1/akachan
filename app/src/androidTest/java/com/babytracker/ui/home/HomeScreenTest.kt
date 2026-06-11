@@ -142,7 +142,7 @@ class HomeScreenTest {
             }
         }
         composeRule.onNodeWithText("Feeding history").assertIsDisplayed()
-        composeRule.onNodeWithText("No feeds logged yet today").assertIsDisplayed()
+        composeRule.onNodeWithText("No feeds today").assertIsDisplayed()
     }
 
     @Test

@@ -270,31 +270,33 @@ private fun RowScope.BottleFeedOverflowMenu(
     onDelete: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
-    IconButton(onClick = { menuExpanded = true }) {
-        Icon(
-            imageVector = Icons.Default.MoreVert,
-            contentDescription = stringResource(R.string.more_options),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-    DropdownMenu(
-        expanded = menuExpanded,
-        onDismissRequest = { menuExpanded = false },
-    ) {
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.edit)) },
-            onClick = {
-                menuExpanded = false
-                onEdit()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.delete)) },
-            onClick = {
-                menuExpanded = false
-                onDelete()
-            },
-        )
+    Box {
+        IconButton(onClick = { menuExpanded = true }) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = stringResource(R.string.more_options),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        DropdownMenu(
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.edit)) },
+                onClick = {
+                    menuExpanded = false
+                    onEdit()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.delete)) },
+                onClick = {
+                    menuExpanded = false
+                    onDelete()
+                },
+            )
+        }
     }
 }
 
