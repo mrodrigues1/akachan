@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.export.domain.model.BackupData
@@ -24,6 +25,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -132,6 +134,36 @@ class SettingsScreenTest {
         composeRule.onNodeWithText("Edit allergies").assertIsDisplayed()
     }
 
+    @Test
+    fun volumeUnitSelectorRendersAndPersistsSelection() {
+        val settingsRepo = FakeSettingsRepository()
+        val countRecentValidIntervals = mockk<CountRecentValidIntervalsUseCase>()
+        every { countRecentValidIntervals() } returns flowOf(0)
+        val babyRepo = FakeBabyRepository()
+        val viewModel = SettingsViewModel(
+            getBabyProfile = GetBabyProfileUseCase(babyRepo),
+            settingsRepository = settingsRepo,
+            saveBabyProfile = SaveBabyProfileUseCase(babyRepo, mockk(relaxed = true)),
+            countRecentValidIntervals = countRecentValidIntervals,
+            notificationPermissionChecker = NotificationPermissionChecker { true },
+            napReminderScheduler = mockk(relaxed = true),
+        )
+
+        composeRule.setContent {
+            SettingsScreen(onNavigateBack = {}, viewModel = viewModel, dataVm = buildFakeDataExportViewModel())
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Volume unit").assertIsDisplayed()
+        composeRule.onNodeWithText("mL").assertIsDisplayed()
+        composeRule.onNodeWithText("oz").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.runOnIdle {
+            assertEquals(VolumeUnit.OZ, settingsRepo.volumeUnitState.value)
+        }
+    }
+
     private open class FakeBabyRepository : BabyRepository {
         override fun getBabyProfile(): Flow<Baby?> = flowOf(null)
 
@@ -144,6 +176,14 @@ class SettingsScreenTest {
         override fun getThemeConfig(): Flow<ThemeConfig> = flowOf(ThemeConfig.SYSTEM)
 
         override suspend fun setThemeConfig(themeConfig: ThemeConfig) = Unit
+
+        val volumeUnitState = MutableStateFlow(VolumeUnit.ML)
+
+        override fun getVolumeUnit(): Flow<VolumeUnit> = volumeUnitState
+
+        override suspend fun setVolumeUnit(unit: VolumeUnit) {
+            volumeUnitState.value = unit
+        }
 
         override fun isOnboardingComplete(): Flow<Boolean> = flowOf(true)
 

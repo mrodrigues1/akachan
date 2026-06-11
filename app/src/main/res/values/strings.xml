@@ -73,6 +73,7 @@
     <string name="settings_notifications_blocked_title">Notifications blocked</string>
     <string name="settings_notifications_blocked_subtitle">Tap \'Open Settings\' to allow notifications.</string>
     <string name="settings_open_settings">Open settings</string>
+    <string name="settings_volume_unit_title">Volume unit</string>
     <string name="settings_lead_time_title">Notify ahead by</string>
     <string name="settings_lead_time_5">5m</string>
     <string name="settings_lead_time_10">10m</string>

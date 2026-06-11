@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.domain.model.AllergyType
+import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
@@ -75,6 +76,7 @@ import com.babytracker.ui.theme.WarningContainerAmber
 import com.babytracker.ui.theme.WarningContainerAmberDark
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
+import com.babytracker.util.formatVolume
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
@@ -203,6 +205,7 @@ fun PartnerDashboardScreen(
                             isLoading = uiState.isLoading,
                             onRefresh = viewModel::refresh,
                             nowProvider = nowProvider,
+                            volumeUnit = uiState.volumeUnit,
                         )
                     }
                     uiState.error != null -> {
@@ -263,6 +266,7 @@ private fun DashboardContent(
     isLoading: Boolean,
     onRefresh: () -> Unit,
     nowProvider: () -> Long,
+    volumeUnit: VolumeUnit,
 ) {
     var nowMs by remember(snapshot.lastSyncAt) { mutableLongStateOf(nowProvider()) }
     LaunchedEffect(snapshot.lastSyncAt) {
@@ -327,6 +331,7 @@ private fun DashboardContent(
                     isLoading = isLoading,
                     onRefresh = onRefresh,
                     now = now,
+                    volumeUnit = volumeUnit,
                 )
             } else {
                 CompactDashboardContent(
@@ -350,6 +355,7 @@ private fun DashboardContent(
                     isLoading = isLoading,
                     onRefresh = onRefresh,
                     now = now,
+                    volumeUnit = volumeUnit,
                 )
             }
         }
@@ -372,6 +378,7 @@ private fun CompactDashboardContent(
     isLoading: Boolean,
     onRefresh: () -> Unit,
     now: Instant,
+    volumeUnit: VolumeUnit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -412,6 +419,7 @@ private fun CompactDashboardContent(
                 bagCount = inventoryBagCount,
                 updatedAtMs = snapshot.inventoryUpdatedAt,
                 now = now,
+                volumeUnit = volumeUnit,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -452,6 +460,7 @@ private fun WideDashboardContent(
     isLoading: Boolean,
     onRefresh: () -> Unit,
     now: Instant,
+    volumeUnit: VolumeUnit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -490,6 +499,7 @@ private fun WideDashboardContent(
                     bagCount = inventoryBagCount,
                     updatedAtMs = snapshot.inventoryUpdatedAt,
                     now = now,
+                    volumeUnit = volumeUnit,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -864,8 +874,10 @@ private fun PartnerInventoryCard(
     bagCount: Int,
     updatedAtMs: Long?,
     now: Instant,
+    volumeUnit: VolumeUnit,
     modifier: Modifier = Modifier,
 ) {
+    val volumeText = formatVolume(totalMl, volumeUnit)
     val updatedText = remember(updatedAtMs, now) {
         updatedAtMs?.let {
             Duration.between(Instant.ofEpochMilli(it), now)
@@ -873,9 +885,9 @@ private fun PartnerInventoryCard(
                 .formatElapsedAgo()
         }
     }
-    val cardDescription = remember(totalMl, bagCount, updatedText) {
+    val cardDescription = remember(volumeText, bagCount, updatedText) {
         buildString {
-            append("Milk stash: $totalMl millilitres in $bagCount bags.")
+            append("Milk stash: $volumeText in $bagCount bags.")
             if (updatedText != null) append(" Updated $updatedText.")
         }
     }
@@ -925,7 +937,7 @@ private fun PartnerInventoryCard(
                     modifier = Modifier.clearAndSetSemantics {},
                 )
                 Text(
-                    text = "$totalMl mL · $bagCount bags",
+                    text = "$volumeText · $bagCount bags",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )

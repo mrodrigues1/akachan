@@ -66,9 +66,11 @@ import com.babytracker.ui.theme.OnWarningContainerAmber
 import com.babytracker.ui.theme.OnWarningContainerAmberDark
 import com.babytracker.ui.theme.WarningContainerAmber
 import com.babytracker.ui.theme.WarningContainerAmberDark
+import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.util.formatDateTime
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatElapsedCompact
+import com.babytracker.util.formatVolume
 import java.time.Duration
 import java.time.Instant
 
@@ -160,6 +162,7 @@ fun InventoryScreen(
     state.pendingDeleteBag?.let { bag ->
         MilkBagDeleteConfirmationDialog(
             bag = bag,
+            volumeUnit = state.volumeUnit,
             onDismiss = viewModel::onDismissDelete,
             onConfirm = viewModel::onConfirmDelete,
         )
@@ -207,7 +210,7 @@ internal fun InventoryContent(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             item(key = "summary") {
-                SummaryCard(summary = state.summary)
+                SummaryCard(summary = state.summary, volumeUnit = state.volumeUnit)
                 Spacer(Modifier.height(8.dp))
             }
             items(state.bags, key = { it.bag.id }) { item ->
@@ -215,6 +218,7 @@ internal fun InventoryContent(
                 MilkBagRow(
                     bag = item.bag,
                     expirationStatus = item.status,
+                    volumeUnit = state.volumeUnit,
                     isOldest = isOldest,
                     onEdit = { onEdit(item.bag) },
                     onMarkUsed = { onMarkUsed(item.bag) },
@@ -228,6 +232,7 @@ internal fun InventoryContent(
 @Composable
 private fun SummaryCard(
     summary: InventorySummary,
+    volumeUnit: VolumeUnit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -246,7 +251,7 @@ private fun SummaryCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             StatColumn(
-                value = "${summary.totalMl} mL",
+                value = formatVolume(summary.totalMl, volumeUnit),
                 label = "TOTAL",
                 modifier = Modifier.weight(1f),
             )
@@ -307,6 +312,7 @@ private fun StatColumn(
 private fun MilkBagRow(
     bag: MilkBag,
     expirationStatus: ExpirationStatus,
+    volumeUnit: VolumeUnit,
     isOldest: Boolean,
     onEdit: () -> Unit,
     onMarkUsed: () -> Unit,
@@ -372,7 +378,7 @@ private fun MilkBagRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${bag.volumeMl} mL",
+                    text = formatVolume(bag.volumeMl, volumeUnit),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = contentColor,
@@ -432,13 +438,14 @@ private fun MilkBagRow(
 @Composable
 private fun MilkBagDeleteConfirmationDialog(
     bag: MilkBag,
+    volumeUnit: VolumeUnit,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Delete bag?") },
-        text = { Text("${bag.volumeMl} mL bag will be removed.") },
+        text = { Text("${formatVolume(bag.volumeMl, volumeUnit)} bag will be removed.") },
         confirmButton = {
             Button(
                 onClick = onConfirm,

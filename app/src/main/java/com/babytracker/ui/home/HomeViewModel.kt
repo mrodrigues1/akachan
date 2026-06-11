@@ -11,6 +11,7 @@ import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
@@ -50,6 +51,7 @@ data class HomeUiState(
     val inventorySummary: InventorySummary = InventorySummary.Empty,
     val nextFeedPrediction: FeedPrediction? = null,
     val sleepPrediction: SleepPredictionState = SleepPredictionState.Unavailable("loading"),
+    val volumeUnit: VolumeUnit = VolumeUnit.ML,
 )
 
 @HiltViewModel
@@ -117,11 +119,13 @@ class HomeViewModel @Inject constructor(
         pumpingRepository.getActiveSession(),
         inventoryRepository.getSummary(),
         predictSleepWindow(),
-    ) { partial, pumpingActive, inventorySummary, sleepPrediction ->
+        settingsRepository.getVolumeUnit(),
+    ) { partial, pumpingActive, inventorySummary, sleepPrediction, volumeUnit ->
         partial.copy(
             pumpingActive = pumpingActive,
             inventorySummary = inventorySummary,
             sleepPrediction = sleepPrediction,
+            volumeUnit = volumeUnit,
         )
     }.stateIn(
         scope = viewModelScope,

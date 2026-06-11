@@ -2,6 +2,8 @@ package com.babytracker.ui.pumping
 
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
+import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.pumping.DeletePumpingSessionUseCase
 import com.babytracker.domain.usecase.pumping.GetPumpingHistoryUseCase
 import com.babytracker.domain.usecase.pumping.UpdatePumpingSessionUseCase
@@ -14,6 +16,7 @@ import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -33,6 +36,7 @@ class PumpingHistoryViewModelTest {
     private lateinit var getHistory: GetPumpingHistoryUseCase
     private lateinit var updateSession: UpdatePumpingSessionUseCase
     private lateinit var deleteSession: DeletePumpingSessionUseCase
+    private lateinit var settingsRepository: SettingsRepository
     private lateinit var viewModel: PumpingHistoryViewModel
 
     private val testDispatcher = StandardTestDispatcher()
@@ -54,11 +58,14 @@ class PumpingHistoryViewModelTest {
         getHistory = mockk()
         updateSession = mockk()
         deleteSession = mockk()
+        settingsRepository = mockk()
         every { getHistory() } returns historyFlow
+        every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         viewModel = PumpingHistoryViewModel(
             getHistory = getHistory,
             updateSession = updateSession,
             deleteSession = deleteSession,
+            settingsRepository = settingsRepository,
             now = { fixedNow },
         )
     }

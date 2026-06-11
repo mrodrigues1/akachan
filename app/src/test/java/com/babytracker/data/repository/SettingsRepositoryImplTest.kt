@@ -7,6 +7,8 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.mutablePreferencesOf
+import androidx.datastore.preferences.core.stringPreferencesKey
+import com.babytracker.domain.model.VolumeUnit
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -99,6 +101,46 @@ class SettingsRepositoryImplTest {
         val prefs = mutablePreferencesOf()
         editSlot.captured(prefs)
         assertTrue(prefs[booleanPreferencesKey("nap_reminder_enabled")]!!)
+    }
+
+    @Test
+    fun `getVolumeUnit returns ML when key is absent`() = runTest {
+        val prefs = mockk<Preferences>()
+        every { prefs[stringPreferencesKey("volume_unit")] } returns null
+        every { dataStore.data } returns flowOf(prefs)
+
+        assertEquals(VolumeUnit.ML, repository.getVolumeUnit().first())
+    }
+
+    @Test
+    fun `getVolumeUnit returns ML when stored value is invalid`() = runTest {
+        val prefs = mockk<Preferences>()
+        every { prefs[stringPreferencesKey("volume_unit")] } returns "GALLONS"
+        every { dataStore.data } returns flowOf(prefs)
+
+        assertEquals(VolumeUnit.ML, repository.getVolumeUnit().first())
+    }
+
+    @Test
+    fun `getVolumeUnit returns stored value`() = runTest {
+        val prefs = mockk<Preferences>()
+        every { prefs[stringPreferencesKey("volume_unit")] } returns "OZ"
+        every { dataStore.data } returns flowOf(prefs)
+
+        assertEquals(VolumeUnit.OZ, repository.getVolumeUnit().first())
+    }
+
+    @Test
+    fun `setVolumeUnit persists value to DataStore`() = runTest {
+        val editSlot = slot<suspend (MutablePreferences) -> Unit>()
+        coEvery { dataStore.edit(capture(editSlot)) } returns mockk()
+
+        repository.setVolumeUnit(VolumeUnit.OZ)
+
+        coVerify { dataStore.edit(any()) }
+        val prefs = mutablePreferencesOf()
+        editSlot.captured(prefs)
+        assertEquals("OZ", prefs[stringPreferencesKey("volume_unit")])
     }
 
     @Test

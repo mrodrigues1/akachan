@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
+import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.pumping.DeletePumpingSessionUseCase
 import com.babytracker.domain.usecase.pumping.GetPumpingHistoryUseCase
 import com.babytracker.domain.usecase.pumping.UpdatePumpingSessionUseCase
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -45,6 +48,7 @@ data class PumpingHistoryUiState(
     val sessions: List<PumpingSession> = emptyList(),
     val editSheet: EditPumpingSheetState? = null,
     val error: String? = null,
+    val volumeUnit: VolumeUnit = VolumeUnit.ML,
 )
 
 @HiltViewModel
@@ -52,6 +56,7 @@ class PumpingHistoryViewModel @Inject constructor(
     getHistory: GetPumpingHistoryUseCase,
     private val updateSession: UpdatePumpingSessionUseCase,
     private val deleteSession: DeletePumpingSessionUseCase,
+    settingsRepository: SettingsRepository,
     private val now: () -> Instant,
 ) : ViewModel() {
 
@@ -63,9 +68,10 @@ class PumpingHistoryViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            sessions.collect { list ->
-                _uiState.value = _uiState.value.copy(sessions = list)
-            }
+            combine(sessions, settingsRepository.getVolumeUnit()) { list, unit -> list to unit }
+                .collect { (list, unit) ->
+                    _uiState.value = _uiState.value.copy(sessions = list, volumeUnit = unit)
+                }
         }
     }
 

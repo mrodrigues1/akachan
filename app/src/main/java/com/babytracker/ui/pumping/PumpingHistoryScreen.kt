@@ -40,6 +40,7 @@ import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.displayName
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.util.formatDuration
+import com.babytracker.util.formatVolume
 import com.babytracker.util.formatTime12h
 import com.babytracker.util.groupByLocalDate
 import com.babytracker.util.toRelativeLabel
@@ -157,7 +158,7 @@ internal fun PumpingHistoryContent(
                 }
 
                 items(sessions, key = { it.id }) { session ->
-                    val volumeLabel = session.volumeMl?.let { "$it mL" } ?: "— mL"
+                    val volumeLabel = session.volumeMl?.let { formatVolume(it, state.volumeUnit) } ?: "—"
                     HistoryCard(
                         title = "${session.breast.displayName()} · $volumeLabel",
                         subtitle = session.startTime.formatTime12h(),

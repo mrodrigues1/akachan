@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.sharing.domain.model.AppMode
@@ -61,11 +62,11 @@ class PartnerDashboardScreenTest {
     private val noOpWidgetUpdater = object : WidgetUpdater { override suspend fun updateAll() = Unit }
 
     private fun buildViewModel(): PartnerDashboardViewModel {
-        return PartnerDashboardViewModel(buildFetchUseCase(snapshot = null), noOpWidgetUpdater)
+        return PartnerDashboardViewModel(buildFetchUseCase(snapshot = null), noOpWidgetUpdater, FakePartnerSettingsRepository())
     }
 
     private fun buildViewModel(snapshot: ShareSnapshot): PartnerDashboardViewModel {
-        return PartnerDashboardViewModel(buildFetchUseCase(snapshot), noOpWidgetUpdater)
+        return PartnerDashboardViewModel(buildFetchUseCase(snapshot), noOpWidgetUpdater, FakePartnerSettingsRepository())
     }
 
     private fun buildFetchUseCase(
@@ -287,7 +288,7 @@ class PartnerDashboardScreenTest {
     fun pullDownRefreshChecksForSharedUpdates() {
         val sharingRepository = FakeSharingRepository(makeSnapshot())
         val fetchUseCase = buildFetchUseCase(makeSnapshot(), sharingRepository)
-        val viewModel = PartnerDashboardViewModel(fetchUseCase, noOpWidgetUpdater)
+        val viewModel = PartnerDashboardViewModel(fetchUseCase, noOpWidgetUpdater, FakePartnerSettingsRepository())
 
         composeRule.setContent {
             PartnerDashboardScreen(
@@ -315,7 +316,7 @@ class PartnerDashboardScreenTest {
                 }
             },
         )
-        val viewModel = PartnerDashboardViewModel(buildFetchUseCase(makeSnapshot(), sharingRepository), noOpWidgetUpdater)
+        val viewModel = PartnerDashboardViewModel(buildFetchUseCase(makeSnapshot(), sharingRepository), noOpWidgetUpdater, FakePartnerSettingsRepository())
 
         composeRule.setContent {
             PartnerDashboardScreen(
@@ -483,7 +484,7 @@ class PartnerDashboardScreenTest {
             )
         }
 
-        composeRule.onNodeWithText("240 mL · 3 bags").assertIsDisplayed()
+        composeRule.onNodeWithText("240 ml · 3 bags").assertIsDisplayed()
     }
 
     @Test
@@ -549,6 +550,10 @@ class PartnerDashboardScreenTest {
         override fun getThemeConfig(): Flow<ThemeConfig> = flowOf(ThemeConfig.SYSTEM)
 
         override suspend fun setThemeConfig(themeConfig: ThemeConfig) = Unit
+
+        override fun getVolumeUnit(): Flow<VolumeUnit> = flowOf(VolumeUnit.ML)
+
+        override suspend fun setVolumeUnit(unit: VolumeUnit) = Unit
 
         override fun isOnboardingComplete(): Flow<Boolean> = flowOf(true)
 
