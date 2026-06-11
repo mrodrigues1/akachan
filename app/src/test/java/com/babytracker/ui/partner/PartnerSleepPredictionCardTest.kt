@@ -23,13 +23,18 @@ class PartnerSleepPredictionCardTest {
     private val now = Instant.parse("2026-05-16T11:00:00Z")
     private val generatedAt = now.minusSeconds(8 * 60).toEpochMilli()
 
-    private fun setCard(prediction: SleepPredictionSnapshot?, activeSleepType: String? = null) {
+    private fun setCard(
+        prediction: SleepPredictionSnapshot?,
+        activeSleepType: String? = null,
+        hasActiveSleep: Boolean = false,
+    ) {
         composeRule.setContent {
             MaterialTheme {
                 PartnerSleepPredictionCard(
                     prediction = prediction,
                     now = now,
                     activeSleepType = activeSleepType,
+                    hasActiveSleep = hasActiveSleep,
                 )
             }
         }
@@ -94,7 +99,10 @@ class PartnerSleepPredictionCardTest {
 
     @Test
     fun `currently sleeping without type renders type neutral copy`() {
-        setCard(SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt))
+        setCard(
+            SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt),
+            hasActiveSleep = true,
+        )
 
         composeRule.onNodeWithText("SLEEPING", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("Sleep in progress", useUnmergedTree = true).assertIsDisplayed()
@@ -105,6 +113,7 @@ class PartnerSleepPredictionCardTest {
         setCard(
             SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt),
             activeSleepType = "NAP",
+            hasActiveSleep = true,
         )
 
         composeRule.onNodeWithText("Nap in progress", useUnmergedTree = true).assertIsDisplayed()
@@ -115,9 +124,22 @@ class PartnerSleepPredictionCardTest {
         setCard(
             SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt),
             activeSleepType = "NIGHT_SLEEP",
+            hasActiveSleep = true,
         )
 
         composeRule.onNodeWithText("Night sleep in progress", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `stale currently sleeping is hidden when no active sleep`() {
+        setCard(
+            SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt),
+            hasActiveSleep = false,
+        )
+
+        composeRule.onNodeWithText("SLEEPING", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Nap in progress", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Estimated", substring = true, useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test

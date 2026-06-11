@@ -417,6 +417,7 @@ private fun CompactDashboardContent(
                 prediction = prediction,
                 now = now,
                 activeSleepType = activeSleep?.sleepType,
+                hasActiveSleep = snapshot.sleepRecords.any { it.endTime == null },
             )
         }
 
@@ -507,6 +508,7 @@ private fun WideDashboardContent(
                     prediction = prediction,
                     now = now,
                     activeSleepType = activeSleep?.sleepType,
+                    hasActiveSleep = snapshot.sleepRecords.any { it.endTime == null },
                 )
             }
             val inventoryTotalMl = snapshot.inventoryTotalMl
