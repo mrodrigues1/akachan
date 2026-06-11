@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import com.babytracker.data.local.entity.BottleFeedEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -17,6 +18,45 @@ interface BottleFeedDao {
 
     @Query("SELECT * FROM bottle_feeds ORDER BY timestamp ASC")
     suspend fun getAllOnce(): List<BottleFeedEntity>
+
+    @Query("SELECT * FROM bottle_feeds WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): BottleFeedEntity?
+
+    @Transaction
+    suspend fun updateDetailsWithInventory(
+        id: Long,
+        timestamp: Long,
+        volumeMl: Int,
+        type: String,
+        linkedMilkBagId: Long?,
+        notes: String?,
+        usedAt: Long,
+    ): Boolean {
+        val existing = getById(id) ?: return false
+        val nextLinkedMilkBagId = linkedMilkBagId.takeIf { type == "BREAST_MILK" }
+        if (nextLinkedMilkBagId != null && nextLinkedMilkBagId != existing.linkedMilkBagId) {
+            check(isMilkBagActive(nextLinkedMilkBagId)) { "Milk bag no longer exists or is already used" }
+        }
+
+        val updated = updateDetails(id, timestamp, volumeMl, type, nextLinkedMilkBagId, notes)
+        if (updated == 0) return false
+
+        if (existing.linkedMilkBagId != nextLinkedMilkBagId) {
+            existing.linkedMilkBagId?.let { restoreMilkBagIfUnreferenced(it) }
+            nextLinkedMilkBagId?.let { markMilkBagUsed(it, usedAt) }
+        }
+        return true
+    }
+
+    @Transaction
+    suspend fun deleteWithInventoryRestore(id: Long): Boolean {
+        val existing = getById(id) ?: return false
+        val deleted = deleteById(id)
+        if (deleted == 0) return false
+
+        existing.linkedMilkBagId?.let { restoreMilkBagIfUnreferenced(it) }
+        return true
+    }
 
     @Insert
     suspend fun insert(entity: BottleFeedEntity): Long
@@ -40,6 +80,27 @@ interface BottleFeedDao {
         linkedMilkBagId: Long?,
         notes: String?,
     ): Int
+
+    @Query("SELECT EXISTS(SELECT 1 FROM milk_bags WHERE id = :id AND used_at IS NULL)")
+    suspend fun isMilkBagActive(id: Long): Boolean
+
+    @Query(
+        """
+        UPDATE milk_bags
+        SET used_at = NULL
+        WHERE id = :id
+          AND NOT EXISTS (
+              SELECT 1 FROM bottle_feeds WHERE linked_milk_bag_id = :id
+          )
+        """,
+    )
+    suspend fun restoreMilkBagIfUnreferenced(id: Long): Int
+
+    @Query("UPDATE milk_bags SET used_at = :usedAt WHERE id = :id AND used_at IS NULL")
+    suspend fun markMilkBagUsed(id: Long, usedAt: Long): Int
+
+    @Query("DELETE FROM bottle_feeds WHERE id = :id")
+    suspend fun deleteById(id: Long): Int
 
     @Delete
     suspend fun delete(entity: BottleFeedEntity)

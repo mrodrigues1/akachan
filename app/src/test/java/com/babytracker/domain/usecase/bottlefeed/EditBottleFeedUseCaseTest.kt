@@ -2,6 +2,7 @@ package com.babytracker.domain.usecase.bottlefeed
 
 import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.repository.BottleFeedRepository
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -15,19 +16,21 @@ import java.time.Instant
 class EditBottleFeedUseCaseTest {
 
     private lateinit var repository: BottleFeedRepository
+    private lateinit var sync: SyncToFirestoreUseCase
     private val now = Instant.ofEpochMilli(10_000)
     private lateinit var useCase: EditBottleFeedUseCase
 
     @BeforeEach
     fun setup() {
         repository = mockk()
-        useCase = EditBottleFeedUseCase(repository) { now }
+        sync = mockk(relaxed = true)
+        useCase = EditBottleFeedUseCase(repository, sync) { now }
     }
 
     @Test
-    fun `updates details when row exists`() = runTest {
+    fun `updates details through transactional inventory boundary`() = runTest {
         coEvery {
-            repository.updateDetails(any(), any(), any(), any(), any(), any())
+            repository.updateDetailsWithInventory(any(), any(), any(), any(), any(), any(), any())
         } returns true
 
         useCase(
@@ -35,18 +38,27 @@ class EditBottleFeedUseCaseTest {
             timestamp = Instant.ofEpochMilli(9_000),
             volumeMl = 150,
             type = FeedType.FORMULA,
-            linkedMilkBagId = null,
+            linkedMilkBagId = 7L,
             notes = "edited",
         )
 
         coVerify {
-            repository.updateDetails(3, Instant.ofEpochMilli(9_000), 150, FeedType.FORMULA, null, "edited")
+            repository.updateDetailsWithInventory(
+                id = 3,
+                timestamp = Instant.ofEpochMilli(9_000),
+                volumeMl = 150,
+                type = FeedType.FORMULA,
+                linkedMilkBagId = 7L,
+                notes = "edited",
+                usedAt = now,
+            )
         }
+        coVerify { sync(SyncToFirestoreUseCase.SyncType.INVENTORY) }
     }
 
     @Test
     fun `throws when no row updated`() = runTest {
-        coEvery { repository.updateDetails(any(), any(), any(), any(), any(), any()) } returns false
+        coEvery { repository.updateDetailsWithInventory(any(), any(), any(), any(), any(), any(), any()) } returns false
 
         assertThrows<IllegalStateException> {
             runBlocking {
