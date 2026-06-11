@@ -45,6 +45,10 @@ private enum class PredictionVariant { WINDOW, OVERDUE, CURRENTLY_SLEEPING, AFTE
  * Read-only sleep prediction card for the partner dashboard. Renders a static snapshot computed on
  * the primary device. Hidden entirely (no layout space) when [prediction] is null. A synced WINDOW
  * whose end has passed by more than [OVERDUE_GRACE_MINUTES] is re-rendered as OVERDUE on this device.
+ *
+ * A synced CURRENTLY_SLEEPING is only trusted while the snapshot still carries an open sleep record
+ * ([hasActiveSleep]); once the nap has ended the prediction is stale, so the "in progress" card is
+ * hidden rather than claiming a nap that is no longer happening.
  */
 @Composable
 internal fun PartnerSleepPredictionCard(
@@ -52,9 +56,10 @@ internal fun PartnerSleepPredictionCard(
     now: Instant,
     modifier: Modifier = Modifier,
     activeSleepType: String? = null,
+    hasActiveSleep: Boolean = false,
 ) {
     if (prediction == null) return
-    val variant = prediction.toVariant(now) ?: return
+    val variant = prediction.toVariant(now, hasActiveSleep) ?: return
 
     val estimatedAgo = Duration.between(Instant.ofEpochMilli(prediction.generatedAt), now)
         .coerceAtLeast(Duration.ZERO)
@@ -227,11 +232,11 @@ private fun SingleLineContent(text: String) {
     )
 }
 
-private fun SleepPredictionSnapshot.toVariant(now: Instant): PredictionVariant? =
+private fun SleepPredictionSnapshot.toVariant(now: Instant, hasActiveSleep: Boolean): PredictionVariant? =
     when (stateLabel) {
         "WINDOW" -> if (isStale(now)) PredictionVariant.OVERDUE else PredictionVariant.WINDOW
         "OVERDUE" -> PredictionVariant.OVERDUE
-        "CURRENTLY_SLEEPING" -> PredictionVariant.CURRENTLY_SLEEPING
+        "CURRENTLY_SLEEPING" -> if (hasActiveSleep) PredictionVariant.CURRENTLY_SLEEPING else null
         "AFTER_ACTIVE_FEED" -> PredictionVariant.AFTER_ACTIVE_FEED
         "NEED_MORE_DATA" -> PredictionVariant.NEED_MORE_DATA
         "CUE_LED" -> PredictionVariant.CUE_LED
