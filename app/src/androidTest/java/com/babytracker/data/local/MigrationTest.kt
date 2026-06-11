@@ -180,6 +180,85 @@ class MigrationTest {
             context.deleteDatabase(dbName)
         }
     }
+
+    @Test
+    fun migrate7To8_createsBottleFeedsTable_andFkSetsNullOnBagDelete() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val dbName = "migration-test-v7-to-v8"
+        try {
+            val helper = FrameworkSQLiteOpenHelperFactory().create(
+                SupportSQLiteOpenHelper.Configuration.builder(context)
+                    .name(dbName)
+                    .callback(V7DatabaseCallback())
+                    .build()
+            )
+            val db = helper.writableDatabase
+            db.execSQL("PRAGMA foreign_keys = ON")
+
+            // Seed a milk bag so the FK target exists.
+            db.execSQL("INSERT INTO milk_bags(id, collection_date, volume_ml, created_at) VALUES(1, 1000, 100, 1000)")
+
+            MIGRATION_7_8.migrate(db)
+
+            // bottle_feeds accepts inserts, including a linked bag.
+            db.execSQL(
+                "INSERT INTO bottle_feeds(timestamp, volume_ml, type, linked_milk_bag_id, created_at)" +
+                    " VALUES(2000, 120, 'BREAST_MILK', 1, 2000)"
+            )
+            val feedCursor: Cursor = db.query("SELECT count(*) FROM bottle_feeds")
+            feedCursor.moveToFirst()
+            assertEquals(1, feedCursor.getInt(0))
+            feedCursor.close()
+
+            // Deleting the bag nulls the link (ON DELETE SET NULL), feed row survives.
+            db.execSQL("DELETE FROM milk_bags WHERE id = 1")
+            val linkCursor: Cursor = db.query(
+                "SELECT linked_milk_bag_id FROM bottle_feeds"
+            )
+            linkCursor.moveToFirst()
+            assertEquals(true, linkCursor.isNull(0))
+            linkCursor.close()
+
+            db.close()
+        } finally {
+            context.deleteDatabase(dbName)
+        }
+    }
+}
+
+private class V7DatabaseCallback : SupportSQLiteOpenHelper.Callback(7) {
+    override fun onCreate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS pumping_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                start_time INTEGER NOT NULL,
+                end_time INTEGER,
+                breast TEXT NOT NULL,
+                volume_ml INTEGER,
+                notes TEXT,
+                paused_at INTEGER,
+                paused_duration_ms INTEGER NOT NULL DEFAULT 0
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS milk_bags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                collection_date INTEGER NOT NULL,
+                volume_ml INTEGER NOT NULL,
+                source_session_id INTEGER,
+                used_at INTEGER,
+                notes TEXT,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY(source_session_id) REFERENCES pumping_sessions(id) ON UPDATE NO ACTION ON DELETE SET NULL
+            )
+            """.trimIndent()
+        )
+    }
+
+    override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
 }
 
 private class V6DatabaseCallback : SupportSQLiteOpenHelper.Callback(6) {

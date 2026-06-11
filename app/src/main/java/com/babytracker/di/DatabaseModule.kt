@@ -11,9 +11,11 @@ import com.babytracker.data.local.MIGRATION_3_4
 import com.babytracker.data.local.MIGRATION_4_5
 import com.babytracker.data.local.MIGRATION_5_6
 import com.babytracker.data.local.MIGRATION_6_7
+import com.babytracker.data.local.MIGRATION_7_8
 import com.babytracker.data.local.installActiveSessionInvariantTriggers
 import com.babytracker.data.local.dao.BabyEventDao
 import com.babytracker.data.local.dao.BabyProfileDao
+import com.babytracker.data.local.dao.BottleFeedDao
 import com.babytracker.data.local.dao.BreastfeedingDao
 import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.data.local.dao.PumpingDao
@@ -39,7 +41,15 @@ object DatabaseModule {
             BabyTrackerDatabase::class.java,
             "baby_tracker_db",
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+                MIGRATION_6_7,
+                MIGRATION_7_8,
+            )
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)
@@ -70,6 +80,9 @@ object DatabaseModule {
     @Provides
     fun provideSleepRecommendationDao(database: BabyTrackerDatabase): SleepRecommendationDao =
         database.sleepRecommendationDao()
+
+    @Provides
+    fun provideBottleFeedDao(database: BabyTrackerDatabase): BottleFeedDao = database.bottleFeedDao()
 
     @Provides
     fun provideNowProvider(): () -> Instant = Instant::now

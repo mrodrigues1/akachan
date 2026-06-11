@@ -8,6 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.babytracker.data.local.converter.Converters
 import com.babytracker.data.local.dao.BabyEventDao
 import com.babytracker.data.local.dao.BabyProfileDao
+import com.babytracker.data.local.dao.BottleFeedDao
 import com.babytracker.data.local.dao.BreastfeedingDao
 import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.data.local.dao.PumpingDao
@@ -15,6 +16,7 @@ import com.babytracker.data.local.dao.SleepDao
 import com.babytracker.data.local.dao.SleepRecommendationDao
 import com.babytracker.data.local.entity.BabyEventEntity
 import com.babytracker.data.local.entity.BabyProfileEntity
+import com.babytracker.data.local.entity.BottleFeedEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
@@ -32,8 +34,9 @@ import com.babytracker.data.local.entity.SleepRecommendationFeedbackEntity
         BabyEventEntity::class,
         SleepRecommendationEntity::class,
         SleepRecommendationFeedbackEntity::class,
+        BottleFeedEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -45,6 +48,7 @@ abstract class BabyTrackerDatabase : RoomDatabase() {
     abstract fun babyProfileDao(): BabyProfileDao
     abstract fun babyEventDao(): BabyEventDao
     abstract fun sleepRecommendationDao(): SleepRecommendationDao
+    abstract fun bottleFeedDao(): BottleFeedDao
 }
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -260,6 +264,29 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
         )
         database.execSQL(
             "CREATE UNIQUE INDEX IF NOT EXISTS index_sleep_recommendation_feedback_recommendation_id_outcome ON sleep_recommendation_feedback(recommendation_id, outcome)"
+        )
+    }
+}
+
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS bottle_feeds (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                timestamp INTEGER NOT NULL,
+                volume_ml INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                linked_milk_bag_id INTEGER,
+                notes TEXT,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY(linked_milk_bag_id) REFERENCES milk_bags(id) ON UPDATE NO ACTION ON DELETE SET NULL
+            )
+            """.trimIndent()
+        )
+        database.execSQL("CREATE INDEX IF NOT EXISTS index_bottle_feeds_timestamp ON bottle_feeds(timestamp)")
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_bottle_feeds_linked_milk_bag_id ON bottle_feeds(linked_milk_bag_id)"
         )
     }
 }
