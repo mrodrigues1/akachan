@@ -383,12 +383,9 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 FeedingHistoryHomeCard(
-                    onClick = onNavigateToFeedingHistory,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                TodayFeedingSummaryCard(
                     summary = uiState.todayFeedingSummary,
                     volumeUnit = uiState.volumeUnit,
+                    onClick = onNavigateToFeedingHistory,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -731,60 +728,26 @@ internal fun BottleFeedHomeCard(
 }
 
 @Composable
-internal fun TodayFeedingSummaryCard(
+internal fun FeedingHistoryHomeCard(
     summary: TodayFeedingSummary,
     volumeUnit: VolumeUnit,
-    modifier: Modifier = Modifier,
-) {
-    val feedsLabel = if (summary.totalFeedCount == 1) "feed" else "feeds"
-    val valueText = when {
-        !summary.hasAny -> "No feeds logged yet today"
-        summary.bottleVolumeMl > 0 ->
-            "${formatVolume(summary.bottleVolumeMl, volumeUnit)} · ${summary.totalFeedCount} $feedsLabel"
-        else -> "${summary.totalFeedCount} $feedsLabel"
-    }
-    Card(
-        modifier = modifier
-            .heightIn(min = 72.dp)
-            .semantics { contentDescription = "Today's feeding. $valueText." },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
-        ) {
-            Text(
-                text = "Today's feeding",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = valueText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-internal fun FeedingHistoryHomeCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val feedsLabel = if (summary.totalFeedCount == 1) "feed" else "feeds"
+    val summaryText = when {
+        !summary.hasAny -> "No feeds logged yet today"
+        summary.bottleVolumeMl > 0 ->
+            "${formatVolume(summary.bottleVolumeMl, volumeUnit)} · ${summary.totalFeedCount} $feedsLabel today"
+        else -> "${summary.totalFeedCount} $feedsLabel today"
+    }
     Card(
         onClick = onClick,
         modifier = modifier
             .heightIn(min = 72.dp)
-            .semantics { contentDescription = "Feeding history. Open combined feeding history." },
+            .semantics {
+                contentDescription = "Feeding history. $summaryText. Open combined feeding history."
+            },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
@@ -795,7 +758,8 @@ internal fun FeedingHistoryHomeCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(20.dp)
+                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -812,7 +776,7 @@ internal fun FeedingHistoryHomeCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Bottle and breastfeeding log",
+                    text = summaryText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
