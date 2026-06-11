@@ -7,7 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,6 +19,7 @@ import com.babytracker.domain.model.FeedEntry
 import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.FeedingDayGroup
 import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.ui.breastfeeding.BreastfeedingDeleteConfirmationDialog
 import com.babytracker.ui.theme.BabyTrackerTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -57,6 +58,8 @@ class UnifiedFeedingHistoryScreenTest {
                     state = sampleState(),
                     onEditBottle = {},
                     onDeleteBottle = {},
+                    onEditBreastfeeding = {},
+                    onDeleteBreastfeeding = {},
                 )
             }
         }
@@ -75,6 +78,8 @@ class UnifiedFeedingHistoryScreenTest {
                     state = sampleState(),
                     onEditBottle = { edited = it },
                     onDeleteBottle = {},
+                    onEditBreastfeeding = {},
+                    onDeleteBreastfeeding = {},
                 )
             }
         }
@@ -85,7 +90,27 @@ class UnifiedFeedingHistoryScreenTest {
     }
 
     @Test
-    fun overflowDeleteShowsConfirmationAndConfirms() {
+    fun tappingBreastfeedingRowInvokesEdit() {
+        var edited: BreastfeedingSession? = null
+        composeRule.setContent {
+            BabyTrackerTheme {
+                UnifiedFeedingHistoryContent(
+                    state = sampleState(),
+                    onEditBottle = {},
+                    onDeleteBottle = {},
+                    onEditBreastfeeding = { edited = it },
+                    onDeleteBreastfeeding = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Left side").performClick()
+
+        composeRule.runOnIdle { assertEquals(session, edited) }
+    }
+
+    @Test
+    fun bottleOverflowDeleteShowsConfirmationAndConfirms() {
         var deleted = false
         composeRule.setContent {
             var pendingDelete by remember { mutableStateOf<BottleFeed?>(null) }
@@ -94,6 +119,8 @@ class UnifiedFeedingHistoryScreenTest {
                     state = sampleState(),
                     onEditBottle = {},
                     onDeleteBottle = { pendingDelete = it },
+                    onEditBreastfeeding = {},
+                    onDeleteBreastfeeding = {},
                 )
                 pendingDelete?.let {
                     FeedingDeleteConfirmationDialog(
@@ -107,9 +134,42 @@ class UnifiedFeedingHistoryScreenTest {
             }
         }
 
-        composeRule.onNodeWithContentDescription("More options").performClick()
+        composeRule.onAllNodesWithContentDescription("More options")[0].performClick()
         composeRule.onNodeWithText("Delete").performClick()
         composeRule.onNodeWithText("Delete feed?").assertIsDisplayed()
+        composeRule.onNodeWithText("Delete").performClick()
+
+        composeRule.runOnIdle { assertTrue(deleted) }
+    }
+
+    @Test
+    fun breastfeedingOverflowDeleteShowsConfirmationAndConfirms() {
+        var deleted = false
+        composeRule.setContent {
+            var pendingDelete by remember { mutableStateOf<BreastfeedingSession?>(null) }
+            BabyTrackerTheme {
+                UnifiedFeedingHistoryContent(
+                    state = sampleState(),
+                    onEditBottle = {},
+                    onDeleteBottle = {},
+                    onEditBreastfeeding = {},
+                    onDeleteBreastfeeding = { pendingDelete = it },
+                )
+                pendingDelete?.let {
+                    BreastfeedingDeleteConfirmationDialog(
+                        onConfirm = {
+                            deleted = true
+                            pendingDelete = null
+                        },
+                        onDismiss = { pendingDelete = null },
+                    )
+                }
+            }
+        }
+
+        composeRule.onAllNodesWithContentDescription("More options")[1].performClick()
+        composeRule.onNodeWithText("Delete").performClick()
+        composeRule.onNodeWithText("Delete this session?").assertIsDisplayed()
         composeRule.onNodeWithText("Delete").performClick()
 
         composeRule.runOnIdle { assertTrue(deleted) }
@@ -123,6 +183,8 @@ class UnifiedFeedingHistoryScreenTest {
                     state = FeedingHistoryUiState(isLoading = false),
                     onEditBottle = {},
                     onDeleteBottle = {},
+                    onEditBreastfeeding = {},
+                    onDeleteBreastfeeding = {},
                 )
             }
         }
