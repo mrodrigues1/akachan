@@ -7,6 +7,7 @@ data class ShareSnapshot(
     val baby: BabySnapshot,
     val sessions: List<SessionSnapshot>,
     val sleepRecords: List<SleepSnapshot>,
+    val bottleFeeds: List<BottleFeedSnapshot> = emptyList(),
     val inventoryTotalMl: Int? = null,
     val inventoryBagCount: Int? = null,
     val inventoryUpdatedAt: Long? = null,
@@ -35,4 +36,10 @@ data class SleepSnapshot(
     val endTime: Long?,
     val sleepType: String,
     val notes: String?,
+)
+
+data class BottleFeedSnapshot(
+    val timestamp: Long,
+    val volumeMl: Int,
+    val type: String,
 )

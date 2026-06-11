@@ -2,6 +2,7 @@ package com.babytracker.sharing.usecase
 
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.repository.BabyRepository
+import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
@@ -34,6 +35,7 @@ class SyncToFirestoreUseCaseInventoryTest {
     private val breastfeedingRepository: BreastfeedingRepository = mockk()
     private val sleepRepository: SleepRepository = mockk()
     private val inventoryRepository: InventoryRepository = mockk()
+    private val bottleFeedRepository: BottleFeedRepository = mockk()
     private val predictSleepWindow: PredictSleepWindowUseCase = mockk()
     private val fixedNow = Instant.parse("2026-05-16T10:00:00Z")
 
@@ -45,11 +47,14 @@ class SyncToFirestoreUseCaseInventoryTest {
         useCase = SyncToFirestoreUseCase(
             sharingRepository,
             settingsRepository,
-            babyRepository,
-            breastfeedingRepository,
-            sleepRepository,
-            inventoryRepository,
-            predictSleepWindow,
+            SnapshotSources(
+                babyRepository,
+                breastfeedingRepository,
+                sleepRepository,
+                inventoryRepository,
+                bottleFeedRepository,
+                predictSleepWindow,
+            ),
         ) { fixedNow }
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
         every { settingsRepository.getShareCode() } returns flowOf(shareCode.value)
@@ -59,6 +64,7 @@ class SyncToFirestoreUseCaseInventoryTest {
         every { babyRepository.getBabyProfile() } returns flowOf(null)
         coEvery { breastfeedingRepository.getRecentSessions(any()) } returns emptyList()
         coEvery { sleepRepository.getRecentRecords(any()) } returns emptyList()
+        every { bottleFeedRepository.getAll() } returns flowOf(emptyList())
     }
 
     @Test

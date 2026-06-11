@@ -3,10 +3,12 @@ package com.babytracker.sharing.usecase
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.repository.BabyRepository
+import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
+import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
@@ -32,6 +34,8 @@ class GenerateShareCodeUseCaseInventoryTest {
     private val breastfeedingRepository: BreastfeedingRepository = mockk()
     private val sleepRepository: SleepRepository = mockk()
     private val inventoryRepository: InventoryRepository = mockk()
+    private val bottleFeedRepository: BottleFeedRepository = mockk()
+    private val predictSleepWindow: PredictSleepWindowUseCase = mockk()
     private val fixedNow = Instant.parse("2026-05-16T10:00:00Z")
 
     private lateinit var useCase: GenerateShareCodeUseCase
@@ -41,14 +45,19 @@ class GenerateShareCodeUseCaseInventoryTest {
         useCase = GenerateShareCodeUseCase(
             sharingRepository,
             settingsRepository,
-            babyRepository,
-            breastfeedingRepository,
-            sleepRepository,
-            inventoryRepository,
+            SnapshotSources(
+                babyRepository,
+                breastfeedingRepository,
+                sleepRepository,
+                inventoryRepository,
+                bottleFeedRepository,
+                predictSleepWindow,
+            ),
         ) { fixedNow }
         every { babyRepository.getBabyProfile() } returns flowOf(Baby("Test", LocalDate.now()))
         coEvery { breastfeedingRepository.getRecentSessions(any()) } returns emptyList()
         coEvery { sleepRepository.getRecentRecords(any()) } returns emptyList()
+        every { bottleFeedRepository.getAll() } returns flowOf(emptyList())
         coEvery { sharingRepository.signInAnonymously() } returns "uid123"
         coEvery { sharingRepository.isShareCodeValid(any()) } returns false
         coEvery { sharingRepository.createShareDocument(any(), any()) } just Runs

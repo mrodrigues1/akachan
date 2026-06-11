@@ -1,6 +1,7 @@
 package com.babytracker.sharing.domain.repository
 
 import com.babytracker.sharing.domain.model.BabySnapshot
+import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
@@ -15,6 +16,7 @@ interface SharingRepository {
     suspend fun syncFullSnapshot(code: ShareCode, snapshot: ShareSnapshot)
     suspend fun syncSessions(code: ShareCode, sessions: List<SessionSnapshot>)
     suspend fun syncSleepRecords(code: ShareCode, sleepRecords: List<SleepSnapshot>)
+    suspend fun syncBottleFeeds(code: ShareCode, bottleFeeds: List<BottleFeedSnapshot>)
     suspend fun syncBaby(code: ShareCode, baby: BabySnapshot)
     suspend fun syncInventory(code: ShareCode, fields: InventorySnapshotFields)
     suspend fun registerPartner(code: ShareCode, partnerUid: String)

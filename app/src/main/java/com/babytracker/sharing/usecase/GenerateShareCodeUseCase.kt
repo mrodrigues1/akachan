@@ -1,10 +1,6 @@
 package com.babytracker.sharing.usecase
 
-import com.babytracker.domain.repository.BabyRepository
-import com.babytracker.domain.repository.BreastfeedingRepository
-import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.ShareCode
@@ -18,10 +14,7 @@ import javax.inject.Inject
 class GenerateShareCodeUseCase @Inject constructor(
     private val sharingRepository: SharingRepository,
     private val settingsRepository: SettingsRepository,
-    private val babyRepository: BabyRepository,
-    private val breastfeedingRepository: BreastfeedingRepository,
-    private val sleepRepository: SleepRepository,
-    private val inventoryRepository: InventoryRepository,
+    private val sources: SnapshotSources,
     private val now: () -> Instant,
 ) {
     suspend operator fun invoke() {
@@ -47,16 +40,18 @@ class GenerateShareCodeUseCase @Inject constructor(
     }
 
     private suspend fun buildSnapshot(): ShareSnapshot {
-        val baby = babyRepository.getBabyProfile().first()
-        val sessions = breastfeedingRepository.getRecentSessions(SYNC_LIMIT)
-        val sleepRecords = sleepRepository.getRecentRecords(SYNC_LIMIT)
-        val summary = inventoryRepository.currentSummary()
+        val baby = sources.baby.getBabyProfile().first()
+        val sessions = sources.breastfeeding.getRecentSessions(SYNC_LIMIT)
+        val sleepRecords = sources.sleep.getRecentRecords(SYNC_LIMIT)
+        val summary = sources.inventory.currentSummary()
+        val bottleFeeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
         val timestamp = now()
         return ShareSnapshot(
             lastSyncAt = timestamp,
             baby = baby?.toSnapshot() ?: BabySnapshot("", 0L, emptyList()),
             sessions = sessions.map { it.toSnapshot() },
             sleepRecords = sleepRecords.map { it.toSnapshot() },
+            bottleFeeds = bottleFeeds.map { it.toSnapshot() },
             inventoryTotalMl = summary.totalMl,
             inventoryBagCount = summary.bagCount,
             inventoryUpdatedAt = timestamp.toEpochMilli(),

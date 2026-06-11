@@ -12,5 +12,6 @@ class DeleteBottleFeedUseCase @Inject constructor(
     suspend operator fun invoke(feed: BottleFeed) {
         check(repository.deleteWithInventoryRestore(feed)) { "Bottle feed no longer exists" }
         runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.INVENTORY) }
+        runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS) }
     }
 }

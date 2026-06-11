@@ -1,6 +1,7 @@
 package com.babytracker.sharing.data.firebase
 
 import com.babytracker.sharing.domain.model.BabySnapshot
+import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
@@ -59,6 +60,16 @@ class FirestoreSharingService @Inject constructor(
             "data" to mapOf(
                 "lastSyncAt" to Timestamp.now(),
                 "sleepRecords" to sleepRecords.map { sleepToMap(it) },
+            ),
+        )
+        firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()
+    }
+
+    suspend fun syncBottleFeeds(code: String, bottleFeeds: List<BottleFeedSnapshot>) {
+        val data = mapOf(
+            "data" to mapOf(
+                "lastSyncAt" to Timestamp.now(),
+                "bottleFeeds" to bottleFeeds.map { bottleFeedToMap(it) },
             ),
         )
         firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()
@@ -128,6 +139,7 @@ class FirestoreSharingService @Inject constructor(
         "baby" to babyToMap(snapshot.baby),
         "sessions" to snapshot.sessions.map { sessionToMap(it) },
         "sleepRecords" to snapshot.sleepRecords.map { sleepToMap(it) },
+        "bottleFeeds" to snapshot.bottleFeeds.map { bottleFeedToMap(it) },
         "inventoryTotalMl" to snapshot.inventoryTotalMl,
         "inventoryBagCount" to snapshot.inventoryBagCount,
         "inventoryUpdatedAt" to snapshot.inventoryUpdatedAt,
@@ -169,6 +181,12 @@ class FirestoreSharingService @Inject constructor(
         "notes" to sleep.notes,
     )
 
+    private fun bottleFeedToMap(feed: BottleFeedSnapshot): Map<String, Any?> = mapOf(
+        "timestamp" to feed.timestamp,
+        "volumeMl" to feed.volumeMl,
+        "type" to feed.type,
+    )
+
     private fun mapToSnapshot(data: Map<*, *>): ShareSnapshot {
         val ts = data["lastSyncAt"] as? Timestamp
         val lastSyncAt = ts?.let { Instant.ofEpochSecond(it.seconds, it.nanoseconds.toLong()) }
@@ -183,12 +201,17 @@ class FirestoreSharingService @Inject constructor(
             ?.filterIsInstance<Map<*, *>>()
             ?.map { mapToSleep(it) }
             .orEmpty()
+        val bottleFeeds = (data["bottleFeeds"] as? List<*>)
+            ?.filterIsInstance<Map<*, *>>()
+            ?.map { mapToBottleFeed(it) }
+            .orEmpty()
         val sleepPrediction = (data["sleepPrediction"] as? Map<*, *>)?.let { mapToPrediction(it) }
         return ShareSnapshot(
             lastSyncAt = lastSyncAt,
             baby = baby,
             sessions = sessions,
             sleepRecords = sleepRecords,
+            bottleFeeds = bottleFeeds,
             inventoryTotalMl = (data["inventoryTotalMl"] as? Number)?.toInt(),
             inventoryBagCount = (data["inventoryBagCount"] as? Number)?.toInt(),
             inventoryUpdatedAt = (data["inventoryUpdatedAt"] as? Number)?.toLong(),
@@ -229,6 +252,12 @@ class FirestoreSharingService @Inject constructor(
         endTime = map["endTime"] as? Long,
         sleepType = map["sleepType"] as? String ?: "NAP",
         notes = map["notes"] as? String,
+    )
+
+    private fun mapToBottleFeed(map: Map<*, *>): BottleFeedSnapshot = BottleFeedSnapshot(
+        timestamp = (map["timestamp"] as? Number)?.toLong() ?: 0L,
+        volumeMl = (map["volumeMl"] as? Number)?.toInt() ?: 0,
+        type = map["type"] as? String ?: "FORMULA",
     )
 
     companion object {
