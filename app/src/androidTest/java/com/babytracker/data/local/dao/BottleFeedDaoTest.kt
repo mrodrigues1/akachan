@@ -77,7 +77,7 @@ class BottleFeedDaoTest {
         assertEquals(true, updated)
         assertEquals(newBagId, dao.getById(feedId)?.linkedMilkBagId)
         assertEquals(null, milkBagDao.getById(oldBagId)?.usedAt)
-        assertEquals(3_500, milkBagDao.getById(newBagId)?.usedAt)
+        assertEquals(3_500L, milkBagDao.getById(newBagId)?.usedAt)
     }
 
     @Test
@@ -98,7 +98,7 @@ class BottleFeedDaoTest {
             fail("Expected used bag link to be rejected")
         } catch (_: IllegalStateException) {
             assertEquals(null, dao.getById(feedId)?.linkedMilkBagId)
-            assertEquals(1_500, milkBagDao.getById(usedBagId)?.usedAt)
+            assertEquals(1_500L, milkBagDao.getById(usedBagId)?.usedAt)
         }
     }
 
@@ -120,7 +120,7 @@ class BottleFeedDaoTest {
 
         assertEquals(true, updated)
         assertEquals(null, dao.getById(firstFeedId)?.linkedMilkBagId)
-        assertEquals(1_500, milkBagDao.getById(bagId)?.usedAt)
+        assertEquals(1_500L, milkBagDao.getById(bagId)?.usedAt)
     }
 
     @Test
@@ -145,7 +145,7 @@ class BottleFeedDaoTest {
 
         assertEquals(true, deleted)
         assertEquals(null, dao.getById(firstFeedId))
-        assertEquals(1_500, milkBagDao.getById(bagId)?.usedAt)
+        assertEquals(1_500L, milkBagDao.getById(bagId)?.usedAt)
     }
 
     private fun feed(
