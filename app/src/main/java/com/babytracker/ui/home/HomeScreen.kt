@@ -98,6 +98,7 @@ fun HomeScreen(
     onNavigateToConnectPartner: () -> Unit = {},
     onNavigateToPumping: () -> Unit = {},
     onNavigateToInventory: () -> Unit = {},
+    onNavigateToBottleFeed: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -374,6 +375,11 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                 }
+
+                BottleFeedHomeCard(
+                    onClick = onNavigateToBottleFeed,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             SleepPredictionCard(
@@ -664,6 +670,51 @@ internal fun InventoryHomeCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+@Composable
+internal fun BottleFeedHomeCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .heightIn(min = 72.dp)
+            .semantics { contentDescription = "Log a bottle feed. Open bottle feed screen." },
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = "🍼",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+            Column {
+                Text(
+                    text = "Bottle feed",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Log a bottle or formula feed",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
         }
     }
 }

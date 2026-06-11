@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.ui.bottlefeed.BottleFeedScreen
 import com.babytracker.ui.breastfeeding.BreastfeedingHistoryScreen
 import com.babytracker.ui.breastfeeding.BreastfeedingScreen
 import com.babytracker.ui.home.HomeScreen
@@ -54,6 +55,7 @@ fun AppNavGraph(
                 onNavigateToConnectPartner = { navController.navigate(Routes.CONNECT_PARTNER) },
                 onNavigateToPumping = { navController.navigate(Routes.PUMPING) },
                 onNavigateToInventory = { navController.navigate(Routes.INVENTORY) },
+                onNavigateToBottleFeed = { navController.navigate(Routes.BOTTLE_FEED) },
             )
         }
         composable(Routes.BREASTFEEDING) {
@@ -135,6 +137,9 @@ private fun NavGraphBuilder.pumpingGraph(navController: NavHostController) {
     }
     composable(Routes.INVENTORY_SETTINGS) {
         InventorySettingsScreen(onNavigateBack = { navController.popBackStack() })
+    }
+    composable(Routes.BOTTLE_FEED) {
+        BottleFeedScreen(onNavigateBack = { navController.popBackStack() })
     }
 }
 
