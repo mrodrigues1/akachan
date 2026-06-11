@@ -25,6 +25,7 @@ class ExportBackupUseCase @Inject constructor(
             sleep = tracking.sleep,
             pumping = tracking.pumping,
             milkBags = tracking.milkBags,
+            bottleFeeds = tracking.bottleFeeds,
         )
 
         return json.encodeToString(BackupData.serializer(), backup)

@@ -2,6 +2,7 @@ package com.babytracker.export.data
 
 import androidx.room.withTransaction
 import com.babytracker.data.local.BabyTrackerDatabase
+import com.babytracker.data.local.entity.BottleFeedEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
@@ -23,7 +24,8 @@ class BackupImporterImpl @Inject constructor(
         val sleep = mergeSleep(data)
         val (pumpInserted, pumpIdMap) = mergePumping(data)
         val bags = mergeMilkBags(data, pumpIdMap)
-        ImportCounts(bf, sleep, pumpInserted, bags)
+        val bottles = mergeBottleFeeds(data)
+        ImportCounts(bf, sleep, pumpInserted, bags, bottles)
     }
 
     private suspend fun mergeBreastfeeding(data: BackupData): Int {
@@ -128,6 +130,35 @@ class BackupImporterImpl @Inject constructor(
         return inserted
     }
 
+    /**
+     * Inserts backup bottle feeds, skipping exact duplicates. A feed's [linkedMilkBagId] is a FK
+     * to a milk bag, whose db id is reassigned on import, so we resolve it the same way milk bags
+     * resolve their pumping source: backup bag id -> backup bag identity -> real db bag id. Runs
+     * after [mergeMilkBags] so the referenced bags already exist. linkedMilkBagId is excluded from
+     * identity so a feed differing only in its (reassigned) link is treated as the same feed.
+     */
+    private suspend fun mergeBottleFeeds(data: BackupData): Int {
+        val seen = db.bottleFeedDao().getAllOnce().map { it.identity() }.toMutableSet()
+        val bagBackupById = data.milkBags.associateBy { it.id }
+        val dbBagIdByIdentity =
+            db.milkBagDao().getAllBagsOnce().associate { it.identity() to it.id }
+        var inserted = 0
+        for (f in data.bottleFeeds) {
+            val resolvedBagId = f.linkedMilkBagId
+                ?.let { bagBackupById[it] }
+                ?.let { dbBagIdByIdentity[it.toEntity().identity()] }
+            val entity = BottleFeedEntity(
+                timestamp = f.timestamp, volumeMl = f.volumeMl, type = f.type,
+                linkedMilkBagId = resolvedBagId, notes = f.notes, createdAt = f.createdAt,
+            )
+            if (seen.add(entity.identity())) {
+                db.bottleFeedDao().insert(entity)
+                inserted++
+            }
+        }
+        return inserted
+    }
+
     // Identity keys: every persisted field except autogen id; sourceSessionId also excluded for
     // milk bags so a bag differing only in link source is treated as the same inventory item.
     private fun BreastfeedingEntity.identity() =
@@ -136,4 +167,5 @@ class BackupImporterImpl @Inject constructor(
     private fun PumpingEntity.identity() =
         listOf(startTime, endTime, breast, volumeMl, notes, pausedAt, pausedDurationMs)
     private fun MilkBagEntity.identity() = listOf(collectionDate, volumeMl, usedAt, notes, createdAt)
+    private fun BottleFeedEntity.identity() = listOf(timestamp, volumeMl, type, notes, createdAt)
 }

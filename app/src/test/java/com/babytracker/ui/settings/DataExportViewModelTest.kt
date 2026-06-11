@@ -136,7 +136,7 @@ class DataExportViewModelTest {
         val data = backup()
         coEvery { reader.read(uri) } returns "json"
         every { validateBackup("json") } returns data
-        coEvery { importBackup(data) } returns ImportCounts(0, 0, 0, 0)
+        coEvery { importBackup(data) } returns ImportCounts(0, 0, 0, 0, 0)
 
         vm.prepareImport(uri)
         advanceUntilIdle()
@@ -215,7 +215,7 @@ class DataExportViewModelTest {
         val data = backup()
         coEvery { reader.read(uri) } returns "json"
         every { validateBackup("json") } returns data
-        coEvery { importBackup(data) } returns ImportCounts(0, 0, 0, 0)
+        coEvery { importBackup(data) } returns ImportCounts(0, 0, 0, 0, 0)
 
         vm.prepareImport(uri)
         advanceUntilIdle()

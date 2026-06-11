@@ -43,6 +43,7 @@ class ExportBackupUseCaseTest {
                 BreastfeedingBackup(1, 10, 20, "LEFT", null, null, null, 0),
             ),
             sleep = emptyList(), pumping = emptyList(), milkBags = emptyList(),
+            bottleFeeds = emptyList(),
         )
         coEvery { source.readPreferences() } returns PreferencesSnapshot(
             baby = BabyBackup("Mia", 100, listOf("DAIRY"), null),
@@ -83,6 +84,7 @@ class ExportBackupUseCaseTest {
                 PumpingBackup(3, 10, null, "BOTH", null, null, pausedAt = 60, pausedDurationMs = 7),
             ),
             milkBags = emptyList(),
+            bottleFeeds = emptyList(),
         )
         coEvery { source.readPreferences() } returns PreferencesSnapshot(null, settings())
 
