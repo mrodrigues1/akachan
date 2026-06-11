@@ -1,6 +1,7 @@
 package com.babytracker.ui.bottlefeed
 
 import com.babytracker.domain.model.FeedType
+import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.bottlefeed.EditBottleFeedUseCase
@@ -75,6 +76,45 @@ class BottleFeedViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { log(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `selecting a bag prefills volume with the bag amount and clears error`() = runTest {
+        val bag = MilkBag(
+            id = 5,
+            collectionDate = Instant.ofEpochMilli(1_000),
+            volumeMl = 119,
+            createdAt = Instant.ofEpochMilli(1_000),
+        )
+        every { getInventory() } returns flowOf(listOf(bag))
+        val viewModel = vm()
+        dispatcher.scheduler.advanceUntilIdle()
+        viewModel.onSave() // triggers "Enter a volume" error
+
+        viewModel.onBagSelect(5)
+
+        assertEquals("119", viewModel.uiState.value.volumeText)
+        assertEquals(5L, viewModel.uiState.value.selectedBagId)
+        assertEquals(null, viewModel.uiState.value.validationError)
+    }
+
+    @Test
+    fun `deselecting a bag keeps the current volume`() = runTest {
+        val bag = MilkBag(
+            id = 5,
+            collectionDate = Instant.ofEpochMilli(1_000),
+            volumeMl = 119,
+            createdAt = Instant.ofEpochMilli(1_000),
+        )
+        every { getInventory() } returns flowOf(listOf(bag))
+        val viewModel = vm()
+        dispatcher.scheduler.advanceUntilIdle()
+        viewModel.onBagSelect(5)
+
+        viewModel.onBagSelect(null)
+
+        assertEquals("119", viewModel.uiState.value.volumeText)
+        assertEquals(null, viewModel.uiState.value.selectedBagId)
     }
 
     @Test

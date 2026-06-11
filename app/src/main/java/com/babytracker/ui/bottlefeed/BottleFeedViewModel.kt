@@ -64,7 +64,15 @@ class BottleFeedViewModel @Inject constructor(
 
     fun onTimeChange(timestamp: Instant) = _uiState.update { it.copy(timestamp = timestamp) }
 
-    fun onBagSelect(bagId: Long?) = _uiState.update { it.copy(selectedBagId = bagId) }
+    fun onBagSelect(bagId: Long?) = _uiState.update { state ->
+        // Selecting a bag prefills the volume with that bag's amount; deselecting leaves the volume untouched.
+        val bagVolume = state.activeBags.firstOrNull { it.id == bagId }?.volumeMl
+        state.copy(
+            selectedBagId = bagId,
+            volumeText = bagVolume?.toString() ?: state.volumeText,
+            validationError = if (bagVolume != null) null else state.validationError,
+        )
+    }
 
     fun onNotesChange(text: String) = _uiState.update { it.copy(notes = text) }
 
