@@ -98,6 +98,7 @@ import com.babytracker.R
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.ui.onboarding.components.AllergiesStepContent
 import kotlinx.coroutines.launch
@@ -364,6 +365,12 @@ fun SettingsScreen(
                     ThemeConfig.DARK -> "Dark"
                 },
                 onClick = { activeSheet = SettingsSheet.THEME }
+            )
+            HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+
+            VolumeUnitRow(
+                selected = uiState.volumeUnit,
+                onSelect = viewModel::onVolumeUnitChanged,
             )
             HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
 
@@ -1116,6 +1123,38 @@ private fun ThemeOption(
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun VolumeUnitRow(
+    selected: VolumeUnit,
+    onSelect: (VolumeUnit) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val options = listOf(VolumeUnit.ML to "mL", VolumeUnit.OZ to "oz")
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.settings_volume_unit_title),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Spacer(Modifier.height(8.dp))
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            options.forEachIndexed { index, (unit, label) ->
+                SegmentedButton(
+                    selected = selected == unit,
+                    onClick = { onSelect(unit) },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                ) {
+                    Text(label)
+                }
+            }
         }
     }
 }

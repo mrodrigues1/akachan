@@ -73,8 +73,8 @@ class PumpingHistoryScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Left · 120 mL").assertIsDisplayed()
-        composeRule.onNodeWithText("Left · 200 mL").assertIsDisplayed()
+        composeRule.onNodeWithText("Left · 120 ml").assertIsDisplayed()
+        composeRule.onNodeWithText("Left · 200 ml").assertIsDisplayed()
     }
 
     @Test
@@ -89,7 +89,7 @@ class PumpingHistoryScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Left · — mL").assertIsDisplayed()
+        composeRule.onNodeWithText("Left · —").assertIsDisplayed()
     }
 
     @Test
@@ -105,7 +105,7 @@ class PumpingHistoryScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Left · 120 mL").performClick()
+        composeRule.onNodeWithText("Left · 120 ml").performClick()
 
         composeRule.runOnIdle {
             assertNotNull(clicked)
@@ -125,6 +125,6 @@ class PumpingHistoryScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("Both · 120 mL").assertIsDisplayed()
+        composeRule.onNodeWithText("Both · 120 ml").assertIsDisplayed()
     }
 }

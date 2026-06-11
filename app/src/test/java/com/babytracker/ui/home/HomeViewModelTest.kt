@@ -10,6 +10,7 @@ import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
@@ -90,6 +91,7 @@ class HomeViewModelTest {
         every { getBreastfeedingHistory() } returns flowOf(emptyList())
         every { getSleepHistory() } returns flowOf(emptyList())
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.NONE)
+        every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         every { pumpingRepository.getActiveSession() } returns flowOf(null)
         every { inventoryRepository.getSummary() } returns flowOf(InventorySummary.Empty)
         every { predictNextFeed() } returns flowOf(null)

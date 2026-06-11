@@ -1,6 +1,7 @@
 package com.babytracker.ui.settings
 
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
@@ -69,6 +70,7 @@ class SettingsViewModelTest {
         every { settingsRepository.getNapReminderDelayMinutes() } returns flowOf(60)
         every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
         every { settingsRepository.getPredictiveSleepLeadMinutes() } returns flowOf(15)
+        every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
 
         viewModel = SettingsViewModel(
             getBabyProfile,
@@ -212,6 +214,22 @@ class SettingsViewModelTest {
         )
         testDispatcher.scheduler.advanceUntilIdle()
         assertTrue(vm.uiState.value.showPermissionWarning)
+    }
+
+    @Test
+    fun `initial state has volumeUnit ML`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(VolumeUnit.ML, viewModel.uiState.value.volumeUnit)
+    }
+
+    @Test
+    fun `onVolumeUnitChanged persists selection`() = runTest {
+        coJustRun { settingsRepository.setVolumeUnit(any()) }
+
+        viewModel.onVolumeUnitChanged(VolumeUnit.OZ)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { settingsRepository.setVolumeUnit(VolumeUnit.OZ) }
     }
 
     @Test

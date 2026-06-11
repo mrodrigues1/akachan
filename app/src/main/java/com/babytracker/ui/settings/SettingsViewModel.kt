@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
@@ -40,6 +41,7 @@ data class SettingsUiState(
     val napReminderDelayMinutes: Int = 60,
     val predictiveSleepEnabled: Boolean = false,
     val predictiveSleepLeadMinutes: Int = 15,
+    val volumeUnit: VolumeUnit = VolumeUnit.ML,
 )
 
 @HiltViewModel
@@ -79,6 +81,7 @@ class SettingsViewModel @Inject constructor(
                 settingsRepository.getNapReminderDelayMinutes(),
                 settingsRepository.getPredictiveSleepEnabled(),
                 settingsRepository.getPredictiveSleepLeadMinutes(),
+                settingsRepository.getVolumeUnit(),
             ) { values ->
                 val baby = values[0] as? Baby
                 val maxPerBreast = values[1] as Int
@@ -97,6 +100,7 @@ class SettingsViewModel @Inject constructor(
                 val napReminderDelayMinutes = values[14] as Int
                 val predictiveSleepEnabled = values[15] as Boolean
                 val predictiveSleepLeadMinutes = values[16] as Int
+                val volumeUnit = values[17] as VolumeUnit
                 SettingsUiState(
                     baby = baby,
                     maxPerBreastMinutes = maxPerBreast,
@@ -116,6 +120,7 @@ class SettingsViewModel @Inject constructor(
                     napReminderDelayMinutes = napReminderDelayMinutes,
                     predictiveSleepEnabled = predictiveSleepEnabled,
                     predictiveSleepLeadMinutes = predictiveSleepLeadMinutes,
+                    volumeUnit = volumeUnit,
                 )
             }.collect { next ->
                 _uiState.update { current -> next.copy(isDisconnected = current.isDisconnected) }
@@ -198,5 +203,9 @@ class SettingsViewModel @Inject constructor(
 
     fun onSleepLeadMinutesChanged(minutes: Int) {
         viewModelScope.launch { settingsRepository.setPredictiveSleepLeadMinutes(minutes) }
+    }
+
+    fun onVolumeUnitChanged(unit: VolumeUnit) {
+        viewModelScope.launch { settingsRepository.setVolumeUnit(unit) }
     }
 }

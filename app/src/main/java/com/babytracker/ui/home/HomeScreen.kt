@@ -72,12 +72,14 @@ import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepRecord
+import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.ui.breastfeeding.PredictionCopy
 import com.babytracker.ui.sleep.SleepPredictionCard
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatMinutesSeconds
+import com.babytracker.util.formatVolume
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -367,6 +369,7 @@ fun HomeScreen(
                     )
                     InventoryHomeCard(
                         summary = uiState.inventorySummary,
+                        volumeUnit = uiState.volumeUnit,
                         onClick = onNavigateToInventory,
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
@@ -617,17 +620,19 @@ internal fun PumpingHomeCard(
 @Composable
 internal fun InventoryHomeCard(
     summary: InventorySummary,
+    volumeUnit: VolumeUnit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val hasBags = summary.bagCount > 0
+    val volumeText = formatVolume(summary.totalMl, volumeUnit)
     Card(
         onClick = onClick,
         modifier = modifier
             .heightIn(min = 120.dp)
             .semantics {
                 contentDescription = if (hasBags)
-                    "Milk inventory, ${summary.bagCount} bags, ${summary.totalMl} milliliters. Open inventory screen."
+                    "Milk inventory, ${summary.bagCount} bags, $volumeText. Open inventory screen."
                 else
                     "Milk inventory, no bags stored. Open inventory screen."
             },
@@ -655,7 +660,7 @@ internal fun InventoryHomeCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = if (hasBags) "${summary.totalMl} mL · ${summary.bagCount} bags" else "No bags stored",
+                text = if (hasBags) "$volumeText · ${summary.bagCount} bags" else "No bags stored",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

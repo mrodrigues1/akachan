@@ -6,6 +6,7 @@ import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.sharing.domain.model.AppMode
@@ -97,6 +98,8 @@ class PredictiveSleepReceiverTest {
 
             override fun getThemeConfig(): Flow<ThemeConfig> = flowOf(ThemeConfig.SYSTEM)
             override suspend fun setThemeConfig(themeConfig: ThemeConfig) = Unit
+            override fun getVolumeUnit(): Flow<VolumeUnit> = flowOf(VolumeUnit.ML)
+            override suspend fun setVolumeUnit(unit: VolumeUnit) = Unit
             override fun isOnboardingComplete(): Flow<Boolean> = flowOf(true)
             override suspend fun setOnboardingComplete(complete: Boolean) = Unit
             override fun getMaxPerBreastMinutes(): Flow<Int> = flowOf(0)

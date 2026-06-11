@@ -4,6 +4,8 @@ import com.babytracker.domain.model.ExpirationStatus
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.MilkBagWithExpiration
+import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.inventory.AddMilkBagUseCase
 import com.babytracker.domain.usecase.inventory.DeleteMilkBagUseCase
 import com.babytracker.domain.usecase.inventory.GetInventorySummaryUseCase
@@ -21,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -44,6 +47,7 @@ class InventoryViewModelTest {
     private lateinit var updateBag: UpdateMilkBagUseCase
     private lateinit var markUsed: MarkBagUsedUseCase
     private lateinit var deleteBag: DeleteMilkBagUseCase
+    private lateinit var settingsRepository: SettingsRepository
     private lateinit var viewModel: InventoryViewModel
 
     private val testDispatcher = StandardTestDispatcher()
@@ -67,8 +71,10 @@ class InventoryViewModelTest {
         updateBag = mockk()
         markUsed = mockk()
         deleteBag = mockk()
+        settingsRepository = mockk()
         every { observeInventory(any<Flow<LocalDate>>()) } returns bagsFlow
         every { getSummary() } returns summaryFlow
+        every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         viewModel = InventoryViewModel(
             observeInventory = observeInventory,
             getSummary = getSummary,
@@ -76,6 +82,7 @@ class InventoryViewModelTest {
             updateBag = updateBag,
             markUsed = markUsed,
             deleteBag = deleteBag,
+            settingsRepository = settingsRepository,
             now = { fixedNow },
         )
     }

@@ -1,6 +1,7 @@
 package com.babytracker.domain.repository
 
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.sharing.domain.model.AppMode
 import kotlinx.coroutines.flow.Flow
@@ -9,6 +10,8 @@ import java.time.LocalTime
 interface SettingsRepository {
     fun getThemeConfig(): Flow<ThemeConfig>
     suspend fun setThemeConfig(themeConfig: ThemeConfig)
+    fun getVolumeUnit(): Flow<VolumeUnit>
+    suspend fun setVolumeUnit(unit: VolumeUnit)
     fun isOnboardingComplete(): Flow<Boolean>
     suspend fun setOnboardingComplete(complete: Boolean)
     fun getMaxPerBreastMinutes(): Flow<Int>

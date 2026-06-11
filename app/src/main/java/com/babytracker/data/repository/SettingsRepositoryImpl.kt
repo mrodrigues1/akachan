@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.sharing.domain.model.AppMode
@@ -27,6 +28,7 @@ class SettingsRepositoryImpl @Inject constructor(
     private companion object {
         const val TAG = "SettingsRepository"
         val THEME_CONFIG = stringPreferencesKey("theme_config")
+        val VOLUME_UNIT = stringPreferencesKey("volume_unit")
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val MAX_PER_BREAST_MINUTES = intPreferencesKey("max_per_breast_minutes")
         val MAX_TOTAL_FEED_MINUTES = intPreferencesKey("max_total_feed_minutes")
@@ -70,6 +72,15 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setThemeConfig(themeConfig: ThemeConfig) {
         dataStore.edit { it[THEME_CONFIG] = themeConfig.name }
+    }
+
+    override fun getVolumeUnit(): Flow<VolumeUnit> =
+        dataStore.data.map { prefs ->
+            prefs[VOLUME_UNIT]?.let { runCatching { VolumeUnit.valueOf(it) }.getOrNull() } ?: VolumeUnit.ML
+        }
+
+    override suspend fun setVolumeUnit(unit: VolumeUnit) {
+        dataStore.edit { it[VOLUME_UNIT] = unit.name }
     }
 
     override fun isOnboardingComplete(): Flow<Boolean> =

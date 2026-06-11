@@ -18,6 +18,7 @@ import com.babytracker.domain.model.BabyEventType
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
+import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.ui.theme.BabyTrackerTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -61,7 +62,7 @@ class HomeScreenTest {
     fun inventoryHomeCard_showsNoBagsStored_whenSummaryIsEmpty() {
         composeRule.setContent {
             BabyTrackerTheme {
-                InventoryHomeCard(summary = InventorySummary.Empty, onClick = {})
+                InventoryHomeCard(summary = InventorySummary.Empty, volumeUnit = VolumeUnit.ML, onClick = {})
             }
         }
         composeRule.onNodeWithText("No bags stored").assertIsDisplayed()
@@ -72,10 +73,10 @@ class HomeScreenTest {
         val summary = InventorySummary(totalMl = 240, bagCount = 3, oldestBagDate = null)
         composeRule.setContent {
             BabyTrackerTheme {
-                InventoryHomeCard(summary = summary, onClick = {})
+                InventoryHomeCard(summary = summary, volumeUnit = VolumeUnit.ML, onClick = {})
             }
         }
-        composeRule.onNodeWithText("240 mL · 3 bags").assertIsDisplayed()
+        composeRule.onNodeWithText("240 ml · 3 bags").assertIsDisplayed()
     }
 
     @Test
@@ -95,7 +96,7 @@ class HomeScreenTest {
         var tapped = false
         composeRule.setContent {
             BabyTrackerTheme {
-                InventoryHomeCard(summary = InventorySummary.Empty, onClick = { tapped = true })
+                InventoryHomeCard(summary = InventorySummary.Empty, volumeUnit = VolumeUnit.ML, onClick = { tapped = true })
             }
         }
         composeRule.onNodeWithText("Inventory").performClick()
@@ -117,6 +118,7 @@ class HomeScreenTest {
                     )
                     InventoryHomeCard(
                         summary = InventorySummary.Empty,
+                        volumeUnit = VolumeUnit.ML,
                         onClick = {},
                         modifier = Modifier.weight(1f),
                     )

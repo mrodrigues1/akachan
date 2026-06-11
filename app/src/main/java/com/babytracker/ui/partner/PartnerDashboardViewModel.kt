@@ -2,6 +2,8 @@ package com.babytracker.ui.partner
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
 import com.babytracker.widget.WidgetUpdater
@@ -19,12 +21,14 @@ data class PartnerDashboardUiState(
     val error: String? = null,
     val isDisconnected: Boolean = false,
     val lastRefreshAt: Long = 0L,
+    val volumeUnit: VolumeUnit = VolumeUnit.ML,
 )
 
 @HiltViewModel
 class PartnerDashboardViewModel @Inject constructor(
     private val fetchPartnerDataUseCase: FetchPartnerDataUseCase,
     private val widgetUpdater: WidgetUpdater,
+    settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PartnerDashboardUiState())
@@ -32,6 +36,11 @@ class PartnerDashboardViewModel @Inject constructor(
 
     init {
         refresh()
+        viewModelScope.launch {
+            settingsRepository.getVolumeUnit().collect { unit ->
+                _uiState.update { it.copy(volumeUnit = unit) }
+            }
+        }
     }
 
     fun refresh() {

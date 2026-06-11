@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.MilkBagWithExpiration
+import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.inventory.AddMilkBagUseCase
 import com.babytracker.domain.usecase.inventory.DeleteMilkBagUseCase
 import com.babytracker.domain.usecase.inventory.GetInventorySummaryUseCase
@@ -36,6 +38,7 @@ data class InventoryUiState(
     val editSheet: EditBagSheetState? = null,
     val pendingDeleteBag: MilkBag? = null,
     val error: String? = null,
+    val volumeUnit: VolumeUnit = VolumeUnit.ML,
 )
 
 data class EditBagSheetState(
@@ -52,6 +55,7 @@ class InventoryViewModel @Inject constructor(
     private val updateBag: UpdateMilkBagUseCase,
     private val markUsed: MarkBagUsedUseCase,
     private val deleteBag: DeleteMilkBagUseCase,
+    settingsRepository: SettingsRepository,
     private val now: () -> Instant,
 ) : ViewModel() {
 
@@ -62,10 +66,15 @@ class InventoryViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            combine(observeInventory(currentDate), getSummary()) { bags, summary -> bags to summary }
-                .collect { (bags, summary) ->
-                    _uiState.value = _uiState.value.copy(bags = bags, summary = summary)
-                }
+            combine(
+                observeInventory(currentDate),
+                getSummary(),
+                settingsRepository.getVolumeUnit(),
+            ) { bags, summary, unit ->
+                Triple(bags, summary, unit)
+            }.collect { (bags, summary, unit) ->
+                _uiState.value = _uiState.value.copy(bags = bags, summary = summary, volumeUnit = unit)
+            }
         }
     }
 

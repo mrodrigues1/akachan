@@ -1,6 +1,7 @@
 package com.babytracker.ui.settings
 
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
@@ -64,6 +65,7 @@ class SettingsViewModelPredictiveTest {
         every { settingsRepository.getNapReminderDelayMinutes() } returns flowOf(60)
         every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
         every { settingsRepository.getPredictiveSleepLeadMinutes() } returns flowOf(15)
+        every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
     }
 
     @AfterEach

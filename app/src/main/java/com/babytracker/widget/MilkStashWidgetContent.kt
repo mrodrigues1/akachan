@@ -18,19 +18,37 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.util.mlToOz
 import java.util.Locale
+import kotlin.math.roundToInt
 
 private const val MILK_EMOJI = "🥛"
 private const val MILK_STASH_TITLE = "Milk Stash"
 private const val ML_PER_L = 1000
 
-/** Formats a stash volume: liters with one decimal once it reaches 1000 mL, otherwise raw mL. */
-internal fun formatVolume(totalMl: Int): String =
-    if (totalMl >= ML_PER_L) {
+/** Numeric ounce value with one decimal, trailing ".0" dropped ("28.4", "10"). */
+private fun ozNumber(totalMl: Int): String {
+    val rounded = (mlToOz(totalMl) * 10).roundToInt() / 10.0
+    return if (rounded % 1.0 == 0.0) {
+        rounded.toInt().toString()
+    } else {
+        String.format(Locale.US, "%.1f", rounded)
+    }
+}
+
+/**
+ * Formats a stash volume for the small tile in the user's [unit].
+ * ML: liters with one decimal once it reaches 1000 mL, otherwise raw mL. OZ: "X.X oz".
+ */
+internal fun formatVolume(totalMl: Int, unit: VolumeUnit): String = when (unit) {
+    VolumeUnit.OZ -> "${ozNumber(totalMl)} oz"
+    VolumeUnit.ML -> if (totalMl >= ML_PER_L) {
         String.format(Locale.US, "%.1f L", totalMl / ML_PER_L.toFloat())
     } else {
         "$totalMl mL"
     }
+}
 
 private fun MilkStashWidgetData.isEmpty(): Boolean = totalMl == 0 && bagCount == 0
 
@@ -71,7 +89,7 @@ fun MilkStashSmallContent(data: MilkStashWidgetData, modifier: GlanceModifier = 
             )
         } else {
             Text(
-                text = formatVolume(data.totalMl),
+                text = formatVolume(data.totalMl, data.volumeUnit),
                 maxLines = 1,
                 style = TextStyle(
                     color = GlanceTheme.colors.onTertiaryContainer,
@@ -129,7 +147,7 @@ private fun MilkStashMediumFilled(data: MilkStashWidgetData) {
         }
         Spacer(modifier = GlanceModifier.defaultWeight())
         Text(
-            text = volumeNumber(data.totalMl),
+            text = volumeNumber(data.totalMl, data.volumeUnit),
             maxLines = 1,
             style = TextStyle(
                 color = GlanceTheme.colors.onTertiaryContainer,
@@ -138,7 +156,7 @@ private fun MilkStashMediumFilled(data: MilkStashWidgetData) {
             ),
         )
         Text(
-            text = volumeUnit(data.totalMl),
+            text = volumeUnitLabel(data.totalMl, data.volumeUnit),
             maxLines = 1,
             style = TextStyle(
                 color = GlanceTheme.colors.onTertiaryContainer,
@@ -194,14 +212,18 @@ private fun MilkStashMediumEmpty() {
     }
 }
 
-/** Numeric portion of the medium hero: "840" for mL or "1.5" for liters. */
-private fun volumeNumber(totalMl: Int): String =
-    if (totalMl >= ML_PER_L) {
+/** Numeric portion of the medium hero: "840" for mL, "1.5" for liters, or "28.4" for ounces. */
+private fun volumeNumber(totalMl: Int, unit: VolumeUnit): String = when (unit) {
+    VolumeUnit.OZ -> ozNumber(totalMl)
+    VolumeUnit.ML -> if (totalMl >= ML_PER_L) {
         String.format(Locale.US, "%.1f", totalMl / ML_PER_L.toFloat())
     } else {
         totalMl.toString()
     }
+}
 
 /** Unit label sitting under the medium hero number. */
-private fun volumeUnit(totalMl: Int): String =
-    if (totalMl >= ML_PER_L) "L total" else "mL total"
+private fun volumeUnitLabel(totalMl: Int, unit: VolumeUnit): String = when (unit) {
+    VolumeUnit.OZ -> "oz total"
+    VolumeUnit.ML -> if (totalMl >= ML_PER_L) "L total" else "mL total"
+}

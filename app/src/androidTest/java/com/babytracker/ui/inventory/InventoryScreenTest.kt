@@ -58,7 +58,7 @@ class InventoryScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("240 mL").assertIsDisplayed()
+        composeRule.onNodeWithText("240 ml").assertIsDisplayed()
         composeRule.onNodeWithText("2").assertIsDisplayed()
     }
 
@@ -179,6 +179,6 @@ class InventoryScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("180 mL").assertIsDisplayed()
+        composeRule.onNodeWithText("180 ml").assertIsDisplayed()
     }
 }
