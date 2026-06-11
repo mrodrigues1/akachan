@@ -18,6 +18,7 @@ import com.babytracker.domain.model.BabyEventType
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
+import com.babytracker.domain.model.TodayFeedingSummary
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.ui.theme.BabyTrackerTheme
 import org.junit.Assert.assertTrue
@@ -127,6 +128,51 @@ class HomeScreenTest {
         }
         composeRule.onNodeWithText("Pumping").assertIsDisplayed()
         composeRule.onNodeWithText("Inventory").assertIsDisplayed()
+    }
+
+    @Test
+    fun feedingHistoryCard_showsEmptySummary_whenNoFeedsToday() {
+        composeRule.setContent {
+            BabyTrackerTheme {
+                FeedingHistoryHomeCard(
+                    summary = TodayFeedingSummary(),
+                    volumeUnit = VolumeUnit.ML,
+                    onClick = {},
+                )
+            }
+        }
+        composeRule.onNodeWithText("Feeding history").assertIsDisplayed()
+        composeRule.onNodeWithText("No feeds logged yet today").assertIsDisplayed()
+    }
+
+    @Test
+    fun feedingHistoryCard_showsVolumeAndCount_whenFeedsExist() {
+        composeRule.setContent {
+            BabyTrackerTheme {
+                FeedingHistoryHomeCard(
+                    summary = TodayFeedingSummary(bottleVolumeMl = 240, bottleCount = 3, breastfeedingCount = 2),
+                    volumeUnit = VolumeUnit.ML,
+                    onClick = {},
+                )
+            }
+        }
+        composeRule.onNodeWithText("240 ml · 5 feeds today").assertIsDisplayed()
+    }
+
+    @Test
+    fun feedingHistoryCard_click_invokesCallback() {
+        var tapped = false
+        composeRule.setContent {
+            BabyTrackerTheme {
+                FeedingHistoryHomeCard(
+                    summary = TodayFeedingSummary(),
+                    volumeUnit = VolumeUnit.ML,
+                    onClick = { tapped = true },
+                )
+            }
+        }
+        composeRule.onNodeWithText("Feeding history").performClick()
+        assertTrue(tapped)
     }
 
     @Test

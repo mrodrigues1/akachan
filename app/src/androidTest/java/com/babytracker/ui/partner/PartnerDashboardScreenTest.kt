@@ -529,6 +529,11 @@ class PartnerDashboardScreenTest {
 
         override suspend fun syncInventory(code: ShareCode, fields: InventorySnapshotFields) = Unit
 
+        override suspend fun syncBottleFeeds(
+            code: ShareCode,
+            bottleFeeds: List<com.babytracker.sharing.domain.model.BottleFeedSnapshot>,
+        ) = Unit
+
         override suspend fun registerPartner(code: ShareCode, partnerUid: String) = Unit
 
         override suspend fun fetchSnapshot(code: ShareCode): ShareSnapshot {
