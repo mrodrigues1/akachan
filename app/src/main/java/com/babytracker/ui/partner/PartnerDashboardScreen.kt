@@ -63,6 +63,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.sharing.domain.model.BabySnapshot
+import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
@@ -433,8 +434,10 @@ private fun CompactDashboardContent(
         DashboardTimelineSections(
             completedSessions = completedSessions,
             lastSleep = lastSleep,
+            bottleFeeds = snapshot.bottleFeeds,
             baby = snapshot.baby,
             now = now,
+            volumeUnit = volumeUnit,
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -516,8 +519,10 @@ private fun WideDashboardContent(
             modifier = Modifier.weight(1.1f),
             completedSessions = completedSessions,
             lastSleep = lastSleep,
+            bottleFeeds = snapshot.bottleFeeds,
             baby = snapshot.baby,
             now = now,
+            volumeUnit = volumeUnit,
         )
     }
 }
@@ -526,10 +531,16 @@ private fun WideDashboardContent(
 private fun DashboardTimelineSections(
     completedSessions: List<SessionSnapshot>,
     lastSleep: SleepSnapshot?,
+    bottleFeeds: List<BottleFeedSnapshot>,
     baby: BabySnapshot,
     now: Instant,
+    volumeUnit: VolumeUnit,
     modifier: Modifier = Modifier,
 ) {
+    val recentBottles = remember(bottleFeeds) {
+        bottleFeeds.sortedByDescending { it.timestamp }.take(3)
+    }
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(24.dp),
@@ -543,6 +554,17 @@ private fun DashboardTimelineSections(
             } else {
                 completedSessions.forEach { session ->
                     FeedingHistoryRow(session = session, now = now)
+                }
+            }
+        }
+
+        if (recentBottles.isNotEmpty()) {
+            DashboardSection(
+                title = "RECENT BOTTLES",
+                color = MaterialTheme.colorScheme.tertiary,
+            ) {
+                recentBottles.forEach { feed ->
+                    BottleHistoryRow(feed = feed, now = now, volumeUnit = volumeUnit)
                 }
             }
         }
@@ -1035,6 +1057,30 @@ private fun FeedingHistoryRow(session: SessionSnapshot, now: Instant) {
         trailing = timeAgo,
         badgeEmoji = "\uD83E\uDD31",
         badgeColor = MaterialTheme.colorScheme.primaryContainer,
+    )
+}
+
+@Composable
+private fun BottleHistoryRow(
+    feed: BottleFeedSnapshot,
+    now: Instant,
+    volumeUnit: VolumeUnit,
+) {
+    val volumeText = remember(feed.volumeMl, volumeUnit) { formatVolume(feed.volumeMl, volumeUnit) }
+    val typeLabel = if (feed.type == "BREAST_MILK") "Breast milk" else "Formula"
+    val timeAgo = remember(feed.timestamp, now) {
+        Duration.between(Instant.ofEpochMilli(feed.timestamp), now)
+            .coerceAtLeast(Duration.ZERO)
+            .formatElapsedAgo()
+    }
+
+    HistoryCard(
+        title = volumeText,
+        subtitle = typeLabel,
+        trailing = timeAgo,
+        badgeEmoji = "🍼",
+        badgeColor = MaterialTheme.colorScheme.tertiaryContainer,
+        trailingColor = MaterialTheme.colorScheme.tertiary,
     )
 }
 
