@@ -279,6 +279,7 @@ private fun DashboardContent(
 
     val now = remember(nowMs) { Instant.ofEpochMilli(nowMs) }
     val activeSession = snapshot.sessions.firstOrNull { it.endTime == null }
+    val activeSleep = snapshot.sleepRecords.firstOrNull { it.endTime == null }
     val completedSessions = snapshot.sessions.filter { it.endTime != null }.take(3)
     val lastSleep = snapshot.sleepRecords.firstOrNull()
     val hasSharedRecords = snapshot.sessions.isNotEmpty() || snapshot.sleepRecords.isNotEmpty()
@@ -320,6 +321,7 @@ private fun DashboardContent(
                         )
                         .padding(top = topPadding, bottom = bottomPadding),
                     activeSession = activeSession,
+                    activeSleep = activeSleep,
                     completedSessions = completedSessions,
                     lastSleep = lastSleep,
                     hasSharedRecords = hasSharedRecords,
@@ -344,6 +346,7 @@ private fun DashboardContent(
                         bottom = bottomPadding,
                     ),
                     activeSession = activeSession,
+                    activeSleep = activeSleep,
                     completedSessions = completedSessions,
                     lastSleep = lastSleep,
                     hasSharedRecords = hasSharedRecords,
@@ -367,6 +370,7 @@ private fun DashboardContent(
 private fun CompactDashboardContent(
     contentPadding: PaddingValues,
     activeSession: SessionSnapshot?,
+    activeSleep: SleepSnapshot?,
     completedSessions: List<SessionSnapshot>,
     lastSleep: SleepSnapshot?,
     hasSharedRecords: Boolean,
@@ -389,6 +393,7 @@ private fun CompactDashboardContent(
     ) {
         PartnerStatusPanel(
             activeSession = activeSession,
+            activeSleep = activeSleep,
             lastSharedText = lastSharedText,
             lastCheckedText = lastCheckedText,
             isShareStale = isShareStale,
@@ -408,7 +413,11 @@ private fun CompactDashboardContent(
 
         snapshot.sleepPrediction?.let { prediction ->
             Spacer(modifier = Modifier.height(16.dp))
-            PartnerSleepPredictionCard(prediction = prediction, now = now)
+            PartnerSleepPredictionCard(
+                prediction = prediction,
+                now = now,
+                activeSleepType = activeSleep?.sleepType,
+            )
         }
 
         val inventoryTotalMl = snapshot.inventoryTotalMl
@@ -451,6 +460,7 @@ private fun CompactDashboardContent(
 @Composable
 private fun WideDashboardContent(
     activeSession: SessionSnapshot?,
+    activeSleep: SleepSnapshot?,
     completedSessions: List<SessionSnapshot>,
     lastSleep: SleepSnapshot?,
     hasSharedRecords: Boolean,
@@ -477,6 +487,7 @@ private fun WideDashboardContent(
         ) {
             PartnerStatusPanel(
                 activeSession = activeSession,
+                activeSleep = activeSleep,
                 lastSharedText = lastSharedText,
                 lastCheckedText = lastCheckedText,
                 isShareStale = isShareStale,
@@ -492,7 +503,11 @@ private fun WideDashboardContent(
                 now = now,
             )
             snapshot.sleepPrediction?.let { prediction ->
-                PartnerSleepPredictionCard(prediction = prediction, now = now)
+                PartnerSleepPredictionCard(
+                    prediction = prediction,
+                    now = now,
+                    activeSleepType = activeSleep?.sleepType,
+                )
             }
             val inventoryTotalMl = snapshot.inventoryTotalMl
             val inventoryBagCount = snapshot.inventoryBagCount
@@ -590,6 +605,7 @@ private fun DashboardTimelineSections(
 @Composable
 private fun PartnerStatusPanel(
     activeSession: SessionSnapshot?,
+    activeSleep: SleepSnapshot?,
     lastSharedText: String,
     lastCheckedText: String?,
     isShareStale: Boolean,
@@ -598,19 +614,25 @@ private fun PartnerStatusPanel(
     lastSyncAt: Instant,
     now: Instant,
 ) {
-    val hasActiveSession = activeSession != null
-    val containerColor = if (hasActiveSession) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
-        MaterialTheme.colorScheme.surfaceVariant
+    val containerColor = when {
+        activeSession != null -> MaterialTheme.colorScheme.primaryContainer
+        activeSleep != null -> MaterialTheme.colorScheme.secondaryContainer
+        else -> MaterialTheme.colorScheme.surfaceVariant
     }
-    val labelColor = if (hasActiveSession) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
+    val labelColor = when {
+        activeSession != null -> MaterialTheme.colorScheme.onPrimaryContainer
+        activeSleep != null -> MaterialTheme.colorScheme.onSecondaryContainer
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val activeStateText = when {
+        activeSession != null -> "Feeding in progress"
+        activeSleep != null -> "${sleepTypeLabel(activeSleep.sleepType)} in progress"
+        else -> "Quiet right now"
     }
     val stateText = if (isShareStale) "Shared update may be behind" else "Shared update is current"
     val statusDescription = buildString {
+        append(activeStateText)
+        append(". ")
         append(stateText)
         append(". Shared ")
         append(lastSharedText.lowercaseFirstChar())
@@ -638,14 +660,26 @@ private fun PartnerStatusPanel(
                 .fillMaxWidth()
                 .padding(horizontal = 18.dp, vertical = 16.dp),
         ) {
-            if (activeSession == null) {
+            if (activeSession == null && activeSleep == null) {
                 NoActiveSessionStatus()
             } else {
-                ActiveSessionSummary(
-                    session = activeSession,
-                    lastSyncAt = lastSyncAt,
-                    now = now,
-                )
+                activeSession?.let {
+                    ActiveSessionSummary(
+                        session = it,
+                        lastSyncAt = lastSyncAt,
+                        now = now,
+                    )
+                }
+                if (activeSession != null && activeSleep != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                activeSleep?.let {
+                    ActiveSleepSummary(
+                        sleep = it,
+                        lastSyncAt = lastSyncAt,
+                        now = now,
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(14.dp))
             SharedUpdateMeta(
@@ -684,7 +718,7 @@ private fun NoActiveSessionStatus() {
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = "No active feeding was shared. Nothing needs attention.",
+            text = "No active feeding or sleep was shared. Nothing needs attention.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -779,6 +813,68 @@ private fun ActiveSessionSummary(
             text = "Estimate from the last shared update",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+    }
+}
+
+@Composable
+private fun ActiveSleepSummary(
+    sleep: SleepSnapshot,
+    lastSyncAt: Instant,
+    now: Instant,
+) {
+    val elapsed = remember(sleep.startTime, lastSyncAt, now) {
+        activeSleepElapsedDuration(
+            sleep = sleep,
+            lastSyncAt = lastSyncAt,
+            now = now,
+        )
+    }
+    val typeLabel = remember(sleep.sleepType) { sleepTypeLabel(sleep.sleepType) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clearAndSetSemantics {}
+                    .background(
+                        color = MaterialTheme.colorScheme.secondary,
+                        shape = MaterialTheme.shapes.medium,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text = "💤", style = MaterialTheme.typography.headlineSmall)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Sleeping when shared",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+                Text(
+                    text = typeLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = elapsed.formatDuration(),
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Estimate from the last shared update",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
     }
 }
@@ -1094,7 +1190,7 @@ private fun SleepHistoryRow(sleep: SleepSnapshot, now: Instant) {
     val timeAgo = remember(sleep.endTime, now) {
         endInstant?.let { Duration.between(it, now).coerceAtLeast(Duration.ZERO).formatElapsedAgo() }
     }
-    val typeLabel = if (sleep.sleepType == "NAP") "Nap" else "Night sleep"
+    val typeLabel = sleepTypeLabel(sleep.sleepType)
 
     HistoryCard(
         title = duration?.formatDuration() ?: "In progress",
@@ -1208,6 +1304,9 @@ private fun SleepSnapshot.sleepAgoText(now: Instant): String {
 
 private fun SleepSnapshot.sleepVerb(): String =
     if (sleepType == "NAP") "Napped" else "Slept"
+
+internal fun sleepTypeLabel(sleepType: String): String =
+    if (sleepType == "NAP") "Nap" else "Night sleep"
 
 private fun allergySummaryText(count: Int): String =
     when (count) {
@@ -1369,6 +1468,16 @@ internal fun activeSessionElapsedDuration(
     )
         .minusMillis(session.pausedDurationMs)
         .coerceAtLeast(Duration.ZERO)
+
+internal fun activeSleepElapsedDuration(
+    sleep: SleepSnapshot,
+    lastSyncAt: Instant,
+    now: Instant,
+): Duration =
+    Duration.between(
+        Instant.ofEpochMilli(sleep.startTime),
+        activeSessionReferenceTime(lastSyncAt = lastSyncAt, now = now),
+    ).coerceAtLeast(Duration.ZERO)
 
 private fun activeSessionReferenceTime(
     lastSyncAt: Instant,
