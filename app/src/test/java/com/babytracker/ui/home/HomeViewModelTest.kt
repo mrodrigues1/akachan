@@ -10,6 +10,7 @@ import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.model.TodayFeedingSummary
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.PumpingRepository
@@ -19,6 +20,7 @@ import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
+import com.babytracker.domain.usecase.feeding.ObserveTodayFeedingSummaryUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
@@ -55,6 +57,7 @@ class HomeViewModelTest {
     private lateinit var inventoryRepository: InventoryRepository
     private lateinit var predictNextFeed: PredictNextFeedUseCase
     private lateinit var predictSleepWindow: PredictSleepWindowUseCase
+    private lateinit var observeTodayFeedingSummary: ObserveTodayFeedingSummaryUseCase
     private lateinit var logBabyEvent: LogBabyEventUseCase
     private lateinit var viewModel: HomeViewModel
     private val testDispatcher = StandardTestDispatcher()
@@ -85,6 +88,7 @@ class HomeViewModelTest {
         inventoryRepository = mockk()
         predictNextFeed = mockk()
         predictSleepWindow = mockk()
+        observeTodayFeedingSummary = mockk()
         logBabyEvent = mockk()
 
         every { getBabyProfile() } returns flowOf(testBaby)
@@ -96,6 +100,7 @@ class HomeViewModelTest {
         every { inventoryRepository.getSummary() } returns flowOf(InventorySummary.Empty)
         every { predictNextFeed() } returns flowOf(null)
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("test"))
+        every { observeTodayFeedingSummary() } returns flowOf(TodayFeedingSummary())
         coJustRun { syncToFirestore(any()) }
         coJustRun { logBabyEvent(any()) }
     }
@@ -115,6 +120,7 @@ class HomeViewModelTest {
         inventoryRepository,
         predictNextFeed,
         predictSleepWindow,
+        observeTodayFeedingSummary,
         logBabyEvent,
     )
 
@@ -380,6 +386,26 @@ class HomeViewModelTest {
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(state, viewModel.uiState.value.sleepPrediction)
+    }
+
+    @Test
+    fun todayFeedingSummary_surfacesFromUseCase() = runTest {
+        every { observeTodayFeedingSummary() } returns flowOf(
+            TodayFeedingSummary(bottleVolumeMl = 150, bottleCount = 1, breastfeedingCount = 2),
+        )
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val summary = viewModel.uiState.value.todayFeedingSummary
+        assertEquals(150, summary.bottleVolumeMl)
+        assertEquals(3, summary.totalFeedCount)
+    }
+
+    @Test
+    fun volumeUnit_reflectsRepositoryValue() = runTest {
+        every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.OZ)
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(VolumeUnit.OZ, viewModel.uiState.value.volumeUnit)
     }
 
     @Test

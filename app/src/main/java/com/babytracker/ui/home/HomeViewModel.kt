@@ -11,6 +11,7 @@ import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.model.TodayFeedingSummary
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.PumpingRepository
@@ -20,6 +21,7 @@ import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
+import com.babytracker.domain.usecase.feeding.ObserveTodayFeedingSummaryUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
@@ -52,6 +54,7 @@ data class HomeUiState(
     val nextFeedPrediction: FeedPrediction? = null,
     val sleepPrediction: SleepPredictionState = SleepPredictionState.Unavailable("loading"),
     val volumeUnit: VolumeUnit = VolumeUnit.ML,
+    val todayFeedingSummary: TodayFeedingSummary = TodayFeedingSummary(),
 )
 
 @HiltViewModel
@@ -65,10 +68,11 @@ class HomeViewModel @Inject constructor(
     inventoryRepository: InventoryRepository,
     predictNextFeed: PredictNextFeedUseCase,
     predictSleepWindow: PredictSleepWindowUseCase,
+    observeTodayFeedingSummary: ObserveTodayFeedingSummaryUseCase,
     private val logBabyEvent: LogBabyEventUseCase,
 ) : ViewModel() {
 
-    val uiState: StateFlow<HomeUiState> = combine(
+    private val baseState = combine(
         combine(
             getBabyProfile(),
             getBreastfeedingHistory(),
@@ -127,6 +131,13 @@ class HomeViewModel @Inject constructor(
             sleepPrediction = sleepPrediction,
             volumeUnit = volumeUnit,
         )
+    }
+
+    val uiState: StateFlow<HomeUiState> = combine(
+        baseState,
+        observeTodayFeedingSummary(),
+    ) { base, todayFeedingSummary ->
+        base.copy(todayFeedingSummary = todayFeedingSummary)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
