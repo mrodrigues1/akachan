@@ -149,5 +149,16 @@
     <string name="bottle_feed_type_formula">Formula</string>
     <string name="bottle_feed_bag_picker_label">FROM STASH BAG (OPTIONAL)</string>
     <string name="bottle_feed_quick_action">Bottle feed</string>
+    <string name="feeding_history_title">Feeding history</string>
+    <string name="feeding_history_empty">No feeds logged yet</string>
+    <string name="feeding_history_empty_supporting">Bottle feeds and breastfeeding sessions will appear here</string>
+    <string name="feeding_history_day_totals">%1$s &#183; %2$d feeds</string>
+    <string name="feeding_delete_title">Delete feed?</string>
+    <string name="feeding_delete_message">This bottle feed will be removed. This cannot be undone.</string>
+    <string name="back">Back</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="more_options">More options</string>
+    <string name="loading">Loading...</string>
     <string name="cancel">Cancel</string>
 </resources>

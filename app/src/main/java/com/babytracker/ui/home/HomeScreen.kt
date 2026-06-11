@@ -99,6 +99,7 @@ fun HomeScreen(
     onNavigateToPumping: () -> Unit = {},
     onNavigateToInventory: () -> Unit = {},
     onNavigateToBottleFeed: () -> Unit = {},
+    onNavigateToFeedingHistory: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -378,6 +379,10 @@ fun HomeScreen(
 
                 BottleFeedHomeCard(
                     onClick = onNavigateToBottleFeed,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                FeedingHistoryHomeCard(
+                    onClick = onNavigateToFeedingHistory,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -713,6 +718,52 @@ internal fun BottleFeedHomeCard(
                     text = "Log a bottle or formula feed",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun FeedingHistoryHomeCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .heightIn(min = 72.dp)
+            .semantics { contentDescription = "Feeding history. Open combined feeding history." },
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = "📋",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+            Column {
+                Text(
+                    text = "Feeding history",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Bottle and breastfeeding log",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

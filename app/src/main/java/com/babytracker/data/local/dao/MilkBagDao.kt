@@ -30,6 +30,9 @@ interface MilkBagDao {
     @Query("SELECT * FROM milk_bags ORDER BY collection_date ASC")
     suspend fun getAllBagsOnce(): List<MilkBagEntity>
 
+    @Query("SELECT * FROM milk_bags WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): MilkBagEntity?
+
     @Insert
     suspend fun insert(entity: MilkBagEntity): Long
 

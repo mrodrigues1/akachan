@@ -83,6 +83,8 @@ class BottleFeedViewModel @Inject constructor(
             feedType = type,
             selectedBagId = linkedMilkBagId,
             notes = notes.orEmpty(),
+            saved = false,
+            validationError = null,
         )
     }
 

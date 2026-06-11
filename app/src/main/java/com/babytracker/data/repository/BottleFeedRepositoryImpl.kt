@@ -23,6 +23,8 @@ class BottleFeedRepositoryImpl @Inject constructor(
     override fun getSince(start: Instant): Flow<List<BottleFeed>> =
         dao.getSince(start.toEpochMilli()).map { rows -> rows.map { it.toDomain() } }
 
+    override suspend fun getById(id: Long): BottleFeed? = dao.getById(id)?.toDomain()
+
     override suspend fun insert(feed: BottleFeed): Long = dao.insert(feed.toEntity())
 
     override suspend fun updateDetails(
@@ -40,6 +42,27 @@ class BottleFeedRepositoryImpl @Inject constructor(
         linkedMilkBagId = linkedMilkBagId,
         notes = notes,
     ) > 0
+
+    override suspend fun updateDetailsWithInventory(
+        id: Long,
+        timestamp: Instant,
+        volumeMl: Int,
+        type: FeedType,
+        linkedMilkBagId: Long?,
+        notes: String?,
+        usedAt: Instant,
+    ): Boolean = dao.updateDetailsWithInventory(
+        id = id,
+        timestamp = timestamp.toEpochMilli(),
+        volumeMl = volumeMl,
+        type = type.name,
+        linkedMilkBagId = linkedMilkBagId,
+        notes = notes,
+        usedAt = usedAt.toEpochMilli(),
+    )
+
+    override suspend fun deleteWithInventoryRestore(feed: BottleFeed): Boolean =
+        dao.deleteWithInventoryRestore(feed.id)
 
     override suspend fun delete(feed: BottleFeed) = dao.delete(feed.toEntity())
 }

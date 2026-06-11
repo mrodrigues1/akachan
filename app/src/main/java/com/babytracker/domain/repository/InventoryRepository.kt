@@ -10,6 +10,7 @@ interface InventoryRepository {
     fun getAllBags(): Flow<List<MilkBag>>
     fun getSummary(): Flow<InventorySummary>
     suspend fun currentSummary(): InventorySummary
+    suspend fun getById(id: Long): MilkBag?
     suspend fun insert(bag: MilkBag): Long
     suspend fun update(bag: MilkBag)
     suspend fun updateDetails(

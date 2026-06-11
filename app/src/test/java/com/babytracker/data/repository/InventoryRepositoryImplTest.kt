@@ -103,4 +103,20 @@ class InventoryRepositoryImplTest {
 
         assertEquals(false, updated)
     }
+
+    @Test
+    fun `getById maps row to domain`() = runTest {
+        coEvery { dao.getById(4L) } returns MilkBagEntity(
+            id = 4L,
+            collectionDate = 100L,
+            volumeMl = 90,
+            usedAt = 200L,
+            createdAt = 100L,
+        )
+
+        val bag = repository.getById(4L)
+
+        assertEquals(4L, bag?.id)
+        assertEquals(Instant.ofEpochMilli(200L), bag?.usedAt)
+    }
 }
