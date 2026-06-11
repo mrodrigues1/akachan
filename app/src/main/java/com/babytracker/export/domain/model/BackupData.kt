@@ -16,6 +16,7 @@ data class BackupData(
     val sleep: List<SleepBackup>,
     val pumping: List<PumpingBackup>,
     val milkBags: List<MilkBagBackup>,
+    val bottleFeeds: List<BottleFeedBackup> = emptyList(),
 )
 
 @Serializable
@@ -83,6 +84,17 @@ data class MilkBagBackup(
     val volumeMl: Int,
     val sourceSessionId: Long?,
     val usedAt: Long?,
+    val notes: String?,
+    val createdAt: Long,
+)
+
+@Serializable
+data class BottleFeedBackup(
+    val id: Long,
+    val timestamp: Long,
+    val volumeMl: Int,
+    val type: String,
+    val linkedMilkBagId: Long?,
     val notes: String?,
     val createdAt: Long,
 )

@@ -49,6 +49,18 @@ class ExportCsvUseCase @Inject constructor(
                     )
                 },
             ),
+            "bottle_feeds" to buildCsv(
+                listOf(
+                    "id", "timestamp", "volume_ml", "type",
+                    "linked_milk_bag_id", "notes", "created_at",
+                ),
+                t.bottleFeeds.map {
+                    listOf(
+                        it.id, it.timestamp, it.volumeMl, it.type,
+                        it.linkedMilkBagId, it.notes, it.createdAt,
+                    )
+                },
+            ),
         )
     }
 

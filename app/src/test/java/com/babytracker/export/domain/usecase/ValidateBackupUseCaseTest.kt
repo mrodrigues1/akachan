@@ -3,6 +3,7 @@ package com.babytracker.export.domain.usecase
 import com.babytracker.export.domain.BackupTooNewException
 import com.babytracker.export.domain.InvalidBackupException
 import com.babytracker.export.domain.model.BackupData
+import com.babytracker.export.domain.model.BottleFeedBackup
 import com.babytracker.export.domain.model.CURRENT_BACKUP_FORMAT_VERSION
 import com.babytracker.export.domain.model.MilkBagBackup
 import com.babytracker.export.domain.model.PumpingBackup
@@ -37,10 +38,12 @@ class ValidateBackupUseCaseTest {
         sleep: List<SleepBackup> = emptyList(),
         pumping: List<PumpingBackup> = emptyList(),
         milkBags: List<MilkBagBackup> = emptyList(),
+        bottleFeeds: List<BottleFeedBackup> = emptyList(),
     ) = BackupData(
         backupFormatVersion = version, roomSchemaVersion = 3, appVersion = "1.0.0",
         exportedAt = 0, baby = null, settings = settings(),
         breastfeeding = emptyList(), sleep = sleep, pumping = pumping, milkBags = milkBags,
+        bottleFeeds = bottleFeeds,
     )
 
     @Test
@@ -127,6 +130,67 @@ class ValidateBackupUseCaseTest {
         assertThrows(InvalidBackupException::class.java) {
             useCase(json.encodeToString(BackupData.serializer(), data))
         }
+    }
+
+    @Test
+    fun `rejects an invalid bottle feed type`() {
+        val data = backup(
+            bottleFeeds = listOf(
+                BottleFeedBackup(1, 1_000, 120, "NONSENSE", null, null, 2_000),
+            ),
+        )
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
+    }
+
+    @Test
+    fun `rejects a non-positive bottle feed volume`() {
+        val data = backup(
+            bottleFeeds = listOf(
+                BottleFeedBackup(1, 1_000, 0, "FORMULA", null, null, 2_000),
+            ),
+        )
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
+    }
+
+    @Test
+    fun `rejects a bottle feed referencing a milk bag absent from the backup`() {
+        val data = backup(
+            bottleFeeds = listOf(
+                BottleFeedBackup(1, 1_000, 120, "BREAST_MILK", linkedMilkBagId = 999, notes = null, createdAt = 2_000),
+            ),
+        )
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
+    }
+
+    @Test
+    fun `rejects a bottle feed linked to an active milk bag`() {
+        val data = backup(
+            milkBags = listOf(MilkBagBackup(3, 10, 90, sourceSessionId = null, usedAt = null, notes = null, createdAt = 5)),
+            bottleFeeds = listOf(
+                BottleFeedBackup(1, 1_000, 120, "BREAST_MILK", linkedMilkBagId = 3, notes = null, createdAt = 2_000),
+            ),
+        )
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
+    }
+
+    @Test
+    fun `accepts a bottle feed linked to an included milk bag`() {
+        val data = backup(
+            milkBags = listOf(MilkBagBackup(3, 10, 90, sourceSessionId = null, usedAt = 11, notes = null, createdAt = 5)),
+            bottleFeeds = listOf(
+                BottleFeedBackup(1, 1_000, 120, "BREAST_MILK", linkedMilkBagId = 3, notes = null, createdAt = 2_000),
+            ),
+        )
+        val result = useCase(json.encodeToString(BackupData.serializer(), data))
+        assertEquals(1, result.bottleFeeds.size)
     }
 
     @Test

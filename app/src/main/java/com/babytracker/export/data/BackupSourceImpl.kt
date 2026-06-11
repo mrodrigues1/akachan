@@ -49,6 +49,7 @@ class BackupSourceImpl @Inject constructor(
             sleep = db.sleepDao().getAllRecordsOnce().map { it.toBackup() },
             pumping = db.pumpingDao().getAllSessionsOnce().map { it.toBackup() },
             milkBags = db.milkBagDao().getAllBagsOnce().map { it.toBackup() },
+            bottleFeeds = db.bottleFeedDao().getAllOnce().map { it.toBackup() },
         )
     }
 

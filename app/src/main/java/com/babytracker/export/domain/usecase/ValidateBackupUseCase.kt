@@ -2,6 +2,7 @@ package com.babytracker.export.domain.usecase
 
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.BreastSide
+import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.toSleepTypeOrNull
@@ -48,12 +49,14 @@ class ValidateBackupUseCase @Inject constructor(
                 it.sleepType.toSleepTypeOrNull() ?: throw IllegalArgumentException(it.sleepType)
             }
             data.pumping.forEach { PumpingBreast.valueOf(it.breast) }
+            data.bottleFeeds.forEach { FeedType.valueOf(it.type) }
             data.baby?.allergies?.forEach { AllergyType.valueOf(it) }
             ThemeConfig.valueOf(data.settings.themeConfig)
         }.onFailure { throw InvalidBackupException("Backup contains an invalid enum value: ${it.message}") }
 
         validateScalarInvariants(data)
         validateMilkBagReferences(data)
+        validateBottleFeedReferences(data)
     }
 
     private fun validateScalarInvariants(data: BackupData) {
@@ -61,6 +64,7 @@ class ValidateBackupUseCase @Inject constructor(
         validateSleepInvariants(data)
         validatePumpingInvariants(data)
         validateMilkBagInvariants(data)
+        validateBottleFeedInvariants(data)
     }
 
     private fun validateBreastfeedingInvariants(data: BackupData) {
@@ -94,6 +98,16 @@ class ValidateBackupUseCase @Inject constructor(
         }
     }
 
+    private fun validateBottleFeedInvariants(data: BackupData) {
+        data.bottleFeeds.forEach {
+            if (it.timestamp < 0) bad("bottle feed ${it.id} has negative timestamp")
+            if (it.createdAt < 0) bad("bottle feed ${it.id} has negative created time")
+            if (it.volumeMl <= 0) bad("bottle feed ${it.id} has non-positive volume")
+        }
+        val ids = data.bottleFeeds.map { it.id }
+        if (ids.size != ids.toSet().size) bad("Backup contains duplicate bottle feed ids")
+    }
+
     private fun bad(msg: String): Nothing = throw InvalidBackupException(msg)
 
     private fun checkSpan(start: Long, end: Long?, label: String) {
@@ -110,6 +124,18 @@ class ValidateBackupUseCase @Inject constructor(
                     "Milk bag references pumping id $ref not present in backup",
                 )
             }
+        }
+    }
+
+    private fun validateBottleFeedReferences(data: BackupData) {
+        val bagsById = data.milkBags.associateBy { it.id }
+        data.bottleFeeds.forEach { feed ->
+            val ref = feed.linkedMilkBagId ?: return@forEach
+            val bag = bagsById[ref]
+                ?: bad("Bottle feed references milk bag id $ref not present in backup")
+            // A consumed feed must point at a used bag; an active (usedAt == null) bag would be
+            // double-counted by inventory queries that filter on used_at IS NULL.
+            if (bag.usedAt == null) bad("Bottle feed references active milk bag id $ref")
         }
     }
 }

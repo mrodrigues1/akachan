@@ -7,6 +7,7 @@ data class ImportCounts(
     val sleepInserted: Int,
     val pumpingInserted: Int,
     val milkBagsInserted: Int,
+    val bottleFeedsInserted: Int,
 )
 
 /** Merges validated backup tracking rows into Room in a single transaction. */

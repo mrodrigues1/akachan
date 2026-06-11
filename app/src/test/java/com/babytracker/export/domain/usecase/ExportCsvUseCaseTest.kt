@@ -2,6 +2,7 @@ package com.babytracker.export.domain.usecase
 
 import com.babytracker.export.domain.BackupSource
 import com.babytracker.export.domain.TrackingSnapshot
+import com.babytracker.export.domain.model.BottleFeedBackup
 import com.babytracker.export.domain.model.BreastfeedingBackup
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -22,8 +23,10 @@ class ExportCsvUseCaseTest {
         useCase = ExportCsvUseCase(source)
     }
 
-    private fun tracking(breastfeeding: List<BreastfeedingBackup> = emptyList()) =
-        TrackingSnapshot(breastfeeding, emptyList(), emptyList(), emptyList())
+    private fun tracking(
+        breastfeeding: List<BreastfeedingBackup> = emptyList(),
+        bottleFeeds: List<BottleFeedBackup> = emptyList(),
+    ) = TrackingSnapshot(breastfeeding, emptyList(), emptyList(), emptyList(), bottleFeeds)
 
     @Test
     fun `breastfeeding csv has header and escaped notes row`() = runTest {
@@ -44,7 +47,26 @@ class ExportCsvUseCaseTest {
     @Test
     fun `returns a csv for every table`() = runTest {
         coEvery { source.readTracking() } returns tracking()
-        assertEquals(setOf("breastfeeding", "sleep", "pumping", "milk_bags"), useCase().keys)
+        assertEquals(
+            setOf("breastfeeding", "sleep", "pumping", "milk_bags", "bottle_feeds"),
+            useCase().keys,
+        )
+    }
+
+    @Test
+    fun `bottle feeds csv has header and a data row`() = runTest {
+        coEvery { source.readTracking() } returns tracking(
+            bottleFeeds = listOf(
+                BottleFeedBackup(1, 1_000, 120, "BREAST_MILK", 7, "evening", 2_000),
+            ),
+        )
+        val csv = useCase().getValue("bottle_feeds")
+        val lines = csv.trim().split("\n")
+        assertEquals(
+            "id,timestamp,volume_ml,type,linked_milk_bag_id,notes,created_at",
+            lines[0],
+        )
+        assertEquals("1,1000,120,BREAST_MILK,7,evening,2000", lines[1])
     }
 
     @Test

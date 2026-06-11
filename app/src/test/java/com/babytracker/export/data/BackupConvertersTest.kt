@@ -1,5 +1,6 @@
 package com.babytracker.export.data
 
+import com.babytracker.data.local.entity.BottleFeedEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
@@ -45,6 +46,15 @@ class BackupConvertersTest {
         val entity = MilkBagEntity(
             id = 5, collectionDate = 111, volumeMl = 90, sourceSessionId = 4,
             usedAt = null, notes = null, createdAt = 222,
+        )
+        assertEquals(entity, entity.toBackup().toEntity())
+    }
+
+    @Test
+    fun `bottle feed entity round-trips through backup dto`() {
+        val entity = BottleFeedEntity(
+            id = 8, timestamp = 1_000, volumeMl = 120, type = "BREAST_MILK",
+            linkedMilkBagId = 5, notes = "evening", createdAt = 2_000,
         )
         assertEquals(entity, entity.toBackup().toEntity())
     }

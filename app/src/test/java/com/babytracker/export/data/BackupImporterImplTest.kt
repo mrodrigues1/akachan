@@ -6,6 +6,7 @@ import com.babytracker.data.local.BabyTrackerDatabase
 import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
 import com.babytracker.export.domain.model.BackupData
+import com.babytracker.export.domain.model.BottleFeedBackup
 import com.babytracker.export.domain.model.MilkBagBackup
 import com.babytracker.export.domain.model.PumpingBackup
 import com.babytracker.export.domain.model.SettingsBackup
@@ -45,10 +46,11 @@ class BackupImporterImplTest {
         sleep: List<SleepBackup> = emptyList(),
         pumping: List<PumpingBackup> = emptyList(),
         milkBags: List<MilkBagBackup> = emptyList(),
+        bottleFeeds: List<BottleFeedBackup> = emptyList(),
     ) = BackupData(
         backupFormatVersion = 1, roomSchemaVersion = 3, appVersion = "1.0.0", exportedAt = 0,
         baby = null, settings = settings(), breastfeeding = emptyList(),
-        sleep = sleep, pumping = pumping, milkBags = milkBags,
+        sleep = sleep, pumping = pumping, milkBags = milkBags, bottleFeeds = bottleFeeds,
     )
 
     @Test
@@ -164,6 +166,50 @@ class BackupImporterImplTest {
         assertEquals(0, counts.pumpingInserted) // deduped against existing
         assertEquals(1, counts.milkBagsInserted)
         assertEquals(existingId, db.milkBagDao().getAllBagsOnce().single().sourceSessionId)
+    }
+
+    @Test
+    fun `imports bottle feeds and remaps the linked milk bag FK to the inserted bag`() = runTest {
+        val counts = importer.merge(
+            backup(
+                milkBags = listOf(
+                    MilkBagBackup(id = 3, collectionDate = 5, volumeMl = 90, sourceSessionId = null, usedAt = 9, notes = null, createdAt = 5),
+                ),
+                bottleFeeds = listOf(
+                    BottleFeedBackup(id = 1, timestamp = 1_000, volumeMl = 120, type = "BREAST_MILK", linkedMilkBagId = 3, notes = "n", createdAt = 2_000),
+                ),
+            ),
+        )
+
+        assertEquals(1, counts.bottleFeedsInserted)
+        val bagId = db.milkBagDao().getAllBagsOnce().single().id
+        val feed = db.bottleFeedDao().getAllOnce().single()
+        assertEquals(bagId, feed.linkedMilkBagId) // remapped to the real db id, not backup-local 3
+        assertEquals(120, feed.volumeMl)
+    }
+
+    @Test
+    fun `nulls a bottle feed link when the referenced bag is absent`() = runTest {
+        val counts = importer.merge(
+            backup(
+                bottleFeeds = listOf(
+                    BottleFeedBackup(id = 1, timestamp = 1_000, volumeMl = 100, type = "FORMULA", linkedMilkBagId = 99, notes = null, createdAt = 2_000),
+                ),
+            ),
+        )
+
+        assertEquals(1, counts.bottleFeedsInserted)
+        assertEquals(null, db.bottleFeedDao().getAllOnce().single().linkedMilkBagId)
+    }
+
+    @Test
+    fun `skips an exact duplicate bottle feed`() = runTest {
+        val feed = BottleFeedBackup(id = 1, timestamp = 1_000, volumeMl = 120, type = "FORMULA", linkedMilkBagId = null, notes = "n", createdAt = 2_000)
+
+        val counts = importer.merge(backup(bottleFeeds = listOf(feed, feed.copy(id = 2))))
+
+        assertEquals(1, counts.bottleFeedsInserted)
+        assertEquals(1, db.bottleFeedDao().getAllOnce().size)
     }
 
     @Test

@@ -46,7 +46,7 @@ class ImportBackupUseCaseTest {
     @Test
     fun `runs mark, merge, restore in that order`() = runTest {
         coEvery { settingsRepository.markImportInProgress(any()) } just Runs
-        coEvery { importer.merge(data) } returns ImportCounts(0, 0, 0, 0)
+        coEvery { importer.merge(data) } returns ImportCounts(0, 0, 0, 0, 0)
         coEvery { settingsRepository.restoreFromBackup(data) } just Runs
 
         useCase(data)
@@ -71,9 +71,9 @@ class ImportBackupUseCaseTest {
     @Test
     fun `returns merge counts`() = runTest {
         coEvery { settingsRepository.markImportInProgress(any()) } just Runs
-        coEvery { importer.merge(data) } returns ImportCounts(1, 2, 3, 4)
+        coEvery { importer.merge(data) } returns ImportCounts(1, 2, 3, 4, 5)
         coEvery { settingsRepository.restoreFromBackup(data) } just Runs
 
-        assertEquals(ImportCounts(1, 2, 3, 4), useCase(data))
+        assertEquals(ImportCounts(1, 2, 3, 4, 5), useCase(data))
     }
 }
