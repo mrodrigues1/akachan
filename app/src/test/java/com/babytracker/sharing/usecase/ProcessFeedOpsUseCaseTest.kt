@@ -140,7 +140,7 @@ class ProcessFeedOpsUseCaseTest {
     }
 
     @Test
-    fun `batch failure is logged and later emission is processed`() = runTest {
+    fun `failed batch retries in place and succeeds without new emission`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
         every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
@@ -155,10 +155,42 @@ class ProcessFeedOpsUseCaseTest {
         advanceUntilIdle()
         opsFlow.emit(listOf(op("op-1", 100)))
         advanceUntilIdle()
+        advanceTimeBy(5_001)
+        runCurrent()
+
+        assertEquals(2, bottleSyncCalls)
+        coVerify { sharingRepository.deleteFeedOps(shareCode, listOf("op-1")) }
+    }
+
+    @Test
+    fun `batch gives up after max attempts and later emission is processed`() = runTest {
+        val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
+        everyPrimaryWithCode()
+        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        var bottleSyncCalls = 0
+        var failSync = true
+        coEvery { syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS) } coAnswers {
+            bottleSyncCalls += 1
+            if (failSync) error("boom")
+            Unit
+        }
+
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
+        advanceUntilIdle()
+        opsFlow.emit(listOf(op("op-1", 100)))
+        advanceUntilIdle()
+        advanceTimeBy(5_001)
+        runCurrent()
+        advanceTimeBy(10_001)
+        runCurrent()
+
+        assertEquals(3, bottleSyncCalls)
+        coVerify(exactly = 0) { sharingRepository.deleteFeedOps(any(), any()) }
+
+        failSync = false
         opsFlow.emit(listOf(op("op-2", 200)))
         advanceUntilIdle()
 
-        assertEquals(2, bottleSyncCalls)
         coVerify { sharingRepository.deleteFeedOps(shareCode, listOf("op-2")) }
     }
 
