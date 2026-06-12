@@ -182,3 +182,15 @@ internal fun mapToFeedOp(opId: String, map: Map<*, *>): FeedOp? {
         consumedBagId = (map["consumedBagId"] as? Number)?.toLong(),
     )
 }
+
+internal fun feedOpToMap(op: FeedOp): Map<String, Any?> = buildMap {
+    put("action", op.action.name.lowercase())
+    put("entryClientId", op.entryClientId)
+    put("authorUid", op.authorUid)
+    put("createdAtMs", op.createdAtMs)
+    op.timestampMs?.let { put("timestampMs", it) }
+    op.volumeMl?.let { put("volumeMl", it) }
+    op.type?.let { put("type", it) }
+    op.notes?.let { put("notes", it) }
+    op.consumedBagId?.let { put("consumedBagId", it) }
+}

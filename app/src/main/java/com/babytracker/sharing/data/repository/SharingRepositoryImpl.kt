@@ -79,6 +79,12 @@ class SharingRepositoryImpl @Inject constructor(
     override fun observeFeedOps(code: ShareCode): Flow<List<FeedOp>> =
         service.observeFeedOps(code.value)
 
+    override fun writeFeedOp(code: ShareCode, op: FeedOp) =
+        service.writeFeedOp(code.value, op)
+
+    override fun observeOwnFeedOps(code: ShareCode, uid: String): Flow<List<FeedOp>> =
+        service.observeOwnFeedOps(code.value, uid)
+
     override suspend fun deleteFeedOps(code: ShareCode, opIds: List<String>) =
         service.deleteFeedOps(code.value, opIds)
 }

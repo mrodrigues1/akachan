@@ -1,6 +1,8 @@
 package com.babytracker.sharing.data.firebase
 
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
+import com.babytracker.sharing.domain.model.FeedOp
+import com.babytracker.sharing.domain.model.FeedOpAction
 import com.google.android.gms.tasks.Task
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
@@ -91,6 +93,29 @@ class FirestoreSharingServiceBottleFeedRoundTripTest {
         val result = service.fetchSnapshot("CODE1234")
 
         assertEquals(emptyList<BottleFeedSnapshot>(), result.bottleFeeds)
+    }
+
+    @Test
+    fun feedOpToMapOmitsAbsentPayloadKeys() {
+        val map = feedOpToMap(
+            FeedOp(
+                opId = "op-1",
+                action = FeedOpAction.DELETE,
+                entryClientId = "entry-1",
+                authorUid = "partner-uid",
+                createdAtMs = 1_000L,
+            ),
+        )
+
+        assertEquals("delete", map["action"])
+        assertEquals("entry-1", map["entryClientId"])
+        assertEquals("partner-uid", map["authorUid"])
+        assertEquals(1_000L, map["createdAtMs"])
+        assertFalse(map.containsKey("timestampMs"))
+        assertFalse(map.containsKey("volumeMl"))
+        assertFalse(map.containsKey("type"))
+        assertFalse(map.containsKey("notes"))
+        assertFalse(map.containsKey("consumedBagId"))
     }
 
     private fun voidTask(): Task<Void> = mockk<Task<Void>>().also {
