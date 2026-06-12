@@ -96,7 +96,17 @@ data class BottleFeed(
 | `notes` | string? | payload (create/update) |
 | `consumedBagId` | long? | payload (create only) — primary's bag id |
 
-### Security rules (deployed via Firebase console; no rules file in repo)
+### Security rules (version-controlled — blocking requirement)
+
+This feature opens the first partner→primary write surface; its gating rules must live in the repo, not only in the Firebase console. Deliverables:
+
+- `firestore.rules` at the repo root, containing the **existing** share/partner rules (imported from the console) plus the new `feedOps` rules below. Console-only rules are no longer acceptable once a write path exists — unreviewable rules can silently drift into blocking all partner writes or permitting unauthorized ops.
+- Deployment via `firebase deploy --only firestore:rules` documented as a release step (`firebase.json` + `.firebaserc` added alongside).
+- Security-rules tests against the Firebase emulator (`@firebase/rules-unit-testing`, Node toolchain under `firebase/` — outside the Android app, so the no-new-integrations rule is untouched) covering at minimum:
+  - connected partner can create an op with `authorUid == auth.uid`
+  - non-partner (not in `partners/`) is denied
+  - `authorUid` spoofing (op with someone else's uid) is denied
+  - owner and op author can delete an op; other uids are denied
 
 ```
 match /shares/{code} {
@@ -111,15 +121,18 @@ match /shares/{code} {
 }
 ```
 
+Note: rules can verify who wrote an op, but cannot see Room state — they cannot know whether `entryClientId` targets an OWNER entry. Entry-level ownership is therefore enforced on the primary at apply time (below). Rules and apply-time checks are complementary layers, and both are blocking requirements.
+
 ## Sync flows
 
 ### Primary (inbound — new)
 
 - `ObserveFeedOpsUseCase` (`sharing/usecase/`): Firestore listener on `feedOps`, active only while the app is foregrounded in PRIMARY mode (lifecycle-aware). Catch-up on app open is automatic — the listener replays all docs present.
 - `ApplyFeedOpUseCase` per op:
-  - **create** → upsert-by-`clientId` `BottleFeed(author = PARTNER)`. If `consumedBagId` refers to a still-active bag → mark it used. If the bag was consumed/deleted meanwhile → insert the feed without the link (feed truth outranks the stash link).
-  - **update** → locate by `entryClientId`, update fields. Entry missing (primary deleted it) → drop the op silently.
-  - **delete** → existing `deleteWithInventoryRestore` path (linked-bag restore already implemented).
+  - **Ownership authorization (blocking requirement):** the primary is the authoritative enforcement point — Firestore rules cannot inspect Room ownership, and the snapshot exposes every entry's `clientId` to the partner, so a buggy or malicious connected client can forge an update/delete op targeting an OWNER entry. Update/delete ops are applied **only if the existing entry has `author == PARTNER`**; ops targeting OWNER entries are dropped and logged. Create ops force `author = PARTNER` regardless of payload.
+  - **create** → upsert-by-`clientId` `BottleFeed(author = PARTNER)`; if the `clientId` already exists with `author == OWNER`, drop the op (forged upsert). If `consumedBagId` refers to a still-active bag → mark it used. If the bag was consumed/deleted meanwhile → insert the feed without the link (feed truth outranks the stash link).
+  - **update** → locate by `entryClientId`; apply only when `author == PARTNER`, update fields. Entry missing (primary deleted it) → drop the op silently.
+  - **delete** → only when `author == PARTNER`, via existing `deleteWithInventoryRestore` path (linked-bag restore already implemented).
   - Primary re-validates payloads (volume > 0, timestamp not in future); invalid ops are dropped.
 - Order per batch: apply to Room → push snapshot (`BOTTLE_FEEDS` + `INVENTORY`) → delete op docs. Deleting only after the push prevents the entry flickering out of the partner's merged history. A crash between push and delete causes a re-apply, which idempotency absorbs (create = upsert, update/delete = no-op when already applied/gone).
 - Primary edits/deletes of any entry (including partner-authored) keep today's local path + snapshot push; `author` is never changed.
@@ -153,6 +166,7 @@ Last-write-wins per entry by **apply order on the primary**: ops within a batch 
 |---|---|
 | Partner revoked mid-write | Security rules deny → surface through the existing `PartnerAccessRevokedException` flow (clear partner state, exit dashboard). |
 | Invalid payload reaches primary | Re-validated on apply; op dropped. |
+| Forged op targets an OWNER entry | Apply-time ownership check rejects it; op dropped and logged, entry untouched. |
 | Selected bag consumed before apply | Feed applied without bag link. |
 | Crash between snapshot push and op delete | Op re-applied; idempotency makes it a no-op. |
 | Snapshot doc nears Firestore 1 MB ceiling | Pre-existing constraint; new fields marginally increase entry size — no approach change. |
@@ -161,6 +175,7 @@ Last-write-wins per entry by **apply order on the primary**: ops within a batch 
 
 - **Unit (JUnit 5 + MockK + Turbine):**
   - `ApplyFeedOpUseCase`: create/update/delete paths, idempotent re-apply, bag-already-used fallback, invalid-payload drop, update-after-delete drop.
+  - `ApplyFeedOpUseCase` ownership enforcement: forged update/delete ops against OWNER entries leave them unmodified; create op colliding with an OWNER `clientId` is dropped; create payload cannot set `author = OWNER`.
   - Partner use cases: correct op payloads; edit/delete refuse OWNER entries.
   - History merge: pending op overrides snapshot entry; delete op hides entry.
   - ViewModel gating: edit/delete only exposed for PARTNER entries in partner mode.
