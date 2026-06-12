@@ -35,7 +35,9 @@ class DeletePartnerFeedUseCaseTest {
 
     @BeforeEach
     fun setUp() {
-        useCase = DeletePartnerFeedUseCase(sharingRepository, settingsRepository, applicationScope) { fixedNow }
+        useCase = DeletePartnerFeedUseCase(
+            SubmitFeedOpUseCase(sharingRepository, settingsRepository, applicationScope),
+        ) { fixedNow }
         every { settingsRepository.getShareCode() } returns flowOf("CODE1234")
         coEvery { sharingRepository.signInAnonymously() } returns "partner-uid"
         coEvery { sharingRepository.writeFeedOp(any(), any(), any()) } just Runs
