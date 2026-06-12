@@ -101,7 +101,7 @@ class ProcessFeedOpsUseCaseTest {
     }
 
     @Test
-    fun `push still happens when every op was dropped`() = runTest {
+    fun `all-dropped batch skips sync but still deletes ops`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
         every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
@@ -112,9 +112,31 @@ class ProcessFeedOpsUseCaseTest {
         opsFlow.emit(listOf(op("op-1", 100)))
         advanceUntilIdle()
 
-        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS) }
-        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.INVENTORY) }
+        coVerify(exactly = 0) { syncToFirestore(any()) }
         coVerify { sharingRepository.deleteFeedOps(shareCode, listOf("op-1")) }
+    }
+
+    @Test
+    fun `mixed batch applies every op and pushes snapshots once`() = runTest {
+        val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
+        everyPrimaryWithCode()
+        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        val applied = mutableListOf<String>()
+        coEvery { applyFeedOp(any()) } coAnswers {
+            val id = firstArg<FeedOp>().opId
+            applied += id
+            id == "op-changed"
+        }
+
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
+        advanceUntilIdle()
+        opsFlow.emit(listOf(op("op-changed", 100), op("op-dropped", 200)))
+        advanceUntilIdle()
+
+        assertEquals(listOf("op-changed", "op-dropped"), applied)
+        coVerify(exactly = 1) { syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS) }
+        coVerify(exactly = 1) { syncToFirestore(SyncToFirestoreUseCase.SyncType.INVENTORY) }
+        coVerify { sharingRepository.deleteFeedOps(shareCode, listOf("op-changed", "op-dropped")) }
     }
 
     @Test
@@ -163,6 +185,64 @@ class ProcessFeedOpsUseCaseTest {
     }
 
     @Test
+    fun `retry still pushes snapshots when reapply is an idempotent no-op`() = runTest {
+        val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
+        everyPrimaryWithCode()
+        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        var applyCalls = 0
+        coEvery { applyFeedOp(any()) } coAnswers {
+            applyCalls += 1
+            applyCalls == 1 // Room changed on first attempt; retry re-apply is a no-op
+        }
+        var bottleSyncCalls = 0
+        coEvery { syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS) } coAnswers {
+            bottleSyncCalls += 1
+            if (bottleSyncCalls == 1) error("boom")
+            Unit
+        }
+
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
+        advanceUntilIdle()
+        opsFlow.emit(listOf(op("op-1", 100)))
+        advanceUntilIdle()
+        advanceTimeBy(5_001)
+        runCurrent()
+
+        assertEquals(2, bottleSyncCalls)
+        coVerify(exactly = 1) { syncToFirestore(SyncToFirestoreUseCase.SyncType.INVENTORY) }
+        coVerify(exactly = 1) { sharingRepository.deleteFeedOps(shareCode, listOf("op-1")) }
+    }
+
+    @Test
+    fun `partial sync failure re-pushes both snapshots on retry`() = runTest {
+        val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
+        everyPrimaryWithCode()
+        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        var applyCalls = 0
+        coEvery { applyFeedOp(any()) } coAnswers {
+            applyCalls += 1
+            applyCalls == 1
+        }
+        var inventorySyncCalls = 0
+        coEvery { syncToFirestore(SyncToFirestoreUseCase.SyncType.INVENTORY) } coAnswers {
+            inventorySyncCalls += 1
+            if (inventorySyncCalls == 1) error("boom")
+            Unit
+        }
+
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
+        advanceUntilIdle()
+        opsFlow.emit(listOf(op("op-1", 100)))
+        advanceUntilIdle()
+        advanceTimeBy(5_001)
+        runCurrent()
+
+        coVerify(exactly = 2) { syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS) }
+        assertEquals(2, inventorySyncCalls)
+        coVerify(exactly = 1) { sharingRepository.deleteFeedOps(shareCode, listOf("op-1")) }
+    }
+
+    @Test
     fun `batch gives up after max attempts and later emission is processed`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
@@ -192,6 +272,46 @@ class ProcessFeedOpsUseCaseTest {
         advanceUntilIdle()
 
         coVerify { sharingRepository.deleteFeedOps(shareCode, listOf("op-2")) }
+    }
+
+    @Test
+    fun `sync owed after give-up survives to a later idempotent re-emission`() = runTest {
+        val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
+        everyPrimaryWithCode()
+        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        var applyCalls = 0
+        coEvery { applyFeedOp(any()) } coAnswers {
+            applyCalls += 1
+            applyCalls == 1 // Room changed once; every re-apply is an idempotent no-op
+        }
+        var bottleSyncCalls = 0
+        var failSync = true
+        coEvery { syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS) } coAnswers {
+            bottleSyncCalls += 1
+            if (failSync) error("boom")
+            Unit
+        }
+
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
+        advanceUntilIdle()
+        opsFlow.emit(listOf(op("op-1", 100)))
+        advanceUntilIdle()
+        advanceTimeBy(5_001)
+        runCurrent()
+        advanceTimeBy(10_001)
+        runCurrent()
+
+        // All attempts exhausted; op must not be deleted while the snapshot push is still owed.
+        assertEquals(3, bottleSyncCalls)
+        coVerify(exactly = 0) { sharingRepository.deleteFeedOps(any(), any()) }
+
+        failSync = false
+        opsFlow.emit(listOf(op("op-1", 100)))
+        advanceUntilIdle()
+
+        assertEquals(4, bottleSyncCalls)
+        coVerify(exactly = 1) { syncToFirestore(SyncToFirestoreUseCase.SyncType.INVENTORY) }
+        coVerify(exactly = 1) { sharingRepository.deleteFeedOps(shareCode, listOf("op-1")) }
     }
 
     @Test

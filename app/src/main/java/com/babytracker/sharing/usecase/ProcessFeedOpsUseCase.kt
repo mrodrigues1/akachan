@@ -16,13 +16,26 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.retryWhen
 import kotlin.math.min
 import javax.inject.Inject
+import javax.inject.Singleton
 
+// Singleton: holds the cross-batch [syncPending] obligation, which must survive activity recreation.
+@Singleton
 class ProcessFeedOpsUseCase @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val sharingRepository: SharingRepository,
     private val applyFeedOp: ApplyFeedOpUseCase,
     private val syncToFirestore: SyncToFirestoreUseCase,
 ) {
+    /**
+     * True when Room changed but the follow-up snapshot push has not succeeded yet.
+     * Instance-scoped rather than batch-scoped: after a batch exhausts its retries, its ops stay
+     * in Firestore and may re-enter a later batch as idempotent no-op re-applies — the owed sync
+     * must survive until both snapshots are pushed, or that batch would skip the push and delete
+     * the ops while the shared snapshot is still stale. Not persisted: across process death the
+     * obligation is covered by the next owner-side edit's own sync.
+     */
+    private var syncPending = false
+
     /** Suspends while collecting; cancel via caller scope. */
     @OptIn(ExperimentalCoroutinesApi::class)
     suspend operator fun invoke() {
@@ -57,8 +70,18 @@ class ProcessFeedOpsUseCase @Inject constructor(
      * data changes, so waiting for the next emission would leave failed ops stuck unapplied.
      */
     private suspend fun processBatchWithRetry(code: ShareCode, ops: List<FeedOp>) {
+        val sortedOps = ops.sortedBy { it.createdAtMs }
         repeat(MAX_BATCH_ATTEMPTS) { attempt ->
-            runCatching { processBatch(code, ops) }
+            runCatching {
+                sortedOps.forEach { op -> if (applyFeedOp(op)) syncPending = true }
+                if (syncPending) {
+                    syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS)
+                    syncToFirestore(SyncToFirestoreUseCase.SyncType.INVENTORY)
+                    syncPending = false
+                }
+                // Always delete: leaving invalid/duplicate ops in place would re-trigger the batch forever.
+                sharingRepository.deleteFeedOps(code, ops.map { it.opId })
+            }
                 .onSuccess { return }
                 .onFailure { cause ->
                     if (attempt == MAX_BATCH_ATTEMPTS - 1) {
@@ -69,13 +92,6 @@ class ProcessFeedOpsUseCase @Inject constructor(
                     }
                 }
         }
-    }
-
-    private suspend fun processBatch(code: ShareCode, ops: List<FeedOp>) {
-        ops.sortedBy { it.createdAtMs }.forEach { applyFeedOp(it) }
-        syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS)
-        syncToFirestore(SyncToFirestoreUseCase.SyncType.INVENTORY)
-        sharingRepository.deleteFeedOps(code, ops.map { it.opId })
     }
 
     private companion object {
