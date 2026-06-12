@@ -10,6 +10,7 @@ import com.babytracker.export.domain.model.BreastfeedingBackup
 import com.babytracker.export.domain.model.MilkBagBackup
 import com.babytracker.export.domain.model.PumpingBackup
 import com.babytracker.export.domain.model.SleepBackup
+import java.util.UUID
 
 fun BreastfeedingEntity.toBackup() = BreastfeedingBackup(
     id = id, startTime = startTime, endTime = endTime, startingSide = startingSide,
@@ -56,7 +57,8 @@ fun BottleFeedEntity.toBackup() = BottleFeedBackup(
     linkedMilkBagId = linkedMilkBagId, notes = notes, createdAt = createdAt,
 )
 
+// Backups predate clientId, so imports mint a fresh identity per entity.
 fun BottleFeedBackup.toEntity() = BottleFeedEntity(
-    id = id, timestamp = timestamp, volumeMl = volumeMl, type = type,
-    linkedMilkBagId = linkedMilkBagId, notes = notes, createdAt = createdAt,
+    id = id, clientId = UUID.randomUUID().toString(), timestamp = timestamp, volumeMl = volumeMl,
+    type = type, linkedMilkBagId = linkedMilkBagId, notes = notes, createdAt = createdAt,
 )

@@ -12,6 +12,7 @@ import com.babytracker.data.local.MIGRATION_4_5
 import com.babytracker.data.local.MIGRATION_5_6
 import com.babytracker.data.local.MIGRATION_6_7
 import com.babytracker.data.local.MIGRATION_7_8
+import com.babytracker.data.local.MIGRATION_8_9
 import com.babytracker.data.local.installActiveSessionInvariantTriggers
 import com.babytracker.data.local.dao.BabyEventDao
 import com.babytracker.data.local.dao.BabyProfileDao
@@ -49,6 +50,7 @@ object DatabaseModule {
                 MIGRATION_5_6,
                 MIGRATION_6_7,
                 MIGRATION_7_8,
+                MIGRATION_8_9,
             )
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {

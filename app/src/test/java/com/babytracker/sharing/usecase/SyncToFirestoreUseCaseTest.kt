@@ -68,6 +68,7 @@ class SyncToFirestoreUseCaseTest {
     )
     private val mockBottleFeed = BottleFeed(
         id = 1L,
+        clientId = "client-1",
         timestamp = Instant.parse("2026-05-16T09:00:00Z"),
         volumeMl = 120,
         type = FeedType.FORMULA,

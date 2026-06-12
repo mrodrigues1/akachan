@@ -12,6 +12,7 @@ class BottleFeedEntityTest {
     fun `toEntity then toDomain round-trips all fields`() {
         val domain = BottleFeed(
             id = 7,
+            clientId = "client-7",
             timestamp = Instant.ofEpochMilli(1_000),
             volumeMl = 120,
             type = FeedType.FORMULA,
@@ -29,6 +30,7 @@ class BottleFeedEntityTest {
     fun `toDomain maps null linkedMilkBagId and notes`() {
         val entity = BottleFeedEntity(
             id = 1,
+            clientId = "client-1",
             timestamp = 1_000,
             volumeMl = 90,
             type = "BREAST_MILK",

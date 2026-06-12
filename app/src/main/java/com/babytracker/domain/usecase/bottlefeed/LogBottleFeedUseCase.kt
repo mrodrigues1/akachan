@@ -7,6 +7,7 @@ import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.usecase.inventory.MarkBagUsedUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import java.time.Instant
+import java.util.UUID
 import javax.inject.Inject
 
 class LogBottleFeedUseCase @Inject constructor(
@@ -27,6 +28,7 @@ class LogBottleFeedUseCase @Inject constructor(
 
         val id = repository.insert(
             BottleFeed(
+                clientId = UUID.randomUUID().toString(),
                 timestamp = timestamp,
                 volumeMl = volumeMl,
                 type = type,

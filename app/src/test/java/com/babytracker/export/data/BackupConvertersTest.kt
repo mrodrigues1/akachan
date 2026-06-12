@@ -6,6 +6,8 @@ import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class BackupConvertersTest {
@@ -51,11 +53,17 @@ class BackupConvertersTest {
     }
 
     @Test
-    fun `bottle feed entity round-trips through backup dto`() {
+    fun `bottle feed entity round-trips through backup dto with fresh clientId`() {
         val entity = BottleFeedEntity(
-            id = 8, timestamp = 1_000, volumeMl = 120, type = "BREAST_MILK",
+            id = 8, clientId = "client-8", timestamp = 1_000, volumeMl = 120, type = "BREAST_MILK",
             linkedMilkBagId = 5, notes = "evening", createdAt = 2_000,
         )
-        assertEquals(entity, entity.toBackup().toEntity())
+
+        val restored = entity.toBackup().toEntity()
+
+        // The backup format carries no clientId, so import mints a fresh one.
+        assertTrue(restored.clientId.isNotEmpty())
+        assertNotEquals(entity.clientId, restored.clientId)
+        assertEquals(entity, restored.copy(clientId = entity.clientId))
     }
 }

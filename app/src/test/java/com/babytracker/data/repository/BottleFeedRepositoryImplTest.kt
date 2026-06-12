@@ -25,7 +25,7 @@ class BottleFeedRepositoryImplTest {
         coEvery { dao.getAll() } returns flowOf(
             listOf(
                 BottleFeedEntity(
-                    id = 1, timestamp = 1_000, volumeMl = 100,
+                    id = 1, clientId = "client-1", timestamp = 1_000, volumeMl = 100,
                     type = "FORMULA", linkedMilkBagId = null, notes = null, createdAt = 2_000,
                 ),
             ),
@@ -75,6 +75,7 @@ class BottleFeedRepositoryImplTest {
     @Test
     fun `insert delegates to dao and returns id`() = runTest {
         val feed = BottleFeed(
+            clientId = "client-1",
             timestamp = Instant.ofEpochMilli(1_000),
             volumeMl = 90,
             type = FeedType.BREAST_MILK,
@@ -89,6 +90,7 @@ class BottleFeedRepositoryImplTest {
     fun `getById maps entity to domain`() = runTest {
         coEvery { dao.getById(7L) } returns BottleFeedEntity(
             id = 7L,
+            clientId = "client-7",
             timestamp = 1_000,
             volumeMl = 100,
             type = "BREAST_MILK",
@@ -107,6 +109,7 @@ class BottleFeedRepositoryImplTest {
     fun `deleteWithInventoryRestore delegates transactional delete`() = runTest {
         val feed = BottleFeed(
             id = 7L,
+            clientId = "client-7",
             timestamp = Instant.ofEpochMilli(1_000),
             volumeMl = 90,
             type = FeedType.BREAST_MILK,

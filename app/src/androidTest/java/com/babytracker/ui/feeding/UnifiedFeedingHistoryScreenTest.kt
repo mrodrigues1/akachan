@@ -37,6 +37,7 @@ class UnifiedFeedingHistoryScreenTest {
 
     private val bottle = BottleFeed(
         id = 9L,
+        clientId = "client-9",
         timestamp = Instant.parse("2026-06-01T12:00:00Z"),
         volumeMl = 120,
         type = FeedType.FORMULA,
