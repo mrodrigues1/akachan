@@ -38,16 +38,18 @@ data class BottleFeedEntity(
     @ColumnInfo(name = "author", defaultValue = "'OWNER'") val author: String = FeedAuthor.OWNER.name,
 )
 
+// Lenient enum parsing: one corrupt row must not crash every feed list it appears in.
+// Fallbacks mirror the schema defaults (FORMULA in snapshot mapping, OWNER in the Room column).
 fun BottleFeedEntity.toDomain(): BottleFeed = BottleFeed(
     id = id,
     clientId = clientId,
     timestamp = Instant.ofEpochMilli(timestamp),
     volumeMl = volumeMl,
-    type = FeedType.valueOf(type),
+    type = FeedType.entries.firstOrNull { it.name == type } ?: FeedType.FORMULA,
     linkedMilkBagId = linkedMilkBagId,
     notes = notes,
     createdAt = Instant.ofEpochMilli(createdAt),
-    author = FeedAuthor.valueOf(author),
+    author = FeedAuthor.entries.firstOrNull { it.name == author } ?: FeedAuthor.OWNER,
 )
 
 fun BottleFeed.toEntity(): BottleFeedEntity = BottleFeedEntity(

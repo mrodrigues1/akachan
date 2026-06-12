@@ -48,6 +48,28 @@ class FirestoreSnapshotMappingTest {
     }
 
     @Test
+    fun `feed op map with all required fields parses`() {
+        val parsed = mapToFeedOp("op-1", feedOpMap())
+
+        assertEquals("op-1", parsed?.opId)
+        assertEquals("partner-uid", parsed?.authorUid)
+    }
+
+    @Test
+    fun `feed op map without authorUid is rejected`() {
+        val parsed = mapToFeedOp("op-1", feedOpMap() - "authorUid")
+
+        assertEquals(null, parsed)
+    }
+
+    private fun feedOpMap(): Map<String, Any?> = mapOf(
+        "action" to "delete",
+        "entryClientId" to "client-1",
+        "authorUid" to "partner-uid",
+        "createdAtMs" to 1000L,
+    )
+
+    @Test
     fun `legacy snapshot map without milkBags key parses to empty list`() {
         val legacy = mapOf<String, Any?>(
             "baby" to mapOf("name" to "", "birthDate" to 0L, "allergies" to emptyList<String>()),

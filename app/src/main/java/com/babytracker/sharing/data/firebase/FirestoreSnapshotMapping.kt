@@ -173,7 +173,7 @@ internal fun mapToFeedOp(opId: String, map: Map<*, *>): FeedOp? {
         opId = opId,
         action = action,
         entryClientId = map["entryClientId"] as? String ?: return null,
-        authorUid = map["authorUid"] as? String ?: "",
+        authorUid = map["authorUid"] as? String ?: return null,
         createdAtMs = (map["createdAtMs"] as? Number)?.toLong() ?: return null,
         timestampMs = (map["timestampMs"] as? Number)?.toLong(),
         volumeMl = (map["volumeMl"] as? Number)?.toInt(),
