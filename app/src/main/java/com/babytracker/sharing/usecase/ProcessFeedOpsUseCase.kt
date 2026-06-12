@@ -48,9 +48,27 @@ class ProcessFeedOpsUseCase @Inject constructor(
                 if (batch == null) return@collect
                 val (code, ops) = batch
                 if (ops.isEmpty()) return@collect
-                runCatching { processBatch(code, ops) }
-                    .onFailure { Log.w(TAG, "feed op batch failed; will retry on next emission", it) }
+                processBatchWithRetry(code, ops)
             }
+    }
+
+    /**
+     * Retries a failed batch in place: the Firestore snapshot listener only re-emits when
+     * data changes, so waiting for the next emission would leave failed ops stuck unapplied.
+     */
+    private suspend fun processBatchWithRetry(code: ShareCode, ops: List<FeedOp>) {
+        repeat(MAX_BATCH_ATTEMPTS) { attempt ->
+            runCatching { processBatch(code, ops) }
+                .onSuccess { return }
+                .onFailure { cause ->
+                    if (attempt == MAX_BATCH_ATTEMPTS - 1) {
+                        Log.w(TAG, "feed op batch failed after $MAX_BATCH_ATTEMPTS attempts; giving up until next emission", cause)
+                    } else {
+                        Log.w(TAG, "feed op batch failed (attempt ${attempt + 1}); retrying", cause)
+                        delay(min(RETRY_BASE_MS * (attempt + 1), RETRY_MAX_MS))
+                    }
+                }
+        }
     }
 
     private suspend fun processBatch(code: ShareCode, ops: List<FeedOp>) {
@@ -64,5 +82,6 @@ class ProcessFeedOpsUseCase @Inject constructor(
         const val TAG = "ProcessFeedOps"
         const val RETRY_BASE_MS = 5_000L
         const val RETRY_MAX_MS = 60_000L
+        const val MAX_BATCH_ATTEMPTS = 3
     }
 }
