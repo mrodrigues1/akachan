@@ -42,5 +42,7 @@ interface SharingRepository {
     suspend fun revokePartner(code: ShareCode, partnerUid: String)
     suspend fun deleteShareDocument(code: ShareCode)
     fun observeFeedOps(code: ShareCode): Flow<List<FeedOp>>
+    fun writeFeedOp(code: ShareCode, op: FeedOp)
+    fun observeOwnFeedOps(code: ShareCode, uid: String): Flow<List<FeedOp>>
     suspend fun deleteFeedOps(code: ShareCode, opIds: List<String>)
 }

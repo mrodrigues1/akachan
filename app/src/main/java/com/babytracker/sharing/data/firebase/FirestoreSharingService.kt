@@ -172,6 +172,34 @@ class FirestoreSharingService @Inject constructor(
         awaitClose { registration.remove() }
     }
 
+    fun writeFeedOp(code: String, op: FeedOp) {
+        firestore.collection(SHARES).document(code)
+            .collection(FEED_OPS).document(op.opId)
+            .set(feedOpToMap(op))
+        // Intentionally not awaited: Firestore queues offline writes locally, while this task only
+        // completes on server acknowledgement and would block offline partner logging.
+    }
+
+    fun observeOwnFeedOps(code: String, uid: String): Flow<List<FeedOp>> = callbackFlow {
+        val registration = firestore.collection(SHARES).document(code)
+            .collection(FEED_OPS)
+            .whereEqualTo("authorUid", uid)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    trySend(
+                        snapshot.documents.mapNotNull { doc ->
+                            mapToFeedOp(doc.id, doc.data ?: return@mapNotNull null)
+                        },
+                    )
+                }
+            }
+        awaitClose { registration.remove() }
+    }
+
     suspend fun deleteFeedOps(code: String, opIds: List<String>) {
         opIds.chunked(BATCH_LIMIT).forEach { chunk ->
             val batch = firestore.batch()
