@@ -418,6 +418,7 @@ private fun CompactDashboardContent(
                 now = now,
                 activeSleepType = activeSleep?.sleepType,
                 hasActiveSleep = snapshot.sleepRecords.any { it.endTime == null },
+                hasActiveFeeding = activeSession != null,
             )
         }
 
@@ -509,6 +510,7 @@ private fun WideDashboardContent(
                     now = now,
                     activeSleepType = activeSleep?.sleepType,
                     hasActiveSleep = snapshot.sleepRecords.any { it.endTime == null },
+                    hasActiveFeeding = activeSession != null,
                 )
             }
             val inventoryTotalMl = snapshot.inventoryTotalMl

@@ -45,21 +45,31 @@ class FirestoreSharingService @Inject constructor(
             .set(mapOf("data" to snapshotToMap(snapshot)), SetOptions.merge()).await()
     }
 
-    suspend fun syncSessions(code: String, sessions: List<SessionSnapshot>) {
+    suspend fun syncSessions(
+        code: String,
+        sessions: List<SessionSnapshot>,
+        prediction: SleepPredictionSnapshot?,
+    ) {
         val data = mapOf(
             "data" to mapOf(
                 "lastSyncAt" to Timestamp.now(),
                 "sessions" to sessions.map { sessionToMap(it) },
+                "sleepPrediction" to prediction?.let { predictionToMap(it) },
             ),
         )
         firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()
     }
 
-    suspend fun syncSleepRecords(code: String, sleepRecords: List<SleepSnapshot>) {
+    suspend fun syncSleepRecords(
+        code: String,
+        sleepRecords: List<SleepSnapshot>,
+        prediction: SleepPredictionSnapshot?,
+    ) {
         val data = mapOf(
             "data" to mapOf(
                 "lastSyncAt" to Timestamp.now(),
                 "sleepRecords" to sleepRecords.map { sleepToMap(it) },
+                "sleepPrediction" to prediction?.let { predictionToMap(it) },
             ),
         )
         firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()
