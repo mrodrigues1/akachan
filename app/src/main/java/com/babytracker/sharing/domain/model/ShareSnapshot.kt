@@ -11,6 +11,7 @@ data class ShareSnapshot(
     val inventoryTotalMl: Int? = null,
     val inventoryBagCount: Int? = null,
     val inventoryUpdatedAt: Long? = null,
+    val milkBags: List<MilkBagSnapshot> = emptyList(),
     val sleepPrediction: SleepPredictionSnapshot? = null,
 )
 
@@ -42,4 +43,14 @@ data class BottleFeedSnapshot(
     val timestamp: Long,
     val volumeMl: Int,
     val type: String,
+    val clientId: String = "",
+    val author: String = "OWNER",
+    val notes: String? = null,
+)
+
+data class MilkBagSnapshot(
+    val id: Long,
+    val collectionDateMs: Long,
+    val volumeMl: Int,
+    val notes: String?,
 )

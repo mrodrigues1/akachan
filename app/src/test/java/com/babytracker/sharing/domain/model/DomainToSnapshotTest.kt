@@ -1,7 +1,11 @@
 package com.babytracker.sharing.domain.model
 
+import com.babytracker.domain.model.BottleFeed
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
+import com.babytracker.domain.model.FeedAuthor
+import com.babytracker.domain.model.FeedType
+import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepWindow
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -89,5 +93,40 @@ class DomainToSnapshotTest {
     @Test
     fun `Unavailable returns null`() {
         assertNull(SleepPredictionState.Unavailable("no baby profile").toSnapshot(generatedAt))
+    }
+
+    @Test
+    fun `bottle feed snapshot carries clientId author and notes`() {
+        val feed = BottleFeed(
+            id = 1,
+            clientId = "client-1",
+            timestamp = Instant.ofEpochMilli(1000),
+            volumeMl = 120,
+            type = FeedType.BREAST_MILK,
+            notes = "after nap",
+            createdAt = Instant.ofEpochMilli(900),
+            author = FeedAuthor.PARTNER,
+        )
+
+        val snapshot = feed.toSnapshot()
+
+        assertEquals("client-1", snapshot.clientId)
+        assertEquals("PARTNER", snapshot.author)
+        assertEquals("after nap", snapshot.notes)
+    }
+
+    @Test
+    fun `milk bag snapshot maps id date volume and notes`() {
+        val bag = MilkBag(
+            id = 7,
+            collectionDate = Instant.ofEpochMilli(5000),
+            volumeMl = 150,
+            notes = "freezer",
+            createdAt = Instant.ofEpochMilli(4000),
+        )
+
+        val snapshot = bag.toSnapshot()
+
+        assertEquals(MilkBagSnapshot(id = 7, collectionDateMs = 5000, volumeMl = 150, notes = "freezer"), snapshot)
     }
 }

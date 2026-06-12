@@ -3,6 +3,7 @@ package com.babytracker.sharing.domain.model
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BottleFeed
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import java.time.ZoneOffset
@@ -27,6 +28,16 @@ fun BottleFeed.toSnapshot(): BottleFeedSnapshot = BottleFeedSnapshot(
     timestamp = timestamp.toEpochMilli(),
     volumeMl = volumeMl,
     type = type.name,
+    clientId = clientId,
+    author = author.name,
+    notes = notes,
+)
+
+fun MilkBag.toSnapshot(): MilkBagSnapshot = MilkBagSnapshot(
+    id = id,
+    collectionDateMs = collectionDate.toEpochMilli(),
+    volumeMl = volumeMl,
+    notes = notes,
 )
 
 fun SleepRecord.toSnapshot(): SleepSnapshot = SleepSnapshot(

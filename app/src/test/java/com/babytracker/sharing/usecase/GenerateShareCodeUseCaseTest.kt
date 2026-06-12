@@ -64,6 +64,7 @@ class GenerateShareCodeUseCaseTest {
         coEvery { breastfeedingRepository.getRecentSessions(any()) } returns emptyList()
         coEvery { sleepRepository.getRecentRecords(any()) } returns emptyList()
         coEvery { inventoryRepository.currentSummary() } returns InventorySummary.Empty
+        every { inventoryRepository.getActiveBags() } returns flowOf(emptyList())
         every { bottleFeedRepository.getAll() } returns flowOf(emptyList())
         coEvery { sharingRepository.signInAnonymously() } returns "uid123"
         coEvery { sharingRepository.isShareCodeValid(any()) } returns false

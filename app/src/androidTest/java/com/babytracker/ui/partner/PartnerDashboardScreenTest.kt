@@ -31,6 +31,7 @@ import com.babytracker.export.domain.model.BackupData
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
+import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
@@ -565,7 +566,11 @@ class PartnerDashboardScreenTest {
 
         override suspend fun syncBaby(code: ShareCode, baby: BabySnapshot) = Unit
 
-        override suspend fun syncInventory(code: ShareCode, fields: InventorySnapshotFields) = Unit
+        override suspend fun syncInventory(
+            code: ShareCode,
+            fields: InventorySnapshotFields,
+            milkBags: List<MilkBagSnapshot>,
+        ) = Unit
 
         override suspend fun syncBottleFeeds(
             code: ShareCode,
