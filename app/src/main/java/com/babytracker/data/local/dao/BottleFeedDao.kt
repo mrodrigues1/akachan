@@ -22,6 +22,19 @@ interface BottleFeedDao {
     @Query("SELECT * FROM bottle_feeds WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): BottleFeedEntity?
 
+    @Query("SELECT * FROM bottle_feeds WHERE client_id = :clientId LIMIT 1")
+    suspend fun getByClientId(clientId: String): BottleFeedEntity?
+
+    @Transaction
+    suspend fun insertWithBagConsume(entity: BottleFeedEntity, consumedBagId: Long?, usedAt: Long): Long {
+        // Feed truth outranks the stash link — if the bag was consumed/deleted
+        // meanwhile, insert the feed without the link.
+        val linkBag = consumedBagId != null && isMilkBagActive(consumedBagId)
+        val id = insert(entity.copy(linkedMilkBagId = if (linkBag) consumedBagId else null))
+        if (linkBag) markMilkBagUsed(consumedBagId, usedAt)
+        return id
+    }
+
     @Transaction
     suspend fun updateDetailsWithInventory(
         id: Long,

@@ -23,7 +23,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.content.IntentCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.babytracker.domain.model.ThemeConfig
@@ -33,12 +36,14 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.navigation.AppNavGraph
 import com.babytracker.navigation.Routes
 import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.sharing.usecase.ProcessFeedOpsUseCase
 import com.babytracker.tile.FeedTileService
 import com.babytracker.tile.SleepTileService
 import com.babytracker.ui.theme.BabyTrackerTheme
 import com.babytracker.util.NotificationHelper
 import com.babytracker.util.UpdateChecker
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 internal val ALLOWED_NAV_ROUTES = setOf(Routes.HOME, Routes.BREASTFEEDING, Routes.SLEEP_TRACKING, Routes.INVENTORY)
@@ -89,12 +94,20 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var updateChecker: UpdateChecker
 
+    @Inject
+    lateinit var processFeedOps: ProcessFeedOpsUseCase
+
     private val pendingNavRoute = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         pendingNavRoute.value = navRouteFromIntent(intent)
         enableEdgeToEdge()
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                processFeedOps()
+            }
+        }
         setContent {
             val isOnboardingComplete by babyRepository
                 .isOnboardingComplete()

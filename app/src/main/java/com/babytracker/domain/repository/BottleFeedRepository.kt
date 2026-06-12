@@ -9,7 +9,9 @@ interface BottleFeedRepository {
     fun getAll(): Flow<List<BottleFeed>>
     fun getSince(start: Instant): Flow<List<BottleFeed>>
     suspend fun getById(id: Long): BottleFeed?
+    suspend fun getByClientId(clientId: String): BottleFeed?
     suspend fun insert(feed: BottleFeed): Long
+    suspend fun insertWithBagConsume(feed: BottleFeed, consumedBagId: Long?, usedAt: Instant): Long
     suspend fun updateDetails(
         id: Long,
         timestamp: Instant,

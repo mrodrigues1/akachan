@@ -2,6 +2,7 @@ package com.babytracker.sharing.data.firebase
 
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
+import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.PartnerInfo
@@ -12,6 +13,9 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.time.Instant
 import javax.inject.Inject
@@ -149,8 +153,41 @@ class FirestoreSharingService @Inject constructor(
         firestore.collection(SHARES).document(code).delete().await()
     }
 
+    fun observeFeedOps(code: String): Flow<List<FeedOp>> = callbackFlow {
+        val registration = firestore.collection(SHARES).document(code)
+            .collection(FEED_OPS)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    trySend(
+                        snapshot.documents.mapNotNull { doc ->
+                            mapToFeedOp(doc.id, doc.data ?: return@mapNotNull null)
+                        },
+                    )
+                }
+            }
+        awaitClose { registration.remove() }
+    }
+
+    suspend fun deleteFeedOps(code: String, opIds: List<String>) {
+        opIds.chunked(BATCH_LIMIT).forEach { chunk ->
+            val batch = firestore.batch()
+            chunk.forEach { opId ->
+                batch.delete(
+                    firestore.collection(SHARES).document(code).collection(FEED_OPS).document(opId),
+                )
+            }
+            batch.commit().await()
+        }
+    }
+
     companion object {
         private const val SHARES = "shares"
         private const val PARTNERS = "partners"
+        private const val FEED_OPS = "feedOps"
+        private const val BATCH_LIMIT = 450
     }
 }

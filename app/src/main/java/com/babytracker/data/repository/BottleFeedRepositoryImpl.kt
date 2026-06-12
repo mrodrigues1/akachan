@@ -25,7 +25,13 @@ class BottleFeedRepositoryImpl @Inject constructor(
 
     override suspend fun getById(id: Long): BottleFeed? = dao.getById(id)?.toDomain()
 
+    override suspend fun getByClientId(clientId: String): BottleFeed? =
+        dao.getByClientId(clientId)?.toDomain()
+
     override suspend fun insert(feed: BottleFeed): Long = dao.insert(feed.toEntity())
+
+    override suspend fun insertWithBagConsume(feed: BottleFeed, consumedBagId: Long?, usedAt: Instant): Long =
+        dao.insertWithBagConsume(feed.toEntity(), consumedBagId, usedAt.toEpochMilli())
 
     override suspend fun updateDetails(
         id: Long,

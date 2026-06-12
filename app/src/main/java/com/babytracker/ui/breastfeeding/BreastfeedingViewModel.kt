@@ -85,7 +85,7 @@ data class BreastfeedingUiState(
     // Placeholder defaults are clock-free on purpose; real values are set in onAddEntryClick.
     // Calling LocalDate.now()/LocalTime.now() here would route through Instant statics and break
     // tests that use mockkStatic(Instant::class).
-    val manualEntryDate: LocalDate = LocalDate.EPOCH,
+    val manualEntryDate: LocalDate = LocalDate.ofEpochDay(0),
     val manualEntryStartTime: LocalTime = LocalTime.MIN,
     val manualEntryEndTime: LocalTime = LocalTime.MIN,
     // Seeds the sheet's initial side selection; the chip selection itself is local sheet state.
