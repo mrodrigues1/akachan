@@ -2,6 +2,8 @@ package com.babytracker.sharing.data.repository
 
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.BabySnapshot
+import com.babytracker.sharing.domain.model.FeedOp
+import com.babytracker.sharing.domain.model.FeedOpAction
 import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
@@ -219,5 +221,24 @@ class SharingRepositoryImplTest {
         repository.deleteShareDocument(code)
 
         assertEquals("ABCD1234", codeSlot.captured)
+    }
+
+    @Test
+    fun writeFeedOpPassesCodeValueAndOp() = runTest {
+        val op = FeedOp(
+            opId = "op-1",
+            action = FeedOpAction.CREATE,
+            entryClientId = "entry-1",
+            authorUid = "partner-uid",
+            createdAtMs = 1_000L,
+        )
+        val codeSlot = slot<String>()
+        val opSlot = slot<FeedOp>()
+        coJustRun { service.writeFeedOp(capture(codeSlot), capture(opSlot), any()) }
+
+        repository.writeFeedOp(code, op)
+
+        assertEquals("ABCD1234", codeSlot.captured)
+        assertEquals(op, opSlot.captured)
     }
 }

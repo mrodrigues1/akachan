@@ -17,6 +17,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -172,12 +173,18 @@ class FirestoreSharingService @Inject constructor(
         awaitClose { registration.remove() }
     }
 
-    fun writeFeedOp(code: String, op: FeedOp) {
-        firestore.collection(SHARES).document(code)
+    suspend fun writeFeedOp(
+        code: String,
+        op: FeedOp,
+        onFailure: (Throwable) -> Unit = {},
+    ) {
+        val writeTask = firestore.collection(SHARES).document(code)
             .collection(FEED_OPS).document(op.opId)
             .set(feedOpToMap(op))
-        // Intentionally not awaited: Firestore queues offline writes locally, while this task only
-        // completes on server acknowledgement and would block offline partner logging.
+            .addOnFailureListener(onFailure)
+        withTimeoutOrNull(WRITE_ACK_TIMEOUT_MS) {
+            writeTask.await()
+        }
     }
 
     fun observeOwnFeedOps(code: String, uid: String): Flow<List<FeedOp>> = callbackFlow {
@@ -217,5 +224,6 @@ class FirestoreSharingService @Inject constructor(
         private const val PARTNERS = "partners"
         private const val FEED_OPS = "feedOps"
         private const val BATCH_LIMIT = 450
+        private const val WRITE_ACK_TIMEOUT_MS = 1_000L
     }
 }

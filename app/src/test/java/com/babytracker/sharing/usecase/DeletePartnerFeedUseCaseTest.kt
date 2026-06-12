@@ -15,6 +15,8 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -27,21 +29,22 @@ import java.time.Instant
 class DeletePartnerFeedUseCaseTest {
     private val sharingRepository: SharingRepository = mockk()
     private val settingsRepository: SettingsRepository = mockk()
+    private val applicationScope = CoroutineScope(Dispatchers.Unconfined)
     private val fixedNow = Instant.parse("2026-06-01T10:00:00Z")
     private lateinit var useCase: DeletePartnerFeedUseCase
 
     @BeforeEach
     fun setUp() {
-        useCase = DeletePartnerFeedUseCase(sharingRepository, settingsRepository) { fixedNow }
+        useCase = DeletePartnerFeedUseCase(sharingRepository, settingsRepository, applicationScope) { fixedNow }
         every { settingsRepository.getShareCode() } returns flowOf("CODE1234")
         coEvery { sharingRepository.signInAnonymously() } returns "partner-uid"
-        every { sharingRepository.writeFeedOp(any(), any()) } just Runs
+        coEvery { sharingRepository.writeFeedOp(any(), any(), any()) } just Runs
     }
 
     @Test
     fun `delete writes envelope only op`() = runTest {
         val op = slot<FeedOp>()
-        every { sharingRepository.writeFeedOp(ShareCode("CODE1234"), capture(op)) } just Runs
+        coEvery { sharingRepository.writeFeedOp(ShareCode("CODE1234"), capture(op), any()) } just Runs
 
         useCase(partnerEntry(clientId = "entry-1"))
 
@@ -65,7 +68,7 @@ class DeletePartnerFeedUseCaseTest {
         }
 
         coVerify(exactly = 0) { sharingRepository.signInAnonymously() }
-        io.mockk.verify(exactly = 0) { sharingRepository.writeFeedOp(any(), any()) }
+        coVerify(exactly = 0) { sharingRepository.writeFeedOp(any(), any(), any()) }
     }
 
     @Test
@@ -77,7 +80,7 @@ class DeletePartnerFeedUseCaseTest {
         }
 
         coVerify(exactly = 0) { sharingRepository.signInAnonymously() }
-        io.mockk.verify(exactly = 0) { sharingRepository.writeFeedOp(any(), any()) }
+        coVerify(exactly = 0) { sharingRepository.writeFeedOp(any(), any(), any()) }
     }
 
     private fun partnerEntry(

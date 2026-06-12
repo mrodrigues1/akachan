@@ -51,6 +51,7 @@ import com.babytracker.domain.model.BottleFeed
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedEntry
+import com.babytracker.domain.model.FeedAuthor
 import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.FeedingDayGroup
 import com.babytracker.domain.model.VolumeUnit
@@ -279,18 +280,26 @@ internal fun BottleFeedHistoryCard(
     volumeUnit: VolumeUnit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    editable: Boolean = true,
 ) {
     HistoryCard(
         title = feed.type.historyLabel(),
         subtitle = buildString {
             append(feed.timestamp.formatTime12h())
             if (feed.linkedMilkBagId != null) append(" · from stash")
+            if (feed.author == FeedAuthor.PARTNER) {
+                append(" · ").append(stringResource(R.string.feed_author_partner_badge))
+            }
         },
         trailing = formatVolume(feed.volumeMl, volumeUnit),
         badgeEmoji = "🍼",
         badgeColor = MaterialTheme.colorScheme.primaryContainer,
-        onClick = onEdit,
-        trailingContent = { BottleFeedOverflowMenu(onEdit = onEdit, onDelete = onDelete) },
+        onClick = if (editable) onEdit else null,
+        trailingContent = if (editable) {
+            { BottleFeedOverflowMenu(onEdit = onEdit, onDelete = onDelete) }
+        } else {
+            null
+        },
     )
 }
 

@@ -4,6 +4,7 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
+import com.google.firebase.FirebaseException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -25,16 +26,32 @@ class FetchPartnerDataUseCase @Inject constructor(
      * the caller's code diverge and end up cached under another primary's key.
      */
     suspend operator fun invoke(code: ShareCode): ShareSnapshot {
+        try {
+            return fetchConnectedSnapshot(code)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: PartnerAccessRevokedException) {
+            throw e
+        } catch (e: FirebaseException) {
+            throw PartnerDataFetchException("Could not load partner data", e)
+        }
+    }
+
+    private suspend fun fetchConnectedSnapshot(code: ShareCode): ShareSnapshot {
         val uid = sharingRepository.signInAnonymously()
         if (!sharingRepository.isPartnerConnected(code, uid)) {
             // Conditional clear: if the user already reconnected to a different primary, the stored
-            // code no longer matches and this is a no-op — the newer connection is preserved.
+            // code no longer matches and this is a no-op; the newer connection is preserved.
             settingsRepository.clearPartnerStateIfShareCodeMatches(code.value)
             throw PartnerAccessRevokedException("Partner access revoked")
         }
+        return fetchSnapshotOrRevoked(code)
+    }
+
+    private suspend fun fetchSnapshotOrRevoked(code: ShareCode): ShareSnapshot {
         // Guard against the TOCTOU window between isPartnerConnected and fetchSnapshot: if the
         // primary deletes the share document after the connectivity check passes, fetchSnapshot
-        // throws IllegalStateException("No data in share document …"). Treat that as a confirmed
+        // throws IllegalStateException("No data in share document ..."). Treat that as a confirmed
         // revoke so the worker clears the cache instead of keeping stale data and retrying.
         return try {
             sharingRepository.fetchSnapshot(code)

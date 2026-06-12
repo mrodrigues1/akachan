@@ -79,6 +79,21 @@ class MergeFeedHistoryTest {
         assertEquals(listOf("new", "old"), merged.map { it.clientId })
     }
 
+    @Test
+    fun `merged result includes pending op count`() {
+        val merged = mergeFeedHistoryWithPendingCount(
+            snapshotFeeds = emptyList(),
+            pendingOps = listOf(
+                createOp(entryClientId = "new-entry"),
+                deleteOp(entryClientId = "old-entry"),
+            ),
+        )
+
+        assertEquals(2, merged.pendingOpCount)
+        assertEquals(setOf("op-100", "op-delete-100"), merged.pendingOpIds)
+        assertEquals(listOf("new-entry"), merged.entries.map { it.clientId })
+    }
+
     private fun feed(
         clientId: String,
         timestamp: Long = 1_000L,

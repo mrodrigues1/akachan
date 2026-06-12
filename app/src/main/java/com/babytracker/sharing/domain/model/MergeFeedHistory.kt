@@ -38,3 +38,12 @@ fun mergeFeedHistory(
 
     return (byClientId.values + legacy).sortedByDescending { it.timestamp }
 }
+
+fun mergeFeedHistoryWithPendingCount(
+    snapshotFeeds: List<BottleFeedSnapshot>,
+    pendingOps: List<FeedOp>,
+): MergedFeedHistory = MergedFeedHistory(
+    entries = mergeFeedHistory(snapshotFeeds, pendingOps),
+    pendingOpCount = pendingOps.size,
+    pendingOpIds = pendingOps.mapTo(mutableSetOf()) { it.opId },
+)

@@ -29,6 +29,7 @@ data class BottleFeedUiState(
     val isSaving: Boolean = false,
     val validationError: String? = null,
     val editingId: Long? = null,
+    val isEditing: Boolean = false,
     val saved: Boolean = false,
 )
 
@@ -86,6 +87,7 @@ class BottleFeedViewModel @Inject constructor(
     ) = _uiState.update {
         it.copy(
             editingId = id,
+            isEditing = true,
             timestamp = timestamp,
             volumeText = volumeMl.toString(),
             feedType = type,

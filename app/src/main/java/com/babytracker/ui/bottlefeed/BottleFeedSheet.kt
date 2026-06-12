@@ -81,7 +81,7 @@ fun BottleFeedSheet(
         ) {
             Text(
                 text = stringResource(
-                    if (state.editingId == null) {
+                    if (!state.isEditing) {
                         R.string.bottle_feed_add_title
                     } else {
                         R.string.bottle_feed_edit_title

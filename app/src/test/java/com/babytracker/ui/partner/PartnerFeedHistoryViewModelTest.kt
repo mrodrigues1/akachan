@@ -1,0 +1,234 @@
+package com.babytracker.ui.partner
+
+import com.babytracker.domain.model.FeedAuthor
+import com.babytracker.domain.model.FeedType
+import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.sharing.domain.model.BabySnapshot
+import com.babytracker.sharing.domain.model.BottleFeedSnapshot
+import com.babytracker.sharing.domain.model.MergedFeedHistory
+import com.babytracker.sharing.domain.model.ShareSnapshot
+import com.babytracker.sharing.usecase.DeletePartnerFeedUseCase
+import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
+import com.babytracker.sharing.usecase.ObservePartnerFeedHistoryUseCase
+import com.babytracker.sharing.usecase.PartnerAccessRevokedException
+import com.babytracker.sharing.usecase.PartnerDataFetchException
+import com.babytracker.sharing.usecase.PartnerFeedHistoryException
+import com.babytracker.widget.WidgetUpdater
+import io.mockk.coEvery
+import io.mockk.coJustRun
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import java.time.Instant
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class PartnerFeedHistoryViewModelTest {
+
+    private val fetchPartnerData = mockk<FetchPartnerDataUseCase>()
+    private val observePartnerFeedHistory = mockk<ObservePartnerFeedHistoryUseCase>()
+    private val deletePartnerFeed = mockk<DeletePartnerFeedUseCase>()
+    private val settingsRepository = mockk<SettingsRepository>()
+    private val widgetUpdater = mockk<WidgetUpdater>()
+
+    @BeforeEach
+    fun setup() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
+        coJustRun { deletePartnerFeed(any()) }
+        coJustRun { widgetUpdater.updateAll() }
+    }
+
+    @AfterEach
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `merged entries land in state`() = runTest {
+        val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
+        coEvery { fetchPartnerData() } returns snapshot()
+        coEvery { observePartnerFeedHistory(any()) } returns flowOf(
+            MergedFeedHistory(entries = listOf(entry), pendingOpCount = 0),
+        )
+
+        val viewModel = viewModel()
+
+        assertEquals(listOf(entry), viewModel.uiState.value.entries)
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `isEditable is true only for partner entries with clientId`() = runTest {
+        coEvery { fetchPartnerData() } returns snapshot()
+        coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList(), 0))
+        val viewModel = viewModel()
+
+        assertTrue(viewModel.isEditable(feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)))
+        assertFalse(viewModel.isEditable(feed(clientId = "entry-1", author = FeedAuthor.OWNER.name)))
+        assertFalse(viewModel.isEditable(feed(clientId = "", author = FeedAuthor.PARTNER.name)))
+    }
+
+    @Test
+    fun `pending op count shrink triggers snapshot refetch`() = runTest {
+        val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
+        coEvery { fetchPartnerData() } returns snapshot()
+        coEvery { observePartnerFeedHistory(any()) } returnsMany listOf(
+            flowOf(
+                MergedFeedHistory(entries = listOf(entry), pendingOpCount = 1, pendingOpIds = setOf("op-1")),
+                MergedFeedHistory(entries = listOf(entry), pendingOpCount = 0, pendingOpIds = emptySet()),
+            ),
+            flowOf(MergedFeedHistory(entries = listOf(entry), pendingOpCount = 0)),
+        )
+
+        viewModel()
+
+        coVerify(exactly = 2) { fetchPartnerData() }
+    }
+
+    @Test
+    fun `pending op id disappearance triggers snapshot refetch when count is unchanged`() = runTest {
+        val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
+        coEvery { fetchPartnerData() } returns snapshot()
+        coEvery { observePartnerFeedHistory(any()) } returnsMany listOf(
+            flowOf(
+                MergedFeedHistory(entries = listOf(entry), pendingOpCount = 1, pendingOpIds = setOf("op-1")),
+                MergedFeedHistory(entries = listOf(entry), pendingOpCount = 1, pendingOpIds = setOf("op-2")),
+            ),
+            flowOf(MergedFeedHistory(entries = listOf(entry), pendingOpCount = 1, pendingOpIds = setOf("op-2"))),
+        )
+
+        viewModel()
+
+        coVerify(exactly = 2) { fetchPartnerData() }
+    }
+
+    @Test
+    fun `PartnerAccessRevokedException sets accessRevoked`() = runTest {
+        coEvery { fetchPartnerData() } throws PartnerAccessRevokedException("revoked")
+
+        val viewModel = viewModel()
+
+        assertTrue(viewModel.uiState.value.accessRevoked)
+        coVerify { widgetUpdater.updateAll() }
+    }
+
+    @Test
+    fun `listener access revoked exception sets accessRevoked`() = runTest {
+        coEvery { fetchPartnerData() } returns snapshot()
+        coEvery { observePartnerFeedHistory(any()) } returns flow {
+            throw PartnerAccessRevokedException("revoked")
+        }
+
+        val viewModel = viewModel()
+
+        assertTrue(viewModel.uiState.value.accessRevoked)
+        coVerify { widgetUpdater.updateAll() }
+    }
+
+    @Test
+    fun `listener feed history exception clears loading and shows error`() = runTest {
+        coEvery { fetchPartnerData() } returns snapshot()
+        coEvery { observePartnerFeedHistory(any()) } returns flow {
+            throw PartnerFeedHistoryException("Could not load feed history")
+        }
+
+        val viewModel = viewModel()
+
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertFalse(viewModel.uiState.value.accessRevoked)
+        assertEquals("Could not load feed history", viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `fetch failure clears loading and shows retryable error`() = runTest {
+        coEvery { fetchPartnerData() } throws PartnerDataFetchException("Could not load partner data")
+
+        val viewModel = viewModel()
+
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertFalse(viewModel.uiState.value.accessRevoked)
+        assertEquals("Could not load partner data", viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `delete delegates to DeletePartnerFeedUseCase`() = runTest {
+        val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
+        coEvery { fetchPartnerData() } returns snapshot()
+        coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList(), 0))
+        val viewModel = viewModel()
+
+        viewModel.onDelete(entry)
+
+        coVerify { deletePartnerFeed(entry) }
+    }
+
+    @Test
+    fun `delete retryable failure sets error`() = runTest {
+        val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
+        coEvery { fetchPartnerData() } returns snapshot()
+        coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList(), 0))
+        coEvery { deletePartnerFeed(entry) } throws PartnerDataFetchException("Could not queue feed write")
+        val viewModel = viewModel()
+
+        viewModel.onDelete(entry)
+
+        assertEquals("Could not queue feed write", viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.accessRevoked)
+    }
+
+    @Test
+    fun `delete revoked failure sets accessRevoked and updates widgets`() = runTest {
+        val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
+        coEvery { fetchPartnerData() } returns snapshot()
+        coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList(), 0))
+        coEvery { deletePartnerFeed(entry) } throws PartnerAccessRevokedException("Partner access revoked")
+        val viewModel = viewModel()
+
+        viewModel.onDelete(entry)
+
+        assertTrue(viewModel.uiState.value.accessRevoked)
+        coVerify { widgetUpdater.updateAll() }
+    }
+
+    private fun viewModel() = PartnerFeedHistoryViewModel(
+        fetchPartnerData = fetchPartnerData,
+        observePartnerFeedHistory = observePartnerFeedHistory,
+        deletePartnerFeed = deletePartnerFeed,
+        widgetUpdater = widgetUpdater,
+        settingsRepository = settingsRepository,
+    )
+
+    private fun snapshot() = ShareSnapshot(
+        lastSyncAt = Instant.ofEpochMilli(1_000),
+        baby = BabySnapshot(name = "Baby", birthDateMs = 0L, allergies = emptyList()),
+        sessions = emptyList(),
+        sleepRecords = emptyList(),
+    )
+
+    private fun feed(
+        clientId: String,
+        author: String,
+    ) = BottleFeedSnapshot(
+        timestamp = 2_000L,
+        volumeMl = 90,
+        type = FeedType.FORMULA.name,
+        clientId = clientId,
+        author = author,
+        notes = null,
+    )
+}
