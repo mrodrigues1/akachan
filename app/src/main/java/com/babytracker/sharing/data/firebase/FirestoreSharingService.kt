@@ -173,6 +173,14 @@ class FirestoreSharingService @Inject constructor(
         awaitClose { registration.remove() }
     }
 
+    /**
+     * Queues a feed op write and returns once the local Firestore SDK has accepted it —
+     * server confirmation is NOT awaited. [WRITE_ACK_TIMEOUT_MS] only bounds how long we wait
+     * for the server ack before returning; on timeout the write is still queued and the SDK
+     * delivers it when connectivity allows (offline-first by design). Server-side rejections
+     * (e.g. security rules) surface asynchronously via [onFailure], possibly after this
+     * function has returned.
+     */
     suspend fun writeFeedOp(
         code: String,
         op: FeedOp,
