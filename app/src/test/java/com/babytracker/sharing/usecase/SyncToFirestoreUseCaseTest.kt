@@ -21,6 +21,7 @@ import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
+import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
 import io.mockk.Runs
@@ -95,8 +96,8 @@ class SyncToFirestoreUseCaseTest {
         coEvery { inventoryRepository.currentSummary() } returns InventorySummary.Empty
         every { bottleFeedRepository.getAll() } returns flowOf(listOf(mockBottleFeed))
         coEvery { sharingRepository.syncFullSnapshot(any(), any()) } just Runs
-        coEvery { sharingRepository.syncSessions(any(), any()) } just Runs
-        coEvery { sharingRepository.syncSleepRecords(any(), any()) } just Runs
+        coEvery { sharingRepository.syncSessions(any(), any(), any()) } just Runs
+        coEvery { sharingRepository.syncSleepRecords(any(), any(), any()) } just Runs
         coEvery { sharingRepository.syncBaby(any(), any()) } just Runs
         coEvery { sharingRepository.syncInventory(any(), any()) } just Runs
         coEvery { sharingRepository.syncBottleFeeds(any(), any()) } just Runs
@@ -136,7 +137,7 @@ class SyncToFirestoreUseCaseTest {
 
         useCase(SyncType.SESSIONS)
 
-        coVerify { sharingRepository.syncSessions(shareCode, any()) }
+        coVerify { sharingRepository.syncSessions(shareCode, any(), any()) }
         coVerify(exactly = 0) { sharingRepository.syncFullSnapshot(any(), any()) }
     }
 
@@ -146,7 +147,7 @@ class SyncToFirestoreUseCaseTest {
 
         useCase(SyncType.SLEEP_RECORDS)
 
-        coVerify { sharingRepository.syncSleepRecords(shareCode, any()) }
+        coVerify { sharingRepository.syncSleepRecords(shareCode, any(), any()) }
     }
 
     @Test
@@ -222,6 +223,46 @@ class SyncToFirestoreUseCaseTest {
 
         assertNull(snapshot.captured.sleepPrediction)
         coVerify(exactly = 0) { predictSleepWindow() }
+    }
+
+    @Test
+    fun sessionsSyncRefreshesPredictionWhenPredictiveSleepEnabled() = runTest {
+        every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
+        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { predictSleepWindow() } returns flowOf(SleepPredictionState.AfterActiveFeed)
+        val prediction = slot<SleepPredictionSnapshot>()
+        coEvery { sharingRepository.syncSessions(any(), any(), capture(prediction)) } just Runs
+
+        useCase(SyncType.SESSIONS)
+
+        assertEquals("AFTER_ACTIVE_FEED", prediction.captured.stateLabel)
+        assertEquals(fixedNow.toEpochMilli(), prediction.captured.generatedAt)
+    }
+
+    @Test
+    fun sessionsSyncPassesNullPredictionWhenPredictiveSleepDisabled() = runTest {
+        every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
+        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
+
+        useCase(SyncType.SESSIONS)
+
+        coVerify { sharingRepository.syncSessions(shareCode, any(), null) }
+        coVerify(exactly = 0) { predictSleepWindow() }
+    }
+
+    @Test
+    fun sleepRecordsSyncRefreshesPredictionWhenPredictiveSleepEnabled() = runTest {
+        every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
+        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { predictSleepWindow() } returns flowOf(SleepPredictionState.CurrentlySleeping)
+        val prediction = slot<SleepPredictionSnapshot>()
+        coEvery {
+            sharingRepository.syncSleepRecords(any(), any(), capture(prediction))
+        } just Runs
+
+        useCase(SyncType.SLEEP_RECORDS)
+
+        assertEquals("CURRENTLY_SLEEPING", prediction.captured.stateLabel)
     }
 
     @Test

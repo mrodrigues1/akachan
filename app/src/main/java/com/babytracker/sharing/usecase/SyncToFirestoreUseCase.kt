@@ -5,6 +5,7 @@ import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
+import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.toSnapshot
 import com.babytracker.sharing.domain.model.toSnapshotFields
 import com.babytracker.sharing.domain.repository.SharingRepository
@@ -40,11 +41,7 @@ class SyncToFirestoreUseCase @Inject constructor(
         val summary = sources.inventory.currentSummary()
         val bottleFeeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
         val updatedAtMs = now().toEpochMilli()
-        val prediction = if (settingsRepository.getPredictiveSleepEnabled().first()) {
-            sources.predictSleepWindow().first().toSnapshot(updatedAtMs)
-        } else {
-            null
-        }
+        val prediction = currentPrediction(updatedAtMs)
         sharingRepository.syncFullSnapshot(
             code,
             ShareSnapshot(
@@ -63,13 +60,31 @@ class SyncToFirestoreUseCase @Inject constructor(
 
     private suspend fun syncSessions(code: ShareCode) {
         val sessions = sources.breastfeeding.getRecentSessions(SYNC_LIMIT)
-        sharingRepository.syncSessions(code, sessions.map { it.toSnapshot() })
+        sharingRepository.syncSessions(
+            code,
+            sessions.map { it.toSnapshot() },
+            currentPrediction(now().toEpochMilli()),
+        )
     }
 
     private suspend fun syncSleepRecords(code: ShareCode) {
         val sleepRecords = sources.sleep.getRecentRecords(SYNC_LIMIT)
-        sharingRepository.syncSleepRecords(code, sleepRecords.map { it.toSnapshot() })
+        sharingRepository.syncSleepRecords(
+            code,
+            sleepRecords.map { it.toSnapshot() },
+            currentPrediction(now().toEpochMilli()),
+        )
     }
+
+    // The synced prediction depends on session and sleep state, so every sync that touches either
+    // must refresh it — otherwise a stale AFTER_ACTIVE_FEED/CURRENTLY_SLEEPING lingers in Firestore
+    // until the next full sync.
+    private suspend fun currentPrediction(generatedAtMs: Long): SleepPredictionSnapshot? =
+        if (settingsRepository.getPredictiveSleepEnabled().first()) {
+            sources.predictSleepWindow().first().toSnapshot(generatedAtMs)
+        } else {
+            null
+        }
 
     private suspend fun syncBaby(code: ShareCode) {
         val baby = sources.baby.getBabyProfile().first()

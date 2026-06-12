@@ -8,6 +8,7 @@ import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
+import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
 import javax.inject.Inject
@@ -30,11 +31,17 @@ class SharingRepositoryImpl @Inject constructor(
     override suspend fun syncFullSnapshot(code: ShareCode, snapshot: ShareSnapshot) =
         service.syncFullSnapshot(code.value, snapshot)
 
-    override suspend fun syncSessions(code: ShareCode, sessions: List<SessionSnapshot>) =
-        service.syncSessions(code.value, sessions)
+    override suspend fun syncSessions(
+        code: ShareCode,
+        sessions: List<SessionSnapshot>,
+        prediction: SleepPredictionSnapshot?,
+    ) = service.syncSessions(code.value, sessions, prediction)
 
-    override suspend fun syncSleepRecords(code: ShareCode, sleepRecords: List<SleepSnapshot>) =
-        service.syncSleepRecords(code.value, sleepRecords)
+    override suspend fun syncSleepRecords(
+        code: ShareCode,
+        sleepRecords: List<SleepSnapshot>,
+        prediction: SleepPredictionSnapshot?,
+    ) = service.syncSleepRecords(code.value, sleepRecords, prediction)
 
     override suspend fun syncBottleFeeds(code: ShareCode, bottleFeeds: List<BottleFeedSnapshot>) =
         service.syncBottleFeeds(code.value, bottleFeeds)

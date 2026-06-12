@@ -35,6 +35,7 @@ import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
+import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
@@ -550,9 +551,17 @@ class PartnerDashboardScreenTest {
 
         override suspend fun syncFullSnapshot(code: ShareCode, snapshot: ShareSnapshot) = Unit
 
-        override suspend fun syncSessions(code: ShareCode, sessions: List<SessionSnapshot>) = Unit
+        override suspend fun syncSessions(
+            code: ShareCode,
+            sessions: List<SessionSnapshot>,
+            prediction: SleepPredictionSnapshot?,
+        ) = Unit
 
-        override suspend fun syncSleepRecords(code: ShareCode, sleepRecords: List<SleepSnapshot>) = Unit
+        override suspend fun syncSleepRecords(
+            code: ShareCode,
+            sleepRecords: List<SleepSnapshot>,
+            prediction: SleepPredictionSnapshot?,
+        ) = Unit
 
         override suspend fun syncBaby(code: ShareCode, baby: BabySnapshot) = Unit
 

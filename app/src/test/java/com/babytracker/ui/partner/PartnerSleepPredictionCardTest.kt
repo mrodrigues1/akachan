@@ -27,6 +27,7 @@ class PartnerSleepPredictionCardTest {
         prediction: SleepPredictionSnapshot?,
         activeSleepType: String? = null,
         hasActiveSleep: Boolean = false,
+        hasActiveFeeding: Boolean = false,
     ) {
         composeRule.setContent {
             MaterialTheme {
@@ -35,6 +36,7 @@ class PartnerSleepPredictionCardTest {
                     now = now,
                     activeSleepType = activeSleepType,
                     hasActiveSleep = hasActiveSleep,
+                    hasActiveFeeding = hasActiveFeeding,
                 )
             }
         }
@@ -143,14 +145,28 @@ class PartnerSleepPredictionCardTest {
     }
 
     @Test
-    fun `after active feed renders copy`() {
-        setCard(SleepPredictionSnapshot(stateLabel = "AFTER_ACTIVE_FEED", generatedAt = generatedAt))
+    fun `after active feed renders copy while feed is active`() {
+        setCard(
+            SleepPredictionSnapshot(stateLabel = "AFTER_ACTIVE_FEED", generatedAt = generatedAt),
+            hasActiveFeeding = true,
+        )
 
         composeRule.onNodeWithText("FEEDING NOW", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText(
             "Sleep window appears after this feed ends",
             useUnmergedTree = true,
         ).assertIsDisplayed()
+    }
+
+    @Test
+    fun `stale after active feed is hidden when no active feeding`() {
+        setCard(
+            SleepPredictionSnapshot(stateLabel = "AFTER_ACTIVE_FEED", generatedAt = generatedAt),
+            hasActiveFeeding = false,
+        )
+
+        composeRule.onNodeWithText("FEEDING NOW", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Estimated", substring = true, useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test

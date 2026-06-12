@@ -6,6 +6,7 @@ import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
+import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import io.mockk.coEvery
 import io.mockk.coJustRun
@@ -103,14 +104,19 @@ class SharingRepositoryImplTest {
                 notes = null,
             ),
         )
+        val prediction = SleepPredictionSnapshot(stateLabel = "AFTER_ACTIVE_FEED", generatedAt = 5000L)
         val codeSlot = slot<String>()
         val sessionsSlot = slot<List<SessionSnapshot>>()
-        coJustRun { service.syncSessions(capture(codeSlot), capture(sessionsSlot)) }
+        val predictionSlot = slot<SleepPredictionSnapshot>()
+        coJustRun {
+            service.syncSessions(capture(codeSlot), capture(sessionsSlot), capture(predictionSlot))
+        }
 
-        repository.syncSessions(code, sessions)
+        repository.syncSessions(code, sessions, prediction)
 
         assertEquals("ABCD1234", codeSlot.captured)
         assertEquals(sessions, sessionsSlot.captured)
+        assertEquals(prediction, predictionSlot.captured)
     }
 
     @Test
@@ -126,9 +132,9 @@ class SharingRepositoryImplTest {
         )
         val codeSlot = slot<String>()
         val sleepSlot = slot<List<SleepSnapshot>>()
-        coJustRun { service.syncSleepRecords(capture(codeSlot), capture(sleepSlot)) }
+        coJustRun { service.syncSleepRecords(capture(codeSlot), capture(sleepSlot), null) }
 
-        repository.syncSleepRecords(code, sleepRecords)
+        repository.syncSleepRecords(code, sleepRecords, null)
 
         assertEquals("ABCD1234", codeSlot.captured)
         assertEquals(sleepRecords, sleepSlot.captured)
