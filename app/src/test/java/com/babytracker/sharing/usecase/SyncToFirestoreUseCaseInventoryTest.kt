@@ -1,6 +1,7 @@
 package com.babytracker.sharing.usecase
 
 import com.babytracker.domain.model.InventorySummary
+import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
@@ -10,6 +11,7 @@ import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
+import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
@@ -59,11 +61,12 @@ class SyncToFirestoreUseCaseInventoryTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
         every { settingsRepository.getShareCode() } returns flowOf(shareCode.value)
         every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
-        coEvery { sharingRepository.syncInventory(any(), any()) } just Runs
+        coEvery { sharingRepository.syncInventory(any(), any(), any()) } just Runs
         coEvery { sharingRepository.syncFullSnapshot(any(), any()) } just Runs
         every { babyRepository.getBabyProfile() } returns flowOf(null)
         coEvery { breastfeedingRepository.getRecentSessions(any()) } returns emptyList()
         coEvery { sleepRepository.getRecentRecords(any()) } returns emptyList()
+        every { inventoryRepository.getActiveBags() } returns flowOf(emptyList())
         every { bottleFeedRepository.getAll() } returns flowOf(emptyList())
     }
 
@@ -77,7 +80,7 @@ class SyncToFirestoreUseCaseInventoryTest {
 
         useCase(SyncType.INVENTORY)
 
-        coVerify(exactly = 1) { sharingRepository.syncInventory(shareCode, any()) }
+        coVerify(exactly = 1) { sharingRepository.syncInventory(shareCode, any(), any()) }
         coVerify(exactly = 0) { sharingRepository.syncFullSnapshot(any(), any()) }
     }
 
@@ -89,7 +92,7 @@ class SyncToFirestoreUseCaseInventoryTest {
             bagCount = 3,
             oldestBagDate = null,
         )
-        coEvery { sharingRepository.syncInventory(any(), capture(fieldsSlot)) } just Runs
+        coEvery { sharingRepository.syncInventory(any(), capture(fieldsSlot), any()) } just Runs
 
         useCase(SyncType.INVENTORY)
 
@@ -104,7 +107,7 @@ class SyncToFirestoreUseCaseInventoryTest {
 
         useCase(SyncType.INVENTORY)
 
-        coVerify(exactly = 0) { sharingRepository.syncInventory(any(), any()) }
+        coVerify(exactly = 0) { sharingRepository.syncInventory(any(), any(), any()) }
     }
 
     @Test
@@ -113,7 +116,7 @@ class SyncToFirestoreUseCaseInventoryTest {
 
         useCase(SyncType.INVENTORY)
 
-        coVerify(exactly = 0) { sharingRepository.syncInventory(any(), any()) }
+        coVerify(exactly = 0) { sharingRepository.syncInventory(any(), any(), any()) }
     }
 
     @Test
@@ -132,4 +135,50 @@ class SyncToFirestoreUseCaseInventoryTest {
         assertEquals(5, snapshotSlot.captured.inventoryBagCount)
         assertEquals(fixedNow.toEpochMilli(), snapshotSlot.captured.inventoryUpdatedAt)
     }
+
+    @Test
+    fun inventorySyncPassesActiveBagSnapshots() = runTest {
+        val bagsSlot = slot<List<MilkBagSnapshot>>()
+        coEvery { inventoryRepository.currentSummary() } returns InventorySummary(
+            totalMl = 150,
+            bagCount = 1,
+            oldestBagDate = null,
+        )
+        every { inventoryRepository.getActiveBags() } returns flowOf(listOf(activeBag))
+        coEvery { sharingRepository.syncInventory(any(), any(), capture(bagsSlot)) } just Runs
+
+        useCase(SyncType.INVENTORY)
+
+        assertEquals(
+            listOf(MilkBagSnapshot(id = 7, collectionDateMs = 5_000L, volumeMl = 150, notes = "freezer")),
+            bagsSlot.captured,
+        )
+    }
+
+    @Test
+    fun fullSyncPopulatesMilkBags() = runTest {
+        val snapshotSlot = slot<com.babytracker.sharing.domain.model.ShareSnapshot>()
+        coEvery { inventoryRepository.currentSummary() } returns InventorySummary(
+            totalMl = 150,
+            bagCount = 1,
+            oldestBagDate = null,
+        )
+        every { inventoryRepository.getActiveBags() } returns flowOf(listOf(activeBag))
+        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
+
+        useCase(SyncType.FULL)
+
+        assertEquals(
+            listOf(MilkBagSnapshot(id = 7, collectionDateMs = 5_000L, volumeMl = 150, notes = "freezer")),
+            snapshotSlot.captured.milkBags,
+        )
+    }
+
+    private val activeBag = MilkBag(
+        id = 7,
+        collectionDate = Instant.ofEpochMilli(5_000L),
+        volumeMl = 150,
+        notes = "freezer",
+        createdAt = Instant.ofEpochMilli(4_000L),
+    )
 }

@@ -44,6 +44,7 @@ class GenerateShareCodeUseCase @Inject constructor(
         val sessions = sources.breastfeeding.getRecentSessions(SYNC_LIMIT)
         val sleepRecords = sources.sleep.getRecentRecords(SYNC_LIMIT)
         val summary = sources.inventory.currentSummary()
+        val activeBags = sources.inventory.getActiveBags().first()
         val bottleFeeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
         val timestamp = now()
         return ShareSnapshot(
@@ -55,6 +56,7 @@ class GenerateShareCodeUseCase @Inject constructor(
             inventoryTotalMl = summary.totalMl,
             inventoryBagCount = summary.bagCount,
             inventoryUpdatedAt = timestamp.toEpochMilli(),
+            milkBags = activeBags.map { it.toSnapshot() },
         )
     }
 

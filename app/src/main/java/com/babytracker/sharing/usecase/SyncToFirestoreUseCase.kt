@@ -39,6 +39,7 @@ class SyncToFirestoreUseCase @Inject constructor(
         val sessions = sources.breastfeeding.getRecentSessions(SYNC_LIMIT)
         val sleepRecords = sources.sleep.getRecentRecords(SYNC_LIMIT)
         val summary = sources.inventory.currentSummary()
+        val activeBags = sources.inventory.getActiveBags().first()
         val bottleFeeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
         val updatedAtMs = now().toEpochMilli()
         val prediction = currentPrediction(updatedAtMs)
@@ -53,6 +54,7 @@ class SyncToFirestoreUseCase @Inject constructor(
                 inventoryTotalMl = summary.totalMl,
                 inventoryBagCount = summary.bagCount,
                 inventoryUpdatedAt = updatedAtMs,
+                milkBags = activeBags.map { it.toSnapshot() },
                 sleepPrediction = prediction,
             ),
         )
@@ -93,9 +95,11 @@ class SyncToFirestoreUseCase @Inject constructor(
 
     private suspend fun syncInventory(code: ShareCode) {
         val summary = sources.inventory.currentSummary()
+        val activeBags = sources.inventory.getActiveBags().first()
         sharingRepository.syncInventory(
             code,
             summary.toSnapshotFields(updatedAtMs = now().toEpochMilli()),
+            activeBags.map { it.toSnapshot() },
         )
     }
 

@@ -95,12 +95,13 @@ class SyncToFirestoreUseCaseTest {
         coEvery { breastfeedingRepository.getRecentSessions(any()) } returns listOf(mockSession)
         coEvery { sleepRepository.getRecentRecords(any()) } returns listOf(mockSleep)
         coEvery { inventoryRepository.currentSummary() } returns InventorySummary.Empty
+        every { inventoryRepository.getActiveBags() } returns flowOf(emptyList())
         every { bottleFeedRepository.getAll() } returns flowOf(listOf(mockBottleFeed))
         coEvery { sharingRepository.syncFullSnapshot(any(), any()) } just Runs
         coEvery { sharingRepository.syncSessions(any(), any(), any()) } just Runs
         coEvery { sharingRepository.syncSleepRecords(any(), any(), any()) } just Runs
         coEvery { sharingRepository.syncBaby(any(), any()) } just Runs
-        coEvery { sharingRepository.syncInventory(any(), any()) } just Runs
+        coEvery { sharingRepository.syncInventory(any(), any(), any()) } just Runs
         coEvery { sharingRepository.syncBottleFeeds(any(), any()) } just Runs
     }
 

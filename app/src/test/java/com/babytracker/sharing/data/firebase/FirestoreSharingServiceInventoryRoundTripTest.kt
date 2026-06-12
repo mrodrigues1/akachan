@@ -1,6 +1,7 @@
 package com.babytracker.sharing.data.firebase
 
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
+import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.google.android.gms.tasks.Task
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
@@ -41,6 +42,7 @@ class FirestoreSharingServiceInventoryRoundTripTest {
         service.syncInventory(
             "CODE1234",
             InventorySnapshotFields(totalMl = 240, bagCount = 3, updatedAtMs = 12_345L),
+            emptyList(),
         )
 
         val written = mapSlot.captured
@@ -51,6 +53,27 @@ class FirestoreSharingServiceInventoryRoundTripTest {
         assertEquals(240, data["inventoryTotalMl"])
         assertEquals(3, data["inventoryBagCount"])
         assertEquals(12_345L, data["inventoryUpdatedAt"])
+    }
+
+    @Test
+    fun writeCarriesMilkBagsAlongsideTotalsInSameMerge() = runTest {
+        val mapSlot = slot<Map<String, Any?>>()
+        every { document.set(capture(mapSlot), any<SetOptions>()) } returns voidTask()
+
+        service.syncInventory(
+            "CODE1234",
+            InventorySnapshotFields(totalMl = 240, bagCount = 1, updatedAtMs = 12_345L),
+            listOf(MilkBagSnapshot(id = 7, collectionDateMs = 5_000L, volumeMl = 150, notes = "freezer")),
+        )
+
+        val data = mapSlot.captured["data"] as Map<*, *>
+        assertEquals(240, data["inventoryTotalMl"])
+        val bags = (data["milkBags"] as List<*>).filterIsInstance<Map<*, *>>()
+        assertEquals(1, bags.size)
+        assertEquals(7L, bags.single()["id"])
+        assertEquals(5_000L, bags.single()["collectionDateMs"])
+        assertEquals(150, bags.single()["volumeMl"])
+        assertEquals("freezer", bags.single()["notes"])
     }
 
     @Test

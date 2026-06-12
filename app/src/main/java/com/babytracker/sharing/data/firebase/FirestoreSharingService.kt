@@ -3,10 +3,10 @@ package com.babytracker.sharing.data.firebase
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
+import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
-import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
@@ -95,13 +95,18 @@ class FirestoreSharingService @Inject constructor(
         firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()
     }
 
-    suspend fun syncInventory(code: String, fields: InventorySnapshotFields) {
+    suspend fun syncInventory(
+        code: String,
+        fields: InventorySnapshotFields,
+        milkBags: List<MilkBagSnapshot>,
+    ) {
         val data = mapOf(
             "data" to mapOf(
                 "lastSyncAt" to Timestamp.now(),
                 "inventoryTotalMl" to fields.totalMl,
                 "inventoryBagCount" to fields.bagCount,
                 "inventoryUpdatedAt" to fields.updatedAtMs,
+                "milkBags" to milkBags.map { milkBagToMap(it) },
             ),
         )
         firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()
@@ -143,132 +148,6 @@ class FirestoreSharingService @Inject constructor(
     suspend fun deleteShareDocument(code: String) {
         firestore.collection(SHARES).document(code).delete().await()
     }
-
-    private fun snapshotToMap(snapshot: ShareSnapshot): Map<String, Any?> = mapOf(
-        "lastSyncAt" to Timestamp(snapshot.lastSyncAt.epochSecond, snapshot.lastSyncAt.nano),
-        "baby" to babyToMap(snapshot.baby),
-        "sessions" to snapshot.sessions.map { sessionToMap(it) },
-        "sleepRecords" to snapshot.sleepRecords.map { sleepToMap(it) },
-        "bottleFeeds" to snapshot.bottleFeeds.map { bottleFeedToMap(it) },
-        "inventoryTotalMl" to snapshot.inventoryTotalMl,
-        "inventoryBagCount" to snapshot.inventoryBagCount,
-        "inventoryUpdatedAt" to snapshot.inventoryUpdatedAt,
-        "sleepPrediction" to snapshot.sleepPrediction?.let { predictionToMap(it) },
-    )
-
-    private fun predictionToMap(prediction: SleepPredictionSnapshot): Map<String, Any?> = mapOf(
-        "stateLabel" to prediction.stateLabel,
-        "windowStart" to prediction.windowStart,
-        "windowEnd" to prediction.windowEnd,
-        "bestEstimate" to prediction.bestEstimate,
-        "confidence" to prediction.confidence,
-        "reasons" to prediction.reasons,
-        "feedPrompt" to prediction.feedPrompt,
-        "generatedAt" to prediction.generatedAt,
-    )
-
-    private fun babyToMap(baby: BabySnapshot): Map<String, Any> = mapOf(
-        "name" to baby.name,
-        "birthDate" to baby.birthDateMs,
-        "allergies" to baby.allergies,
-    )
-
-    private fun sessionToMap(session: SessionSnapshot): Map<String, Any?> = mapOf(
-        "id" to session.id,
-        "startTime" to session.startTime,
-        "endTime" to session.endTime,
-        "startingSide" to session.startingSide,
-        "switchTime" to session.switchTime,
-        "pausedDurationMs" to session.pausedDurationMs,
-        "notes" to session.notes,
-    )
-
-    private fun sleepToMap(sleep: SleepSnapshot): Map<String, Any?> = mapOf(
-        "id" to sleep.id,
-        "startTime" to sleep.startTime,
-        "endTime" to sleep.endTime,
-        "sleepType" to sleep.sleepType,
-        "notes" to sleep.notes,
-    )
-
-    private fun bottleFeedToMap(feed: BottleFeedSnapshot): Map<String, Any?> = mapOf(
-        "timestamp" to feed.timestamp,
-        "volumeMl" to feed.volumeMl,
-        "type" to feed.type,
-    )
-
-    private fun mapToSnapshot(data: Map<*, *>): ShareSnapshot {
-        val ts = data["lastSyncAt"] as? Timestamp
-        val lastSyncAt = ts?.let { Instant.ofEpochSecond(it.seconds, it.nanoseconds.toLong()) }
-            ?: Instant.EPOCH
-        val baby = (data["baby"] as? Map<*, *>)?.let { mapToBaby(it) }
-            ?: BabySnapshot("", 0L, emptyList())
-        val sessions = (data["sessions"] as? List<*>)
-            ?.filterIsInstance<Map<*, *>>()
-            ?.map { mapToSession(it) }
-            .orEmpty()
-        val sleepRecords = (data["sleepRecords"] as? List<*>)
-            ?.filterIsInstance<Map<*, *>>()
-            ?.map { mapToSleep(it) }
-            .orEmpty()
-        val bottleFeeds = (data["bottleFeeds"] as? List<*>)
-            ?.filterIsInstance<Map<*, *>>()
-            ?.map { mapToBottleFeed(it) }
-            .orEmpty()
-        val sleepPrediction = (data["sleepPrediction"] as? Map<*, *>)?.let { mapToPrediction(it) }
-        return ShareSnapshot(
-            lastSyncAt = lastSyncAt,
-            baby = baby,
-            sessions = sessions,
-            sleepRecords = sleepRecords,
-            bottleFeeds = bottleFeeds,
-            inventoryTotalMl = (data["inventoryTotalMl"] as? Number)?.toInt(),
-            inventoryBagCount = (data["inventoryBagCount"] as? Number)?.toInt(),
-            inventoryUpdatedAt = (data["inventoryUpdatedAt"] as? Number)?.toLong(),
-            sleepPrediction = sleepPrediction,
-        )
-    }
-
-    private fun mapToPrediction(map: Map<*, *>): SleepPredictionSnapshot = SleepPredictionSnapshot(
-        stateLabel = map["stateLabel"] as? String ?: "UNAVAILABLE",
-        windowStart = (map["windowStart"] as? Number)?.toLong(),
-        windowEnd = (map["windowEnd"] as? Number)?.toLong(),
-        bestEstimate = (map["bestEstimate"] as? Number)?.toLong(),
-        confidence = map["confidence"] as? String,
-        reasons = (map["reasons"] as? List<*>)?.filterIsInstance<String>().orEmpty(),
-        feedPrompt = map["feedPrompt"] as? String,
-        generatedAt = (map["generatedAt"] as? Number)?.toLong() ?: 0L,
-    )
-
-    private fun mapToBaby(map: Map<*, *>): BabySnapshot = BabySnapshot(
-        name = map["name"] as? String ?: "",
-        birthDateMs = (map["birthDate"] as? Long) ?: 0L,
-        allergies = (map["allergies"] as? List<*>)?.filterIsInstance<String>().orEmpty(),
-    )
-
-    private fun mapToSession(map: Map<*, *>): SessionSnapshot = SessionSnapshot(
-        id = (map["id"] as? Long) ?: 0L,
-        startTime = (map["startTime"] as? Long) ?: 0L,
-        endTime = map["endTime"] as? Long,
-        startingSide = map["startingSide"] as? String ?: "LEFT",
-        switchTime = map["switchTime"] as? Long,
-        pausedDurationMs = (map["pausedDurationMs"] as? Long) ?: 0L,
-        notes = map["notes"] as? String,
-    )
-
-    private fun mapToSleep(map: Map<*, *>): SleepSnapshot = SleepSnapshot(
-        id = (map["id"] as? Long) ?: 0L,
-        startTime = (map["startTime"] as? Long) ?: 0L,
-        endTime = map["endTime"] as? Long,
-        sleepType = map["sleepType"] as? String ?: "NAP",
-        notes = map["notes"] as? String,
-    )
-
-    private fun mapToBottleFeed(map: Map<*, *>): BottleFeedSnapshot = BottleFeedSnapshot(
-        timestamp = (map["timestamp"] as? Number)?.toLong() ?: 0L,
-        volumeMl = (map["volumeMl"] as? Number)?.toInt() ?: 0,
-        type = map["type"] as? String ?: "FORMULA",
-    )
 
     companion object {
         private const val SHARES = "shares"
