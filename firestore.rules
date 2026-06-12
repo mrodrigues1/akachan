@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(code) {
+      return request.auth != null
+        && request.auth.uid == get(/databases/$(database)/documents/shares/$(code)).data.owner.uid;
+    }
+
+    function isConnectedPartner(code) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/shares/$(code))
+        && exists(/databases/$(database)/documents/shares/$(code)/partners/$(request.auth.uid));
+    }
+
+    function isValidFeedOp(op) {
+      return op.keys().hasOnly(['action', 'entryClientId', 'authorUid', 'createdAtMs',
+                                'timestampMs', 'volumeMl', 'type', 'notes', 'consumedBagId'])
+        && op.keys().hasAll(['action', 'entryClientId', 'authorUid', 'createdAtMs'])
+        && op.action in ['create', 'update', 'delete']
+        && op.entryClientId is string
+        && op.entryClientId.size() > 0 && op.entryClientId.size() <= 64
+        && op.authorUid is string
+        && op.createdAtMs is int
+        && (op.action == 'delete'
+            || (op.keys().hasAll(['timestampMs', 'volumeMl', 'type'])
+                && op.timestampMs is int
+                && op.volumeMl is int && op.volumeMl > 0 && op.volumeMl <= 5000
+                && op.type is string
+                && (!('notes' in op) || op.notes is string)))
+        && (op.action == 'create' || !('consumedBagId' in op))
+        && (!('consumedBagId' in op) || op.consumedBagId is int);
+    }
+
+    match /shares/{shareCode} {
+      // read stays open to any authed user: partners validate codes and fetch
+      // snapshots before/after registration (the share code is the capability)
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.owner.uid == request.auth.uid;
+      allow update: if request.auth != null
+                    && request.auth.uid == resource.data.owner.uid
+                    && request.resource.data.owner.uid == resource.data.owner.uid;
+      allow delete: if request.auth != null
+                    && request.auth.uid == resource.data.owner.uid;
+
+      match /partners/{partnerUid} {
+        allow read: if request.auth != null
+                    && (request.auth.uid == partnerUid || isOwner(shareCode));
+        allow create, update: if request.auth != null
+                              && request.auth.uid == partnerUid
+                              && exists(/databases/$(database)/documents/shares/$(shareCode));
+        allow delete: if request.auth != null
+                      && (request.auth.uid == partnerUid || isOwner(shareCode));
+      }
+
+      match /feedOps/{opId} {
+        allow read: if isOwner(shareCode)
+                    || (isConnectedPartner(shareCode) && request.auth.uid == resource.data.authorUid);
+        allow create: if isConnectedPartner(shareCode)
+                      && request.resource.data.authorUid == request.auth.uid
+                      && isValidFeedOp(request.resource.data);
+        allow update: if isConnectedPartner(shareCode)
+                      && resource.data.authorUid == request.auth.uid
+                      && request.resource.data.authorUid == resource.data.authorUid
+                      && isValidFeedOp(request.resource.data);
+        allow delete: if isOwner(shareCode)
+                      || (isConnectedPartner(shareCode) && request.auth.uid == resource.data.authorUid);
+      }
+    }
+  }
+}

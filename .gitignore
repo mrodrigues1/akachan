@@ -45,4 +45,7 @@ google-services.json
 
 .codex-remote-attachments/
 
+# Firebase emulator toolchain
+firebase/node_modules/
+
 ai-progress-task.md
