@@ -2,6 +2,7 @@ package com.babytracker.sharing.domain.repository
 
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
+import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.PartnerInfo
@@ -10,6 +11,7 @@ import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
+import kotlinx.coroutines.flow.Flow
 
 interface SharingRepository {
     suspend fun signInAnonymously(): String
@@ -39,4 +41,6 @@ interface SharingRepository {
     suspend fun getPartners(code: ShareCode): List<PartnerInfo>
     suspend fun revokePartner(code: ShareCode, partnerUid: String)
     suspend fun deleteShareDocument(code: ShareCode)
+    fun observeFeedOps(code: ShareCode): Flow<List<FeedOp>>
+    suspend fun deleteFeedOps(code: ShareCode, opIds: List<String>)
 }

@@ -2,6 +2,8 @@ package com.babytracker.sharing.data.firebase
 
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
+import com.babytracker.sharing.domain.model.FeedOp
+import com.babytracker.sharing.domain.model.FeedOpAction
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
@@ -161,3 +163,22 @@ internal fun mapToMilkBag(map: Map<*, *>): MilkBagSnapshot = MilkBagSnapshot(
     volumeMl = (map["volumeMl"] as? Number)?.toInt() ?: 0,
     notes = map["notes"] as? String,
 )
+
+// Unknown action or missing required fields -> null -> op skipped, never crash the listener.
+internal fun mapToFeedOp(opId: String, map: Map<*, *>): FeedOp? {
+    val action = (map["action"] as? String)?.let { raw ->
+        FeedOpAction.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
+    } ?: return null
+    return FeedOp(
+        opId = opId,
+        action = action,
+        entryClientId = map["entryClientId"] as? String ?: return null,
+        authorUid = map["authorUid"] as? String ?: "",
+        createdAtMs = (map["createdAtMs"] as? Number)?.toLong() ?: return null,
+        timestampMs = (map["timestampMs"] as? Number)?.toLong(),
+        volumeMl = (map["volumeMl"] as? Number)?.toInt(),
+        type = map["type"] as? String,
+        notes = map["notes"] as? String,
+        consumedBagId = (map["consumedBagId"] as? Number)?.toLong(),
+    )
+}

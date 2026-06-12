@@ -3,6 +3,7 @@ package com.babytracker.sharing.data.repository
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
+import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.PartnerInfo
@@ -12,6 +13,7 @@ import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -73,4 +75,10 @@ class SharingRepositoryImpl @Inject constructor(
 
     override suspend fun deleteShareDocument(code: ShareCode) =
         service.deleteShareDocument(code.value)
+
+    override fun observeFeedOps(code: ShareCode): Flow<List<FeedOp>> =
+        service.observeFeedOps(code.value)
+
+    override suspend fun deleteFeedOps(code: ShareCode, opIds: List<String>) =
+        service.deleteFeedOps(code.value, opIds)
 }
