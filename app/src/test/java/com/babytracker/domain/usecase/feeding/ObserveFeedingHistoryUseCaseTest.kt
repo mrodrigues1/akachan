@@ -22,6 +22,7 @@ class ObserveFeedingHistoryUseCaseTest {
     fun `interleaves bottle and breastfeeding sorted newest first`() = runTest {
         val bottle = BottleFeed(
             id = 1L,
+            clientId = "client-1",
             timestamp = Instant.ofEpochMilli(2_000),
             volumeMl = 100,
             type = FeedType.FORMULA,

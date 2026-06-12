@@ -11,6 +11,7 @@ import com.babytracker.export.domain.BackupImporter
 import com.babytracker.export.domain.ImportCounts
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.domain.model.toSleepTypeOrNull
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -148,8 +149,9 @@ class BackupImporterImpl @Inject constructor(
                 ?.let { bagBackupById[it] }
                 ?.let { dbBagIdByIdentity[it.toEntity().identity()] }
             val entity = BottleFeedEntity(
-                timestamp = f.timestamp, volumeMl = f.volumeMl, type = f.type,
-                linkedMilkBagId = resolvedBagId, notes = f.notes, createdAt = f.createdAt,
+                clientId = UUID.randomUUID().toString(), timestamp = f.timestamp,
+                volumeMl = f.volumeMl, type = f.type, linkedMilkBagId = resolvedBagId,
+                notes = f.notes, createdAt = f.createdAt,
             )
             if (seen.add(entity.identity())) {
                 db.bottleFeedDao().insert(entity)

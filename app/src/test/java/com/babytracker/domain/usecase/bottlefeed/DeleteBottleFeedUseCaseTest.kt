@@ -57,6 +57,7 @@ class DeleteBottleFeedUseCaseTest {
 
     private fun feed(linkedMilkBagId: Long?) = BottleFeed(
         id = 4L,
+        clientId = "client-4",
         timestamp = Instant.ofEpochMilli(1_000),
         volumeMl = 90,
         type = FeedType.BREAST_MILK,

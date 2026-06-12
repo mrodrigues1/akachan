@@ -19,6 +19,7 @@ class GroupFeedEntriesTest {
         val day1Bottle = FeedEntry.Bottle(
             BottleFeed(
                 id = 1L,
+                clientId = "client-1",
                 timestamp = Instant.parse("2026-06-01T08:00:00Z"),
                 volumeMl = 120,
                 type = FeedType.FORMULA,
@@ -28,6 +29,7 @@ class GroupFeedEntriesTest {
         val day1BottleB = FeedEntry.Bottle(
             BottleFeed(
                 id = 2L,
+                clientId = "client-2",
                 timestamp = Instant.parse("2026-06-01T12:00:00Z"),
                 volumeMl = 90,
                 type = FeedType.BREAST_MILK,
@@ -45,6 +47,7 @@ class GroupFeedEntriesTest {
         val day2Bottle = FeedEntry.Bottle(
             BottleFeed(
                 id = 3L,
+                clientId = "client-3",
                 timestamp = Instant.parse("2026-06-02T09:00:00Z"),
                 volumeMl = 150,
                 type = FeedType.FORMULA,

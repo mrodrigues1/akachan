@@ -31,9 +31,9 @@ class ObserveTodayFeedingSummaryUseCaseTest {
 
     @Test
     fun `sums today's feeds and ignores other days`() = runTest {
-        val todayBottleA = BottleFeed(1, Instant.parse("2026-06-10T08:00:00Z"), 120, FeedType.FORMULA, createdAt = Instant.EPOCH)
-        val todayBottleB = BottleFeed(2, Instant.parse("2026-06-10T12:00:00Z"), 90, FeedType.BREAST_MILK, createdAt = Instant.EPOCH)
-        val yesterdayBottle = BottleFeed(3, Instant.parse("2026-06-09T12:00:00Z"), 200, FeedType.FORMULA, createdAt = Instant.EPOCH)
+        val todayBottleA = BottleFeed(1, "client-1", Instant.parse("2026-06-10T08:00:00Z"), 120, FeedType.FORMULA, createdAt = Instant.EPOCH)
+        val todayBottleB = BottleFeed(2, "client-2", Instant.parse("2026-06-10T12:00:00Z"), 90, FeedType.BREAST_MILK, createdAt = Instant.EPOCH)
+        val yesterdayBottle = BottleFeed(3, "client-3", Instant.parse("2026-06-09T12:00:00Z"), 200, FeedType.FORMULA, createdAt = Instant.EPOCH)
         val todaySession = BreastfeedingSession(1, Instant.parse("2026-06-10T15:00:00Z"), Instant.parse("2026-06-10T15:10:00Z"), BreastSide.LEFT)
         val yesterdaySession = BreastfeedingSession(2, Instant.parse("2026-06-09T15:00:00Z"), Instant.parse("2026-06-09T15:10:00Z"), BreastSide.RIGHT)
 
@@ -51,7 +51,7 @@ class ObserveTodayFeedingSummaryUseCaseTest {
 
     @Test
     fun `emits empty summary when no feeds today`() = runTest {
-        val yesterdayBottle = BottleFeed(1, Instant.parse("2026-06-09T12:00:00Z"), 200, FeedType.FORMULA, createdAt = Instant.EPOCH)
+        val yesterdayBottle = BottleFeed(1, "client-1", Instant.parse("2026-06-09T12:00:00Z"), 200, FeedType.FORMULA, createdAt = Instant.EPOCH)
         val yesterdaySession = BreastfeedingSession(1, Instant.parse("2026-06-09T15:00:00Z"), Instant.parse("2026-06-09T15:10:00Z"), BreastSide.RIGHT)
 
         every { getBreastfeeding() } returns flowOf(listOf(yesterdaySession))
@@ -69,9 +69,9 @@ class ObserveTodayFeedingSummaryUseCaseTest {
         // now = 2026-06-10T20:00Z. In America/New_York (EDT, UTC-4), local "today" is 2026-06-10.
         val zoneNy = ZoneId.of("America/New_York")
         // 2026-06-11T01:00Z is 2026-06-10 21:00 local -> still today in NY.
-        val lateUtcStillTodayLocal = BottleFeed(1, Instant.parse("2026-06-11T01:00:00Z"), 100, FeedType.FORMULA, createdAt = Instant.EPOCH)
+        val lateUtcStillTodayLocal = BottleFeed(1, "client-1", Instant.parse("2026-06-11T01:00:00Z"), 100, FeedType.FORMULA, createdAt = Instant.EPOCH)
         // 2026-06-10T03:00Z is 2026-06-09 23:00 local -> yesterday in NY.
-        val earlyUtcYesterdayLocal = BottleFeed(2, Instant.parse("2026-06-10T03:00:00Z"), 50, FeedType.FORMULA, createdAt = Instant.EPOCH)
+        val earlyUtcYesterdayLocal = BottleFeed(2, "client-2", Instant.parse("2026-06-10T03:00:00Z"), 50, FeedType.FORMULA, createdAt = Instant.EPOCH)
 
         every { getBreastfeeding() } returns flowOf(emptyList())
         every { observeBottles() } returns flowOf(listOf(lateUtcStillTodayLocal, earlyUtcYesterdayLocal))

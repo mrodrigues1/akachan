@@ -49,6 +49,7 @@ class FeedingHistoryViewModelTest {
     fun `maps entries into day groups`() = runTest {
         val bottle = BottleFeed(
             id = 1L,
+            clientId = "client-1",
             timestamp = Instant.parse("2026-06-01T08:00:00Z"),
             volumeMl = 120,
             type = FeedType.FORMULA,
@@ -69,6 +70,7 @@ class FeedingHistoryViewModelTest {
     fun `onDeleteBottle delegates to use case`() = runTest {
         val bottle = BottleFeed(
             id = 1L,
+            clientId = "client-1",
             timestamp = Instant.parse("2026-06-01T08:00:00Z"),
             volumeMl = 120,
             type = FeedType.FORMULA,
@@ -88,6 +90,7 @@ class FeedingHistoryViewModelTest {
     fun `onDeleteBottle records error when delete fails`() = runTest {
         val bottle = BottleFeed(
             id = 1L,
+            clientId = "client-1",
             timestamp = Instant.parse("2026-06-01T08:00:00Z"),
             volumeMl = 120,
             type = FeedType.FORMULA,

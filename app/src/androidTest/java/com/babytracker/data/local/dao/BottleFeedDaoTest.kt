@@ -153,6 +153,8 @@ class BottleFeedDaoTest {
         volumeMl: Int = 90,
         linkedMilkBagId: Long? = null,
     ) = BottleFeedEntity(
+        // Unique per timestamp: bottle_feeds has a unique index on client_id.
+        clientId = "client-$timestamp",
         timestamp = timestamp,
         volumeMl = volumeMl,
         type = "BREAST_MILK",

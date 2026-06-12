@@ -18,7 +18,7 @@ class ObserveBottleFeedsUseCaseTest {
     fun `emits feeds from repository`() = runTest {
         val repository = mockk<BottleFeedRepository>()
         val feed = BottleFeed(
-            id = 1, timestamp = Instant.ofEpochMilli(1_000), volumeMl = 90,
+            id = 1, clientId = "client-1", timestamp = Instant.ofEpochMilli(1_000), volumeMl = 90,
             type = FeedType.BREAST_MILK, createdAt = Instant.ofEpochMilli(1_000),
         )
         every { repository.getAll() } returns flowOf(listOf(feed))

@@ -36,7 +36,7 @@ import com.babytracker.data.local.entity.SleepRecommendationFeedbackEntity
         SleepRecommendationFeedbackEntity::class,
         BottleFeedEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -287,6 +287,23 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
         database.execSQL("CREATE INDEX IF NOT EXISTS index_bottle_feeds_timestamp ON bottle_feeds(timestamp)")
         database.execSQL(
             "CREATE INDEX IF NOT EXISTS index_bottle_feeds_linked_milk_bag_id ON bottle_feeds(linked_milk_bag_id)"
+        )
+    }
+}
+
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            "ALTER TABLE bottle_feeds ADD COLUMN client_id TEXT NOT NULL DEFAULT ''"
+        )
+        database.execSQL(
+            "UPDATE bottle_feeds SET client_id = lower(hex(randomblob(16)))"
+        )
+        database.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS index_bottle_feeds_client_id ON bottle_feeds(client_id)"
+        )
+        database.execSQL(
+            "ALTER TABLE bottle_feeds ADD COLUMN author TEXT NOT NULL DEFAULT 'OWNER'"
         )
     }
 }

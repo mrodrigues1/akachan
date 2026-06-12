@@ -2,17 +2,31 @@ package com.babytracker.data.local
 
 import android.content.Context
 import android.database.Cursor
+import android.database.sqlite.SQLiteConstraintException
+import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+private const val TEST_DB = "migration-test"
+
 @RunWith(AndroidJUnit4::class)
 class MigrationTest {
+
+    @get:Rule
+    val helper = MigrationTestHelper(
+        InstrumentationRegistry.getInstrumentation(),
+        BabyTrackerDatabase::class.java,
+    )
 
     @Test
     fun migrate4To5_createsBabiesTable_addsTimezoneId_normalizesLegacySleepType() {
@@ -224,6 +238,107 @@ class MigrationTest {
             context.deleteDatabase(dbName)
         }
     }
+
+    @Test
+    fun migrate8To9_roomSchemaValidationPasses() {
+        helper.createDatabase(TEST_DB, 8).use { db ->
+            db.execSQL(
+                "INSERT INTO bottle_feeds (timestamp, volume_ml, type, created_at) VALUES (1000, 120, 'FORMULA', 1000)"
+            )
+        }
+        // Throws if the migrated schema (incl. column defaults) differs from entity-generated schema 9.
+        helper.runMigrationsAndValidate(TEST_DB, 9, true, MIGRATION_8_9).close()
+    }
+
+    @Test
+    fun migrate8To9_backfillsUniqueClientId_andDefaultsAuthorToOwner() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val dbName = "migration-test-v8-to-v9"
+        try {
+            val helper = FrameworkSQLiteOpenHelperFactory().create(
+                SupportSQLiteOpenHelper.Configuration.builder(context)
+                    .name(dbName)
+                    .callback(V8DatabaseCallback())
+                    .build()
+            )
+            val db = helper.writableDatabase
+
+            db.execSQL(
+                "INSERT INTO bottle_feeds (timestamp, volume_ml, type, created_at) VALUES (1000, 120, 'FORMULA', 1000)"
+            )
+            db.execSQL(
+                "INSERT INTO bottle_feeds (timestamp, volume_ml, type, created_at) VALUES (2000, 90, 'BREAST_MILK', 2000)"
+            )
+
+            MIGRATION_8_9.migrate(db)
+
+            // Every row backfilled with a non-empty, unique client_id; author defaults to OWNER.
+            val cursor: Cursor = db.query("SELECT client_id, author FROM bottle_feeds")
+            val seen = mutableSetOf<String>()
+            while (cursor.moveToNext()) {
+                val clientId = cursor.getString(0)
+                assertTrue(clientId.isNotEmpty())
+                assertTrue(seen.add(clientId))
+                assertEquals("OWNER", cursor.getString(1))
+            }
+            cursor.close()
+            assertEquals(2, seen.size)
+
+            // Unique index rejects duplicate client_id values.
+            db.execSQL(
+                "INSERT INTO bottle_feeds (client_id, timestamp, volume_ml, type, created_at, author)" +
+                    " VALUES ('dup', 3000, 50, 'FORMULA', 3000, 'OWNER')"
+            )
+            assertThrows(SQLiteConstraintException::class.java) {
+                db.execSQL(
+                    "INSERT INTO bottle_feeds (client_id, timestamp, volume_ml, type, created_at, author)" +
+                        " VALUES ('dup', 4000, 60, 'FORMULA', 4000, 'OWNER')"
+                )
+            }
+
+            db.close()
+        } finally {
+            context.deleteDatabase(dbName)
+        }
+    }
+}
+
+private class V8DatabaseCallback : SupportSQLiteOpenHelper.Callback(8) {
+    override fun onCreate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS milk_bags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                collection_date INTEGER NOT NULL,
+                volume_ml INTEGER NOT NULL,
+                source_session_id INTEGER,
+                used_at INTEGER,
+                notes TEXT,
+                created_at INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS bottle_feeds (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                timestamp INTEGER NOT NULL,
+                volume_ml INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                linked_milk_bag_id INTEGER,
+                notes TEXT,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY(linked_milk_bag_id) REFERENCES milk_bags(id) ON UPDATE NO ACTION ON DELETE SET NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_bottle_feeds_timestamp ON bottle_feeds(timestamp)")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_bottle_feeds_linked_milk_bag_id ON bottle_feeds(linked_milk_bag_id)"
+        )
+    }
+
+    override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
 }
 
 private class V7DatabaseCallback : SupportSQLiteOpenHelper.Callback(7) {
