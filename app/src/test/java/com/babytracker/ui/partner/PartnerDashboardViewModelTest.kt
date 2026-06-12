@@ -5,6 +5,7 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
+import com.babytracker.sharing.usecase.PartnerDataFetchException
 import com.babytracker.widget.WidgetUpdater
 import io.mockk.coEvery
 import io.mockk.coJustRun
@@ -114,6 +115,21 @@ class PartnerDashboardViewModelTest {
         )
         assertFalse(viewModel.uiState.value.isDisconnected)
         assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `partner data fetch failure is retryable and not disconnected`() = runTest {
+        coEvery { fetchPartnerDataUseCase() } throws PartnerDataFetchException("Could not load partner data")
+
+        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository)
+
+        assertEquals(
+            "We couldn't check for shared updates. Pull down to try again.",
+            viewModel.uiState.value.error,
+        )
+        assertFalse(viewModel.uiState.value.isDisconnected)
+        assertFalse(viewModel.uiState.value.isLoading)
+        coVerify(exactly = 0) { widgetUpdater.updateAll() }
     }
 
     @Test

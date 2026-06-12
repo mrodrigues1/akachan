@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -33,6 +35,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,11 +46,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -60,6 +65,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.sharing.domain.model.BabySnapshot
@@ -67,6 +73,7 @@ import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
+import com.babytracker.ui.bottlefeed.BottleFeedSheet
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
@@ -98,10 +105,14 @@ fun PartnerDashboardScreen(
     modifier: Modifier = Modifier,
     onDisconnected: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToFeedHistory: () -> Unit = {},
     nowProvider: () -> Long = System::currentTimeMillis,
     viewModel: PartnerDashboardViewModel = hiltViewModel(),
+    bottleFeedViewModel: PartnerBottleFeedViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val bottleFeedState by bottleFeedViewModel.uiState.collectAsStateWithLifecycle()
+    var showBottleFeedSheet by remember { mutableStateOf(false) }
 
     if (uiState.isDisconnected) {
         AlertDialog(
@@ -115,6 +126,16 @@ fun PartnerDashboardScreen(
     }
 
     val snapshot = uiState.snapshot
+    LaunchedEffect(snapshot?.milkBags) {
+        snapshot?.let { bottleFeedViewModel.onBagsAvailable(it.milkBags) }
+    }
+    LaunchedEffect(bottleFeedState.saved) {
+        if (bottleFeedState.saved) {
+            showBottleFeedSheet = false
+            viewModel.refresh()
+        }
+    }
+
     val babyName = snapshot?.baby?.name?.takeIf { it.isNotBlank() }
     val isRefreshingExistingDashboard = uiState.isLoading && snapshot != null
 
@@ -205,6 +226,11 @@ fun PartnerDashboardScreen(
                             lastRefreshAt = uiState.lastRefreshAt,
                             isLoading = uiState.isLoading,
                             onRefresh = viewModel::refresh,
+                            onLogBottle = {
+                                bottleFeedViewModel.startLogging()
+                                showBottleFeedSheet = true
+                            },
+                            onNavigateToFeedHistory = onNavigateToFeedHistory,
                             nowProvider = nowProvider,
                             volumeUnit = uiState.volumeUnit,
                         )
@@ -224,6 +250,19 @@ fun PartnerDashboardScreen(
                 }
             }
         }
+    }
+
+    if (showBottleFeedSheet) {
+        BottleFeedSheet(
+            state = bottleFeedState,
+            onTypeChange = bottleFeedViewModel::onTypeChange,
+            onVolumeChange = bottleFeedViewModel::onVolumeChange,
+            onTimeChange = bottleFeedViewModel::onTimeChange,
+            onBagSelect = bottleFeedViewModel::onBagSelect,
+            onNotesChange = bottleFeedViewModel::onNotesChange,
+            onConfirm = bottleFeedViewModel::onConfirm,
+            onDismiss = { if (!bottleFeedState.isSaving) showBottleFeedSheet = false },
+        )
     }
 }
 
@@ -266,6 +305,8 @@ private fun DashboardContent(
     lastRefreshAt: Long,
     isLoading: Boolean,
     onRefresh: () -> Unit,
+    onLogBottle: () -> Unit,
+    onNavigateToFeedHistory: () -> Unit,
     nowProvider: () -> Long,
     volumeUnit: VolumeUnit,
 ) {
@@ -282,7 +323,9 @@ private fun DashboardContent(
     val activeSleep = snapshot.sleepRecords.firstOrNull { it.endTime == null }
     val completedSessions = snapshot.sessions.filter { it.endTime != null }.take(3)
     val lastSleep = snapshot.sleepRecords.firstOrNull()
-    val hasSharedRecords = snapshot.sessions.isNotEmpty() || snapshot.sleepRecords.isNotEmpty()
+    val hasSharedRecords = snapshot.sessions.isNotEmpty() ||
+        snapshot.sleepRecords.isNotEmpty() ||
+        snapshot.bottleFeeds.isNotEmpty()
     val lastSharedText = remember(snapshot.lastSyncAt, nowMs) {
         Duration.between(snapshot.lastSyncAt, now).coerceAtLeast(Duration.ZERO).formatElapsedAgo()
     }
@@ -333,6 +376,8 @@ private fun DashboardContent(
                     onClearError = onClearError,
                     isLoading = isLoading,
                     onRefresh = onRefresh,
+                    onLogBottle = onLogBottle,
+                    onNavigateToFeedHistory = onNavigateToFeedHistory,
                     now = now,
                     volumeUnit = volumeUnit,
                 )
@@ -358,6 +403,8 @@ private fun DashboardContent(
                     onClearError = onClearError,
                     isLoading = isLoading,
                     onRefresh = onRefresh,
+                    onLogBottle = onLogBottle,
+                    onNavigateToFeedHistory = onNavigateToFeedHistory,
                     now = now,
                     volumeUnit = volumeUnit,
                 )
@@ -382,6 +429,8 @@ private fun CompactDashboardContent(
     onClearError: () -> Unit,
     isLoading: Boolean,
     onRefresh: () -> Unit,
+    onLogBottle: () -> Unit,
+    onNavigateToFeedHistory: () -> Unit,
     now: Instant,
     volumeUnit: VolumeUnit,
     modifier: Modifier = Modifier,
@@ -401,6 +450,12 @@ private fun CompactDashboardContent(
             onClearError = onClearError,
             lastSyncAt = snapshot.lastSyncAt,
             now = now,
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+        PartnerBottleActions(
+            onLogBottle = onLogBottle,
+            onNavigateToFeedHistory = onNavigateToFeedHistory,
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -474,6 +529,8 @@ private fun WideDashboardContent(
     onClearError: () -> Unit,
     isLoading: Boolean,
     onRefresh: () -> Unit,
+    onLogBottle: () -> Unit,
+    onNavigateToFeedHistory: () -> Unit,
     now: Instant,
     volumeUnit: VolumeUnit,
     modifier: Modifier = Modifier,
@@ -497,6 +554,10 @@ private fun WideDashboardContent(
                 onClearError = onClearError,
                 lastSyncAt = snapshot.lastSyncAt,
                 now = now,
+            )
+            PartnerBottleActions(
+                onLogBottle = onLogBottle,
+                onNavigateToFeedHistory = onNavigateToFeedHistory,
             )
             CareSummaryPanel(
                 lastFeeding = snapshot.sessions.firstOrNull { it.endTime != null },
@@ -603,6 +664,46 @@ private fun DashboardTimelineSections(
         }
 
         AllergySection(baby = baby)
+    }
+}
+
+@Composable
+private fun PartnerBottleActions(
+    onLogBottle: () -> Unit,
+    onNavigateToFeedHistory: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Button(
+            onClick = onLogBottle,
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 48.dp),
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.partner_log_bottle),
+                maxLines = 2,
+                textAlign = TextAlign.Center,
+            )
+        }
+        OutlinedButton(
+            onClick = onNavigateToFeedHistory,
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 48.dp),
+        ) {
+            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.partner_feeding_history),
+                maxLines = 2,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 

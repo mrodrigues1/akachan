@@ -5,6 +5,7 @@ import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
+import com.google.firebase.FirebaseException
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -94,16 +95,32 @@ class FetchPartnerDataUseCaseTest {
             IllegalStateException("No data in share document ${shareCode.value}")
         coEvery { settingsRepository.clearPartnerStateIfShareCodeMatches(shareCode.value) } returns true
 
-        var caught: IllegalStateException? = null
+        var caught: RuntimeException? = null
         try {
             useCase(shareCode)
-        } catch (e: IllegalStateException) {
+        } catch (e: RuntimeException) {
             caught = e
         }
 
         assertNotNull(caught)
         assertTrue(caught is PartnerAccessRevokedException)
         coVerify { settingsRepository.clearPartnerStateIfShareCodeMatches(shareCode.value) }
+    }
+
+    @Test
+    fun wrapsFirebaseFetchFailureAsPartnerDataFetchException() = runTest {
+        coEvery { sharingRepository.isPartnerConnected(shareCode, "uid123") } returns true
+        coEvery { sharingRepository.fetchSnapshot(shareCode) } throws FirebaseException("offline")
+
+        var caught: RuntimeException? = null
+        try {
+            useCase(shareCode)
+        } catch (e: RuntimeException) {
+            caught = e
+        }
+
+        assertNotNull(caught)
+        assertTrue(caught is PartnerDataFetchException)
     }
 
     @Test

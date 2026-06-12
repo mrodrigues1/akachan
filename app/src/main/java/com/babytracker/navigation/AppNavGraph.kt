@@ -13,6 +13,7 @@ import com.babytracker.ui.feeding.UnifiedFeedingHistoryScreen
 import com.babytracker.ui.home.HomeScreen
 import com.babytracker.ui.onboarding.OnboardingScreen
 import com.babytracker.ui.partner.PartnerDashboardScreen
+import com.babytracker.ui.partner.PartnerFeedHistoryScreen
 import com.babytracker.ui.settings.SettingsScreen
 import com.babytracker.ui.sharing.ConnectPartnerScreen
 import com.babytracker.ui.sharing.ManageSharingScreen
@@ -116,7 +117,11 @@ private fun NavGraphBuilder.settingsGraph(
         PartnerDashboardScreen(
             onDisconnected = { navController.navigateAfterDisconnect(isOnboardingComplete) },
             onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
+            onNavigateToFeedHistory = { navController.navigate(Routes.PARTNER_FEED_HISTORY) },
         )
+    }
+    composable(Routes.PARTNER_FEED_HISTORY) {
+        PartnerFeedHistoryScreen(onNavigateBack = { navController.popBackStack() })
     }
     composable(Routes.MANAGE_SHARING) {
         ManageSharingScreen(onNavigateBack = { navController.popBackStack() })

@@ -7,13 +7,17 @@ import com.babytracker.sharing.domain.model.FeedOpAction
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.repository.SharingRepository
+import com.google.firebase.firestore.FirebaseFirestoreException
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -27,22 +31,23 @@ import java.time.Instant
 class LogPartnerFeedUseCaseTest {
     private val sharingRepository: SharingRepository = mockk()
     private val settingsRepository: SettingsRepository = mockk()
+    private val applicationScope = CoroutineScope(Dispatchers.Unconfined)
     private val fixedNow = Instant.parse("2026-06-01T10:00:00Z")
     private lateinit var useCase: LogPartnerFeedUseCase
 
     @BeforeEach
     fun setUp() {
-        useCase = LogPartnerFeedUseCase(sharingRepository, settingsRepository) { fixedNow }
+        useCase = LogPartnerFeedUseCase(sharingRepository, settingsRepository, applicationScope) { fixedNow }
         every { settingsRepository.getShareCode() } returns flowOf("CODE1234")
         coEvery { sharingRepository.signInAnonymously() } returns "partner-uid"
-        every { sharingRepository.writeFeedOp(any(), any()) } just Runs
+        coEvery { sharingRepository.writeFeedOp(any(), any(), any()) } just Runs
     }
 
     @Test
     fun `log writes create op with bag and returns entry client id`() = runTest {
         val op = slot<FeedOp>()
         val bag = MilkBagSnapshot(id = 7L, collectionDateMs = 1_000L, volumeMl = 120, notes = null)
-        every { sharingRepository.writeFeedOp(ShareCode("CODE1234"), capture(op)) } just Runs
+        coEvery { sharingRepository.writeFeedOp(ShareCode("CODE1234"), capture(op), any()) } just Runs
 
         val entryClientId = useCase(
             timestamp = Instant.parse("2026-06-01T09:00:00Z"),
@@ -67,7 +72,7 @@ class LogPartnerFeedUseCaseTest {
     @Test
     fun `log without bag omits consumed bag id`() = runTest {
         val op = slot<FeedOp>()
-        every { sharingRepository.writeFeedOp(any(), capture(op)) } just Runs
+        coEvery { sharingRepository.writeFeedOp(any(), capture(op), any()) } just Runs
 
         useCase(
             timestamp = Instant.parse("2026-06-01T09:00:00Z"),
@@ -100,5 +105,45 @@ class LogPartnerFeedUseCaseTest {
         }
 
         coVerify(exactly = 0) { sharingRepository.signInAnonymously() }
+    }
+
+    @Test
+    fun `permission denied write clears partner state and throws revoked`() = runTest {
+        val denied = FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
+        coEvery { sharingRepository.writeFeedOp(any(), any(), any()) } throws denied
+        coEvery { settingsRepository.clearPartnerStateIfShareCodeMatches("CODE1234") } returns true
+
+        assertThrows<PartnerAccessRevokedException> {
+            runBlocking {
+                useCase(
+                    timestamp = Instant.parse("2026-06-01T09:00:00Z"),
+                    volumeMl = 110,
+                    type = FeedType.FORMULA,
+                    selectedBag = null,
+                    notes = null,
+                )
+            }
+        }
+
+        coVerify { settingsRepository.clearPartnerStateIfShareCodeMatches("CODE1234") }
+    }
+
+    @Test
+    fun `late permission denied write failure clears partner state`() = runTest {
+        val failureHandler = slot<(Throwable) -> Unit>()
+        val denied = FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
+        coJustRun { sharingRepository.writeFeedOp(any(), any(), capture(failureHandler)) }
+        coEvery { settingsRepository.clearPartnerStateIfShareCodeMatches("CODE1234") } returns true
+
+        useCase(
+            timestamp = Instant.parse("2026-06-01T09:00:00Z"),
+            volumeMl = 110,
+            type = FeedType.FORMULA,
+            selectedBag = null,
+            notes = null,
+        )
+        failureHandler.captured(denied)
+
+        coVerify { settingsRepository.clearPartnerStateIfShareCodeMatches("CODE1234") }
     }
 }
