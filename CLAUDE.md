@@ -20,6 +20,7 @@ A native Android baby tracking app for parents of infants (0–12 months). Track
 | Sharing | Firebase BOM 33.7.0 (Firestore KTX, Auth KTX) |
 | Widgets | Glance 1.1.1 (appwidget + material3) |
 | Background work | WorkManager 2.10.0 |
+| Reorder | sh.calvin.reorderable 3.1.0 (drag-and-drop) |
 | Serialization | Kotlinx Serialization JSON 1.8.1 |
 | Quality | ktlint-gradle 12.1.1, ktlint 1.3.1, detekt 1.23.6, Compose detekt rules 0.0.26 |
 | Coverage | Kover 0.9.1 |

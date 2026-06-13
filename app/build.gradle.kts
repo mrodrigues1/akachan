@@ -121,6 +121,8 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons)
+    // Drag-and-drop reordering
+    implementation(libs.reorderable)
     debugImplementation(libs.compose.ui.tooling)
 
     // Core

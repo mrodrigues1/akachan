@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.Card
@@ -36,10 +37,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -49,10 +54,36 @@ import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.ui.sleep.SleepPredictionCard
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyStaggeredGridState
 
 internal fun HomeTile.isFullWidth(): Boolean = when (this) {
     HomeTile.SLEEP_PREDICTION, HomeTile.TIP, HomeTile.PARTNER -> true
     else -> false
+}
+
+/**
+ * Move [fromKey] to [toKey]'s slot among the currently [visible] tiles, then merge the result back
+ * into the full [order]. [fromKey]/[toKey] are visible tile keys from the drag gesture. Hidden
+ * (conditional) tiles act as fixed anchors: they keep their absolute index in [order] regardless of
+ * how the visible tiles are dragged, so revealing one later never moves it to an unexpected slot.
+ * Returns [order] unchanged if the keys are equal or either is not currently visible.
+ */
+internal fun reorderByKey(
+    order: List<HomeTile>,
+    visible: List<HomeTile>,
+    fromKey: HomeTile,
+    toKey: HomeTile,
+): List<HomeTile> {
+    if (fromKey == toKey) return order
+    val newVisible = visible.toMutableList()
+    val fromIdx = newVisible.indexOf(fromKey)
+    val toIdx = newVisible.indexOf(toKey)
+    if (fromIdx < 0 || toIdx < 0) return order
+    newVisible.add(toIdx, newVisible.removeAt(fromIdx))
+    val visibleSet = visible.toSet()
+    val next = newVisible.iterator()
+    return order.map { tile -> if (tile in visibleSet) next.next() else tile }
 }
 
 internal fun HomeTile.isVisible(uiState: HomeUiState): Boolean = when (this) {
@@ -66,10 +97,23 @@ internal fun HomeTile.isVisible(uiState: HomeUiState): Boolean = when (this) {
 internal fun HomeContent(
     uiState: HomeUiState,
     callbacks: HomeTileCallbacks,
+    onReorder: (List<HomeTile>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val visibleTiles = remember(uiState) {
-        uiState.tileOrder.filter { it.isVisible(uiState) }
+    // Persisted order arrives async via StateFlow; mirror locally for lag-free drag, re-sync on emit.
+    var orderState by remember { mutableStateOf(uiState.tileOrder) }
+    LaunchedEffect(uiState.tileOrder) { orderState = uiState.tileOrder }
+
+    val visibleTiles = remember(orderState, uiState) {
+        orderState.filter { it.isVisible(uiState) }
+    }
+    val gridState = rememberLazyStaggeredGridState()
+    val reorderableState = rememberReorderableLazyStaggeredGridState(gridState) { from, to ->
+        val fromKey = from.key as? String ?: return@rememberReorderableLazyStaggeredGridState
+        val toKey = to.key as? String ?: return@rememberReorderableLazyStaggeredGridState
+        val fromTile = HomeTile.entries.firstOrNull { it.name == fromKey } ?: return@rememberReorderableLazyStaggeredGridState
+        val toTile = HomeTile.entries.firstOrNull { it.name == toKey } ?: return@rememberReorderableLazyStaggeredGridState
+        orderState = reorderByKey(orderState, visibleTiles, fromTile, toTile)
     }
     Box(
         modifier = modifier,
@@ -80,6 +124,7 @@ internal fun HomeContent(
             modifier = Modifier
                 .widthIn(max = 600.dp)
                 .fillMaxHeight(),
+            state = gridState,
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalItemSpacing = 12.dp,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -91,12 +136,25 @@ internal fun HomeContent(
                     if (tile.isFullWidth()) StaggeredGridItemSpan.FullLine else StaggeredGridItemSpan.SingleLane
                 },
             ) { tile ->
-                HomeTileContent(
-                    tile = tile,
-                    uiState = uiState,
-                    callbacks = callbacks,
-                    modifier = Modifier.heightIn(min = if (tile.isFullWidth()) 0.dp else 140.dp),
-                )
+                ReorderableItem(reorderableState, key = tile.name) { isDragging ->
+                    val elevation by animateDpAsState(
+                        targetValue = if (isDragging) 8.dp else 0.dp,
+                        label = "tileDragElevation",
+                    )
+                    HomeTileContent(
+                        tile = tile,
+                        uiState = uiState,
+                        callbacks = callbacks,
+                        modifier = Modifier
+                            .heightIn(min = if (tile.isFullWidth()) 0.dp else 140.dp)
+                            .shadow(elevation, MaterialTheme.shapes.large)
+                            .longPressDraggableHandle(
+                                onDragStopped = {
+                                    if (orderState != uiState.tileOrder) onReorder(orderState)
+                                },
+                            ),
+                    )
+                }
             }
         }
     }

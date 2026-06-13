@@ -154,6 +154,7 @@ fun HomeScreen(
         HomeContent(
             uiState = uiState,
             callbacks = callbacks,
+            onReorder = viewModel::onTilesReordered,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
