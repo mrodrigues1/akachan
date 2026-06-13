@@ -43,7 +43,9 @@ import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
 import com.babytracker.ui.theme.BabyTrackerTheme
 import com.babytracker.widget.WidgetUpdater
 import kotlinx.coroutines.CompletableDeferred
+import com.babytracker.sharing.domain.model.FeedOp
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -592,6 +594,19 @@ class PartnerDashboardScreenTest {
         override suspend fun revokePartner(code: ShareCode, partnerUid: String) = Unit
 
         override suspend fun deleteShareDocument(code: ShareCode) = Unit
+
+        override fun observeFeedOps(code: ShareCode): Flow<List<FeedOp>> = emptyFlow()
+
+        override suspend fun writeFeedOp(
+            code: ShareCode,
+            op: FeedOp,
+            onFailure: (Throwable) -> Unit,
+        ) = Unit
+
+        override fun observeOwnFeedOps(code: ShareCode, uid: String): Flow<List<FeedOp>> =
+            emptyFlow()
+
+        override suspend fun deleteFeedOps(code: ShareCode, opIds: List<String>) = Unit
     }
 
     private class FakePartnerSettingsRepository : SettingsRepository {
