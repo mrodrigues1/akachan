@@ -4,6 +4,7 @@ import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedPrediction
+import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
@@ -96,6 +97,7 @@ class HomeViewModelTest {
         every { getSleepHistory() } returns flowOf(emptyList())
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.NONE)
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
+        every { settingsRepository.getHomeTileOrder() } returns flowOf(HomeTile.DEFAULT_ORDER)
         every { pumpingRepository.getActiveSession() } returns flowOf(null)
         every { inventoryRepository.getSummary() } returns flowOf(InventorySummary.Empty)
         every { predictNextFeed() } returns flowOf(null)
