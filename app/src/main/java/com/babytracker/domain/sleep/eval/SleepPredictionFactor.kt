@@ -7,10 +7,8 @@ import java.time.Duration
 data class SleepPredictionFactor(
     val adjustment: Duration,
     val reason: String? = null,
-    val isEnabled: Boolean = true,
 ) {
     companion object {
-        val Disabled = SleepPredictionFactor(Duration.ZERO, isEnabled = false)
         val Neutral = SleepPredictionFactor(Duration.ZERO)
     }
 }

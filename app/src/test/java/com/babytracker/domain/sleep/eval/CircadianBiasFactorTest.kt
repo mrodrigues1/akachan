@@ -19,7 +19,7 @@ class CircadianBiasFactorTest {
             napCountToday = 0,
         )
 
-        assertEquals(SleepPredictionFactor.Disabled, factor)
+        assertEquals(SleepPredictionFactor.Neutral, factor)
     }
 
     @Test

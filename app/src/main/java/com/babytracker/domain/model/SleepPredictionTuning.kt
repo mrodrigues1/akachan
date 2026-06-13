@@ -28,9 +28,6 @@ object SleepPredictionTuning {
     const val MIN_TYPE_INTERVALS = 3           // min type-specific intervals to use type P50
     const val OVERDUE_GRACE_MINUTES = 45L
     const val CUE_LED_MAX_AGE_WEEKS = 6
-    const val CANDIDATE_STEP_MINUTES = 5L
-    const val SHRINK_N = 10
-    const val MAX_BIAS_MINUTES = 15L
     const val EVAL_MIN_ANCHORS = 20
     const val EVAL_MIN_SCORED = 20
     const val EVAL_MIN_MAE_GAIN_MIN = 5
