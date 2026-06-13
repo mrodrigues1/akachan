@@ -92,9 +92,13 @@ object SleepWindowPredictor {
         val adjustedBestEstimate = bestEstimate.plus(clampTotalShift(totalFactorShift))
         val windowStart = adjustedBestEstimate.minus(halfWindowDuration)
         val windowEnd = adjustedBestEstimate.plus(halfWindowDuration)
-        // Stale check uses the pre-factor end (so a positive factor cannot revive a stale anchor)
-        // and the post-factor end (so a negative factor cannot produce a stale final window).
-        if (isStaleWindow(now, bestEstimate.plus(halfWindowDuration)) || isStaleWindow(now, windowEnd)) {
+        // Staleness is judged on the post-factor window end only. Factors (circadian, sleep-debt,
+        // nap-budget) are trusted to shift the displayed center, so a legitimate later shift must be
+        // able to keep the window valid; gating on the pre-factor end would force Overdue for a window
+        // the factors moved later. A negative (earlier) shift still surfaces Overdue here because it
+        // pulls windowEnd earlier. The shift is clamped below the staleness gap, so a bounded later
+        // shift can never revive a far-stale anchor.
+        if (isStaleWindow(now, windowEnd)) {
             return SleepPredictionState.Overdue
         }
 

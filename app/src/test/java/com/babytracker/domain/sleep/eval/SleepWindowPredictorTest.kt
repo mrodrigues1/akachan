@@ -579,6 +579,42 @@ class SleepWindowPredictorTest {
     }
 
     @Test
+    fun `later-shifting factor keeps a pre-factor-stale window valid instead of forcing Overdue`() {
+        // qualityC = 10/14 → wakeTarget = 6_428_571 ms; bestEstimate = lastWake + that.
+        // lastWake chosen so bestEstimate = baseNow - 80 min, half window = 15 min (IQR floor).
+        // Pre-factor end = baseNow - 65 min → staleAfter = baseNow - 20 min → stale (old code: Overdue).
+        // A clamped +45 min shift moves the adjusted end to baseNow - 20 min → staleAfter = baseNow + 25 min
+        // → fresh → must be Window now that staleness is judged on the post-factor end only.
+        val lastWakeMillis = baseNow.toEpochMilli() - 11_228_571L
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+
+        val result = SleepWindowPredictor.predict(
+            features(metrics = metrics),
+            ageInWeeks,
+            baseNow,
+            // Sum is +60 min, clamped to MAX_TOTAL_FACTOR_SHIFT_MINUTES (45) — a legitimate later shift.
+            circadianFactorProvider = { _, _, _, _, _ ->
+                SleepPredictionFactor(Duration.ofMinutes(SleepPredictionTuning.CIRCADIAN_MAX_SHIFT_MINUTES))
+            },
+            sleepDebtFactorProvider = { _, _, _ ->
+                SleepPredictionFactor(Duration.ofMinutes(SleepPredictionTuning.SLEEP_DEBT_MAX_SHIFT_MINUTES))
+            },
+            napBudgetFactorProvider = { _, _, _ ->
+                SleepPredictionFactor(Duration.ofMinutes(SleepPredictionTuning.NAP_BUDGET_MAX_SHIFT_MINUTES))
+            },
+        )
+
+        assertInstanceOf(
+            SleepPredictionState.Window::class.java,
+            result,
+            "A later shift that keeps the adjusted window within grace must return Window, not Overdue",
+        )
+    }
+
+    @Test
     fun `negative circadian adjustment cannot return a stale final window`() {
         val lastWakeMillis = baseNow.minus(Duration.ofMinutes(150)).toEpochMilli()
         val metrics = sufficientMetrics(
@@ -707,9 +743,9 @@ class SleepWindowPredictorTest {
     }
 
     @Test
-    fun `ALGORITHM_VERSION is phase4 iqr-fallback version`() {
+    fun `ALGORITHM_VERSION is phase5 later-shift-stale version`() {
         assertEquals(
-            "sleep-pred-phase4-iqr-fallback-1",
+            "sleep-pred-phase5-later-shift-stale-1",
             SleepPredictionTuning.ALGORITHM_VERSION,
             "ALGORITHM_VERSION must be bumped when changing prediction algorithm",
         )
