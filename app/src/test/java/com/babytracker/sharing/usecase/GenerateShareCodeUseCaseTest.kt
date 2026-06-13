@@ -4,6 +4,7 @@ import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BottleFeed
 import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.InventorySummary
+import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
@@ -26,6 +27,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -72,6 +75,8 @@ class GenerateShareCodeUseCaseTest {
         coEvery { sharingRepository.syncFullSnapshot(any(), any()) } just Runs
         coEvery { settingsRepository.setShareCode(any()) } just Runs
         coEvery { settingsRepository.setAppMode(any()) } just Runs
+        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
+        every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("disabled"))
     }
 
     @Test
@@ -112,6 +117,29 @@ class GenerateShareCodeUseCaseTest {
 
         coVerify { settingsRepository.setAppMode(AppMode.PRIMARY) }
         coVerify { settingsRepository.setShareCode(any()) }
+    }
+
+    @Test
+    fun initialSnapshotHasNoPredictionWhenPredictiveSleepDisabled() = runTest {
+        val snapshotSlot = slot<ShareSnapshot>()
+        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
+        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
+
+        useCase()
+
+        assertNull(snapshotSlot.captured.sleepPrediction)
+    }
+
+    @Test
+    fun initialSnapshotIncludesPredictionWhenPredictiveSleepEnabled() = runTest {
+        val snapshotSlot = slot<ShareSnapshot>()
+        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { predictSleepWindow() } returns flowOf(SleepPredictionState.CurrentlySleeping)
+        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
+
+        useCase()
+
+        assertNotNull(snapshotSlot.captured.sleepPrediction)
     }
 
     @Test
