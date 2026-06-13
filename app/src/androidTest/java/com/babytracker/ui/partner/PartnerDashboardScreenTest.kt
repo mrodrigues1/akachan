@@ -39,10 +39,15 @@ import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
+import com.babytracker.sharing.usecase.EditPartnerFeedUseCase
 import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
+import com.babytracker.sharing.usecase.LogPartnerFeedUseCase
+import com.babytracker.sharing.usecase.SubmitFeedOpUseCase
 import com.babytracker.ui.theme.BabyTrackerTheme
 import com.babytracker.widget.WidgetUpdater
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import com.babytracker.sharing.domain.model.FeedOp
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -83,6 +88,17 @@ class PartnerDashboardScreenTest {
         )
     }
 
+    private fun buildBottleFeedViewModel(): PartnerBottleFeedViewModel {
+        val scope = CoroutineScope(SupervisorJob())
+        val submitFeedOp = SubmitFeedOpUseCase(FakeSharingRepository(null), FakePartnerSettingsRepository(), scope)
+        return PartnerBottleFeedViewModel(
+            logPartnerFeed = LogPartnerFeedUseCase(submitFeedOp),
+            editPartnerFeed = EditPartnerFeedUseCase(submitFeedOp),
+            settingsRepository = FakePartnerSettingsRepository(),
+            now = Instant::now,
+        )
+    }
+
     private fun makeSnapshot(
         lastSyncAt: Instant = fixedNow,
         babyName: String = "Mia",
@@ -109,6 +125,7 @@ class PartnerDashboardScreenTest {
                 onNavigateToSettings = {},
                 nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
         composeRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
@@ -122,6 +139,7 @@ class PartnerDashboardScreenTest {
                 onNavigateToSettings = { called = true },
                 nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
         composeRule.onNodeWithContentDescription("Settings").performClick()
@@ -134,6 +152,7 @@ class PartnerDashboardScreenTest {
             PartnerDashboardScreen(
                 nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(makeSnapshot()),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
 
@@ -152,6 +171,7 @@ class PartnerDashboardScreenTest {
             PartnerDashboardScreen(
                 nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(makeSnapshot()),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
 
@@ -175,6 +195,7 @@ class PartnerDashboardScreenTest {
             PartnerDashboardScreen(
                 nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(makeSnapshot()),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
 
@@ -216,6 +237,7 @@ class PartnerDashboardScreenTest {
                         sleepRecords = listOf(sleepRecord),
                     ),
                 ),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
 
@@ -248,6 +270,7 @@ class PartnerDashboardScreenTest {
                 viewModel = buildViewModel(
                     makeSnapshot(sleepRecords = listOf(activeSleep)),
                 ),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
 
@@ -281,6 +304,7 @@ class PartnerDashboardScreenTest {
                         sessions = listOf(activeSession),
                     ),
                 ),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
 
@@ -303,6 +327,7 @@ class PartnerDashboardScreenTest {
             PartnerDashboardScreen(
                 nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(makeSnapshot()),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
 
@@ -327,6 +352,7 @@ class PartnerDashboardScreenTest {
             PartnerDashboardScreen(
                 nowProvider = fixedNowProvider,
                 viewModel = viewModel,
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
         composeRule.waitForIdle()
@@ -355,6 +381,7 @@ class PartnerDashboardScreenTest {
             PartnerDashboardScreen(
                 nowProvider = fixedNowProvider,
                 viewModel = viewModel,
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
         composeRule.waitUntil { viewModel.uiState.value.snapshot != null }
@@ -383,6 +410,7 @@ class PartnerDashboardScreenTest {
                 viewModel = buildViewModel(
                     makeSnapshot(lastSyncAt = initialNow.minus(Duration.ofMinutes(29))),
                 ),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
 
@@ -405,6 +433,7 @@ class PartnerDashboardScreenTest {
                 viewModel = buildViewModel(
                     makeSnapshot(allergies = listOf("CMPA")),
                 ),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
 
@@ -440,6 +469,7 @@ class PartnerDashboardScreenTest {
                             sessions = listOf(session),
                         ),
                     ),
+                    bottleFeedViewModel = buildBottleFeedViewModel(),
                 )
             }
         }
@@ -476,6 +506,7 @@ class PartnerDashboardScreenTest {
                             sessions = listOf(activeSession),
                         ),
                     ),
+                    bottleFeedViewModel = buildBottleFeedViewModel(),
                 )
             }
         }
@@ -497,6 +528,7 @@ class PartnerDashboardScreenTest {
                         inventoryBagCount = 0,
                     ),
                 ),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
 
@@ -514,6 +546,7 @@ class PartnerDashboardScreenTest {
                         inventoryBagCount = 3,
                     ),
                 ),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
 
@@ -533,6 +566,7 @@ class PartnerDashboardScreenTest {
                         inventoryUpdatedAt = updatedAt,
                     ),
                 ),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
             )
         }
 
