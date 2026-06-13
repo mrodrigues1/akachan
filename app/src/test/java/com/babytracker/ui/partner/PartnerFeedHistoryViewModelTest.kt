@@ -62,7 +62,7 @@ class PartnerFeedHistoryViewModelTest {
         val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
         coEvery { fetchPartnerData() } returns snapshot()
         coEvery { observePartnerFeedHistory(any()) } returns flowOf(
-            MergedFeedHistory(entries = listOf(entry), pendingOpCount = 0),
+            MergedFeedHistory(entries = listOf(entry)),
         )
 
         val viewModel = viewModel()
@@ -74,7 +74,7 @@ class PartnerFeedHistoryViewModelTest {
     @Test
     fun `isEditable is true only for partner entries with clientId`() = runTest {
         coEvery { fetchPartnerData() } returns snapshot()
-        coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList(), 0))
+        coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList()))
         val viewModel = viewModel()
 
         assertTrue(viewModel.isEditable(feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)))
@@ -88,10 +88,10 @@ class PartnerFeedHistoryViewModelTest {
         coEvery { fetchPartnerData() } returns snapshot()
         coEvery { observePartnerFeedHistory(any()) } returnsMany listOf(
             flowOf(
-                MergedFeedHistory(entries = listOf(entry), pendingOpCount = 1, pendingOpIds = setOf("op-1")),
-                MergedFeedHistory(entries = listOf(entry), pendingOpCount = 0, pendingOpIds = emptySet()),
+                MergedFeedHistory(entries = listOf(entry), pendingOpIds = setOf("op-1")),
+                MergedFeedHistory(entries = listOf(entry), pendingOpIds = emptySet()),
             ),
-            flowOf(MergedFeedHistory(entries = listOf(entry), pendingOpCount = 0)),
+            flowOf(MergedFeedHistory(entries = listOf(entry))),
         )
 
         viewModel()
@@ -105,10 +105,10 @@ class PartnerFeedHistoryViewModelTest {
         coEvery { fetchPartnerData() } returns snapshot()
         coEvery { observePartnerFeedHistory(any()) } returnsMany listOf(
             flowOf(
-                MergedFeedHistory(entries = listOf(entry), pendingOpCount = 1, pendingOpIds = setOf("op-1")),
-                MergedFeedHistory(entries = listOf(entry), pendingOpCount = 1, pendingOpIds = setOf("op-2")),
+                MergedFeedHistory(entries = listOf(entry), pendingOpIds = setOf("op-1")),
+                MergedFeedHistory(entries = listOf(entry), pendingOpIds = setOf("op-2")),
             ),
-            flowOf(MergedFeedHistory(entries = listOf(entry), pendingOpCount = 1, pendingOpIds = setOf("op-2"))),
+            flowOf(MergedFeedHistory(entries = listOf(entry), pendingOpIds = setOf("op-2"))),
         )
 
         viewModel()
@@ -168,7 +168,7 @@ class PartnerFeedHistoryViewModelTest {
     fun `delete delegates to DeletePartnerFeedUseCase`() = runTest {
         val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
         coEvery { fetchPartnerData() } returns snapshot()
-        coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList(), 0))
+        coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList()))
         val viewModel = viewModel()
 
         viewModel.onDelete(entry)
@@ -180,7 +180,7 @@ class PartnerFeedHistoryViewModelTest {
     fun `delete retryable failure sets error`() = runTest {
         val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
         coEvery { fetchPartnerData() } returns snapshot()
-        coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList(), 0))
+        coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList()))
         coEvery { deletePartnerFeed(entry) } throws PartnerDataFetchException("Could not queue feed write")
         val viewModel = viewModel()
 
@@ -194,7 +194,7 @@ class PartnerFeedHistoryViewModelTest {
     fun `delete revoked failure sets accessRevoked and updates widgets`() = runTest {
         val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
         coEvery { fetchPartnerData() } returns snapshot()
-        coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList(), 0))
+        coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList()))
         coEvery { deletePartnerFeed(entry) } throws PartnerAccessRevokedException("Partner access revoked")
         val viewModel = viewModel()
 

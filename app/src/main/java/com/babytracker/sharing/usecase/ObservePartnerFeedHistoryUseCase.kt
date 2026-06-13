@@ -4,7 +4,7 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.MergedFeedHistory
 import com.babytracker.sharing.domain.model.ShareCode
-import com.babytracker.sharing.domain.model.mergeFeedHistoryWithPendingCount
+import com.babytracker.sharing.domain.model.mergeFeedHistory
 import com.babytracker.sharing.domain.repository.SharingRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -25,7 +25,7 @@ class ObservePartnerFeedHistoryUseCase @Inject constructor(
         val code = ShareCode(settingsRepository.getShareCode().first() ?: error("No share code"))
         val uid = sharingRepository.signInAnonymously()
         return sharingRepository.observeOwnFeedOps(code, uid)
-            .map { ops -> mergeFeedHistoryWithPendingCount(snapshotFeeds, ops) }
+            .map { ops -> mergeFeedHistory(snapshotFeeds, ops) }
             .catch { error ->
                 val revoked = error.toPartnerAccessRevokedExceptionAfterClearing(settingsRepository, code)
                 if (revoked != null) {
