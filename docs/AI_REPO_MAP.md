@@ -37,6 +37,7 @@ Data Layer     Repository Impls → Room DAOs / DataStore
 - Add repository behavior: update the domain repository interface, implementation in `data/repository`, DI binding if a new implementation is introduced, and tests.
 - Add notification behavior: check `manager/`, `receiver/`, `util/NotificationHelper.kt`, manifest receivers, and scheduler DI bindings.
 - Add partner sharing behavior: keep Firebase-specific work inside `sharing/` and `di/SharingModule.kt`.
+- Change Home tiles or their reorder behavior: the `HomeTile` enum (`domain/model/HomeTile.kt`) is the canonical tile set, `DEFAULT_ORDER`, and serialize/`reconcile` logic; tile rendering lives in `ui/home/HomeTileContent.kt` and `ui/home/HomeScreen.kt`; drag/accessibility reorder state in `ui/home/HomeViewModel.kt`; the order persists via `getHomeTileOrder`/`setHomeTileOrder`/`clearHomeTileOrder` on `SettingsRepository` (DataStore-backed, comma-joined tile names).
 - Update dependencies: edit `gradle/libs.versions.toml`, then update `CLAUDE.md` and `AGENTS.md` tech stack tables if versions changed.
 
 ## Do not inspect unless needed
