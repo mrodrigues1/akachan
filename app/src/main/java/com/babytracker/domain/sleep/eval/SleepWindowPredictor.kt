@@ -21,7 +21,6 @@ object SleepWindowPredictor {
         ageInWeeks: Int,
         now: Instant,
         circadianFactorProvider: CircadianFactorProvider = { _, _, _, _, _ -> SleepPredictionFactor.Neutral },
-        timeOfDayFactorProvider: TimeOfDayFactorProvider = { _, _, _, _ -> SleepPredictionFactor.Neutral },
         sleepDebtFactorProvider: SleepDebtFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral },
         napBudgetFactorProvider: NapBudgetFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral },
     ): SleepPredictionState {
@@ -34,7 +33,7 @@ object SleepWindowPredictor {
         }
         return buildWindow(
             features, ageInWeeks, now,
-            circadianFactorProvider, timeOfDayFactorProvider,
+            circadianFactorProvider,
             sleepDebtFactorProvider, napBudgetFactorProvider,
         )
     }
@@ -44,7 +43,6 @@ object SleepWindowPredictor {
         ageInWeeks: Int,
         now: Instant,
         circadianFactorProvider: CircadianFactorProvider,
-        timeOfDayFactorProvider: TimeOfDayFactorProvider,
         sleepDebtFactorProvider: SleepDebtFactorProvider,
         napBudgetFactorProvider: NapBudgetFactorProvider,
     ): SleepPredictionState {
@@ -79,7 +77,6 @@ object SleepWindowPredictor {
             candidateMinute,
             metrics.napCountToday,
         )
-        val timeOfDayFactor = timeOfDayFactorProvider(metrics, nextType, candidateMinute, false)
         val sleepDebtFactor = sleepDebtFactorProvider(
             metrics.sleepLast24hMillis,
             metrics.avgDailySleepMillis,
@@ -90,7 +87,7 @@ object SleepWindowPredictor {
             ageInWeeks,
             nextType,
         )
-        val factors = listOf(circadianFactor, timeOfDayFactor, sleepDebtFactor, napBudgetFactor)
+        val factors = listOf(circadianFactor, sleepDebtFactor, napBudgetFactor)
         val totalFactorShift = factors.fold(Duration.ZERO) { acc, f -> acc.plus(f.adjustment) }
         val adjustedBestEstimate = bestEstimate.plus(clampTotalShift(totalFactorShift))
         val windowStart = adjustedBestEstimate.minus(halfWindowDuration)
