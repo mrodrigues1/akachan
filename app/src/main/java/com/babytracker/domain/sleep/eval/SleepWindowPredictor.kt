@@ -286,9 +286,8 @@ object SleepWindowPredictor {
             .sortedByDescending { it.startMillis }
         val lastFeed = recent.firstOrNull() ?: return null
         val intervals = recent.zipWithNext { a, b -> a.startMillis - b.startMillis }.filter { it > 0 }
-        if (intervals.isEmpty()) return null
-        val avgIntervalMillis = intervals.average().toLong()
-        val predictedNextFeed = Instant.ofEpochMilli(lastFeed.startMillis + avgIntervalMillis)
+        val medianIntervalMillis = median(intervals) ?: return null
+        val predictedNextFeed = Instant.ofEpochMilli(lastFeed.startMillis + medianIntervalMillis)
         val toleranceMillis = Duration.ofMinutes(30).toMillis()
         val predictedMillis = predictedNextFeed.toEpochMilli()
         val windowStartMillis = windowStart.toEpochMilli()
@@ -297,6 +296,17 @@ object SleepWindowPredictor {
             "a breastfeed may be due near this window — offer a feed first if hunger cues appear"
         } else {
             null
+        }
+    }
+
+    private fun median(values: List<Long>): Long? {
+        if (values.isEmpty()) return null
+        val sorted = values.sorted()
+        val middle = sorted.size / 2
+        return if (sorted.size % 2 == 1) {
+            sorted[middle]
+        } else {
+            (sorted[middle - 1] + sorted[middle]) / 2
         }
     }
 
