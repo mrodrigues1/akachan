@@ -10,7 +10,9 @@ import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.usecase.EditPartnerFeedUseCase
 import com.babytracker.sharing.usecase.LogPartnerFeedUseCase
+import com.babytracker.ui.bottlefeed.BOTTLE_FEED_VOLUME_ERROR
 import com.babytracker.ui.bottlefeed.BottleFeedUiState
+import com.babytracker.ui.bottlefeed.parseBottleFeedInput
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -102,33 +104,32 @@ class PartnerBottleFeedViewModel @Inject constructor(
     fun onConfirm() {
         val state = _uiState.value
         if (state.isSaving) return
-        val volume = state.volumeText.toIntOrNull()
-        if (volume == null || volume <= 0) {
-            _uiState.update { it.copy(validationError = "Enter a volume greater than 0") }
+        val input = state.parseBottleFeedInput()
+        if (input == null) {
+            _uiState.update { it.copy(validationError = BOTTLE_FEED_VOLUME_ERROR) }
             return
         }
 
         _uiState.update { it.copy(isSaving = true, validationError = null) }
-        val notes = state.notes.trim().ifBlank { null }
         viewModelScope.launch {
             runCatching {
                 val editing = editingEntry
                 if (editing == null) {
                     logPartnerFeed(
                         timestamp = state.timestamp,
-                        volumeMl = volume,
+                        volumeMl = input.volumeMl,
                         type = state.feedType,
                         selectedBag = availableBags.firstOrNull { it.id == state.selectedBagId }
                             .takeIf { state.feedType == FeedType.BREAST_MILK },
-                        notes = notes,
+                        notes = input.notes,
                     )
                 } else {
                     editPartnerFeed(
                         entry = editing,
                         timestamp = state.timestamp,
-                        volumeMl = volume,
+                        volumeMl = input.volumeMl,
                         type = state.feedType,
-                        notes = notes,
+                        notes = input.notes,
                     )
                 }
             }.onSuccess {

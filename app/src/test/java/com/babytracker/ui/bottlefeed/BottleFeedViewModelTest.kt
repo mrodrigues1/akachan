@@ -51,7 +51,7 @@ class BottleFeedViewModelTest {
         viewModel.onSave()
         dispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("Enter a volume", viewModel.uiState.value.validationError)
+        assertEquals("Enter a volume greater than 0", viewModel.uiState.value.validationError)
         coVerify(exactly = 0) { log(any(), any(), any(), any(), any()) }
     }
 
