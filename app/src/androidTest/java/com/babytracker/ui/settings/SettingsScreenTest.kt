@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.BabyRepository
@@ -184,6 +185,10 @@ class SettingsScreenTest {
         override suspend fun setVolumeUnit(unit: VolumeUnit) {
             volumeUnitState.value = unit
         }
+
+        override fun getHomeTileOrder(): Flow<List<HomeTile>> = flowOf(HomeTile.DEFAULT_ORDER)
+
+        override suspend fun setHomeTileOrder(order: List<HomeTile>) = Unit
 
         override fun isOnboardingComplete(): Flow<Boolean> = flowOf(true)
 
