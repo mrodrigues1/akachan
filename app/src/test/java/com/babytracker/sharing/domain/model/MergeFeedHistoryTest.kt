@@ -15,8 +15,8 @@ class MergeFeedHistoryTest {
             pendingOps = listOf(createOp(entryClientId = "new-entry")),
         )
 
-        assertEquals(listOf("new-entry"), merged.map { it.clientId })
-        assertEquals(FeedAuthor.PARTNER.name, merged.single().author)
+        assertEquals(listOf("new-entry"), merged.entries.map { it.clientId })
+        assertEquals(FeedAuthor.PARTNER.name, merged.entries.single().author)
     }
 
     @Test
@@ -26,7 +26,7 @@ class MergeFeedHistoryTest {
             pendingOps = listOf(createOp(action = FeedOpAction.UPDATE, entryClientId = "entry-1", volumeMl = 120, notes = "new")),
         )
 
-        val feed = merged.single()
+        val feed = merged.entries.single()
         assertEquals(120, feed.volumeMl)
         assertEquals("new", feed.notes)
         assertEquals(FeedAuthor.PARTNER.name, feed.author)
@@ -39,7 +39,7 @@ class MergeFeedHistoryTest {
             pendingOps = listOf(deleteOp(entryClientId = "entry-1")),
         )
 
-        assertEquals(emptyList<BottleFeedSnapshot>(), merged)
+        assertEquals(emptyList<BottleFeedSnapshot>(), merged.entries)
     }
 
     @Test
@@ -52,7 +52,7 @@ class MergeFeedHistoryTest {
             ),
         )
 
-        assertFalse(merged.any { it.clientId == "entry-1" })
+        assertFalse(merged.entries.any { it.clientId == "entry-1" })
     }
 
     @Test
@@ -65,8 +65,8 @@ class MergeFeedHistoryTest {
             pendingOps = listOf(createOp(entryClientId = "new-entry", timestampMs = 3_000L)),
         )
 
-        assertEquals(listOf("new-entry", "", ""), merged.map { it.clientId })
-        assertEquals(listOf("new", "legacy two", "legacy one"), merged.map { it.notes })
+        assertEquals(listOf("new-entry", "", ""), merged.entries.map { it.clientId })
+        assertEquals(listOf("new", "legacy two", "legacy one"), merged.entries.map { it.notes })
     }
 
     @Test
@@ -76,12 +76,12 @@ class MergeFeedHistoryTest {
             pendingOps = listOf(createOp(entryClientId = "new", timestampMs = 3_000L)),
         )
 
-        assertEquals(listOf("new", "old"), merged.map { it.clientId })
+        assertEquals(listOf("new", "old"), merged.entries.map { it.clientId })
     }
 
     @Test
-    fun `merged result includes pending op count`() {
-        val merged = mergeFeedHistoryWithPendingCount(
+    fun `merged result includes pending op ids`() {
+        val merged = mergeFeedHistory(
             snapshotFeeds = emptyList(),
             pendingOps = listOf(
                 createOp(entryClientId = "new-entry"),
@@ -89,7 +89,6 @@ class MergeFeedHistoryTest {
             ),
         )
 
-        assertEquals(2, merged.pendingOpCount)
         assertEquals(setOf("op-100", "op-delete-100"), merged.pendingOpIds)
         assertEquals(listOf("new-entry"), merged.entries.map { it.clientId })
     }

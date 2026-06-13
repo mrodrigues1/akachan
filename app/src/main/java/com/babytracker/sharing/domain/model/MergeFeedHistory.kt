@@ -12,7 +12,7 @@ import com.babytracker.domain.model.FeedAuthor
 fun mergeFeedHistory(
     snapshotFeeds: List<BottleFeedSnapshot>,
     pendingOps: List<FeedOp>,
-): List<BottleFeedSnapshot> {
+): MergedFeedHistory {
     val (legacy, identified) = snapshotFeeds.partition { it.clientId.isEmpty() }
     val byClientId = identified.associateBy { it.clientId }.toMutableMap()
 
@@ -36,14 +36,8 @@ fun mergeFeedHistory(
         }
     }
 
-    return (byClientId.values + legacy).sortedByDescending { it.timestamp }
+    return MergedFeedHistory(
+        entries = (byClientId.values + legacy).sortedByDescending { it.timestamp },
+        pendingOpIds = pendingOps.mapTo(mutableSetOf()) { it.opId },
+    )
 }
-
-fun mergeFeedHistoryWithPendingCount(
-    snapshotFeeds: List<BottleFeedSnapshot>,
-    pendingOps: List<FeedOp>,
-): MergedFeedHistory = MergedFeedHistory(
-    entries = mergeFeedHistory(snapshotFeeds, pendingOps),
-    pendingOpCount = pendingOps.size,
-    pendingOpIds = pendingOps.mapTo(mutableSetOf()) { it.opId },
-)
