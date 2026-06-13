@@ -17,7 +17,7 @@ class TimeOfDaySimilarityFactorTest {
             hasQualifiedTimezoneProvenance = false,
         )
 
-        assertEquals(SleepPredictionFactor.Disabled, factor)
+        assertEquals(SleepPredictionFactor.Neutral, factor)
     }
 
     @Test

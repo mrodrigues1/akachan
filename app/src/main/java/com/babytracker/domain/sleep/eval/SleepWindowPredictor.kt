@@ -21,7 +21,7 @@ object SleepWindowPredictor {
         ageInWeeks: Int,
         now: Instant,
         circadianFactorProvider: CircadianFactorProvider = { _, _, _, _, _ -> SleepPredictionFactor.Neutral },
-        timeOfDayFactorProvider: TimeOfDayFactorProvider = { _, _, _, _ -> SleepPredictionFactor.Disabled },
+        timeOfDayFactorProvider: TimeOfDayFactorProvider = { _, _, _, _ -> SleepPredictionFactor.Neutral },
         sleepDebtFactorProvider: SleepDebtFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral },
         napBudgetFactorProvider: NapBudgetFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral },
     ): SleepPredictionState {

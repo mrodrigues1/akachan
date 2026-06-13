@@ -11,7 +11,7 @@ object TimeOfDaySimilarityFactor {
         candidateMinuteOfDay: Int?,
         hasQualifiedTimezoneProvenance: Boolean,
     ): SleepPredictionFactor {
-        if (!hasQualifiedTimezoneProvenance) return SleepPredictionFactor.Disabled
+        if (!hasQualifiedTimezoneProvenance) return SleepPredictionFactor.Neutral
 
         val targetMinute = when (nextType) {
             SleepType.NIGHT_SLEEP -> metrics.medianBedtimeMinuteOfDay
