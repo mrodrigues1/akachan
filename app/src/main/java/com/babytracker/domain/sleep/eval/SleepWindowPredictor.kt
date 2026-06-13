@@ -89,11 +89,11 @@ object SleepWindowPredictor {
             ageInWeeks,
             nextType,
         )
-        val adjustedBestEstimate = bestEstimate
-            .plus(circadianFactor.adjustment)
+        val totalFactorShift = circadianFactor.adjustment
             .plus(timeOfDayFactor.adjustment)
             .plus(sleepDebtFactor.adjustment)
             .plus(napBudgetFactor.adjustment)
+        val adjustedBestEstimate = bestEstimate.plus(clampTotalShift(totalFactorShift))
         val windowStart = adjustedBestEstimate.minus(halfWindowDuration)
         val windowEnd = adjustedBestEstimate.plus(halfWindowDuration)
         // Stale check uses the pre-factor end (so a positive factor cannot revive a stale anchor)
@@ -198,6 +198,18 @@ object SleepWindowPredictor {
     private fun candidateMinuteOfDay(currentMinuteOfDay: Int?, offsetFromNow: Duration): Int? {
         if (currentMinuteOfDay == null) return null
         return Math.floorMod(currentMinuteOfDay + offsetFromNow.toMinutes().toInt(), MINUTES_PER_DAY)
+    }
+
+    // Each factor is capped individually, but their additive sum (worst case ~75 min) can exceed
+    // the window's own width. Clamp the total so heuristic factors never shift the center more than
+    // MAX_TOTAL_FACTOR_SHIFT_MINUTES, which stays below MAX_HALF_WINDOW_MINUTES.
+    private fun clampTotalShift(totalShift: Duration): Duration {
+        val maxShift = Duration.ofMinutes(SleepPredictionTuning.MAX_TOTAL_FACTOR_SHIFT_MINUTES)
+        return when {
+            totalShift > maxShift -> maxShift
+            totalShift < maxShift.negated() -> maxShift.negated()
+            else -> totalShift
+        }
     }
 
     private fun isStaleWindow(now: Instant, windowEnd: Instant): Boolean {
