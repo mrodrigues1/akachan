@@ -24,6 +24,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -95,6 +96,7 @@ class PartnerFeedHistoryViewModelTest {
         )
 
         viewModel()
+        advanceUntilIdle()
 
         coVerify(exactly = 2) { fetchPartnerData() }
     }
@@ -112,8 +114,43 @@ class PartnerFeedHistoryViewModelTest {
         )
 
         viewModel()
+        advanceUntilIdle()
 
         coVerify(exactly = 2) { fetchPartnerData() }
+    }
+
+    @Test
+    fun `ops consumed across rapid emissions debounce into a single refetch`() = runTest {
+        val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
+        coEvery { fetchPartnerData() } returns snapshot()
+        coEvery { observePartnerFeedHistory(any()) } returnsMany listOf(
+            flowOf(
+                MergedFeedHistory(entries = listOf(entry), pendingOpIds = setOf("op-1", "op-2", "op-3")),
+                MergedFeedHistory(entries = listOf(entry), pendingOpIds = setOf("op-2", "op-3")),
+                MergedFeedHistory(entries = listOf(entry), pendingOpIds = setOf("op-3")),
+                MergedFeedHistory(entries = listOf(entry), pendingOpIds = emptySet()),
+            ),
+            flowOf(MergedFeedHistory(entries = listOf(entry))),
+        )
+
+        viewModel()
+        advanceUntilIdle()
+
+        coVerify(exactly = 2) { fetchPartnerData() }
+    }
+
+    @Test
+    fun `hasConsumedPendingOps is true when a previous op id disappears`() {
+        assertTrue(hasConsumedPendingOps(previous = setOf("op-1", "op-2"), current = setOf("op-2")))
+        assertTrue(hasConsumedPendingOps(previous = setOf("op-1"), current = setOf("op-2")))
+        assertTrue(hasConsumedPendingOps(previous = setOf("op-1"), current = emptySet()))
+    }
+
+    @Test
+    fun `hasConsumedPendingOps is false when ids only grow or stay`() {
+        assertFalse(hasConsumedPendingOps(previous = emptySet(), current = emptySet()))
+        assertFalse(hasConsumedPendingOps(previous = emptySet(), current = setOf("op-1")))
+        assertFalse(hasConsumedPendingOps(previous = setOf("op-1"), current = setOf("op-1", "op-2")))
     }
 
     @Test
