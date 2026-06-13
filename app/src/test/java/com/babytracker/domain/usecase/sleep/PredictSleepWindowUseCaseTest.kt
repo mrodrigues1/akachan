@@ -108,6 +108,29 @@ class PredictSleepWindowUseCaseTest {
         return records.sortedBy { it.startTime }
     }
 
+    /**
+     * Dense prior days (3 naps each over Jun 12–14 → 6 valid 180-min wake intervals, 3 local days)
+     * plus exactly ONE nap today (Jun 15) ending 1h before fixedNow. With no NIGHT_SLEEP records the
+     * learned bedtime is null, so resolveNextSleepType returns NAP. napCountToday = 1 < expectedNaps
+     * (2 at 12w) → the real NapBudgetFactor fires with a "Nap deficit" reason. Used to prove the use
+     * case wires NapBudgetFactor (a Neutral default would omit the reason).
+     */
+    private fun napDeficitRecords(): List<SleepRecord> {
+        var id = 1L
+        val records = mutableListOf<SleepRecord>()
+        for (daysAgo in 3 downTo 1) {
+            val dayBase = fixedNow.minus(Duration.ofDays(daysAgo.toLong()))
+            for (hour in listOf(8L, 12L, 16L)) {
+                val start = dayBase.minus(Duration.ofHours(20 - hour))
+                records += SleepRecord(id++, start, start.plus(Duration.ofHours(1)), SleepType.NAP)
+            }
+        }
+        // Single nap today, ending 1h before now → fresh lastWake, napCountToday = 1.
+        val todayEnd = fixedNow.minus(Duration.ofHours(1))
+        records += SleepRecord(id, todayEnd.minus(Duration.ofHours(1)), todayEnd, SleepType.NAP)
+        return records.sortedBy { it.startTime }
+    }
+
     // Open record started 1h ago — within MAX_OPEN_SLEEP_AGE_HOURS (18h) → triggers CurrentlySleeping.
     private fun openSleepRecord() = SleepRecord(
         id = 99,
@@ -403,6 +426,27 @@ class PredictSleepWindowUseCaseTest {
                 val window = (state as SleepPredictionState.Window).window
                 assertEquals(Confidence.MEDIUM, window.confidence) {
                     "HIGH confidence must not be emitted in Phase 0 — got ${window.confidence}"
+                }
+                awaitComplete()
+            }
+        }
+
+        @Test
+        fun `wires NapBudgetFactor — nap deficit reason appears in window reasons`() = runTest {
+            // Proves PredictSleepWindowUseCase passes the real NapBudgetFactor through; with the
+            // Neutral default the "Nap deficit" reason would be absent.
+            every { sleepRepository.getAllRecords() } returns flowOf(napDeficitRecords())
+            every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
+            every { babyRepository.getBabyProfile() } returns flowOf(babyOfWeeks(12))
+
+            useCase().test {
+                val state = awaitItem()
+                assertTrue(state is SleepPredictionState.Window) {
+                    "Expected a Window for the nap-deficit fixture — got $state"
+                }
+                val reasons = (state as SleepPredictionState.Window).window.reasons
+                assertTrue(reasons.any { it.contains("Nap deficit", ignoreCase = true) }) {
+                    "NapBudgetFactor must be wired — expected a nap-deficit reason, got $reasons"
                 }
                 awaitComplete()
             }

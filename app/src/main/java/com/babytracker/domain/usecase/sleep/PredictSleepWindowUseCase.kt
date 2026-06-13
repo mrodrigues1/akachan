@@ -10,6 +10,8 @@ import com.babytracker.domain.repository.BabyEventRepository
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SleepRepository
+import com.babytracker.domain.sleep.eval.CircadianBiasFactor
+import com.babytracker.domain.sleep.eval.NapBudgetFactor
 import com.babytracker.domain.sleep.eval.SleepDebtFactor
 import com.babytracker.domain.sleep.eval.SleepWindowPredictor
 import com.babytracker.domain.sleep.feature.SleepFeatureExtractor
@@ -92,7 +94,9 @@ class PredictSleepWindowUseCase @Inject constructor(
             features,
             ageInWeeks,
             now,
+            circadianFactorProvider = CircadianBiasFactor::adjustment,
             sleepDebtFactorProvider = SleepDebtFactor::adjustment,
+            napBudgetFactorProvider = NapBudgetFactor::adjustment,
         )
     }
 }
