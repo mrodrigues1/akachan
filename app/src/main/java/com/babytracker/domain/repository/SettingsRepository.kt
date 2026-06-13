@@ -1,5 +1,6 @@
 package com.babytracker.domain.repository
 
+import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.export.domain.model.BackupData
@@ -12,6 +13,8 @@ interface SettingsRepository {
     suspend fun setThemeConfig(themeConfig: ThemeConfig)
     fun getVolumeUnit(): Flow<VolumeUnit>
     suspend fun setVolumeUnit(unit: VolumeUnit)
+    fun getHomeTileOrder(): Flow<List<HomeTile>>
+    suspend fun setHomeTileOrder(order: List<HomeTile>)
     fun isOnboardingComplete(): Flow<Boolean>
     suspend fun setOnboardingComplete(complete: Boolean)
     fun getMaxPerBreastMinutes(): Flow<Int>
