@@ -19,6 +19,12 @@ object SleepPredictionTuning {
     const val MAX_HALF_WINDOW_MINUTES = 60L    // ceiling for dynamic window
     const val HALF_WINDOW_MINUTES = MIN_HALF_WINDOW_MINUTES  // kept for eval harness score threshold
     const val FULL_PERSONALIZATION_INTERVALS = 14
+
+    // Cap on how much the baby's own P50 displaces the age prior in the wake-target blend.
+    // At full personalization (qualityC = 1) the baby's history gets at most this weight (60%)
+    // vs the age prior (40%) — a deliberate shrinkage regularizer that guards data-rich babies
+    // against overfitting to their own noisy wake history. Used twice in the blend, hence named.
+    const val MAX_PERSONALIZATION_WEIGHT = 0.6
     const val MIN_TYPE_INTERVALS = 3           // min type-specific intervals to use type P50
     const val OVERDUE_GRACE_MINUTES = 45L
     const val CUE_LED_MAX_AGE_WEEKS = 6

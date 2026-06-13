@@ -60,9 +60,10 @@ object SleepWindowPredictor {
 
         val qualityC = (typeIntervalCount.toFloat() / SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS)
             .coerceIn(0f, 1f)
+        val personalizationWeight = SleepPredictionTuning.MAX_PERSONALIZATION_WEIGHT
         val wakeTargetMillis = (
-            (1.0 - 0.6 * qualityC) * priorMidpointMillis +
-                0.6 * qualityC * babyP50Millis
+            (1.0 - personalizationWeight * qualityC) * priorMidpointMillis +
+                personalizationWeight * qualityC * babyP50Millis
             ).toLong()
 
         val bestEstimate = Instant.ofEpochMilli(lastWakeMillis + wakeTargetMillis)
@@ -89,10 +90,8 @@ object SleepWindowPredictor {
             ageInWeeks,
             nextType,
         )
-        val totalFactorShift = circadianFactor.adjustment
-            .plus(timeOfDayFactor.adjustment)
-            .plus(sleepDebtFactor.adjustment)
-            .plus(napBudgetFactor.adjustment)
+        val factors = listOf(circadianFactor, timeOfDayFactor, sleepDebtFactor, napBudgetFactor)
+        val totalFactorShift = factors.fold(Duration.ZERO) { acc, f -> acc.plus(f.adjustment) }
         val adjustedBestEstimate = bestEstimate.plus(clampTotalShift(totalFactorShift))
         val windowStart = adjustedBestEstimate.minus(halfWindowDuration)
         val windowEnd = adjustedBestEstimate.plus(halfWindowDuration)
@@ -122,7 +121,7 @@ object SleepWindowPredictor {
                 bestEstimate = adjustedBestEstimate,
                 confidence = confidence,
                 reasons = buildReasons(qualityC, ageInWeeks, nextType, typeIntervalCount) +
-                    listOfNotNull(disruptionReason, circadianFactor.reason, timeOfDayFactor.reason, sleepDebtFactor.reason, napBudgetFactor.reason),
+                    listOfNotNull(disruptionReason) + factors.mapNotNull { it.reason },
                 feedPrompt = computeFeedPrompt(features.feedIntervals, windowStart, windowEnd, now),
                 safetyPrompt = "Always follow your baby's sleep cues — windows are estimates, not schedules.",
             )
@@ -135,6 +134,8 @@ object SleepWindowPredictor {
         combinedIntervalCount: Int,
         ageInWeeks: Int,
     ): Triple<Long, Long, Int>? {
+        // Defensive: the quality gate (≥5 completed wake intervals) guarantees
+        // medianWakeIntervalMillis is non-null here; the null branch is unreachable in practice.
         val combinedP50 = metrics.medianWakeIntervalMillis ?: return null
         return when (nextType) {
             SleepType.NAP -> {
