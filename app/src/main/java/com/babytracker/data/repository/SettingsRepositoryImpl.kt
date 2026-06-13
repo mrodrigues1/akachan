@@ -92,6 +92,10 @@ class SettingsRepositoryImpl @Inject constructor(
         dataStore.edit { it[HOME_TILE_ORDER] = HomeTile.serialize(order) }
     }
 
+    override suspend fun clearHomeTileOrder() {
+        dataStore.edit { it.remove(HOME_TILE_ORDER) }
+    }
+
     override fun isOnboardingComplete(): Flow<Boolean> =
         dataStore.data.map { it[ONBOARDING_COMPLETE] ?: false }
 

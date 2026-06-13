@@ -155,6 +155,10 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch { runCatching { settingsRepository.setHomeTileOrder(newOrder) } }
     }
 
+    fun onResetTileOrder() {
+        viewModelScope.launch { runCatching { settingsRepository.clearHomeTileOrder() } }
+    }
+
     init {
         viewModelScope.launch { runCatching { syncToFirestore() } }
     }
