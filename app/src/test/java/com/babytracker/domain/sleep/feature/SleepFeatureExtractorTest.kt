@@ -36,7 +36,7 @@ class SleepFeatureExtractorTest {
         assertTrue(SleepPredictionTuning.LOOKBACK_DAYS > 0)
         assertTrue(SleepPredictionTuning.MAX_NAP_DURATION_HOURS > 0)
         assertTrue(SleepPredictionTuning.HALF_WINDOW_MINUTES > 0)
-        assertEquals("sleep-pred-phase4-iqr-fallback-1", SleepPredictionTuning.ALGORITHM_VERSION)
+        assertEquals("sleep-pred-phase5-later-shift-stale-1", SleepPredictionTuning.ALGORITHM_VERSION)
     }
 
     @Test
