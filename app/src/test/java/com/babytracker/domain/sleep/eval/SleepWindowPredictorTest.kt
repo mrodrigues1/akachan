@@ -658,9 +658,9 @@ class SleepWindowPredictorTest {
     }
 
     @Test
-    fun `ALGORITHM_VERSION is phase3 cue-disruption version`() {
+    fun `ALGORITHM_VERSION is phase4 factor-clamp version`() {
         assertEquals(
-            "sleep-pred-phase3-cue-disruption-1",
+            "sleep-pred-phase4-factor-clamp-1",
             SleepPredictionTuning.ALGORITHM_VERSION,
             "ALGORITHM_VERSION must be bumped when changing prediction algorithm",
         )
@@ -848,6 +848,52 @@ class SleepWindowPredictorTest {
             },
         )
         assertInstanceOf(SleepPredictionState.Window::class.java, result)
+    }
+
+    @Test
+    fun `summed factor shift exceeding cap is clamped to MAX_TOTAL_FACTOR_SHIFT_MINUTES`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofMinutes(60)).toEpochMilli()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+        val neutral = SleepWindowPredictor.predict(
+            features(metrics = metrics), ageInWeeks, baseNow,
+        ) as SleepPredictionState.Window
+        // Two factors of -30 min each → raw sum -60 min, exceeds the 45 min cap.
+        val clamped = SleepWindowPredictor.predict(
+            features(metrics = metrics), ageInWeeks, baseNow,
+            sleepDebtFactorProvider = { _, _, _ -> SleepPredictionFactor(adjustment = Duration.ofMinutes(-30)) },
+            napBudgetFactorProvider = { _, _, _ -> SleepPredictionFactor(adjustment = Duration.ofMinutes(-30)) },
+        ) as SleepPredictionState.Window
+        val shiftMinutes = Duration.between(clamped.window.bestEstimate, neutral.window.bestEstimate).toMinutes()
+        assertEquals(
+            SleepPredictionTuning.MAX_TOTAL_FACTOR_SHIFT_MINUTES, shiftMinutes,
+            "Summed factor shift beyond the cap must be clamped to MAX_TOTAL_FACTOR_SHIFT_MINUTES",
+        )
+    }
+
+    @Test
+    fun `summed factor shift within cap is applied unchanged`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofMinutes(60)).toEpochMilli()
+        val metrics = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        )
+        val neutral = SleepWindowPredictor.predict(
+            features(metrics = metrics), ageInWeeks, baseNow,
+        ) as SleepPredictionState.Window
+        // Two factors of -10 min each → raw sum -20 min, within the 45 min cap.
+        val applied = SleepWindowPredictor.predict(
+            features(metrics = metrics), ageInWeeks, baseNow,
+            sleepDebtFactorProvider = { _, _, _ -> SleepPredictionFactor(adjustment = Duration.ofMinutes(-10)) },
+            napBudgetFactorProvider = { _, _, _ -> SleepPredictionFactor(adjustment = Duration.ofMinutes(-10)) },
+        ) as SleepPredictionState.Window
+        val shiftMinutes = Duration.between(applied.window.bestEstimate, neutral.window.bestEstimate).toMinutes()
+        assertEquals(
+            20L, shiftMinutes,
+            "Summed factor shift within the cap must be applied unchanged",
+        )
     }
 
     @Test
