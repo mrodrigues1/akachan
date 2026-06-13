@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import java.io.IOException
 
 class ObservePartnerFeedHistoryUseCaseTest {
     private val sharingRepository: SharingRepository = mockk()
@@ -43,5 +44,18 @@ class ObservePartnerFeedHistoryUseCaseTest {
         }
 
         coVerify { settingsRepository.clearPartnerStateIfShareCodeMatches("CODE1234") }
+    }
+
+    @Test
+    fun `non-revoked listener failure wraps as PartnerDataFetchException`() = runTest {
+        every { sharingRepository.observeOwnFeedOps(any(), "partner-uid") } returns flow {
+            throw IOException("network down")
+        }
+
+        assertThrows<PartnerDataFetchException> {
+            runBlocking {
+                useCase(emptyList()).first()
+            }
+        }
     }
 }

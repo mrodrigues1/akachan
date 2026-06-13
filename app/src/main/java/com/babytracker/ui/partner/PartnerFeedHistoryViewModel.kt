@@ -12,7 +12,6 @@ import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
 import com.babytracker.sharing.usecase.ObservePartnerFeedHistoryUseCase
 import com.babytracker.sharing.usecase.PartnerAccessRevokedException
 import com.babytracker.sharing.usecase.PartnerDataFetchException
-import com.babytracker.sharing.usecase.PartnerFeedHistoryException
 import com.babytracker.widget.WidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -92,15 +91,8 @@ class PartnerFeedHistoryViewModel @Inject constructor(
                     )
                 }
                 widgetUpdater.updateAll()
-            } catch (error: PartnerFeedHistoryException) {
-                _uiState.update { it.copy(isLoading = false, error = error.message) }
             } catch (error: PartnerDataFetchException) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        error = error.message,
-                    )
-                }
+                _uiState.update { it.copy(isLoading = false, error = error.message) }
             } catch (error: IllegalStateException) {
                 _uiState.update { it.copy(isLoading = false, error = error.message) }
             }

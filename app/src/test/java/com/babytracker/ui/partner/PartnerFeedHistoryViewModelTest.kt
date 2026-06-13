@@ -13,7 +13,6 @@ import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
 import com.babytracker.sharing.usecase.ObservePartnerFeedHistoryUseCase
 import com.babytracker.sharing.usecase.PartnerAccessRevokedException
 import com.babytracker.sharing.usecase.PartnerDataFetchException
-import com.babytracker.sharing.usecase.PartnerFeedHistoryException
 import com.babytracker.widget.WidgetUpdater
 import io.mockk.coEvery
 import io.mockk.coJustRun
@@ -144,7 +143,7 @@ class PartnerFeedHistoryViewModelTest {
     fun `listener feed history exception clears loading and shows error`() = runTest {
         coEvery { fetchPartnerData() } returns snapshot()
         coEvery { observePartnerFeedHistory(any()) } returns flow {
-            throw PartnerFeedHistoryException("Could not load feed history")
+            throw PartnerDataFetchException("Could not load feed history")
         }
 
         val viewModel = viewModel()
