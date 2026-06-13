@@ -103,6 +103,7 @@ class PredictiveSleepReceiverTest {
             override suspend fun setVolumeUnit(unit: VolumeUnit) = Unit
             override fun getHomeTileOrder(): Flow<List<HomeTile>> = flowOf(HomeTile.DEFAULT_ORDER)
             override suspend fun setHomeTileOrder(order: List<HomeTile>) = Unit
+            override suspend fun clearHomeTileOrder() = Unit
             override fun isOnboardingComplete(): Flow<Boolean> = flowOf(true)
             override suspend fun setOnboardingComplete(complete: Boolean) = Unit
             override fun getMaxPerBreastMinutes(): Flow<Int> = flowOf(0)
