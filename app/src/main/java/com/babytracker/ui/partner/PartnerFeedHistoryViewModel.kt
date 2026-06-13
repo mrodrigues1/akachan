@@ -16,9 +16,13 @@ import com.babytracker.widget.WidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -46,9 +50,22 @@ class PartnerFeedHistoryViewModel @Inject constructor(
 
     private var historyJob: Job? = null
     private var lastPendingOpIds = emptySet<String>()
+    // replay = 1 so a trigger emitted before the debounce collector subscribes is not lost.
+    private val refreshTrigger = MutableSharedFlow<Unit>(
+        replay = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
 
     init {
         refresh()
+        viewModelScope.launch {
+            // Debounce: rapid emissions while ops are consumed restart the delay, so a burst of
+            // consumed ops costs one snapshot refetch + listener restart instead of one each.
+            refreshTrigger.collectLatest {
+                delay(REFRESH_DEBOUNCE_MS)
+                refresh()
+            }
+        }
         viewModelScope.launch {
             settingsRepository.getVolumeUnit().collect { unit ->
                 _uiState.update { it.copy(volumeUnit = unit) }
@@ -69,16 +86,13 @@ class PartnerFeedHistoryViewModel @Inject constructor(
                     )
                 }
                 observePartnerFeedHistory(snapshot.bottleFeeds).collect { merged ->
-                    val pendingNow = merged.pendingOpIds
                     _uiState.update {
                         it.copy(entries = merged.entries, isLoading = false)
                     }
-                    if (lastPendingOpIds.any { it !in pendingNow }) {
-                        lastPendingOpIds = pendingNow
-                        refresh()
-                        return@collect
+                    if (hasConsumedPendingOps(lastPendingOpIds, merged.pendingOpIds)) {
+                        refreshTrigger.tryEmit(Unit)
                     }
-                    lastPendingOpIds = pendingNow
+                    lastPendingOpIds = merged.pendingOpIds
                 }
             } catch (error: CancellationException) {
                 throw error
@@ -123,4 +137,17 @@ class PartnerFeedHistoryViewModel @Inject constructor(
 
     fun isEditable(entry: BottleFeedSnapshot): Boolean =
         entry.author == FeedAuthor.PARTNER.name && entry.clientId.isNotEmpty()
+
+    private companion object {
+        const val REFRESH_DEBOUNCE_MS = 300L
+    }
 }
+
+/**
+ * True when an op that was pending in [previous] is no longer in [current] — the primary consumed
+ * it and pushed an updated snapshot, so the stale one-shot snapshot must be re-fetched.
+ */
+internal fun hasConsumedPendingOps(
+    previous: Set<String>,
+    current: Set<String>,
+): Boolean = previous.any { it !in current }
