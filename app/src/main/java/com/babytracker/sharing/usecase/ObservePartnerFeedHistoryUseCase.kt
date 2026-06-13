@@ -31,7 +31,7 @@ class ObservePartnerFeedHistoryUseCase @Inject constructor(
                 if (revoked != null) {
                     throw revoked
                 }
-                throw PartnerFeedHistoryException("Could not load feed history", error)
+                throw PartnerDataFetchException("Could not load feed history", error)
             }
     }
 }
