@@ -243,7 +243,7 @@ class PartnerDashboardScreenTest {
 
         composeRule.onNodeWithText("RECENT FEEDINGS").assertIsDisplayed()
         composeRule.onNodeWithText("LAST SLEEP").assertIsDisplayed()
-        composeRule.onNodeWithText("ALLERGIES").assertIsDisplayed()
+        composeRule.onNodeWithText("ALLERGIES").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Latest care").assertIsDisplayed()
         composeRule.onNodeWithText("Fed 25m ago").assertIsDisplayed()
         composeRule.onNodeWithText("Napped 1h 0m ago").performScrollTo().assertIsDisplayed()
