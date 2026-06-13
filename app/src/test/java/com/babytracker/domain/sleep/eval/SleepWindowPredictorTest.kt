@@ -497,6 +497,29 @@ class SleepWindowPredictorTest {
     }
 
     @Test
+    fun `Window feedPrompt uses median feed interval so a single outlier gap does not skew prediction`() {
+        // Feeds (most-recent first), all within the 12 h freshness horizon. Intervals between
+        // consecutive starts are [50, 50, 50, 360] min — one overnight-sized outlier.
+        //   median = 50 min  → predictedNextFeed = baseNow + 20 min  → inside window  → non-null
+        //   mean   ≈ 127 min → predictedNextFeed ≈ baseNow + 97 min  → past tolerance → null
+        // Asserting non-null locks in median behavior; the old mean code returned null here.
+        val starts = longArrayOf(1800, 4800, 7800, 10800, 32400) // seconds before baseNow
+        val feeds = starts.map { offset ->
+            BreastfeedInterval(
+                startMillis = baseNow.minusSeconds(offset).toEpochMilli(),
+                endMillis = baseNow.minusSeconds(offset - 1200).toEpochMilli(),
+            )
+        }
+        val result = SleepWindowPredictor.predict(features(feedIntervals = feeds), ageInWeeks, baseNow)
+        val window = (result as SleepPredictionState.Window).window
+        assertEquals(
+            true,
+            window.feedPrompt != null,
+            "Expected non-null feedPrompt: median interval keeps predicted feed inside the window despite an outlier gap",
+        )
+    }
+
+    @Test
     fun `Window feedPrompt is null when no recent completed feeds`() {
         val result = SleepWindowPredictor.predict(features(feedIntervals = emptyList()), ageInWeeks, baseNow)
         val window = (result as SleepPredictionState.Window).window
