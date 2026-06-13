@@ -5,6 +5,7 @@ import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
+import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.toSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
 import kotlinx.coroutines.flow.first
@@ -47,6 +48,7 @@ class GenerateShareCodeUseCase @Inject constructor(
         val activeBags = sources.inventory.getActiveBags().first()
         val bottleFeeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
         val timestamp = now()
+        val prediction = buildPrediction(timestamp.toEpochMilli())
         return ShareSnapshot(
             lastSyncAt = timestamp,
             baby = baby?.toSnapshot() ?: BabySnapshot("", 0L, emptyList()),
@@ -57,8 +59,16 @@ class GenerateShareCodeUseCase @Inject constructor(
             inventoryBagCount = summary.bagCount,
             inventoryUpdatedAt = timestamp.toEpochMilli(),
             milkBags = activeBags.map { it.toSnapshot() },
+            sleepPrediction = prediction,
         )
     }
+
+    private suspend fun buildPrediction(generatedAtMs: Long): SleepPredictionSnapshot? =
+        if (settingsRepository.getPredictiveSleepEnabled().first()) {
+            sources.predictSleepWindow().first().toSnapshot(generatedAtMs)
+        } else {
+            null
+        }
 
     companion object {
         private const val CODE_LENGTH = 8

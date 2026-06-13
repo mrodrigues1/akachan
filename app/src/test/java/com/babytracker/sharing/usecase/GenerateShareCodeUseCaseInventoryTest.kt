@@ -3,6 +3,7 @@ package com.babytracker.sharing.usecase
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.MilkBag
+import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
@@ -67,6 +68,8 @@ class GenerateShareCodeUseCaseInventoryTest {
         coEvery { sharingRepository.syncFullSnapshot(any(), any()) } just Runs
         coEvery { settingsRepository.setShareCode(any()) } just Runs
         coEvery { settingsRepository.setAppMode(any()) } just Runs
+        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
+        every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("disabled"))
     }
 
     @Test
