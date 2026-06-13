@@ -101,24 +101,23 @@ class BottleFeedViewModel @Inject constructor(
     fun onSave() {
         val state = _uiState.value
         if (state.isSaving) return
-        val volume = state.volumeText.toIntOrNull()
-        if (volume == null || volume <= 0) {
-            _uiState.update { it.copy(validationError = "Enter a volume") }
+        val input = state.parseBottleFeedInput()
+        if (input == null) {
+            _uiState.update { it.copy(validationError = BOTTLE_FEED_VOLUME_ERROR) }
             return
         }
         // Set the guard synchronously so a second rapid tap is rejected before its coroutine launches.
         _uiState.update { it.copy(isSaving = true) }
-        val notes = state.notes.trim().ifBlank { null }
         viewModelScope.launch {
             runCatching {
                 val editingId = state.editingId
                 if (editingId == null) {
                     val linkedBag = state.activeBags.firstOrNull { it.id == state.selectedBagId }
                         .takeIf { state.feedType == FeedType.BREAST_MILK }
-                    logBottleFeed(state.timestamp, volume, state.feedType, linkedBag, notes)
+                    logBottleFeed(state.timestamp, input.volumeMl, state.feedType, linkedBag, input.notes)
                 } else {
                     val linkedBagId = state.selectedBagId.takeIf { state.feedType == FeedType.BREAST_MILK }
-                    editBottleFeed(editingId, state.timestamp, volume, state.feedType, linkedBagId, notes)
+                    editBottleFeed(editingId, state.timestamp, input.volumeMl, state.feedType, linkedBagId, input.notes)
                 }
             }.onSuccess {
                 _uiState.update { it.copy(isSaving = false, saved = true) }
