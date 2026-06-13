@@ -13,6 +13,7 @@ import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.BabyRepository
@@ -339,6 +340,12 @@ class SettingsScreenPredictionTest {
         override fun getVolumeUnit(): Flow<VolumeUnit> = flowOf(VolumeUnit.ML)
 
         override suspend fun setVolumeUnit(unit: VolumeUnit) = Unit
+
+        override fun getHomeTileOrder(): Flow<List<HomeTile>> = flowOf(HomeTile.DEFAULT_ORDER)
+
+        override suspend fun setHomeTileOrder(order: List<HomeTile>) = Unit
+
+        override suspend fun clearHomeTileOrder() = Unit
 
         override fun isOnboardingComplete(): Flow<Boolean> = flowOf(true)
 

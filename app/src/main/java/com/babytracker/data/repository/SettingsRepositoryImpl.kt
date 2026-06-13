@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
@@ -29,6 +30,7 @@ class SettingsRepositoryImpl @Inject constructor(
         const val TAG = "SettingsRepository"
         val THEME_CONFIG = stringPreferencesKey("theme_config")
         val VOLUME_UNIT = stringPreferencesKey("volume_unit")
+        val HOME_TILE_ORDER = stringPreferencesKey("home_tile_order")
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val MAX_PER_BREAST_MINUTES = intPreferencesKey("max_per_breast_minutes")
         val MAX_TOTAL_FEED_MINUTES = intPreferencesKey("max_total_feed_minutes")
@@ -81,6 +83,17 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setVolumeUnit(unit: VolumeUnit) {
         dataStore.edit { it[VOLUME_UNIT] = unit.name }
+    }
+
+    override fun getHomeTileOrder(): Flow<List<HomeTile>> =
+        dataStore.data.map { HomeTile.deserialize(it[HOME_TILE_ORDER]) }
+
+    override suspend fun setHomeTileOrder(order: List<HomeTile>) {
+        dataStore.edit { it[HOME_TILE_ORDER] = HomeTile.serialize(order) }
+    }
+
+    override suspend fun clearHomeTileOrder() {
+        dataStore.edit { it.remove(HOME_TILE_ORDER) }
     }
 
     override fun isOnboardingComplete(): Flow<Boolean> =
@@ -252,6 +265,7 @@ class SettingsRepositoryImpl @Inject constructor(
     }
 
     override suspend fun restoreFromBackup(data: BackupData) {
+        // TODO(AKA-132 follow-up): backup/restore does not yet carry home_tile_order across devices.
         dataStore.edit { p ->
             val baby = data.baby
             if (baby != null) {

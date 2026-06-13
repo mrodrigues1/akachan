@@ -6,6 +6,7 @@ import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedPrediction
+import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepPredictionState
@@ -55,6 +56,7 @@ data class HomeUiState(
     val sleepPrediction: SleepPredictionState = SleepPredictionState.Unavailable("loading"),
     val volumeUnit: VolumeUnit = VolumeUnit.ML,
     val todayFeedingSummary: TodayFeedingSummary = TodayFeedingSummary(),
+    val tileOrder: List<HomeTile> = HomeTile.DEFAULT_ORDER,
 )
 
 @HiltViewModel
@@ -63,7 +65,7 @@ class HomeViewModel @Inject constructor(
     getBreastfeedingHistory: GetBreastfeedingHistoryUseCase,
     getSleepHistory: GetSleepHistoryUseCase,
     private val syncToFirestore: SyncToFirestoreUseCase,
-    settingsRepository: SettingsRepository,
+    private val settingsRepository: SettingsRepository,
     pumpingRepository: PumpingRepository,
     inventoryRepository: InventoryRepository,
     predictNextFeed: PredictNextFeedUseCase,
@@ -136,16 +138,25 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = combine(
         baseState,
         observeTodayFeedingSummary(),
-    ) { base, todayFeedingSummary ->
-        base.copy(todayFeedingSummary = todayFeedingSummary)
+        settingsRepository.getHomeTileOrder(),
+    ) { base, todayFeedingSummary, tileOrder ->
+        base.copy(todayFeedingSummary = todayFeedingSummary, tileOrder = tileOrder)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
-        initialValue = HomeUiState()
+        initialValue = HomeUiState(),
     )
 
     fun onCueTapped(type: BabyEventType) {
         viewModelScope.launch { runCatching { logBabyEvent(type) } }
+    }
+
+    fun onTilesReordered(newOrder: List<HomeTile>) {
+        viewModelScope.launch { runCatching { settingsRepository.setHomeTileOrder(newOrder) } }
+    }
+
+    fun onResetTileOrder() {
+        viewModelScope.launch { runCatching { settingsRepository.clearHomeTileOrder() } }
     }
 
     init {
