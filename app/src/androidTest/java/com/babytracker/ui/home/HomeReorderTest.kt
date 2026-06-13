@@ -32,7 +32,7 @@ class HomeReorderTest {
     fun defaultOrder_rendersCoreTiles() {
         composeRule.setContent {
             BabyTrackerTheme {
-                HomeContent(uiState = HomeUiState(), callbacks = noOpCallbacks)
+                HomeContent(uiState = HomeUiState(), callbacks = noOpCallbacks, onReorder = {})
             }
         }
         composeRule.onNodeWithText("Breastfeeding").assertIsDisplayed()
@@ -50,6 +50,7 @@ class HomeReorderTest {
                 HomeContent(
                     uiState = HomeUiState(nextRecommendedSide = null),
                     callbacks = noOpCallbacks,
+                    onReorder = {},
                 )
             }
         }
@@ -63,6 +64,7 @@ class HomeReorderTest {
                 HomeContent(
                     uiState = HomeUiState(nextRecommendedSide = BreastSide.LEFT),
                     callbacks = noOpCallbacks,
+                    onReorder = {},
                 )
             }
         }
@@ -76,6 +78,7 @@ class HomeReorderTest {
                 HomeContent(
                     uiState = HomeUiState(appMode = AppMode.PRIMARY),
                     callbacks = noOpCallbacks,
+                    onReorder = {},
                 )
             }
         }

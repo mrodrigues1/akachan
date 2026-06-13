@@ -18,9 +18,12 @@ import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import io.mockk.coEvery
 import io.mockk.coJustRun
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -126,5 +129,17 @@ class HomeViewModelTileOrderTest {
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(custom, viewModel.uiState.value.tileOrder)
+    }
+
+    @Test
+    fun onTilesReordered_persistsNewOrder() = runTest {
+        val slot = slot<List<HomeTile>>()
+        coEvery { settingsRepository.setHomeTileOrder(capture(slot)) } returns Unit
+        viewModel = createViewModel()
+        val moved = listOf(HomeTile.SLEEP) + HomeTile.DEFAULT_ORDER.filter { it != HomeTile.SLEEP }
+        viewModel.onTilesReordered(moved)
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify { settingsRepository.setHomeTileOrder(moved) }
+        assertEquals(moved, slot.captured)
     }
 }

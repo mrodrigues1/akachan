@@ -34,6 +34,7 @@ junit4 = "4.13.2"
 androidxTestCore = "1.6.1"
 kover = "0.9.1"
 twitterComposeRules = "0.0.26"
+reorderable = "3.1.0"
 
 [libraries]
 # Compose BOM
@@ -120,6 +121,9 @@ compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-mani
 # Android JUnit 5 (instrumented tests)
 mannodermaus-core = { group = "de.mannodermaus.junit5", name = "android-test-core", version.ref = "androidJunit5" }
 mannodermaus-runner = { group = "de.mannodermaus.junit5", name = "android-test-runner", version.ref = "androidJunit5" }
+
+# Reorderable
+reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
