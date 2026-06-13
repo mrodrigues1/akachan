@@ -222,11 +222,16 @@ object SleepWindowPredictor {
         }
         val minMillis = Duration.ofMinutes(SleepPredictionTuning.MIN_HALF_WINDOW_MINUTES).toMillis()
         val maxMillis = Duration.ofMinutes(SleepPredictionTuning.MAX_HALF_WINDOW_MINUTES).toMillis()
-        return if (p25 != null && p75 != null) {
-            ((p75 - p25) / 2).coerceIn(minMillis, maxMillis)
-        } else {
-            minMillis
+        val halfWidthMillis = when {
+            p25 != null && p75 != null -> (p75 - p25) / 2
+            // Type-specific quartiles need ≥4 intervals, but the type P50 center is trusted from 3
+            // (MIN_TYPE_INTERVALS). Bridge that gap with the combined-history IQR — guaranteed present
+            // by the ≥5 completed-interval quality gate — so a confident center isn't paired with a
+            // MIN-floored window.
+            metrics.wakeIntervalIqrMillis != null -> metrics.wakeIntervalIqrMillis / 2
+            else -> minMillis
         }
+        return halfWidthMillis.coerceIn(minMillis, maxMillis)
     }
 
     private fun buildProgress(quality: EvidenceQuality) = EvidenceProgress(

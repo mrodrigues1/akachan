@@ -46,5 +46,5 @@ object SleepPredictionTuning {
     const val MIN_QUALIFIED_TZ_PROVENANCE_RATE = 0.5f
     const val HIGH_CONFIDENCE_QUALITY_C_THRESHOLD = 0.8f
     const val DISRUPTION_LOOKBACK_HOURS = 48L
-    const val ALGORITHM_VERSION = "sleep-pred-phase4-factor-clamp-1"
+    const val ALGORITHM_VERSION = "sleep-pred-phase4-iqr-fallback-1"
 }

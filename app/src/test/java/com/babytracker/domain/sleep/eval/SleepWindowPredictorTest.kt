@@ -440,7 +440,33 @@ class SleepWindowPredictorTest {
         val window = (result as SleepPredictionState.Window).window
         val halfWindowMinutes = Duration.between(window.bestEstimate, window.windowEnd).toMinutes()
         assertEquals(SleepPredictionTuning.MIN_HALF_WINDOW_MINUTES, halfWindowMinutes,
-            "Half-window should be MIN when no quartile data")
+            "Half-window should be MIN when no quartile data and combined IQR below floor")
+    }
+
+    @Test
+    fun `dynamic half-window falls back to combined IQR at exactly MIN_TYPE_INTERVALS without type quartiles`() {
+        // AKA-127: at exactly 3 type intervals the type P50 center is trusted, but type-specific
+        // quartiles need 4 → they are null. The half-window must bridge with the combined-history
+        // IQR rather than flooring to MIN, otherwise a confident center pairs with a too-narrow window.
+        // IQR stays within INSTABILITY_CEILING_MINUTES so this mirrors a state the quality gate accepts.
+        val lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli()
+        val combinedIqrMillis = Duration.ofMinutes(SleepPredictionTuning.INSTABILITY_CEILING_MINUTES - 1).toMillis()
+        val metricsBoundary = sufficientMetrics(
+            lastWakeMillis = lastWakeMillis,
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+            napWakeIntervalCount = SleepPredictionTuning.MIN_TYPE_INTERVALS,
+            napWakeP50Millis = Duration.ofMinutes(90).toMillis(),
+        ).copy(wakeIntervalIqrMillis = combinedIqrMillis)
+        val result = SleepWindowPredictor.predict(features(metrics = metricsBoundary), ageInWeeks, baseNow)
+        val window = (result as SleepPredictionState.Window).window
+        val halfWindowMinutes = Duration.between(window.bestEstimate, window.windowEnd).toMinutes()
+        assertEquals(
+            Duration.ofMillis(combinedIqrMillis / 2).toMinutes(),
+            halfWindowMinutes,
+            "Half-window should derive from combined IQR (IQR/2) when only the type P50 is available",
+        )
+        assertTrue(halfWindowMinutes > SleepPredictionTuning.MIN_HALF_WINDOW_MINUTES,
+            "Combined-IQR fallback must widen beyond MIN at the 3-interval boundary; got $halfWindowMinutes min")
     }
 
     @Test
@@ -658,9 +684,9 @@ class SleepWindowPredictorTest {
     }
 
     @Test
-    fun `ALGORITHM_VERSION is phase4 factor-clamp version`() {
+    fun `ALGORITHM_VERSION is phase4 iqr-fallback version`() {
         assertEquals(
-            "sleep-pred-phase4-factor-clamp-1",
+            "sleep-pred-phase4-iqr-fallback-1",
             SleepPredictionTuning.ALGORITHM_VERSION,
             "ALGORITHM_VERSION must be bumped when changing prediction algorithm",
         )
