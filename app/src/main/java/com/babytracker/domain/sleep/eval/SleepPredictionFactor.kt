@@ -1,7 +1,6 @@
 package com.babytracker.domain.sleep.eval
 
 import com.babytracker.domain.model.SleepType
-import com.babytracker.domain.sleep.feature.SleepMetrics
 import java.time.Duration
 
 data class SleepPredictionFactor(
@@ -19,13 +18,6 @@ typealias CircadianFactorProvider = (
     Int?,
     Int?,
     Int,
-) -> SleepPredictionFactor
-
-typealias TimeOfDayFactorProvider = (
-    SleepMetrics,
-    SleepType,
-    Int?,
-    Boolean,
 ) -> SleepPredictionFactor
 
 typealias SleepDebtFactorProvider = (
