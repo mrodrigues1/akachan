@@ -52,4 +52,11 @@ class SettingsRepositoryHomeTileTest {
         repository.setHomeTileOrder(custom)
         assertEquals(custom, repository.getHomeTileOrder().first())
     }
+
+    @Test
+    fun `clear resets to default order`() = runTest {
+        repository.setHomeTileOrder(listOf(HomeTile.PARTNER) + HomeTile.DEFAULT_ORDER.filter { it != HomeTile.PARTNER })
+        repository.clearHomeTileOrder()
+        assertEquals(HomeTile.DEFAULT_ORDER, repository.getHomeTileOrder().first())
+    }
 }

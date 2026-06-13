@@ -142,4 +142,13 @@ class HomeViewModelTileOrderTest {
         coVerify { settingsRepository.setHomeTileOrder(moved) }
         assertEquals(moved, slot.captured)
     }
+
+    @Test
+    fun onResetTileOrder_clearsPersistedOrder() = runTest {
+        coEvery { settingsRepository.clearHomeTileOrder() } returns Unit
+        viewModel = createViewModel()
+        viewModel.onResetTileOrder()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify { settingsRepository.clearHomeTileOrder() }
+    }
 }

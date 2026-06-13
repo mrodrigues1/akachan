@@ -15,6 +15,7 @@ interface SettingsRepository {
     suspend fun setVolumeUnit(unit: VolumeUnit)
     fun getHomeTileOrder(): Flow<List<HomeTile>>
     suspend fun setHomeTileOrder(order: List<HomeTile>)
+    suspend fun clearHomeTileOrder()
     fun isOnboardingComplete(): Flow<Boolean>
     suspend fun setOnboardingComplete(complete: Boolean)
     fun getMaxPerBreastMinutes(): Flow<Int>

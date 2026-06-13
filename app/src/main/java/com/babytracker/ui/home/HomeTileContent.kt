@@ -45,8 +45,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.BreastSide
@@ -100,6 +104,7 @@ internal fun HomeContent(
     onReorder: (List<HomeTile>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptics = LocalHapticFeedback.current
     // Persisted order arrives async via StateFlow; mirror locally for lag-free drag, re-sync on emit.
     var orderState by remember { mutableStateOf(uiState.tileOrder) }
     LaunchedEffect(uiState.tileOrder) { orderState = uiState.tileOrder }
@@ -136,6 +141,25 @@ internal fun HomeContent(
                     if (tile.isFullWidth()) StaggeredGridItemSpan.FullLine else StaggeredGridItemSpan.SingleLane
                 },
             ) { tile ->
+                val index = visibleTiles.indexOf(tile)
+                val moveActions = buildList {
+                    if (index > 0) {
+                        add(
+                            CustomAccessibilityAction("Move up") {
+                                onReorder(reorderByKey(orderState, visibleTiles, tile, visibleTiles[index - 1]))
+                                true
+                            },
+                        )
+                    }
+                    if (index < visibleTiles.lastIndex) {
+                        add(
+                            CustomAccessibilityAction("Move down") {
+                                onReorder(reorderByKey(orderState, visibleTiles, tile, visibleTiles[index + 1]))
+                                true
+                            },
+                        )
+                    }
+                }
                 ReorderableItem(reorderableState, key = tile.name) { isDragging ->
                     val elevation by animateDpAsState(
                         targetValue = if (isDragging) 8.dp else 0.dp,
@@ -148,8 +172,13 @@ internal fun HomeContent(
                         modifier = Modifier
                             .heightIn(min = if (tile.isFullWidth()) 0.dp else 140.dp)
                             .shadow(elevation, MaterialTheme.shapes.large)
+                            .semantics { customActions = moveActions }
                             .longPressDraggableHandle(
+                                onDragStarted = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                },
                                 onDragStopped = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                     if (orderState != uiState.tileOrder) onReorder(orderState)
                                 },
                             ),
