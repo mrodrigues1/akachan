@@ -145,16 +145,20 @@ internal fun HomeContent(
                 val moveActions = buildList {
                     if (index > 0) {
                         add(
-                            CustomAccessibilityAction("Move up") {
-                                onReorder(reorderByKey(orderState, visibleTiles, tile, visibleTiles[index - 1]))
+                            CustomAccessibilityAction("Move earlier") {
+                                val moved = reorderByKey(orderState, visibleTiles, tile, visibleTiles[index - 1])
+                                orderState = moved
+                                onReorder(moved)
                                 true
                             },
                         )
                     }
                     if (index < visibleTiles.lastIndex) {
                         add(
-                            CustomAccessibilityAction("Move down") {
-                                onReorder(reorderByKey(orderState, visibleTiles, tile, visibleTiles[index + 1]))
+                            CustomAccessibilityAction("Move later") {
+                                val moved = reorderByKey(orderState, visibleTiles, tile, visibleTiles[index + 1])
+                                orderState = moved
+                                onReorder(moved)
                                 true
                             },
                         )

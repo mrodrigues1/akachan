@@ -345,6 +345,8 @@ class SettingsScreenPredictionTest {
 
         override suspend fun setHomeTileOrder(order: List<HomeTile>) = Unit
 
+        override suspend fun clearHomeTileOrder() = Unit
+
         override fun isOnboardingComplete(): Flow<Boolean> = flowOf(true)
 
         override suspend fun setOnboardingComplete(complete: Boolean) = Unit
