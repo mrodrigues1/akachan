@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.BabySex
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +33,7 @@ data class OnboardingUiState(
     val babyNameError: String? = null,
     val birthDate: LocalDate = LocalDate.now(),
     val birthDateError: String? = null,
+    val sex: BabySex = BabySex.UNSPECIFIED,
     val selectedAllergies: Set<AllergyType> = emptySet(),
     val customAllergyNote: String = "",
     val showAgeWarning: Boolean = false,
@@ -82,6 +84,10 @@ class OnboardingViewModel @Inject constructor(
                 showAgeWarning = monthsAgo > 12,
             )
         }
+    }
+
+    fun onSexSelected(sex: BabySex) {
+        _uiState.update { it.copy(sex = sex) }
     }
 
     fun onAllergyToggled(allergy: AllergyType) {
@@ -151,6 +157,7 @@ class OnboardingViewModel @Inject constructor(
                 allergies = state.selectedAllergies.toList(),
                 customAllergyNote = state.customAllergyNote
                     .takeIf { AllergyType.OTHER in state.selectedAllergies && it.isNotBlank() },
+                sex = state.sex,
             )
             try {
                 saveBabyProfile(baby)

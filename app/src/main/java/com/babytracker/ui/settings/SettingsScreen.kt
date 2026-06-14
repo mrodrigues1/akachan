@@ -97,6 +97,7 @@ import com.babytracker.BuildConfig
 import com.babytracker.R
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.BabySex
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.sharing.domain.model.AppMode
@@ -112,7 +113,7 @@ private val LEAD_TIME_MINUTES = listOf(5, 10, 15, 30)
 private const val MINUTES_PER_DAY = 1440
 
 private enum class SettingsSheet {
-    NAME, BIRTH_DATE, ALLERGIES, MAX_PER_BREAST, MAX_TOTAL_FEED, THEME
+    NAME, BIRTH_DATE, SEX, ALLERGIES, MAX_PER_BREAST, MAX_TOTAL_FEED, THEME
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -282,6 +283,13 @@ fun SettingsScreen(
                     label = "Date of birth",
                     value = birthDateText,
                     onClick = { activeSheet = SettingsSheet.BIRTH_DATE }
+                )
+                HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+
+                SettingsRow(
+                    label = "Sex",
+                    value = uiState.baby?.sex?.label ?: "Not set",
+                    onClick = { activeSheet = SettingsSheet.SEX }
                 )
                 HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
 
@@ -694,6 +702,18 @@ fun SettingsScreen(
                     onDismiss = { dismissSheet() },
                 )
 
+                SettingsSheet.SEX -> SexSelectionSheet(
+                    currentSex = uiState.baby?.sex ?: BabySex.UNSPECIFIED,
+                    onSave = { newSex ->
+                        val baby = uiState.baby
+                        if (baby != null) {
+                            viewModel.onSaveBabyProfile(baby.copy(sex = newSex))
+                        }
+                        dismissSheet()
+                    },
+                    onDismiss = { dismissSheet() },
+                )
+
                 SettingsSheet.ALLERGIES -> AllergiesEditSheet(
                     currentAllergies = uiState.baby?.allergies.orEmpty().toSet(),
                     currentCustomNote = uiState.baby?.customAllergyNote ?: "",
@@ -1087,6 +1107,48 @@ private fun ThemeSelectionSheet(
             selected = currentConfig == ThemeConfig.DARK,
             onClick = { onSave(ThemeConfig.DARK) },
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    }
+}
+
+@Composable
+private fun SexSelectionSheet(
+    currentSex: BabySex,
+    onSave: (BabySex) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 24.dp),
+    ) {
+        Text(
+            text = "Baby's sex",
+            style = MaterialTheme.typography.titleLarge,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Used to show growth percentiles against the WHO charts.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        BabySex.entries.forEach { sex ->
+            ThemeOption(
+                label = sex.label,
+                selected = currentSex == sex,
+                onClick = { onSave(sex) },
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
         Row(

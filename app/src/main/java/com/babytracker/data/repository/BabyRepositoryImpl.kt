@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.BabySex
 import com.babytracker.domain.repository.BabyRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -26,6 +27,7 @@ class BabyRepositoryImpl @Inject constructor(
         val ALLERGIES = stringPreferencesKey("allergies")
         val CUSTOM_ALLERGY_NOTE = stringPreferencesKey("custom_allergy_note")
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
+        val BABY_SEX = stringPreferencesKey("baby_sex")
     }
 
     override fun getBabyProfile(): Flow<Baby?> = dataStore.data.map { prefs ->
@@ -40,6 +42,7 @@ class BabyRepositoryImpl @Inject constructor(
                 ?.map { AllergyType.valueOf(it) }
                 ?: emptyList(),
             customAllergyNote = prefs[Keys.CUSTOM_ALLERGY_NOTE],
+            sex = prefs[Keys.BABY_SEX].toBabySex(),
         )
     }
 
@@ -53,6 +56,7 @@ class BabyRepositoryImpl @Inject constructor(
             } else {
                 prefs.remove(Keys.CUSTOM_ALLERGY_NOTE)
             }
+            prefs[Keys.BABY_SEX] = baby.sex.name
             prefs[Keys.ONBOARDING_COMPLETE] = true
         }
     }
@@ -61,3 +65,10 @@ class BabyRepositoryImpl @Inject constructor(
         prefs[Keys.ONBOARDING_COMPLETE] ?: false
     }
 }
+
+/**
+ * Parses a persisted sex string, tolerating null (existing users) and any
+ * unrecognised value (forward-compat) by falling back to [BabySex.UNSPECIFIED].
+ */
+private fun String?.toBabySex(): BabySex =
+    this?.let { stored -> BabySex.entries.firstOrNull { it.name == stored } } ?: BabySex.UNSPECIFIED
