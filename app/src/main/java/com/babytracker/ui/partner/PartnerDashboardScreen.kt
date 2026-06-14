@@ -67,6 +67,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.AllergyType
+import com.babytracker.domain.model.GrowthType
+import com.babytracker.domain.model.MeasurementSystem
+import com.babytracker.domain.model.Milestone
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
@@ -84,10 +87,14 @@ import com.babytracker.ui.theme.WarningContainerAmber
 import com.babytracker.ui.theme.WarningContainerAmberDark
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
+import com.babytracker.util.formatLength
 import com.babytracker.util.formatVolume
+import com.babytracker.util.formatWeight
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 private const val STALE_SYNC_THRESHOLD_MINUTES = 30L
 private const val ONE_MINUTE_MS = 60_000L
@@ -325,7 +332,9 @@ private fun DashboardContent(
     val lastSleep = snapshot.sleepRecords.firstOrNull()
     val hasSharedRecords = snapshot.sessions.isNotEmpty() ||
         snapshot.sleepRecords.isNotEmpty() ||
-        snapshot.bottleFeeds.isNotEmpty()
+        snapshot.bottleFeeds.isNotEmpty() ||
+        snapshot.growth.isNotEmpty() ||
+        snapshot.milestones.isNotEmpty()
     val lastSharedText = remember(snapshot.lastSyncAt, nowMs) {
         Duration.between(snapshot.lastSyncAt, now).coerceAtLeast(Duration.ZERO).formatElapsedAgo()
     }
@@ -491,6 +500,11 @@ private fun CompactDashboardContent(
             )
         }
 
+        if (snapshot.growth.isNotEmpty() || snapshot.milestones.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            PartnerGrowthMilestonesCard(snapshot = snapshot, modifier = Modifier.fillMaxWidth())
+        }
+
         if (!hasSharedRecords) {
             Spacer(modifier = Modifier.height(18.dp))
             SharedRecordsEmptyState(babyName = snapshot.baby.name.takeIf { it.isNotBlank() })
@@ -585,6 +599,9 @@ private fun WideDashboardContent(
                     volumeUnit = volumeUnit,
                     modifier = Modifier.fillMaxWidth(),
                 )
+            }
+            if (snapshot.growth.isNotEmpty() || snapshot.milestones.isNotEmpty()) {
+                PartnerGrowthMilestonesCard(snapshot = snapshot, modifier = Modifier.fillMaxWidth())
             }
             if (!hasSharedRecords) {
                 SharedRecordsEmptyState(babyName = snapshot.baby.name.takeIf { it.isNotBlank() })
@@ -1308,6 +1325,69 @@ private fun SleepHistoryRow(sleep: SleepSnapshot, now: Instant) {
 }
 
 @OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PartnerGrowthMilestonesCard(
+    snapshot: ShareSnapshot,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = dashboardPanelElevation()),
+        border = dashboardPanelBorder(),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            if (snapshot.growth.isNotEmpty()) {
+                Text(
+                    text = "Growth",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                GrowthType.entries.forEach { type ->
+                    val latest = snapshot.growth.filter { it.type == type.name }.maxByOrNull { it.takenAtMs }
+                    if (latest != null) {
+                        SummaryLine(
+                            label = "${type.partnerLabel()}: ${formatGrowthValue(type, latest.valueCanonical)}",
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            }
+            if (snapshot.milestones.isNotEmpty()) {
+                Text(
+                    text = "Milestones",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                val formatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
+                snapshot.milestones
+                    .mapNotNull { snap -> Milestone.entries.firstOrNull { it.name == snap.milestone }?.to(snap) }
+                    .forEach { (milestone, snap) ->
+                        SummaryLine(
+                            label = "${milestone.label} — ${LocalDate.ofEpochDay(snap.achievedOnEpochDay).format(formatter)}",
+                            color = MaterialTheme.colorScheme.secondary,
+                        )
+                    }
+            }
+        }
+    }
+}
+
+private fun GrowthType.partnerLabel(): String = when (this) {
+    GrowthType.WEIGHT -> "Weight"
+    GrowthType.LENGTH -> "Length"
+    GrowthType.HEAD_CIRC -> "Head"
+}
+
+private fun formatGrowthValue(type: GrowthType, valueCanonical: Long): String = when (type) {
+    GrowthType.WEIGHT -> formatWeight(valueCanonical, MeasurementSystem.METRIC)
+    GrowthType.LENGTH, GrowthType.HEAD_CIRC -> formatLength(valueCanonical, MeasurementSystem.METRIC)
+}
+
 @Composable
 private fun AllergySection(baby: BabySnapshot) {
     val warningColors = warningColors()

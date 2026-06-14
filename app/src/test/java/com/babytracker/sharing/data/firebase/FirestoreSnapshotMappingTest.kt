@@ -2,6 +2,8 @@ package com.babytracker.sharing.data.firebase
 
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
+import com.babytracker.sharing.domain.model.GrowthSnapshot
+import com.babytracker.sharing.domain.model.MilestoneSnapshot
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -78,5 +80,39 @@ class FirestoreSnapshotMappingTest {
         val parsed = mapToSnapshot(legacy)
 
         assertEquals(emptyList<MilkBagSnapshot>(), parsed.milkBags)
+    }
+
+    @Test
+    fun `growth and milestones round-trip through the map`() {
+        val snapshot = ShareSnapshot(
+            lastSyncAt = Instant.ofEpochSecond(100),
+            baby = BabySnapshot("Aiko", 1000L, emptyList()),
+            sessions = emptyList(),
+            sleepRecords = emptyList(),
+            growth = listOf(
+                GrowthSnapshot(type = "WEIGHT", takenAtMs = 2000L, valueCanonical = 5200, notes = "checkup"),
+                GrowthSnapshot(type = "LENGTH", takenAtMs = 3000L, valueCanonical = 600, notes = null),
+            ),
+            milestones = listOf(
+                MilestoneSnapshot(milestone = "WALKING_ALONE", achievedOnEpochDay = 20000L, notes = "first steps"),
+            ),
+        )
+
+        val roundTripped = mapToSnapshot(snapshotToMap(snapshot))
+
+        assertEquals(snapshot.growth, roundTripped.growth)
+        assertEquals(snapshot.milestones, roundTripped.milestones)
+    }
+
+    @Test
+    fun `legacy snapshot map without growth or milestones keys parses to empty lists`() {
+        val legacy = mapOf<String, Any?>(
+            "baby" to mapOf("name" to "", "birthDate" to 0L, "allergies" to emptyList<String>()),
+        )
+
+        val parsed = mapToSnapshot(legacy)
+
+        assertEquals(emptyList<GrowthSnapshot>(), parsed.growth)
+        assertEquals(emptyList<MilestoneSnapshot>(), parsed.milestones)
     }
 }

@@ -13,6 +13,7 @@ import com.babytracker.domain.usecase.milestone.DeleteMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.GetMilestoneProgressUseCase
 import com.babytracker.domain.usecase.milestone.LogMilestoneUseCase
 import com.babytracker.ui.theme.BabyTrackerTheme
+import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
@@ -46,6 +47,7 @@ class MilestonesScreenTest {
         object : MilestonePhotoCleaner {
             override suspend fun delete(photoUri: String?) = Unit
         },
+        mockk(relaxed = true),
     )
 
     @Test

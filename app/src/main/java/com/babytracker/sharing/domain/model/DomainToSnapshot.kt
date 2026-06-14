@@ -3,6 +3,8 @@ package com.babytracker.sharing.domain.model
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BottleFeed
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.GrowthMeasurement
+import com.babytracker.domain.model.MilestoneAchievement
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
@@ -37,6 +39,20 @@ fun MilkBag.toSnapshot(): MilkBagSnapshot = MilkBagSnapshot(
     id = id,
     collectionDateMs = collectionDate.toEpochMilli(),
     volumeMl = volumeMl,
+    notes = notes,
+)
+
+fun GrowthMeasurement.toSnapshot(): GrowthSnapshot = GrowthSnapshot(
+    type = type.name,
+    takenAtMs = takenAt.toEpochMilli(),
+    valueCanonical = valueCanonical,
+    notes = notes,
+)
+
+// Photo is intentionally dropped: milestone photos are never synced to Firestore.
+fun MilestoneAchievement.toSnapshot(): MilestoneSnapshot = MilestoneSnapshot(
+    milestone = milestone.name,
+    achievedOnEpochDay = achievedOn.toEpochDay(),
     notes = notes,
 )
 
