@@ -4,7 +4,7 @@ import app.cash.turbine.test
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
-import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.FeedSettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.DeleteBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
@@ -54,7 +54,7 @@ class BreastfeedingEditSheetViewModelTest {
     private lateinit var deleteSession: DeleteBreastfeedingSessionUseCase
     private lateinit var saveBreastfeedingEntry: SaveBreastfeedingEntryUseCase
     private lateinit var repository: BreastfeedingRepository
-    private lateinit var settingsRepository: SettingsRepository
+    private lateinit var feedSettingsRepository: FeedSettingsRepository
     private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
     private lateinit var predictNextFeed: PredictNextFeedUseCase
@@ -78,7 +78,7 @@ class BreastfeedingEditSheetViewModelTest {
         deleteSession = mockk()
         saveBreastfeedingEntry = mockk()
         repository = mockk()
-        settingsRepository = mockk()
+        feedSettingsRepository = mockk()
         notificationCoordinator = mockk(relaxed = true)
         syncToFirestore = mockk()
 
@@ -86,8 +86,8 @@ class BreastfeedingEditSheetViewModelTest {
         predictNextFeed = mockk()
         every { getHistory() } returns flowOf(emptyList())
         every { repository.getActiveSession() } returns MutableStateFlow(null)
-        every { settingsRepository.getMaxPerBreastMinutes() } returns flowOf(0)
-        every { settingsRepository.getMaxTotalFeedMinutes() } returns flowOf(0)
+        every { feedSettingsRepository.getMaxPerBreastMinutes() } returns flowOf(0)
+        every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns flowOf(0)
         every { predictNextFeed() } returns flowOf(null)
         coEvery { syncToFirestore(any()) } returns Unit
     }
@@ -99,7 +99,7 @@ class BreastfeedingEditSheetViewModelTest {
 
     private fun viewModel() = BreastfeedingViewModel(
         startSession, stopSession, switchSide, getHistory, pauseSession, resumeSession,
-        updateSession, deleteSession, saveBreastfeedingEntry, repository, settingsRepository,
+        updateSession, deleteSession, saveBreastfeedingEntry, repository, feedSettingsRepository,
         notificationCoordinator, syncToFirestore, predictNextFeed,
     )
 

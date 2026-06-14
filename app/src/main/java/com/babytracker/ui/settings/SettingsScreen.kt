@@ -1,11 +1,7 @@
 package com.babytracker.ui.settings
 
-import android.Manifest
 import android.content.ClipData
 import android.content.Intent
-import android.os.Build
-import android.provider.Settings
-import android.text.format.DateFormat
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -30,13 +25,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Bedtime
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.Switch
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -58,14 +49,11 @@ import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,19 +67,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.BuildConfig
 import com.babytracker.R
@@ -111,7 +91,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private enum class SettingsSheet {
-    NAME, BIRTH_DATE, SEX, ALLERGIES, MAX_PER_BREAST, MAX_TOTAL_FEED, THEME
+    NAME, BIRTH_DATE, SEX, ALLERGIES, THEME
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -203,22 +183,6 @@ fun SettingsScreen(
             }
         }
         dataVm.onPdfOpenHandled()
-    }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        viewModel.refreshNotificationsPermission(granted)
-    }
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.onLifecycleResume()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     Scaffold(
@@ -318,28 +282,6 @@ fun SettingsScreen(
                 }
 
                 HorizontalDivider()
-
-                Text(
-                    text = "Feeding Limits",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                )
-
-                SettingsRow(
-                    label = "Max per breast",
-                    value = if (uiState.maxPerBreastMinutes > 0) "${uiState.maxPerBreastMinutes} min" else "Disabled",
-                    onClick = { activeSheet = SettingsSheet.MAX_PER_BREAST }
-                )
-                HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
-
-                SettingsRow(
-                    label = "Max total feed",
-                    value = if (uiState.maxTotalFeedMinutes > 0) "${uiState.maxTotalFeedMinutes} min" else "Disabled",
-                    onClick = { activeSheet = SettingsSheet.MAX_TOTAL_FEED }
-                )
-
-                HorizontalDivider()
             }
 
             Text(
@@ -392,91 +334,6 @@ fun SettingsScreen(
                     description = "Show progress bars and quick actions on notifications",
                     checked = uiState.richNotificationsEnabled,
                     onCheckedChange = { viewModel.onRichNotificationsToggled(it) },
-                )
-
-                HorizontalDivider()
-                Text(
-                    text = stringResource(R.string.settings_section_feeding_reminders),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                )
-
-                SettingsSwitchRow(
-                    label = stringResource(R.string.settings_predictive_toggle_title),
-                    description = stringResource(R.string.settings_predictive_toggle_subtitle),
-                    checked = uiState.predictiveEnabled,
-                    onCheckedChange = { newValue ->
-                        if (newValue && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            val granted = NotificationManagerCompat.from(context)
-                                .areNotificationsEnabled()
-                            viewModel.onPredictiveToggleChanged(true)
-                            if (!granted) {
-                                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            }
-                        } else {
-                            viewModel.onPredictiveToggleChanged(newValue)
-                        }
-                    },
-                    modifier = Modifier.testTag("predictive_switch"),
-                    leadingIcon = { Icon(Icons.Outlined.Schedule, contentDescription = null) },
-                )
-
-                if (uiState.predictiveEnabled && uiState.validIntervalCount < 3) {
-                    val remaining = 3 - uiState.validIntervalCount
-                    Row(
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Icon(
-                            Icons.Outlined.Info,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Text(
-                            text = pluralStringResource(
-                                R.plurals.settings_predictive_feeds_remaining,
-                                remaining,
-                                remaining,
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-
-                if (uiState.showPermissionWarning) {
-                    WarningSurface(
-                        title = stringResource(R.string.settings_notifications_blocked_title),
-                        subtitle = stringResource(R.string.settings_notifications_blocked_subtitle),
-                        actionLabel = stringResource(R.string.settings_open_settings),
-                        onAction = {
-                            context.startActivity(
-                                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                },
-                            )
-                        },
-                    )
-                }
-
-                LeadTimeSegmentedRow(
-                    enabled = uiState.predictiveEnabled && uiState.validIntervalCount >= 3,
-                    selectedMinutes = uiState.predictiveLeadMinutes,
-                    onSelect = viewModel::onLeadMinutesChanged,
-                )
-
-                val is24Hour = DateFormat.is24HourFormat(context)
-                QuietHoursRow(
-                    enabled = uiState.predictiveEnabled && uiState.validIntervalCount >= 3,
-                    startMinute = uiState.quietHoursStartMinute,
-                    endMinute = uiState.quietHoursEndMinute,
-                    is24Hour = is24Hour,
-                    onStartPicked = viewModel::onQuietHoursStartChanged,
-                    onEndPicked = viewModel::onQuietHoursEndChanged,
                 )
             }
 
@@ -618,26 +475,6 @@ fun SettingsScreen(
                                 )
                             )
                         }
-                        dismissSheet()
-                    },
-                    onDismiss = { dismissSheet() },
-                )
-
-                SettingsSheet.MAX_PER_BREAST -> MinutesEditSheet(
-                    title = "Max per breast",
-                    currentMinutes = uiState.maxPerBreastMinutes,
-                    onSave = { minutes ->
-                        viewModel.onMaxPerBreastChanged(minutes)
-                        dismissSheet()
-                    },
-                    onDismiss = { dismissSheet() },
-                )
-
-                SettingsSheet.MAX_TOTAL_FEED -> MinutesEditSheet(
-                    title = "Max total feed",
-                    currentMinutes = uiState.maxTotalFeedMinutes,
-                    onSave = { minutes ->
-                        viewModel.onMaxTotalFeedChanged(minutes)
                         dismissSheet()
                     },
                     onDismiss = { dismissSheet() },
@@ -870,59 +707,6 @@ private fun AllergiesEditSheet(
             TextButton(onClick = onDismiss) { Text("Cancel") }
             Spacer(modifier = Modifier.padding(horizontal = 4.dp))
             Button(onClick = { onSave(selectedAllergies, customNote) }) { Text("Save") }
-        }
-    }
-}
-
-@Composable
-private fun MinutesEditSheet(
-    title: String,
-    currentMinutes: Int,
-    onSave: (Int) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var text by rememberSaveable {
-        mutableStateOf(if (currentMinutes > 0) currentMinutes.toString() else "")
-    }
-    val minutes = text.toIntOrNull() ?: 0
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .padding(bottom = 24.dp)
-            .imePadding(),
-    ) {
-        Text(
-            text = "Edit $title",
-            style = MaterialTheme.typography.titleLarge,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Set to 0 to disable the limit.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        OutlinedTextField(
-            value = text,
-            onValueChange = { input ->
-                val filtered = input.filter { it.isDigit() }
-                if (filtered.length <= 3) text = filtered
-            },
-            label = { Text("Minutes (0 = disabled)") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-            Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-            Button(onClick = { onSave(minutes) }) { Text("Save") }
         }
     }
 }

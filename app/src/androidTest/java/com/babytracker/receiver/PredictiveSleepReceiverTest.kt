@@ -119,10 +119,6 @@ class PredictiveSleepReceiverTest {
             override suspend fun clearHomeTileOrder() = Unit
             override fun isOnboardingComplete(): Flow<Boolean> = flowOf(true)
             override suspend fun setOnboardingComplete(complete: Boolean) = Unit
-            override fun getMaxPerBreastMinutes(): Flow<Int> = flowOf(0)
-            override suspend fun setMaxPerBreastMinutes(minutes: Int) = Unit
-            override fun getMaxTotalFeedMinutes(): Flow<Int> = flowOf(0)
-            override suspend fun setMaxTotalFeedMinutes(minutes: Int) = Unit
             override fun getWakeTime(): Flow<LocalTime?> = flowOf(null)
             override suspend fun setWakeTime(time: LocalTime) = Unit
             override fun getAutoUpdateEnabled(): Flow<Boolean> = flowOf(true)
@@ -135,10 +131,6 @@ class PredictiveSleepReceiverTest {
             override suspend fun setShareCode(code: String) = Unit
             override suspend fun clearShareCode() = Unit
             override suspend fun clearPartnerStateIfShareCodeMatches(code: String): Boolean = false
-            override fun getPredictiveEnabled(): Flow<Boolean> = flowOf(false)
-            override suspend fun setPredictiveEnabled(enabled: Boolean) = Unit
-            override fun getPredictiveLeadMinutes(): Flow<Int> = flowOf(15)
-            override suspend fun setPredictiveLeadMinutes(minutes: Int) = Unit
             override suspend fun setQuietHoursStartMinute(minuteOfDay: Int) = Unit
             override suspend fun setQuietHoursEndMinute(minuteOfDay: Int) = Unit
             override fun isImportInProgress(): Flow<Boolean> = flowOf(false)

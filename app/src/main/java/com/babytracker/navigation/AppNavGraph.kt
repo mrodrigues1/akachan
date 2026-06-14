@@ -9,6 +9,7 @@ import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.ui.bottlefeed.BottleFeedScreen
 import com.babytracker.ui.breastfeeding.BreastfeedingHistoryScreen
 import com.babytracker.ui.breastfeeding.BreastfeedingScreen
+import com.babytracker.ui.breastfeeding.FeedSettingsScreen
 import com.babytracker.ui.feeding.UnifiedFeedingHistoryScreen
 import com.babytracker.ui.growth.GrowthScreen
 import com.babytracker.ui.home.HomeScreen
@@ -78,11 +79,15 @@ fun AppNavGraph(
         composable(Routes.BREASTFEEDING) {
             BreastfeedingScreen(
                 onNavigateToHistory = { navController.navigate(Routes.BREASTFEEDING_HISTORY) },
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToSettings = { navController.navigate(Routes.BREASTFEEDING_SETTINGS) }
             )
         }
         composable(Routes.BREASTFEEDING_HISTORY) {
             BreastfeedingHistoryScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Routes.BREASTFEEDING_SETTINGS) {
+            FeedSettingsScreen(onNavigateBack = { navController.popBackStack() })
         }
         composable(Routes.FEEDING_HISTORY) {
             UnifiedFeedingHistoryScreen(onNavigateBack = { navController.popBackStack() })

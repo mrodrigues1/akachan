@@ -11,21 +11,25 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-class SettingsRepositoryExtTest {
+class FeedSettingsRepositoryExtTest {
 
+    private lateinit var feedSettingsRepository: FeedSettingsRepository
     private lateinit var settingsRepository: SettingsRepository
 
     @BeforeEach
     fun setup() {
+        feedSettingsRepository = mockk()
         settingsRepository = mockk()
-        every { settingsRepository.getMaxPerBreastMinutes() } returns flowOf(15)
-        every { settingsRepository.getMaxTotalFeedMinutes() } returns flowOf(30)
+        every { feedSettingsRepository.getMaxPerBreastMinutes() } returns flowOf(15)
+        every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns flowOf(30)
         every { settingsRepository.getRichNotificationsEnabled() } returns flowOf(false)
     }
 
     @Test
     fun `getBreastfeedingActiveNotificationSettings combines active notification values`() = runTest {
-        val settings = settingsRepository.getBreastfeedingActiveNotificationSettings().first()
+        val settings = feedSettingsRepository
+            .getBreastfeedingActiveNotificationSettings(settingsRepository)
+            .first()
 
         assertEquals(
             BreastfeedingActiveNotificationSettings(
@@ -38,7 +42,7 @@ class SettingsRepositoryExtTest {
 
     @Test
     fun `getBreastfeedingNotificationScheduleSettings combines schedule values`() = runTest {
-        val settings = settingsRepository.getBreastfeedingNotificationScheduleSettings().first()
+        val settings = feedSettingsRepository.getBreastfeedingNotificationScheduleSettings().first()
 
         assertEquals(
             BreastfeedingNotificationScheduleSettings(

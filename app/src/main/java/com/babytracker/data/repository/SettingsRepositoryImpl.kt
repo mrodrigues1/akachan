@@ -116,20 +116,6 @@ class SettingsRepositoryImpl @Inject constructor(
         dataStore.edit { it[ONBOARDING_COMPLETE] = complete }
     }
 
-    override fun getMaxPerBreastMinutes(): Flow<Int> =
-        dataStore.data.map { it[MAX_PER_BREAST_MINUTES] ?: 0 }
-
-    override suspend fun setMaxPerBreastMinutes(minutes: Int) {
-        dataStore.edit { it[MAX_PER_BREAST_MINUTES] = minutes }
-    }
-
-    override fun getMaxTotalFeedMinutes(): Flow<Int> =
-        dataStore.data.map { it[MAX_TOTAL_FEED_MINUTES] ?: 0 }
-
-    override suspend fun setMaxTotalFeedMinutes(minutes: Int) {
-        dataStore.edit { it[MAX_TOTAL_FEED_MINUTES] = minutes }
-    }
-
     override fun getWakeTime(): Flow<LocalTime?> =
         dataStore.data.map { preferences ->
             preferences[WAKE_TIME_MINUTES]?.let { minutes ->
@@ -198,27 +184,6 @@ class SettingsRepositoryImpl @Inject constructor(
             }
         }
         return cleared
-    }
-
-    override fun getPredictiveEnabled(): Flow<Boolean> =
-        dataStore.data.map { it[PREDICTIVE_ENABLED] ?: false }
-
-    override suspend fun setPredictiveEnabled(enabled: Boolean) {
-        dataStore.edit { it[PREDICTIVE_ENABLED] = enabled }
-    }
-
-    override fun getPredictiveLeadMinutes(): Flow<Int> =
-        dataStore.data.map { prefs ->
-            val stored = prefs[PREDICTIVE_LEAD_MINUTES] ?: DEFAULT_LEAD_MINUTES
-            if (stored in ALLOWED_LEAD_MINUTES) stored else DEFAULT_LEAD_MINUTES
-        }
-
-    override suspend fun setPredictiveLeadMinutes(minutes: Int) {
-        // Allowlist enforced at the repository boundary so the coordinator never
-        // computes triggerAt with a bogus offset (negative, zero, or huge). Invalid
-        // input collapses to the default (15) rather than corrupting persistent state.
-        val sanitized = if (minutes in ALLOWED_LEAD_MINUTES) minutes else DEFAULT_LEAD_MINUTES
-        dataStore.edit { it[PREDICTIVE_LEAD_MINUTES] = sanitized }
     }
 
     override fun getQuietHoursStartMinute(): Flow<Int> =
