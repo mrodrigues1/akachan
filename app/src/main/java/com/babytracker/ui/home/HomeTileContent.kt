@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -128,7 +129,8 @@ internal fun HomeContent(
             columns = StaggeredGridCells.Fixed(2),
             modifier = Modifier
                 .widthIn(max = 600.dp)
-                .fillMaxHeight(),
+                .fillMaxHeight()
+                .testTag("home_tiles_grid"),
             state = gridState,
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalItemSpacing = 12.dp,
