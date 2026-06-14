@@ -262,6 +262,33 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate10To11_roomSchemaValidationPasses() {
+        helper.createDatabase(TEST_DB, 10).close()
+        helper.runMigrationsAndValidate(TEST_DB, 11, true, MIGRATION_10_11).close()
+    }
+
+    @Test
+    fun migrate10To11_createsMilestoneTable_withUniqueMilestone() {
+        helper.createDatabase(TEST_DB, 10).close()
+        val db = helper.runMigrationsAndValidate(TEST_DB, 11, true, MIGRATION_10_11)
+
+        db.execSQL(
+            "INSERT INTO milestone_achievements (milestone, achieved_on_epoch_day) VALUES ('WALKING_ALONE', 100)"
+        )
+        // The unique index rejects a second plain insert for the same milestone.
+        assertThrows(SQLiteConstraintException::class.java) {
+            db.execSQL(
+                "INSERT INTO milestone_achievements (milestone, achieved_on_epoch_day) VALUES ('WALKING_ALONE', 200)"
+            )
+        }
+        val cursor: Cursor = db.query("SELECT count(*) FROM milestone_achievements")
+        cursor.moveToFirst()
+        assertEquals(1, cursor.getInt(0))
+        cursor.close()
+        db.close()
+    }
+
+    @Test
     fun migrate9To10_createsGrowthMeasurementsTable_acceptsInserts() {
         helper.createDatabase(TEST_DB, 9).close()
         val db = helper.runMigrationsAndValidate(TEST_DB, 10, true, MIGRATION_9_10)
