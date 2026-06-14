@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.HomeTile
+import com.babytracker.domain.model.MeasurementSystem
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.BabyRepository
@@ -184,6 +185,14 @@ class SettingsScreenTest {
 
         override suspend fun setVolumeUnit(unit: VolumeUnit) {
             volumeUnitState.value = unit
+        }
+
+        val measurementSystemState = MutableStateFlow(MeasurementSystem.METRIC)
+
+        override fun getMeasurementSystem(): Flow<MeasurementSystem> = measurementSystemState
+
+        override suspend fun setMeasurementSystem(system: MeasurementSystem) {
+            measurementSystemState.value = system
         }
 
         override fun getHomeTileOrder(): Flow<List<HomeTile>> = flowOf(HomeTile.DEFAULT_ORDER)

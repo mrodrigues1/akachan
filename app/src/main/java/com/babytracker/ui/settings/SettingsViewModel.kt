@@ -3,6 +3,7 @@ package com.babytracker.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.MeasurementSystem
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
@@ -42,6 +43,7 @@ data class SettingsUiState(
     val predictiveSleepEnabled: Boolean = false,
     val predictiveSleepLeadMinutes: Int = 15,
     val volumeUnit: VolumeUnit = VolumeUnit.ML,
+    val measurementSystem: MeasurementSystem = MeasurementSystem.METRIC,
 )
 
 @HiltViewModel
@@ -82,6 +84,7 @@ class SettingsViewModel @Inject constructor(
                 settingsRepository.getPredictiveSleepEnabled(),
                 settingsRepository.getPredictiveSleepLeadMinutes(),
                 settingsRepository.getVolumeUnit(),
+                settingsRepository.getMeasurementSystem(),
             ) { values ->
                 val baby = values[0] as? Baby
                 val maxPerBreast = values[1] as Int
@@ -101,6 +104,7 @@ class SettingsViewModel @Inject constructor(
                 val predictiveSleepEnabled = values[15] as Boolean
                 val predictiveSleepLeadMinutes = values[16] as Int
                 val volumeUnit = values[17] as VolumeUnit
+                val measurementSystem = values[18] as MeasurementSystem
                 SettingsUiState(
                     baby = baby,
                     maxPerBreastMinutes = maxPerBreast,
@@ -121,6 +125,7 @@ class SettingsViewModel @Inject constructor(
                     predictiveSleepEnabled = predictiveSleepEnabled,
                     predictiveSleepLeadMinutes = predictiveSleepLeadMinutes,
                     volumeUnit = volumeUnit,
+                    measurementSystem = measurementSystem,
                 )
             }.collect { next ->
                 _uiState.update { current -> next.copy(isDisconnected = current.isDisconnected) }
@@ -207,5 +212,9 @@ class SettingsViewModel @Inject constructor(
 
     fun onVolumeUnitChanged(unit: VolumeUnit) {
         viewModelScope.launch { settingsRepository.setVolumeUnit(unit) }
+    }
+
+    fun onMeasurementSystemChanged(system: MeasurementSystem) {
+        viewModelScope.launch { settingsRepository.setMeasurementSystem(system) }
     }
 }
