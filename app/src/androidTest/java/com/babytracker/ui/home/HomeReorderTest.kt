@@ -2,8 +2,11 @@ package com.babytracker.ui.home
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.sharing.domain.model.AppMode
@@ -71,6 +74,9 @@ class HomeReorderTest {
                 )
             }
         }
+        // TIP sits near the bottom of the grid; scroll it into view before asserting so the test
+        // is independent of screen size and tile count.
+        composeRule.onNodeWithTag("home_tiles_grid").performScrollToNode(hasText("TIP"))
         composeRule.onNodeWithText("TIP").assertIsDisplayed()
     }
 
