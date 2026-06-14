@@ -97,6 +97,7 @@ fun HomeScreen(
     onNavigateToInventory: () -> Unit = {},
     onNavigateToBottleFeed: () -> Unit = {},
     onNavigateToFeedingHistory: () -> Unit = {},
+    onNavigateToGrowth: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -171,6 +172,7 @@ fun HomeScreen(
             onNavigateToBottleFeed,
             onNavigateToFeedingHistory,
             onNavigateToConnectPartner,
+            onNavigateToGrowth,
         ) {
             HomeTileCallbacks(
                 onBreastfeeding = onNavigateToBreastfeeding,
@@ -180,6 +182,7 @@ fun HomeScreen(
                 onBottleFeed = onNavigateToBottleFeed,
                 onFeedingHistory = onNavigateToFeedingHistory,
                 onConnectPartner = onNavigateToConnectPartner,
+                onGrowth = onNavigateToGrowth,
             )
         }
         HomeContent(
@@ -424,6 +427,48 @@ internal fun BottleFeedHomeCard(
                 text = "Tap to log",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+    }
+}
+
+@Composable
+internal fun GrowthHomeCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .heightIn(min = 120.dp)
+            .semantics { contentDescription = "Growth tracking. Open growth charts." },
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(20.dp)
+                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
+        ) {
+            Text(
+                text = "📈",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Growth",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Weight, length & percentiles",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
     }

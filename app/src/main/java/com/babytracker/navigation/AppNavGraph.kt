@@ -10,6 +10,7 @@ import com.babytracker.ui.bottlefeed.BottleFeedScreen
 import com.babytracker.ui.breastfeeding.BreastfeedingHistoryScreen
 import com.babytracker.ui.breastfeeding.BreastfeedingScreen
 import com.babytracker.ui.feeding.UnifiedFeedingHistoryScreen
+import com.babytracker.ui.growth.GrowthScreen
 import com.babytracker.ui.home.HomeScreen
 import com.babytracker.ui.onboarding.OnboardingScreen
 import com.babytracker.ui.partner.PartnerDashboardScreen
@@ -59,6 +60,13 @@ fun AppNavGraph(
                 onNavigateToInventory = { navController.navigate(Routes.INVENTORY) },
                 onNavigateToBottleFeed = { navController.navigate(Routes.BOTTLE_FEED) },
                 onNavigateToFeedingHistory = { navController.navigate(Routes.FEEDING_HISTORY) },
+                onNavigateToGrowth = { navController.navigate(Routes.GROWTH) },
+            )
+        }
+        composable(Routes.GROWTH) {
+            GrowthScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
             )
         }
         composable(Routes.BREASTFEEDING) {
