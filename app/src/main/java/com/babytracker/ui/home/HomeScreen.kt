@@ -98,6 +98,7 @@ fun HomeScreen(
     onNavigateToBottleFeed: () -> Unit = {},
     onNavigateToFeedingHistory: () -> Unit = {},
     onNavigateToGrowth: () -> Unit = {},
+    onNavigateToMilestones: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -173,6 +174,7 @@ fun HomeScreen(
             onNavigateToFeedingHistory,
             onNavigateToConnectPartner,
             onNavigateToGrowth,
+            onNavigateToMilestones,
         ) {
             HomeTileCallbacks(
                 onBreastfeeding = onNavigateToBreastfeeding,
@@ -183,6 +185,7 @@ fun HomeScreen(
                 onFeedingHistory = onNavigateToFeedingHistory,
                 onConnectPartner = onNavigateToConnectPartner,
                 onGrowth = onNavigateToGrowth,
+                onMilestones = onNavigateToMilestones,
             )
         }
         HomeContent(
@@ -469,6 +472,48 @@ internal fun GrowthHomeCard(
                 text = "Weight, length & percentiles",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
+    }
+}
+
+@Composable
+internal fun MilestonesHomeCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .heightIn(min = 120.dp)
+            .semantics { contentDescription = "Milestones. Open milestone tracker." },
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(20.dp)
+                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
+        ) {
+            Text(
+                text = "🎉",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Milestones",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Track first sits, crawls & steps",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
             )
         }
     }

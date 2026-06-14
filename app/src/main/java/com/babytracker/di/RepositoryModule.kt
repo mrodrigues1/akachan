@@ -26,6 +26,8 @@ import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRecommendationRepository
 import com.babytracker.domain.repository.SleepRepository
+import com.babytracker.ui.milestone.AndroidMilestonePhotoCleaner
+import com.babytracker.ui.milestone.MilestonePhotoCleaner
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -83,6 +85,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindMilestoneRepository(impl: MilestoneRepositoryImpl): MilestoneRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMilestonePhotoCleaner(impl: AndroidMilestonePhotoCleaner): MilestonePhotoCleaner
 
     @Binds
     @Singleton

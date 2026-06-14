@@ -212,6 +212,7 @@ internal fun HomeTileContent(
         HomeTile.SLEEP_PREDICTION ->
             SleepPredictionCard(state = uiState.sleepPrediction, onClick = callbacks.onSleep, modifier = modifier)
         HomeTile.GROWTH -> GrowthHomeCard(callbacks.onGrowth, modifier)
+        HomeTile.MILESTONES -> MilestonesHomeCard(callbacks.onMilestones, modifier)
         HomeTile.TIP -> HomeTipCard(uiState.nextRecommendedSide, modifier)
         HomeTile.PARTNER -> PartnerViewCard(callbacks.onConnectPartner, modifier)
     }
@@ -226,6 +227,7 @@ internal data class HomeTileCallbacks(
     val onFeedingHistory: () -> Unit,
     val onConnectPartner: () -> Unit,
     val onGrowth: () -> Unit,
+    val onMilestones: () -> Unit,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
