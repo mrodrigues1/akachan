@@ -27,6 +27,7 @@ class HomeReorderTest {
         onFeedingHistory = {},
         onConnectPartner = {},
         onGrowth = {},
+        onMilestones = {},
     )
 
     @Test

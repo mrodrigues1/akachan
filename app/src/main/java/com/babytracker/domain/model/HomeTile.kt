@@ -13,6 +13,7 @@ enum class HomeTile {
     FEEDING_HISTORY,
     SLEEP_PREDICTION,
     GROWTH,
+    MILESTONES,
     TIP,
     PARTNER,
     ;
@@ -28,6 +29,7 @@ enum class HomeTile {
             FEEDING_HISTORY,
             SLEEP_PREDICTION,
             GROWTH,
+            MILESTONES,
             TIP,
             PARTNER,
         )
