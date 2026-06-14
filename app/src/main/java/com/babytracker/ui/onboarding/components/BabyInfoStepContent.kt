@@ -26,7 +26,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,6 +56,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import com.babytracker.domain.model.BabySex
 import com.babytracker.ui.onboarding.MAX_BABY_NAME_LENGTH
 import java.time.Instant
 import java.time.LocalDate
@@ -68,9 +72,11 @@ fun BabyInfoStepContent(
     selectedDate: LocalDate,
     birthDateError: String?,
     showAgeWarning: Boolean,
+    selectedSex: BabySex,
     isNextEnabled: Boolean,
     onNameChanged: (String) -> Unit,
     onDateSelected: (LocalDate) -> Unit,
+    onSexSelected: (BabySex) -> Unit,
     onBack: () -> Unit,
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
@@ -184,6 +190,11 @@ fun BabyInfoStepContent(
                         ageText = ageText,
                         showAgeWarning = showAgeWarning,
                     )
+                    Spacer(modifier = Modifier.height(if (isCompactHeight) 12.dp else 16.dp))
+                    SexSelector(
+                        selectedSex = selectedSex,
+                        onSexSelected = onSexSelected,
+                    )
                 }
                 Button(
                     onClick = onNext,
@@ -280,6 +291,41 @@ private fun DateOfBirthField(
                 )
                 .clearAndSetSemantics {},
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SexSelector(
+    selectedSex: BabySex,
+    onSexSelected: (BabySex) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val options = BabySex.entries
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "Sex",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Used to show growth percentiles against WHO charts. You can change this later.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            options.forEachIndexed { index, sex ->
+                SegmentedButton(
+                    selected = selectedSex == sex,
+                    onClick = { onSexSelected(sex) },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                ) {
+                    Text(sex.label)
+                }
+            }
+        }
     }
 }
 

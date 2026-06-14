@@ -70,9 +70,11 @@ fun OnboardingScreen(
                     selectedDate = uiState.birthDate,
                     birthDateError = uiState.birthDateError,
                     showAgeWarning = uiState.showAgeWarning,
+                    selectedSex = uiState.sex,
                     isNextEnabled = viewModel.isNextEnabled,
                     onNameChanged = viewModel::onNameChanged,
                     onDateSelected = viewModel::onBirthDateSelected,
+                    onSexSelected = viewModel::onSexSelected,
                     onBack = viewModel::onPreviousStep,
                     onNext = viewModel::onNextStep,
                 )

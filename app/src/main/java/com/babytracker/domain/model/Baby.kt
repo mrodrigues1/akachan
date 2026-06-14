@@ -9,6 +9,7 @@ data class Baby(
     val birthDate: LocalDate,
     val allergies: List<AllergyType> = emptyList(),
     val customAllergyNote: String? = null,
+    val sex: BabySex = BabySex.UNSPECIFIED,
 ) {
     val ageInDays: Long
         get() = ChronoUnit.DAYS.between(birthDate, LocalDate.now())

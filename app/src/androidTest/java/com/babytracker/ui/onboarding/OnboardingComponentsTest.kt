@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.BabySex
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
@@ -147,6 +148,8 @@ class OnboardingComponentsTest {
                     isNextEnabled = true,
                     onNameChanged = {},
                     onDateSelected = {},
+                    selectedSex = BabySex.UNSPECIFIED,
+                    onSexSelected = {},
                     onBack = {},
                     onNext = {},
                 )
@@ -245,6 +248,8 @@ class OnboardingComponentsTest {
                     isNextEnabled = true,
                     onNameChanged = {},
                     onDateSelected = {},
+                    selectedSex = BabySex.UNSPECIFIED,
+                    onSexSelected = {},
                     onBack = {},
                     onNext = {},
                 )
@@ -270,6 +275,8 @@ class OnboardingComponentsTest {
                     isNextEnabled = true,
                     onNameChanged = {},
                     onDateSelected = {},
+                    selectedSex = BabySex.UNSPECIFIED,
+                    onSexSelected = {},
                     onBack = {},
                     onNext = {},
                 )
@@ -299,6 +306,8 @@ class OnboardingComponentsTest {
                         isNextEnabled = true,
                         onNameChanged = {},
                         onDateSelected = {},
+                        selectedSex = BabySex.UNSPECIFIED,
+                        onSexSelected = {},
                         onBack = {},
                         onNext = {},
                         modifier = Modifier.requiredWidth(320.dp),
@@ -329,6 +338,8 @@ class OnboardingComponentsTest {
                         isNextEnabled = true,
                         onNameChanged = {},
                         onDateSelected = {},
+                        selectedSex = BabySex.UNSPECIFIED,
+                        onSexSelected = {},
                         onBack = {},
                         onNext = {},
                         modifier = Modifier.requiredSize(width = 320.dp, height = 420.dp),
@@ -357,6 +368,8 @@ class OnboardingComponentsTest {
                     isNextEnabled = true,
                     onNameChanged = {},
                     onDateSelected = {},
+                    selectedSex = BabySex.UNSPECIFIED,
+                    onSexSelected = {},
                     onBack = {},
                     onNext = {},
                 )
@@ -383,6 +396,8 @@ class OnboardingComponentsTest {
                     isNextEnabled = false,
                     onNameChanged = {},
                     onDateSelected = {},
+                    selectedSex = BabySex.UNSPECIFIED,
+                    onSexSelected = {},
                     onBack = {},
                     onNext = {},
                 )
