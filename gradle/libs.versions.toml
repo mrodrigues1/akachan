@@ -35,6 +35,7 @@ androidxTestCore = "1.6.1"
 kover = "0.9.1"
 twitterComposeRules = "0.0.26"
 reorderable = "3.1.0"
+vico = "3.1.0"
 
 [libraries]
 # Compose BOM
@@ -124,6 +125,9 @@ mannodermaus-runner = { group = "de.mannodermaus.junit5", name = "android-test-r
 
 # Reorderable
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
+
+# Charting
+vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

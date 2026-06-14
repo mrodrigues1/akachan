@@ -70,6 +70,7 @@ class ReorderByKeyTest {
             HomeTile.BOTTLE_FEED,
             HomeTile.GROWTH,
             HomeTile.MILESTONES,
+            HomeTile.TRENDS,
             HomeTile.TIP,
             HomeTile.FEEDING_HISTORY,
             HomeTile.PARTNER,

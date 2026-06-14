@@ -99,6 +99,7 @@ fun HomeScreen(
     onNavigateToFeedingHistory: () -> Unit = {},
     onNavigateToGrowth: () -> Unit = {},
     onNavigateToMilestones: () -> Unit = {},
+    onNavigateToTrends: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -186,6 +187,7 @@ fun HomeScreen(
                 onConnectPartner = onNavigateToConnectPartner,
                 onGrowth = onNavigateToGrowth,
                 onMilestones = onNavigateToMilestones,
+                onTrends = onNavigateToTrends,
             )
         }
         HomeContent(
@@ -472,6 +474,49 @@ internal fun GrowthHomeCard(
                 text = "Weight, length & percentiles",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun TrendsHomeCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .heightIn(min = 120.dp)
+            .semantics { contentDescription = "Trends. Open feeding and sleep charts." },
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(20.dp)
+                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
+        ) {
+            Text(
+                text = "📊",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Trends",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Feeding & sleep patterns",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
             )
         }
     }

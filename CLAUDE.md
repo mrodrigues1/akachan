@@ -21,10 +21,11 @@ A native Android baby tracking app for parents of infants (0–12 months). Track
 | Widgets | Glance 1.1.1 (appwidget + material3) |
 | Background work | WorkManager 2.10.0 |
 | Reorder | sh.calvin.reorderable 3.1.0 (drag-and-drop) |
+| Charting | Vico 3.1.0 (compose-m3, Material 3 themed charts) |
 | Serialization | Kotlinx Serialization JSON 1.8.1 |
 | Quality | ktlint-gradle 12.1.1, ktlint 1.3.1, detekt 1.23.6, Compose detekt rules 0.0.26 |
 | Coverage | Kover 0.9.1 |
-| SDK | Min SDK 26, Compile SDK 35, Target SDK 35, JVM 17 |
+| SDK | Min SDK 26, Compile SDK 36, Target SDK 35, JVM 17 |
 | Testing | JUnit 5.10.3, JUnit 4.13.2, Android JUnit5 2.0.1, MockK 1.13.13, Turbine 1.2.0, Robolectric 4.15.1, Konsist 0.16.0, Compose UI Test, Espresso 3.7.0 |
 
 > Authoritative versions: `gradle/libs.versions.toml`. Update this table whenever that file changes.

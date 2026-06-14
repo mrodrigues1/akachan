@@ -39,7 +39,7 @@ abstract class NormalizeAndroidTestConfigPaths : DefaultTask() {
 
 android {
     namespace = "com.babytracker"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.babytracker"
@@ -123,6 +123,8 @@ dependencies {
     implementation(libs.compose.material.icons)
     // Drag-and-drop reordering
     implementation(libs.reorderable)
+    // Charting (Material 3 themed)
+    implementation(libs.vico.compose.m3)
     debugImplementation(libs.compose.ui.tooling)
 
     // Core

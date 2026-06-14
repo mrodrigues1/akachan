@@ -24,4 +24,5 @@ object Routes {
     const val BOTTLE_FEED = "bottle_feed"
     const val GROWTH = "growth"
     const val MILESTONES = "milestones"
+    const val TRENDS = "trends"
 }
