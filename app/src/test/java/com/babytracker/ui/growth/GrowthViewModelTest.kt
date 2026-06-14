@@ -9,6 +9,7 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.growth.AddGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.DeleteGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.GetGrowthChartDataUseCase
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -32,6 +33,7 @@ class GrowthViewModelTest {
     private lateinit var addGrowthMeasurement: AddGrowthMeasurementUseCase
     private lateinit var deleteGrowthMeasurement: DeleteGrowthMeasurementUseCase
     private lateinit var settingsRepository: SettingsRepository
+    private lateinit var syncToFirestore: SyncToFirestoreUseCase
 
     private fun chart(type: GrowthType, isSexSpecified: Boolean = true) = GrowthChartData(
         type = type,
@@ -51,6 +53,7 @@ class GrowthViewModelTest {
         addGrowthMeasurement = mockk(relaxed = true)
         deleteGrowthMeasurement = mockk(relaxed = true)
         settingsRepository = mockk()
+        syncToFirestore = mockk(relaxed = true)
         every { settingsRepository.getMeasurementSystem() } returns flowOf(MeasurementSystem.METRIC)
         every { getGrowthChartData(GrowthType.WEIGHT) } returns flowOf(chart(GrowthType.WEIGHT))
         every { getGrowthChartData(GrowthType.LENGTH) } returns flowOf(chart(GrowthType.LENGTH))
@@ -65,6 +68,7 @@ class GrowthViewModelTest {
         addGrowthMeasurement,
         deleteGrowthMeasurement,
         settingsRepository,
+        syncToFirestore,
     )
 
     @Test
@@ -106,6 +110,7 @@ class GrowthViewModelTest {
                 match { it.type == GrowthType.WEIGHT && it.valueCanonical == 5200L && it.notes == null },
             )
         }
+        coVerify { syncToFirestore() } // partner snapshot is refreshed after the edit
     }
 
     @Test

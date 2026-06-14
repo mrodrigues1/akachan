@@ -4,6 +4,8 @@ import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.FeedOpAction
+import com.babytracker.sharing.domain.model.GrowthSnapshot
+import com.babytracker.sharing.domain.model.MilestoneSnapshot
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
@@ -23,6 +25,21 @@ internal fun snapshotToMap(snapshot: ShareSnapshot): Map<String, Any?> = mapOf(
     "inventoryUpdatedAt" to snapshot.inventoryUpdatedAt,
     "milkBags" to snapshot.milkBags.map { milkBagToMap(it) },
     "sleepPrediction" to snapshot.sleepPrediction?.let { predictionToMap(it) },
+    "growth" to snapshot.growth.map { growthToMap(it) },
+    "milestones" to snapshot.milestones.map { milestoneToMap(it) },
+)
+
+internal fun growthToMap(growth: GrowthSnapshot): Map<String, Any?> = mapOf(
+    "type" to growth.type,
+    "takenAtMs" to growth.takenAtMs,
+    "valueCanonical" to growth.valueCanonical,
+    "notes" to growth.notes,
+)
+
+internal fun milestoneToMap(milestone: MilestoneSnapshot): Map<String, Any?> = mapOf(
+    "milestone" to milestone.milestone,
+    "achievedOnEpochDay" to milestone.achievedOnEpochDay,
+    "notes" to milestone.notes,
 )
 
 internal fun predictionToMap(prediction: SleepPredictionSnapshot): Map<String, Any?> = mapOf(
@@ -99,6 +116,14 @@ internal fun mapToSnapshot(data: Map<*, *>): ShareSnapshot {
         ?.map { mapToMilkBag(it) }
         .orEmpty()
     val sleepPrediction = (data["sleepPrediction"] as? Map<*, *>)?.let { mapToPrediction(it) }
+    val growth = (data["growth"] as? List<*>)
+        ?.filterIsInstance<Map<*, *>>()
+        ?.map { mapToGrowth(it) }
+        .orEmpty()
+    val milestones = (data["milestones"] as? List<*>)
+        ?.filterIsInstance<Map<*, *>>()
+        ?.map { mapToMilestone(it) }
+        .orEmpty()
     return ShareSnapshot(
         lastSyncAt = lastSyncAt,
         baby = baby,
@@ -110,8 +135,23 @@ internal fun mapToSnapshot(data: Map<*, *>): ShareSnapshot {
         inventoryUpdatedAt = (data["inventoryUpdatedAt"] as? Number)?.toLong(),
         milkBags = milkBags,
         sleepPrediction = sleepPrediction,
+        growth = growth,
+        milestones = milestones,
     )
 }
+
+internal fun mapToGrowth(map: Map<*, *>): GrowthSnapshot = GrowthSnapshot(
+    type = map["type"] as? String ?: "WEIGHT",
+    takenAtMs = (map["takenAtMs"] as? Number)?.toLong() ?: 0L,
+    valueCanonical = (map["valueCanonical"] as? Number)?.toLong() ?: 0L,
+    notes = map["notes"] as? String,
+)
+
+internal fun mapToMilestone(map: Map<*, *>): MilestoneSnapshot = MilestoneSnapshot(
+    milestone = map["milestone"] as? String ?: "",
+    achievedOnEpochDay = (map["achievedOnEpochDay"] as? Number)?.toLong() ?: 0L,
+    notes = map["notes"] as? String,
+)
 
 internal fun mapToPrediction(map: Map<*, *>): SleepPredictionSnapshot = SleepPredictionSnapshot(
     stateLabel = map["stateLabel"] as? String ?: "UNAVAILABLE",

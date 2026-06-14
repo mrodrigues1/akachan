@@ -56,6 +56,8 @@ class SyncToFirestoreUseCaseInventoryTest {
                 inventoryRepository,
                 bottleFeedRepository,
                 predictSleepWindow,
+                mockk { every { getAllMeasurements() } returns flowOf(emptyList()) },
+                mockk { every { getAchievements() } returns flowOf(emptyList()) },
             ),
         ) { fixedNow }
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)

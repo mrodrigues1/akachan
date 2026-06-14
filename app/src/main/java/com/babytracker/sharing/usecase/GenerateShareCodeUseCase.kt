@@ -47,6 +47,8 @@ class GenerateShareCodeUseCase @Inject constructor(
         val summary = sources.inventory.currentSummary()
         val activeBags = sources.inventory.getActiveBags().first()
         val bottleFeeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
+        val growth = sources.growth.getAllMeasurements().first().latestPerType()
+        val milestones = sources.milestones.getAchievements().first()
         val timestamp = now()
         val prediction = buildPrediction(timestamp.toEpochMilli())
         return ShareSnapshot(
@@ -60,6 +62,8 @@ class GenerateShareCodeUseCase @Inject constructor(
             inventoryUpdatedAt = timestamp.toEpochMilli(),
             milkBags = activeBags.map { it.toSnapshot() },
             sleepPrediction = prediction,
+            growth = growth.map { it.toSnapshot() },
+            milestones = milestones.map { it.toSnapshot() },
         )
     }
 

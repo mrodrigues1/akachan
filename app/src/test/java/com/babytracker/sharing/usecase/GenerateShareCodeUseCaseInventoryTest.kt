@@ -55,6 +55,8 @@ class GenerateShareCodeUseCaseInventoryTest {
                 inventoryRepository,
                 bottleFeedRepository,
                 predictSleepWindow,
+                mockk { every { getAllMeasurements() } returns flowOf(emptyList()) },
+                mockk { every { getAchievements() } returns flowOf(emptyList()) },
             ),
         ) { fixedNow }
         every { babyRepository.getBabyProfile() } returns flowOf(Baby("Test", LocalDate.now()))

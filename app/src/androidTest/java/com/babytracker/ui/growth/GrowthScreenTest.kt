@@ -77,6 +77,7 @@ class GrowthScreenTest {
         AddGrowthMeasurementUseCase(growthRepository),
         DeleteGrowthMeasurementUseCase(growthRepository),
         settingsRepository,
+        mockk(relaxed = true),
     )
 
     @Test

@@ -13,6 +13,8 @@ data class ShareSnapshot(
     val inventoryUpdatedAt: Long? = null,
     val milkBags: List<MilkBagSnapshot> = emptyList(),
     val sleepPrediction: SleepPredictionSnapshot? = null,
+    val growth: List<GrowthSnapshot> = emptyList(),
+    val milestones: List<MilestoneSnapshot> = emptyList(),
 )
 
 data class BabySnapshot(
@@ -53,4 +55,18 @@ data class MilkBagSnapshot(
     val collectionDateMs: Long,
     val volumeMl: Int,
     val notes: String?,
+)
+
+data class GrowthSnapshot(
+    val type: String,
+    val takenAtMs: Long,
+    val valueCanonical: Long,
+    val notes: String? = null,
+)
+
+// Photos are intentionally omitted — milestone photos stay on-device and are never synced.
+data class MilestoneSnapshot(
+    val milestone: String,
+    val achievedOnEpochDay: Long,
+    val notes: String? = null,
 )

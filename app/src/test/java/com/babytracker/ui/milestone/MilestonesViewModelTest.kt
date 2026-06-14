@@ -7,6 +7,7 @@ import com.babytracker.domain.model.MilestoneProgress
 import com.babytracker.domain.usecase.milestone.DeleteMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.GetMilestoneProgressUseCase
 import com.babytracker.domain.usecase.milestone.LogMilestoneUseCase
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -29,6 +30,7 @@ class MilestonesViewModelTest {
     private lateinit var logMilestone: LogMilestoneUseCase
     private lateinit var deleteMilestone: DeleteMilestoneUseCase
     private lateinit var photoCleaner: MilestonePhotoCleaner
+    private lateinit var syncToFirestore: SyncToFirestoreUseCase
 
     private val photoUri = "file:///data/milestone_photos/WALKING_ALONE_1.jpg"
     private val catalog = Milestone.entries.map { milestone ->
@@ -49,13 +51,15 @@ class MilestonesViewModelTest {
         logMilestone = mockk(relaxed = true)
         deleteMilestone = mockk(relaxed = true)
         photoCleaner = mockk(relaxed = true)
+        syncToFirestore = mockk(relaxed = true)
         every { getMilestoneProgress() } returns flowOf(catalog)
     }
 
     @AfterEach
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = MilestonesViewModel(getMilestoneProgress, logMilestone, deleteMilestone, photoCleaner)
+    private fun viewModel() =
+        MilestonesViewModel(getMilestoneProgress, logMilestone, deleteMilestone, photoCleaner, syncToFirestore)
 
     @Test
     fun `loads the milestone catalog`() = runTest {
