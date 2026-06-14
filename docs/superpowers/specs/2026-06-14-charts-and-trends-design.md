@@ -155,10 +155,10 @@ TrendsUiState ─▶ CartesianChartModelProducer (per chart) ─▶ Vico Cartesi
   to its **start day**, split into `nightHours` (`SleepType.NIGHT_SLEEP`) and `napHours`
   (`SleepType.NAP`). Records crossing midnight are attributed to the start day (documented
   simplification; avoids per-day splitting in v1).
-- **Average feeding interval:** order all feed timestamps in the window ascending; a gap is the
-  hours between two consecutive feeds, attributed to the **later** feed's day; per day, average
-  those gaps. Days with fewer than two feeds (no in-day gap) → `averageHours = null` → the line
-  shows a break rather than a misleading zero.
+- **Average feeding interval:** for each day, take that day's feeds sorted ascending and average
+  the gaps (hours) between consecutive **same-day** feeds. Overnight gaps are excluded so the
+  metric reflects daytime feeding cadence rather than the long night gap. Days with fewer than
+  two feeds → `averageHours = null` → the line shows a break rather than a misleading zero.
 
 ## Error & empty handling
 
