@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.util.NotificationHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +22,7 @@ import javax.inject.Inject
 class NapReminderReceiver : BroadcastReceiver() {
 
     @Inject lateinit var settingsRepository: SettingsRepository
+    @Inject lateinit var sleepSettingsRepository: SleepSettingsRepository
 
     override fun onReceive(context: Context, intent: Intent) {
         val triggerAtMs = intent.getLongExtra(EXTRA_TRIGGER_AT_MS, -1L)
@@ -44,7 +46,7 @@ class NapReminderReceiver : BroadcastReceiver() {
             return
         }
 
-        val enabled = settingsRepository.getNapReminderEnabled().first()
+        val enabled = sleepSettingsRepository.getNapReminderEnabled().first()
         if (!enabled) {
             Log.d(TAG, "Nap reminder disabled; suppressing")
             return

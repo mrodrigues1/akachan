@@ -10,6 +10,7 @@ import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
@@ -39,6 +40,7 @@ class GenerateShareCodeUseCaseTest {
 
     private val sharingRepository: SharingRepository = mockk()
     private val settingsRepository: SettingsRepository = mockk()
+    private val sleepSettingsRepository: SleepSettingsRepository = mockk()
     private val babyRepository: BabyRepository = mockk()
     private val breastfeedingRepository: BreastfeedingRepository = mockk()
     private val sleepRepository: SleepRepository = mockk()
@@ -54,6 +56,7 @@ class GenerateShareCodeUseCaseTest {
         useCase = GenerateShareCodeUseCase(
             sharingRepository,
             settingsRepository,
+            sleepSettingsRepository,
             SnapshotSources(
                 babyRepository,
                 breastfeedingRepository,
@@ -77,7 +80,7 @@ class GenerateShareCodeUseCaseTest {
         coEvery { sharingRepository.syncFullSnapshot(any(), any()) } just Runs
         coEvery { settingsRepository.setShareCode(any()) } just Runs
         coEvery { settingsRepository.setAppMode(any()) } just Runs
-        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
+        every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("disabled"))
     }
 
@@ -124,7 +127,7 @@ class GenerateShareCodeUseCaseTest {
     @Test
     fun initialSnapshotHasNoPredictionWhenPredictiveSleepDisabled() = runTest {
         val snapshotSlot = slot<ShareSnapshot>()
-        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
+        every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
         coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
 
         useCase()
@@ -135,7 +138,7 @@ class GenerateShareCodeUseCaseTest {
     @Test
     fun initialSnapshotIncludesPredictionWhenPredictiveSleepEnabled() = runTest {
         val snapshotSlot = slot<ShareSnapshot>()
-        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.CurrentlySleeping)
         coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
 

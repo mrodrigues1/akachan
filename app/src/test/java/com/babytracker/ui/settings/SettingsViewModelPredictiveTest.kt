@@ -6,7 +6,6 @@ import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
-import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.NotificationPermissionChecker
 import com.babytracker.sharing.domain.model.AppMode
 import io.mockk.coEvery
@@ -62,10 +61,6 @@ class SettingsViewModelPredictiveTest {
         every { settingsRepository.getQuietHoursStartMinute() } returns quietHoursStartFlow
         every { settingsRepository.getQuietHoursEndMinute() } returns quietHoursEndFlow
         every { countRecentValidIntervals() } returns validIntervalCountFlow
-        every { settingsRepository.getNapReminderEnabled() } returns flowOf(false)
-        every { settingsRepository.getNapReminderDelayMinutes() } returns flowOf(60)
-        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
-        every { settingsRepository.getPredictiveSleepLeadMinutes() } returns flowOf(15)
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         every { settingsRepository.getMeasurementSystem() } returns flowOf(MeasurementSystem.METRIC)
     }
@@ -82,7 +77,6 @@ class SettingsViewModelPredictiveTest {
             saveBabyProfile = mockk(),
             countRecentValidIntervals = countRecentValidIntervals,
             notificationPermissionChecker = NotificationPermissionChecker { notificationsEnabledStub },
-            napReminderScheduler = mockk(relaxed = true),
         )
     }
 

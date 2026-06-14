@@ -21,6 +21,7 @@ import com.babytracker.ui.sharing.ConnectPartnerScreen
 import com.babytracker.ui.sharing.ManageSharingScreen
 import com.babytracker.ui.sleep.SleepHistoryScreen
 import com.babytracker.ui.sleep.SleepScheduleScreen
+import com.babytracker.ui.sleep.SleepSettingsScreen
 import com.babytracker.ui.sleep.SleepTrackingScreen
 import com.babytracker.ui.inventory.InventoryScreen
 import com.babytracker.ui.inventory.InventorySettingsScreen
@@ -90,7 +91,8 @@ fun AppNavGraph(
             SleepTrackingScreen(
                 onNavigateToHistory = { navController.navigate(Routes.SLEEP_HISTORY) },
                 onNavigateToSchedule = { navController.navigate(Routes.SLEEP_SCHEDULE) },
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToSettings = { navController.navigate(Routes.SLEEP_SETTINGS) }
             )
         }
         composable(Routes.SLEEP_HISTORY) {
@@ -98,6 +100,9 @@ fun AppNavGraph(
         }
         composable(Routes.SLEEP_SCHEDULE) {
             SleepScheduleScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Routes.SLEEP_SETTINGS) {
+            SleepSettingsScreen(onNavigateBack = { navController.popBackStack() })
         }
         settingsGraph(navController, isOnboardingComplete)
         pumpingGraph(navController)

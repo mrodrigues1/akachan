@@ -3,7 +3,7 @@ package com.babytracker.manager
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
-import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
@@ -26,7 +26,7 @@ class NapReminderManagerTest {
 
     private lateinit var context: Context
     private lateinit var alarmManager: AlarmManager
-    private lateinit var settingsRepository: SettingsRepository
+    private lateinit var sleepSettingsRepository: SleepSettingsRepository
     private lateinit var manager: NapReminderManager
     private lateinit var mockPi: PendingIntent
 
@@ -34,7 +34,7 @@ class NapReminderManagerTest {
     fun setup() {
         alarmManager = mockk(relaxed = true)
         context = mockk(relaxed = true)
-        settingsRepository = mockk()
+        sleepSettingsRepository = mockk()
         every { context.getSystemService(AlarmManager::class.java) } returns alarmManager
         every { context.packageName } returns "com.babytracker"
 
@@ -44,7 +44,7 @@ class NapReminderManagerTest {
             PendingIntent.getBroadcast(any(), eq(NapReminderManager.RC_NAP_REMINDER), any(), any())
         } returns mockPi
 
-        manager = NapReminderManager(context, settingsRepository)
+        manager = NapReminderManager(context, sleepSettingsRepository)
     }
 
     @AfterEach
@@ -100,8 +100,8 @@ class NapReminderManagerTest {
     @Test
     fun `scheduleIfEnabled schedules alarm when nap reminder is enabled`() = runTest {
         val napEnd = Instant.parse("2026-01-01T10:00:00Z")
-        every { settingsRepository.getNapReminderEnabled() } returns flowOf(true)
-        every { settingsRepository.getNapReminderDelayMinutes() } returns flowOf(30)
+        every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(true)
+        every { sleepSettingsRepository.getNapReminderDelayMinutes() } returns flowOf(30)
 
         manager.scheduleIfEnabled(napEnd)
 
@@ -111,7 +111,7 @@ class NapReminderManagerTest {
     @Test
     fun `scheduleIfEnabled does not schedule alarm when nap reminder is disabled`() = runTest {
         val napEnd = Instant.parse("2026-01-01T10:00:00Z")
-        every { settingsRepository.getNapReminderEnabled() } returns flowOf(false)
+        every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(false)
 
         manager.scheduleIfEnabled(napEnd)
 
@@ -123,8 +123,8 @@ class NapReminderManagerTest {
     fun `scheduleIfEnabled uses delay minutes from settings`() = runTest {
         val napEnd = Instant.parse("2026-01-01T10:00:00Z")
         val delayMinutes = 45
-        every { settingsRepository.getNapReminderEnabled() } returns flowOf(true)
-        every { settingsRepository.getNapReminderDelayMinutes() } returns flowOf(delayMinutes)
+        every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(true)
+        every { sleepSettingsRepository.getNapReminderDelayMinutes() } returns flowOf(delayMinutes)
         val triggerSlot = slot<Long>()
         every {
             alarmManager.setExactAndAllowWhileIdle(any(), capture(triggerSlot), any())

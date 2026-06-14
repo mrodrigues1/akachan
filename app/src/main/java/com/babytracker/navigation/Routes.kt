@@ -9,6 +9,7 @@ object Routes {
     const val SLEEP_TRACKING = "sleep"
     const val SLEEP_HISTORY = "sleep/history"
     const val SLEEP_SCHEDULE = "sleep/schedule"
+    const val SLEEP_SETTINGS = "sleep/settings"
     const val SETTINGS = "settings"
     const val DESIGN_SYSTEM_PREVIEW = "design_system/preview"
     const val CONNECT_PARTNER = "connect_partner"

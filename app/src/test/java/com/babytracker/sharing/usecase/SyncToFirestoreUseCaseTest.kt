@@ -16,6 +16,7 @@ import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
@@ -44,6 +45,7 @@ class SyncToFirestoreUseCaseTest {
 
     private val sharingRepository: SharingRepository = mockk()
     private val settingsRepository: SettingsRepository = mockk()
+    private val sleepSettingsRepository: SleepSettingsRepository = mockk()
     private val babyRepository: BabyRepository = mockk()
     private val breastfeedingRepository: BreastfeedingRepository = mockk()
     private val sleepRepository: SleepRepository = mockk()
@@ -80,6 +82,7 @@ class SyncToFirestoreUseCaseTest {
         useCase = SyncToFirestoreUseCase(
             sharingRepository,
             settingsRepository,
+            sleepSettingsRepository,
             SnapshotSources(
                 babyRepository,
                 breastfeedingRepository,
@@ -92,7 +95,7 @@ class SyncToFirestoreUseCaseTest {
             ),
         ) { fixedNow }
         every { settingsRepository.getShareCode() } returns flowOf(shareCode.value)
-        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
+        every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
         every { babyRepository.getBabyProfile() } returns flowOf(mockBaby)
         coEvery { breastfeedingRepository.getRecentSessions(any()) } returns listOf(mockSession)
         coEvery { sleepRepository.getRecentRecords(any()) } returns listOf(mockSleep)
@@ -191,7 +194,7 @@ class SyncToFirestoreUseCaseTest {
     @Test
     fun fullSyncIncludesPredictionWhenPredictiveSleepEnabled() = runTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
-        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
         every { predictSleepWindow() } returns flowOf(
             SleepPredictionState.Window(
                 SleepWindow(
@@ -219,7 +222,7 @@ class SyncToFirestoreUseCaseTest {
     @Test
     fun fullSyncOmitsPredictionWhenPredictiveSleepDisabled() = runTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
-        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
+        every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
         val snapshot = slot<ShareSnapshot>()
         coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshot)) } just Runs
 
@@ -232,7 +235,7 @@ class SyncToFirestoreUseCaseTest {
     @Test
     fun sessionsSyncRefreshesPredictionWhenPredictiveSleepEnabled() = runTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
-        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.AfterActiveFeed)
         val prediction = slot<SleepPredictionSnapshot>()
         coEvery { sharingRepository.syncSessions(any(), any(), capture(prediction)) } just Runs
@@ -246,7 +249,7 @@ class SyncToFirestoreUseCaseTest {
     @Test
     fun sessionsSyncPassesNullPredictionWhenPredictiveSleepDisabled() = runTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
-        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
+        every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
 
         useCase(SyncType.SESSIONS)
 
@@ -257,7 +260,7 @@ class SyncToFirestoreUseCaseTest {
     @Test
     fun sleepRecordsSyncRefreshesPredictionWhenPredictiveSleepEnabled() = runTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
-        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.CurrentlySleeping)
         val prediction = slot<SleepPredictionSnapshot>()
         coEvery {
@@ -272,7 +275,7 @@ class SyncToFirestoreUseCaseTest {
     @Test
     fun fullSyncOmitsPredictionWhenUnavailable() = runTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
-        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("no baby profile"))
         val snapshot = slot<ShareSnapshot>()
         coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshot)) } just Runs

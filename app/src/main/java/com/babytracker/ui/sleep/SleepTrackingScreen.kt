@@ -24,7 +24,10 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Bedtime
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
@@ -97,6 +100,7 @@ fun SleepTrackingScreen(
     onNavigateToSchedule: () -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateToSettings: () -> Unit = {},
     viewModel: SleepViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -181,11 +185,14 @@ fun SleepTrackingScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = onNavigateToHistory) {
-                        Text("History", color = MaterialTheme.colorScheme.secondary)
+                    IconButton(onClick = onNavigateToHistory) {
+                        Icon(Icons.Outlined.History, contentDescription = "Sleep history")
                     }
-                    TextButton(onClick = onNavigateToSchedule) {
-                        Text("Schedule", color = MaterialTheme.colorScheme.secondary)
+                    IconButton(onClick = onNavigateToSchedule) {
+                        Icon(Icons.Outlined.CalendarMonth, contentDescription = "Sleep schedule")
+                    }
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Sleep settings")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

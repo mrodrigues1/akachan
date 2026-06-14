@@ -90,8 +90,10 @@
         <item quantity="other">Needs %d more feeds to activate</item>
     </plurals>
 
+    <!-- Sleep settings screen -->
+    <string name="sleep_settings_title">Sleep Settings</string>
+
     <!-- Settings — nap reminder section -->
-    <string name="settings_section_sleep_reminders">Sleep Reminders</string>
     <string name="settings_nap_reminder_toggle_title">Nap reminder</string>
     <string name="settings_nap_reminder_toggle_subtitle">Notify after a nap ends</string>
     <string name="settings_nap_reminder_delay_label">Remind after (minutes)</string>

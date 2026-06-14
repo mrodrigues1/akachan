@@ -116,6 +116,8 @@ class SettingsRestoreTest {
         )
         repo.restoreFromBackup(corrupt)
         assertEquals(15, repo.getPredictiveLeadMinutes().first())   // collapsed to default
-        assertEquals(480, repo.getNapReminderDelayMinutes().first()) // coerced to max
+        // Nap reminder prefs are now owned by SleepSettingsRepository but written to the same
+        // DataStore keys by restoreFromBackup, so they read back through the sleep repo.
+        assertEquals(480, SleepSettingsRepositoryImpl(dataStore).getNapReminderDelayMinutes().first())
     }
 }

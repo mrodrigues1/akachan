@@ -19,7 +19,6 @@ import com.babytracker.export.domain.model.BackupData
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
-import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.NotificationPermissionChecker
 import com.babytracker.sharing.domain.model.AppMode
 import io.mockk.every
@@ -55,7 +54,6 @@ class SettingsScreenTest {
             saveBabyProfile = SaveBabyProfileUseCase(babyRepository, mockk(relaxed = true)),
             countRecentValidIntervals = countRecentValidIntervals,
             notificationPermissionChecker = NotificationPermissionChecker { true },
-            napReminderScheduler = mockk(relaxed = true),
         )
     }
 
@@ -124,7 +122,6 @@ class SettingsScreenTest {
             saveBabyProfile = SaveBabyProfileUseCase(babyRepo, mockk(relaxed = true)),
             countRecentValidIntervals = countRecentValidIntervals,
             notificationPermissionChecker = NotificationPermissionChecker { true },
-            napReminderScheduler = mockk(relaxed = true),
         )
 
         composeRule.setContent {
@@ -148,7 +145,6 @@ class SettingsScreenTest {
             saveBabyProfile = SaveBabyProfileUseCase(babyRepo, mockk(relaxed = true)),
             countRecentValidIntervals = countRecentValidIntervals,
             notificationPermissionChecker = NotificationPermissionChecker { true },
-            napReminderScheduler = mockk(relaxed = true),
         )
 
         composeRule.setContent {
@@ -252,19 +248,6 @@ class SettingsScreenTest {
         override fun getQuietHoursEndMinute(): Flow<Int> = flowOf(480)
 
         override suspend fun setQuietHoursEndMinute(minuteOfDay: Int) = Unit
-
-        override fun getNapReminderEnabled(): Flow<Boolean> = flowOf(false)
-
-        override suspend fun setNapReminderEnabled(enabled: Boolean) = Unit
-
-        override fun getNapReminderDelayMinutes(): Flow<Int> = flowOf(60)
-
-        override suspend fun setNapReminderDelayMinutes(minutes: Int) = Unit
-
-        override fun getPredictiveSleepEnabled(): Flow<Boolean> = flowOf(false)
-        override suspend fun setPredictiveSleepEnabled(enabled: Boolean) = Unit
-        override fun getPredictiveSleepLeadMinutes(): Flow<Int> = flowOf(15)
-        override suspend fun setPredictiveSleepLeadMinutes(minutes: Int) = Unit
 
         override fun isImportInProgress(): Flow<Boolean> = flowOf(false)
 
