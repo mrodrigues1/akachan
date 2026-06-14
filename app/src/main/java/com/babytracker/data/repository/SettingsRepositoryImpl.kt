@@ -58,6 +58,7 @@ class SettingsRepositoryImpl @Inject constructor(
         val BABY_BIRTH_DATE = longPreferencesKey("baby_birth_date")
         val ALLERGIES = stringPreferencesKey("allergies")
         val CUSTOM_ALLERGY_NOTE = stringPreferencesKey("custom_allergy_note")
+        val BABY_SEX = stringPreferencesKey("baby_sex")
         const val MAX_MINUTE_OF_DAY = 1439
         const val MIN_NAP_DELAY = 1
         const val MAX_NAP_DELAY = 480
@@ -286,6 +287,8 @@ class SettingsRepositoryImpl @Inject constructor(
                 p[ALLERGIES] = baby.allergies.joinToString(",")
                 if (baby.customAllergyNote != null) p[CUSTOM_ALLERGY_NOTE] = baby.customAllergyNote
                 else p.remove(CUSTOM_ALLERGY_NOTE)
+                // v1 backups have no sex -> remove the key so it reads back as UNSPECIFIED.
+                if (baby.sex != null) p[BABY_SEX] = baby.sex else p.remove(BABY_SEX)
                 p[ONBOARDING_COMPLETE] = true
             }
 

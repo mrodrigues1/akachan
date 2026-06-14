@@ -5,6 +5,8 @@ import com.babytracker.export.domain.InvalidBackupException
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.export.domain.model.BottleFeedBackup
 import com.babytracker.export.domain.model.CURRENT_BACKUP_FORMAT_VERSION
+import com.babytracker.export.domain.model.GrowthBackup
+import com.babytracker.export.domain.model.MilestoneBackup
 import com.babytracker.export.domain.model.MilkBagBackup
 import com.babytracker.export.domain.model.PumpingBackup
 import com.babytracker.export.domain.model.SettingsBackup
@@ -13,6 +15,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -65,6 +68,83 @@ class ValidateBackupUseCaseTest {
         val result = useCase(json.encodeToString(BackupData.serializer(), data))
 
         assertEquals(listOf("NAP", "NIGHT_SLEEP"), result.sleep.map { it.sleepType })
+    }
+
+    @Test
+    fun `tolerates a v1 backup missing growth, milestones and sex`() {
+        // A genuine v1 export omits the v2-only keys entirely.
+        val legacyJson = Json { encodeDefaults = false }.encodeToString(
+            BackupData.serializer(),
+            backup(version = 1, sleep = listOf(SleepBackup(1, 10, 20, "NAP", null))),
+        )
+        assertTrue("growth" !in legacyJson, "legacy JSON should omit the v2-only growth key")
+
+        val result = useCase(legacyJson)
+
+        assertEquals(CURRENT_BACKUP_FORMAT_VERSION, result.backupFormatVersion)
+        assertTrue(result.growth.isEmpty())
+        assertTrue(result.milestones.isEmpty())
+        assertEquals(1, result.sleep.size)
+    }
+
+    @Test
+    fun `accepts a v2 backup carrying growth and milestones`() {
+        val data = backup().copy(
+            growth = listOf(GrowthBackup(1, 1000, "WEIGHT", 5000, null)),
+            milestones = listOf(MilestoneBackup("WALKING_ALONE", 100, null)),
+        )
+
+        val result = useCase(json.encodeToString(BackupData.serializer(), data))
+
+        assertEquals(1, result.growth.size)
+        assertEquals(1, result.milestones.size)
+    }
+
+    @Test
+    fun `rejects an invalid growth type`() {
+        val data = backup().copy(growth = listOf(GrowthBackup(1, 1000, "NONSENSE", 5000, null)))
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
+    }
+
+    @Test
+    fun `rejects non-positive growth value`() {
+        val data = backup().copy(growth = listOf(GrowthBackup(1, 1000, "WEIGHT", 0, null)))
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
+    }
+
+    @Test
+    fun `rejects an invalid milestone name`() {
+        val data = backup().copy(milestones = listOf(MilestoneBackup("FLYING", 100, null)))
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
+    }
+
+    @Test
+    fun `rejects duplicate milestone entries`() {
+        val data = backup().copy(
+            milestones = listOf(
+                MilestoneBackup("WALKING_ALONE", 100, null),
+                MilestoneBackup("WALKING_ALONE", 200, null),
+            ),
+        )
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
+    }
+
+    @Test
+    fun `rejects an invalid baby sex`() {
+        val data = backup().copy(
+            baby = com.babytracker.export.domain.model.BabyBackup("Leo", 100, emptyList(), null, sex = "ROBOT"),
+        )
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
     }
 
     @Test

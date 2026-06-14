@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.test.core.app.ApplicationProvider
+import com.babytracker.domain.model.BabySex
 import com.babytracker.export.domain.model.BabyBackup
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.export.domain.model.SettingsBackup
@@ -69,6 +70,31 @@ class SettingsRestoreTest {
         assertEquals("Mia", prefs[stringPreferencesKey("baby_name")])
         assertEquals(true, prefs[booleanPreferencesKey("onboarding_complete")])
         assertEquals(1234L, prefs[longPreferencesKey("import_started_at")])
+    }
+
+    @Test
+    fun `restore writes baby sex so the profile reads it back`() = runTest {
+        repo.restoreFromBackup(backup(BabyBackup("Mia", 100, emptyList(), null, sex = "FEMALE")))
+
+        val baby = BabyRepositoryImpl(dataStore).getBabyProfile().first()
+        assertEquals(BabySex.FEMALE, baby?.sex)
+    }
+
+    @Test
+    fun `v1 backup without sex restores as unspecified`() = runTest {
+        // Pre-seed a sex so we can prove restore clears it for a v1 backup.
+        BabyRepositoryImpl(dataStore).saveBabyProfile(
+            com.babytracker.domain.model.Baby(
+                name = "Mia",
+                birthDate = java.time.LocalDate.ofEpochDay(100),
+                sex = BabySex.MALE,
+            ),
+        )
+
+        repo.restoreFromBackup(backup(BabyBackup("Mia", 100, emptyList(), null)))
+
+        val baby = BabyRepositoryImpl(dataStore).getBabyProfile().first()
+        assertEquals(BabySex.UNSPECIFIED, baby?.sex)
     }
 
     @Test

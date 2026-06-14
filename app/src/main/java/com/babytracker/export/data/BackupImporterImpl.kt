@@ -4,6 +4,8 @@ import androidx.room.withTransaction
 import com.babytracker.data.local.BabyTrackerDatabase
 import com.babytracker.data.local.entity.BottleFeedEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
+import com.babytracker.data.local.entity.GrowthMeasurementEntity
+import com.babytracker.data.local.entity.MilestoneAchievementEntity
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
@@ -26,7 +28,45 @@ class BackupImporterImpl @Inject constructor(
         val (pumpInserted, pumpIdMap) = mergePumping(data)
         val bags = mergeMilkBags(data, pumpIdMap)
         val bottles = mergeBottleFeeds(data)
-        ImportCounts(bf, sleep, pumpInserted, bags, bottles)
+        val growth = mergeGrowth(data)
+        val milestones = mergeMilestones(data)
+        ImportCounts(bf, sleep, pumpInserted, bags, bottles, growth, milestones)
+    }
+
+    private suspend fun mergeGrowth(data: BackupData): Int {
+        val seen = db.growthMeasurementDao().getAllOnce().map { it.identity() }.toMutableSet()
+        var inserted = 0
+        for (g in data.growth) {
+            val entity = GrowthMeasurementEntity(
+                takenAt = g.takenAtMs, type = g.type, valueCanonical = g.valueCanonical, notes = g.notes,
+            )
+            if (seen.add(entity.identity())) {
+                db.growthMeasurementDao().insert(entity)
+                inserted++
+            }
+        }
+        return inserted
+    }
+
+    // One achievement per milestone (unique index). Keep any existing local achievement;
+    // only insert milestones the device has not already recorded.
+    private suspend fun mergeMilestones(data: BackupData): Int {
+        val existing = db.milestoneDao().getAllOnce().map { it.milestone }.toMutableSet()
+        var inserted = 0
+        for (m in data.milestones) {
+            if (existing.add(m.milestone)) {
+                db.milestoneDao().upsert(
+                    MilestoneAchievementEntity(
+                        milestone = m.milestone,
+                        achievedOnEpochDay = m.achievedOnEpochDay,
+                        photoUri = null,
+                        notes = m.notes,
+                    ),
+                )
+                inserted++
+            }
+        }
+        return inserted
     }
 
     private suspend fun mergeBreastfeeding(data: BackupData): Int {
@@ -170,4 +210,5 @@ class BackupImporterImpl @Inject constructor(
         listOf(startTime, endTime, breast, volumeMl, notes, pausedAt, pausedDurationMs)
     private fun MilkBagEntity.identity() = listOf(collectionDate, volumeMl, usedAt, notes, createdAt)
     private fun BottleFeedEntity.identity() = listOf(timestamp, volumeMl, type, notes, createdAt)
+    private fun GrowthMeasurementEntity.identity() = listOf(takenAt, type, valueCanonical, notes)
 }

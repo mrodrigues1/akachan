@@ -7,6 +7,8 @@ import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.export.domain.model.BottleFeedBackup
+import com.babytracker.export.domain.model.GrowthBackup
+import com.babytracker.export.domain.model.MilestoneBackup
 import com.babytracker.export.domain.model.MilkBagBackup
 import com.babytracker.export.domain.model.PumpingBackup
 import com.babytracker.export.domain.model.SettingsBackup
@@ -52,6 +54,34 @@ class BackupImporterImplTest {
         baby = null, settings = settings(), breastfeeding = emptyList(),
         sleep = sleep, pumping = pumping, milkBags = milkBags, bottleFeeds = bottleFeeds,
     )
+
+    @Test
+    fun `merges growth and milestones, deduping growth and preserving local milestones`() = runTest {
+        val data = BackupData(
+            backupFormatVersion = 2, roomSchemaVersion = 11, appVersion = "1.0.0", exportedAt = 0,
+            baby = null, settings = settings(), breastfeeding = emptyList(),
+            sleep = emptyList(), pumping = emptyList(), milkBags = emptyList(), bottleFeeds = emptyList(),
+            growth = listOf(
+                GrowthBackup(id = 1, takenAtMs = 1000, type = "WEIGHT", valueCanonical = 5000, notes = null),
+                GrowthBackup(id = 2, takenAtMs = 2000, type = "LENGTH", valueCanonical = 600, notes = "n"),
+            ),
+            milestones = listOf(
+                MilestoneBackup(milestone = "WALKING_ALONE", achievedOnEpochDay = 100, notes = "steps"),
+            ),
+        )
+
+        val counts = importer.merge(data)
+
+        assertEquals(2, counts.growthInserted)
+        assertEquals(1, counts.milestonesInserted)
+        assertEquals(2, db.growthMeasurementDao().getAllOnce().size)
+        assertEquals(1, db.milestoneDao().getAllOnce().size)
+
+        // Re-importing the same backup inserts nothing (growth dedup + milestone already present).
+        val again = importer.merge(data)
+        assertEquals(0, again.growthInserted)
+        assertEquals(0, again.milestonesInserted)
+    }
 
     @Test
     fun `skips an exact duplicate but keeps a row differing in any field`() = runTest {

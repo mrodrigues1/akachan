@@ -35,6 +35,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -103,9 +105,19 @@ private fun MilestoneCard(
     modifier: Modifier = Modifier,
 ) {
     val achievement = progress.achievement
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
+    val cardDescription = if (achievement != null) {
+        "${progress.milestone.label}. Achieved ${achievement.achievedOn.format(dateFormatter)}. " +
+            progress.milestone.windowLabel()
+    } else {
+        "${progress.milestone.label}. Not yet logged. ${progress.milestone.windowLabel()}. Tap to log."
+    }
     Card(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().testTag("milestone_card_${progress.milestone.name}"),
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("milestone_card_${progress.milestone.name}")
+            .semantics(mergeDescendants = true) { contentDescription = cardDescription },
         colors = CardDefaults.cardColors(
             containerColor = if (progress.isAchieved) {
                 MaterialTheme.colorScheme.primaryContainer
@@ -132,9 +144,8 @@ private fun MilestoneCard(
                 )
                 Spacer(Modifier.size(6.dp))
                 if (achievement != null) {
-                    val formatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
                     Text(
-                        text = "Achieved ${achievement.achievedOn.format(formatter)}",
+                        text = "Achieved ${achievement.achievedOn.format(dateFormatter)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )

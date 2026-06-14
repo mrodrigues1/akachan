@@ -19,6 +19,9 @@ interface GrowthMeasurementDao {
     @Query("SELECT * FROM growth_measurements WHERE type = :type ORDER BY taken_at ASC")
     fun getByType(type: String): Flow<List<GrowthMeasurementEntity>>
 
+    @Query("SELECT * FROM growth_measurements ORDER BY taken_at ASC")
+    suspend fun getAllOnce(): List<GrowthMeasurementEntity>
+
     @Query("DELETE FROM growth_measurements WHERE id = :id")
     suspend fun deleteById(id: Long)
 }

@@ -40,6 +40,9 @@ data class ImportPreview(
     val sleep: Int,
     val pumping: Int,
     val milkBags: Int,
+    val bottleFeeds: Int = 0,
+    val growth: Int = 0,
+    val milestones: Int = 0,
 )
 
 data class DataExportUiState(
@@ -143,6 +146,9 @@ class DataExportViewModel @Inject constructor(
                     sleep = data.sleep.size,
                     pumping = data.pumping.size,
                     milkBags = data.milkBags.size,
+                    bottleFeeds = data.bottleFeeds.size,
+                    growth = data.growth.size,
+                    milestones = data.milestones.size,
                 ),
             )
         }
