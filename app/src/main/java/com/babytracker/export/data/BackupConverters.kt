@@ -2,11 +2,15 @@ package com.babytracker.export.data
 
 import com.babytracker.data.local.entity.BottleFeedEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
+import com.babytracker.data.local.entity.GrowthMeasurementEntity
+import com.babytracker.data.local.entity.MilestoneAchievementEntity
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
 import com.babytracker.export.domain.model.BottleFeedBackup
 import com.babytracker.export.domain.model.BreastfeedingBackup
+import com.babytracker.export.domain.model.GrowthBackup
+import com.babytracker.export.domain.model.MilestoneBackup
 import com.babytracker.export.domain.model.MilkBagBackup
 import com.babytracker.export.domain.model.PumpingBackup
 import com.babytracker.export.domain.model.SleepBackup
@@ -20,6 +24,23 @@ fun BreastfeedingEntity.toBackup() = BreastfeedingBackup(
 fun BreastfeedingBackup.toEntity() = BreastfeedingEntity(
     id = id, startTime = startTime, endTime = endTime, startingSide = startingSide,
     switchTime = switchTime, notes = notes, pausedAt = pausedAt, pausedDurationMs = pausedDurationMs,
+)
+
+fun GrowthMeasurementEntity.toBackup() = GrowthBackup(
+    id = id, takenAtMs = takenAt, type = type, valueCanonical = valueCanonical, notes = notes,
+)
+
+fun GrowthBackup.toEntity() = GrowthMeasurementEntity(
+    takenAt = takenAtMs, type = type, valueCanonical = valueCanonical, notes = notes,
+)
+
+// Photos are not archived in backups, so the restored entity has no photoUri.
+fun MilestoneAchievementEntity.toBackup() = MilestoneBackup(
+    milestone = milestone, achievedOnEpochDay = achievedOnEpochDay, notes = notes,
+)
+
+fun MilestoneBackup.toEntity() = MilestoneAchievementEntity(
+    milestone = milestone, achievedOnEpochDay = achievedOnEpochDay, photoUri = null, notes = notes,
 )
 
 fun SleepEntity.toBackup() = SleepBackup(

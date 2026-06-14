@@ -46,7 +46,7 @@ abstract class ExportModule {
         fun provideExportMetadata(): ExportMetadata = ExportMetadata(
             appVersion = BuildConfig.VERSION_NAME,
             // Must equal BabyTrackerDatabase's @Database(version = ...); diagnostics-only field.
-            roomSchemaVersion = 6,
+            roomSchemaVersion = 11,
         )
     }
 }

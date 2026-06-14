@@ -2,7 +2,7 @@ package com.babytracker.export.domain.model
 
 import kotlinx.serialization.Serializable
 
-const val CURRENT_BACKUP_FORMAT_VERSION = 1
+const val CURRENT_BACKUP_FORMAT_VERSION = 2
 
 @Serializable
 data class BackupData(
@@ -17,6 +17,9 @@ data class BackupData(
     val pumping: List<PumpingBackup>,
     val milkBags: List<MilkBagBackup>,
     val bottleFeeds: List<BottleFeedBackup> = emptyList(),
+    // Added in format version 2; default-empty so v1 backups still deserialize.
+    val growth: List<GrowthBackup> = emptyList(),
+    val milestones: List<MilestoneBackup> = emptyList(),
 )
 
 @Serializable
@@ -25,6 +28,25 @@ data class BabyBackup(
     val birthDateEpochDay: Long,
     val allergies: List<String>,
     val customAllergyNote: String?,
+    // Added in format version 2; null for v1 backups -> restored as UNSPECIFIED.
+    val sex: String? = null,
+)
+
+@Serializable
+data class GrowthBackup(
+    val id: Long,
+    val takenAtMs: Long,
+    val type: String,
+    val valueCanonical: Long,
+    val notes: String?,
+)
+
+// Photos are metadata-only in backups: the photo file is not archived, so no photoUri is stored.
+@Serializable
+data class MilestoneBackup(
+    val milestone: String,
+    val achievedOnEpochDay: Long,
+    val notes: String?,
 )
 
 @Serializable

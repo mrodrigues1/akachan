@@ -17,6 +17,9 @@ interface MilestoneDao {
     @Query("SELECT * FROM milestone_achievements")
     fun getAll(): Flow<List<MilestoneAchievementEntity>>
 
+    @Query("SELECT * FROM milestone_achievements")
+    suspend fun getAllOnce(): List<MilestoneAchievementEntity>
+
     @Query("DELETE FROM milestone_achievements WHERE milestone = :milestone")
     suspend fun deleteByMilestone(milestone: String)
 }

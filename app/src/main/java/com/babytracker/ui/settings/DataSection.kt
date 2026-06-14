@@ -219,9 +219,12 @@ fun DataSection(
                     Text("• ${preview.sleep} sleep records")
                     Text("• ${preview.pumping} pumping sessions")
                     Text("• ${preview.milkBags} milk bags")
+                    Text("• ${preview.bottleFeeds} bottle feeds")
+                    Text("• ${preview.growth} growth measurements")
+                    Text("• ${preview.milestones} milestones")
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Existing records are kept; duplicates are skipped.",
+                        "Existing records are kept; duplicates are skipped. Milestone photos are not included in backups.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

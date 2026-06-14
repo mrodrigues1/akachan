@@ -1,8 +1,11 @@
 package com.babytracker.export.domain.usecase
 
 import com.babytracker.domain.model.AllergyType
+import com.babytracker.domain.model.BabySex
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.FeedType
+import com.babytracker.domain.model.GrowthType
+import com.babytracker.domain.model.Milestone
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.toSleepTypeOrNull
@@ -32,8 +35,12 @@ class ValidateBackupUseCase @Inject constructor(
         else -> data
     }
 
-    private fun migrateOlder(data: BackupData): BackupData =
-        throw InvalidBackupException("Unsupported backup format v${data.backupFormatVersion}")
+    private fun migrateOlder(data: BackupData): BackupData = when (data.backupFormatVersion) {
+        // v1 had no growth/milestones/sex. Deserialization already filled those with the
+        // model defaults (empty lists / null sex), so migrating just stamps the new version.
+        1 -> data.copy(backupFormatVersion = CURRENT_BACKUP_FORMAT_VERSION)
+        else -> throw InvalidBackupException("Unsupported backup format v${data.backupFormatVersion}")
+    }
 
     private fun canonicalizeContent(data: BackupData): BackupData =
         data.copy(
@@ -51,6 +58,9 @@ class ValidateBackupUseCase @Inject constructor(
             data.pumping.forEach { PumpingBreast.valueOf(it.breast) }
             data.bottleFeeds.forEach { FeedType.valueOf(it.type) }
             data.baby?.allergies?.forEach { AllergyType.valueOf(it) }
+            data.baby?.sex?.let { BabySex.valueOf(it) }
+            data.growth.forEach { GrowthType.valueOf(it.type) }
+            data.milestones.forEach { Milestone.valueOf(it.milestone) }
             ThemeConfig.valueOf(data.settings.themeConfig)
         }.onFailure { throw InvalidBackupException("Backup contains an invalid enum value: ${it.message}") }
 
@@ -65,6 +75,23 @@ class ValidateBackupUseCase @Inject constructor(
         validatePumpingInvariants(data)
         validateMilkBagInvariants(data)
         validateBottleFeedInvariants(data)
+        validateGrowthInvariants(data)
+        validateMilestoneInvariants(data)
+    }
+
+    private fun validateGrowthInvariants(data: BackupData) {
+        data.growth.forEach {
+            if (it.takenAtMs < 0) bad("growth ${it.id} has negative timestamp")
+            if (it.valueCanonical <= 0) bad("growth ${it.id} has non-positive value")
+        }
+    }
+
+    private fun validateMilestoneInvariants(data: BackupData) {
+        data.milestones.forEach {
+            if (it.achievedOnEpochDay < 0) bad("milestone ${it.milestone} has negative achieved date")
+        }
+        val names = data.milestones.map { it.milestone }
+        if (names.size != names.toSet().size) bad("Backup contains duplicate milestone entries")
     }
 
     private fun validateBreastfeedingInvariants(data: BackupData) {

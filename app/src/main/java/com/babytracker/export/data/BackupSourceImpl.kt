@@ -29,6 +29,7 @@ class BackupSourceImpl @Inject constructor(
         val BABY_BIRTH_DATE = longPreferencesKey("baby_birth_date")
         val ALLERGIES = stringPreferencesKey("allergies")
         val CUSTOM_ALLERGY_NOTE = stringPreferencesKey("custom_allergy_note")
+        val BABY_SEX = stringPreferencesKey("baby_sex")
         val THEME_CONFIG = stringPreferencesKey("theme_config")
         val MAX_PER_BREAST_MINUTES = intPreferencesKey("max_per_breast_minutes")
         val MAX_TOTAL_FEED_MINUTES = intPreferencesKey("max_total_feed_minutes")
@@ -50,6 +51,8 @@ class BackupSourceImpl @Inject constructor(
             pumping = db.pumpingDao().getAllSessionsOnce().map { it.toBackup() },
             milkBags = db.milkBagDao().getAllBagsOnce().map { it.toBackup() },
             bottleFeeds = db.bottleFeedDao().getAllOnce().map { it.toBackup() },
+            growth = db.growthMeasurementDao().getAllOnce().map { it.toBackup() },
+            milestones = db.milestoneDao().getAllOnce().map { it.toBackup() },
         )
     }
 
@@ -70,6 +73,7 @@ class BackupSourceImpl @Inject constructor(
                     ?.filter { it.isNotBlank() }
                     ?: emptyList(),
                 customAllergyNote = p[Keys.CUSTOM_ALLERGY_NOTE],
+                sex = p[Keys.BABY_SEX],
             )
         } else {
             null
