@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
-import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.usecase.sleep.StopSleepRecordUseCase
 import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.util.NotificationHelper
@@ -25,7 +25,7 @@ import java.time.Instant
 class SleepActionReceiverTest {
 
     private lateinit var stopRecord: StopSleepRecordUseCase
-    private lateinit var settingsRepository: SettingsRepository
+    private lateinit var sleepSettingsRepository: SleepSettingsRepository
     private lateinit var napReminderScheduler: NapReminderScheduler
     private lateinit var receiver: SleepActionReceiver
     private val context = mockk<Context>(relaxed = true)
@@ -33,11 +33,11 @@ class SleepActionReceiverTest {
     @BeforeEach
     fun setup() {
         stopRecord = mockk()
-        settingsRepository = mockk()
+        sleepSettingsRepository = mockk()
         napReminderScheduler = mockk(relaxed = true)
         receiver = SleepActionReceiver()
         receiver.stopRecord = stopRecord
-        receiver.settingsRepository = settingsRepository
+        receiver.sleepSettingsRepository = sleepSettingsRepository
         receiver.napReminderScheduler = napReminderScheduler
 
         mockkObject(NotificationHelper)
@@ -77,8 +77,8 @@ class SleepActionReceiverTest {
     fun `ACTION_STOP with NAP record schedules nap reminder when enabled`() = runTest {
         val napRecord = SleepRecord(id = 99L, startTime = Instant.now().minusSeconds(1800), sleepType = SleepType.NAP)
         coEvery { stopRecord(99L) } returns napRecord
-        every { settingsRepository.getNapReminderEnabled() } returns flowOf(true)
-        every { settingsRepository.getNapReminderDelayMinutes() } returns flowOf(10)
+        every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(true)
+        every { sleepSettingsRepository.getNapReminderDelayMinutes() } returns flowOf(10)
 
         receiver.handle(context, buildStopIntent())
 
@@ -99,7 +99,7 @@ class SleepActionReceiverTest {
     fun `ACTION_STOP with NAP record does not schedule nap reminder when disabled`() = runTest {
         val napRecord = SleepRecord(id = 99L, startTime = Instant.now().minusSeconds(1800), sleepType = SleepType.NAP)
         coEvery { stopRecord(99L) } returns napRecord
-        every { settingsRepository.getNapReminderEnabled() } returns flowOf(false)
+        every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(false)
 
         receiver.handle(context, buildStopIntent())
 

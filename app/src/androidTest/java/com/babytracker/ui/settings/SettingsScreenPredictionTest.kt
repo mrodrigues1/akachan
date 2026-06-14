@@ -23,7 +23,6 @@ import com.babytracker.export.domain.model.BackupData
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
-import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.NotificationPermissionChecker
 import com.babytracker.sharing.domain.model.AppMode
 import io.mockk.every
@@ -72,7 +71,6 @@ class SettingsScreenPredictionTest {
             saveBabyProfile = SaveBabyProfileUseCase(babyRepository, mockk(relaxed = true)),
             countRecentValidIntervals = countRecentValidIntervals,
             notificationPermissionChecker = permissionChecker,
-            napReminderScheduler = mockk(relaxed = true),
         )
     }
 
@@ -411,19 +409,6 @@ class SettingsScreenPredictionTest {
         override suspend fun setQuietHoursEndMinute(minuteOfDay: Int) {
             quietHoursEnd.value = minuteOfDay
         }
-
-        override fun getNapReminderEnabled(): Flow<Boolean> = flowOf(false)
-
-        override suspend fun setNapReminderEnabled(enabled: Boolean) = Unit
-
-        override fun getNapReminderDelayMinutes(): Flow<Int> = flowOf(60)
-
-        override suspend fun setNapReminderDelayMinutes(minutes: Int) = Unit
-
-        override fun getPredictiveSleepEnabled(): Flow<Boolean> = flowOf(false)
-        override suspend fun setPredictiveSleepEnabled(enabled: Boolean) = Unit
-        override fun getPredictiveSleepLeadMinutes(): Flow<Int> = flowOf(15)
-        override suspend fun setPredictiveSleepLeadMinutes(minutes: Int) = Unit
 
         override fun isImportInProgress(): Flow<Boolean> = flowOf(false)
 

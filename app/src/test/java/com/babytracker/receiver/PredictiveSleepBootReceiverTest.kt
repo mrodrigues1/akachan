@@ -6,6 +6,7 @@ import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRecommendationRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRecommendationSnapshot
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
@@ -25,6 +26,7 @@ import java.time.Instant
 class PredictiveSleepBootReceiverTest {
 
     private lateinit var settings: SettingsRepository
+    private lateinit var sleepSettings: SleepSettingsRepository
     private lateinit var useCase: PredictSleepWindowUseCase
     private lateinit var scheduler: PredictiveSleepScheduler
     private lateinit var sleepRepository: SleepRepository
@@ -35,6 +37,7 @@ class PredictiveSleepBootReceiverTest {
     @BeforeEach
     fun setup() {
         settings = mockk()
+        sleepSettings = mockk()
         useCase = mockk()
         scheduler = mockk(relaxed = true)
         sleepRepository = mockk(relaxed = true)
@@ -44,12 +47,13 @@ class PredictiveSleepBootReceiverTest {
         context = mockk(relaxed = true)
         receiver = PredictiveSleepBootReceiver().apply {
             settingsRepository = settings
+            sleepSettingsRepository = sleepSettings
             predictSleepWindow = useCase
             this.scheduler = this@PredictiveSleepBootReceiverTest.scheduler
             this.sleepRepository = this@PredictiveSleepBootReceiverTest.sleepRepository
             sleepRecommendationRepository = this@PredictiveSleepBootReceiverTest.recommendationRepository
         }
-        every { settings.getPredictiveSleepLeadMinutes() } returns flowOf(15)
+        every { sleepSettings.getPredictiveSleepLeadMinutes() } returns flowOf(15)
         every { settings.getQuietHoursStartMinute() } returns flowOf(0)
         every { settings.getQuietHoursEndMinute() } returns flowOf(0)
     }
@@ -68,7 +72,7 @@ class PredictiveSleepBootReceiverTest {
                 safetyPrompt = "",
             )
         )
-        every { settings.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(true)
         every { useCase() } returns flowOf(window)
 
         receiver.handle(context)
@@ -78,7 +82,7 @@ class PredictiveSleepBootReceiverTest {
 
     @Test
     fun `does not reschedule when feature is disabled`() = runTest {
-        every { settings.getPredictiveSleepEnabled() } returns flowOf(false)
+        every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(false)
 
         receiver.handle(context)
 
@@ -87,7 +91,7 @@ class PredictiveSleepBootReceiverTest {
 
     @Test
     fun `cancels when state is not a window`() = runTest {
-        every { settings.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(true)
         every { useCase() } returns flowOf(SleepPredictionState.Unavailable("no data"))
 
         receiver.handle(context)
@@ -110,7 +114,7 @@ class PredictiveSleepBootReceiverTest {
                 safetyPrompt = "",
             )
         )
-        every { settings.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(true)
         every { useCase() } returns flowOf(window)
 
         receiver.handle(context)
@@ -133,8 +137,8 @@ class PredictiveSleepBootReceiverTest {
                 safetyPrompt = "",
             )
         )
-        every { settings.getPredictiveSleepLeadMinutes() } returns flowOf(20)
-        every { settings.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { sleepSettings.getPredictiveSleepLeadMinutes() } returns flowOf(20)
+        every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(true)
         every { useCase() } returns flowOf(window)
 
         receiver.handle(context)
@@ -165,7 +169,7 @@ class PredictiveSleepBootReceiverTest {
             bestEstimateMs = bestEstimate.toEpochMilli(),
         )
         val anchorRecord = mockk<com.babytracker.domain.model.SleepRecord> { every { id } returns 7L }
-        every { settings.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(true)
         every { useCase() } returns flowOf(window)
         coEvery { sleepRepository.getLatestRecord() } returns anchorRecord
         coEvery { recommendationRepository.getLatestScheduledRecommendation() } returns snapshot
@@ -198,7 +202,7 @@ class PredictiveSleepBootReceiverTest {
         )
         // Current latest record has id=9 — different anchor than snapshot's anchorSleepId=5
         val anchorRecord = mockk<com.babytracker.domain.model.SleepRecord> { every { id } returns 9L }
-        every { settings.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(true)
         every { useCase() } returns flowOf(window)
         coEvery { sleepRepository.getLatestRecord() } returns anchorRecord
         coEvery { recommendationRepository.getLatestScheduledRecommendation() } returns snapshot
@@ -222,7 +226,7 @@ class PredictiveSleepBootReceiverTest {
                 safetyPrompt = "",
             )
         )
-        every { settings.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(true)
         every { useCase() } returns flowOf(window)
         coEvery { recommendationRepository.getLatestScheduledRecommendation() } returns null
 

@@ -6,6 +6,7 @@ import com.babytracker.domain.model.RecommendationOutcome
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.domain.usecase.sleep.SleepRecommendationUseCases
 import kotlinx.coroutines.CoroutineScope
@@ -23,6 +24,7 @@ import javax.inject.Singleton
 class PredictiveSleepNotificationCoordinator @Inject constructor(
     private val predictSleepWindow: PredictSleepWindowUseCase,
     private val settingsRepository: SettingsRepository,
+    private val sleepSettingsRepository: SleepSettingsRepository,
     private val scheduler: PredictiveSleepScheduler,
     private val sleepRepository: SleepRepository,
     private val recommendation: SleepRecommendationUseCases,
@@ -43,8 +45,8 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
         applicationScope.launch {
             combine(
                 predictSleepWindow(),
-                settingsRepository.getPredictiveSleepEnabled(),
-                settingsRepository.getPredictiveSleepLeadMinutes(),
+                sleepSettingsRepository.getPredictiveSleepEnabled(),
+                sleepSettingsRepository.getPredictiveSleepLeadMinutes(),
                 settingsRepository.getQuietHoursStartMinute(),
                 settingsRepository.getQuietHoursEndMinute(),
             ) { state, enabled, lead, quietStart, quietEnd ->

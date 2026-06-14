@@ -7,7 +7,6 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
-import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.NotificationPermissionChecker
 import com.babytracker.sharing.domain.model.AppMode
 import io.mockk.coEvery
@@ -16,7 +15,6 @@ import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,7 +42,6 @@ class SettingsViewModelTest {
     private lateinit var getBabyProfile: GetBabyProfileUseCase
     private lateinit var countRecentValidIntervals: CountRecentValidIntervalsUseCase
     private lateinit var permissionChecker: NotificationPermissionChecker
-    private lateinit var napReminderScheduler: NapReminderScheduler
 
     @BeforeEach
     fun setup() {
@@ -65,12 +62,6 @@ class SettingsViewModelTest {
         countRecentValidIntervals = mockk()
         every { countRecentValidIntervals() } returns flowOf(0)
         permissionChecker = mockk { every { areNotificationsEnabled() } returns true }
-        napReminderScheduler = mockk()
-        every { napReminderScheduler.cancel() } returns Unit
-        every { settingsRepository.getNapReminderEnabled() } returns flowOf(false)
-        every { settingsRepository.getNapReminderDelayMinutes() } returns flowOf(60)
-        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
-        every { settingsRepository.getPredictiveSleepLeadMinutes() } returns flowOf(15)
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         every { settingsRepository.getMeasurementSystem() } returns flowOf(MeasurementSystem.METRIC)
 
@@ -80,7 +71,6 @@ class SettingsViewModelTest {
             mockk(),
             countRecentValidIntervals,
             permissionChecker,
-            napReminderScheduler,
         )
     }
 
@@ -159,66 +149,6 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `initial state has napReminderEnabled false`() = runTest {
-        testDispatcher.scheduler.advanceUntilIdle()
-        assertFalse(viewModel.uiState.value.napReminderEnabled)
-    }
-
-    @Test
-    fun `initial state has napReminderDelayMinutes 60`() = runTest {
-        testDispatcher.scheduler.advanceUntilIdle()
-        assertEquals(60, viewModel.uiState.value.napReminderDelayMinutes)
-    }
-
-    @Test
-    fun `onNapReminderToggleChanged calls setNapReminderEnabled`() = runTest {
-        coJustRun { settingsRepository.setNapReminderEnabled(any()) }
-
-        viewModel.onNapReminderToggleChanged(true)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        coVerify { settingsRepository.setNapReminderEnabled(true) }
-    }
-
-    @Test
-    fun `onNapReminderDelayChanged calls setNapReminderDelayMinutes`() = runTest {
-        coJustRun { settingsRepository.setNapReminderDelayMinutes(any()) }
-
-        viewModel.onNapReminderDelayChanged(90)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        coVerify { settingsRepository.setNapReminderDelayMinutes(90) }
-    }
-
-    @Test
-    fun `onNapReminderToggleChanged false cancels pending nap reminder alarm`() = runTest {
-        coJustRun { settingsRepository.setNapReminderEnabled(any()) }
-
-        viewModel.onNapReminderToggleChanged(false)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        verify { napReminderScheduler.cancel() }
-    }
-
-    @Test
-    fun `showPermissionWarning true when nap reminder enabled and notifications denied`() = runTest {
-        every { settingsRepository.getNapReminderEnabled() } returns flowOf(true)
-        val deniedChecker = mockk<NotificationPermissionChecker> {
-            every { areNotificationsEnabled() } returns false
-        }
-        val vm = SettingsViewModel(
-            getBabyProfile,
-            settingsRepository,
-            mockk(),
-            countRecentValidIntervals,
-            deniedChecker,
-            napReminderScheduler,
-        )
-        testDispatcher.scheduler.advanceUntilIdle()
-        assertTrue(vm.uiState.value.showPermissionWarning)
-    }
-
-    @Test
     fun `initial state has volumeUnit ML`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(VolumeUnit.ML, viewModel.uiState.value.volumeUnit)
@@ -235,8 +165,8 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `showPermissionWarning true when predictive sleep enabled and notifications denied`() = runTest {
-        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
+    fun `showPermissionWarning true when predictive feeding enabled and notifications denied`() = runTest {
+        every { settingsRepository.getPredictiveEnabled() } returns flowOf(true)
         val deniedChecker = mockk<NotificationPermissionChecker> {
             every { areNotificationsEnabled() } returns false
         }
@@ -246,7 +176,6 @@ class SettingsViewModelTest {
             mockk(),
             countRecentValidIntervals,
             deniedChecker,
-            napReminderScheduler,
         )
         testDispatcher.scheduler.advanceUntilIdle()
         assertTrue(vm.uiState.value.showPermissionWarning)

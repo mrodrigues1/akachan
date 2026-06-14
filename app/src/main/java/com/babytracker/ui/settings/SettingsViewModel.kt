@@ -10,7 +10,6 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
-import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.NotificationPermissionChecker
 import com.babytracker.sharing.domain.model.AppMode
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,10 +37,6 @@ data class SettingsUiState(
     val notificationsPermissionGranted: Boolean = true,
     val showPermissionWarning: Boolean = false,
     val validIntervalCount: Int = 0,
-    val napReminderEnabled: Boolean = false,
-    val napReminderDelayMinutes: Int = 60,
-    val predictiveSleepEnabled: Boolean = false,
-    val predictiveSleepLeadMinutes: Int = 15,
     val volumeUnit: VolumeUnit = VolumeUnit.ML,
     val measurementSystem: MeasurementSystem = MeasurementSystem.METRIC,
 )
@@ -53,7 +48,6 @@ class SettingsViewModel @Inject constructor(
     private val saveBabyProfile: SaveBabyProfileUseCase,
     private val countRecentValidIntervals: CountRecentValidIntervalsUseCase,
     private val notificationPermissionChecker: NotificationPermissionChecker,
-    private val napReminderScheduler: NapReminderScheduler,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -79,10 +73,6 @@ class SettingsViewModel @Inject constructor(
                 settingsRepository.getQuietHoursEndMinute(),
                 countRecentValidIntervals(),
                 _permissionGranted,
-                settingsRepository.getNapReminderEnabled(),
-                settingsRepository.getNapReminderDelayMinutes(),
-                settingsRepository.getPredictiveSleepEnabled(),
-                settingsRepository.getPredictiveSleepLeadMinutes(),
                 settingsRepository.getVolumeUnit(),
                 settingsRepository.getMeasurementSystem(),
             ) { values ->
@@ -99,12 +89,8 @@ class SettingsViewModel @Inject constructor(
                 val quietHoursEnd = values[10] as Int
                 val validIntervalCount = values[11] as Int
                 val permissionGranted = values[12] as Boolean
-                val napReminderEnabled = values[13] as Boolean
-                val napReminderDelayMinutes = values[14] as Int
-                val predictiveSleepEnabled = values[15] as Boolean
-                val predictiveSleepLeadMinutes = values[16] as Int
-                val volumeUnit = values[17] as VolumeUnit
-                val measurementSystem = values[18] as MeasurementSystem
+                val volumeUnit = values[13] as VolumeUnit
+                val measurementSystem = values[14] as MeasurementSystem
                 SettingsUiState(
                     baby = baby,
                     maxPerBreastMinutes = maxPerBreast,
@@ -118,12 +104,8 @@ class SettingsViewModel @Inject constructor(
                     quietHoursStartMinute = quietHoursStart,
                     quietHoursEndMinute = quietHoursEnd,
                     notificationsPermissionGranted = permissionGranted,
-                    showPermissionWarning = (predictiveEnabled || napReminderEnabled || predictiveSleepEnabled) && !permissionGranted,
+                    showPermissionWarning = predictiveEnabled && !permissionGranted,
                     validIntervalCount = validIntervalCount,
-                    napReminderEnabled = napReminderEnabled,
-                    napReminderDelayMinutes = napReminderDelayMinutes,
-                    predictiveSleepEnabled = predictiveSleepEnabled,
-                    predictiveSleepLeadMinutes = predictiveSleepLeadMinutes,
                     volumeUnit = volumeUnit,
                     measurementSystem = measurementSystem,
                 )
@@ -189,25 +171,6 @@ class SettingsViewModel @Inject constructor(
             settingsRepository.clearShareCode()
             _uiState.update { it.copy(isDisconnected = true) }
         }
-    }
-
-    fun onNapReminderToggleChanged(enabled: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.setNapReminderEnabled(enabled)
-            if (!enabled) napReminderScheduler.cancel()
-        }
-    }
-
-    fun onNapReminderDelayChanged(minutes: Int) {
-        viewModelScope.launch { settingsRepository.setNapReminderDelayMinutes(minutes) }
-    }
-
-    fun onPredictiveSleepToggleChanged(enabled: Boolean) {
-        viewModelScope.launch { settingsRepository.setPredictiveSleepEnabled(enabled) }
-    }
-
-    fun onSleepLeadMinutesChanged(minutes: Int) {
-        viewModelScope.launch { settingsRepository.setPredictiveSleepLeadMinutes(minutes) }
     }
 
     fun onVolumeUnitChanged(unit: VolumeUnit) {

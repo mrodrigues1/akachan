@@ -2,6 +2,7 @@ package com.babytracker.receiver
 
 import android.content.Context
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.util.NotificationHelper
 import io.mockk.coEvery
 import io.mockk.every
@@ -20,18 +21,21 @@ import java.time.LocalTime
 class NapReminderReceiverTest {
 
     private lateinit var settingsRepository: SettingsRepository
+    private lateinit var sleepSettingsRepository: SleepSettingsRepository
     private lateinit var receiver: NapReminderReceiver
     private val context = mockk<Context>(relaxed = true)
 
     @BeforeEach
     fun setup() {
         settingsRepository = mockk()
+        sleepSettingsRepository = mockk()
         receiver = NapReminderReceiver()
         receiver.settingsRepository = settingsRepository
+        receiver.sleepSettingsRepository = sleepSettingsRepository
         mockkObject(NotificationHelper)
         mockkStatic(LocalTime::class)
         every { NotificationHelper.showNapReminder(any()) } returns Unit
-        every { settingsRepository.getNapReminderEnabled() } returns flowOf(true)
+        every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(true)
     }
 
     @AfterEach
@@ -101,7 +105,7 @@ class NapReminderReceiverTest {
 
     @Test
     fun `suppresses notification when nap reminder feature is disabled`() = runTest {
-        every { settingsRepository.getNapReminderEnabled() } returns flowOf(false)
+        every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(false)
         stubQuietHours(startMinute = 0, endMinute = 480)
         stubCurrentTime(hourOfDay = 10, minute = 0)         // outside quiet window
 

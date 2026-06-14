@@ -9,6 +9,7 @@ import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
@@ -33,6 +34,7 @@ class GenerateShareCodeUseCaseInventoryTest {
 
     private val sharingRepository: SharingRepository = mockk()
     private val settingsRepository: SettingsRepository = mockk()
+    private val sleepSettingsRepository: SleepSettingsRepository = mockk()
     private val babyRepository: BabyRepository = mockk()
     private val breastfeedingRepository: BreastfeedingRepository = mockk()
     private val sleepRepository: SleepRepository = mockk()
@@ -48,6 +50,7 @@ class GenerateShareCodeUseCaseInventoryTest {
         useCase = GenerateShareCodeUseCase(
             sharingRepository,
             settingsRepository,
+            sleepSettingsRepository,
             SnapshotSources(
                 babyRepository,
                 breastfeedingRepository,
@@ -70,7 +73,7 @@ class GenerateShareCodeUseCaseInventoryTest {
         coEvery { sharingRepository.syncFullSnapshot(any(), any()) } just Runs
         coEvery { settingsRepository.setShareCode(any()) } just Runs
         coEvery { settingsRepository.setAppMode(any()) } just Runs
-        every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
+        every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("disabled"))
     }
 

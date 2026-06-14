@@ -1,6 +1,7 @@
 package com.babytracker.sharing.usecase
 
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.ShareCode
@@ -16,6 +17,7 @@ import javax.inject.Inject
 class SyncToFirestoreUseCase @Inject constructor(
     private val sharingRepository: SharingRepository,
     private val settingsRepository: SettingsRepository,
+    private val sleepSettingsRepository: SleepSettingsRepository,
     private val sources: SnapshotSources,
     private val now: () -> Instant = Instant::now,
 ) {
@@ -86,7 +88,7 @@ class SyncToFirestoreUseCase @Inject constructor(
     // must refresh it — otherwise a stale AFTER_ACTIVE_FEED/CURRENTLY_SLEEPING lingers in Firestore
     // until the next full sync.
     private suspend fun currentPrediction(generatedAtMs: Long): SleepPredictionSnapshot? =
-        if (settingsRepository.getPredictiveSleepEnabled().first()) {
+        if (sleepSettingsRepository.getPredictiveSleepEnabled().first()) {
             sources.predictSleepWindow().first().toSnapshot(generatedAtMs)
         } else {
             null

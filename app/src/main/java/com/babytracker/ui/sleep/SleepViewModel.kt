@@ -8,6 +8,7 @@ import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepSchedule
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.sleep.DeleteSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.GenerateSleepScheduleUseCase
@@ -85,6 +86,7 @@ class SleepViewModel @Inject constructor(
     private val generateSchedule: GenerateSleepScheduleUseCase,
     private val getBabyProfile: GetBabyProfileUseCase,
     private val settingsRepository: SettingsRepository,
+    private val sleepSettingsRepository: SleepSettingsRepository,
     private val startRecord: StartSleepRecordUseCase,
     private val stopRecord: StopSleepRecordUseCase,
     private val sleepNotificationScheduler: SleepNotificationScheduler,
@@ -173,9 +175,9 @@ class SleepViewModel @Inject constructor(
                         }
                     }
                     SleepType.NAP -> {
-                        val enabled = settingsRepository.getNapReminderEnabled().first()
+                        val enabled = sleepSettingsRepository.getNapReminderEnabled().first()
                         if (enabled) {
-                            val delayMinutes = settingsRepository.getNapReminderDelayMinutes().first()
+                            val delayMinutes = sleepSettingsRepository.getNapReminderDelayMinutes().first()
                             napReminderScheduler.schedule(Instant.now(), delayMinutes)
                         }
                     }

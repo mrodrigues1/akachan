@@ -4,6 +4,7 @@ import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
 import com.babytracker.domain.usecase.sleep.DeleteSleepEntryUseCase
@@ -57,6 +58,7 @@ class SleepViewModelTest {
     private lateinit var generateSchedule: GenerateSleepScheduleUseCase
     private lateinit var getBabyProfile: GetBabyProfileUseCase
     private lateinit var settingsRepository: SettingsRepository
+    private lateinit var sleepSettingsRepository: SleepSettingsRepository
     private lateinit var startRecord: StartSleepRecordUseCase
     private lateinit var stopRecord: StopSleepRecordUseCase
     private lateinit var sleepNotificationScheduler: SleepNotificationScheduler
@@ -77,6 +79,7 @@ class SleepViewModelTest {
         generateSchedule = mockk()
         getBabyProfile = mockk()
         settingsRepository = mockk()
+        sleepSettingsRepository = mockk()
         startRecord = mockk()
         stopRecord = mockk()
         sleepNotificationScheduler = mockk()
@@ -89,8 +92,8 @@ class SleepViewModelTest {
         every { getSleepHistory() } returns flowOf(emptyList())
         every { settingsRepository.getWakeTime() } returns flowOf(null)
         every { getBabyProfile() } returns flowOf(null)
-        every { settingsRepository.getNapReminderEnabled() } returns flowOf(false)
-        every { settingsRepository.getNapReminderDelayMinutes() } returns flowOf(60)
+        every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(false)
+        every { sleepSettingsRepository.getNapReminderDelayMinutes() } returns flowOf(60)
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("test"))
         coJustRun { syncToFirestore(any()) }
         coJustRun { sleepNotificationScheduler.show(any(), any(), any()) }
@@ -110,6 +113,7 @@ class SleepViewModelTest {
         generateSchedule,
         getBabyProfile,
         settingsRepository,
+        sleepSettingsRepository,
         startRecord,
         stopRecord,
         sleepNotificationScheduler,
@@ -914,8 +918,8 @@ class SleepViewModelTest {
         val inProgress = SleepRecord(id = 1L, startTime = Instant.now().minusSeconds(1800), sleepType = SleepType.NAP)
         every { getSleepHistory() } returns flowOf(listOf(inProgress))
         coEvery { stopRecord(1L) } returns inProgress
-        every { settingsRepository.getNapReminderEnabled() } returns flowOf(true)
-        every { settingsRepository.getNapReminderDelayMinutes() } returns flowOf(10)
+        every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(true)
+        every { sleepSettingsRepository.getNapReminderDelayMinutes() } returns flowOf(10)
         viewModel = createViewModel()
 
         val collectJob = launch { viewModel.activeSleepSession.collect {} }
@@ -933,7 +937,7 @@ class SleepViewModelTest {
         val inProgress = SleepRecord(id = 1L, startTime = Instant.now().minusSeconds(1800), sleepType = SleepType.NAP)
         every { getSleepHistory() } returns flowOf(listOf(inProgress))
         coEvery { stopRecord(1L) } returns inProgress
-        every { settingsRepository.getNapReminderEnabled() } returns flowOf(false)
+        every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(false)
         viewModel = createViewModel()
 
         val collectJob = launch { viewModel.activeSleepSession.collect {} }
@@ -968,7 +972,7 @@ class SleepViewModelTest {
         val inProgress = SleepRecord(id = 1L, startTime = Instant.now().minusSeconds(1800), sleepType = SleepType.NAP)
         every { getSleepHistory() } returns flowOf(listOf(inProgress))
         coEvery { stopRecord(1L) } returns null
-        every { settingsRepository.getNapReminderEnabled() } returns flowOf(true)
+        every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(true)
         viewModel = createViewModel()
 
         val collectJob = launch { viewModel.activeSleepSession.collect {} }

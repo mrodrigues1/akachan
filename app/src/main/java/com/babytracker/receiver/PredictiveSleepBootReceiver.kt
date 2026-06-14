@@ -7,6 +7,7 @@ import android.util.Log
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRecommendationRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.manager.PredictiveSleepScheduler
@@ -28,6 +29,7 @@ import javax.inject.Inject
 class PredictiveSleepBootReceiver : BroadcastReceiver() {
 
     @Inject lateinit var settingsRepository: SettingsRepository
+    @Inject lateinit var sleepSettingsRepository: SleepSettingsRepository
     @Inject lateinit var predictSleepWindow: PredictSleepWindowUseCase
     @Inject lateinit var scheduler: PredictiveSleepScheduler
     @Inject lateinit var sleepRepository: SleepRepository
@@ -56,9 +58,9 @@ class PredictiveSleepBootReceiver : BroadcastReceiver() {
     internal fun shouldHandle(action: String?): Boolean = action in HANDLED_ACTIONS
 
     internal suspend fun handle(context: Context) {
-        if (!settingsRepository.getPredictiveSleepEnabled().first()) return
+        if (!sleepSettingsRepository.getPredictiveSleepEnabled().first()) return
         createPredictiveSleepNotificationChannel(context)
-        val leadMinutes = settingsRepository.getPredictiveSleepLeadMinutes().first()
+        val leadMinutes = sleepSettingsRepository.getPredictiveSleepLeadMinutes().first()
         val quietStart = settingsRepository.getQuietHoursStartMinute().first()
         val quietEnd = settingsRepository.getQuietHoursEndMinute().first()
         val state = predictSleepWindow().first()

@@ -1,6 +1,7 @@
 package com.babytracker.sharing.usecase
 
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.ShareCode
@@ -15,6 +16,7 @@ import javax.inject.Inject
 class GenerateShareCodeUseCase @Inject constructor(
     private val sharingRepository: SharingRepository,
     private val settingsRepository: SettingsRepository,
+    private val sleepSettingsRepository: SleepSettingsRepository,
     private val sources: SnapshotSources,
     private val now: () -> Instant,
 ) {
@@ -68,7 +70,7 @@ class GenerateShareCodeUseCase @Inject constructor(
     }
 
     private suspend fun buildPrediction(generatedAtMs: Long): SleepPredictionSnapshot? =
-        if (settingsRepository.getPredictiveSleepEnabled().first()) {
+        if (sleepSettingsRepository.getPredictiveSleepEnabled().first()) {
             sources.predictSleepWindow().first().toSnapshot(generatedAtMs)
         } else {
             null

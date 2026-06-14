@@ -7,6 +7,7 @@ import com.babytracker.domain.model.RecommendationOutcome
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.CreateSleepRecommendationFeedbackUseCase
 import com.babytracker.domain.usecase.sleep.PersistSleepRecommendationUseCase
@@ -437,14 +438,17 @@ class PredictiveSleepNotificationCoordinatorTest {
             every { it.invoke() } returns stateFlow
         }
         val settings = mockk<SettingsRepository>().also {
-            every { it.getPredictiveSleepEnabled() } returns enabledFlow
-            every { it.getPredictiveSleepLeadMinutes() } returns leadFlow
             every { it.getQuietHoursStartMinute() } returns quietStartFlow
             every { it.getQuietHoursEndMinute() } returns quietEndFlow
+        }
+        val sleepSettings = mockk<SleepSettingsRepository>().also {
+            every { it.getPredictiveSleepEnabled() } returns enabledFlow
+            every { it.getPredictiveSleepLeadMinutes() } returns leadFlow
         }
         return PredictiveSleepNotificationCoordinator(
             predictSleepWindow = useCase,
             settingsRepository = settings,
+            sleepSettingsRepository = sleepSettings,
             scheduler = scheduler,
             sleepRepository = sleepRepository,
             recommendation = recommendation,

@@ -73,37 +73,6 @@ class SettingsRepositoryImplTest {
     }
 
     @Test
-    fun `getNapReminderEnabled returns false when key is absent`() = runTest {
-        val prefs = mockk<Preferences>()
-        every { prefs[booleanPreferencesKey("nap_reminder_enabled")] } returns null
-        every { dataStore.data } returns flowOf(prefs)
-
-        assertFalse(repository.getNapReminderEnabled().first())
-    }
-
-    @Test
-    fun `getNapReminderEnabled returns stored value`() = runTest {
-        val prefs = mockk<Preferences>()
-        every { prefs[booleanPreferencesKey("nap_reminder_enabled")] } returns true
-        every { dataStore.data } returns flowOf(prefs)
-
-        assertTrue(repository.getNapReminderEnabled().first())
-    }
-
-    @Test
-    fun `setNapReminderEnabled persists value to DataStore`() = runTest {
-        val editSlot = slot<suspend (MutablePreferences) -> Unit>()
-        coEvery { dataStore.edit(capture(editSlot)) } returns mockk()
-
-        repository.setNapReminderEnabled(true)
-
-        coVerify { dataStore.edit(any()) }
-        val prefs = mutablePreferencesOf()
-        editSlot.captured(prefs)
-        assertTrue(prefs[booleanPreferencesKey("nap_reminder_enabled")]!!)
-    }
-
-    @Test
     fun `getVolumeUnit returns ML when key is absent`() = runTest {
         val prefs = mockk<Preferences>()
         every { prefs[stringPreferencesKey("volume_unit")] } returns null
@@ -141,50 +110,5 @@ class SettingsRepositoryImplTest {
         val prefs = mutablePreferencesOf()
         editSlot.captured(prefs)
         assertEquals("OZ", prefs[stringPreferencesKey("volume_unit")])
-    }
-
-    @Test
-    fun `getNapReminderDelayMinutes returns 60 when key is absent`() = runTest {
-        val prefs = mockk<Preferences>()
-        every { prefs[intPreferencesKey("nap_reminder_delay_minutes")] } returns null
-        every { dataStore.data } returns flowOf(prefs)
-
-        assertEquals(60, repository.getNapReminderDelayMinutes().first())
-    }
-
-    @Test
-    fun `setNapReminderDelayMinutes clamps value below 1 to 1`() = runTest {
-        val editSlot = slot<suspend (MutablePreferences) -> Unit>()
-        coEvery { dataStore.edit(capture(editSlot)) } returns mockk()
-
-        repository.setNapReminderDelayMinutes(0)
-
-        val prefs = mutablePreferencesOf()
-        editSlot.captured(prefs)
-        assertEquals(1, prefs[intPreferencesKey("nap_reminder_delay_minutes")])
-    }
-
-    @Test
-    fun `setNapReminderDelayMinutes clamps value above 480 to 480`() = runTest {
-        val editSlot = slot<suspend (MutablePreferences) -> Unit>()
-        coEvery { dataStore.edit(capture(editSlot)) } returns mockk()
-
-        repository.setNapReminderDelayMinutes(999)
-
-        val prefs = mutablePreferencesOf()
-        editSlot.captured(prefs)
-        assertEquals(480, prefs[intPreferencesKey("nap_reminder_delay_minutes")])
-    }
-
-    @Test
-    fun `setNapReminderDelayMinutes accepts value within range`() = runTest {
-        val editSlot = slot<suspend (MutablePreferences) -> Unit>()
-        coEvery { dataStore.edit(capture(editSlot)) } returns mockk()
-
-        repository.setNapReminderDelayMinutes(90)
-
-        val prefs = mutablePreferencesOf()
-        editSlot.captured(prefs)
-        assertEquals(90, prefs[intPreferencesKey("nap_reminder_delay_minutes")])
     }
 }

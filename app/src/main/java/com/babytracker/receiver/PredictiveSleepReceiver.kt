@@ -6,6 +6,7 @@ import android.content.Intent
 import android.util.Log
 import com.babytracker.domain.model.RecommendationLifecycle
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.usecase.sleep.UpdateRecommendationLifecycleUseCase
 import com.babytracker.util.showPredictiveSleepReminder
 import dagger.hilt.android.AndroidEntryPoint
@@ -22,6 +23,7 @@ import javax.inject.Inject
 class PredictiveSleepReceiver : BroadcastReceiver() {
 
     @Inject lateinit var settingsRepository: SettingsRepository
+    @Inject lateinit var sleepSettingsRepository: SleepSettingsRepository
     @Inject lateinit var updateRecommendationLifecycle: UpdateRecommendationLifecycleUseCase
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -49,7 +51,7 @@ class PredictiveSleepReceiver : BroadcastReceiver() {
         val result = goAsync()
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {
-                val enabled = settingsRepository.getPredictiveSleepEnabled().first()
+                val enabled = sleepSettingsRepository.getPredictiveSleepEnabled().first()
                 if (!enabled) {
                     Log.d(TAG, "Feature disabled at fire time; dropping")
                     return@launch
