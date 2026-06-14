@@ -5,6 +5,7 @@ import android.content.Intent
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.FeedSettingsRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
@@ -33,6 +34,7 @@ import java.time.Instant
 class BreastfeedingActionReceiverTest {
 
     private lateinit var repository: BreastfeedingRepository
+    private lateinit var feedSettingsRepository: FeedSettingsRepository
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var switchSide: SwitchBreastfeedingSideUseCase
     private lateinit var stopSession: StopBreastfeedingSessionUseCase
@@ -51,6 +53,7 @@ class BreastfeedingActionReceiverTest {
     @BeforeEach
     fun setup() {
         repository = mockk()
+        feedSettingsRepository = mockk()
         settingsRepository = mockk()
         switchSide = mockk()
         stopSession = mockk()
@@ -59,6 +62,7 @@ class BreastfeedingActionReceiverTest {
         notificationCoordinator = mockk()
         receiver = BreastfeedingActionReceiver()
         receiver.repository = repository
+        receiver.feedSettingsRepository = feedSettingsRepository
         receiver.settingsRepository = settingsRepository
         receiver.switchSide = switchSide
         receiver.stopSession = stopSession
@@ -68,7 +72,7 @@ class BreastfeedingActionReceiverTest {
 
         coEvery { repository.getActiveSession() } returns flowOf(activeSession)
         every { settingsRepository.getRichNotificationsEnabled() } returns MutableStateFlow(false)
-        every { settingsRepository.getMaxTotalFeedMinutes() } returns MutableStateFlow(30)
+        every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns MutableStateFlow(30)
         coEvery { pauseSession(any()) } returns Unit
         coEvery { resumeSession(any()) } returns Unit
         every { notificationCoordinator.cancelPerBreastScheduled() } returns Unit
@@ -334,7 +338,7 @@ class BreastfeedingActionReceiverTest {
         val maxTotalStarted = CompletableDeferred<Unit>()
         val richNotificationsStarted = CompletableDeferred<Unit>()
 
-        every { settingsRepository.getMaxTotalFeedMinutes() } returns flow {
+        every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns flow {
             maxTotalStarted.complete(Unit)
             richNotificationsStarted.await()
             emit(30)

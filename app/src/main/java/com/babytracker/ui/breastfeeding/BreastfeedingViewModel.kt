@@ -6,7 +6,7 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.repository.BreastfeedingRepository
-import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.FeedSettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.DeleteBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
@@ -108,7 +108,7 @@ class BreastfeedingViewModel @Inject constructor(
     private val deleteSession: DeleteBreastfeedingSessionUseCase,
     private val saveBreastfeedingEntry: SaveBreastfeedingEntryUseCase,
     private val repository: BreastfeedingRepository,
-    private val settingsRepository: SettingsRepository,
+    private val feedSettingsRepository: FeedSettingsRepository,
     private val notificationCoordinator: BreastfeedingSessionNotificationCoordinator,
     private val syncToFirestore: SyncToFirestoreUseCase,
     predictNextFeed: PredictNextFeedUseCase,
@@ -124,8 +124,8 @@ class BreastfeedingViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 repository.getActiveSession(),
-                settingsRepository.getMaxPerBreastMinutes(),
-                settingsRepository.getMaxTotalFeedMinutes()
+                feedSettingsRepository.getMaxPerBreastMinutes(),
+                feedSettingsRepository.getMaxTotalFeedMinutes()
             ) { session, maxPerBreast, maxTotal ->
                 val previous = _uiState.value
                 BreastfeedingUiState(

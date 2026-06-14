@@ -21,10 +21,6 @@ interface SettingsRepository {
     suspend fun clearHomeTileOrder()
     fun isOnboardingComplete(): Flow<Boolean>
     suspend fun setOnboardingComplete(complete: Boolean)
-    fun getMaxPerBreastMinutes(): Flow<Int>
-    suspend fun setMaxPerBreastMinutes(minutes: Int)
-    fun getMaxTotalFeedMinutes(): Flow<Int>
-    suspend fun setMaxTotalFeedMinutes(minutes: Int)
     fun getWakeTime(): Flow<LocalTime?>
     suspend fun setWakeTime(time: LocalTime)
     fun getAutoUpdateEnabled(): Flow<Boolean>
@@ -45,10 +41,8 @@ interface SettingsRepository {
      */
     suspend fun clearPartnerStateIfShareCodeMatches(code: String): Boolean
 
-    fun getPredictiveEnabled(): Flow<Boolean>
-    suspend fun setPredictiveEnabled(enabled: Boolean)
-    fun getPredictiveLeadMinutes(): Flow<Int>
-    suspend fun setPredictiveLeadMinutes(minutes: Int)
+    // Quiet hours are shared between predictive feeding and predictive sleep notifications, so they
+    // remain here rather than moving to FeedSettingsRepository / SleepSettingsRepository.
     fun getQuietHoursStartMinute(): Flow<Int>
     suspend fun setQuietHoursStartMinute(minuteOfDay: Int)
     fun getQuietHoursEndMinute(): Flow<Int>

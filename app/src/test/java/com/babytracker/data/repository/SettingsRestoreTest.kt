@@ -64,7 +64,9 @@ class SettingsRestoreTest {
 
         assertFalse(repo.isImportInProgress().first())
         assertEquals("DARK", repo.getThemeConfig().first().name)
-        assertEquals(30, repo.getPredictiveLeadMinutes().first())
+        // Predictive feeding prefs are now owned by FeedSettingsRepository but written to the same
+        // DataStore keys by restoreFromBackup, so they read back through the feed repo.
+        assertEquals(30, FeedSettingsRepositoryImpl(dataStore).getPredictiveLeadMinutes().first())
         // baby + onboarding written in the same edit
         val prefs = dataStore.data.first()
         assertEquals("Mia", prefs[stringPreferencesKey("baby_name")])
@@ -103,7 +105,7 @@ class SettingsRestoreTest {
         repo.restoreFromBackup(b)
         repo.restoreFromBackup(b)
         assertFalse(repo.isImportInProgress().first())
-        assertEquals(12, repo.getMaxPerBreastMinutes().first())
+        assertEquals(12, FeedSettingsRepositoryImpl(dataStore).getMaxPerBreastMinutes().first())
     }
 
     @Test
@@ -115,7 +117,8 @@ class SettingsRestoreTest {
             breastfeeding = emptyList(), sleep = emptyList(), pumping = emptyList(), milkBags = emptyList(),
         )
         repo.restoreFromBackup(corrupt)
-        assertEquals(15, repo.getPredictiveLeadMinutes().first())   // collapsed to default
+        // collapsed to default; predictive prefs read back through the feed repo (same keys)
+        assertEquals(15, FeedSettingsRepositoryImpl(dataStore).getPredictiveLeadMinutes().first())
         // Nap reminder prefs are now owned by SleepSettingsRepository but written to the same
         // DataStore keys by restoreFromBackup, so they read back through the sleep repo.
         assertEquals(480, SleepSettingsRepositoryImpl(dataStore).getNapReminderDelayMinutes().first())

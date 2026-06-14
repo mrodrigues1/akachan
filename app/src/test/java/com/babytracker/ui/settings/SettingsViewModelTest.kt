@@ -1,13 +1,10 @@
 package com.babytracker.ui.settings
 
-import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.MeasurementSystem
+import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
-import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
-import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
-import com.babytracker.manager.NotificationPermissionChecker
 import com.babytracker.sharing.domain.model.AppMode
 import io.mockk.coEvery
 import io.mockk.coJustRun
@@ -40,8 +37,6 @@ class SettingsViewModelTest {
     private val richNotificationsFlow = MutableStateFlow(true)
     private val appModeFlow = MutableStateFlow(AppMode.NONE)
     private lateinit var getBabyProfile: GetBabyProfileUseCase
-    private lateinit var countRecentValidIntervals: CountRecentValidIntervalsUseCase
-    private lateinit var permissionChecker: NotificationPermissionChecker
 
     @BeforeEach
     fun setup() {
@@ -49,19 +44,10 @@ class SettingsViewModelTest {
         settingsRepository = mockk()
         getBabyProfile = mockk()
         every { getBabyProfile() } returns flowOf(null)
-        every { settingsRepository.getMaxPerBreastMinutes() } returns flowOf(0)
-        every { settingsRepository.getMaxTotalFeedMinutes() } returns flowOf(0)
         every { settingsRepository.getThemeConfig() } returns flowOf(ThemeConfig.SYSTEM)
         every { settingsRepository.getAutoUpdateEnabled() } returns flowOf(true)
         every { settingsRepository.getRichNotificationsEnabled() } returns richNotificationsFlow
         every { settingsRepository.getAppMode() } returns appModeFlow
-        every { settingsRepository.getPredictiveEnabled() } returns flowOf(false)
-        every { settingsRepository.getPredictiveLeadMinutes() } returns flowOf(15)
-        every { settingsRepository.getQuietHoursStartMinute() } returns flowOf(0)
-        every { settingsRepository.getQuietHoursEndMinute() } returns flowOf(480)
-        countRecentValidIntervals = mockk()
-        every { countRecentValidIntervals() } returns flowOf(0)
-        permissionChecker = mockk { every { areNotificationsEnabled() } returns true }
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         every { settingsRepository.getMeasurementSystem() } returns flowOf(MeasurementSystem.METRIC)
 
@@ -69,8 +55,6 @@ class SettingsViewModelTest {
             getBabyProfile,
             settingsRepository,
             mockk(),
-            countRecentValidIntervals,
-            permissionChecker,
         )
     }
 
@@ -162,22 +146,5 @@ class SettingsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { settingsRepository.setVolumeUnit(VolumeUnit.OZ) }
-    }
-
-    @Test
-    fun `showPermissionWarning true when predictive feeding enabled and notifications denied`() = runTest {
-        every { settingsRepository.getPredictiveEnabled() } returns flowOf(true)
-        val deniedChecker = mockk<NotificationPermissionChecker> {
-            every { areNotificationsEnabled() } returns false
-        }
-        val vm = SettingsViewModel(
-            getBabyProfile,
-            settingsRepository,
-            mockk(),
-            countRecentValidIntervals,
-            deniedChecker,
-        )
-        testDispatcher.scheduler.advanceUntilIdle()
-        assertTrue(vm.uiState.value.showPermissionWarning)
     }
 }

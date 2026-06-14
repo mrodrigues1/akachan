@@ -7,12 +7,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -25,12 +29,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
 import java.time.LocalTime
@@ -233,6 +239,63 @@ internal fun QuietHoursRow(
             },
         ) {
             TimePicker(state = state)
+        }
+    }
+}
+
+/**
+ * Bottom-sheet content for editing a minutes-based feeding limit (0 disables the limit). Shared by
+ * the Feed settings screen for "Max per breast" and "Max total feed".
+ */
+@Composable
+internal fun MinutesEditSheet(
+    title: String,
+    currentMinutes: Int,
+    onSave: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var text by rememberSaveable {
+        mutableStateOf(if (currentMinutes > 0) currentMinutes.toString() else "")
+    }
+    val minutes = text.toIntOrNull() ?: 0
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 24.dp)
+            .imePadding(),
+    ) {
+        Text(
+            text = "Edit $title",
+            style = MaterialTheme.typography.titleLarge,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Set to 0 to disable the limit.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedTextField(
+            value = text,
+            onValueChange = { input ->
+                val filtered = input.filter { it.isDigit() }
+                if (filtered.length <= 3) text = filtered
+            },
+            label = { Text("Minutes (0 = disabled)") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+            Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+            Button(onClick = { onSave(minutes) }) { Text("Save") }
         }
     }
 }

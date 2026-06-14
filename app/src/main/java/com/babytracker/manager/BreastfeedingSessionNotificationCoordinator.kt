@@ -5,6 +5,7 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingActiveNotificationSettings
 import com.babytracker.domain.model.BreastfeedingNotificationScheduleSettings
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.repository.FeedSettingsRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.getBreastfeedingActiveNotificationSettings
 import com.babytracker.domain.repository.getBreastfeedingNotificationScheduleSettings
@@ -19,6 +20,7 @@ import javax.inject.Singleton
 @Singleton
 class BreastfeedingSessionNotificationCoordinator @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    private val feedSettingsRepository: FeedSettingsRepository,
     private val settingsRepository: SettingsRepository,
     private val notificationScheduler: NotificationScheduler
 ) {
@@ -157,10 +159,10 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
     }
 
     private suspend fun breastfeedingActiveNotificationSettings(): BreastfeedingActiveNotificationSettings =
-        settingsRepository.getBreastfeedingActiveNotificationSettings().first()
+        feedSettingsRepository.getBreastfeedingActiveNotificationSettings(settingsRepository).first()
 
     private suspend fun breastfeedingNotificationScheduleSettings(): BreastfeedingNotificationScheduleSettings =
-        settingsRepository.getBreastfeedingNotificationScheduleSettings().first()
+        feedSettingsRepository.getBreastfeedingNotificationScheduleSettings().first()
 
     private fun currentSideName(session: BreastfeedingSession): String =
         if (session.switchTime != null) {

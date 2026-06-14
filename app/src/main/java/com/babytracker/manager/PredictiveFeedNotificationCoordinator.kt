@@ -2,6 +2,7 @@ package com.babytracker.manager
 
 import com.babytracker.di.ApplicationScope
 import com.babytracker.domain.model.FeedPrediction
+import com.babytracker.domain.repository.FeedSettingsRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import kotlinx.coroutines.CoroutineScope
@@ -34,6 +35,8 @@ internal fun isInQuietHours(
 @Singleton
 class PredictiveFeedNotificationCoordinator @Inject constructor(
     private val predictNextFeed: PredictNextFeedUseCase,
+    private val feedSettingsRepository: FeedSettingsRepository,
+    // Quiet hours are shared with predictive sleep, so they stay on SettingsRepository.
     private val settingsRepository: SettingsRepository,
     private val scheduler: PredictiveFeedScheduler,
     @ApplicationScope private val applicationScope: CoroutineScope,
@@ -44,8 +47,8 @@ class PredictiveFeedNotificationCoordinator @Inject constructor(
         applicationScope.launch {
             combine(
                 predictNextFeed(),
-                settingsRepository.getPredictiveEnabled(),
-                settingsRepository.getPredictiveLeadMinutes(),
+                feedSettingsRepository.getPredictiveEnabled(),
+                feedSettingsRepository.getPredictiveLeadMinutes(),
                 settingsRepository.getQuietHoursStartMinute(),
                 settingsRepository.getQuietHoursEndMinute(),
             ) { prediction, enabled, lead, quietStart, quietEnd ->

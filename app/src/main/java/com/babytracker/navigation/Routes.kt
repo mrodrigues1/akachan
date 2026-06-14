@@ -5,6 +5,7 @@ object Routes {
     const val HOME = "home"
     const val BREASTFEEDING = "breastfeeding"
     const val BREASTFEEDING_HISTORY = "breastfeeding/history"
+    const val BREASTFEEDING_SETTINGS = "breastfeeding/settings"
     const val FEEDING_HISTORY = "feeding/history"
     const val SLEEP_TRACKING = "sleep"
     const val SLEEP_HISTORY = "sleep/history"

@@ -3,6 +3,7 @@ package com.babytracker.manager
 import android.content.Context
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.repository.FeedSettingsRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.util.NotificationHelper
 import io.mockk.every
@@ -24,6 +25,7 @@ import java.time.Instant
 class BreastfeedingSessionNotificationCoordinatorTest {
 
     private lateinit var context: Context
+    private lateinit var feedSettingsRepository: FeedSettingsRepository
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var notificationScheduler: NotificationScheduler
     private lateinit var coordinator: BreastfeedingSessionNotificationCoordinator
@@ -37,11 +39,12 @@ class BreastfeedingSessionNotificationCoordinatorTest {
     @BeforeEach
     fun setup() {
         context = mockk(relaxed = true)
+        feedSettingsRepository = mockk()
         settingsRepository = mockk()
         notificationScheduler = mockk()
 
-        every { settingsRepository.getMaxPerBreastMinutes() } returns flowOf(15)
-        every { settingsRepository.getMaxTotalFeedMinutes() } returns flowOf(30)
+        every { feedSettingsRepository.getMaxPerBreastMinutes() } returns flowOf(15)
+        every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns flowOf(30)
         every { settingsRepository.getRichNotificationsEnabled() } returns flowOf(false)
 
         every { notificationScheduler.scheduleMaxPerBreastNotification(any(), any(), any(), any(), any()) } returns Unit
@@ -56,6 +59,7 @@ class BreastfeedingSessionNotificationCoordinatorTest {
 
         coordinator = BreastfeedingSessionNotificationCoordinator(
             context = context,
+            feedSettingsRepository = feedSettingsRepository,
             settingsRepository = settingsRepository,
             notificationScheduler = notificationScheduler
         )
@@ -173,7 +177,7 @@ class BreastfeedingSessionNotificationCoordinatorTest {
 
     @Test
     fun `rearmAfterKeepGoing skips scheduling when maxTotalFeedMinutes is zero`() = runTest {
-        every { settingsRepository.getMaxTotalFeedMinutes() } returns flowOf(0)
+        every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns flowOf(0)
 
         coordinator.rearmAfterKeepGoing(sessionId = 42L, currentSide = "LEFT")
 
@@ -204,7 +208,7 @@ class BreastfeedingSessionNotificationCoordinatorTest {
         val maxTotalStarted = CompletableDeferred<Unit>()
         val richNotificationsStarted = CompletableDeferred<Unit>()
 
-        every { settingsRepository.getMaxTotalFeedMinutes() } returns flow {
+        every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns flow {
             maxTotalStarted.complete(Unit)
             richNotificationsStarted.await()
             emit(30)
@@ -220,12 +224,12 @@ class BreastfeedingSessionNotificationCoordinatorTest {
         val maxPerBreastStarted = CompletableDeferred<Unit>()
         val maxTotalStarted = CompletableDeferred<Unit>()
 
-        every { settingsRepository.getMaxPerBreastMinutes() } returns flow {
+        every { feedSettingsRepository.getMaxPerBreastMinutes() } returns flow {
             maxPerBreastStarted.complete(Unit)
             maxTotalStarted.await()
             emit(15)
         }
-        every { settingsRepository.getMaxTotalFeedMinutes() } returns flow {
+        every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns flow {
             maxTotalStarted.complete(Unit)
             maxPerBreastStarted.await()
             emit(30)

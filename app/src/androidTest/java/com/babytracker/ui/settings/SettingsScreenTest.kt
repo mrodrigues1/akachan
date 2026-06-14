@@ -18,9 +18,6 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
-import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
-import com.babytracker.manager.NotificationPermissionChecker
-import com.babytracker.sharing.domain.model.AppMode
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow
@@ -46,14 +43,10 @@ class SettingsScreenTest {
     private fun buildPartnerViewModel(): SettingsViewModel {
         val babyRepository = FakeBabyRepository()
         val settingsRepository = FakeSettingsRepository()
-        val countRecentValidIntervals = mockk<CountRecentValidIntervalsUseCase>()
-        every { countRecentValidIntervals() } returns flowOf(0)
         return SettingsViewModel(
             getBabyProfile = GetBabyProfileUseCase(babyRepository),
             settingsRepository = settingsRepository,
             saveBabyProfile = SaveBabyProfileUseCase(babyRepository, mockk(relaxed = true)),
-            countRecentValidIntervals = countRecentValidIntervals,
-            notificationPermissionChecker = NotificationPermissionChecker { true },
         )
     }
 
@@ -67,7 +60,8 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun partnerModeHidesFeedingLimitsSection() {
+    fun feedingLimitsSectionRemovedFromGlobalSettings() {
+        // Feeding Limits moved to the dedicated Feed Settings screen (AKA-106).
         composeRule.setContent {
             SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel(), dataVm = buildFakeDataExportViewModel())
         }
@@ -112,16 +106,13 @@ class SettingsScreenTest {
             )
         }
         val settingsRepo = object : FakeSettingsRepository() {
-            override fun getAppMode(): Flow<AppMode> = flowOf(AppMode.NONE)
+            override fun getAppMode(): Flow<com.babytracker.sharing.domain.model.AppMode> =
+                flowOf(com.babytracker.sharing.domain.model.AppMode.NONE)
         }
-        val countRecentValidIntervals = mockk<CountRecentValidIntervalsUseCase>()
-        every { countRecentValidIntervals() } returns flowOf(0)
         val viewModel = SettingsViewModel(
             getBabyProfile = GetBabyProfileUseCase(babyRepo),
             settingsRepository = settingsRepo,
             saveBabyProfile = SaveBabyProfileUseCase(babyRepo, mockk(relaxed = true)),
-            countRecentValidIntervals = countRecentValidIntervals,
-            notificationPermissionChecker = NotificationPermissionChecker { true },
         )
 
         composeRule.setContent {
@@ -136,15 +127,11 @@ class SettingsScreenTest {
     @Test
     fun volumeUnitSelectorRendersAndPersistsSelection() {
         val settingsRepo = FakeSettingsRepository()
-        val countRecentValidIntervals = mockk<CountRecentValidIntervalsUseCase>()
-        every { countRecentValidIntervals() } returns flowOf(0)
         val babyRepo = FakeBabyRepository()
         val viewModel = SettingsViewModel(
             getBabyProfile = GetBabyProfileUseCase(babyRepo),
             settingsRepository = settingsRepo,
             saveBabyProfile = SaveBabyProfileUseCase(babyRepo, mockk(relaxed = true)),
-            countRecentValidIntervals = countRecentValidIntervals,
-            notificationPermissionChecker = NotificationPermissionChecker { true },
         )
 
         composeRule.setContent {
@@ -201,14 +188,6 @@ class SettingsScreenTest {
 
         override suspend fun setOnboardingComplete(complete: Boolean) = Unit
 
-        override fun getMaxPerBreastMinutes(): Flow<Int> = flowOf(0)
-
-        override suspend fun setMaxPerBreastMinutes(minutes: Int) = Unit
-
-        override fun getMaxTotalFeedMinutes(): Flow<Int> = flowOf(0)
-
-        override suspend fun setMaxTotalFeedMinutes(minutes: Int) = Unit
-
         override fun getWakeTime(): Flow<LocalTime?> = flowOf(null)
 
         override suspend fun setWakeTime(time: LocalTime) = Unit
@@ -221,9 +200,10 @@ class SettingsScreenTest {
 
         override suspend fun setRichNotificationsEnabled(enabled: Boolean) = Unit
 
-        override fun getAppMode(): Flow<AppMode> = flowOf(AppMode.PARTNER)
+        override fun getAppMode(): Flow<com.babytracker.sharing.domain.model.AppMode> =
+            flowOf(com.babytracker.sharing.domain.model.AppMode.PARTNER)
 
-        override suspend fun setAppMode(mode: AppMode) = Unit
+        override suspend fun setAppMode(mode: com.babytracker.sharing.domain.model.AppMode) = Unit
 
         override fun getShareCode(): Flow<String?> = flowOf("ABC12345")
 
@@ -232,14 +212,6 @@ class SettingsScreenTest {
         override suspend fun clearShareCode() = Unit
 
         override suspend fun clearPartnerStateIfShareCodeMatches(code: String): Boolean = false
-
-        override fun getPredictiveEnabled(): Flow<Boolean> = flowOf(false)
-
-        override suspend fun setPredictiveEnabled(enabled: Boolean) = Unit
-
-        override fun getPredictiveLeadMinutes(): Flow<Int> = flowOf(15)
-
-        override suspend fun setPredictiveLeadMinutes(minutes: Int) = Unit
 
         override fun getQuietHoursStartMinute(): Flow<Int> = flowOf(0)
 

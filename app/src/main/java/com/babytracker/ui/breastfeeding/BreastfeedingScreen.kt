@@ -40,8 +40,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -120,6 +122,7 @@ fun BreastfeedingScreen(
     onNavigateToHistory: () -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateToSettings: () -> Unit = {},
     viewModel: BreastfeedingViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -169,8 +172,11 @@ fun BreastfeedingScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = onNavigateToHistory) {
-                        Text("History", color = MaterialTheme.colorScheme.primary)
+                    IconButton(onClick = onNavigateToHistory) {
+                        Icon(Icons.Outlined.History, contentDescription = "Feed history")
+                    }
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Filled.Settings, contentDescription = "Feed settings")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

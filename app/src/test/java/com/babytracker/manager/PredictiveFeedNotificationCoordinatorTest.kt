@@ -1,6 +1,7 @@
 package com.babytracker.manager
 
 import com.babytracker.domain.model.FeedPrediction
+import com.babytracker.domain.repository.FeedSettingsRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import io.mockk.every
@@ -180,14 +181,17 @@ class PredictiveFeedNotificationCoordinatorTest {
         val useCase = mockk<PredictNextFeedUseCase>().also {
             every { it.invoke() } returns predictionFlow
         }
-        val settings = mockk<SettingsRepository>().also {
+        val feedSettings = mockk<FeedSettingsRepository>().also {
             every { it.getPredictiveEnabled() } returns enabledFlow
             every { it.getPredictiveLeadMinutes() } returns leadFlow
+        }
+        val settings = mockk<SettingsRepository>().also {
             every { it.getQuietHoursStartMinute() } returns quietStartFlow
             every { it.getQuietHoursEndMinute() } returns quietEndFlow
         }
         return PredictiveFeedNotificationCoordinator(
             predictNextFeed = useCase,
+            feedSettingsRepository = feedSettings,
             settingsRepository = settings,
             scheduler = scheduler,
             applicationScope = backgroundScope,

@@ -1,13 +1,9 @@
-package com.babytracker.ui.settings
+package com.babytracker.ui.breastfeeding
 
-import com.babytracker.domain.model.ThemeConfig
-import com.babytracker.domain.model.MeasurementSystem
-import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.FeedSettingsRepository
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
 import com.babytracker.manager.NotificationPermissionChecker
-import com.babytracker.sharing.domain.model.AppMode
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -15,7 +11,6 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -28,13 +23,15 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class SettingsViewModelPredictiveTest {
+class FeedSettingsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+    private lateinit var feedSettingsRepository: FeedSettingsRepository
     private lateinit var settingsRepository: SettingsRepository
-    private lateinit var getBabyProfile: GetBabyProfileUseCase
     private lateinit var countRecentValidIntervals: CountRecentValidIntervalsUseCase
 
+    private val maxPerBreastFlow = MutableStateFlow(0)
+    private val maxTotalFeedFlow = MutableStateFlow(0)
     private val predictiveEnabledFlow = MutableStateFlow(false)
     private val predictiveLeadMinutesFlow = MutableStateFlow(15)
     private val quietHoursStartFlow = MutableStateFlow(0)
@@ -45,24 +42,17 @@ class SettingsViewModelPredictiveTest {
     @BeforeEach
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        feedSettingsRepository = mockk(relaxed = true)
         settingsRepository = mockk(relaxed = true)
-        getBabyProfile = mockk()
         countRecentValidIntervals = mockk()
 
-        every { getBabyProfile() } returns flowOf(null)
-        every { settingsRepository.getMaxPerBreastMinutes() } returns flowOf(0)
-        every { settingsRepository.getMaxTotalFeedMinutes() } returns flowOf(0)
-        every { settingsRepository.getThemeConfig() } returns flowOf(ThemeConfig.SYSTEM)
-        every { settingsRepository.getAutoUpdateEnabled() } returns flowOf(true)
-        every { settingsRepository.getRichNotificationsEnabled() } returns flowOf(true)
-        every { settingsRepository.getAppMode() } returns flowOf(AppMode.NONE)
-        every { settingsRepository.getPredictiveEnabled() } returns predictiveEnabledFlow
-        every { settingsRepository.getPredictiveLeadMinutes() } returns predictiveLeadMinutesFlow
+        every { feedSettingsRepository.getMaxPerBreastMinutes() } returns maxPerBreastFlow
+        every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns maxTotalFeedFlow
+        every { feedSettingsRepository.getPredictiveEnabled() } returns predictiveEnabledFlow
+        every { feedSettingsRepository.getPredictiveLeadMinutes() } returns predictiveLeadMinutesFlow
         every { settingsRepository.getQuietHoursStartMinute() } returns quietHoursStartFlow
         every { settingsRepository.getQuietHoursEndMinute() } returns quietHoursEndFlow
         every { countRecentValidIntervals() } returns validIntervalCountFlow
-        every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
-        every { settingsRepository.getMeasurementSystem() } returns flowOf(MeasurementSystem.METRIC)
     }
 
     @AfterEach
@@ -70,14 +60,57 @@ class SettingsViewModelPredictiveTest {
         Dispatchers.resetMain()
     }
 
-    private fun buildViewModel(): SettingsViewModel {
-        return SettingsViewModel(
-            getBabyProfile = getBabyProfile,
+    private fun buildViewModel(): FeedSettingsViewModel =
+        FeedSettingsViewModel(
+            feedSettingsRepository = feedSettingsRepository,
             settingsRepository = settingsRepository,
-            saveBabyProfile = mockk(),
             countRecentValidIntervals = countRecentValidIntervals,
             notificationPermissionChecker = NotificationPermissionChecker { notificationsEnabledStub },
         )
+
+    @Test
+    fun `state maps repository flows`() = runTest {
+        maxPerBreastFlow.value = 12
+        maxTotalFeedFlow.value = 30
+        predictiveLeadMinutesFlow.value = 10
+
+        val viewModel = buildViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(12, state.maxPerBreastMinutes)
+        assertEquals(30, state.maxTotalFeedMinutes)
+        assertEquals(10, state.predictiveLeadMinutes)
+    }
+
+    @Test
+    fun `onMaxPerBreastChanged persists value`() = runTest {
+        coEvery { feedSettingsRepository.setMaxPerBreastMinutes(20) } coAnswers {
+            maxPerBreastFlow.value = 20
+        }
+
+        val viewModel = buildViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.onMaxPerBreastChanged(20)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { feedSettingsRepository.setMaxPerBreastMinutes(20) }
+        assertEquals(20, viewModel.uiState.value.maxPerBreastMinutes)
+    }
+
+    @Test
+    fun `onMaxTotalFeedChanged persists value`() = runTest {
+        coEvery { feedSettingsRepository.setMaxTotalFeedMinutes(45) } coAnswers {
+            maxTotalFeedFlow.value = 45
+        }
+
+        val viewModel = buildViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.onMaxTotalFeedChanged(45)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { feedSettingsRepository.setMaxTotalFeedMinutes(45) }
+        assertEquals(45, viewModel.uiState.value.maxTotalFeedMinutes)
     }
 
     @Test
@@ -123,41 +156,37 @@ class SettingsViewModelPredictiveTest {
     fun `toggle on persists predictiveEnabled true even when permission denied`() = runTest {
         notificationsEnabledStub = false
         predictiveEnabledFlow.value = false
-        coEvery { settingsRepository.setPredictiveEnabled(true) } coAnswers {
+        coEvery { feedSettingsRepository.setPredictiveEnabled(true) } coAnswers {
             predictiveEnabledFlow.value = true
         }
 
         val viewModel = buildViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
-
         viewModel.onPredictiveToggleChanged(true)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { settingsRepository.setPredictiveEnabled(true) }
-        // Permission denial does NOT auto-flip enabled off
+        coVerify { feedSettingsRepository.setPredictiveEnabled(true) }
         assertTrue(viewModel.uiState.value.predictiveEnabled)
-        assertFalse(viewModel.uiState.value.notificationsPermissionGranted)
         assertTrue(viewModel.uiState.value.showPermissionWarning)
     }
 
     @Test
     fun `setting lead minutes persists`() = runTest {
-        coEvery { settingsRepository.setPredictiveLeadMinutes(30) } coAnswers {
+        coEvery { feedSettingsRepository.setPredictiveLeadMinutes(30) } coAnswers {
             predictiveLeadMinutesFlow.value = 30
         }
 
         val viewModel = buildViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
-
         viewModel.onLeadMinutesChanged(30)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { settingsRepository.setPredictiveLeadMinutes(30) }
+        coVerify { feedSettingsRepository.setPredictiveLeadMinutes(30) }
         assertEquals(30, viewModel.uiState.value.predictiveLeadMinutes)
     }
 
     @Test
-    fun `setting quiet hours start equal to end is reflected in uiState`() = runTest {
+    fun `quiet hours read from and written to shared SettingsRepository`() = runTest {
         coEvery { settingsRepository.setQuietHoursStartMinute(120) } coAnswers {
             quietHoursStartFlow.value = 120
         }
@@ -167,15 +196,15 @@ class SettingsViewModelPredictiveTest {
 
         val viewModel = buildViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
-
         viewModel.onQuietHoursStartChanged(120)
         viewModel.onQuietHoursEndChanged(120)
         testDispatcher.scheduler.advanceUntilIdle()
 
+        coVerify { settingsRepository.setQuietHoursStartMinute(120) }
+        coVerify { settingsRepository.setQuietHoursEndMinute(120) }
         val state = viewModel.uiState.value
         assertEquals(120, state.quietHoursStartMinute)
         assertEquals(120, state.quietHoursEndMinute)
-        assertEquals(state.quietHoursStartMinute, state.quietHoursEndMinute)
     }
 
     @Test
@@ -190,19 +219,6 @@ class SettingsViewModelPredictiveTest {
 
         validIntervalCountFlow.value = 5
         testDispatcher.scheduler.advanceUntilIdle()
-        assertEquals(5, viewModel.uiState.value.validIntervalCount)
-    }
-
-    @Test
-    fun `hint is gated only on validIntervalCount not on prediction null`() = runTest {
-        val viewModel = buildViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        validIntervalCountFlow.value = 5
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        // When CountRecentValidIntervalsUseCase emits 5, uiState reflects that count;
-        // gating any "need more feeds" hint solely on this value means no hint at 5.
         assertEquals(5, viewModel.uiState.value.validIntervalCount)
     }
 }

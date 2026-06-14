@@ -8,6 +8,7 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingActiveNotificationSettings
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.FeedSettingsRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.getBreastfeedingActiveNotificationSettings
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
@@ -31,6 +32,7 @@ import javax.inject.Inject
 class BreastfeedingActionReceiver : BroadcastReceiver() {
 
     @Inject lateinit var repository: BreastfeedingRepository
+    @Inject lateinit var feedSettingsRepository: FeedSettingsRepository
     @Inject lateinit var settingsRepository: SettingsRepository
     @Inject lateinit var switchSide: SwitchBreastfeedingSideUseCase
     @Inject lateinit var stopSession: StopBreastfeedingSessionUseCase
@@ -164,7 +166,7 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
     }
 
     private suspend fun breastfeedingActiveNotificationSettings(): BreastfeedingActiveNotificationSettings =
-        settingsRepository.getBreastfeedingActiveNotificationSettings().first()
+        feedSettingsRepository.getBreastfeedingActiveNotificationSettings(settingsRepository).first()
 
     private fun currentSide(session: BreastfeedingSession): String =
         if (session.switchTime != null) {

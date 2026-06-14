@@ -5,24 +5,30 @@ import com.babytracker.domain.model.BreastfeedingNotificationScheduleSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
-fun SettingsRepository.getBreastfeedingActiveNotificationSettings(): Flow<BreastfeedingActiveNotificationSettings> =
+/**
+ * Combines the feed-owned max-total-feed limit with the globally-owned rich-notifications toggle.
+ * Rich notifications stay on [SettingsRepository] (app-wide), so it is passed in here.
+ */
+fun FeedSettingsRepository.getBreastfeedingActiveNotificationSettings(
+    settingsRepository: SettingsRepository,
+): Flow<BreastfeedingActiveNotificationSettings> =
     combine(
         getMaxTotalFeedMinutes(),
-        getRichNotificationsEnabled()
+        settingsRepository.getRichNotificationsEnabled(),
     ) { maxTotalFeedMinutes, richNotificationsEnabled ->
         BreastfeedingActiveNotificationSettings(
             maxTotalFeedMinutes = maxTotalFeedMinutes,
-            richNotificationsEnabled = richNotificationsEnabled
+            richNotificationsEnabled = richNotificationsEnabled,
         )
     }
 
-fun SettingsRepository.getBreastfeedingNotificationScheduleSettings(): Flow<BreastfeedingNotificationScheduleSettings> =
+fun FeedSettingsRepository.getBreastfeedingNotificationScheduleSettings(): Flow<BreastfeedingNotificationScheduleSettings> =
     combine(
         getMaxPerBreastMinutes(),
-        getMaxTotalFeedMinutes()
+        getMaxTotalFeedMinutes(),
     ) { maxPerBreastMinutes, maxTotalFeedMinutes ->
         BreastfeedingNotificationScheduleSettings(
             maxPerBreastMinutes = maxPerBreastMinutes,
-            maxTotalFeedMinutes = maxTotalFeedMinutes
+            maxTotalFeedMinutes = maxTotalFeedMinutes,
         )
     }
