@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.HomeTile
+import com.babytracker.domain.model.MeasurementSystem
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
@@ -652,6 +653,10 @@ class PartnerDashboardScreenTest {
         override fun getVolumeUnit(): Flow<VolumeUnit> = flowOf(VolumeUnit.ML)
 
         override suspend fun setVolumeUnit(unit: VolumeUnit) = Unit
+
+        override fun getMeasurementSystem(): Flow<MeasurementSystem> = flowOf(MeasurementSystem.METRIC)
+
+        override suspend fun setMeasurementSystem(system: MeasurementSystem) = Unit
 
         override fun getHomeTileOrder(): Flow<List<HomeTile>> = flowOf(HomeTile.DEFAULT_ORDER)
 

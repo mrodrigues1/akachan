@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.babytracker.domain.model.HomeTile
+import com.babytracker.domain.model.MeasurementSystem
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
@@ -30,6 +31,7 @@ class SettingsRepositoryImpl @Inject constructor(
         const val TAG = "SettingsRepository"
         val THEME_CONFIG = stringPreferencesKey("theme_config")
         val VOLUME_UNIT = stringPreferencesKey("volume_unit")
+        val MEASUREMENT_SYSTEM = stringPreferencesKey("measurement_system")
         val HOME_TILE_ORDER = stringPreferencesKey("home_tile_order")
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val MAX_PER_BREAST_MINUTES = intPreferencesKey("max_per_breast_minutes")
@@ -83,6 +85,16 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setVolumeUnit(unit: VolumeUnit) {
         dataStore.edit { it[VOLUME_UNIT] = unit.name }
+    }
+
+    override fun getMeasurementSystem(): Flow<MeasurementSystem> =
+        dataStore.data.map { prefs ->
+            prefs[MEASUREMENT_SYSTEM]?.let { runCatching { MeasurementSystem.valueOf(it) }.getOrNull() }
+                ?: MeasurementSystem.METRIC
+        }
+
+    override suspend fun setMeasurementSystem(system: MeasurementSystem) {
+        dataStore.edit { it[MEASUREMENT_SYSTEM] = system.name }
     }
 
     override fun getHomeTileOrder(): Flow<List<HomeTile>> =

@@ -1,6 +1,7 @@
 package com.babytracker.ui.settings
 
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.model.MeasurementSystem
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
@@ -71,6 +72,7 @@ class SettingsViewModelTest {
         every { settingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
         every { settingsRepository.getPredictiveSleepLeadMinutes() } returns flowOf(15)
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
+        every { settingsRepository.getMeasurementSystem() } returns flowOf(MeasurementSystem.METRIC)
 
         viewModel = SettingsViewModel(
             getBabyProfile,

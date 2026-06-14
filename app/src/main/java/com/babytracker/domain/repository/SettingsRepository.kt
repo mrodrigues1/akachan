@@ -1,6 +1,7 @@
 package com.babytracker.domain.repository
 
 import com.babytracker.domain.model.HomeTile
+import com.babytracker.domain.model.MeasurementSystem
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.export.domain.model.BackupData
@@ -13,6 +14,8 @@ interface SettingsRepository {
     suspend fun setThemeConfig(themeConfig: ThemeConfig)
     fun getVolumeUnit(): Flow<VolumeUnit>
     suspend fun setVolumeUnit(unit: VolumeUnit)
+    fun getMeasurementSystem(): Flow<MeasurementSystem>
+    suspend fun setMeasurementSystem(system: MeasurementSystem)
     fun getHomeTileOrder(): Flow<List<HomeTile>>
     suspend fun setHomeTileOrder(order: List<HomeTile>)
     suspend fun clearHomeTileOrder()
