@@ -14,12 +14,14 @@ import com.babytracker.data.local.MIGRATION_6_7
 import com.babytracker.data.local.MIGRATION_7_8
 import com.babytracker.data.local.MIGRATION_8_9
 import com.babytracker.data.local.MIGRATION_9_10
+import com.babytracker.data.local.MIGRATION_10_11
 import com.babytracker.data.local.installActiveSessionInvariantTriggers
 import com.babytracker.data.local.dao.BabyEventDao
 import com.babytracker.data.local.dao.BabyProfileDao
 import com.babytracker.data.local.dao.BottleFeedDao
 import com.babytracker.data.local.dao.BreastfeedingDao
 import com.babytracker.data.local.dao.GrowthMeasurementDao
+import com.babytracker.data.local.dao.MilestoneDao
 import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.data.local.dao.PumpingDao
 import com.babytracker.data.local.dao.SleepDao
@@ -54,6 +56,7 @@ object DatabaseModule {
                 MIGRATION_7_8,
                 MIGRATION_8_9,
                 MIGRATION_9_10,
+                MIGRATION_10_11,
             )
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
@@ -92,6 +95,9 @@ object DatabaseModule {
     @Provides
     fun provideGrowthMeasurementDao(database: BabyTrackerDatabase): GrowthMeasurementDao =
         database.growthMeasurementDao()
+
+    @Provides
+    fun provideMilestoneDao(database: BabyTrackerDatabase): MilestoneDao = database.milestoneDao()
 
     @Provides
     fun provideNowProvider(): () -> Instant = Instant::now

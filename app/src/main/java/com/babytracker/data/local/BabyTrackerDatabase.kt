@@ -11,6 +11,7 @@ import com.babytracker.data.local.dao.BabyProfileDao
 import com.babytracker.data.local.dao.BottleFeedDao
 import com.babytracker.data.local.dao.BreastfeedingDao
 import com.babytracker.data.local.dao.GrowthMeasurementDao
+import com.babytracker.data.local.dao.MilestoneDao
 import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.data.local.dao.PumpingDao
 import com.babytracker.data.local.dao.SleepDao
@@ -20,6 +21,7 @@ import com.babytracker.data.local.entity.BabyProfileEntity
 import com.babytracker.data.local.entity.BottleFeedEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
 import com.babytracker.data.local.entity.GrowthMeasurementEntity
+import com.babytracker.data.local.entity.MilestoneAchievementEntity
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
@@ -38,8 +40,9 @@ import com.babytracker.data.local.entity.SleepRecommendationFeedbackEntity
         SleepRecommendationFeedbackEntity::class,
         BottleFeedEntity::class,
         GrowthMeasurementEntity::class,
+        MilestoneAchievementEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -53,6 +56,7 @@ abstract class BabyTrackerDatabase : RoomDatabase() {
     abstract fun sleepRecommendationDao(): SleepRecommendationDao
     abstract fun bottleFeedDao(): BottleFeedDao
     abstract fun growthMeasurementDao(): GrowthMeasurementDao
+    abstract fun milestoneDao(): MilestoneDao
 }
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -330,6 +334,26 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
         )
         database.execSQL(
             "CREATE INDEX IF NOT EXISTS index_growth_measurements_taken_at ON growth_measurements(taken_at)"
+        )
+    }
+}
+
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS milestone_achievements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                milestone TEXT NOT NULL,
+                achieved_on_epoch_day INTEGER NOT NULL,
+                photo_uri TEXT,
+                notes TEXT
+            )
+            """.trimIndent()
+        )
+        database.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS index_milestone_achievements_milestone " +
+                "ON milestone_achievements(milestone)"
         )
     }
 }
