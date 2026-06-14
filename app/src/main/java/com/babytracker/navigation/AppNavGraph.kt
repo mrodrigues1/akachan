@@ -29,6 +29,7 @@ import com.babytracker.ui.inventory.InventorySettingsScreen
 import com.babytracker.ui.pumping.PumpingHistoryScreen
 import com.babytracker.ui.pumping.PumpingScreen
 import com.babytracker.ui.theme.DesignSystemPreviewScreen
+import com.babytracker.ui.trends.TrendsScreen
 
 @Composable
 fun AppNavGraph(
@@ -65,17 +66,10 @@ fun AppNavGraph(
                 onNavigateToFeedingHistory = { navController.navigate(Routes.FEEDING_HISTORY) },
                 onNavigateToGrowth = { navController.navigate(Routes.GROWTH) },
                 onNavigateToMilestones = { navController.navigate(Routes.MILESTONES) },
+                onNavigateToTrends = { navController.navigate(Routes.TRENDS) },
             )
         }
-        composable(Routes.GROWTH) {
-            GrowthScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
-            )
-        }
-        composable(Routes.MILESTONES) {
-            MilestonesScreen(onNavigateBack = { navController.popBackStack() })
-        }
+        insightsGraph(navController)
         composable(Routes.BREASTFEEDING) {
             BreastfeedingScreen(
                 onNavigateToHistory = { navController.navigate(Routes.BREASTFEEDING_HISTORY) },
@@ -111,6 +105,21 @@ fun AppNavGraph(
         }
         settingsGraph(navController, isOnboardingComplete)
         pumpingGraph(navController)
+    }
+}
+
+private fun NavGraphBuilder.insightsGraph(navController: NavHostController) {
+    composable(Routes.GROWTH) {
+        GrowthScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
+        )
+    }
+    composable(Routes.MILESTONES) {
+        MilestonesScreen(onNavigateBack = { navController.popBackStack() })
+    }
+    composable(Routes.TRENDS) {
+        TrendsScreen(onNavigateBack = { navController.popBackStack() })
     }
 }
 

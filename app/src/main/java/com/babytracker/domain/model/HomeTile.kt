@@ -14,6 +14,7 @@ enum class HomeTile {
     SLEEP_PREDICTION,
     GROWTH,
     MILESTONES,
+    TRENDS,
     TIP,
     PARTNER,
     ;
@@ -30,6 +31,7 @@ enum class HomeTile {
             SLEEP_PREDICTION,
             GROWTH,
             MILESTONES,
+            TRENDS,
             TIP,
             PARTNER,
         )
