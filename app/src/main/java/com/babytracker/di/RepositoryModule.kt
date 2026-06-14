@@ -5,6 +5,7 @@ import com.babytracker.data.repository.BabyProfileRepositoryImpl
 import com.babytracker.data.repository.BabyRepositoryImpl
 import com.babytracker.data.repository.BottleFeedRepositoryImpl
 import com.babytracker.data.repository.BreastfeedingRepositoryImpl
+import com.babytracker.data.repository.GrowthRepositoryImpl
 import com.babytracker.data.repository.InventoryRepositoryImpl
 import com.babytracker.data.repository.PumpingRepositoryImpl
 import com.babytracker.data.repository.SleepRecommendationRepositoryImpl
@@ -15,6 +16,7 @@ import com.babytracker.domain.repository.BabyProfileRepository
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.GrowthRepository
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
@@ -65,6 +67,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindBottleFeedRepository(impl: BottleFeedRepositoryImpl): BottleFeedRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindGrowthRepository(impl: GrowthRepositoryImpl): GrowthRepository
 
     @Binds
     @Singleton

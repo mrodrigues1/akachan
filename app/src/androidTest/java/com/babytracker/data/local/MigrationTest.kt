@@ -251,6 +251,38 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate9To10_roomSchemaValidationPasses() {
+        helper.createDatabase(TEST_DB, 9).use { db ->
+            db.execSQL(
+                "INSERT INTO bottle_feeds (timestamp, volume_ml, type, created_at) VALUES (1000, 120, 'FORMULA', 1000)"
+            )
+        }
+        // Throws if the migrated schema differs from entity-generated schema 10.
+        helper.runMigrationsAndValidate(TEST_DB, 10, true, MIGRATION_9_10).close()
+    }
+
+    @Test
+    fun migrate9To10_createsGrowthMeasurementsTable_acceptsInserts() {
+        helper.createDatabase(TEST_DB, 9).close()
+        val db = helper.runMigrationsAndValidate(TEST_DB, 10, true, MIGRATION_9_10)
+
+        db.execSQL(
+            "INSERT INTO growth_measurements (taken_at, type, value_canonical, notes)" +
+                " VALUES (1000, 'WEIGHT', 5200, 'newborn')"
+        )
+        db.execSQL(
+            "INSERT INTO growth_measurements (taken_at, type, value_canonical, notes)" +
+                " VALUES (2000, 'LENGTH', 600, NULL)"
+        )
+
+        val cursor: Cursor = db.query("SELECT count(*) FROM growth_measurements")
+        cursor.moveToFirst()
+        assertEquals(2, cursor.getInt(0))
+        cursor.close()
+        db.close()
+    }
+
+    @Test
     fun migrate8To9_backfillsUniqueClientId_andDefaultsAuthorToOwner() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val dbName = "migration-test-v8-to-v9"
