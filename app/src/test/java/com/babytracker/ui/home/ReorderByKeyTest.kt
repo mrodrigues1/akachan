@@ -68,6 +68,8 @@ class ReorderByKeyTest {
             HomeTile.PUMPING,
             HomeTile.INVENTORY,
             HomeTile.BOTTLE_FEED,
+            HomeTile.GROWTH,
+            HomeTile.MILESTONES,
             HomeTile.TIP,
             HomeTile.FEEDING_HISTORY,
             HomeTile.PARTNER,
