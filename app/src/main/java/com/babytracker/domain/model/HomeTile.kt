@@ -12,6 +12,7 @@ enum class HomeTile {
     BOTTLE_FEED,
     FEEDING_HISTORY,
     SLEEP_PREDICTION,
+    GROWTH,
     TIP,
     PARTNER,
     ;
@@ -26,6 +27,7 @@ enum class HomeTile {
             BOTTLE_FEED,
             FEEDING_HISTORY,
             SLEEP_PREDICTION,
+            GROWTH,
             TIP,
             PARTNER,
         )

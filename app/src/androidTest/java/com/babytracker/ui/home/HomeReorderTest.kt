@@ -26,6 +26,7 @@ class HomeReorderTest {
         onBottleFeed = {},
         onFeedingHistory = {},
         onConnectPartner = {},
+        onGrowth = {},
     )
 
     @Test
