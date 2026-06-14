@@ -1,8 +1,10 @@
 package com.babytracker.ui.growth
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -101,6 +103,8 @@ class GrowthScreenTest {
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodesWithTag("growth_chart").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("6.50 kg").assertIsDisplayed()
+        // The value appears in exactly two places: the summary card and the history row.
+        // Asserting the count proves the history row rendered, not just the summary.
+        composeRule.onAllNodesWithText("6.50 kg").assertCountEquals(2)
     }
 }
