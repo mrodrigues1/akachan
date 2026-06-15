@@ -73,6 +73,7 @@ import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.TodayFeedingSummary
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.ui.breastfeeding.PredictionCopy
+import com.babytracker.ui.theme.growthColors
 import com.babytracker.ui.theme.milestoneColors
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
@@ -445,6 +446,7 @@ internal fun GrowthHomeCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val growth = growthColors()
     Card(
         onClick = onClick,
         modifier = modifier
@@ -453,7 +455,7 @@ internal fun GrowthHomeCard(
             .semantics { contentDescription = "Growth tracking. Open growth charts." },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            containerColor = growth.container,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
@@ -471,13 +473,13 @@ internal fun GrowthHomeCard(
             Text(
                 text = "Growth",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = growth.onContainer,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Weight, length & percentiles",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = growth.onContainer,
             )
         }
     }

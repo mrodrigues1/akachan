@@ -53,6 +53,7 @@ import com.babytracker.domain.growth.latestByRecency
 import com.babytracker.domain.model.GrowthMeasurement
 import com.babytracker.domain.model.GrowthType
 import com.babytracker.domain.model.MeasurementSystem
+import com.babytracker.ui.theme.growthColors
 import com.babytracker.util.formatLength
 import com.babytracker.util.formatWeight
 import java.time.ZoneId
@@ -244,7 +245,7 @@ private fun GrowthSummaryCard(
                 text = chart.latestPercentile?.let { "${percentileLabel(it)} (WHO)" }
                     ?: if (chart.isSexSpecified) "Percentile unavailable for this age" else "Set sex to see percentile",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = growthColors().accent,
             )
         }
     }
@@ -252,23 +253,24 @@ private fun GrowthSummaryCard(
 
 @Composable
 private fun SetSexCard(onSetSex: () -> Unit) {
+    val growth = growthColors()
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            containerColor = growth.container,
         ),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "See WHO percentiles",
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = growth.onContainer,
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = "WHO growth curves are sex-specific. Set your baby's sex to compare against them.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = growth.onContainer,
             )
             Spacer(Modifier.height(8.dp))
             Button(onClick = onSetSex, modifier = Modifier.testTag("growth_set_sex")) {
@@ -283,9 +285,10 @@ private fun GrowthChart(
     chart: GrowthChartData,
     modifier: Modifier = Modifier,
 ) {
+    val growth = growthColors()
     val curveColor = MaterialTheme.colorScheme.outline
-    val medianColor = MaterialTheme.colorScheme.tertiary
-    val pointColor = MaterialTheme.colorScheme.primary
+    val medianColor = growth.onContainer
+    val pointColor = growth.accent
     val description = chartContentDescription(chart)
 
     Box(modifier = modifier.semantics { contentDescription = description }) {
