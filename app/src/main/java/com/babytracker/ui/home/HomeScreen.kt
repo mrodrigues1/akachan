@@ -356,6 +356,7 @@ internal fun InventoryHomeCard(
     Card(
         onClick = onClick,
         modifier = modifier
+            .fillMaxWidth()
             .heightIn(min = 120.dp)
             .semantics {
                 contentDescription = if (hasBags)
@@ -403,6 +404,7 @@ internal fun BottleFeedHomeCard(
     Card(
         onClick = onClick,
         modifier = modifier
+            .fillMaxWidth()
             .heightIn(min = 120.dp)
             .semantics { contentDescription = "Log a bottle feed. Open bottle feed screen." },
         shape = MaterialTheme.shapes.large,
@@ -445,6 +447,7 @@ internal fun GrowthHomeCard(
     Card(
         onClick = onClick,
         modifier = modifier
+            .fillMaxWidth()
             .heightIn(min = 120.dp)
             .semantics { contentDescription = "Growth tracking. Open growth charts." },
         shape = MaterialTheme.shapes.large,
@@ -488,6 +491,7 @@ internal fun TrendsHomeCard(
     Card(
         onClick = onClick,
         modifier = modifier
+            .fillMaxWidth()
             .heightIn(min = 120.dp)
             .semantics { contentDescription = "Trends. Open feeding and sleep charts." },
         shape = MaterialTheme.shapes.large,
@@ -530,6 +534,7 @@ internal fun MilestonesHomeCard(
     Card(
         onClick = onClick,
         modifier = modifier
+            .fillMaxWidth()
             .heightIn(min = 120.dp)
             .semantics { contentDescription = "Milestones. Open milestone tracker." },
         shape = MaterialTheme.shapes.large,
@@ -581,6 +586,7 @@ internal fun FeedingHistoryHomeCard(
     Card(
         onClick = onClick,
         modifier = modifier
+            .fillMaxWidth()
             .heightIn(min = 120.dp)
             .semantics {
                 contentDescription = "Feeding history. $summaryText. Open combined feeding history."
