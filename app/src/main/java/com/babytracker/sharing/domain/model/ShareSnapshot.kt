@@ -66,7 +66,8 @@ data class GrowthSnapshot(
 
 // Photos are intentionally omitted — milestone photos stay on-device and are never synced.
 data class MilestoneSnapshot(
-    val milestone: String,
-    val achievedOnEpochDay: Long,
-    val notes: String? = null,
+    val title: String,
+    val dateEpochDay: Long,
+    val timeMinuteOfDay: Int? = null,
+    val note: String? = null,
 )

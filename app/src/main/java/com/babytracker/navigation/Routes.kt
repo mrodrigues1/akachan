@@ -24,5 +24,9 @@ object Routes {
     const val BOTTLE_FEED = "bottle_feed"
     const val GROWTH = "growth"
     const val MILESTONES = "milestones"
+    const val MILESTONE_DETAIL_ARG = "milestoneId"
+    const val MILESTONE_DETAIL = "milestones/{$MILESTONE_DETAIL_ARG}"
     const val TRENDS = "trends"
+
+    fun milestoneDetail(id: Long): String = "milestones/$id"
 }

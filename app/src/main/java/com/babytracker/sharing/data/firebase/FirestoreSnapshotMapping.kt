@@ -37,9 +37,10 @@ internal fun growthToMap(growth: GrowthSnapshot): Map<String, Any?> = mapOf(
 )
 
 internal fun milestoneToMap(milestone: MilestoneSnapshot): Map<String, Any?> = mapOf(
-    "milestone" to milestone.milestone,
-    "achievedOnEpochDay" to milestone.achievedOnEpochDay,
-    "notes" to milestone.notes,
+    "title" to milestone.title,
+    "dateEpochDay" to milestone.dateEpochDay,
+    "timeMinuteOfDay" to milestone.timeMinuteOfDay,
+    "note" to milestone.note,
 )
 
 internal fun predictionToMap(prediction: SleepPredictionSnapshot): Map<String, Any?> = mapOf(
@@ -148,9 +149,10 @@ internal fun mapToGrowth(map: Map<*, *>): GrowthSnapshot = GrowthSnapshot(
 )
 
 internal fun mapToMilestone(map: Map<*, *>): MilestoneSnapshot = MilestoneSnapshot(
-    milestone = map["milestone"] as? String ?: "",
-    achievedOnEpochDay = (map["achievedOnEpochDay"] as? Number)?.toLong() ?: 0L,
-    notes = map["notes"] as? String,
+    title = map["title"] as? String ?: "",
+    dateEpochDay = (map["dateEpochDay"] as? Number)?.toLong() ?: 0L,
+    timeMinuteOfDay = (map["timeMinuteOfDay"] as? Number)?.toInt(),
+    note = map["note"] as? String,
 )
 
 internal fun mapToPrediction(map: Map<*, *>): SleepPredictionSnapshot = SleepPredictionSnapshot(

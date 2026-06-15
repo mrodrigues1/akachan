@@ -289,6 +289,36 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate11To12_dropsOldMilestoneTable_createsFreeFormMomentsTable() {
+        helper.createDatabase(TEST_DB, 11).close()
+        val db = helper.runMigrationsAndValidate(TEST_DB, 12, true, MIGRATION_11_12)
+
+        // The old WHO-enum table is gone.
+        val legacy: Cursor = db.query(
+            "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='milestone_achievements'",
+        )
+        legacy.moveToFirst()
+        assertEquals(0, legacy.getInt(0))
+        legacy.close()
+
+        // The new free-form table accepts moments (with and without a time).
+        db.execSQL(
+            "INSERT INTO milestones (title, date_epoch_day, time_minute_of_day, photo_uri, note)" +
+                " VALUES ('First smile', 100, 480, NULL, 'so cute')",
+        )
+        db.execSQL(
+            "INSERT INTO milestones (title, date_epoch_day, time_minute_of_day, photo_uri, note)" +
+                " VALUES ('Beach day', 150, NULL, NULL, NULL)",
+        )
+
+        val cursor: Cursor = db.query("SELECT count(*) FROM milestones")
+        cursor.moveToFirst()
+        assertEquals(2, cursor.getInt(0))
+        cursor.close()
+        db.close()
+    }
+
+    @Test
     fun migrate9To10_createsGrowthMeasurementsTable_acceptsInserts() {
         helper.createDatabase(TEST_DB, 9).close()
         val db = helper.runMigrationsAndValidate(TEST_DB, 10, true, MIGRATION_9_10)

@@ -69,7 +69,6 @@ import com.babytracker.R
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.GrowthType
 import com.babytracker.domain.model.MeasurementSystem
-import com.babytracker.domain.model.Milestone
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
@@ -94,10 +93,12 @@ import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 private const val STALE_SYNC_THRESHOLD_MINUTES = 30L
 private const val ONE_MINUTE_MS = 60_000L
+private const val MINUTES_PER_HOUR = 60
 
 internal data class PartnerWarningColors(
     val accent: Color,
@@ -1364,14 +1365,19 @@ private fun PartnerGrowthMilestonesCard(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 val formatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
-                snapshot.milestones
-                    .mapNotNull { snap -> Milestone.entries.firstOrNull { it.name == snap.milestone }?.to(snap) }
-                    .forEach { (milestone, snap) ->
-                        SummaryLine(
-                            label = "${milestone.label} — ${LocalDate.ofEpochDay(snap.achievedOnEpochDay).format(formatter)}",
-                            color = MaterialTheme.colorScheme.secondary,
-                        )
+                val timeFormatter = remember { DateTimeFormatter.ofPattern("h:mm a") }
+                snapshot.milestones.forEach { snap ->
+                    val whenLabel = buildString {
+                        append(LocalDate.ofEpochDay(snap.dateEpochDay).format(formatter))
+                        snap.timeMinuteOfDay?.let {
+                            append(" · ${LocalTime.of(it / MINUTES_PER_HOUR, it % MINUTES_PER_HOUR).format(timeFormatter)}")
+                        }
                     }
+                    SummaryLine(
+                        label = "${snap.title} — $whenLabel",
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
             }
         }
     }

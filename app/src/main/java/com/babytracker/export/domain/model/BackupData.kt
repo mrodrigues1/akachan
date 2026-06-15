@@ -2,7 +2,7 @@ package com.babytracker.export.domain.model
 
 import kotlinx.serialization.Serializable
 
-const val CURRENT_BACKUP_FORMAT_VERSION = 2
+const val CURRENT_BACKUP_FORMAT_VERSION = 3
 
 @Serializable
 data class BackupData(
@@ -41,12 +41,16 @@ data class GrowthBackup(
     val notes: String?,
 )
 
-// Photos are metadata-only in backups: the photo file is not archived, so no photoUri is stored.
+// Free-form moments (format version 3). Photos are metadata-only in backups: the photo
+// file is not archived, so no photoUri is stored. Fields default so that pre-v3 backups
+// (which used the removed WHO-enum shape) still deserialize; their entries are dropped on
+// import by the version gate.
 @Serializable
 data class MilestoneBackup(
-    val milestone: String,
-    val achievedOnEpochDay: Long,
-    val notes: String?,
+    val title: String = "",
+    val dateEpochDay: Long = 0,
+    val timeMinuteOfDay: Int? = null,
+    val note: String? = null,
 )
 
 @Serializable

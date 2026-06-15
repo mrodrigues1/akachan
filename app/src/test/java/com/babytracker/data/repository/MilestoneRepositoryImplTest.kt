@@ -2,9 +2,8 @@ package com.babytracker.data.repository
 
 import app.cash.turbine.test
 import com.babytracker.data.local.dao.MilestoneDao
-import com.babytracker.data.local.entity.MilestoneAchievementEntity
+import com.babytracker.data.local.entity.MilestoneEntity
 import com.babytracker.domain.model.Milestone
-import com.babytracker.domain.model.MilestoneAchievement
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -15,9 +14,11 @@ import io.mockk.slot
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
+import java.time.LocalTime
 
 class MilestoneRepositoryImplTest {
 
@@ -31,50 +32,81 @@ class MilestoneRepositoryImplTest {
     }
 
     @Test
-    fun `logAchievement upserts the entity`() = runTest {
-        coEvery { dao.upsert(any()) } returns 1L
+    fun `addMilestone inserts the entity with a fresh id`() = runTest {
+        coEvery { dao.insert(any()) } returns 7L
 
-        repository.logAchievement(
-            MilestoneAchievement(
+        val id = repository.addMilestone(
+            Milestone(
                 id = 99, // a stale caller id must be ignored
-                milestone = Milestone.WALKING_ALONE,
-                achievedOn = LocalDate.of(2026, 6, 1),
+                title = "First smile",
+                date = LocalDate.of(2026, 6, 1),
+                time = LocalTime.of(8, 30),
                 photoUri = "content://photo",
-                notes = "first steps",
+                note = "so cute",
             ),
         )
 
-        val slot = slot<MilestoneAchievementEntity>()
-        coVerify { dao.upsert(capture(slot)) }
-        assertEquals(0L, slot.captured.id) // forced fresh id; milestone index is the only conflict key
-        assertEquals("WALKING_ALONE", slot.captured.milestone)
-        assertEquals(LocalDate.of(2026, 6, 1).toEpochDay(), slot.captured.achievedOnEpochDay)
+        assertEquals(7L, id)
+        val slot = slot<MilestoneEntity>()
+        coVerify { dao.insert(capture(slot)) }
+        assertEquals(0L, slot.captured.id)
+        assertEquals("First smile", slot.captured.title)
+        assertEquals(LocalDate.of(2026, 6, 1).toEpochDay(), slot.captured.dateEpochDay)
+        assertEquals(8 * 60 + 30, slot.captured.timeMinuteOfDay)
         assertEquals("content://photo", slot.captured.photoUri)
     }
 
     @Test
-    fun `getAchievements maps entities and drops unknown milestone names`() = runTest {
+    fun `getMilestones maps entities to domain`() = runTest {
         every { dao.getAll() } returns flowOf(
             listOf(
-                MilestoneAchievementEntity(id = 1, milestone = "WALKING_ALONE", achievedOnEpochDay = 100),
-                MilestoneAchievementEntity(id = 2, milestone = "RETIRED_MILESTONE", achievedOnEpochDay = 200),
+                MilestoneEntity(id = 1, title = "Trip", dateEpochDay = 100, timeMinuteOfDay = null),
+                MilestoneEntity(id = 2, title = "Bath", dateEpochDay = 200, timeMinuteOfDay = 90),
             ),
         )
 
-        repository.getAchievements().test {
+        repository.getMilestones().test {
             val list = awaitItem()
-            assertEquals(1, list.size)
-            assertEquals(Milestone.WALKING_ALONE, list.first().milestone)
+            assertEquals(2, list.size)
+            assertEquals("Trip", list[0].title)
+            assertNull(list[0].time)
+            assertEquals(LocalTime.of(1, 30), list[1].time)
             awaitComplete()
         }
     }
 
     @Test
-    fun `deleteAchievement delegates to dao by milestone name`() = runTest {
-        coEvery { dao.deleteByMilestone("STANDING_ALONE") } just Runs
+    fun `getMilestone maps a single entity`() = runTest {
+        every { dao.getById(5) } returns flowOf(
+            MilestoneEntity(id = 5, title = "Crawl", dateEpochDay = 300, timeMinuteOfDay = null),
+        )
 
-        repository.deleteAchievement(Milestone.STANDING_ALONE)
+        repository.getMilestone(5).test {
+            assertEquals("Crawl", awaitItem()?.title)
+            awaitComplete()
+        }
+    }
 
-        coVerify { dao.deleteByMilestone("STANDING_ALONE") }
+    @Test
+    fun `updateMilestone delegates to the dao`() = runTest {
+        coEvery { dao.update(any()) } just Runs
+
+        repository.updateMilestone(
+            Milestone(id = 3, title = "Updated", date = LocalDate.of(2026, 1, 1)),
+        )
+
+        val slot = slot<MilestoneEntity>()
+        coVerify { dao.update(capture(slot)) }
+        assertEquals(3L, slot.captured.id)
+        assertEquals("Updated", slot.captured.title)
+    }
+
+    @Test
+    fun `deleteMilestone delegates to the dao by id`() = runTest {
+        coEvery { dao.deleteById(4) } just Runs
+
+        repository.deleteMilestone(4)
+
+        coVerify { dao.deleteById(4) }
     }
 }

@@ -50,7 +50,7 @@ class GenerateShareCodeUseCase @Inject constructor(
         val activeBags = sources.inventory.getActiveBags().first()
         val bottleFeeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
         val growth = sources.growth.getAllMeasurements().first().latestPerType()
-        val milestones = sources.milestones.getAchievements().first()
+        val milestones = sources.milestones.getMilestones().first()
         val timestamp = now()
         val prediction = buildPrediction(timestamp.toEpochMilli())
         return ShareSnapshot(

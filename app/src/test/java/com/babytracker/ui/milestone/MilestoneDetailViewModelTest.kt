@@ -1,11 +1,12 @@
 package com.babytracker.ui.milestone
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.babytracker.domain.model.Milestone
-import com.babytracker.domain.usecase.milestone.AddMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.DeleteMilestoneUseCase
-import com.babytracker.domain.usecase.milestone.GetMilestonesUseCase
+import com.babytracker.domain.usecase.milestone.GetMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.UpdateMilestoneUseCase
+import com.babytracker.navigation.Routes
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coVerify
 import io.mockk.every
@@ -18,97 +19,72 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
 
-class MilestonesViewModelTest {
+class MilestoneDetailViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private lateinit var getMilestones: GetMilestonesUseCase
-    private lateinit var addMilestone: AddMilestoneUseCase
+    private lateinit var getMilestone: GetMilestoneUseCase
     private lateinit var updateMilestone: UpdateMilestoneUseCase
     private lateinit var deleteMilestone: DeleteMilestoneUseCase
     private lateinit var photoCleaner: MilestonePhotoCleaner
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
 
     private val photoUri = "file:///data/milestone_photos/moment_1.jpg"
-    private val existing = Milestone(
-        id = 1,
-        title = "First steps",
-        date = LocalDate.of(2026, 6, 1),
-        photoUri = photoUri,
-    )
+    private val moment = Milestone(id = 1, title = "Smile", date = LocalDate.of(2026, 6, 1), photoUri = photoUri)
 
     @BeforeEach
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        getMilestones = mockk()
-        addMilestone = mockk(relaxed = true)
+        getMilestone = mockk()
         updateMilestone = mockk(relaxed = true)
         deleteMilestone = mockk(relaxed = true)
         photoCleaner = mockk(relaxed = true)
         syncToFirestore = mockk(relaxed = true)
-        every { getMilestones() } returns flowOf(listOf(existing))
+        every { getMilestone(1) } returns flowOf(moment)
     }
 
     @AfterEach
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = MilestonesViewModel(
-        getMilestones, addMilestone, updateMilestone, deleteMilestone, photoCleaner, syncToFirestore,
+    private fun viewModel() = MilestoneDetailViewModel(
+        SavedStateHandle(mapOf(Routes.MILESTONE_DETAIL_ARG to "1")),
+        getMilestone, updateMilestone, deleteMilestone, photoCleaner, syncToFirestore,
     )
 
     @Test
-    fun `loads the moments`() = runTest {
+    fun `loads the moment by id`() = runTest {
         viewModel().uiState.test {
             var state = awaitItem()
             while (state.isLoading) state = awaitItem()
-            assertEquals(1, state.moments.size)
-            assertEquals("First steps", state.moments.first().title)
+            assertEquals("Smile", state.milestone?.title)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `onSave with id 0 adds a new moment`() = runTest {
+    fun `onDelete removes the moment, its photo, and signals completion`() = runTest {
         val vm = viewModel()
-        val moment = Milestone(id = 0, title = "New", date = LocalDate.of(2026, 6, 2))
-        vm.onSave(moment)
         testDispatcher.scheduler.advanceUntilIdle()
-        coVerify { addMilestone(moment) }
-        coVerify(exactly = 0) { updateMilestone(any()) }
-    }
-
-    @Test
-    fun `onSave with existing id updates`() = runTest {
-        val vm = viewModel()
-        testDispatcher.scheduler.advanceUntilIdle() // let the eager moments flow populate
-        val updated = existing.copy(title = "Renamed", photoUri = photoUri)
-        vm.onSave(updated)
+        var deleted = false
+        vm.onDelete(onDeleted = { deleted = true })
         testDispatcher.scheduler.advanceUntilIdle()
-        coVerify { updateMilestone(updated) }
-        // Photo unchanged, so no cleanup.
-        coVerify(exactly = 0) { photoCleaner.delete(photoUri) }
+        coVerify { deleteMilestone(1) }
+        coVerify { photoCleaner.delete(photoUri) }
+        assertTrue(deleted)
     }
 
     @Test
     fun `onSave cleans up the replaced photo`() = runTest {
         val vm = viewModel()
         testDispatcher.scheduler.advanceUntilIdle()
-        val updated = existing.copy(photoUri = "content://new")
+        val updated = moment.copy(photoUri = "content://new")
         vm.onSave(updated)
         testDispatcher.scheduler.advanceUntilIdle()
-        coVerify { photoCleaner.delete(photoUri) }
-    }
-
-    @Test
-    fun `onDelete removes the moment and its photo`() = runTest {
-        val vm = viewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-        vm.onDelete(1)
-        testDispatcher.scheduler.advanceUntilIdle()
-        coVerify { deleteMilestone(1) }
+        coVerify { updateMilestone(updated) }
         coVerify { photoCleaner.delete(photoUri) }
     }
 }

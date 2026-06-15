@@ -4,18 +4,21 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import com.babytracker.domain.model.Milestone
-import com.babytracker.domain.model.MilestoneAchievement
-import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.MilestoneRepository
+import com.babytracker.domain.usecase.milestone.AddMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.DeleteMilestoneUseCase
-import com.babytracker.domain.usecase.milestone.GetMilestoneProgressUseCase
-import com.babytracker.domain.usecase.milestone.LogMilestoneUseCase
+import com.babytracker.domain.usecase.milestone.GetMilestonesUseCase
+import com.babytracker.domain.usecase.milestone.UpdateMilestoneUseCase
+import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.ui.theme.BabyTrackerTheme
 import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import org.junit.Rule
 import org.junit.Test
 
@@ -24,25 +27,32 @@ class MilestonesScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val achievements = MutableStateFlow<List<MilestoneAchievement>>(emptyList())
+    private val moments = MutableStateFlow<List<Milestone>>(emptyList())
 
     private val repository = object : MilestoneRepository {
-        override suspend fun logAchievement(achievement: MilestoneAchievement): Long {
-            achievements.value = achievements.value.filterNot { it.milestone == achievement.milestone } +
-                achievement.copy(id = achievements.value.size + 1L)
-            return achievements.value.size.toLong()
+        override fun getMilestones(): Flow<List<Milestone>> = moments
+        override fun getMilestone(id: Long): Flow<Milestone?> =
+            moments.map { list -> list.firstOrNull { it.id == id } }
+
+        override suspend fun addMilestone(milestone: Milestone): Long {
+            val id = moments.value.size + 1L
+            moments.value = moments.value + milestone.copy(id = id)
+            return id
         }
 
-        override fun getAchievements(): Flow<List<MilestoneAchievement>> = achievements
+        override suspend fun updateMilestone(milestone: Milestone) {
+            moments.value = moments.value.map { if (it.id == milestone.id) milestone else it }
+        }
 
-        override suspend fun deleteAchievement(milestone: Milestone) {
-            achievements.value = achievements.value.filterNot { it.milestone == milestone }
+        override suspend fun deleteMilestone(id: Long) {
+            moments.value = moments.value.filterNot { it.id == id }
         }
     }
 
     private fun viewModel() = MilestonesViewModel(
-        GetMilestoneProgressUseCase(repository),
-        LogMilestoneUseCase(repository),
+        GetMilestonesUseCase(repository),
+        AddMilestoneUseCase(repository),
+        UpdateMilestoneUseCase(repository),
         DeleteMilestoneUseCase(repository),
         object : MilestonePhotoCleaner {
             override suspend fun delete(photoUri: String?) = Unit
@@ -51,20 +61,31 @@ class MilestonesScreenTest {
     )
 
     @Test
-    fun loggingAMilestoneShowsAchievedDate() {
+    fun emptyStateShownWhenNoMoments() {
         composeRule.setContent {
             BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
-                MilestonesScreen(onNavigateBack = {}, viewModel = viewModel())
+                MilestonesScreen(onNavigateBack = {}, onNavigateToDetail = {}, viewModel = viewModel())
             }
         }
 
-        composeRule.onNodeWithTag("milestone_log_SITTING_WITHOUT_SUPPORT").assertIsDisplayed()
-        composeRule.onNodeWithTag("milestone_card_SITTING_WITHOUT_SUPPORT").performClick()
+        composeRule.onNodeWithText("No moments yet").assertIsDisplayed()
+    }
+
+    @Test
+    fun addingAMomentShowsItInTheList() {
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                MilestonesScreen(onNavigateBack = {}, onNavigateToDetail = {}, viewModel = viewModel())
+            }
+        }
+
+        composeRule.onNodeWithTag("milestone_fab").performClick()
+        composeRule.onNodeWithTag("milestone_title").performTextInput("First giggle")
         composeRule.onNodeWithTag("milestone_save").performClick()
 
         composeRule.waitUntil(timeoutMillis = 5_000) {
-            composeRule.onAllNodesWithText("Achieved", substring = true).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText("First giggle").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onAllNodesWithText("Achieved", substring = true)[0].assertIsDisplayed()
+        composeRule.onAllNodesWithText("First giggle")[0].assertIsDisplayed()
     }
 }

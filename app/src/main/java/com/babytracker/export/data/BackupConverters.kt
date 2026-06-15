@@ -3,7 +3,7 @@ package com.babytracker.export.data
 import com.babytracker.data.local.entity.BottleFeedEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
 import com.babytracker.data.local.entity.GrowthMeasurementEntity
-import com.babytracker.data.local.entity.MilestoneAchievementEntity
+import com.babytracker.data.local.entity.MilestoneEntity
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
@@ -35,12 +35,13 @@ fun GrowthBackup.toEntity() = GrowthMeasurementEntity(
 )
 
 // Photos are not archived in backups, so the restored entity has no photoUri.
-fun MilestoneAchievementEntity.toBackup() = MilestoneBackup(
-    milestone = milestone, achievedOnEpochDay = achievedOnEpochDay, notes = notes,
+fun MilestoneEntity.toBackup() = MilestoneBackup(
+    title = title, dateEpochDay = dateEpochDay, timeMinuteOfDay = timeMinuteOfDay, note = note,
 )
 
-fun MilestoneBackup.toEntity() = MilestoneAchievementEntity(
-    milestone = milestone, achievedOnEpochDay = achievedOnEpochDay, photoUri = null, notes = notes,
+fun MilestoneBackup.toEntity() = MilestoneEntity(
+    title = title, dateEpochDay = dateEpochDay, timeMinuteOfDay = timeMinuteOfDay,
+    photoUri = null, note = note,
 )
 
 fun SleepEntity.toBackup() = SleepBackup(
