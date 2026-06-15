@@ -267,12 +267,12 @@ internal fun PumpingHomeCard(
 ) {
     val isPumping = active != null
     val containerColor by animateColorAsState(
-        targetValue = if (isPumping) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.tertiaryContainer,
+        targetValue = if (isPumping) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer,
         animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
         label = "pumpingContainerColor",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (isPumping) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onTertiaryContainer,
+        targetValue = if (isPumping) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer,
         animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
         label = "pumpingContentColor",
     )
@@ -321,8 +321,8 @@ internal fun PumpingHomeCard(
                 ) {
                     ActiveStatusBadge(
                         paused = active?.isPaused == true,
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
             }

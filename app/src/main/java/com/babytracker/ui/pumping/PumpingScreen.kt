@@ -224,6 +224,12 @@ private fun ModeSegmentedControl(
                     index = index,
                     count = PumpingMode.entries.size,
                 ),
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    activeBorderColor = MaterialTheme.colorScheme.primary,
+                    inactiveBorderColor = MaterialTheme.colorScheme.primary,
+                ),
                 enabled = enabled || mode == pumpingMode,
                 label = {
                     Text(
@@ -317,15 +323,15 @@ internal fun IdleTimerContent(
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.tertiary,
-                contentColor = MaterialTheme.colorScheme.onTertiary,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
             ),
         ) {
             if (isStarting) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(18.dp),
                     strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onTertiary,
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
                 Text("Start Pumping", style = MaterialTheme.typography.labelLarge)
@@ -357,7 +363,7 @@ internal fun ActiveTimerContent(
         targetValue = if (session.isPaused) {
             MaterialTheme.colorScheme.surfaceVariant
         } else {
-            MaterialTheme.colorScheme.tertiaryContainer
+            MaterialTheme.colorScheme.primaryContainer
         },
         animationSpec = tween(durationMillis = 300),
         label = "status_card_color",
@@ -366,7 +372,7 @@ internal fun ActiveTimerContent(
         targetValue = if (session.isPaused) {
             MaterialTheme.colorScheme.onSurfaceVariant
         } else {
-            MaterialTheme.colorScheme.onTertiaryContainer
+            MaterialTheme.colorScheme.onPrimaryContainer
         },
         animationSpec = tween(durationMillis = 300),
         label = "status_text_color",
@@ -428,8 +434,8 @@ internal fun ActiveTimerContent(
             startTimeMillis = session.startTime.toEpochMilli() + session.pausedDurationMs,
             isRunning = !session.isPaused,
             frozenElapsedSeconds = frozenElapsedSeconds,
-            ringColor = MaterialTheme.colorScheme.tertiary,
-            trackColor = MaterialTheme.colorScheme.tertiaryContainer,
+            ringColor = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.primaryContainer,
         )
 
         Spacer(Modifier.height(16.dp))
@@ -437,13 +443,13 @@ internal fun ActiveTimerContent(
         Card(
             shape = MaterialTheme.shapes.medium,
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
             ),
         ) {
             Text(
                 text = session.breast.displayName(),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
         }
@@ -455,8 +461,8 @@ internal fun ActiveTimerContent(
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.tertiary,
-                contentColor = MaterialTheme.colorScheme.onTertiary,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
             ),
         ) {
             AnimatedContent(
@@ -519,7 +525,7 @@ private fun PumpingBreastSelector(
 
             val containerColor by animateColorAsState(
                 targetValue = if (isSelected) {
-                    MaterialTheme.colorScheme.tertiary
+                    MaterialTheme.colorScheme.primary
                 } else {
                     MaterialTheme.colorScheme.surface
                 },
@@ -530,7 +536,7 @@ private fun PumpingBreastSelector(
                 targetValue = if (isSelected) {
                     androidx.compose.ui.graphics.Color.Transparent
                 } else {
-                    MaterialTheme.colorScheme.tertiaryContainer
+                    MaterialTheme.colorScheme.primaryContainer
                 },
                 animationSpec = tween(durationMillis = 220),
                 label = "breast_border_${breast.name}",
@@ -542,7 +548,7 @@ private fun PumpingBreastSelector(
             )
             val textColor by animateColorAsState(
                 targetValue = if (isSelected) {
-                    MaterialTheme.colorScheme.onTertiary
+                    MaterialTheme.colorScheme.onPrimary
                 } else {
                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 },
@@ -603,7 +609,7 @@ internal fun ManualModeContent(
         Text(
             text = "STARTED",
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.tertiary,
+            color = MaterialTheme.colorScheme.primary,
         )
         Spacer(Modifier.height(8.dp))
         ManualFieldRow(
@@ -618,7 +624,7 @@ internal fun ManualModeContent(
         Text(
             text = "ENDED",
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.tertiary,
+            color = MaterialTheme.colorScheme.primary,
         )
         Spacer(Modifier.height(8.dp))
         ManualFieldRow(
@@ -633,7 +639,7 @@ internal fun ManualModeContent(
         Text(
             text = "BREAST",
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.tertiary,
+            color = MaterialTheme.colorScheme.primary,
         )
         Spacer(Modifier.height(8.dp))
         PumpingBreastSelector(
@@ -671,15 +677,15 @@ internal fun ManualModeContent(
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.tertiary,
-                contentColor = MaterialTheme.colorScheme.onTertiary,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
             ),
         ) {
             if (manual.isSaving) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(18.dp),
                     strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onTertiary,
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
                 Spacer(Modifier.width(8.dp))
             }

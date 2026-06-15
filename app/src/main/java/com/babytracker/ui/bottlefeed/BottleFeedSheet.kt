@@ -182,6 +182,10 @@ private fun FeedTypeSelector(
                 selected = selected == type,
                 onClick = { onSelect(type) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = FeedType.entries.size),
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = MaterialTheme.colorScheme.errorContainer,
+                    activeContentColor = MaterialTheme.colorScheme.onErrorContainer,
+                ),
                 // Keep the chosen type legible even while the form is disabled mid-save.
                 enabled = enabled || selected == type,
                 label = {
