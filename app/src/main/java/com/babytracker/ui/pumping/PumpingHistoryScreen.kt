@@ -150,7 +150,7 @@ internal fun PumpingHistoryContent(
                     Text(
                         text = "${date.toRelativeLabel()} · ${sessions.size} sessions".uppercase(),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.tertiary,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 8.dp),
@@ -164,8 +164,8 @@ internal fun PumpingHistoryContent(
                         subtitle = session.startTime.formatTime12h(),
                         trailing = session.activeDuration?.formatDuration() ?: "In progress",
                         badgeEmoji = "🥛",
-                        badgeColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        trailingColor = MaterialTheme.colorScheme.tertiary,
+                        badgeColor = MaterialTheme.colorScheme.primaryContainer,
+                        trailingColor = MaterialTheme.colorScheme.primary,
                         onClick = { onEditClicked(session) },
                         trailingIcon = Icons.Default.Edit,
                         trailingIconDescription = "Edit session",
