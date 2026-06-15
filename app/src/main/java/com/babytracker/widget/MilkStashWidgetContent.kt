@@ -12,6 +12,7 @@ import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
@@ -62,11 +63,16 @@ fun MilkStashSmallContent(data: MilkStashWidgetData, modifier: GlanceModifier = 
             .fillMaxSize()
             .background(GlanceTheme.colors.surfaceVariant)
             .clickable(openInventoryAction())
-            .padding(12.dp),
+            .padding(10.dp),
     ) {
         Text(
-            text = MILK_EMOJI,
-            style = TextStyle(fontSize = 16.sp),
+            text = MILK_STASH_TITLE,
+            maxLines = 1,
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+            ),
         )
         Spacer(modifier = GlanceModifier.defaultWeight())
         if (data.isEmpty()) {
@@ -94,7 +100,7 @@ fun MilkStashSmallContent(data: MilkStashWidgetData, modifier: GlanceModifier = 
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
                     fontWeight = FontWeight.Medium,
-                    fontSize = 24.sp,
+                    fontSize = 20.sp,
                 ),
             )
             Text(
@@ -105,6 +111,160 @@ fun MilkStashSmallContent(data: MilkStashWidgetData, modifier: GlanceModifier = 
                     fontSize = 12.sp,
                 ),
             )
+        }
+    }
+}
+
+/** 1×2 (tall, narrow) milk stash tile: emoji header, large volume hero, and bag count. */
+@Composable
+fun MilkStashTallContent(data: MilkStashWidgetData, modifier: GlanceModifier = GlanceModifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(GlanceTheme.colors.surfaceVariant)
+            .clickable(openInventoryAction())
+            .padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = MILK_EMOJI,
+            style = TextStyle(fontSize = 26.sp),
+        )
+        Spacer(modifier = GlanceModifier.height(2.dp))
+        Text(
+            text = MILK_STASH_TITLE,
+            maxLines = 1,
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+            ),
+        )
+        Spacer(modifier = GlanceModifier.height(14.dp))
+        if (data.isEmpty()) {
+            Text(
+                text = "No milk",
+                maxLines = 1,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 15.sp,
+                ),
+            )
+            Text(
+                text = "Tap to add",
+                maxLines = 1,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurfaceVariant,
+                    fontSize = 12.sp,
+                ),
+            )
+        } else {
+            Text(
+                text = volumeNumber(data.totalMl, data.volumeUnit),
+                maxLines = 1,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 34.sp,
+                ),
+            )
+            Text(
+                text = volumeUnitLabel(data.totalMl, data.volumeUnit),
+                maxLines = 1,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurfaceVariant,
+                    fontSize = 13.sp,
+                ),
+            )
+        }
+        Spacer(modifier = GlanceModifier.defaultWeight())
+        if (!data.isEmpty()) {
+            Text(
+                text = bagCountLabel(data.bagCount),
+                maxLines = 1,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                ),
+            )
+        }
+    }
+}
+
+/** 2×1 (wide, short) milk stash tile: emoji + volume hero on the left, bag count on the right. */
+@Composable
+fun MilkStashWideContent(data: MilkStashWidgetData, modifier: GlanceModifier = GlanceModifier) {
+    Row(
+        modifier = modifier
+            .fillMaxSize()
+            .background(GlanceTheme.colors.surfaceVariant)
+            .clickable(openInventoryAction())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = MILK_EMOJI,
+            style = TextStyle(fontSize = 32.sp),
+        )
+        Spacer(modifier = GlanceModifier.width(14.dp))
+        if (data.isEmpty()) {
+            Column(modifier = GlanceModifier.defaultWeight()) {
+                Text(
+                    text = "No milk",
+                    maxLines = 1,
+                    style = TextStyle(
+                        color = GlanceTheme.colors.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                    ),
+                )
+                Text(
+                    text = "Tap to add milk",
+                    maxLines = 1,
+                    style = TextStyle(
+                        color = GlanceTheme.colors.onSurfaceVariant,
+                        fontSize = 13.sp,
+                    ),
+                )
+            }
+        } else {
+            Column(modifier = GlanceModifier.defaultWeight()) {
+                Row(
+                    modifier = GlanceModifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = MILK_STASH_TITLE,
+                        maxLines = 1,
+                        style = TextStyle(
+                            color = GlanceTheme.colors.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                        ),
+                    )
+                    Spacer(modifier = GlanceModifier.defaultWeight())
+                    Text(
+                        text = bagCountLabel(data.bagCount),
+                        maxLines = 1,
+                        style = TextStyle(
+                            color = GlanceTheme.colors.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                        ),
+                    )
+                }
+                Text(
+                    text = formatVolume(data.totalMl, data.volumeUnit),
+                    maxLines = 1,
+                    style = TextStyle(
+                        color = GlanceTheme.colors.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp,
+                    ),
+                )
+            }
         }
     }
 }
