@@ -38,6 +38,7 @@ import com.babytracker.domain.trends.DailyFeedingCount
 import com.babytracker.domain.trends.DailyFeedingInterval
 import com.babytracker.domain.trends.DailySleepDuration
 import com.babytracker.domain.trends.TrendRange
+import com.babytracker.ui.theme.growthColors
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
@@ -109,12 +110,17 @@ private fun RangeSelector(
     onSelected: (TrendRange) -> Unit,
 ) {
     val ranges = TrendRange.entries
+    val growth = growthColors()
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         ranges.forEachIndexed { index, range ->
             SegmentedButton(
                 selected = range == selected,
                 onClick = { onSelected(range) },
                 shape = SegmentedButtonDefaults.itemShape(index, ranges.size),
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = growth.container,
+                    activeContentColor = growth.onContainer,
+                ),
                 modifier = Modifier.testTag("trends_range_${range.days}"),
             ) {
                 Text(RANGE_LABELS.getValue(range))
@@ -197,7 +203,7 @@ private fun FeedingFrequencyCard(data: List<DailyFeedingCount>) {
 private fun SleepDurationCard(data: List<DailySleepDuration>) {
     val isEmpty = data.all { it.totalHours == 0.0 }
     val nightColor = MaterialTheme.colorScheme.secondary
-    val napColor = MaterialTheme.colorScheme.tertiary
+    val napColor = MaterialTheme.colorScheme.secondaryContainer
     val producer = remember { CartesianChartModelProducer() }
     LaunchedEffect(data) {
         if (!isEmpty) {

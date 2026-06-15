@@ -491,6 +491,7 @@ internal fun TrendsHomeCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val growth = growthColors()
     Card(
         onClick = onClick,
         modifier = modifier
@@ -499,7 +500,7 @@ internal fun TrendsHomeCard(
             .semantics { contentDescription = "Trends. Open feeding and sleep charts." },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            containerColor = growth.container,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
@@ -517,13 +518,13 @@ internal fun TrendsHomeCard(
             Text(
                 text = "Trends",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                color = growth.onContainer,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Feeding & sleep patterns",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                color = growth.onContainer,
             )
         }
     }
