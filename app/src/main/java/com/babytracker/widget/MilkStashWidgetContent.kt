@@ -23,7 +23,7 @@ import com.babytracker.util.mlToOz
 import java.util.Locale
 import kotlin.math.roundToInt
 
-private const val MILK_EMOJI = "🥛"
+private const val MILK_EMOJI = "🧊"
 private const val MILK_STASH_TITLE = "Milk Stash"
 private const val ML_PER_L = 1000
 
@@ -60,7 +60,7 @@ fun MilkStashSmallContent(data: MilkStashWidgetData, modifier: GlanceModifier = 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(GlanceTheme.colors.tertiaryContainer)
+            .background(GlanceTheme.colors.surfaceVariant)
             .clickable(openInventoryAction())
             .padding(12.dp),
     ) {
@@ -74,7 +74,7 @@ fun MilkStashSmallContent(data: MilkStashWidgetData, modifier: GlanceModifier = 
                 text = "No milk",
                 maxLines = 1,
                 style = TextStyle(
-                    color = GlanceTheme.colors.onTertiaryContainer,
+                    color = GlanceTheme.colors.onSurfaceVariant,
                     fontWeight = FontWeight.Medium,
                     fontSize = 12.sp,
                 ),
@@ -83,7 +83,7 @@ fun MilkStashSmallContent(data: MilkStashWidgetData, modifier: GlanceModifier = 
                 text = "Tap to add",
                 maxLines = 1,
                 style = TextStyle(
-                    color = GlanceTheme.colors.onTertiaryContainer,
+                    color = GlanceTheme.colors.onSurfaceVariant,
                     fontSize = 11.sp,
                 ),
             )
@@ -92,7 +92,7 @@ fun MilkStashSmallContent(data: MilkStashWidgetData, modifier: GlanceModifier = 
                 text = formatVolume(data.totalMl, data.volumeUnit),
                 maxLines = 1,
                 style = TextStyle(
-                    color = GlanceTheme.colors.onTertiaryContainer,
+                    color = GlanceTheme.colors.onSurfaceVariant,
                     fontWeight = FontWeight.Medium,
                     fontSize = 24.sp,
                 ),
@@ -101,7 +101,7 @@ fun MilkStashSmallContent(data: MilkStashWidgetData, modifier: GlanceModifier = 
                 text = bagCountLabel(data.bagCount),
                 maxLines = 1,
                 style = TextStyle(
-                    color = GlanceTheme.colors.onTertiaryContainer,
+                    color = GlanceTheme.colors.onSurfaceVariant,
                     fontSize = 12.sp,
                 ),
             )
@@ -125,7 +125,7 @@ private fun MilkStashMediumFilled(data: MilkStashWidgetData) {
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(GlanceTheme.colors.tertiaryContainer)
+            .background(GlanceTheme.colors.surfaceVariant)
             .clickable(openInventoryAction())
             .padding(16.dp),
     ) {
@@ -139,7 +139,7 @@ private fun MilkStashMediumFilled(data: MilkStashWidgetData) {
                 text = MILK_STASH_TITLE,
                 maxLines = 1,
                 style = TextStyle(
-                    color = GlanceTheme.colors.onTertiaryContainer,
+                    color = GlanceTheme.colors.onSurfaceVariant,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                 ),
@@ -150,7 +150,7 @@ private fun MilkStashMediumFilled(data: MilkStashWidgetData) {
             text = volumeNumber(data.totalMl, data.volumeUnit),
             maxLines = 1,
             style = TextStyle(
-                color = GlanceTheme.colors.onTertiaryContainer,
+                color = GlanceTheme.colors.onSurfaceVariant,
                 fontWeight = FontWeight.Bold,
                 fontSize = 32.sp,
             ),
@@ -159,7 +159,7 @@ private fun MilkStashMediumFilled(data: MilkStashWidgetData) {
             text = volumeUnitLabel(data.totalMl, data.volumeUnit),
             maxLines = 1,
             style = TextStyle(
-                color = GlanceTheme.colors.onTertiaryContainer,
+                color = GlanceTheme.colors.onSurfaceVariant,
                 fontSize = 14.sp,
             ),
         )
@@ -168,7 +168,7 @@ private fun MilkStashMediumFilled(data: MilkStashWidgetData) {
             text = bagCountLabel(data.bagCount),
             maxLines = 1,
             style = TextStyle(
-                color = GlanceTheme.colors.onTertiaryContainer,
+                color = GlanceTheme.colors.onSurfaceVariant,
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.sp,
             ),
@@ -181,7 +181,7 @@ private fun MilkStashMediumEmpty() {
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(GlanceTheme.colors.tertiaryContainer)
+            .background(GlanceTheme.colors.surfaceVariant)
             .clickable(openInventoryAction())
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -196,7 +196,7 @@ private fun MilkStashMediumEmpty() {
             text = "Stash is empty",
             maxLines = 1,
             style = TextStyle(
-                color = GlanceTheme.colors.onTertiaryContainer,
+                color = GlanceTheme.colors.onSurfaceVariant,
                 fontWeight = FontWeight.Medium,
                 fontSize = 14.sp,
             ),
@@ -205,7 +205,7 @@ private fun MilkStashMediumEmpty() {
             text = "Tap to add milk",
             maxLines = 1,
             style = TextStyle(
-                color = GlanceTheme.colors.onTertiaryContainer,
+                color = GlanceTheme.colors.onSurfaceVariant,
                 fontSize = 11.sp,
             ),
         )
