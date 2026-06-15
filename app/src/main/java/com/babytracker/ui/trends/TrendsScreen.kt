@@ -43,6 +43,7 @@ import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
+import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
 import com.patrykandpatrick.vico.compose.cartesian.data.columnSeries
 import com.patrykandpatrick.vico.compose.cartesian.data.lineSeries
 import com.patrykandpatrick.vico.compose.cartesian.layer.ColumnCartesianLayer
@@ -63,6 +64,9 @@ private val RANGE_LABELS = mapOf(
 
 private val CHART_HEIGHT = 200.dp
 private const val COLUMN_THICKNESS_DP = 12
+
+// Series x-values are 0-based day indices; display them as 1-based day numbers (Day 1, Day 2, …).
+private val dayAxisFormatter = CartesianValueFormatter { _, x, _ -> (x.toInt() + 1).toString() }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -191,7 +195,7 @@ private fun FeedingFrequencyCard(data: List<DailyFeedingCount>) {
                     ),
                 ),
                 startAxis = VerticalAxis.rememberStart(),
-                bottomAxis = HorizontalAxis.rememberBottom(),
+                bottomAxis = HorizontalAxis.rememberBottom(valueFormatter = dayAxisFormatter),
             ),
             producer,
             modifier = Modifier.fillMaxWidth().height(CHART_HEIGHT),
@@ -232,7 +236,7 @@ private fun SleepDurationCard(data: List<DailySleepDuration>) {
                     mergeMode = { ColumnCartesianLayer.MergeMode.Stacked },
                 ),
                 startAxis = VerticalAxis.rememberStart(),
-                bottomAxis = HorizontalAxis.rememberBottom(),
+                bottomAxis = HorizontalAxis.rememberBottom(valueFormatter = dayAxisFormatter),
             ),
             producer,
             modifier = Modifier.fillMaxWidth().height(CHART_HEIGHT),
@@ -268,7 +272,7 @@ private fun FeedingIntervalCard(data: List<DailyFeedingInterval>) {
                     LineCartesianLayer.LineProvider.series(List(runs.size) { line }),
                 ),
                 startAxis = VerticalAxis.rememberStart(),
-                bottomAxis = HorizontalAxis.rememberBottom(),
+                bottomAxis = HorizontalAxis.rememberBottom(valueFormatter = dayAxisFormatter),
             ),
             producer,
             modifier = Modifier.fillMaxWidth().height(CHART_HEIGHT),

@@ -15,4 +15,7 @@
     <color name="widget_on_sleep">#B3E5FC</color>
     <color name="widget_on_sleep_active">#0D47A1</color>
     <color name="widget_on_surface_variant">#CAC4D0</color>
+
+    <!-- Milk stash widget — surfaceVariant surface for the loading/preview layout (matches Inventory tile). -->
+    <color name="widget_surface_variant">#2B2930</color>
 </resources>

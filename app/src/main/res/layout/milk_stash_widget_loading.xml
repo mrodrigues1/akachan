@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- First-paint loading/preview state for the Milk Stash widget. Shows the branded tertiary
+<!-- First-paint loading/preview state for the Milk Stash widget. Shows the surfaceVariant
      rounded surface with the app icon so the initial frame matches the real Glance widget. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_bg_tertiary"
+    android:background="@drawable/widget_bg_surface_variant"
     android:padding="12dp">
 
     <ImageView
