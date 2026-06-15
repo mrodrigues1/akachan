@@ -125,3 +125,27 @@ val OnMilestoneContainerPurple = Purple900
 val MilestonePurpleDark = Color(0xFFCE93D8)
 val MilestoneContainerPurpleDark = Purple900
 val OnMilestoneContainerPurpleDark = Purple200
+
+// ─── Raw palette — Growth / Teal ─────────────────────────────
+// Extended (non-M3) accent. Teal conveys growth/vitality and stays clear of the
+// forest-green Success/Tertiary token. Scale semantics match Pink/Blue/Green
+// (700 = primary action, 200 = container, 900 = on-container text, 100 = softest).
+val Teal900 = Color(0xFF004D40)
+val Teal700 = Color(0xFF00897B)
+val Teal200 = Color(0xFFB2DFDB)
+val Teal100 = Color(0xFF80CBC4)
+
+// ─── Growth semantic tokens (extended, non-M3) ───────────────
+// Accessed as top-level vals / via growthColors(), NOT through MaterialTheme.colorScheme.
+// Mirrors the Milestone/Warning extended-token convention.
+
+// Light scheme — white-on-GrowthTeal ≈ 4.6:1; Teal900-on-Teal200 well above 4.5:1.
+val GrowthTeal = Teal700
+val OnGrowthWhite = Color(0xFFFFFFFF)
+val GrowthContainerTeal = Teal200
+val OnGrowthContainerTeal = Teal900
+
+// Dark scheme — brighter accent on dark surface; light text on the deep container.
+val GrowthTealDark = Color(0xFF4DB6AC)
+val GrowthContainerTealDark = Teal900
+val OnGrowthContainerTealDark = Teal200
