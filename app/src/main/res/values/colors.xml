@@ -19,4 +19,7 @@
 
     <!-- Milk stash widget — tertiary container surface for the loading/preview layout. -->
     <color name="widget_tertiary_container">#C8E6C9</color>
+
+    <!-- Milk stash widget — surfaceVariant surface for the loading/preview layout (matches Inventory tile). -->
+    <color name="widget_surface_variant">#F0EDE0</color>
 </resources>

@@ -24,7 +24,7 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 private const val MILK_EMOJI = "🧊"
-private const val MILK_STASH_TITLE = "Milk Stash"
+private const val MILK_STASH_TITLE = "Inventory"
 private const val ML_PER_L = 1000
 
 /** Numeric ounce value with one decimal, trailing ".0" dropped ("28.4", "10"). */
