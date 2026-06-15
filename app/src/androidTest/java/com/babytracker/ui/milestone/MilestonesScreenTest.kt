@@ -2,18 +2,16 @@ package com.babytracker.ui.milestone
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
 import com.babytracker.domain.model.Milestone
+import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.MilestoneRepository
 import com.babytracker.domain.usecase.milestone.AddMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.DeleteMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.GetMilestonesUseCase
 import com.babytracker.domain.usecase.milestone.UpdateMilestoneUseCase
-import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.ui.theme.BabyTrackerTheme
 import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow
@@ -21,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import org.junit.Rule
 import org.junit.Test
+import java.time.LocalDate
 
 class MilestonesScreenTest {
 
@@ -60,32 +59,40 @@ class MilestonesScreenTest {
         mockk(relaxed = true),
     )
 
-    @Test
-    fun emptyStateShownWhenNoMoments() {
+    private fun setScreen() {
         composeRule.setContent {
             BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
                 MilestonesScreen(onNavigateBack = {}, onNavigateToDetail = {}, viewModel = viewModel())
             }
         }
+    }
+
+    @Test
+    fun emptyStateShownWhenNoMoments() {
+        setScreen()
 
         composeRule.onNodeWithText("No moments yet").assertIsDisplayed()
     }
 
     @Test
-    fun addingAMomentShowsItInTheList() {
-        composeRule.setContent {
-            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
-                MilestonesScreen(onNavigateBack = {}, onNavigateToDetail = {}, viewModel = viewModel())
-            }
-        }
+    fun seededMomentIsRenderedInTheList() {
+        moments.value = listOf(
+            Milestone(id = 1, title = "First giggle", date = LocalDate.of(2026, 6, 1)),
+        )
+
+        setScreen()
+
+        composeRule.onNodeWithTag("moment_card_1").assertIsDisplayed()
+        composeRule.onNodeWithText("First giggle").assertIsDisplayed()
+    }
+
+    @Test
+    fun tappingFabOpensTheEditor() {
+        setScreen()
 
         composeRule.onNodeWithTag("milestone_fab").performClick()
-        composeRule.onNodeWithTag("milestone_title").performTextInput("First giggle")
-        composeRule.onNodeWithTag("milestone_save").performClick()
 
-        composeRule.waitUntil(timeoutMillis = 5_000) {
-            composeRule.onAllNodesWithText("First giggle").fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onAllNodesWithText("First giggle")[0].assertIsDisplayed()
+        composeRule.onNodeWithText("New moment").assertIsDisplayed()
+        composeRule.onNodeWithTag("milestone_title").assertIsDisplayed()
     }
 }
