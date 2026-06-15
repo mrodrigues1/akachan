@@ -21,7 +21,7 @@ import com.babytracker.data.local.entity.BabyProfileEntity
 import com.babytracker.data.local.entity.BottleFeedEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
 import com.babytracker.data.local.entity.GrowthMeasurementEntity
-import com.babytracker.data.local.entity.MilestoneAchievementEntity
+import com.babytracker.data.local.entity.MilestoneEntity
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
@@ -40,9 +40,9 @@ import com.babytracker.data.local.entity.SleepRecommendationFeedbackEntity
         SleepRecommendationFeedbackEntity::class,
         BottleFeedEntity::class,
         GrowthMeasurementEntity::class,
-        MilestoneAchievementEntity::class,
+        MilestoneEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -354,6 +354,30 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
         database.execSQL(
             "CREATE UNIQUE INDEX IF NOT EXISTS index_milestone_achievements_milestone " +
                 "ON milestone_achievements(milestone)"
+        )
+    }
+}
+
+// Reformulates milestones from the WHO gross-motor catalog into free-form moments.
+// The old single-purpose table is dropped (its pre-recorded achievements do not map to
+// free-form moments) and replaced with the new schema.
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("DROP TABLE IF EXISTS milestone_achievements")
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS milestones (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                title TEXT NOT NULL,
+                date_epoch_day INTEGER NOT NULL,
+                time_minute_of_day INTEGER,
+                photo_uri TEXT,
+                note TEXT
+            )
+            """.trimIndent(),
+        )
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_milestones_date_epoch_day ON milestones(date_epoch_day)",
         )
     }
 }

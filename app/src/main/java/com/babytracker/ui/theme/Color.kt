@@ -24,6 +24,12 @@ val Green700 = Color(0xFF388E3C)
 val Green200 = Color(0xFFC8E6C9)
 val Green100 = Color(0xFF90EE90)
 
+// Milestones — extended accent (no M3 colorScheme slot; primary/secondary/tertiary are taken)
+val Purple900 = Color(0xFF4A148C)
+val Purple700 = Color(0xFF7B1FA2)
+val Purple200 = Color(0xFFE1BEE7)
+val Purple100 = Color(0xFFF3E5F5)
+
 // Soft yellow — retained for surface (no scale equivalent)
 val SoftYellow = Color(0xFFFFF9C4)
 
@@ -104,3 +110,18 @@ val OnWarningContainerAmber = Amber900
 val WarningAmberDark = Amber100
 val WarningContainerAmberDark = Amber800
 val OnWarningContainerAmberDark = Amber200
+
+// ─── Milestone semantic tokens (extended, non-M3) ────────────
+// Accessed as top-level vals / via milestoneColors(), NOT through MaterialTheme.colorScheme.
+// Mirrors the Warning/Amber extended-token convention.
+
+// Light scheme — white-on-MilestonePurple ≈ 5.9:1; Purple900-on-Purple200 well above 4.5:1.
+val MilestonePurple = Purple700
+val OnMilestoneWhite = Color(0xFFFFFFFF)
+val MilestoneContainerPurple = Purple200
+val OnMilestoneContainerPurple = Purple900
+
+// Dark scheme — brighter accent on dark surface; light text on the deep container.
+val MilestonePurpleDark = Color(0xFFCE93D8)
+val MilestoneContainerPurpleDark = Purple900
+val OnMilestoneContainerPurpleDark = Purple200

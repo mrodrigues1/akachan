@@ -91,7 +91,7 @@ class SyncToFirestoreUseCaseTest {
                 bottleFeedRepository,
                 predictSleepWindow,
                 mockk { every { getAllMeasurements() } returns flowOf(emptyList()) },
-                mockk { every { getAchievements() } returns flowOf(emptyList()) },
+                mockk { every { getMilestones() } returns flowOf(emptyList()) },
             ),
         ) { fixedNow }
         every { settingsRepository.getShareCode() } returns flowOf(shareCode.value)

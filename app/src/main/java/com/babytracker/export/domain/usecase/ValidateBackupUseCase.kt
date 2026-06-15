@@ -5,7 +5,6 @@ import com.babytracker.domain.model.BabySex
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.GrowthType
-import com.babytracker.domain.model.Milestone
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.toSleepTypeOrNull
@@ -36,9 +35,13 @@ class ValidateBackupUseCase @Inject constructor(
     }
 
     private fun migrateOlder(data: BackupData): BackupData = when (data.backupFormatVersion) {
-        // v1 had no growth/milestones/sex. Deserialization already filled those with the
-        // model defaults (empty lists / null sex), so migrating just stamps the new version.
-        1 -> data.copy(backupFormatVersion = CURRENT_BACKUP_FORMAT_VERSION)
+        // v1 had no growth/milestones/sex; v2 added growth + WHO-enum milestones. The milestone
+        // model was reformulated into free-form moments in v3, so pre-v3 milestone entries (which
+        // used the removed enum shape) are dropped; everything else carries over unchanged.
+        1, 2 -> data.copy(
+            backupFormatVersion = CURRENT_BACKUP_FORMAT_VERSION,
+            milestones = emptyList(),
+        )
         else -> throw InvalidBackupException("Unsupported backup format v${data.backupFormatVersion}")
     }
 
@@ -60,7 +63,6 @@ class ValidateBackupUseCase @Inject constructor(
             data.baby?.allergies?.forEach { AllergyType.valueOf(it) }
             data.baby?.sex?.let { BabySex.valueOf(it) }
             data.growth.forEach { GrowthType.valueOf(it.type) }
-            data.milestones.forEach { Milestone.valueOf(it.milestone) }
             ThemeConfig.valueOf(data.settings.themeConfig)
         }.onFailure { throw InvalidBackupException("Backup contains an invalid enum value: ${it.message}") }
 
@@ -88,10 +90,12 @@ class ValidateBackupUseCase @Inject constructor(
 
     private fun validateMilestoneInvariants(data: BackupData) {
         data.milestones.forEach {
-            if (it.achievedOnEpochDay < 0) bad("milestone ${it.milestone} has negative achieved date")
+            if (it.title.isBlank()) bad("Backup contains a milestone with a blank title")
+            if (it.dateEpochDay < 0) bad("milestone \"${it.title}\" has negative date")
+            if (it.timeMinuteOfDay != null && it.timeMinuteOfDay !in 0..MAX_MINUTE_OF_DAY) {
+                bad("milestone \"${it.title}\" has out-of-range time")
+            }
         }
-        val names = data.milestones.map { it.milestone }
-        if (names.size != names.toSet().size) bad("Backup contains duplicate milestone entries")
     }
 
     private fun validateBreastfeedingInvariants(data: BackupData) {
@@ -164,5 +168,9 @@ class ValidateBackupUseCase @Inject constructor(
             // double-counted by inventory queries that filter on used_at IS NULL.
             if (bag.usedAt == null) bad("Bottle feed references active milk bag id $ref")
         }
+    }
+
+    private companion object {
+        const val MAX_MINUTE_OF_DAY = 1439
     }
 }

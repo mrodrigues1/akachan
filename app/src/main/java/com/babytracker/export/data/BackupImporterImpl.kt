@@ -5,7 +5,7 @@ import com.babytracker.data.local.BabyTrackerDatabase
 import com.babytracker.data.local.entity.BottleFeedEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
 import com.babytracker.data.local.entity.GrowthMeasurementEntity
-import com.babytracker.data.local.entity.MilestoneAchievementEntity
+import com.babytracker.data.local.entity.MilestoneEntity
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
@@ -48,21 +48,18 @@ class BackupImporterImpl @Inject constructor(
         return inserted
     }
 
-    // One achievement per milestone (unique index). Keep any existing local achievement;
-    // only insert milestones the device has not already recorded.
+    // Free-form moments have no natural key, so dedup by (title, date, time) tuple: a repeated
+    // restore of the same backup won't duplicate moments the device already has.
     private suspend fun mergeMilestones(data: BackupData): Int {
-        val existing = db.milestoneDao().getAllOnce().map { it.milestone }.toMutableSet()
+        val seen = db.milestoneDao().getAllOnce().map { it.identity() }.toMutableSet()
         var inserted = 0
         for (m in data.milestones) {
-            if (existing.add(m.milestone)) {
-                db.milestoneDao().upsert(
-                    MilestoneAchievementEntity(
-                        milestone = m.milestone,
-                        achievedOnEpochDay = m.achievedOnEpochDay,
-                        photoUri = null,
-                        notes = m.notes,
-                    ),
-                )
+            val entity = MilestoneEntity(
+                title = m.title, dateEpochDay = m.dateEpochDay,
+                timeMinuteOfDay = m.timeMinuteOfDay, photoUri = null, note = m.note,
+            )
+            if (seen.add(entity.identity())) {
+                db.milestoneDao().insert(entity)
                 inserted++
             }
         }
@@ -211,4 +208,5 @@ class BackupImporterImpl @Inject constructor(
     private fun MilkBagEntity.identity() = listOf(collectionDate, volumeMl, usedAt, notes, createdAt)
     private fun BottleFeedEntity.identity() = listOf(timestamp, volumeMl, type, notes, createdAt)
     private fun GrowthMeasurementEntity.identity() = listOf(takenAt, type, valueCanonical, notes)
+    private fun MilestoneEntity.identity() = listOf(title, dateEpochDay, timeMinuteOfDay, note)
 }

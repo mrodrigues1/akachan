@@ -44,7 +44,7 @@ class SyncToFirestoreUseCase @Inject constructor(
         val activeBags = sources.inventory.getActiveBags().first()
         val bottleFeeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
         val growth = sources.growth.getAllMeasurements().first().latestPerType()
-        val milestones = sources.milestones.getAchievements().first()
+        val milestones = sources.milestones.getMilestones().first()
         val updatedAtMs = now().toEpochMilli()
         val prediction = currentPrediction(updatedAtMs)
         sharingRepository.syncFullSnapshot(

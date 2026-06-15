@@ -94,7 +94,8 @@ class FirestoreSnapshotMappingTest {
                 GrowthSnapshot(type = "LENGTH", takenAtMs = 3000L, valueCanonical = 600, notes = null),
             ),
             milestones = listOf(
-                MilestoneSnapshot(milestone = "WALKING_ALONE", achievedOnEpochDay = 20000L, notes = "first steps"),
+                MilestoneSnapshot(title = "First steps", dateEpochDay = 20000L, timeMinuteOfDay = 510, note = "in the park"),
+                MilestoneSnapshot(title = "Beach day", dateEpochDay = 20100L, timeMinuteOfDay = null, note = null),
             ),
         )
 

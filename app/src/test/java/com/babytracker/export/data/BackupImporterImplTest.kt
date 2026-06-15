@@ -58,7 +58,7 @@ class BackupImporterImplTest {
     @Test
     fun `merges growth and milestones, deduping growth and preserving local milestones`() = runTest {
         val data = BackupData(
-            backupFormatVersion = 2, roomSchemaVersion = 11, appVersion = "1.0.0", exportedAt = 0,
+            backupFormatVersion = 3, roomSchemaVersion = 12, appVersion = "1.0.0", exportedAt = 0,
             baby = null, settings = settings(), breastfeeding = emptyList(),
             sleep = emptyList(), pumping = emptyList(), milkBags = emptyList(), bottleFeeds = emptyList(),
             growth = listOf(
@@ -66,7 +66,7 @@ class BackupImporterImplTest {
                 GrowthBackup(id = 2, takenAtMs = 2000, type = "LENGTH", valueCanonical = 600, notes = "n"),
             ),
             milestones = listOf(
-                MilestoneBackup(milestone = "WALKING_ALONE", achievedOnEpochDay = 100, notes = "steps"),
+                MilestoneBackup(title = "First steps", dateEpochDay = 100, timeMinuteOfDay = 480, note = "steps"),
             ),
         )
 

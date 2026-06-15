@@ -1,11 +1,10 @@
 package com.babytracker.domain.usecase.milestone
 
-import com.babytracker.domain.model.Milestone
 import com.babytracker.domain.repository.MilestoneRepository
 import javax.inject.Inject
 
 class DeleteMilestoneUseCase @Inject constructor(
     private val repository: MilestoneRepository,
 ) {
-    suspend operator fun invoke(milestone: Milestone) = repository.deleteAchievement(milestone)
+    suspend operator fun invoke(id: Long) = repository.deleteMilestone(id)
 }

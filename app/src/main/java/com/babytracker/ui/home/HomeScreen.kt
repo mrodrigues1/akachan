@@ -73,6 +73,7 @@ import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.TodayFeedingSummary
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.ui.breastfeeding.PredictionCopy
+import com.babytracker.ui.theme.milestoneColors
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatMinutesSeconds
@@ -531,15 +532,17 @@ internal fun MilestonesHomeCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = milestoneColors()
     Card(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 120.dp)
-            .semantics { contentDescription = "Milestones. Open milestone tracker." },
+            .semantics { contentDescription = "Milestones. Capture special moments." },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            containerColor = colors.container,
+            contentColor = colors.onContainer,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
@@ -557,13 +560,13 @@ internal fun MilestonesHomeCard(
             Text(
                 text = "Milestones",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                color = colors.onContainer,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Track first sits, crawls & steps",
+                text = "Capture your baby's special moments",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                color = colors.onContainer,
             )
         }
     }

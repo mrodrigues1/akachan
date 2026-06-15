@@ -88,16 +88,32 @@ class ValidateBackupUseCaseTest {
     }
 
     @Test
-    fun `accepts a v2 backup carrying growth and milestones`() {
+    fun `accepts a current backup carrying growth and free-form milestones`() {
         val data = backup().copy(
             growth = listOf(GrowthBackup(1, 1000, "WEIGHT", 5000, null)),
-            milestones = listOf(MilestoneBackup("WALKING_ALONE", 100, null)),
+            milestones = listOf(MilestoneBackup(title = "First steps", dateEpochDay = 100, timeMinuteOfDay = 480)),
         )
 
         val result = useCase(json.encodeToString(BackupData.serializer(), data))
 
         assertEquals(1, result.growth.size)
         assertEquals(1, result.milestones.size)
+        assertEquals("First steps", result.milestones.first().title)
+    }
+
+    @Test
+    fun `drops pre-v3 milestones on migration but keeps other data`() {
+        // Pre-v3 milestones used the removed WHO-enum shape and cannot map to free-form moments.
+        val data = backup(version = 2).copy(
+            growth = listOf(GrowthBackup(1, 1000, "WEIGHT", 5000, null)),
+            milestones = listOf(MilestoneBackup(title = "legacy", dateEpochDay = 100)),
+        )
+
+        val result = useCase(json.encodeToString(BackupData.serializer(), data))
+
+        assertEquals(CURRENT_BACKUP_FORMAT_VERSION, result.backupFormatVersion)
+        assertEquals(1, result.growth.size)
+        assertTrue(result.milestones.isEmpty())
     }
 
     @Test
@@ -117,20 +133,25 @@ class ValidateBackupUseCaseTest {
     }
 
     @Test
-    fun `rejects an invalid milestone name`() {
-        val data = backup().copy(milestones = listOf(MilestoneBackup("FLYING", 100, null)))
+    fun `rejects a blank milestone title`() {
+        val data = backup().copy(milestones = listOf(MilestoneBackup(title = "   ", dateEpochDay = 100)))
         assertThrows(InvalidBackupException::class.java) {
             useCase(json.encodeToString(BackupData.serializer(), data))
         }
     }
 
     @Test
-    fun `rejects duplicate milestone entries`() {
+    fun `rejects a milestone with a negative date`() {
+        val data = backup().copy(milestones = listOf(MilestoneBackup(title = "Smile", dateEpochDay = -1)))
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
+    }
+
+    @Test
+    fun `rejects a milestone with an out-of-range time`() {
         val data = backup().copy(
-            milestones = listOf(
-                MilestoneBackup("WALKING_ALONE", 100, null),
-                MilestoneBackup("WALKING_ALONE", 200, null),
-            ),
+            milestones = listOf(MilestoneBackup(title = "Smile", dateEpochDay = 100, timeMinuteOfDay = 5000)),
         )
         assertThrows(InvalidBackupException::class.java) {
             useCase(json.encodeToString(BackupData.serializer(), data))

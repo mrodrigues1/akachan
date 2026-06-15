@@ -3,11 +3,10 @@ package com.babytracker.ui.milestone
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.Milestone
-import com.babytracker.domain.model.MilestoneAchievement
-import com.babytracker.domain.model.MilestoneProgress
+import com.babytracker.domain.usecase.milestone.AddMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.DeleteMilestoneUseCase
-import com.babytracker.domain.usecase.milestone.GetMilestoneProgressUseCase
-import com.babytracker.domain.usecase.milestone.LogMilestoneUseCase
+import com.babytracker.domain.usecase.milestone.GetMilestonesUseCase
+import com.babytracker.domain.usecase.milestone.UpdateMilestoneUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,67 +14,65 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import javax.inject.Inject
 
 data class MilestonesUiState(
-    val progress: List<MilestoneProgress> = emptyList(),
+    val moments: List<Milestone> = emptyList(),
     val isLoading: Boolean = true,
 )
 
 @HiltViewModel
 class MilestonesViewModel @Inject constructor(
-    getMilestoneProgress: GetMilestoneProgressUseCase,
-    private val logMilestone: LogMilestoneUseCase,
+    getMilestones: GetMilestonesUseCase,
+    private val addMilestone: AddMilestoneUseCase,
+    private val updateMilestone: UpdateMilestoneUseCase,
     private val deleteMilestone: DeleteMilestoneUseCase,
     private val photoCleaner: MilestonePhotoCleaner,
     private val syncToFirestore: SyncToFirestoreUseCase,
 ) : ViewModel() {
 
-    // Eagerly collected so photo-cleanup lookups have the current achievements even
-    // when no UI is subscribed to [uiState].
-    private val progress: StateFlow<List<MilestoneProgress>> =
-        getMilestoneProgress().stateIn(
+    // Eagerly collected so photo-cleanup lookups have the current moments even when no
+    // UI is subscribed to [uiState].
+    private val moments: StateFlow<List<Milestone>> =
+        getMilestones().stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = emptyList(),
         )
 
     val uiState: StateFlow<MilestonesUiState> =
-        progress
-            .map { MilestonesUiState(progress = it, isLoading = false) }
+        moments
+            .map { MilestonesUiState(moments = it, isLoading = false) }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
                 initialValue = MilestonesUiState(),
             )
 
-    private fun existingPhotoUri(milestone: Milestone): String? =
-        progress.value.firstOrNull { it.milestone == milestone }?.achievement?.photoUri
+    private fun existingPhotoUri(id: Long): String? =
+        moments.value.firstOrNull { it.id == id }?.photoUri
 
-    fun onLog(milestone: Milestone, achievedOn: LocalDate, photoUri: String?, notes: String?) {
-        val previousPhoto = existingPhotoUri(milestone)
+    /** Adds a new moment ([Milestone.id] == 0) or updates an existing one. */
+    fun onSave(milestone: Milestone) {
+        val previousPhoto = if (milestone.id == 0L) null else existingPhotoUri(milestone.id)
         viewModelScope.launch {
-            logMilestone(
-                MilestoneAchievement(
-                    milestone = milestone,
-                    achievedOn = achievedOn,
-                    photoUri = photoUri,
-                    notes = notes?.takeIf { it.isNotBlank() },
-                ),
-            )
+            if (milestone.id == 0L) {
+                addMilestone(milestone)
+            } else {
+                updateMilestone(milestone)
+            }
             // Clean up the replaced photo file only after the new record is committed.
-            if (previousPhoto != null && previousPhoto != photoUri) {
+            if (previousPhoto != null && previousPhoto != milestone.photoUri) {
                 photoCleaner.delete(previousPhoto)
             }
             syncSharedSnapshot()
         }
     }
 
-    fun onDelete(milestone: Milestone) {
-        val photoUri = existingPhotoUri(milestone)
+    fun onDelete(id: Long) {
+        val photoUri = existingPhotoUri(id)
         viewModelScope.launch {
-            deleteMilestone(milestone)
+            deleteMilestone(id)
             photoCleaner.delete(photoUri)
             syncSharedSnapshot()
         }

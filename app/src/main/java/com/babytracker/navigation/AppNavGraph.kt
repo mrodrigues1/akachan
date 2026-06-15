@@ -3,8 +3,10 @@ package com.babytracker.navigation
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.ui.bottlefeed.BottleFeedScreen
 import com.babytracker.ui.breastfeeding.BreastfeedingHistoryScreen
@@ -13,6 +15,7 @@ import com.babytracker.ui.breastfeeding.FeedSettingsScreen
 import com.babytracker.ui.feeding.UnifiedFeedingHistoryScreen
 import com.babytracker.ui.growth.GrowthScreen
 import com.babytracker.ui.home.HomeScreen
+import com.babytracker.ui.milestone.MilestoneDetailScreen
 import com.babytracker.ui.milestone.MilestonesScreen
 import com.babytracker.ui.onboarding.OnboardingScreen
 import com.babytracker.ui.partner.PartnerDashboardScreen
@@ -116,7 +119,16 @@ private fun NavGraphBuilder.insightsGraph(navController: NavHostController) {
         )
     }
     composable(Routes.MILESTONES) {
-        MilestonesScreen(onNavigateBack = { navController.popBackStack() })
+        MilestonesScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToDetail = { id -> navController.navigate(Routes.milestoneDetail(id)) },
+        )
+    }
+    composable(
+        route = Routes.MILESTONE_DETAIL,
+        arguments = listOf(navArgument(Routes.MILESTONE_DETAIL_ARG) { type = NavType.StringType }),
+    ) {
+        MilestoneDetailScreen(onNavigateBack = { navController.popBackStack() })
     }
     composable(Routes.TRENDS) {
         TrendsScreen(onNavigateBack = { navController.popBackStack() })

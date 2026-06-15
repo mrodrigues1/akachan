@@ -1,11 +1,13 @@
 package com.babytracker.domain.repository
 
 import com.babytracker.domain.model.Milestone
-import com.babytracker.domain.model.MilestoneAchievement
 import kotlinx.coroutines.flow.Flow
 
 interface MilestoneRepository {
-    suspend fun logAchievement(achievement: MilestoneAchievement): Long
-    fun getAchievements(): Flow<List<MilestoneAchievement>>
-    suspend fun deleteAchievement(milestone: Milestone)
+    /** All moments, newest first. */
+    fun getMilestones(): Flow<List<Milestone>>
+    fun getMilestone(id: Long): Flow<Milestone?>
+    suspend fun addMilestone(milestone: Milestone): Long
+    suspend fun updateMilestone(milestone: Milestone)
+    suspend fun deleteMilestone(id: Long)
 }
