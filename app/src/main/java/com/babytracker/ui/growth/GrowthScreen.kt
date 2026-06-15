@@ -72,66 +72,92 @@ fun GrowthScreen(
     var showAddSheet by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<GrowthMeasurement?>(null) }
 
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text("Growth") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
+    GrowthTealTheme {
+        Scaffold(
+            modifier = modifier,
+            topBar = {
+                TopAppBar(
+                    title = { Text("Growth") },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                )
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = { showAddSheet = true },
+                    containerColor = growthColors().accent,
+                    contentColor = growthColors().onAccent,
+                    modifier = Modifier.testTag("growth_add_fab"),
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add measurement")
+                }
+            },
+        ) { padding ->
+            GrowthContent(
+                uiState = uiState,
+                onTypeSelected = viewModel::onTypeSelected,
+                onRequestDelete = { pendingDelete = it },
+                onSetSex = onNavigateToSettings,
+                modifier = Modifier.padding(padding),
+            )
+        }
+
+        pendingDelete?.let { measurement ->
+            AlertDialog(
+                onDismissRequest = { pendingDelete = null },
+                title = { Text("Delete measurement?") },
+                text = {
+                    Text("This removes ${formatValue(measurement.type, measurement.valueCanonical, uiState.measurementSystem)} from your baby's history. This can't be undone.")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.onDeleteMeasurement(measurement.id)
+                        pendingDelete = null
+                    }) { Text("Delete") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
                 },
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddSheet = true },
-                modifier = Modifier.testTag("growth_add_fab"),
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add measurement")
-            }
-        },
-    ) { padding ->
-        GrowthContent(
-            uiState = uiState,
-            onTypeSelected = viewModel::onTypeSelected,
-            onRequestDelete = { pendingDelete = it },
-            onSetSex = onNavigateToSettings,
-            modifier = Modifier.padding(padding),
-        )
-    }
+        }
 
-    pendingDelete?.let { measurement ->
-        AlertDialog(
-            onDismissRequest = { pendingDelete = null },
-            title = { Text("Delete measurement?") },
-            text = {
-                Text("This removes ${formatValue(measurement.type, measurement.valueCanonical, uiState.measurementSystem)} from your baby's history. This can't be undone.")
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.onDeleteMeasurement(measurement.id)
-                    pendingDelete = null
-                }) { Text("Delete") }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
-            },
-        )
+        if (showAddSheet) {
+            AddMeasurementSheet(
+                type = uiState.selectedType,
+                system = uiState.measurementSystem,
+                onDismiss = { showAddSheet = false },
+                onSave = { valueCanonical, takenAt, notes ->
+                    viewModel.onAddMeasurement(uiState.selectedType, valueCanonical, takenAt, notes)
+                    showAddSheet = false
+                },
+            )
+        }
     }
+}
 
-    if (showAddSheet) {
-        AddMeasurementSheet(
-            type = uiState.selectedType,
-            system = uiState.measurementSystem,
-            onDismiss = { showAddSheet = false },
-            onSave = { valueCanonical, takenAt, notes ->
-                viewModel.onAddMeasurement(uiState.selectedType, valueCanonical, takenAt, notes)
-                showAddSheet = false
-            },
-        )
-    }
+/**
+ * Scopes a Teal accent to the Growth section by overriding the `primary` family on the inherited
+ * [MaterialTheme] colorScheme. Every M3 component inside (TabRow, buttons, text fields, date picker)
+ * then renders Teal without per-call-site overrides. Teal is sourced from the extended
+ * [growthColors] tokens so light/dark resolution stays consistent.
+ */
+@Composable
+private fun GrowthTealTheme(content: @Composable () -> Unit) {
+    val growth = growthColors()
+    MaterialTheme(
+        colorScheme = MaterialTheme.colorScheme.copy(
+            primary = growth.accent,
+            onPrimary = growth.onAccent,
+            primaryContainer = growth.container,
+            onPrimaryContainer = growth.onContainer,
+        ),
+        typography = MaterialTheme.typography,
+        shapes = MaterialTheme.shapes,
+        content = content,
+    )
 }
 
 @Composable
@@ -227,25 +253,34 @@ private fun GrowthSummaryCard(
     chart: GrowthChartData,
 ) {
     val latest = chart.measurements.latestByRecency()
-    Card(modifier = Modifier.fillMaxWidth()) {
+    val growth = growthColors()
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = growth.container,
+            contentColor = growth.onContainer,
+        ),
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "Latest ${type.tabLabel().lowercase()}",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = growth.onContainer,
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = latest?.let { formatValue(type, it.valueCanonical, system) } ?: "—",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.SemiBold,
+                color = growth.onContainer,
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = chart.latestPercentile?.let { "${percentileLabel(it)} (WHO)" }
                     ?: if (chart.isSexSpecified) "Percentile unavailable for this age" else "Set sex to see percentile",
                 style = MaterialTheme.typography.bodyMedium,
-                color = growthColors().accent,
+                fontWeight = FontWeight.Medium,
+                color = growth.onContainer,
             )
         }
     }
