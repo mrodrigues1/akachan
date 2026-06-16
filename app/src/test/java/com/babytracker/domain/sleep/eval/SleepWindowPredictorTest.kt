@@ -616,10 +616,14 @@ class SleepWindowPredictorTest {
 
     @Test
     fun `negative circadian adjustment cannot return a stale final window`() {
-        val lastWakeMillis = baseNow.minus(Duration.ofMinutes(150)).toEpochMilli()
+        // Raw window is already well past stale; the decayed negative shift pulls it earlier still,
+        // so it must stay Overdue. Pin full personalization so the decay weight is FACTOR_FLOOR.
+        val lastWakeMillis = baseNow.minus(Duration.ofMinutes(180)).toEpochMilli()
         val metrics = sufficientMetrics(
             lastWakeMillis = lastWakeMillis,
             medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+            napWakeIntervalCount = SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS,
+            napWakeP50Millis = Duration.ofMinutes(90).toMillis(),
         )
 
         val result = SleepWindowPredictor.predict(
@@ -938,18 +942,22 @@ class SleepWindowPredictorTest {
     @Test
     fun `summed factor shift exceeding cap is clamped to MAX_TOTAL_FACTOR_SHIFT_MINUTES`() {
         val lastWakeMillis = baseNow.minus(Duration.ofMinutes(60)).toEpochMilli()
+        // Fully personalized (qualityC = 1) so the confidence-decay weight is exactly FACTOR_FLOOR.
         val metrics = sufficientMetrics(
             lastWakeMillis = lastWakeMillis,
             medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+            napWakeIntervalCount = SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS,
+            napWakeP50Millis = Duration.ofMinutes(90).toMillis(),
         )
         val neutral = SleepWindowPredictor.predict(
             features(metrics = metrics), ageInWeeks, baseNow,
         ) as SleepPredictionState.Window
-        // Two factors of -30 min each → raw sum -60 min, exceeds the 45 min cap.
+        // Two factors of -60 min each → raw sum -120 min; even after the FACTOR_FLOOR decay
+        // (-120 * 0.6 = -72 min) the shift exceeds the 45 min cap and must be clamped.
         val clamped = SleepWindowPredictor.predict(
             features(metrics = metrics), ageInWeeks, baseNow,
-            sleepDebtFactorProvider = { _, _, _ -> SleepPredictionFactor(adjustment = Duration.ofMinutes(-30)) },
-            napBudgetFactorProvider = { _, _, _ -> SleepPredictionFactor(adjustment = Duration.ofMinutes(-30)) },
+            sleepDebtFactorProvider = { _, _, _ -> SleepPredictionFactor(adjustment = Duration.ofMinutes(-60)) },
+            napBudgetFactorProvider = { _, _, _ -> SleepPredictionFactor(adjustment = Duration.ofMinutes(-60)) },
         ) as SleepPredictionState.Window
         val shiftMinutes = Duration.between(clamped.window.bestEstimate, neutral.window.bestEstimate).toMinutes()
         assertEquals(
@@ -959,25 +967,30 @@ class SleepWindowPredictorTest {
     }
 
     @Test
-    fun `summed factor shift within cap is applied unchanged`() {
+    fun `summed factor shift within cap is decayed by confidence but not clamped`() {
         val lastWakeMillis = baseNow.minus(Duration.ofMinutes(60)).toEpochMilli()
+        // Fully personalized (qualityC = 1) so the confidence-decay weight is exactly FACTOR_FLOOR.
         val metrics = sufficientMetrics(
             lastWakeMillis = lastWakeMillis,
             medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+            napWakeIntervalCount = SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS,
+            napWakeP50Millis = Duration.ofMinutes(90).toMillis(),
         )
         val neutral = SleepWindowPredictor.predict(
             features(metrics = metrics), ageInWeeks, baseNow,
         ) as SleepPredictionState.Window
-        // Two factors of -10 min each → raw sum -20 min, within the 45 min cap.
+        // Two factors of -10 min each → raw sum -20 min; at full personalization the decay scales it
+        // by FACTOR_FLOOR (-20 * 0.6 = -12 min), still within the 45 min cap (no clamping).
         val applied = SleepWindowPredictor.predict(
             features(metrics = metrics), ageInWeeks, baseNow,
             sleepDebtFactorProvider = { _, _, _ -> SleepPredictionFactor(adjustment = Duration.ofMinutes(-10)) },
             napBudgetFactorProvider = { _, _, _ -> SleepPredictionFactor(adjustment = Duration.ofMinutes(-10)) },
         ) as SleepPredictionState.Window
         val shiftMinutes = Duration.between(applied.window.bestEstimate, neutral.window.bestEstimate).toMinutes()
+        val expectedMinutes = (20 * SleepPredictionTuning.FACTOR_FLOOR).toLong()
         assertEquals(
-            20L, shiftMinutes,
-            "Summed factor shift within the cap must be applied unchanged",
+            expectedMinutes, shiftMinutes,
+            "Within-cap shift must be scaled by the confidence-decay weight (FACTOR_FLOOR at full personalization)",
         )
     }
 

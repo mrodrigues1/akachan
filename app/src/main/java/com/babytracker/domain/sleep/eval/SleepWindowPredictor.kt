@@ -88,7 +88,8 @@ object SleepWindowPredictor {
             nextType,
         )
         val factors = listOf(circadianFactor, sleepDebtFactor, napBudgetFactor)
-        val totalFactorShift = factors.fold(Duration.ZERO) { acc, f -> acc.plus(f.adjustment) }
+        val rawFactorShift = factors.fold(Duration.ZERO) { acc, f -> acc.plus(f.adjustment) }
+        val totalFactorShift = decayFactorShift(rawFactorShift, qualityC)
         val adjustedBestEstimate = bestEstimate.plus(clampTotalShift(totalFactorShift))
         val windowStart = adjustedBestEstimate.minus(halfWindowDuration)
         val windowEnd = adjustedBestEstimate.plus(halfWindowDuration)
@@ -205,6 +206,17 @@ object SleepWindowPredictor {
     // Each factor is capped individually, but their additive sum (worst case ~75 min) can exceed
     // the window's own width. Clamp the total so heuristic factors never shift the center more than
     // MAX_TOTAL_FACTOR_SHIFT_MINUTES, which stays below MAX_HALF_WINDOW_MINUTES.
+    // Confidence-decay: population heuristics fade as the baby's own logged pattern takes over the
+    // blend. factorWeight goes from 1.0 at qualityC = 0 (unknown baby — lean fully on the heuristics)
+    // to FACTOR_FLOOR at qualityC = 1 (well-known baby — their own median already encodes the same
+    // circadian / debt / nap structure, so the heuristics must carry less weight). Applied before the
+    // total-shift clamp so the ceiling still holds on the decayed shift.
+    private fun decayFactorShift(rawShift: Duration, qualityC: Float): Duration {
+        val floor = SleepPredictionTuning.FACTOR_FLOOR
+        val factorWeight = floor + (1.0 - floor) * (1.0 - qualityC)
+        return Duration.ofMillis((rawShift.toMillis() * factorWeight).toLong())
+    }
+
     private fun clampTotalShift(totalShift: Duration): Duration {
         val maxShift = Duration.ofMinutes(SleepPredictionTuning.MAX_TOTAL_FACTOR_SHIFT_MINUTES)
         return when {
