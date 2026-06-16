@@ -24,15 +24,15 @@ import java.time.ZoneId
  * @param fullPersonalizationIntervals type-specific intervals at which `qualityC` saturates to 1.0
  *   (`SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS`).
  * @param factorFloor floor of the confidence-decay weight `factorWeight(c) = floor + (1-floor)(1-c)`
- *   applied to the summed heuristic-factor shift. `1.0` = no decay (current behaviour); lower values
- *   fade the factors as the baby becomes well known.
+ *   applied to the summed heuristic-factor shift. `1.0` = no decay; lower values fade the factors as
+ *   the baby becomes well known. Defaults to the live `SleepPredictionTuning.FACTOR_FLOOR`.
  * @param maxTotalFactorShiftMinutes ceiling on the summed factor shift after decay
  *   (`SleepPredictionTuning.MAX_TOTAL_FACTOR_SHIFT_MINUTES`).
  */
 data class SweepConfig(
     val maxPersonalizationWeight: Double = SleepPredictionTuning.MAX_PERSONALIZATION_WEIGHT,
     val fullPersonalizationIntervals: Int = SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS,
-    val factorFloor: Double = 1.0,
+    val factorFloor: Double = SleepPredictionTuning.FACTOR_FLOOR,
     val maxTotalFactorShiftMinutes: Long = SleepPredictionTuning.MAX_TOTAL_FACTOR_SHIFT_MINUTES,
 ) {
     fun label(): String =

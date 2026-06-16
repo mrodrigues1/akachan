@@ -25,6 +25,16 @@ object SleepPredictionTuning {
     // vs the age prior (40%) — a deliberate shrinkage regularizer that guards data-rich babies
     // against overfitting to their own noisy wake history. Used twice in the blend, hence named.
     const val MAX_PERSONALIZATION_WEIGHT = 0.6
+
+    // Confidence-decay floor for the heuristic factors (Phase 6, AKA-155). The summed factor shift is
+    // scaled by factorWeight(c) = FACTOR_FLOOR + (1 - FACTOR_FLOOR) * (1 - qualityC): full strength
+    // when the baby is unknown (c = 0), fading toward FACTOR_FLOOR once the baby's own logged pattern
+    // dominates the blend (c = 1). The population heuristics (circadian / sleep-debt / nap-budget) are
+    // most valuable before there is history; once a baby is well known their own median already encodes
+    // that structure, so the factors must carry less weight. FACTOR_FLOOR > 0 keeps a genuine
+    // sleep-debt / nap-deficit day still nudging a known baby. Eval-swept against the factor cohorts.
+    const val FACTOR_FLOOR = 0.6
+
     const val MIN_TYPE_INTERVALS = 3           // min type-specific intervals to use type P50
     const val OVERDUE_GRACE_MINUTES = 45L
     const val CUE_LED_MAX_AGE_WEEKS = 6
