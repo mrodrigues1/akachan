@@ -18,13 +18,19 @@ object SleepPredictionTuning {
     const val MIN_HALF_WINDOW_MINUTES = 15L    // floor for dynamic window
     const val MAX_HALF_WINDOW_MINUTES = 60L    // ceiling for dynamic window
     const val HALF_WINDOW_MINUTES = MIN_HALF_WINDOW_MINUTES  // kept for eval harness score threshold
-    const val FULL_PERSONALIZATION_INTERVALS = 14
+    // Type-specific intervals at which qualityC saturates to 1.0. Lowered 14 → 10 (Phase 6, AKA-154)
+    // so logged data reaches full weight sooner — bedtime (~1 interval/day) personalizes in ~10 days
+    // instead of two weeks. Eval-swept; {8,10,12} were equivalent on the data-rich cohorts, 10 keeps
+    // more warm-up regularization than 8.
+    const val FULL_PERSONALIZATION_INTERVALS = 10
 
     // Cap on how much the baby's own P50 displaces the age prior in the wake-target blend.
-    // At full personalization (qualityC = 1) the baby's history gets at most this weight (60%)
-    // vs the age prior (40%) — a deliberate shrinkage regularizer that guards data-rich babies
+    // At full personalization (qualityC = 1) the baby's history gets at most this weight (90%)
+    // vs the age prior (10%) — a deliberate shrinkage regularizer that still guards data-rich babies
     // against overfitting to their own noisy wake history. Used twice in the blend, hence named.
-    const val MAX_PERSONALIZATION_WEIGHT = 0.6
+    // Raised 0.6 → 0.9 (Phase 6, AKA-154): the 60% cap predicted shorter-wake-window babies too late;
+    // the eval sweep minimized short-wake MAE at 0.9 with no regression on typical/long-wake cohorts.
+    const val MAX_PERSONALIZATION_WEIGHT = 0.9
 
     // Confidence-decay floor for the heuristic factors (Phase 6, AKA-155). The summed factor shift is
     // scaled by factorWeight(c) = FACTOR_FLOOR + (1 - FACTOR_FLOOR) * (1 - qualityC): full strength

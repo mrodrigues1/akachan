@@ -22,7 +22,7 @@ class SleepPredictionCohortsTest {
 
     private val zone = SleepPredictionCohorts.ZONE
 
-    /** The real production algorithm: blend + all three heuristic factors at full strength. */
+    /** The live production algorithm: blend + all three heuristic factors. */
     private val productionPredict: (SleepFeatures, Int, Instant) -> SleepPredictionState =
         { features, ageInWeeks, now ->
             SleepWindowPredictor.predict(
@@ -32,6 +32,17 @@ class SleepPredictionCohortsTest {
                 circadianFactorProvider = CircadianBiasFactor::adjustment,
                 sleepDebtFactorProvider = SleepDebtFactor::adjustment,
                 napBudgetFactorProvider = NapBudgetFactor::adjustment,
+            )
+        }
+
+    // The pre-Phase-6 algorithm (60% personalization cap, 14-interval ramp, full-strength factors).
+    // The late-bias tests below assert the *symptom that motivated this phase* against this frozen
+    // baseline — live production (AKA-154 blend + AKA-155 decay) has since corrected it.
+    private val legacyBlendPredict: (SleepFeatures, Int, Instant) -> SleepPredictionState =
+        { features, ageInWeeks, now ->
+            sweepPredict(
+                SweepConfig(maxPersonalizationWeight = 0.6, fullPersonalizationIntervals = 14, factorFloor = 1.0),
+                features, ageInWeeks, now,
             )
         }
 
@@ -94,7 +105,7 @@ class SleepPredictionCohortsTest {
     }
 
     @Test
-    fun `current algorithm lands the window too far ahead on the short-wake cohort`() {
+    fun `pre-Phase-6 algorithm lands the window too far ahead on the short-wake cohort`() {
         val short = SleepPredictionCohorts.cohort(SleepPredictionCohorts.SHORT_WAKE)
 
         val nightBias = signedBias(short, SleepType.NIGHT_SLEEP)
@@ -167,7 +178,7 @@ class SleepPredictionCohortsTest {
     private data class Bias(val meanMinutes: Double, val count: Int)
 
     private fun signedBias(cohort: SleepPredictionCohorts.Cohort, type: SleepType): Bias {
-        val anchors = SleepEvalHarness(zone, productionPredict)
+        val anchors = SleepEvalHarness(zone, legacyBlendPredict)
             .buildAnchors(cohort.records, emptyList(), cohort.baby)
             .filter { it.segmentKey.sleepType == type && cohort.isScoredWake(it.wakeInstant) }
         val biases = anchors.mapNotNull { anchor ->
