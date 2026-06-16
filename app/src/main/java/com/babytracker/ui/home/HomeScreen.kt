@@ -284,7 +284,7 @@ internal fun PumpingHomeCard(
     Card(
         onClick = onClick,
         modifier = modifier
-            .heightIn(min = 120.dp)
+            .heightIn(min = 96.dp)
             .semantics {
                 contentDescription = if (isPumping)
                     "Pumping, session active. Open pumping screen."
@@ -299,7 +299,7 @@ internal fun PumpingHomeCard(
     ) {
         Column(
             modifier = Modifier
-                .padding(20.dp)
+                .padding(16.dp)
                 .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
         ) {
             Row(
@@ -359,7 +359,7 @@ internal fun InventoryHomeCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 120.dp)
+            .heightIn(min = 96.dp)
             .semantics {
                 contentDescription = if (hasBags)
                     "Milk inventory, ${summary.bagCount} bags, $volumeText. Open inventory screen."
@@ -374,7 +374,7 @@ internal fun InventoryHomeCard(
     ) {
         Column(
             modifier = Modifier
-                .padding(20.dp)
+                .padding(16.dp)
                 .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
         ) {
             Text(
@@ -407,7 +407,7 @@ internal fun BottleFeedHomeCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 120.dp)
+            .heightIn(min = 96.dp)
             .semantics { contentDescription = "Log a bottle feed. Open bottle feed screen." },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
@@ -417,7 +417,7 @@ internal fun BottleFeedHomeCard(
     ) {
         Column(
             modifier = Modifier
-                .padding(20.dp)
+                .padding(16.dp)
                 .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
         ) {
             Text(
@@ -593,7 +593,7 @@ internal fun FeedingHistoryHomeCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 120.dp)
+            .heightIn(min = 96.dp)
             .semantics {
                 contentDescription = "Feeding history. $summaryText. Open combined feeding history."
             },
@@ -606,7 +606,7 @@ internal fun FeedingHistoryHomeCard(
     ) {
         Column(
             modifier = Modifier
-                .padding(20.dp)
+                .padding(16.dp)
                 .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
         ) {
             Text(
