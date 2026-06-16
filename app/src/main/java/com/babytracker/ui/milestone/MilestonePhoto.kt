@@ -1,7 +1,10 @@
 package com.babytracker.ui.milestone
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -80,11 +83,48 @@ private suspend fun loadDownsampledBitmap(context: Context, uri: String): ImageB
             val options = BitmapFactory.Options().apply {
                 inSampleSize = sampleSizeFor(bounds.outWidth, bounds.outHeight)
             }
-            context.contentResolver.openInputStream(parsed)?.use { stream ->
-                BitmapFactory.decodeStream(stream, null, options)?.asImageBitmap()
-            }
+            val decoded = context.contentResolver.openInputStream(parsed)?.use { stream ->
+                BitmapFactory.decodeStream(stream, null, options)
+            } ?: return@runCatching null
+            // BitmapFactory ignores the EXIF orientation tag, so cameras that store
+            // landscape sensor pixels with a rotation tag would render sideways. Apply
+            // the tag here so the photo shows in the orientation the user shot it.
+            applyExifOrientation(context, parsed, decoded).asImageBitmap()
         }.getOrNull()
     }
+
+/** Reads the EXIF orientation tag for [uri], defaulting to normal on any failure. */
+private fun readExifOrientation(context: Context, uri: Uri): Int =
+    runCatching {
+        context.contentResolver.openInputStream(uri)?.use { stream ->
+            ExifInterface(stream).getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL,
+            )
+        } ?: ExifInterface.ORIENTATION_NORMAL
+    }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
+
+/** Rotates/flips [bitmap] to match the source photo's EXIF orientation. */
+private fun applyExifOrientation(context: Context, uri: Uri, bitmap: Bitmap): Bitmap {
+    val matrix = Matrix()
+    when (readExifOrientation(context, uri)) {
+        ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+        ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+        ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+        ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+        ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+        ExifInterface.ORIENTATION_TRANSPOSE -> {
+            matrix.postRotate(90f)
+            matrix.postScale(-1f, 1f)
+        }
+        ExifInterface.ORIENTATION_TRANSVERSE -> {
+            matrix.postRotate(270f)
+            matrix.postScale(-1f, 1f)
+        }
+        else -> return bitmap
+    }
+    return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+}
 
 private fun sampleSizeFor(width: Int, height: Int): Int {
     var sample = 1
