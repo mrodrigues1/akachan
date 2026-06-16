@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,6 +43,7 @@ import com.babytracker.ui.theme.growthColors
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
 import com.patrykandpatrick.vico.compose.cartesian.data.columnSeries
@@ -67,6 +69,22 @@ private const val COLUMN_THICKNESS_DP = 12
 
 // Series x-values are 0-based day indices; display them as 1-based day numbers (Day 1, Day 2, …).
 private val dayAxisFormatter = CartesianValueFormatter { _, x, _ -> (x.toInt() + 1).toString() }
+
+// Vico's default axis label color is `vicoTheme.textColor`, which falls back to the *system* dark
+// mode. The app always renders its light "Baby" palette, so on a dark system the labels turned white
+// and unreadable. Pin both labels and titles to the M3 scheme so they stay legible in every mode.
+@Composable
+private fun rememberChartLabel() = rememberAxisLabelComponent(
+    MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+)
+
+@Composable
+private fun rememberAxisTitle() = rememberAxisLabelComponent(
+    MaterialTheme.typography.labelMedium.copy(
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontWeight = FontWeight.Medium,
+    ),
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -172,6 +190,8 @@ private fun ChartCard(
 private fun FeedingFrequencyCard(data: List<DailyFeedingCount>) {
     val isEmpty = data.all { it.count == 0 }
     val color = MaterialTheme.colorScheme.primary
+    val label = rememberChartLabel()
+    val axisTitle = rememberAxisTitle()
     val producer = remember { CartesianChartModelProducer() }
     LaunchedEffect(data) {
         if (!isEmpty) {
@@ -194,8 +214,17 @@ private fun FeedingFrequencyCard(data: List<DailyFeedingCount>) {
                         rememberLineComponent(fill = Fill(color), thickness = COLUMN_THICKNESS_DP.dp),
                     ),
                 ),
-                startAxis = VerticalAxis.rememberStart(),
-                bottomAxis = HorizontalAxis.rememberBottom(valueFormatter = dayAxisFormatter),
+                startAxis = VerticalAxis.rememberStart(
+                    label = label,
+                    titleComponent = axisTitle,
+                    title = { "Feeds" },
+                ),
+                bottomAxis = HorizontalAxis.rememberBottom(
+                    label = label,
+                    valueFormatter = dayAxisFormatter,
+                    titleComponent = axisTitle,
+                    title = { "Day" },
+                ),
             ),
             producer,
             modifier = Modifier.fillMaxWidth().height(CHART_HEIGHT),
@@ -208,6 +237,8 @@ private fun SleepDurationCard(data: List<DailySleepDuration>) {
     val isEmpty = data.all { it.totalHours == 0.0 }
     val nightColor = MaterialTheme.colorScheme.secondary
     val napColor = MaterialTheme.colorScheme.secondaryContainer
+    val label = rememberChartLabel()
+    val axisTitle = rememberAxisTitle()
     val producer = remember { CartesianChartModelProducer() }
     LaunchedEffect(data) {
         if (!isEmpty) {
@@ -235,8 +266,17 @@ private fun SleepDurationCard(data: List<DailySleepDuration>) {
                     ),
                     mergeMode = { ColumnCartesianLayer.MergeMode.Stacked },
                 ),
-                startAxis = VerticalAxis.rememberStart(),
-                bottomAxis = HorizontalAxis.rememberBottom(valueFormatter = dayAxisFormatter),
+                startAxis = VerticalAxis.rememberStart(
+                    label = label,
+                    titleComponent = axisTitle,
+                    title = { "Hours" },
+                ),
+                bottomAxis = HorizontalAxis.rememberBottom(
+                    label = label,
+                    valueFormatter = dayAxisFormatter,
+                    titleComponent = axisTitle,
+                    title = { "Day" },
+                ),
             ),
             producer,
             modifier = Modifier.fillMaxWidth().height(CHART_HEIGHT),
@@ -251,6 +291,8 @@ private fun FeedingIntervalCard(data: List<DailyFeedingInterval>) {
     val runs = remember(data) { contiguousNonNullRuns(data) }
     val isEmpty = runs.isEmpty()
     val color = MaterialTheme.colorScheme.primary
+    val label = rememberChartLabel()
+    val axisTitle = rememberAxisTitle()
     val producer = remember { CartesianChartModelProducer() }
     LaunchedEffect(data) {
         if (!isEmpty) {
@@ -271,8 +313,17 @@ private fun FeedingIntervalCard(data: List<DailyFeedingInterval>) {
                 rememberLineCartesianLayer(
                     LineCartesianLayer.LineProvider.series(List(runs.size) { line }),
                 ),
-                startAxis = VerticalAxis.rememberStart(),
-                bottomAxis = HorizontalAxis.rememberBottom(valueFormatter = dayAxisFormatter),
+                startAxis = VerticalAxis.rememberStart(
+                    label = label,
+                    titleComponent = axisTitle,
+                    title = { "Hours" },
+                ),
+                bottomAxis = HorizontalAxis.rememberBottom(
+                    label = label,
+                    valueFormatter = dayAxisFormatter,
+                    titleComponent = axisTitle,
+                    title = { "Day" },
+                ),
             ),
             producer,
             modifier = Modifier.fillMaxWidth().height(CHART_HEIGHT),
