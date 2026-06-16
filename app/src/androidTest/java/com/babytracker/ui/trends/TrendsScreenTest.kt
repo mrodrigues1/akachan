@@ -5,6 +5,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.trends.DailyFeedingCount
+import com.babytracker.domain.trends.DailyFeedingInterval
+import com.babytracker.domain.trends.DailySleepDuration
 import com.babytracker.domain.trends.TrendRange
 import com.babytracker.domain.usecase.trends.GetFeedingFrequencyTrendUseCase
 import com.babytracker.domain.usecase.trends.GetFeedingIntervalTrendUseCase
@@ -15,6 +18,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import org.junit.Rule
 import org.junit.Test
+import java.time.LocalDate
 
 class TrendsScreenTest {
 
@@ -52,6 +56,25 @@ class TrendsScreenTest {
         composeRule.onNodeWithTag("trends_feeding_chart_empty").assertIsDisplayed()
         composeRule.onNodeWithTag("trends_sleep_chart_empty").assertIsDisplayed()
         composeRule.onNodeWithTag("trends_interval_chart_empty").assertIsDisplayed()
+    }
+
+    @Test
+    fun chartsRenderWithDataWithoutCrashing() {
+        // Regression for AKA-152: a date axis formatter that returned a blank string for the
+        // out-of-range x-values Vico probes during label-width measurement crashed the chart while
+        // drawing. Rendering populated charts across ranges must complete without throwing.
+        val today = LocalDate.of(2026, 6, 16)
+        fun day(offset: Int) = today.minusDays((29 - offset).toLong())
+        coEvery { frequency(any()) } returns List(30) { DailyFeedingCount(day(it), (it % 9) + 1) }
+        coEvery { sleep(any()) } returns List(30) { DailySleepDuration(day(it), nightHours = 8.0, napHours = 4.0) }
+        coEvery { interval(any()) } returns List(30) { DailyFeedingInterval(day(it), averageHours = 3.0) }
+
+        setScreen(TrendsViewModel(frequency, sleep, interval))
+
+        composeRule.onNodeWithTag("trends_feeding_chart").assertIsDisplayed()
+        composeRule.onNodeWithTag("trends_range_30").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("trends_feeding_chart").assertIsDisplayed()
     }
 
     @Test
