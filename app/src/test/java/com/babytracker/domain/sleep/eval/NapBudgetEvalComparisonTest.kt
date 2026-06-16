@@ -184,17 +184,26 @@ class NapBudgetEvalComparisonTest {
     // --- Harness helpers ---
 
     private val neutralProvider: NapBudgetFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral }
+    private val neutralCircadian: CircadianFactorProvider = { _, _, _, _, _ -> SleepPredictionFactor.Neutral }
+    private val neutralSleepDebt: SleepDebtFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral }
+
+    // Phase 6: a factor is demonstrated against a prior-leaning blend (an as-yet-unknown baby, where
+    // qualityC → 0 so the blend leans on the age prior and the confidence decay leaves the factor at
+    // full strength). That is the regime where the population heuristics carry weight. At the
+    // production blend (W = 0.9) a data-rich baby's own nap median already encodes the deficit signal,
+    // so the now-decayed factor contributes little; that regime is gated by the cohort comparison tests.
+    private val unknownBabyBlend = SweepConfig(maxPersonalizationWeight = 0.3, factorFloor = 1.0)
 
     private fun buildAnchors(
         records: List<SleepRecord>,
         napBudgetProvider: NapBudgetFactorProvider,
     ): List<EvalAnchor> {
         val harness = SleepEvalHarness(zone) { features, ageInWeeks, now ->
-            SleepWindowPredictor.predict(
-                features = features,
-                ageInWeeks = ageInWeeks,
-                now = now,
-                napBudgetFactorProvider = napBudgetProvider,
+            sweepPredict(
+                unknownBabyBlend, features, ageInWeeks, now,
+                circadian = neutralCircadian,
+                sleepDebt = neutralSleepDebt,
+                napBudget = napBudgetProvider,
             )
         }
         return harness.buildAnchors(records, emptyList(), baby)

@@ -453,8 +453,10 @@ class PredictSleepWindowUseCaseTest {
         }
 
         @Test
-        fun `confidence is LOW when qualityC is below 0_5 (fewer than 7 completed intervals)`() = runTest {
-            // sufficientSleepRecords() → 5 intervals → qualityC = 5/14 = 0.357 < 0.5 → LOW
+        fun `confidence is MEDIUM at the personalization midpoint (qualityC = 0_5)`() = runTest {
+            // sufficientSleepRecords() → 5 nap intervals → qualityC = 5 / FULL_PERSONALIZATION_INTERVALS
+            // = 5/10 = 0.5 → MEDIUM. (The faster Phase-6 ramp lifts the minimum-data baby to the
+            // midpoint; the LOW band, qualityC < 0.5, is covered by SleepWindowPredictorTest.)
             every { sleepRepository.getAllRecords() } returns flowOf(sufficientSleepRecords())
             every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
             every { babyRepository.getBabyProfile() } returns flowOf(babyOfWeeks(12))
@@ -462,7 +464,7 @@ class PredictSleepWindowUseCaseTest {
             useCase().test {
                 val state = awaitItem()
                 assertTrue(state is SleepPredictionState.Window)
-                assertEquals(Confidence.LOW, (state as SleepPredictionState.Window).window.confidence)
+                assertEquals(Confidence.MEDIUM, (state as SleepPredictionState.Window).window.confidence)
                 awaitComplete()
             }
         }

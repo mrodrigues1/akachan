@@ -166,9 +166,10 @@ class SleepWindowPredictorTest {
 
         // getNapWakeWindowMidpoint(20w): getDefaultWakeWindows(20) = [105, 135, 150] → non-last = [105,135] avg = 120
         // qualityC = min(FULL_PERSONALIZATION_INTERVALS / FULL_PERSONALIZATION_INTERVALS, 1) = 1.0
-        // wakeTarget = (1 - 0.6*1) * 120 + 0.6*1 * 100 = 0.4*120 + 0.6*100 = 48 + 60 = 108 min
+        // wakeTarget = (1 - W) * 120 + W * 100  with W = MAX_PERSONALIZATION_WEIGHT
         val priorMidpointMillis = Duration.ofMinutes(120).toMillis()
-        val expectedTargetMillis = (0.4 * priorMidpointMillis + 0.6 * personalP50).toLong()
+        val w = SleepPredictionTuning.MAX_PERSONALIZATION_WEIGHT
+        val expectedTargetMillis = ((1.0 - w) * priorMidpointMillis + w * personalP50).toLong()
         val expectedBestEstimate = Instant.ofEpochMilli(lastWakeMillis + expectedTargetMillis)
         assertEquals(expectedBestEstimate, window.bestEstimate,
             "bestEstimate must use nap prior midpoint (120 min) + type-specific P50")
@@ -540,7 +541,9 @@ class SleepWindowPredictorTest {
             features(
                 quality = sufficientQuality(completedCount = SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS),
                 metrics = metrics,
-                currentMinuteOfDay = 18 * 60,
+                // 17:00 so the predicted candidate lands well before the bedtime slot (outside the
+                // circadian neutrality band) and the factor produces a shift + reason.
+                currentMinuteOfDay = 17 * 60,
             ),
             ageInWeeks,
             baseNow,
@@ -1059,9 +1062,13 @@ class SleepWindowPredictorTest {
 
     @Test
     fun `confidence is LOW when qualityC is low regardless of provenance`() {
+        // qualityC is driven by the type-specific interval count: 3 / FULL_PERSONALIZATION_INTERVALS
+        // = 0.3, below the 0.5 MEDIUM threshold, so confidence stays LOW.
         val metrics = sufficientMetrics(
             lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
             medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+            napWakeIntervalCount = SleepPredictionTuning.MIN_TYPE_INTERVALS,
+            napWakeP50Millis = Duration.ofMinutes(90).toMillis(),
         )
         val quality = sufficientQuality(completedCount = SleepPredictionTuning.MIN_COMPLETED_INTERVALS)
             .copy(hasQualifiedTimezoneProvenance = true)

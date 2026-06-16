@@ -18,23 +18,34 @@ class CircadianBiasEvalComparisonTest {
     private val baseNow = Instant.parse("2024-06-30T12:00:00Z")
     private val baby = Baby(name = "Test Baby", birthDate = LocalDate.of(2024, 2, 14))
 
+    private val neutralCircadian: CircadianFactorProvider = { _, _, _, _, _ -> SleepPredictionFactor.Neutral }
+    private val neutralSleepDebt: SleepDebtFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral }
+    private val neutralNapBudget: NapBudgetFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral }
+
+    // Phase 6: a factor is demonstrated against a prior-leaning blend (an as-yet-unknown baby, where
+    // qualityC → 0 so the blend leans on the age prior and the confidence decay leaves the factor at
+    // full strength). That is the regime where the population heuristics carry weight. At the
+    // production blend (W = 0.9) a data-rich baby's own bedtime median already encodes the circadian
+    // skew, so the now-decayed factor contributes little; that regime is gated by the cohort tests.
+    private val unknownBabyBlend = SweepConfig(maxPersonalizationWeight = 0.3, factorFloor = 1.0)
+
     @Test
     fun `circadian bias clears section 7-1 acceptance criteria on bedtime-skew fixture`() {
         val records = bedtimeDriftRecords(historyDays = 14, evaluatedDays = 10)
         val baselineHarness = SleepEvalHarness(zone) { features, ageInWeeks, now ->
-            SleepWindowPredictor.predict(
-                features = features,
-                ageInWeeks = ageInWeeks,
-                now = now,
-                circadianFactorProvider = { _, _, _, _, _ -> SleepPredictionFactor.Neutral },
+            sweepPredict(
+                unknownBabyBlend, features, ageInWeeks, now,
+                circadian = neutralCircadian,
+                sleepDebt = neutralSleepDebt,
+                napBudget = neutralNapBudget,
             )
         }
         val newHarness = SleepEvalHarness(zone) { features, ageInWeeks, now ->
-            SleepWindowPredictor.predict(
-                features = features,
-                ageInWeeks = ageInWeeks,
-                now = now,
-                circadianFactorProvider = CircadianBiasFactor::adjustment,
+            sweepPredict(
+                unknownBabyBlend, features, ageInWeeks, now,
+                circadian = CircadianBiasFactor::adjustment,
+                sleepDebt = neutralSleepDebt,
+                napBudget = neutralNapBudget,
             )
         }
         val baselineAnchors = baselineHarness.buildAnchors(records, emptyList(), baby).associateBy { it.wakeInstant }
