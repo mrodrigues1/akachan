@@ -37,10 +37,12 @@ class MilkStashWidget : GlanceAppWidget() {
     }
 
     companion object {
-        val SMALL_SIZE: DpSize = DpSize(110.dp, 110.dp)
-        val WIDE_SHORT_SIZE: DpSize = DpSize(180.dp, 64.dp)
-        val WIDE_SIZE: DpSize = DpSize(180.dp, 110.dp)
-        val TALL_SIZE: DpSize = DpSize(110.dp, 250.dp)
-        val MEDIUM_SIZE: DpSize = DpSize(180.dp, 180.dp)
+        // Buckets sized to real launcher cells so 1×1/2×1 map to their own layout instead of
+        // falling back to the smallest-area bucket and clipping. ~57dp per cell + ~73dp gutter.
+        val SMALL_SIZE: DpSize = DpSize(57.dp, 57.dp)
+        val WIDE_SHORT_SIZE: DpSize = DpSize(130.dp, 57.dp)
+        val WIDE_SIZE: DpSize = DpSize(200.dp, 57.dp)
+        val TALL_SIZE: DpSize = DpSize(57.dp, 130.dp)
+        val MEDIUM_SIZE: DpSize = DpSize(130.dp, 130.dp)
     }
 }
