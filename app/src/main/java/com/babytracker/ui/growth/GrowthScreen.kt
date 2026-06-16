@@ -214,6 +214,7 @@ private fun GrowthContent(
             item {
                 GrowthChart(
                     chart = chart,
+                    yAxisTitle = yAxisUnit(uiState.selectedType),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(220.dp)
@@ -339,6 +340,7 @@ private fun SetSexCard(onSetSex: () -> Unit) {
 @Composable
 private fun GrowthChart(
     chart: GrowthChartData,
+    yAxisTitle: String,
     modifier: Modifier = Modifier,
 ) {
     val growth = growthColors()
@@ -385,6 +387,13 @@ private fun GrowthChart(
     val axisLabel = rememberAxisLabelComponent(
         MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
     )
+    // Slightly heavier title component so the axis meaning reads as a heading, not another tick label.
+    val axisTitle = rememberAxisLabelComponent(
+        MaterialTheme.typography.labelMedium.copy(
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium,
+        ),
+    )
 
     Box(modifier = modifier.semantics { contentDescription = description }) {
         if (lines.isNotEmpty()) {
@@ -394,12 +403,19 @@ private fun GrowthChart(
                         LineCartesianLayer.LineProvider.series(lines),
                         rangeProvider = GrowthRangeProvider,
                     ),
-                    startAxis = VerticalAxis.rememberStart(label = axisLabel, guideline = null),
+                    startAxis = VerticalAxis.rememberStart(
+                        label = axisLabel,
+                        guideline = null,
+                        titleComponent = axisTitle,
+                        title = { yAxisTitle },
+                    ),
                     bottomAxis = HorizontalAxis.rememberBottom(
                         label = axisLabel,
                         valueFormatter = monthAxisFormatter,
                         itemPlacer = HorizontalAxis.ItemPlacer.aligned(spacing = { AXIS_MONTH_SPACING }),
                         guideline = null,
+                        titleComponent = axisTitle,
+                        title = { "Age (months)" },
                     ),
                     // WHO curves use whole-month x-values while measurements fall on fractional
                     // months; without a fixed step Vico derives one from the GCD of those deltas,
@@ -524,6 +540,17 @@ internal fun percentileLabel(percentile: Double): String {
         else -> "th"
     }
     return "$rounded$suffix percentile"
+}
+
+/**
+ * Y-axis unit shown as the axis title. The plotted values come from
+ * [com.babytracker.domain.growth.WhoPercentileCalculator.canonicalToWhoUnit], which always emits WHO
+ * (metric) units — kg for weight, cm for length and head circumference — regardless of the user's
+ * [MeasurementSystem] preference, so the title must match those units, not the preference.
+ */
+private fun yAxisUnit(type: GrowthType): String = when (type) {
+    GrowthType.WEIGHT -> "kg"
+    GrowthType.LENGTH, GrowthType.HEAD_CIRC -> "cm"
 }
 
 private fun chartContentDescription(chart: GrowthChartData): String {
