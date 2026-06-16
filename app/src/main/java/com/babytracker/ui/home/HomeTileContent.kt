@@ -53,6 +53,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.HomeTile
@@ -65,6 +66,19 @@ import sh.calvin.reorderable.rememberReorderableLazyStaggeredGridState
 internal fun HomeTile.isFullWidth(): Boolean = when (this) {
     HomeTile.SLEEP_PREDICTION, HomeTile.TIP, HomeTile.PARTNER -> true
     else -> false
+}
+
+/**
+ * Minimum height floor for a tile in the staggered grid. Full-width tiles size to content.
+ * The compact action tiles (pumping, inventory, bottle feed, feeding history) carry only a
+ * one-line subtitle, so they get no floor and shrink to their natural height; richer tiles
+ * (breastfeeding, sleep timers, growth/milestone copy) keep the taller floor for balance.
+ */
+internal fun HomeTile.minTileHeightDp(): Dp = when {
+    isFullWidth() -> 0.dp
+    this == HomeTile.PUMPING || this == HomeTile.INVENTORY ||
+        this == HomeTile.BOTTLE_FEED || this == HomeTile.FEEDING_HISTORY -> 0.dp
+    else -> 140.dp
 }
 
 /**
@@ -176,7 +190,7 @@ internal fun HomeContent(
                         uiState = uiState,
                         callbacks = callbacks,
                         modifier = Modifier
-                            .heightIn(min = if (tile.isFullWidth()) 0.dp else 140.dp)
+                            .heightIn(min = tile.minTileHeightDp())
                             .shadow(elevation, MaterialTheme.shapes.large)
                             .semantics { customActions = moveActions }
                             .longPressDraggableHandle(
