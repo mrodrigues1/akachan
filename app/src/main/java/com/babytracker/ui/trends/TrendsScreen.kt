@@ -57,6 +57,8 @@ import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.common.Fill
 import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberShapeComponent
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 private val RANGE_LABELS = mapOf(
     TrendRange.SEVEN_DAYS to "7d",
@@ -67,8 +69,21 @@ private val RANGE_LABELS = mapOf(
 private val CHART_HEIGHT = 200.dp
 private const val COLUMN_THICKNESS_DP = 12
 
-// Series x-values are 0-based day indices; display them as 1-based day numbers (Day 1, Day 2, …).
-private val dayAxisFormatter = CartesianValueFormatter { _, x, _ -> (x.toInt() + 1).toString() }
+private val DATE_AXIS_FORMAT = DateTimeFormatter.ofPattern("dd/MM")
+
+// Series x-values are 0-based day indices into the day list; map each back to its real date (dd/MM)
+// so the axis shows actual days instead of a bare counter. Vico can probe x beyond the data range,
+// so out-of-range indices render blank.
+private fun dateAxisFormatter(dates: List<LocalDate>) = CartesianValueFormatter { _, x, _ ->
+    dates.getOrNull(x.toInt())?.format(DATE_AXIS_FORMAT).orEmpty()
+}
+
+// Thin the labels to ~7 across any range so the dd/MM dates don't overlap (7d → every day,
+// 14d → every other, 30d → every fifth).
+private fun dayAxisItemPlacer(count: Int): HorizontalAxis.ItemPlacer =
+    HorizontalAxis.ItemPlacer.aligned(spacing = { ((count + LABEL_TARGET - 1) / LABEL_TARGET).coerceAtLeast(1) })
+
+private const val LABEL_TARGET = 7
 
 // Vico's default axis label color is `vicoTheme.textColor`, which falls back to the *system* dark
 // mode. The app always renders its light "Baby" palette, so on a dark system the labels turned white
@@ -221,9 +236,10 @@ private fun FeedingFrequencyCard(data: List<DailyFeedingCount>) {
                 ),
                 bottomAxis = HorizontalAxis.rememberBottom(
                     label = label,
-                    valueFormatter = dayAxisFormatter,
+                    valueFormatter = dateAxisFormatter(data.map { it.date }),
+                    itemPlacer = dayAxisItemPlacer(data.size),
                     titleComponent = axisTitle,
-                    title = { "Day" },
+                    title = { "Date" },
                 ),
             ),
             producer,
@@ -273,9 +289,10 @@ private fun SleepDurationCard(data: List<DailySleepDuration>) {
                 ),
                 bottomAxis = HorizontalAxis.rememberBottom(
                     label = label,
-                    valueFormatter = dayAxisFormatter,
+                    valueFormatter = dateAxisFormatter(data.map { it.date }),
+                    itemPlacer = dayAxisItemPlacer(data.size),
                     titleComponent = axisTitle,
-                    title = { "Day" },
+                    title = { "Date" },
                 ),
             ),
             producer,
@@ -320,9 +337,10 @@ private fun FeedingIntervalCard(data: List<DailyFeedingInterval>) {
                 ),
                 bottomAxis = HorizontalAxis.rememberBottom(
                     label = label,
-                    valueFormatter = dayAxisFormatter,
+                    valueFormatter = dateAxisFormatter(data.map { it.date }),
+                    itemPlacer = dayAxisItemPlacer(data.size),
                     titleComponent = axisTitle,
-                    title = { "Day" },
+                    title = { "Date" },
                 ),
             ),
             producer,
