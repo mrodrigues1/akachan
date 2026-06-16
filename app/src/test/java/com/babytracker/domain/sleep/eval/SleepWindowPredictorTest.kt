@@ -995,6 +995,39 @@ class SleepWindowPredictorTest {
     }
 
     @Test
+    fun `factor decay is monotonic - less-known baby gets a larger factor shift than a well-known one`() {
+        val lastWakeMillis = baseNow.minus(Duration.ofMinutes(60)).toEpochMilli()
+        fun appliedShiftMinutes(napIntervals: Int): Long {
+            val metrics = sufficientMetrics(
+                lastWakeMillis = lastWakeMillis,
+                medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+                napWakeIntervalCount = napIntervals,
+                napWakeP50Millis = Duration.ofMinutes(90).toMillis(),
+            )
+            val neutral = SleepWindowPredictor.predict(
+                features(metrics = metrics), ageInWeeks, baseNow,
+            ) as SleepPredictionState.Window
+            val applied = SleepWindowPredictor.predict(
+                features(metrics = metrics), ageInWeeks, baseNow,
+                sleepDebtFactorProvider = { _, _, _ -> SleepPredictionFactor(adjustment = Duration.ofMinutes(-20)) },
+            ) as SleepPredictionState.Window
+            return Duration.between(applied.window.bestEstimate, neutral.window.bestEstimate).toMinutes()
+        }
+
+        // Lower qualityC (fewer type intervals) ⇒ decay weight closer to 1.0 ⇒ larger applied shift.
+        val lessKnownShift = appliedShiftMinutes(napIntervals = SleepPredictionTuning.MIN_TYPE_INTERVALS)
+        val wellKnownShift = appliedShiftMinutes(napIntervals = SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS)
+        assertTrue(
+            lessKnownShift > wellKnownShift,
+            "Factor shift must decay as the baby becomes known; less-known=$lessKnownShift well-known=$wellKnownShift",
+        )
+        assertEquals(
+            (20 * SleepPredictionTuning.FACTOR_FLOOR).toLong(), wellKnownShift,
+            "At full personalization the shift must be the raw shift scaled by FACTOR_FLOOR",
+        )
+    }
+
+    @Test
     fun `confidence is MEDIUM without qualified timezone provenance even when qualityC is high`() {
         val metrics = sufficientMetrics(
             lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
