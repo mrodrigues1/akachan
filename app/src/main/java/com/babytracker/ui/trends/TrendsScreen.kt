@@ -72,10 +72,12 @@ private const val COLUMN_THICKNESS_DP = 12
 private val DATE_AXIS_FORMAT = DateTimeFormatter.ofPattern("dd/MM")
 
 // Series x-values are 0-based day indices into the day list; map each back to its real date (dd/MM)
-// so the axis shows actual days instead of a bare counter. Vico can probe x beyond the data range,
-// so out-of-range indices render blank.
+// so the axis shows actual days instead of a bare counter. Vico measures label widths at x-values
+// that can fall *outside* the data range and throws if the formatter returns a blank string, so clamp
+// into range and always emit a real date. Which days actually get a label is the ItemPlacer's job.
 private fun dateAxisFormatter(dates: List<LocalDate>) = CartesianValueFormatter { _, x, _ ->
-    dates.getOrNull(x.toInt())?.format(DATE_AXIS_FORMAT).orEmpty()
+    val index = x.toInt().coerceIn(0, dates.lastIndex)
+    dates[index].format(DATE_AXIS_FORMAT)
 }
 
 // Thin the labels to ~7 across any range so the dd/MM dates don't overlap (7d → every day,
