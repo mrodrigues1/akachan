@@ -3,6 +3,7 @@ package com.babytracker.ui.trends
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -66,7 +67,6 @@ private val RANGE_LABELS = mapOf(
     TrendRange.THIRTY_DAYS to "30d",
 )
 
-private val CHART_HEIGHT = 200.dp
 private const val COLUMN_THICKNESS_DP = 12
 
 private val DATE_AXIS_FORMAT = DateTimeFormatter.ofPattern("dd/MM")
@@ -245,7 +245,7 @@ private fun FeedingFrequencyCard(data: List<DailyFeedingCount>) {
                 ),
             ),
             producer,
-            modifier = Modifier.fillMaxWidth().height(CHART_HEIGHT),
+            modifier = Modifier.fillMaxSize(),
         )
     }
 }
@@ -298,7 +298,7 @@ private fun SleepDurationCard(data: List<DailySleepDuration>) {
                 ),
             ),
             producer,
-            modifier = Modifier.fillMaxWidth().height(CHART_HEIGHT),
+            modifier = Modifier.fillMaxSize(),
         )
     }
 }
@@ -346,7 +346,7 @@ private fun FeedingIntervalCard(data: List<DailyFeedingInterval>) {
                 ),
             ),
             producer,
-            modifier = Modifier.fillMaxWidth().height(CHART_HEIGHT),
+            modifier = Modifier.fillMaxSize(),
         )
     }
 }
