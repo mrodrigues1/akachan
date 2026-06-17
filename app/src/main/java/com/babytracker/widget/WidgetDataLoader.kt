@@ -2,8 +2,10 @@ package com.babytracker.widget
 
 import android.content.Context
 import android.util.Log
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.sharing.domain.model.AppMode
@@ -27,6 +29,7 @@ suspend fun loadWidgetData(context: Context): WidgetData {
         baby = entryPoint.babyRepository(),
         feed = entryPoint.breastfeedingRepository(),
         sleep = entryPoint.sleepRepository(),
+        featureToggle = entryPoint.featureToggleRepository(),
     )
 }
 
@@ -37,6 +40,7 @@ internal suspend fun loadWidgetData(
     baby: BabyRepository,
     feed: BreastfeedingRepository,
     sleep: SleepRepository,
+    featureToggle: FeatureToggleRepository,
 ): WidgetData = runCatching {
     if (settings.getAppMode().first() == AppMode.PARTNER) {
         // PARTNER: never touch local repos or the network. Read the worker-populated cache; on a
@@ -47,6 +51,7 @@ internal suspend fun loadWidgetData(
             WidgetData.EMPTY
         }
     } else {
+        val features = featureToggle.getEnabledFeatures().first()
         val babyProfile = baby.getBabyProfile().first()
         val lastFeed = feed.getLastSession()
         val latestSleep = sleep.getLatestRecord()
@@ -54,6 +59,8 @@ internal suspend fun loadWidgetData(
             babyName = babyProfile?.name,
             lastFeed = lastFeed,
             latestSleep = latestSleep,
+            feedEnabled = AppFeature.BREASTFEEDING in features,
+            sleepEnabled = AppFeature.SLEEP in features,
         )
     }
 }.getOrElse { error ->

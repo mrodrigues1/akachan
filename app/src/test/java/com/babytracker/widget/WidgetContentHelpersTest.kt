@@ -5,7 +5,9 @@ import com.babytracker.widget.data.FeedState
 import com.babytracker.widget.data.SleepState
 import com.babytracker.widget.data.WidgetData
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
@@ -22,6 +24,20 @@ class WidgetContentHelpersTest {
     @Test
     fun `label maps RIGHT to "Right"`() {
         assertEquals("Right", BreastSide.RIGHT.label())
+    }
+
+    @Test
+    fun `feed row is omitted when feed disabled`() {
+        val data = WidgetData.EMPTY.copy(feedEnabled = false, sleepEnabled = true)
+        assertFalse(shouldShowFeedRow(data))
+        assertTrue(shouldShowSleepRow(data))
+    }
+
+    @Test
+    fun `both rows omitted when both disabled`() {
+        val data = WidgetData.EMPTY.copy(feedEnabled = false, sleepEnabled = false)
+        assertFalse(shouldShowFeedRow(data))
+        assertFalse(shouldShowSleepRow(data))
     }
 
     @Test

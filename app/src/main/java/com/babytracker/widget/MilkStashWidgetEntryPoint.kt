@@ -1,5 +1,6 @@
 package com.babytracker.widget
 
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
 import dagger.hilt.EntryPoint
@@ -11,4 +12,5 @@ import dagger.hilt.components.SingletonComponent
 interface MilkStashWidgetEntryPoint {
     fun inventoryRepository(): InventoryRepository
     fun settingsRepository(): SettingsRepository
+    fun featureToggleRepository(): FeatureToggleRepository
 }

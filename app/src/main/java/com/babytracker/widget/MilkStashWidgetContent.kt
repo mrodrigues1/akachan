@@ -54,9 +54,45 @@ private fun MilkStashWidgetData.isEmpty(): Boolean = totalMl == 0 && bagCount ==
 
 private fun bagCountLabel(bagCount: Int): String = if (bagCount == 1) "1 bag" else "$bagCount bags"
 
+/**
+ * Neutral state shown when the Inventory feature is turned off. Tapping still opens Inventory so a
+ * parent can re-enable it; tracked data is untouched.
+ */
+@Composable
+private fun MilkStashOffContent() {
+    Column(
+        modifier = GlanceModifier
+            .fillMaxSize()
+            .background(GlanceTheme.colors.surfaceVariant)
+            .clickable(openInventoryAction())
+            .padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = MILK_EMOJI,
+            style = TextStyle(fontSize = 22.sp),
+        )
+        Spacer(modifier = GlanceModifier.height(6.dp))
+        Text(
+            text = "Inventory is off",
+            maxLines = 2,
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Medium,
+                fontSize = 13.sp,
+            ),
+        )
+    }
+}
+
 /** 1×1 milk stash tile: compact volume hero over bag count, centered. Whole tile opens Inventory. */
 @Composable
 fun MilkStashSmallContent(data: MilkStashWidgetData, modifier: GlanceModifier = GlanceModifier) {
+    if (!data.inventoryEnabled) {
+        MilkStashOffContent()
+        return
+    }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -109,6 +145,10 @@ fun MilkStashSmallContent(data: MilkStashWidgetData, modifier: GlanceModifier = 
 /** 1×2 (tall, narrow) milk stash tile: emoji header, large volume hero, and bag count. */
 @Composable
 fun MilkStashTallContent(data: MilkStashWidgetData, modifier: GlanceModifier = GlanceModifier) {
+    if (!data.inventoryEnabled) {
+        MilkStashOffContent()
+        return
+    }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -187,6 +227,10 @@ fun MilkStashTallContent(data: MilkStashWidgetData, modifier: GlanceModifier = G
 /** 2×1 (wide, short) milk stash tile: small emoji, volume hero, and bag count, all on one row. */
 @Composable
 fun MilkStashWideContent(data: MilkStashWidgetData, modifier: GlanceModifier = GlanceModifier) {
+    if (!data.inventoryEnabled) {
+        MilkStashOffContent()
+        return
+    }
     Row(
         modifier = modifier
             .fillMaxSize()
@@ -247,10 +291,10 @@ fun MilkStashWideContent(data: MilkStashWidgetData, modifier: GlanceModifier = G
 /** 2×2 milk stash tile: routes to the populated or empty layout. */
 @Composable
 fun MilkStashMediumContent(data: MilkStashWidgetData) {
-    if (data.isEmpty()) {
-        MilkStashMediumEmpty()
-    } else {
-        MilkStashMediumFilled(data)
+    when {
+        !data.inventoryEnabled -> MilkStashOffContent()
+        data.isEmpty() -> MilkStashMediumEmpty()
+        else -> MilkStashMediumFilled(data)
     }
 }
 
