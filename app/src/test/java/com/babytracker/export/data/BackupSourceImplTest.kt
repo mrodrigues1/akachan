@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.babytracker.data.local.BabyTrackerDatabase
+import com.babytracker.data.local.entity.DiaperEntity
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
 import kotlinx.coroutines.CoroutineScope
@@ -61,10 +62,13 @@ class BackupSourceImplTest {
         db.milkBagDao().insert(
             MilkBagEntity(collectionDate = 1, volumeMl = 10, sourceSessionId = pumpId, createdAt = 1),
         )
+        db.diaperDao().insert(DiaperEntity(timestamp = 5, type = "WET", notes = "n", createdAt = 5))
         val tracking = source.readTracking()
         assertEquals(1, tracking.pumping.size)
         assertEquals(1, tracking.milkBags.size)
         assertTrue(tracking.pumping.any { it.id == tracking.milkBags.first().sourceSessionId })
+        assertEquals(1, tracking.diapers.size)
+        assertEquals("WET", tracking.diapers.first().type)
     }
 
     @Test

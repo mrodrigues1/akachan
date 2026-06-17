@@ -2,7 +2,7 @@ package com.babytracker.export.domain.model
 
 import kotlinx.serialization.Serializable
 
-const val CURRENT_BACKUP_FORMAT_VERSION = 3
+const val CURRENT_BACKUP_FORMAT_VERSION = 4
 
 @Serializable
 data class BackupData(
@@ -20,6 +20,17 @@ data class BackupData(
     // Added in format version 2; default-empty so v1 backups still deserialize.
     val growth: List<GrowthBackup> = emptyList(),
     val milestones: List<MilestoneBackup> = emptyList(),
+    // Added in format version 4; default-empty so pre-v4 backups still deserialize.
+    val diapers: List<DiaperBackup> = emptyList(),
+)
+
+@Serializable
+data class DiaperBackup(
+    val id: Long,
+    val timestamp: Long,
+    val type: String,
+    val notes: String?,
+    val createdAt: Long,
 )
 
 @Serializable

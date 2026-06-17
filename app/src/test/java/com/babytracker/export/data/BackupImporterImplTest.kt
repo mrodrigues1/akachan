@@ -7,6 +7,7 @@ import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.export.domain.model.BottleFeedBackup
+import com.babytracker.export.domain.model.DiaperBackup
 import com.babytracker.export.domain.model.GrowthBackup
 import com.babytracker.export.domain.model.MilestoneBackup
 import com.babytracker.export.domain.model.MilkBagBackup
@@ -49,10 +50,12 @@ class BackupImporterImplTest {
         pumping: List<PumpingBackup> = emptyList(),
         milkBags: List<MilkBagBackup> = emptyList(),
         bottleFeeds: List<BottleFeedBackup> = emptyList(),
+        diapers: List<DiaperBackup> = emptyList(),
     ) = BackupData(
         backupFormatVersion = 1, roomSchemaVersion = 3, appVersion = "1.0.0", exportedAt = 0,
         baby = null, settings = settings(), breastfeeding = emptyList(),
         sleep = sleep, pumping = pumping, milkBags = milkBags, bottleFeeds = bottleFeeds,
+        diapers = diapers,
     )
 
     @Test
@@ -81,6 +84,25 @@ class BackupImporterImplTest {
         val again = importer.merge(data)
         assertEquals(0, again.growthInserted)
         assertEquals(0, again.milestonesInserted)
+    }
+
+    @Test
+    fun `imports diapers and dedupes on re-import`() = runTest {
+        val data = backup(
+            diapers = listOf(
+                DiaperBackup(id = 1, timestamp = 100, type = "WET", notes = null, createdAt = 100),
+                DiaperBackup(id = 2, timestamp = 200, type = "DIRTY", notes = "blowout", createdAt = 200),
+            ),
+        )
+
+        val counts = importer.merge(data)
+        assertEquals(2, counts.diapersInserted)
+        assertEquals(2, db.diaperDao().getAllOnce().size)
+
+        // Re-importing the same backup inserts nothing (identity dedup).
+        val again = importer.merge(data)
+        assertEquals(0, again.diapersInserted)
+        assertEquals(2, db.diaperDao().getAllOnce().size)
     }
 
     @Test

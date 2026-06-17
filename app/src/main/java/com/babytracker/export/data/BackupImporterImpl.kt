@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.babytracker.data.local.BabyTrackerDatabase
 import com.babytracker.data.local.entity.BottleFeedEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
+import com.babytracker.data.local.entity.DiaperEntity
 import com.babytracker.data.local.entity.GrowthMeasurementEntity
 import com.babytracker.data.local.entity.MilestoneEntity
 import com.babytracker.data.local.entity.MilkBagEntity
@@ -30,7 +31,23 @@ class BackupImporterImpl @Inject constructor(
         val bottles = mergeBottleFeeds(data)
         val growth = mergeGrowth(data)
         val milestones = mergeMilestones(data)
-        ImportCounts(bf, sleep, pumpInserted, bags, bottles, growth, milestones)
+        val diapers = mergeDiapers(data)
+        ImportCounts(bf, sleep, pumpInserted, bags, bottles, growth, milestones, diapers)
+    }
+
+    private suspend fun mergeDiapers(data: BackupData): Int {
+        val seen = db.diaperDao().getAllOnce().map { it.identity() }.toMutableSet()
+        var inserted = 0
+        for (d in data.diapers) {
+            val entity = DiaperEntity(
+                timestamp = d.timestamp, type = d.type, notes = d.notes, createdAt = d.createdAt,
+            )
+            if (seen.add(entity.identity())) {
+                db.diaperDao().insert(entity)
+                inserted++
+            }
+        }
+        return inserted
     }
 
     private suspend fun mergeGrowth(data: BackupData): Int {
@@ -209,4 +226,5 @@ class BackupImporterImpl @Inject constructor(
     private fun BottleFeedEntity.identity() = listOf(timestamp, volumeMl, type, notes, createdAt)
     private fun GrowthMeasurementEntity.identity() = listOf(takenAt, type, valueCanonical, notes)
     private fun MilestoneEntity.identity() = listOf(title, dateEpochDay, timeMinuteOfDay, note)
+    private fun DiaperEntity.identity() = listOf(timestamp, type, notes, createdAt)
 }

@@ -61,6 +61,12 @@ class ExportCsvUseCase @Inject constructor(
                     )
                 },
             ),
+            "diapers" to buildCsv(
+                listOf("id", "timestamp", "type", "notes", "created_at"),
+                t.diapers.map {
+                    listOf(it.id, it.timestamp, it.type, it.notes, it.createdAt)
+                },
+            ),
         )
     }
 

@@ -10,6 +10,7 @@ data class ImportCounts(
     val bottleFeedsInserted: Int,
     val growthInserted: Int = 0,
     val milestonesInserted: Int = 0,
+    val diapersInserted: Int = 0,
 )
 
 /** Merges validated backup tracking rows into Room in a single transaction. */

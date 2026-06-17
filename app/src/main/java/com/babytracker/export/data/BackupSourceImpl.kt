@@ -53,6 +53,7 @@ class BackupSourceImpl @Inject constructor(
             bottleFeeds = db.bottleFeedDao().getAllOnce().map { it.toBackup() },
             growth = db.growthMeasurementDao().getAllOnce().map { it.toBackup() },
             milestones = db.milestoneDao().getAllOnce().map { it.toBackup() },
+            diapers = db.diaperDao().getAllOnce().map { it.toBackup() },
         )
     }
 
