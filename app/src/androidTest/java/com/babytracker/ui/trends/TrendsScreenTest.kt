@@ -86,7 +86,8 @@ class TrendsScreenTest {
             DayRhythm(
                 date = day(it),
                 sleepBlocks = listOf(RhythmBlock(0.0f, 0.25f, isNight = true)),
-                feedMarks = listOf(0.3f, 0.6f),
+                breastFeedMarks = listOf(0.3f),
+                bottleFeedMarks = listOf(0.6f),
             )
         }
 

@@ -31,11 +31,15 @@ data class DailyFeedVsSleep(
     val sleepHours: Double,
 )
 
-/** One day's 24h timeline: sleep blocks plus feed marks, as fractions of the day in [0, 1). */
+/**
+ * One day's 24h timeline: sleep blocks plus feed marks, as fractions of the day in [0, 1).
+ * Breast and bottle feeds are kept apart so the rhythm strip can color them differently.
+ */
 data class DayRhythm(
     val date: LocalDate,
     val sleepBlocks: List<RhythmBlock>,
-    val feedMarks: List<Float>,
+    val breastFeedMarks: List<Float>,
+    val bottleFeedMarks: List<Float>,
 )
 
 /** A sleep interval clipped to a single day, expressed as fractions of that day in [0, 1]. */
