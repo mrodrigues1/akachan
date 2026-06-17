@@ -20,6 +20,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -50,10 +51,22 @@ class ApplyFeedOpUseCaseTest {
 
         val result = applyFeedOp(createOp(consumedBagId = 7L))
 
-        assertTrue(result)
+        assertTrue(result.roomChanged)
+        assertEquals(7L, result.consumedBagId)
         assertEquals(FeedAuthor.PARTNER, feed.captured.author)
         assertEquals("client-1", feed.captured.clientId)
         coVerify { repository.insertWithBagConsume(any(), 7L, fixedNow) }
+    }
+
+    @Test
+    fun `create without linked bag reports no consumed bag`() = runTest {
+        coEvery { repository.getByClientId("client-1") } returns null
+        coEvery { repository.insertWithBagConsume(any(), null, fixedNow) } returns 1L
+
+        val result = applyFeedOp(createOp(consumedBagId = null))
+
+        assertTrue(result.roomChanged)
+        assertNull(result.consumedBagId)
     }
 
     @Test
@@ -73,7 +86,7 @@ class ApplyFeedOpUseCaseTest {
 
         val result = applyFeedOp(createOp())
 
-        assertFalse(result)
+        assertFalse(result.roomChanged)
         coVerify(exactly = 0) { repository.insertWithBagConsume(any(), any(), any()) }
         coVerify(exactly = 0) { repository.updateDetails(any(), any(), any(), any(), any(), any()) }
     }
@@ -85,7 +98,9 @@ class ApplyFeedOpUseCaseTest {
 
         val result = applyFeedOp(createOp(consumedBagId = 7L, notes = "note"))
 
-        assertTrue(result)
+        assertTrue(result.roomChanged)
+        // Re-apply must not re-report the consumed bag, or the primary would notify twice.
+        assertNull(result.consumedBagId)
         coVerify { repository.updateDetails(4L, any(), 120, FeedType.FORMULA, 9L, "note") }
         coVerify(exactly = 0) { repository.insertWithBagConsume(any(), any(), any()) }
     }
@@ -97,7 +112,8 @@ class ApplyFeedOpUseCaseTest {
 
         val result = applyFeedOp(updateOp(consumedBagId = 99L, notes = "note"))
 
-        assertTrue(result)
+        assertTrue(result.roomChanged)
+        assertNull(result.consumedBagId)
         coVerify { repository.updateDetails(4L, any(), 120, FeedType.FORMULA, 8L, "note") }
     }
 
@@ -107,7 +123,7 @@ class ApplyFeedOpUseCaseTest {
 
         val result = applyFeedOp(updateOp())
 
-        assertFalse(result)
+        assertFalse(result.roomChanged)
         coVerify(exactly = 0) { repository.updateDetails(any(), any(), any(), any(), any(), any()) }
     }
 
@@ -117,7 +133,7 @@ class ApplyFeedOpUseCaseTest {
 
         val result = applyFeedOp(updateOp())
 
-        assertFalse(result)
+        assertFalse(result.roomChanged)
         coVerify(exactly = 0) { repository.updateDetails(any(), any(), any(), any(), any(), any()) }
     }
 
@@ -129,7 +145,7 @@ class ApplyFeedOpUseCaseTest {
 
         val result = applyFeedOp(deleteOp())
 
-        assertTrue(result)
+        assertTrue(result.roomChanged)
         coVerify { repository.deleteWithInventoryRestore(existing) }
     }
 
@@ -139,7 +155,7 @@ class ApplyFeedOpUseCaseTest {
 
         val result = applyFeedOp(deleteOp())
 
-        assertFalse(result)
+        assertFalse(result.roomChanged)
         coVerify(exactly = 0) { repository.deleteWithInventoryRestore(any()) }
     }
 
@@ -156,7 +172,7 @@ class ApplyFeedOpUseCaseTest {
         )
 
         invalidOps.forEach { op ->
-            assertFalse(applyFeedOp(op), op.toString())
+            assertFalse(applyFeedOp(op).roomChanged, op.toString())
         }
         coVerify(exactly = 0) { repository.insertWithBagConsume(any(), any(), any()) }
     }

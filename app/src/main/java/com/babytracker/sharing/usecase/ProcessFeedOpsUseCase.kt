@@ -2,6 +2,7 @@ package com.babytracker.sharing.usecase
 
 import android.util.Log
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.manager.PartnerFeedNotifier
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.ShareCode
@@ -25,6 +26,7 @@ class ProcessFeedOpsUseCase @Inject constructor(
     private val sharingRepository: SharingRepository,
     private val applyFeedOp: ApplyFeedOpUseCase,
     private val syncToFirestore: SyncToFirestoreUseCase,
+    private val partnerFeedNotifier: PartnerFeedNotifier,
 ) {
     /**
      * True when Room changed but the follow-up snapshot push has not succeeded yet.
@@ -71,9 +73,16 @@ class ProcessFeedOpsUseCase @Inject constructor(
      */
     private suspend fun processBatchWithRetry(code: ShareCode, ops: List<FeedOp>) {
         val sortedOps = ops.sortedBy { it.createdAtMs }
+        // Keyed by entryClientId so retries don't double-count: a re-applied create reports a null
+        // consumedBagId, so each consuming feed is recorded exactly once across all attempts.
+        val consumedBagByEntry = linkedMapOf<String, Long>()
         repeat(MAX_BATCH_ATTEMPTS) { attempt ->
             runCatching {
-                sortedOps.forEach { op -> if (applyFeedOp(op)) syncPending = true }
+                sortedOps.forEach { op ->
+                    val result = applyFeedOp(op)
+                    if (result.roomChanged) syncPending = true
+                    result.consumedBagId?.let { consumedBagByEntry[op.entryClientId] = it }
+                }
                 if (syncPending) {
                     syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS)
                     syncToFirestore(SyncToFirestoreUseCase.SyncType.INVENTORY)
@@ -81,6 +90,12 @@ class ProcessFeedOpsUseCase @Inject constructor(
                 }
                 // Always delete: leaving invalid/duplicate ops in place would re-trigger the batch forever.
                 sharingRepository.deleteFeedOps(code, ops.map { it.opId })
+                // Coalesced, after the batch fully succeeds. Wrapped so a notifier failure never
+                // re-triggers the (already deleted) batch.
+                if (consumedBagByEntry.isNotEmpty()) {
+                    runCatching { partnerFeedNotifier.notifyStashConsumed(consumedBagByEntry.values.toList()) }
+                        .onFailure { Log.w(TAG, "stash-consumed notification failed", it) }
+                }
             }
                 .onSuccess { return }
                 .onFailure { cause ->

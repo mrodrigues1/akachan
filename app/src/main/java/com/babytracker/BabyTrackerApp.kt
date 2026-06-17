@@ -49,6 +49,7 @@ class BabyTrackerApp : Application(), Configuration.Provider {
         NotificationHelper.createBreastfeedingNotificationChannel(this)
         NotificationHelper.createSleepNotificationChannel(this)
         NotificationHelper.createStashExpirationNotificationChannel(this)
+        NotificationHelper.createPartnerStashNotificationChannel(this)
         createPredictiveFeedNotificationChannel(this)
         predictiveCoordinator.start()
         createPredictiveSleepNotificationChannel(this)

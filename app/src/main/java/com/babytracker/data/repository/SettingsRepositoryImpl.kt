@@ -39,6 +39,8 @@ class SettingsRepositoryImpl @Inject constructor(
         val WAKE_TIME_MINUTES = intPreferencesKey("wake_time_minutes")
         val AUTO_UPDATE_ENABLED = booleanPreferencesKey("auto_update_enabled")
         private val RICH_NOTIFICATIONS_ENABLED = booleanPreferencesKey("rich_notifications_enabled")
+        private val PARTNER_FEED_STASH_NOTIFICATIONS_ENABLED =
+            booleanPreferencesKey("partner_feed_stash_notifications_enabled")
         val APP_MODE = stringPreferencesKey("app_mode")
         val SHARE_CODE = stringPreferencesKey("share_code")
         val PREDICTIVE_ENABLED = booleanPreferencesKey("predictive_enabled")
@@ -144,6 +146,13 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setRichNotificationsEnabled(enabled: Boolean) {
         dataStore.edit { it[RICH_NOTIFICATIONS_ENABLED] = enabled }
+    }
+
+    override fun getPartnerFeedStashNotificationsEnabled(): Flow<Boolean> =
+        dataStore.data.map { it[PARTNER_FEED_STASH_NOTIFICATIONS_ENABLED] ?: true }
+
+    override suspend fun setPartnerFeedStashNotificationsEnabled(enabled: Boolean) {
+        dataStore.edit { it[PARTNER_FEED_STASH_NOTIFICATIONS_ENABLED] = enabled }
     }
 
     override fun getAppMode(): Flow<AppMode> =

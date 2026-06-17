@@ -35,6 +35,7 @@ class SettingsViewModelTest {
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var viewModel: SettingsViewModel
     private val richNotificationsFlow = MutableStateFlow(true)
+    private val partnerStashNotificationsFlow = MutableStateFlow(true)
     private val appModeFlow = MutableStateFlow(AppMode.NONE)
     private lateinit var getBabyProfile: GetBabyProfileUseCase
 
@@ -47,6 +48,9 @@ class SettingsViewModelTest {
         every { settingsRepository.getThemeConfig() } returns flowOf(ThemeConfig.SYSTEM)
         every { settingsRepository.getAutoUpdateEnabled() } returns flowOf(true)
         every { settingsRepository.getRichNotificationsEnabled() } returns richNotificationsFlow
+        every {
+            settingsRepository.getPartnerFeedStashNotificationsEnabled()
+        } returns partnerStashNotificationsFlow
         every { settingsRepository.getAppMode() } returns appModeFlow
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         every { settingsRepository.getMeasurementSystem() } returns flowOf(MeasurementSystem.METRIC)
@@ -81,6 +85,26 @@ class SettingsViewModelTest {
 
         coVerify { settingsRepository.setRichNotificationsEnabled(false) }
         assertFalse(viewModel.uiState.value.richNotificationsEnabled)
+    }
+
+    @Test
+    fun `initial state has partnerStashNotificationsEnabled true`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.partnerStashNotificationsEnabled)
+    }
+
+    @Test
+    fun `onPartnerStashNotificationsToggled false calls repository and updates state`() = runTest {
+        coEvery { settingsRepository.setPartnerFeedStashNotificationsEnabled(false) } coAnswers {
+            partnerStashNotificationsFlow.value = false
+        }
+
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.onPartnerStashNotificationsToggled(false)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { settingsRepository.setPartnerFeedStashNotificationsEnabled(false) }
+        assertFalse(viewModel.uiState.value.partnerStashNotificationsEnabled)
     }
 
     @Test

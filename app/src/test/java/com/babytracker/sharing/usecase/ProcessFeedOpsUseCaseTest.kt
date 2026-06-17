@@ -2,6 +2,7 @@ package com.babytracker.sharing.usecase
 
 import android.util.Log
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.manager.PartnerFeedNotifier
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.FeedOpAction
@@ -15,6 +16,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.slot
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -40,6 +42,7 @@ class ProcessFeedOpsUseCaseTest {
     private val sharingRepository: SharingRepository = mockk()
     private val applyFeedOp: ApplyFeedOpUseCase = mockk()
     private val syncToFirestore: SyncToFirestoreUseCase = mockk()
+    private val partnerFeedNotifier: PartnerFeedNotifier = mockk()
     private val shareCode = ShareCode("ABCD1234")
     private lateinit var useCase: ProcessFeedOpsUseCase
 
@@ -52,10 +55,12 @@ class ProcessFeedOpsUseCaseTest {
             sharingRepository,
             applyFeedOp,
             syncToFirestore,
+            partnerFeedNotifier,
         )
-        coEvery { applyFeedOp(any()) } returns true
+        coEvery { applyFeedOp(any()) } returns FeedOpApplyResult(roomChanged = true)
         coEvery { syncToFirestore(any()) } just Runs
         coEvery { sharingRepository.deleteFeedOps(any(), any()) } just Runs
+        coEvery { partnerFeedNotifier.notifyStashConsumed(any()) } just Runs
     }
 
     @AfterEach
@@ -71,7 +76,7 @@ class ProcessFeedOpsUseCaseTest {
         val order = mutableListOf<String>()
         coEvery { applyFeedOp(any()) } coAnswers {
             order += firstArg<FeedOp>().opId
-            true
+            FeedOpApplyResult(roomChanged = true)
         }
 
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
@@ -105,7 +110,7 @@ class ProcessFeedOpsUseCaseTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
         every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
-        coEvery { applyFeedOp(any()) } returns false
+        coEvery { applyFeedOp(any()) } returns FeedOpApplyResult(roomChanged = false)
 
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
         advanceUntilIdle()
@@ -125,7 +130,7 @@ class ProcessFeedOpsUseCaseTest {
         coEvery { applyFeedOp(any()) } coAnswers {
             val id = firstArg<FeedOp>().opId
             applied += id
-            id == "op-changed"
+            FeedOpApplyResult(roomChanged = id == "op-changed")
         }
 
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
@@ -192,7 +197,8 @@ class ProcessFeedOpsUseCaseTest {
         var applyCalls = 0
         coEvery { applyFeedOp(any()) } coAnswers {
             applyCalls += 1
-            applyCalls == 1 // Room changed on first attempt; retry re-apply is a no-op
+            // Room changed on first attempt; retry re-apply is a no-op
+            FeedOpApplyResult(roomChanged = applyCalls == 1)
         }
         var bottleSyncCalls = 0
         coEvery { syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS) } coAnswers {
@@ -221,7 +227,7 @@ class ProcessFeedOpsUseCaseTest {
         var applyCalls = 0
         coEvery { applyFeedOp(any()) } coAnswers {
             applyCalls += 1
-            applyCalls == 1
+            FeedOpApplyResult(roomChanged = applyCalls == 1)
         }
         var inventorySyncCalls = 0
         coEvery { syncToFirestore(SyncToFirestoreUseCase.SyncType.INVENTORY) } coAnswers {
@@ -282,7 +288,8 @@ class ProcessFeedOpsUseCaseTest {
         var applyCalls = 0
         coEvery { applyFeedOp(any()) } coAnswers {
             applyCalls += 1
-            applyCalls == 1 // Room changed once; every re-apply is an idempotent no-op
+            // Room changed once; every re-apply is an idempotent no-op
+            FeedOpApplyResult(roomChanged = applyCalls == 1)
         }
         var bottleSyncCalls = 0
         var failSync = true
@@ -350,7 +357,7 @@ class ProcessFeedOpsUseCaseTest {
                 release.await()
             }
             order += "end-$id"
-            true
+            FeedOpApplyResult(roomChanged = true)
         }
 
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
@@ -364,6 +371,75 @@ class ProcessFeedOpsUseCaseTest {
         assertEquals(listOf("start-op-1", "end-op-1", "start-op-2", "end-op-2"), order)
         coVerify { sharingRepository.deleteFeedOps(shareCode, listOf("op-1")) }
         coVerify { sharingRepository.deleteFeedOps(shareCode, listOf("op-2")) }
+    }
+
+    @Test
+    fun `consuming feeds trigger a single coalesced stash notification`() = runTest {
+        val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
+        everyPrimaryWithCode()
+        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        coEvery { applyFeedOp(any()) } coAnswers {
+            val bagId = if (firstArg<FeedOp>().opId == "op-1") 11L else 22L
+            FeedOpApplyResult(roomChanged = true, consumedBagId = bagId)
+        }
+        val bagSlot = slot<List<Long>>()
+        coEvery { partnerFeedNotifier.notifyStashConsumed(capture(bagSlot)) } just Runs
+
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
+        advanceUntilIdle()
+        opsFlow.emit(listOf(op("op-1", 100), op("op-2", 200)))
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { partnerFeedNotifier.notifyStashConsumed(any()) }
+        assertEquals(listOf(11L, 22L), bagSlot.captured)
+    }
+
+    @Test
+    fun `batch without consumed bags does not notify`() = runTest {
+        val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
+        everyPrimaryWithCode()
+        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
+        advanceUntilIdle()
+        opsFlow.emit(listOf(op("op-1", 100)))
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { partnerFeedNotifier.notifyStashConsumed(any()) }
+    }
+
+    @Test
+    fun `replayed consuming op notifies only once across retry`() = runTest {
+        val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
+        everyPrimaryWithCode()
+        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        var applyCalls = 0
+        coEvery { applyFeedOp(any()) } coAnswers {
+            applyCalls += 1
+            // Fresh create consumes the bag once; the retry re-apply reports no consumed bag.
+            FeedOpApplyResult(
+                roomChanged = applyCalls == 1,
+                consumedBagId = if (applyCalls == 1) 11L else null,
+            )
+        }
+        var bottleSyncCalls = 0
+        coEvery { syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS) } coAnswers {
+            bottleSyncCalls += 1
+            if (bottleSyncCalls == 1) error("boom")
+            Unit
+        }
+        val bagSlot = slot<List<Long>>()
+        coEvery { partnerFeedNotifier.notifyStashConsumed(capture(bagSlot)) } just Runs
+
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
+        advanceUntilIdle()
+        opsFlow.emit(listOf(op("op-1", 100)))
+        advanceUntilIdle()
+        advanceTimeBy(5_001)
+        runCurrent()
+
+        coVerify(exactly = 1) { partnerFeedNotifier.notifyStashConsumed(any()) }
+        assertEquals(listOf(11L), bagSlot.captured)
     }
 
     private fun everyPrimaryWithCode() {
