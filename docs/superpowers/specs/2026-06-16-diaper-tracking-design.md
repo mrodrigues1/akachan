@@ -21,6 +21,8 @@ use cases, a home tile, a daily-grouped history screen, and a partner-shared sna
 - Diaper history screen with daily grouping, edit, and delete.
 - Partner sharing: diaper data flows into the read-only shared snapshot and renders on the
   partner dashboard.
+- Data export/import: diaper records included in JSON backup (with restore), CSV export, and
+  the PDF report.
 
 ## Non-goals
 
@@ -80,8 +82,9 @@ flow. New artifacts by layer:
   `id`, `timestamp`, `type`, `notes`, `created_at`. Index on `timestamp`. `toDomain()` /
   `toEntity()` extension functions (no Mapper class).
 - `data/local/dao/DiaperDao.kt` — `observeAll(): Flow<List<DiaperEntity>>`,
-  `observeLatest(): Flow<DiaperEntity?>`, `getBetween(start, end)`, `insert`, `update`,
-  `deleteById`.
+  `observeLatest(): Flow<DiaperEntity?>`, `getBetween(start, end)`,
+  `getAllOnce(): List<DiaperEntity>` (one-shot, consumed by the backup source), `insert`,
+  `update`, `deleteById`.
 - `data/repository/DiaperRepositoryImpl.kt` — implements `DiaperRepository`, `@Singleton`.
 - `BabyTrackerDatabase` — add `DiaperEntity` to `entities`, bump `version = 12 → 13`, add
   `diaperDao()`, add `MIGRATION_12_13` (CREATE TABLE + CREATE INDEX on `timestamp`). No
@@ -117,6 +120,21 @@ flow. New artifacts by layer:
 - `sharing/data/firebase/FirestoreSnapshotMapping.kt` — read/write the `diapers` array.
 - `ui/partner/PartnerDashboardScreen.kt` + `PartnerDashboardViewModel.kt` — `PartnerDiaperCard`
   showing last change + today count from the fetched snapshot.
+
+### Export / import layer (`export/`)
+- `export/domain/model/BackupData.kt` — bump `CURRENT_BACKUP_FORMAT_VERSION = 3 → 4`; add
+  `diapers: List<DiaperBackup> = emptyList()` and the `@Serializable DiaperBackup` data class
+  (`id`, `timestamp`, `type`, `notes`, `createdAt`).
+- `export/domain/BackupSource.kt` — add `diapers` to `TrackingSnapshot`.
+- `export/data/BackupSourceImpl.kt` — read `db.diaperDao().getAllOnce()` inside the existing
+  transaction.
+- `export/data/BackupConverters.kt` — `DiaperEntity.toBackup()` / `DiaperBackup.toEntity()`.
+- `export/data/BackupImporterImpl.kt` — `mergeDiapers(data)` with identity dedup
+  (`[timestamp, type, notes, createdAt]`); add a `diapers` count to `ImportCounts`.
+- `export/domain/usecase/ExportCsvUseCase.kt` — add a `"diapers"` CSV section
+  (`id, timestamp, type, notes, created_at`).
+- `export/domain/usecase/GeneratePdfReportUseCase.kt` + `export/data/PdfReportGenerator.kt` —
+  include a diaper section (daily counts by type) in the report.
 
 ## Data Flow
 
@@ -155,8 +173,12 @@ SyncToFirestoreUseCase ──▶ SnapshotSources.diaper ──▶ DomainToSnapsh
    nav graph. Tests + UI test.
 5. **Partner sync** — `DiaperSnapshot` in `ShareSnapshot`, `SnapshotSources`, `DomainToSnapshot`,
    `FirestoreSnapshotMapping`, `PartnerDiaperCard`. Tests.
+6. **Export / import** — `DiaperBackup` + backup format v4, `TrackingSnapshot`/`BackupSourceImpl`
+   read, `BackupConverters`, `BackupImporterImpl.mergeDiapers`, `ExportCsvUseCase` section, PDF
+   report section. Unit tests for convert/import/CSV/PDF.
 
-Each issue builds on the previous and is independently shippable. Final granularity is set when
+Issues 2–6 depend only on issue 1 (the data layer); issues 3–6 are otherwise independent of each
+other and can proceed in parallel. Each is independently shippable. Final granularity is set when
 these are converted to Linear issues with implementation plans.
 
 ## Risks / Notes
@@ -166,3 +188,5 @@ these are converted to Linear issues with implementation plans.
   optional/defaulted, so older readers ignore it safely (same pattern as `bottleFeeds`,
   `growth`, `milestones`).
 - `HomeTile` ordering is auto-reconciled; verify the new tile lands in a sensible default slot.
+- Backup format bump `3 → 4` is forward-compatible (older importers ignore the defaulted
+  `diapers` field); restore dedups by identity so re-imports never duplicate rows.
