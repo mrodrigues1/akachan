@@ -4,6 +4,7 @@ import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.SleepPredictionState
+import com.babytracker.domain.model.TodayDiaperSummary
 import com.babytracker.domain.model.TodayFeedingSummary
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.InventoryRepository
@@ -13,6 +14,7 @@ import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
+import com.babytracker.domain.usecase.diaper.ObserveTodayDiaperSummaryUseCase
 import com.babytracker.domain.usecase.feeding.ObserveTodayFeedingSummaryUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
@@ -50,6 +52,7 @@ class HomeViewModelTileOrderTest {
     private lateinit var predictNextFeed: PredictNextFeedUseCase
     private lateinit var predictSleepWindow: PredictSleepWindowUseCase
     private lateinit var observeTodayFeedingSummary: ObserveTodayFeedingSummaryUseCase
+    private lateinit var observeTodayDiaperSummary: ObserveTodayDiaperSummaryUseCase
     private lateinit var logBabyEvent: LogBabyEventUseCase
     private lateinit var viewModel: HomeViewModel
     private val testDispatcher = StandardTestDispatcher()
@@ -69,6 +72,7 @@ class HomeViewModelTileOrderTest {
         predictNextFeed = mockk()
         predictSleepWindow = mockk()
         observeTodayFeedingSummary = mockk()
+        observeTodayDiaperSummary = mockk()
         logBabyEvent = mockk()
 
         every { getBabyProfile() } returns flowOf(testBaby)
@@ -82,6 +86,7 @@ class HomeViewModelTileOrderTest {
         every { predictNextFeed() } returns flowOf(null)
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("test"))
         every { observeTodayFeedingSummary() } returns flowOf(TodayFeedingSummary())
+        every { observeTodayDiaperSummary() } returns flowOf(TodayDiaperSummary())
         coJustRun { syncToFirestore(any()) }
         coJustRun { logBabyEvent(any()) }
     }
@@ -102,6 +107,7 @@ class HomeViewModelTileOrderTest {
         predictNextFeed,
         predictSleepWindow,
         observeTodayFeedingSummary,
+        observeTodayDiaperSummary,
         logBabyEvent,
     )
 

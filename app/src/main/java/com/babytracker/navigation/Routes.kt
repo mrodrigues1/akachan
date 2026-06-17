@@ -22,6 +22,7 @@ object Routes {
     const val INVENTORY = "inventory"
     const val INVENTORY_SETTINGS = "inventory/settings"
     const val BOTTLE_FEED = "bottle_feed"
+    const val DIAPER = "diaper"
     const val GROWTH = "growth"
     const val MILESTONES = "milestones"
     const val MILESTONE_DETAIL_ARG = "milestoneId"
