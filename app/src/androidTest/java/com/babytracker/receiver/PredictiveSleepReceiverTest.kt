@@ -125,6 +125,8 @@ class PredictiveSleepReceiverTest {
             override suspend fun setAutoUpdateEnabled(enabled: Boolean) = Unit
             override fun getRichNotificationsEnabled(): Flow<Boolean> = flowOf(true)
             override suspend fun setRichNotificationsEnabled(enabled: Boolean) = Unit
+            override fun getPartnerFeedStashNotificationsEnabled(): Flow<Boolean> = flowOf(true)
+            override suspend fun setPartnerFeedStashNotificationsEnabled(enabled: Boolean) = Unit
             override fun getAppMode(): Flow<AppMode> = flowOf(AppMode.NONE)
             override suspend fun setAppMode(mode: AppMode) = Unit
             override fun getShareCode(): Flow<String?> = flowOf(null)

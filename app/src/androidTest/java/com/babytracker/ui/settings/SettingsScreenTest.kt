@@ -200,6 +200,10 @@ class SettingsScreenTest {
 
         override suspend fun setRichNotificationsEnabled(enabled: Boolean) = Unit
 
+        override fun getPartnerFeedStashNotificationsEnabled(): Flow<Boolean> = flowOf(true)
+
+        override suspend fun setPartnerFeedStashNotificationsEnabled(enabled: Boolean) = Unit
+
         override fun getAppMode(): Flow<com.babytracker.sharing.domain.model.AppMode> =
             flowOf(com.babytracker.sharing.domain.model.AppMode.PARTNER)
 
