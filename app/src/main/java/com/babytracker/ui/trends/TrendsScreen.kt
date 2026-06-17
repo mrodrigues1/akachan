@@ -33,15 +33,19 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.domain.trends.DailyFeedVsSleep
 import com.babytracker.domain.trends.DailyFeedingCount
 import com.babytracker.domain.trends.DailyFeedingInterval
 import com.babytracker.domain.trends.DailySleepDuration
+import com.babytracker.domain.trends.DayRhythm
 import com.babytracker.domain.trends.TrendRange
 import com.babytracker.ui.theme.growthColors
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.axis.Axis
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
@@ -139,6 +143,8 @@ fun TrendsScreen(
             FeedingFrequencyCard(uiState.feedingFrequency)
             SleepDurationCard(uiState.sleepDuration)
             FeedingIntervalCard(uiState.feedingInterval)
+            FeedVsSleepCard(uiState.feedVsSleep)
+            RhythmStripCard(uiState.dayRhythm)
         }
     }
 }
@@ -174,6 +180,7 @@ private fun ChartCard(
     chartTestTag: String,
     isEmpty: Boolean,
     chartContentDescription: String,
+    chartHeight: Dp? = 220.dp,
     chart: @Composable () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -192,7 +199,8 @@ private fun ChartCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp)
+                        .then(if (chartHeight != null) Modifier.height(chartHeight) else Modifier)
+                        .padding(top = if (chartHeight == null) 12.dp else 0.dp)
                         .testTag(chartTestTag)
                         .semantics { contentDescription = chartContentDescription },
                 ) {
@@ -348,6 +356,83 @@ private fun FeedingIntervalCard(data: List<DailyFeedingInterval>) {
             producer,
             modifier = Modifier.fillMaxSize(),
         )
+    }
+}
+
+@Composable
+private fun FeedVsSleepCard(data: List<DailyFeedVsSleep>) {
+    val isEmpty = data.all { it.feedCount == 0 && it.sleepHours == 0.0 }
+    val feedColor = MaterialTheme.colorScheme.primary
+    val sleepColor = MaterialTheme.colorScheme.secondary
+    val label = rememberChartLabel()
+    val axisTitle = rememberAxisTitle()
+    val producer = remember { CartesianChartModelProducer() }
+    LaunchedEffect(data) {
+        if (!isEmpty) {
+            producer.runTransaction {
+                columnSeries { series(data.indices.toList(), data.map { it.feedCount }) }
+                lineSeries { series(data.indices.toList(), data.map { it.sleepHours }) }
+            }
+        }
+    }
+    val sleepLine = lineSpec(sleepColor)
+    ChartCard(
+        title = "Feeds vs sleep per day",
+        chartTestTag = "trends_feedvssleep_chart",
+        isEmpty = isEmpty,
+        chartContentDescription =
+        "Feeds versus sleep per day over ${data.size} days. " +
+            "Columns are feed count, line is total sleep hours.",
+    ) {
+        CartesianChartHost(
+            rememberCartesianChart(
+                rememberColumnCartesianLayer(
+                    ColumnCartesianLayer.ColumnProvider.series(
+                        rememberLineComponent(fill = Fill(feedColor), thickness = COLUMN_THICKNESS_DP.dp),
+                    ),
+                    verticalAxisPosition = Axis.Position.Vertical.Start,
+                ),
+                rememberLineCartesianLayer(
+                    LineCartesianLayer.LineProvider.series(sleepLine),
+                    verticalAxisPosition = Axis.Position.Vertical.End,
+                ),
+                startAxis = VerticalAxis.rememberStart(
+                    label = label,
+                    titleComponent = axisTitle,
+                    title = { "Feeds" },
+                ),
+                endAxis = VerticalAxis.rememberEnd(
+                    label = label,
+                    titleComponent = axisTitle,
+                    title = { "Sleep hrs" },
+                ),
+                bottomAxis = HorizontalAxis.rememberBottom(
+                    label = label,
+                    valueFormatter = dateAxisFormatter(data.map { it.date }),
+                    itemPlacer = dayAxisItemPlacer(data.size),
+                    titleComponent = axisTitle,
+                    title = { "Date" },
+                ),
+            ),
+            producer,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
+@Composable
+private fun RhythmStripCard(data: List<DayRhythm>) {
+    val isEmpty = data.all { it.sleepBlocks.isEmpty() && it.feedMarks.isEmpty() }
+    ChartCard(
+        title = "Daily rhythm (sleep + feeds)",
+        chartTestTag = "trends_rhythm_chart",
+        isEmpty = isEmpty,
+        chartContentDescription =
+        "Daily rhythm over ${data.size} days, each row a day from midnight to midnight. " +
+            "Bars are sleep, dots are feeds.",
+        chartHeight = null,
+    ) {
+        RhythmStrip(data)
     }
 }
 

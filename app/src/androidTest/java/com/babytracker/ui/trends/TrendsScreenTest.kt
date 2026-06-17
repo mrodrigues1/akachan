@@ -5,10 +5,15 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.trends.DailyFeedVsSleep
 import com.babytracker.domain.trends.DailyFeedingCount
 import com.babytracker.domain.trends.DailyFeedingInterval
 import com.babytracker.domain.trends.DailySleepDuration
+import com.babytracker.domain.trends.DayRhythm
+import com.babytracker.domain.trends.RhythmBlock
 import com.babytracker.domain.trends.TrendRange
+import com.babytracker.domain.usecase.trends.GetDayRhythmTrendUseCase
+import com.babytracker.domain.usecase.trends.GetFeedVsSleepTrendUseCase
 import com.babytracker.domain.usecase.trends.GetFeedingFrequencyTrendUseCase
 import com.babytracker.domain.usecase.trends.GetFeedingIntervalTrendUseCase
 import com.babytracker.domain.usecase.trends.GetSleepDurationTrendUseCase
@@ -28,12 +33,18 @@ class TrendsScreenTest {
     private val frequency = mockk<GetFeedingFrequencyTrendUseCase>()
     private val sleep = mockk<GetSleepDurationTrendUseCase>()
     private val interval = mockk<GetFeedingIntervalTrendUseCase>()
+    private val feedVsSleep = mockk<GetFeedVsSleepTrendUseCase>()
+    private val rhythm = mockk<GetDayRhythmTrendUseCase>()
 
-    private fun viewModel(): TrendsViewModel {
+    private fun newViewModel() = TrendsViewModel(frequency, sleep, interval, feedVsSleep, rhythm)
+
+    private fun emptyViewModel(): TrendsViewModel {
         coEvery { frequency(any()) } returns emptyList()
         coEvery { sleep(any()) } returns emptyList()
         coEvery { interval(any()) } returns emptyList()
-        return TrendsViewModel(frequency, sleep, interval)
+        coEvery { feedVsSleep(any()) } returns emptyList()
+        coEvery { rhythm(any()) } returns emptyList()
+        return newViewModel()
     }
 
     private fun setScreen(vm: TrendsViewModel) {
@@ -46,7 +57,7 @@ class TrendsScreenTest {
 
     @Test
     fun rangeSelectorAndEmptyStatesRender() {
-        setScreen(viewModel())
+        setScreen(emptyViewModel())
 
         composeRule.onNodeWithTag("trends_range_7").assertIsDisplayed()
         composeRule.onNodeWithTag("trends_range_14").assertIsDisplayed()
@@ -56,6 +67,8 @@ class TrendsScreenTest {
         composeRule.onNodeWithTag("trends_feeding_chart_empty").assertIsDisplayed()
         composeRule.onNodeWithTag("trends_sleep_chart_empty").assertIsDisplayed()
         composeRule.onNodeWithTag("trends_interval_chart_empty").assertIsDisplayed()
+        composeRule.onNodeWithTag("trends_feedvssleep_chart_empty").assertIsDisplayed()
+        composeRule.onNodeWithTag("trends_rhythm_chart_empty").assertIsDisplayed()
     }
 
     @Test
@@ -68,18 +81,28 @@ class TrendsScreenTest {
         coEvery { frequency(any()) } returns List(30) { DailyFeedingCount(day(it), (it % 9) + 1) }
         coEvery { sleep(any()) } returns List(30) { DailySleepDuration(day(it), nightHours = 8.0, napHours = 4.0) }
         coEvery { interval(any()) } returns List(30) { DailyFeedingInterval(day(it), averageHours = 3.0) }
+        coEvery { feedVsSleep(any()) } returns List(30) { DailyFeedVsSleep(day(it), (it % 9) + 1, 12.0) }
+        coEvery { rhythm(any()) } returns List(30) {
+            DayRhythm(
+                date = day(it),
+                sleepBlocks = listOf(RhythmBlock(0.0f, 0.25f, isNight = true)),
+                feedMarks = listOf(0.3f, 0.6f),
+            )
+        }
 
-        setScreen(TrendsViewModel(frequency, sleep, interval))
+        setScreen(newViewModel())
 
-        composeRule.onNodeWithTag("trends_feeding_chart").assertIsDisplayed()
+        composeRule.onNodeWithTag("trends_feedvssleep_chart").assertIsDisplayed()
+        composeRule.onNodeWithTag("trends_rhythm_chart").assertIsDisplayed()
         composeRule.onNodeWithTag("trends_range_30").performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("trends_feeding_chart").assertIsDisplayed()
+        composeRule.onNodeWithTag("trends_feedvssleep_chart").assertIsDisplayed()
+        composeRule.onNodeWithTag("trends_rhythm_chart").assertIsDisplayed()
     }
 
     @Test
     fun selectingRangeRecomputes() {
-        setScreen(viewModel())
+        setScreen(emptyViewModel())
 
         composeRule.onNodeWithTag("trends_range_30").performClick()
         composeRule.waitForIdle()
