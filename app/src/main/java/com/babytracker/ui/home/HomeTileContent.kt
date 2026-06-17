@@ -55,6 +55,7 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.SleepPredictionState
@@ -106,11 +107,37 @@ internal fun reorderByKey(
     return order.map { tile -> if (tile in visibleSet) next.next() else tile }
 }
 
-internal fun HomeTile.isVisible(uiState: HomeUiState): Boolean = when (this) {
-    HomeTile.TIP -> uiState.nextRecommendedSide != null
-    HomeTile.PARTNER -> uiState.appMode == AppMode.NONE
-    HomeTile.SLEEP_PREDICTION -> uiState.sleepPrediction !is SleepPredictionState.Unavailable
-    else -> true
+/**
+ * The feature a tile belongs to, or null for derived tiles (FEEDING_HISTORY, TRENDS — see
+ * [isVisible]) and always-on tiles (PARTNER). Single source of truth for feature gating.
+ */
+internal fun HomeTile.requiredFeature(): AppFeature? = when (this) {
+    HomeTile.BREASTFEEDING -> AppFeature.BREASTFEEDING
+    HomeTile.BOTTLE_FEED -> AppFeature.BOTTLE_FEED
+    HomeTile.PUMPING -> AppFeature.PUMPING
+    HomeTile.INVENTORY -> AppFeature.INVENTORY
+    HomeTile.SLEEP, HomeTile.SLEEP_PREDICTION -> AppFeature.SLEEP
+    HomeTile.DIAPER -> AppFeature.DIAPERS
+    HomeTile.GROWTH -> AppFeature.GROWTH
+    HomeTile.MILESTONES -> AppFeature.MILESTONES
+    HomeTile.TIP -> AppFeature.BREASTFEEDING
+    HomeTile.FEEDING_HISTORY -> null
+    HomeTile.TRENDS -> null
+    HomeTile.PARTNER -> null
+}
+
+internal fun HomeTile.isVisible(uiState: HomeUiState): Boolean {
+    val features = uiState.enabledFeatures
+    return when (this) {
+        HomeTile.FEEDING_HISTORY ->
+            AppFeature.BREASTFEEDING in features || AppFeature.BOTTLE_FEED in features
+        HomeTile.TRENDS -> features.isNotEmpty()
+        HomeTile.TIP -> AppFeature.BREASTFEEDING in features && uiState.nextRecommendedSide != null
+        HomeTile.SLEEP_PREDICTION ->
+            AppFeature.SLEEP in features && uiState.sleepPrediction !is SleepPredictionState.Unavailable
+        HomeTile.PARTNER -> uiState.appMode == AppMode.NONE
+        else -> requiredFeature()?.let { it in features } ?: true
+    }
 }
 
 @Composable
