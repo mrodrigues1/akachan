@@ -52,6 +52,12 @@ object SleepPredictionTuning {
     const val CIRCADIAN_MIN_AGE_WEEKS = 6
     const val CIRCADIAN_FULL_WEIGHT_AGE_WEEKS = 12
     const val CIRCADIAN_MAX_SHIFT_MINUTES = 20L
+    // Asymmetric cap (Phase 6, AKA-156). The reported symptom is one-directional — windows land too
+    // far *ahead* — and a population heuristic that pushes a baby's bedtime *later* toward the textbook
+    // slot directly works against that. So the circadian factor may pull earlier up to
+    // CIRCADIAN_MAX_SHIFT_MINUTES but later only up to this much; eval-tuned to clear the residual
+    // late bias on the typical/short-wake cohorts without regressing long-wake.
+    const val CIRCADIAN_MAX_LATER_SHIFT_MINUTES = 5L
     const val CIRCADIAN_TARGET_NEUTRALITY_MINUTES = 10L
     const val SLEEP_DEBT_MAX_SHIFT_MINUTES = 20L
     const val SLEEP_DEBT_SCALE_MINUTES_PER_HOUR = 5L

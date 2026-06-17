@@ -51,6 +51,36 @@ class CircadianBiasFactorTest {
     }
 
     @Test
+    fun `later push is capped tighter than the earlier pull (asymmetric)`() {
+        // Candidate well before the 19:30 slot ⇒ wants to push later; candidate well after ⇒ pulls earlier.
+        val laterPush = CircadianBiasFactor.adjustment(
+            ageInWeeks = 20,
+            nextType = SleepType.NIGHT_SLEEP,
+            currentMinuteOfDay = 16 * 60,
+            candidateMinuteOfDay = 16 * 60,
+            napCountToday = 2,
+        )
+        val earlierPull = CircadianBiasFactor.adjustment(
+            ageInWeeks = 20,
+            nextType = SleepType.NIGHT_SLEEP,
+            currentMinuteOfDay = 23 * 60,
+            candidateMinuteOfDay = 23 * 60,
+            napCountToday = 2,
+        )
+
+        assertTrue(
+            laterPush.adjustment > Duration.ZERO &&
+                laterPush.adjustment <= Duration.ofMinutes(SleepPredictionTuning.CIRCADIAN_MAX_LATER_SHIFT_MINUTES),
+            "Later push must be positive but capped at CIRCADIAN_MAX_LATER_SHIFT_MINUTES; got ${laterPush.adjustment}",
+        )
+        assertTrue(earlierPull.adjustment < Duration.ZERO, "Earlier pull must be negative")
+        assertTrue(
+            earlierPull.adjustment.abs() > laterPush.adjustment,
+            "The earlier pull must be stronger than the later push (symptom is one-directional: too late)",
+        )
+    }
+
+    @Test
     fun `near target returns neutral`() {
         // 20w bedtime window 19:00-20:00, midpoint 19:30 (1170 min). Candidate at 19:25 is 5 min away — within
         // CIRCADIAN_TARGET_NEUTRALITY_MINUTES threshold of 10, so adjustment is suppressed.

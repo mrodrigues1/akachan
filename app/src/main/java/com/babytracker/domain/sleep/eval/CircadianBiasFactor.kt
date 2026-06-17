@@ -30,9 +30,11 @@ object CircadianBiasFactor {
         }
 
         val ramp = rampWeight(ageInWeeks)
+        // Asymmetric: a positive diff pushes the window later (toward the slot) and is capped tightly;
+        // a negative diff pulls it earlier and keeps the full range. See CIRCADIAN_MAX_LATER_SHIFT.
         val capped = diffMinutes.coerceIn(
             -SleepPredictionTuning.CIRCADIAN_MAX_SHIFT_MINUTES.toInt(),
-            SleepPredictionTuning.CIRCADIAN_MAX_SHIFT_MINUTES.toInt(),
+            SleepPredictionTuning.CIRCADIAN_MAX_LATER_SHIFT_MINUTES.toInt(),
         )
         val adjustmentMinutes = (capped * ramp).roundToLong()
         if (adjustmentMinutes == 0L) return SleepPredictionFactor.Neutral
