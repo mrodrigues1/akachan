@@ -1,7 +1,9 @@
 package com.babytracker.manager
 
 import com.babytracker.di.ApplicationScope
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.FeedPrediction
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.FeedSettingsRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
@@ -39,6 +41,7 @@ class PredictiveFeedNotificationCoordinator @Inject constructor(
     // Quiet hours are shared with predictive sleep, so they stay on SettingsRepository.
     private val settingsRepository: SettingsRepository,
     private val scheduler: PredictiveFeedScheduler,
+    private val featureToggleRepository: FeatureToggleRepository,
     @ApplicationScope private val applicationScope: CoroutineScope,
 ) {
 
@@ -46,13 +49,18 @@ class PredictiveFeedNotificationCoordinator @Inject constructor(
     fun start() {
         applicationScope.launch {
             combine(
-                predictNextFeed(),
-                feedSettingsRepository.getPredictiveEnabled(),
-                feedSettingsRepository.getPredictiveLeadMinutes(),
-                settingsRepository.getQuietHoursStartMinute(),
-                settingsRepository.getQuietHoursEndMinute(),
-            ) { prediction, enabled, lead, quietStart, quietEnd ->
-                ReconcileParams(prediction, enabled, lead, quietStart, quietEnd)
+                combine(
+                    predictNextFeed(),
+                    feedSettingsRepository.getPredictiveEnabled(),
+                    feedSettingsRepository.getPredictiveLeadMinutes(),
+                    settingsRepository.getQuietHoursStartMinute(),
+                    settingsRepository.getQuietHoursEndMinute(),
+                ) { prediction, enabled, lead, quietStart, quietEnd ->
+                    ReconcileParams(prediction, enabled, lead, quietStart, quietEnd)
+                },
+                featureToggleRepository.getEnabledFeatures(),
+            ) { params, features ->
+                params.copy(enabled = params.enabled && AppFeature.BREASTFEEDING in features)
             }
                 .debounce(DEBOUNCE_MS)
                 .collect { params ->

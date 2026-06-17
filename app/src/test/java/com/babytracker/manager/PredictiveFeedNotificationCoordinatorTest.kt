@@ -1,6 +1,8 @@
 package com.babytracker.manager
 
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.FeedPrediction
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.FeedSettingsRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
@@ -38,6 +40,22 @@ class PredictiveFeedNotificationCoordinatorTest {
         advanceTimeBy(300)
         verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), p.predictedAt) }
         verify(exactly = 0) { scheduler.cancelPredictiveReminder() }
+    }
+
+    @Test
+    fun `cancels reminder when breastfeeding feature is disabled`() = runTest {
+        val scheduler = mockk<PredictiveFeedScheduler>(relaxed = true)
+        val coordinator = buildCoordinator(
+            scheduler = scheduler,
+            predictionFlow = MutableStateFlow(prediction(Instant.now().plusSeconds(3600))),
+            enabledFlow = MutableStateFlow(true),
+            leadFlow = MutableStateFlow(15),
+            featuresFlow = MutableStateFlow(setOf(AppFeature.SLEEP)),
+        )
+        coordinator.start()
+        advanceTimeBy(300)
+        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any()) }
+        verify(exactly = 1) { scheduler.cancelPredictiveReminder() }
     }
 
     @Test
@@ -177,6 +195,7 @@ class PredictiveFeedNotificationCoordinatorTest {
         leadFlow: MutableStateFlow<Int>,
         quietStartFlow: MutableStateFlow<Int> = MutableStateFlow(0),
         quietEndFlow: MutableStateFlow<Int> = MutableStateFlow(0),
+        featuresFlow: MutableStateFlow<Set<AppFeature>> = MutableStateFlow(AppFeature.ALL),
     ): PredictiveFeedNotificationCoordinator {
         val useCase = mockk<PredictNextFeedUseCase>().also {
             every { it.invoke() } returns predictionFlow
@@ -189,11 +208,15 @@ class PredictiveFeedNotificationCoordinatorTest {
             every { it.getQuietHoursStartMinute() } returns quietStartFlow
             every { it.getQuietHoursEndMinute() } returns quietEndFlow
         }
+        val featureToggle = mockk<FeatureToggleRepository>().also {
+            every { it.getEnabledFeatures() } returns featuresFlow
+        }
         return PredictiveFeedNotificationCoordinator(
             predictNextFeed = useCase,
             feedSettingsRepository = feedSettings,
             settingsRepository = settings,
             scheduler = scheduler,
+            featureToggleRepository = featureToggle,
             applicationScope = backgroundScope,
         )
     }

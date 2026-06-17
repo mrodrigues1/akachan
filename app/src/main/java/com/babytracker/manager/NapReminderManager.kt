@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import com.babytracker.domain.model.AppFeature
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.receiver.NapReminderReceiver
 import com.babytracker.receiver.NapReminderReceiver.Companion.EXTRA_TRIGGER_AT_MS
@@ -19,6 +21,7 @@ import javax.inject.Singleton
 class NapReminderManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val sleepSettingsRepository: SleepSettingsRepository,
+    private val featureToggleRepository: FeatureToggleRepository,
 ) : NapReminderScheduler {
 
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
@@ -46,7 +49,8 @@ class NapReminderManager @Inject constructor(
     }
 
     override suspend fun scheduleIfEnabled(napEndTime: Instant) {
-        val enabled = sleepSettingsRepository.getNapReminderEnabled().first()
+        val sleepEnabled = AppFeature.SLEEP in featureToggleRepository.getEnabledFeatures().first()
+        val enabled = sleepEnabled && sleepSettingsRepository.getNapReminderEnabled().first()
         if (enabled) {
             val delayMinutes = sleepSettingsRepository.getNapReminderDelayMinutes().first()
             schedule(napEndTime, delayMinutes)

@@ -1,9 +1,11 @@
 package com.babytracker.manager
 
 import com.babytracker.di.ApplicationScope
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.RecommendationLifecycle
 import com.babytracker.domain.model.RecommendationOutcome
 import com.babytracker.domain.model.SleepPredictionState
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
@@ -28,6 +30,7 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
     private val scheduler: PredictiveSleepScheduler,
     private val sleepRepository: SleepRepository,
     private val recommendation: SleepRecommendationUseCases,
+    private val featureToggleRepository: FeatureToggleRepository,
     @ApplicationScope private val applicationScope: CoroutineScope,
 ) {
 
@@ -44,13 +47,18 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
     fun start() {
         applicationScope.launch {
             combine(
-                predictSleepWindow(),
-                sleepSettingsRepository.getPredictiveSleepEnabled(),
-                sleepSettingsRepository.getPredictiveSleepLeadMinutes(),
-                settingsRepository.getQuietHoursStartMinute(),
-                settingsRepository.getQuietHoursEndMinute(),
-            ) { state, enabled, lead, quietStart, quietEnd ->
-                ReconcileParams(state, enabled, lead, quietStart, quietEnd)
+                combine(
+                    predictSleepWindow(),
+                    sleepSettingsRepository.getPredictiveSleepEnabled(),
+                    sleepSettingsRepository.getPredictiveSleepLeadMinutes(),
+                    settingsRepository.getQuietHoursStartMinute(),
+                    settingsRepository.getQuietHoursEndMinute(),
+                ) { state, enabled, lead, quietStart, quietEnd ->
+                    ReconcileParams(state, enabled, lead, quietStart, quietEnd)
+                },
+                featureToggleRepository.getEnabledFeatures(),
+            ) { params, features ->
+                params.copy(enabled = params.enabled && AppFeature.SLEEP in features)
             }
                 .debounce(DEBOUNCE_MS)
                 .collect { params ->
