@@ -7,6 +7,7 @@ import com.babytracker.data.repository.BottleFeedRepositoryImpl
 import com.babytracker.data.growth.AssetWhoReferenceData
 import com.babytracker.data.repository.BreastfeedingRepositoryImpl
 import com.babytracker.data.repository.DiaperRepositoryImpl
+import com.babytracker.data.repository.FeatureToggleRepositoryImpl
 import com.babytracker.data.repository.GrowthRepositoryImpl
 import com.babytracker.data.repository.InventoryRepositoryImpl
 import com.babytracker.data.repository.MilestoneRepositoryImpl
@@ -21,6 +22,7 @@ import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.growth.WhoReferenceData
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.DiaperRepository
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.GrowthRepository
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.MilestoneRepository
@@ -79,6 +81,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindDiaperRepository(impl: DiaperRepositoryImpl): DiaperRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindFeatureToggleRepository(impl: FeatureToggleRepositoryImpl): FeatureToggleRepository
 
     @Binds
     @Singleton
