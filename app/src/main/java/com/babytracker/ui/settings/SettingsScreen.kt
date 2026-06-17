@@ -102,6 +102,7 @@ fun SettingsScreen(
     onNavigateToDesignSystem: () -> Unit = {},
     onNavigateToManageSharing: () -> Unit = {},
     onNavigateToConnectPartner: () -> Unit = {},
+    onNavigateToFeatures: () -> Unit = {},
     onDisconnect: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
     dataVm: DataExportViewModel = hiltViewModel(),
@@ -299,6 +300,14 @@ fun SettingsScreen(
                     ThemeConfig.DARK -> "Dark"
                 },
                 onClick = { activeSheet = SettingsSheet.THEME }
+            )
+            HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+
+            SettingsRow(
+                label = "What you track",
+                value = "Choose which trackers appear",
+                actionLabel = "Manage",
+                onClick = onNavigateToFeatures,
             )
             HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
 
