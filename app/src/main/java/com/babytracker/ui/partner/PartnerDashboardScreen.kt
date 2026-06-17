@@ -335,7 +335,8 @@ private fun DashboardContent(
         snapshot.sleepRecords.isNotEmpty() ||
         snapshot.bottleFeeds.isNotEmpty() ||
         snapshot.growth.isNotEmpty() ||
-        snapshot.milestones.isNotEmpty()
+        snapshot.milestones.isNotEmpty() ||
+        snapshot.diapers.isNotEmpty()
     val lastSharedText = remember(snapshot.lastSyncAt, nowMs) {
         Duration.between(snapshot.lastSyncAt, now).coerceAtLeast(Duration.ZERO).formatElapsedAgo()
     }
@@ -504,6 +505,11 @@ private fun CompactDashboardContent(
         if (snapshot.growth.isNotEmpty() || snapshot.milestones.isNotEmpty()) {
             Spacer(modifier = Modifier.height(16.dp))
             PartnerGrowthMilestonesCard(snapshot = snapshot, modifier = Modifier.fillMaxWidth())
+        }
+
+        if (snapshot.diapers.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            PartnerDiaperCard(diapers = snapshot.diapers, modifier = Modifier.fillMaxWidth())
         }
 
         if (!hasSharedRecords) {

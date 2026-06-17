@@ -2,6 +2,7 @@ package com.babytracker.sharing.data.firebase
 
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
+import com.babytracker.sharing.domain.model.DiaperSnapshot
 import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.FeedOpAction
 import com.babytracker.sharing.domain.model.GrowthSnapshot
@@ -27,6 +28,19 @@ internal fun snapshotToMap(snapshot: ShareSnapshot): Map<String, Any?> = mapOf(
     "sleepPrediction" to snapshot.sleepPrediction?.let { predictionToMap(it) },
     "growth" to snapshot.growth.map { growthToMap(it) },
     "milestones" to snapshot.milestones.map { milestoneToMap(it) },
+    "diapers" to snapshot.diapers.map { diaperToMap(it) },
+)
+
+internal fun diaperToMap(diaper: DiaperSnapshot): Map<String, Any?> = mapOf(
+    "timestamp" to diaper.timestamp,
+    "type" to diaper.type,
+    "notes" to diaper.notes,
+)
+
+internal fun mapToDiaper(map: Map<*, *>): DiaperSnapshot = DiaperSnapshot(
+    timestamp = (map["timestamp"] as? Number)?.toLong() ?: 0L,
+    type = map["type"] as? String ?: "WET",
+    notes = map["notes"] as? String,
 )
 
 internal fun growthToMap(growth: GrowthSnapshot): Map<String, Any?> = mapOf(
@@ -125,6 +139,10 @@ internal fun mapToSnapshot(data: Map<*, *>): ShareSnapshot {
         ?.filterIsInstance<Map<*, *>>()
         ?.map { mapToMilestone(it) }
         .orEmpty()
+    val diapers = (data["diapers"] as? List<*>)
+        ?.filterIsInstance<Map<*, *>>()
+        ?.map { mapToDiaper(it) }
+        .orEmpty()
     return ShareSnapshot(
         lastSyncAt = lastSyncAt,
         baby = baby,
@@ -138,6 +156,7 @@ internal fun mapToSnapshot(data: Map<*, *>): ShareSnapshot {
         sleepPrediction = sleepPrediction,
         growth = growth,
         milestones = milestones,
+        diapers = diapers,
     )
 }
 

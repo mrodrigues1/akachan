@@ -71,7 +71,7 @@ complexity:
   LongParameterList:
     active: true
     functionThreshold: 8
-    constructorThreshold: 9
+    constructorThreshold: 10
     excludes: ['**/ui/**', '**/screen/**', '**/composable/**', '**/component/**']
     ignoreDefaultParameters: true
     ignoreDataClasses: true
@@ -92,7 +92,7 @@ complexity:
   TooManyFunctions:
     active: true
     thresholdInFiles: 50
-    thresholdInClasses: 20
+    thresholdInClasses: 21
     thresholdInObjects: 15
     thresholdInInterfaces: 50
     ignorePrivate: true

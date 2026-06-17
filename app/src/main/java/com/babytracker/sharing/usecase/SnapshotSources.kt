@@ -3,6 +3,7 @@ package com.babytracker.sharing.usecase
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.DiaperRepository
 import com.babytracker.domain.repository.GrowthRepository
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.MilestoneRepository
@@ -20,6 +21,7 @@ class SnapshotSources @Inject constructor(
     val sleep: SleepRepository,
     val inventory: InventoryRepository,
     val bottleFeeds: BottleFeedRepository,
+    val diaper: DiaperRepository,
     val predictSleepWindow: PredictSleepWindowUseCase,
     val growth: GrowthRepository,
     val milestones: MilestoneRepository,

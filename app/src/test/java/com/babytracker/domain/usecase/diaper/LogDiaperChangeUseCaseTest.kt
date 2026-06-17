@@ -3,7 +3,9 @@ package com.babytracker.domain.usecase.diaper
 import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.model.DiaperType
 import com.babytracker.domain.repository.DiaperRepository
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
@@ -14,13 +16,14 @@ import java.time.Instant
 
 class LogDiaperChangeUseCaseTest {
     private lateinit var repository: DiaperRepository
+    private val sync = mockk<SyncToFirestoreUseCase>(relaxed = true)
     private val fixedNow = Instant.ofEpochMilli(10_000)
     private lateinit var useCase: LogDiaperChangeUseCase
 
     @BeforeEach
     fun setup() {
         repository = mockk()
-        useCase = LogDiaperChangeUseCase(repository) { fixedNow }
+        useCase = LogDiaperChangeUseCase(repository, sync) { fixedNow }
     }
 
     @Test
@@ -31,6 +34,7 @@ class LogDiaperChangeUseCaseTest {
         assertEquals(fixedNow, captured.captured.createdAt)
         assertEquals(null, captured.captured.notes)
         assertEquals(DiaperType.BOTH, captured.captured.type)
+        coVerify { sync(SyncToFirestoreUseCase.SyncType.DIAPERS) }
     }
 
     @Test
