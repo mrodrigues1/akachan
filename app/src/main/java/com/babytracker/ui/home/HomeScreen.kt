@@ -73,6 +73,7 @@ import com.babytracker.domain.model.TodayDiaperSummary
 import com.babytracker.domain.model.TodayFeedingSummary
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.ui.breastfeeding.PredictionCopy
+import com.babytracker.ui.theme.diaperColors
 import com.babytracker.ui.theme.growthColors
 import com.babytracker.ui.theme.milestoneColors
 import com.babytracker.util.formatDuration
@@ -450,6 +451,7 @@ internal fun DiaperHomeCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val diaper = diaperColors()
     val countText = if (summary.count == 1) "1 today" else "${summary.count} today"
     Card(
         onClick = onClick,
@@ -464,7 +466,7 @@ internal fun DiaperHomeCard(
                 }
             },
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+        colors = CardDefaults.cardColors(containerColor = diaper.container),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
@@ -481,21 +483,21 @@ internal fun DiaperHomeCard(
             Text(
                 text = "Diapers",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                color = diaper.onContainer,
             )
             Spacer(modifier = Modifier.height(4.dp))
             if (summary.hasAny || summary.lastChangeAt != null) {
                 Text(
                     text = countText,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    color = diaper.onContainer,
                 )
                 summary.lastChangeAt?.let { LastDiaperAgoText(it) }
             } else {
                 Text(
                     text = "Tap to log",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    color = diaper.onContainer,
                 )
             }
         }
@@ -513,7 +515,7 @@ internal fun LastDiaperAgoText(lastChangeAt: Instant) {
     Text(
         text = "Last ${Duration.between(lastChangeAt, now).formatElapsedAgo()}",
         style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onTertiaryContainer,
+        color = diaperColors().onContainer,
     )
 }
 

@@ -57,7 +57,7 @@ class DiaperHistoryScreenTest {
         val delete = mockk<DeleteDiaperChangeUseCase>().also { coEvery { it.invoke(any()) } just Runs }
         val log = mockk<LogDiaperChangeUseCase>(relaxed = true)
         val edit = mockk<EditDiaperChangeUseCase>(relaxed = true)
-        val historyVm = DiaperHistoryViewModel(observe, delete, log, zone)
+        val historyVm = DiaperHistoryViewModel(observe, delete, zone)
         val editVm = DiaperViewModel(log, edit) { Instant.ofEpochMilli(2_000) }
         composeRule.setContent {
             BabyTrackerTheme {
@@ -80,22 +80,22 @@ class DiaperHistoryScreenTest {
     }
 
     @Test
-    fun tapDeleteShowsUndoSnackbar() {
+    fun tapDeleteShowsConfirmationDialog() {
         setScreen(listOf(dirtyDay16, wetDay15))
 
         composeRule.onNodeWithContentDescription("Delete Dirty change", substring = true).performClick()
 
         composeRule.waitUntil(timeoutMillis = 3_000) {
-            composeRule.onAllNodesWithText("Undo").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText("Delete this diaper change?").fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Undo").assertIsDisplayed()
+        composeRule.onNodeWithText("Delete this diaper change?").assertIsDisplayed()
     }
 
     @Test
-    fun tapRowOpensEditSheet() {
+    fun tapEditIconOpensEditSheet() {
         setScreen(listOf(dirtyDay16, wetDay15))
 
-        composeRule.onNodeWithText("Dirty", substring = true).performClick()
+        composeRule.onNodeWithContentDescription("Edit Dirty change", substring = true).performClick()
 
         composeRule.waitUntil(timeoutMillis = 3_000) {
             composeRule.onAllNodesWithText("Edit diaper change").fetchSemanticsNodes().isNotEmpty()

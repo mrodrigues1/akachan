@@ -15,6 +15,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,10 +26,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -41,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.domain.model.DiaperChange
+import com.babytracker.ui.theme.diaperColors
 import com.babytracker.util.toRelativeLabel
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -58,20 +61,11 @@ fun DiaperHistoryScreen(
 ) {
     val grouped by historyViewModel.historyByDateDesc.collectAsStateWithLifecycle()
     val editState by editViewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val pendingDelete by historyViewModel.pendingDelete.collectAsStateWithLifecycle()
     var showEditSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(editState.saved) {
         if (editState.saved) showEditSheet = false
-    }
-    LaunchedEffect(Unit) {
-        historyViewModel.deletions.collect { deleted ->
-            val result = snackbarHostState.showSnackbar(
-                message = "Diaper change deleted",
-                actionLabel = "Undo",
-            )
-            if (result == SnackbarResult.ActionPerformed) historyViewModel.onUndoDelete(deleted)
-        }
     }
 
     if (showEditSheet) {
@@ -85,9 +79,15 @@ fun DiaperHistoryScreen(
         )
     }
 
+    if (pendingDelete != null) {
+        DiaperDeleteConfirmationDialog(
+            onConfirm = historyViewModel::onConfirmDelete,
+            onDismiss = historyViewModel::onCancelDelete,
+        )
+    }
+
     Scaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Diaper History") },
@@ -134,7 +134,7 @@ fun DiaperHistoryScreen(
                         Text(
                             text = "${date.toRelativeLabel()} · ${changes.size} changes".uppercase(),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.tertiary,
+                            color = diaperColors().onContainer,
                             modifier = Modifier
                                 .background(MaterialTheme.colorScheme.background)
                                 .fillMaxWidth()
@@ -154,7 +154,7 @@ fun DiaperHistoryScreen(
                                 )
                                 showEditSheet = true
                             },
-                            onDelete = { historyViewModel.onDelete(change) },
+                            onDelete = { historyViewModel.onDeleteRequest(change) },
                         )
                     }
                 }
@@ -171,7 +171,6 @@ private fun DiaperHistoryRow(
 ) {
     val time = timeFormatter.format(change.timestamp.atZone(ZoneId.systemDefault()).toLocalTime())
     Card(
-        onClick = onEdit,
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
@@ -181,7 +180,7 @@ private fun DiaperHistoryRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(start = 16.dp, top = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -200,6 +199,13 @@ private fun DiaperHistoryRow(
                     )
                 }
             }
+            IconButton(onClick = onEdit) {
+                Icon(
+                    Icons.Outlined.Edit,
+                    contentDescription = "Edit ${change.type.label} change at $time",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             IconButton(onClick = onDelete) {
                 Icon(
                     Icons.Outlined.Delete,
@@ -209,4 +215,31 @@ private fun DiaperHistoryRow(
             }
         }
     }
+}
+
+@Composable
+private fun DiaperDeleteConfirmationDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete this diaper change?") },
+        text = { Text("It can't be undone.") },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = diaperColors().accent,
+                    contentColor = diaperColors().onAccent,
+                ),
+            ) { Text("Delete") }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(contentColor = diaperColors().onContainer),
+            ) { Text("Cancel") }
+        },
+    )
 }

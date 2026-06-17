@@ -156,3 +156,31 @@ val OnGrowthContainerTeal = Teal900
 val GrowthTealDark = Color(0xFF4DB6AC)
 val GrowthContainerTealDark = Teal900
 val OnGrowthContainerTealDark = Teal200
+
+// ─── Raw palette — Diaper / Yellow ───────────────────────────
+// Extended (non-M3) accent. A warm, sunny yellow — distinct from the orange
+// Warning/Amber700 (#E65100) and from the forest-green Success/Tertiary token that
+// the Diaper section previously borrowed. Scale semantics match Pink/Blue/Green
+// (700 = primary action, 200 = container, 900 = on-container text, 100 = softest).
+// Yellow is intrinsically light, so the accent always pairs with DARK on-accent text
+// (white can never reach 4.5:1 on a vivid yellow).
+val Yellow900 = Color(0xFF5F4B00)
+val Yellow700 = Color(0xFFF9A825)
+val Yellow200 = Color(0xFFFFE9A8)
+val Yellow100 = Color(0xFFFFF3C4)
+
+// ─── Diaper semantic tokens (extended, non-M3) ───────────────
+// Accessed as top-level vals / via diaperColors(), NOT through MaterialTheme.colorScheme.
+// Mirrors the Milestone/Growth extended-token convention.
+
+// Light scheme — OnDiaperDark-on-Yellow700 ≈ 6.7:1; Yellow900-on-Yellow200 ≈ 6.9:1.
+val DiaperYellow = Yellow700
+val OnDiaperDark = Color(0xFF3E2E00)        // dark text on the bright accent (no scale equivalent)
+val DiaperContainerYellow = Yellow200
+val OnDiaperContainerYellow = Yellow900
+
+// Dark scheme — brighter accent on dark surface; light gold text on the deep container.
+// OnDiaperDark stays dark on the bright accent (dark text reads on yellow in both schemes).
+val DiaperYellowDark = Color(0xFFFFD54F)
+val DiaperContainerYellowDark = Color(0xFF4A3800)
+val OnDiaperContainerYellowDark = Yellow200

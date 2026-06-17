@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +24,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import com.babytracker.R
 import com.babytracker.domain.model.DiaperType
 import com.babytracker.ui.common.DateTimeFieldRow
+import com.babytracker.ui.common.FieldAccent
+import com.babytracker.ui.theme.diaperColors
 import java.time.Instant
 
 const val DIAPER_SAVE_TAG = "DiaperSaveButton"
@@ -47,6 +51,7 @@ fun DiaperSheet(
     onNavigateToHistory: (() -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val diaper = diaperColors()
     ModalBottomSheet(
         onDismissRequest = { if (!state.isSaving) onDismiss() },
         sheetState = sheetState,
@@ -69,7 +74,13 @@ fun DiaperSheet(
             )
             Spacer(Modifier.height(16.dp))
 
-            DiaperTypeSelector(selected = state.type, onSelect = onTypeChange, enabled = !state.isSaving)
+            DiaperTypeSelector(
+                selected = state.type,
+                onSelect = onTypeChange,
+                enabled = !state.isSaving,
+                activeContainerColor = diaper.container,
+                activeContentColor = diaper.onContainer,
+            )
             Spacer(Modifier.height(12.dp))
 
             DateTimeFieldRow(
@@ -77,6 +88,12 @@ fun DiaperSheet(
                 timestamp = state.timestamp,
                 onChange = onTimeChange,
                 enabled = !state.isSaving,
+                accent = FieldAccent(
+                    accent = diaper.accent,
+                    onAccent = diaper.onAccent,
+                    container = diaper.container,
+                    onContainer = diaper.onContainer,
+                ),
             )
             Spacer(Modifier.height(12.dp))
 
@@ -97,6 +114,10 @@ fun DiaperSheet(
                 onClick = onConfirm,
                 enabled = !state.isSaving,
                 shape = MaterialTheme.shapes.extraLarge,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = diaper.accent,
+                    contentColor = diaper.onAccent,
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag(DIAPER_SAVE_TAG),
@@ -105,7 +126,7 @@ fun DiaperSheet(
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
                         strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = diaper.onAccent,
                     )
                     Spacer(Modifier.width(8.dp))
                 }
@@ -116,12 +137,18 @@ fun DiaperSheet(
                 TextButton(
                     onClick = onNavigateToHistory,
                     enabled = !state.isSaving,
+                    colors = ButtonDefaults.textButtonColors(contentColor = diaper.accent),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("View diaper history", style = MaterialTheme.typography.labelLarge)
                 }
             }
-            TextButton(onClick = onDismiss, enabled = !state.isSaving, modifier = Modifier.fillMaxWidth()) {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !state.isSaving,
+                colors = ButtonDefaults.textButtonColors(contentColor = diaper.accent),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text(stringResource(R.string.cancel), style = MaterialTheme.typography.labelLarge)
             }
             Spacer(Modifier.height(8.dp))
@@ -135,6 +162,8 @@ private fun DiaperTypeSelector(
     selected: DiaperType,
     onSelect: (DiaperType) -> Unit,
     enabled: Boolean,
+    activeContainerColor: Color,
+    activeContentColor: Color,
 ) {
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         DiaperType.entries.forEachIndexed { index, type ->
@@ -144,6 +173,10 @@ private fun DiaperTypeSelector(
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = DiaperType.entries.size),
                 // Keep the chosen type legible even while the form is disabled mid-save.
                 enabled = enabled || selected == type,
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = activeContainerColor,
+                    activeContentColor = activeContentColor,
+                ),
                 label = { Text("${type.emoji} ${type.label}") },
             )
         }
