@@ -5,8 +5,11 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.babytracker.BuildConfig
 import com.babytracker.debug.DebugDataSeeder
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.usecase.baby.BootstrapBabyProfileUseCase
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.InventorySettingsRepository
+import com.babytracker.manager.FeatureSuppressionCoordinator
 import com.babytracker.manager.PredictiveFeedNotificationCoordinator
 import com.babytracker.manager.PredictiveSleepNotificationCoordinator
 import com.babytracker.manager.StashExpirationScheduler
@@ -28,12 +31,14 @@ class BabyTrackerApp : Application(), Configuration.Provider {
 
     @Inject lateinit var predictiveCoordinator: PredictiveFeedNotificationCoordinator
     @Inject lateinit var predictiveSleepCoordinator: PredictiveSleepNotificationCoordinator
+    @Inject lateinit var featureSuppressionCoordinator: FeatureSuppressionCoordinator
     @Inject lateinit var debugDataSeeder: DebugDataSeeder
     @Inject lateinit var widgetSyncManager: WidgetSyncManager
     @Inject lateinit var milkStashWidgetSyncManager: MilkStashWidgetSyncManager
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var inventorySettings: InventorySettingsRepository
     @Inject lateinit var stashExpirationScheduler: StashExpirationScheduler
+    @Inject lateinit var featureToggleRepository: FeatureToggleRepository
     @Inject lateinit var bootstrapBabyProfile: BootstrapBabyProfileUseCase
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -54,6 +59,7 @@ class BabyTrackerApp : Application(), Configuration.Provider {
         predictiveCoordinator.start()
         createPredictiveSleepNotificationChannel(this)
         predictiveSleepCoordinator.start()
+        featureSuppressionCoordinator.start()
         widgetSyncManager.start()
         milkStashWidgetSyncManager.start()
         reconcileStashExpirationAlarm()
@@ -66,7 +72,10 @@ class BabyTrackerApp : Application(), Configuration.Provider {
     private fun reconcileStashExpirationAlarm() {
         appScope.launch {
             runCatching {
+                val inventoryEnabled =
+                    AppFeature.INVENTORY in featureToggleRepository.getEnabledFeatures().first()
                 if (
+                    inventoryEnabled &&
                     inventorySettings.getExpirationEnabled().first() &&
                     inventorySettings.getExpirationNotifEnabled().first()
                 ) {

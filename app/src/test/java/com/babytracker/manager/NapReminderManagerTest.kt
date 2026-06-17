@@ -3,6 +3,8 @@ package com.babytracker.manager
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
+import com.babytracker.domain.model.AppFeature
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import io.mockk.coVerify
 import io.mockk.every
@@ -27,6 +29,7 @@ class NapReminderManagerTest {
     private lateinit var context: Context
     private lateinit var alarmManager: AlarmManager
     private lateinit var sleepSettingsRepository: SleepSettingsRepository
+    private lateinit var featureToggleRepository: FeatureToggleRepository
     private lateinit var manager: NapReminderManager
     private lateinit var mockPi: PendingIntent
 
@@ -35,6 +38,8 @@ class NapReminderManagerTest {
         alarmManager = mockk(relaxed = true)
         context = mockk(relaxed = true)
         sleepSettingsRepository = mockk()
+        featureToggleRepository = mockk()
+        every { featureToggleRepository.getEnabledFeatures() } returns flowOf(AppFeature.ALL)
         every { context.getSystemService(AlarmManager::class.java) } returns alarmManager
         every { context.packageName } returns "com.babytracker"
 
@@ -44,7 +49,7 @@ class NapReminderManagerTest {
             PendingIntent.getBroadcast(any(), eq(NapReminderManager.RC_NAP_REMINDER), any(), any())
         } returns mockPi
 
-        manager = NapReminderManager(context, sleepSettingsRepository)
+        manager = NapReminderManager(context, sleepSettingsRepository, featureToggleRepository)
     }
 
     @AfterEach
@@ -112,6 +117,19 @@ class NapReminderManagerTest {
     fun `scheduleIfEnabled does not schedule alarm when nap reminder is disabled`() = runTest {
         val napEnd = Instant.parse("2026-01-01T10:00:00Z")
         every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(false)
+
+        manager.scheduleIfEnabled(napEnd)
+
+        verify(exactly = 0) { alarmManager.setExactAndAllowWhileIdle(any(), any(), any()) }
+        verify(exactly = 0) { alarmManager.setAndAllowWhileIdle(any(), any(), any()) }
+    }
+
+    @Test
+    fun `scheduleIfEnabled does nothing when sleep feature disabled`() = runTest {
+        val napEnd = Instant.parse("2026-01-01T10:00:00Z")
+        every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(true)
+        every { sleepSettingsRepository.getNapReminderDelayMinutes() } returns flowOf(30)
+        every { featureToggleRepository.getEnabledFeatures() } returns flowOf(setOf(AppFeature.BREASTFEEDING))
 
         manager.scheduleIfEnabled(napEnd)
 

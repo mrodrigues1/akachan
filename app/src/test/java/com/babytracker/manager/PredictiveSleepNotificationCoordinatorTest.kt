@@ -1,11 +1,13 @@
 package com.babytracker.manager
 
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.RecommendationLifecycle
 import com.babytracker.domain.model.RecommendationOutcome
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepWindow
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRepository
@@ -67,6 +69,22 @@ class PredictiveSleepNotificationCoordinatorTest {
         advanceTimeBy(300)
         verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate, any()) }
         verify(exactly = 0) { scheduler.cancelPredictiveReminder() }
+    }
+
+    @Test
+    fun `cancels reminder when sleep feature is disabled`() = runTest {
+        val scheduler = mockk<PredictiveSleepScheduler>(relaxed = true)
+        val coordinator = buildCoordinator(
+            scheduler = scheduler,
+            stateFlow = MutableStateFlow(windowState(Instant.now().plusSeconds(3600))),
+            enabledFlow = MutableStateFlow(true),
+            leadFlow = MutableStateFlow(15),
+            featuresFlow = MutableStateFlow(setOf(AppFeature.BREASTFEEDING)),
+        )
+        coordinator.start()
+        advanceTimeBy(300)
+        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any(), any()) }
+        verify(exactly = 1) { scheduler.cancelPredictiveReminder() }
     }
 
     @Test
@@ -433,6 +451,7 @@ class PredictiveSleepNotificationCoordinatorTest {
         quietEndFlow: MutableStateFlow<Int> = MutableStateFlow(0),
         sleepRepository: SleepRepository = defaultSleepRepository(),
         recommendation: SleepRecommendationUseCases = defaultRecommendationUseCases(),
+        featuresFlow: MutableStateFlow<Set<AppFeature>> = MutableStateFlow(AppFeature.ALL),
     ): PredictiveSleepNotificationCoordinator {
         val useCase = mockk<PredictSleepWindowUseCase>().also {
             every { it.invoke() } returns stateFlow
@@ -445,6 +464,9 @@ class PredictiveSleepNotificationCoordinatorTest {
             every { it.getPredictiveSleepEnabled() } returns enabledFlow
             every { it.getPredictiveSleepLeadMinutes() } returns leadFlow
         }
+        val featureToggle = mockk<FeatureToggleRepository>().also {
+            every { it.getEnabledFeatures() } returns featuresFlow
+        }
         return PredictiveSleepNotificationCoordinator(
             predictSleepWindow = useCase,
             settingsRepository = settings,
@@ -452,6 +474,7 @@ class PredictiveSleepNotificationCoordinatorTest {
             scheduler = scheduler,
             sleepRepository = sleepRepository,
             recommendation = recommendation,
+            featureToggleRepository = featureToggle,
             applicationScope = backgroundScope,
         )
     }
