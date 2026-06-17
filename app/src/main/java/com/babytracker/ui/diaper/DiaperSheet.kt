@@ -44,6 +44,7 @@ fun DiaperSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateToHistory: (() -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
@@ -111,6 +112,15 @@ fun DiaperSheet(
                 Text(stringResource(R.string.diaper_save), style = MaterialTheme.typography.labelLarge)
             }
             Spacer(Modifier.height(8.dp))
+            if (onNavigateToHistory != null && !state.isEditing) {
+                TextButton(
+                    onClick = onNavigateToHistory,
+                    enabled = !state.isSaving,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("View diaper history", style = MaterialTheme.typography.labelLarge)
+                }
+            }
             TextButton(onClick = onDismiss, enabled = !state.isSaving, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.cancel), style = MaterialTheme.typography.labelLarge)
             }
