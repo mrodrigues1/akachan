@@ -10,6 +10,7 @@ import com.babytracker.data.local.dao.BabyEventDao
 import com.babytracker.data.local.dao.BabyProfileDao
 import com.babytracker.data.local.dao.BottleFeedDao
 import com.babytracker.data.local.dao.BreastfeedingDao
+import com.babytracker.data.local.dao.DiaperDao
 import com.babytracker.data.local.dao.GrowthMeasurementDao
 import com.babytracker.data.local.dao.MilestoneDao
 import com.babytracker.data.local.dao.MilkBagDao
@@ -20,6 +21,7 @@ import com.babytracker.data.local.entity.BabyEventEntity
 import com.babytracker.data.local.entity.BabyProfileEntity
 import com.babytracker.data.local.entity.BottleFeedEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
+import com.babytracker.data.local.entity.DiaperEntity
 import com.babytracker.data.local.entity.GrowthMeasurementEntity
 import com.babytracker.data.local.entity.MilestoneEntity
 import com.babytracker.data.local.entity.MilkBagEntity
@@ -41,8 +43,9 @@ import com.babytracker.data.local.entity.SleepRecommendationFeedbackEntity
         BottleFeedEntity::class,
         GrowthMeasurementEntity::class,
         MilestoneEntity::class,
+        DiaperEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -57,6 +60,7 @@ abstract class BabyTrackerDatabase : RoomDatabase() {
     abstract fun bottleFeedDao(): BottleFeedDao
     abstract fun growthMeasurementDao(): GrowthMeasurementDao
     abstract fun milestoneDao(): MilestoneDao
+    abstract fun diaperDao(): DiaperDao
 }
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -378,6 +382,27 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
         )
         database.execSQL(
             "CREATE INDEX IF NOT EXISTS index_milestones_date_epoch_day ON milestones(date_epoch_day)",
+        )
+    }
+}
+
+// Additive: a diaper change is a point-in-time event with no in-progress state,
+// so no active-row trigger is installed (unlike sleep/breastfeeding).
+val MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS diaper_changes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                timestamp INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                notes TEXT,
+                created_at INTEGER NOT NULL
+            )
+            """.trimIndent(),
+        )
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_diaper_changes_timestamp ON diaper_changes(timestamp)",
         )
     }
 }
