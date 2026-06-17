@@ -69,6 +69,7 @@ import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepRecord
+import com.babytracker.domain.model.TodayDiaperSummary
 import com.babytracker.domain.model.TodayFeedingSummary
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.ui.breastfeeding.PredictionCopy
@@ -97,6 +98,7 @@ fun HomeScreen(
     onNavigateToPumping: () -> Unit = {},
     onNavigateToInventory: () -> Unit = {},
     onNavigateToBottleFeed: () -> Unit = {},
+    onNavigateToDiaper: () -> Unit = {},
     onNavigateToFeedingHistory: () -> Unit = {},
     onNavigateToGrowth: () -> Unit = {},
     onNavigateToMilestones: () -> Unit = {},
@@ -173,6 +175,7 @@ fun HomeScreen(
             onNavigateToPumping,
             onNavigateToInventory,
             onNavigateToBottleFeed,
+            onNavigateToDiaper,
             onNavigateToFeedingHistory,
             onNavigateToConnectPartner,
             onNavigateToGrowth,
@@ -184,6 +187,7 @@ fun HomeScreen(
                 onPumping = onNavigateToPumping,
                 onInventory = onNavigateToInventory,
                 onBottleFeed = onNavigateToBottleFeed,
+                onDiaper = onNavigateToDiaper,
                 onFeedingHistory = onNavigateToFeedingHistory,
                 onConnectPartner = onNavigateToConnectPartner,
                 onGrowth = onNavigateToGrowth,
@@ -438,6 +442,79 @@ internal fun BottleFeedHomeCard(
             )
         }
     }
+}
+
+@Composable
+internal fun DiaperHomeCard(
+    summary: TodayDiaperSummary,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val countText = if (summary.count == 1) "1 today" else "${summary.count} today"
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 96.dp)
+            .semantics {
+                contentDescription = if (summary.hasAny) {
+                    "Diapers, $countText. Log a diaper change."
+                } else {
+                    "Diapers. Log a diaper change."
+                }
+            },
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
+        ) {
+            Text(
+                text = "🧷",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Diapers",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            if (summary.hasAny || summary.lastChangeAt != null) {
+                Text(
+                    text = countText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                summary.lastChangeAt?.let { LastDiaperAgoText(it) }
+            } else {
+                Text(
+                    text = "Tap to log",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun LastDiaperAgoText(lastChangeAt: Instant) {
+    val now by produceState(initialValue = Instant.now(), key1 = lastChangeAt) {
+        while (true) {
+            delay(60_000L)
+            value = Instant.now()
+        }
+    }
+    Text(
+        text = "Last ${Duration.between(lastChangeAt, now).formatElapsedAgo()}",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onTertiaryContainer,
+    )
 }
 
 @Composable

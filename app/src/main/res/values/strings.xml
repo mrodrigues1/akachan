@@ -163,6 +163,13 @@
     <string name="bottle_feed_bag_picker_label">FROM STASH BAG (OPTIONAL)</string>
     <string name="bottle_feed_quick_action">Bottle feed</string>
     <string name="feed_author_partner_badge">Partner</string>
+
+    <!-- Diaper -->
+    <string name="diaper_add_title">Log diaper change</string>
+    <string name="diaper_edit_title">Edit diaper change</string>
+    <string name="diaper_time_label">Time</string>
+    <string name="diaper_notes_label">Notes (optional)</string>
+    <string name="diaper_save">Save</string>
     <string name="feeding_history_title">Feeding history</string>
     <string name="feeding_history_empty">No feeds logged yet</string>
     <string name="feeding_history_empty_supporting">Bottle feeds and breastfeeding sessions will appear here</string>

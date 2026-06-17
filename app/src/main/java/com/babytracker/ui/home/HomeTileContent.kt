@@ -77,7 +77,8 @@ internal fun HomeTile.isFullWidth(): Boolean = when (this) {
 internal fun HomeTile.minTileHeightDp(): Dp = when {
     isFullWidth() -> 0.dp
     this == HomeTile.PUMPING || this == HomeTile.INVENTORY ||
-        this == HomeTile.BOTTLE_FEED || this == HomeTile.FEEDING_HISTORY -> 0.dp
+        this == HomeTile.BOTTLE_FEED || this == HomeTile.DIAPER ||
+        this == HomeTile.FEEDING_HISTORY -> 0.dp
     else -> 140.dp
 }
 
@@ -223,6 +224,7 @@ internal fun HomeTileContent(
         HomeTile.INVENTORY ->
             InventoryHomeCard(uiState.inventorySummary, uiState.volumeUnit, callbacks.onInventory, modifier)
         HomeTile.BOTTLE_FEED -> BottleFeedHomeCard(callbacks.onBottleFeed, modifier)
+        HomeTile.DIAPER -> DiaperHomeCard(uiState.todayDiaperSummary, callbacks.onDiaper, modifier)
         HomeTile.FEEDING_HISTORY ->
             FeedingHistoryHomeCard(uiState.todayFeedingSummary, uiState.volumeUnit, callbacks.onFeedingHistory, modifier)
         HomeTile.SLEEP_PREDICTION ->
@@ -241,6 +243,7 @@ internal data class HomeTileCallbacks(
     val onPumping: () -> Unit,
     val onInventory: () -> Unit,
     val onBottleFeed: () -> Unit,
+    val onDiaper: () -> Unit,
     val onFeedingHistory: () -> Unit,
     val onConnectPartner: () -> Unit,
     val onGrowth: () -> Unit,

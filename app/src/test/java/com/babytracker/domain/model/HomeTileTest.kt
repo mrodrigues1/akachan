@@ -44,6 +44,17 @@ class HomeTileTest {
     }
 
     @Test
+    fun `default order includes the diaper tile`() {
+        assert(HomeTile.DIAPER in HomeTile.deserialize(null))
+    }
+
+    @Test
+    fun `reconcile appends diaper to a pre-diaper stored order`() {
+        val result = HomeTile.reconcile(listOf("SLEEP", "BREASTFEEDING"))
+        assert(HomeTile.DIAPER in result.drop(2))
+    }
+
+    @Test
     fun `reconcile deduplicates a repeated stored name`() {
         val result = HomeTile.deserialize("SLEEP,SLEEP,BREASTFEEDING")
         assertEquals(1, result.count { it == HomeTile.SLEEP })

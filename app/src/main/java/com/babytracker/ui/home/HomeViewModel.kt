@@ -12,6 +12,7 @@ import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.model.TodayDiaperSummary
 import com.babytracker.domain.model.TodayFeedingSummary
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.InventoryRepository
@@ -22,6 +23,7 @@ import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
 import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
+import com.babytracker.domain.usecase.diaper.ObserveTodayDiaperSummaryUseCase
 import com.babytracker.domain.usecase.feeding.ObserveTodayFeedingSummaryUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
@@ -56,6 +58,7 @@ data class HomeUiState(
     val sleepPrediction: SleepPredictionState = SleepPredictionState.Unavailable("loading"),
     val volumeUnit: VolumeUnit = VolumeUnit.ML,
     val todayFeedingSummary: TodayFeedingSummary = TodayFeedingSummary(),
+    val todayDiaperSummary: TodayDiaperSummary = TodayDiaperSummary(),
     val tileOrder: List<HomeTile> = HomeTile.DEFAULT_ORDER,
 )
 
@@ -71,6 +74,7 @@ class HomeViewModel @Inject constructor(
     predictNextFeed: PredictNextFeedUseCase,
     predictSleepWindow: PredictSleepWindowUseCase,
     observeTodayFeedingSummary: ObserveTodayFeedingSummaryUseCase,
+    observeTodayDiaperSummary: ObserveTodayDiaperSummaryUseCase,
     private val logBabyEvent: LogBabyEventUseCase,
 ) : ViewModel() {
 
@@ -139,8 +143,13 @@ class HomeViewModel @Inject constructor(
         baseState,
         observeTodayFeedingSummary(),
         settingsRepository.getHomeTileOrder(),
-    ) { base, todayFeedingSummary, tileOrder ->
-        base.copy(todayFeedingSummary = todayFeedingSummary, tileOrder = tileOrder)
+        observeTodayDiaperSummary(),
+    ) { base, todayFeedingSummary, tileOrder, todayDiaperSummary ->
+        base.copy(
+            todayFeedingSummary = todayFeedingSummary,
+            tileOrder = tileOrder,
+            todayDiaperSummary = todayDiaperSummary,
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
