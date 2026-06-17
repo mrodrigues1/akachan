@@ -184,6 +184,7 @@ class OnboardingComponentsTest {
     fun onboardingScreenShowsSaveFailureSnackbar() {
         val viewModel = OnboardingViewModel(
             SaveBabyProfileUseCase(FailingBabyRepository(), mockk(relaxed = true)),
+            mockk(relaxed = true),
         )
 
         composeRule.setContent {
@@ -195,9 +196,10 @@ class OnboardingComponentsTest {
             }
         }
 
-        composeRule.onNodeWithText("Set up baby profile").performClick()
+        composeRule.onNodeWithText("Set up baby profile").performClick() // WELCOME -> FEATURES
+        composeRule.onNodeWithText("Continue").performClick() // FEATURES -> BABY_INFO
         composeRule.onNodeWithText("Baby's name").performTextInput("Luna")
-        composeRule.onNodeWithText("Continue").performClick()
+        composeRule.onNodeWithText("Continue").performClick() // BABY_INFO -> ALLERGIES
         composeRule.onNodeWithText("Finish setup").performClick()
 
         composeRule.onNodeWithText("Could not save. Please try again.").assertIsDisplayed()

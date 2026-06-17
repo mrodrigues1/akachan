@@ -4,8 +4,12 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.AllergyType
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BabySex
+import com.babytracker.domain.model.FeatureDomain
+import com.babytracker.domain.model.FeatureSelection
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +22,7 @@ import java.time.LocalDate
 import java.time.Period
 import javax.inject.Inject
 
-enum class OnboardingStep { WELCOME, BABY_INFO, ALLERGIES }
+enum class OnboardingStep { WELCOME, FEATURES, BABY_INFO, ALLERGIES }
 
 const val MAX_BABY_NAME_LENGTH = 50
 const val MAX_CUSTOM_ALLERGY_NOTE_LENGTH = 100
@@ -29,6 +33,7 @@ private val LINE_BREAK_REGEX = Regex("[\\r\\n]+")
 
 data class OnboardingUiState(
     val currentStep: OnboardingStep = OnboardingStep.WELCOME,
+    val enabledFeatures: Set<AppFeature> = AppFeature.ALL,
     val babyName: String = "",
     val babyNameError: String? = null,
     val birthDate: LocalDate = LocalDate.now(),
@@ -45,6 +50,7 @@ data class OnboardingUiState(
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val saveBabyProfile: SaveBabyProfileUseCase,
+    private val featureToggleRepository: FeatureToggleRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -53,9 +59,22 @@ class OnboardingViewModel @Inject constructor(
     val isNextEnabled: Boolean
         get() = when (_uiState.value.currentStep) {
             OnboardingStep.WELCOME -> true
+            OnboardingStep.FEATURES -> _uiState.value.enabledFeatures.isNotEmpty()
             OnboardingStep.BABY_INFO -> _uiState.value.birthDateError == null
             OnboardingStep.ALLERGIES -> true
         }
+
+    fun onFeatureToggled(feature: AppFeature, enabled: Boolean) {
+        _uiState.update {
+            it.copy(enabledFeatures = FeatureSelection.setFeature(it.enabledFeatures, feature, enabled))
+        }
+    }
+
+    fun onDomainToggled(domain: FeatureDomain, enabled: Boolean) {
+        _uiState.update {
+            it.copy(enabledFeatures = FeatureSelection.setDomain(it.enabledFeatures, domain, enabled))
+        }
+    }
 
     fun onNameChanged(name: String) {
         val sanitizedName = name
@@ -122,7 +141,8 @@ class OnboardingViewModel @Inject constructor(
     fun onNextStep() {
         _uiState.update { state ->
             when (state.currentStep) {
-                OnboardingStep.WELCOME -> state.copy(currentStep = OnboardingStep.BABY_INFO)
+                OnboardingStep.WELCOME -> state.copy(currentStep = OnboardingStep.FEATURES)
+                OnboardingStep.FEATURES -> state.copy(currentStep = OnboardingStep.BABY_INFO)
                 OnboardingStep.BABY_INFO -> state.nextFromBabyInfo()
                 OnboardingStep.ALLERGIES -> state
             }
@@ -133,7 +153,8 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { state ->
             when (state.currentStep) {
                 OnboardingStep.WELCOME -> state
-                OnboardingStep.BABY_INFO -> state.copy(currentStep = OnboardingStep.WELCOME)
+                OnboardingStep.FEATURES -> state.copy(currentStep = OnboardingStep.WELCOME)
+                OnboardingStep.BABY_INFO -> state.copy(currentStep = OnboardingStep.FEATURES)
                 OnboardingStep.ALLERGIES -> state.copy(currentStep = OnboardingStep.BABY_INFO)
             }
         }
@@ -160,6 +181,7 @@ class OnboardingViewModel @Inject constructor(
                 sex = state.sex,
             )
             try {
+                featureToggleRepository.setEnabledFeatures(state.enabledFeatures)
                 saveBabyProfile(baby)
                 _uiState.update { it.copy(isSaving = false, navigationComplete = true) }
             } catch (e: IllegalArgumentException) {

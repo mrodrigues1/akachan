@@ -1,7 +1,9 @@
 package com.babytracker.ui.onboarding
 
 import com.babytracker.domain.model.AllergyType
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import io.mockk.coEvery
 import io.mockk.coJustRun
@@ -27,6 +29,7 @@ import java.time.LocalDate
 class OnboardingViewModelTest {
 
     private lateinit var saveBabyProfile: SaveBabyProfileUseCase
+    private lateinit var featureToggleRepository: FeatureToggleRepository
     private lateinit var viewModel: OnboardingViewModel
     private val testDispatcher = StandardTestDispatcher()
 
@@ -34,12 +37,20 @@ class OnboardingViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         saveBabyProfile = mockk()
-        viewModel = OnboardingViewModel(saveBabyProfile)
+        featureToggleRepository = mockk(relaxed = true)
+        viewModel = OnboardingViewModel(saveBabyProfile, featureToggleRepository)
     }
 
     @AfterEach
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    /** WELCOME -> FEATURES -> BABY_INFO. Sets a valid name so BABY_INFO can later advance. */
+    private fun advanceToBabyInfo(name: String = "Luna") {
+        viewModel.onNextStep() // WELCOME -> FEATURES
+        viewModel.onNextStep() // FEATURES -> BABY_INFO
+        viewModel.onNameChanged(name)
     }
 
     @Test
@@ -50,25 +61,30 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `onNextStep from welcome moves to baby info`() {
+    fun `onNextStep from welcome moves to features`() {
         viewModel.onNextStep()
+        assertEquals(OnboardingStep.FEATURES, viewModel.uiState.value.currentStep)
+    }
+
+    @Test
+    fun `onNextStep from features moves to baby info`() {
+        viewModel.onNextStep() // WELCOME -> FEATURES
+        viewModel.onNextStep() // FEATURES -> BABY_INFO
         assertEquals(OnboardingStep.BABY_INFO, viewModel.uiState.value.currentStep)
     }
 
     @Test
     fun `onNextStep from baby info moves to allergies`() {
-        viewModel.onNextStep() // WELCOME -> BABY_INFO
-        viewModel.onNameChanged("Luna")
+        advanceToBabyInfo()
         viewModel.onNextStep() // BABY_INFO -> ALLERGIES
         assertEquals(OnboardingStep.ALLERGIES, viewModel.uiState.value.currentStep)
     }
 
     @Test
     fun `onNextStep from allergies stays on allergies`() {
-        viewModel.onNextStep()
-        viewModel.onNameChanged("Luna")
-        viewModel.onNextStep()
-        viewModel.onNextStep()
+        advanceToBabyInfo()
+        viewModel.onNextStep() // -> ALLERGIES
+        viewModel.onNextStep() // stays
         assertEquals(OnboardingStep.ALLERGIES, viewModel.uiState.value.currentStep)
     }
 
@@ -79,19 +95,58 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `onPreviousStep from baby info moves to welcome`() {
-        viewModel.onNextStep()
+    fun `onPreviousStep from features moves to welcome`() {
+        viewModel.onNextStep() // WELCOME -> FEATURES
         viewModel.onPreviousStep()
         assertEquals(OnboardingStep.WELCOME, viewModel.uiState.value.currentStep)
     }
 
     @Test
+    fun `onPreviousStep from baby info moves to features`() {
+        viewModel.onNextStep() // WELCOME -> FEATURES
+        viewModel.onNextStep() // FEATURES -> BABY_INFO
+        viewModel.onPreviousStep()
+        assertEquals(OnboardingStep.FEATURES, viewModel.uiState.value.currentStep)
+    }
+
+    @Test
     fun `onPreviousStep from allergies moves to baby info`() {
-        viewModel.onNextStep()
-        viewModel.onNameChanged("Luna")
-        viewModel.onNextStep()
+        advanceToBabyInfo()
+        viewModel.onNextStep() // -> ALLERGIES
         viewModel.onPreviousStep()
         assertEquals(OnboardingStep.BABY_INFO, viewModel.uiState.value.currentStep)
+    }
+
+    @Test
+    fun `features step starts with all features selected`() {
+        assertEquals(AppFeature.ALL, viewModel.uiState.value.enabledFeatures)
+    }
+
+    @Test
+    fun `onFeatureToggled removes a feature`() {
+        viewModel.onFeatureToggled(AppFeature.DIAPERS, enabled = false)
+        assertEquals(AppFeature.ALL - AppFeature.DIAPERS, viewModel.uiState.value.enabledFeatures)
+    }
+
+    @Test
+    fun `disabling the last feature is rejected`() {
+        AppFeature.entries.filter { it != AppFeature.SLEEP }
+            .forEach { viewModel.onFeatureToggled(it, enabled = false) }
+        assertEquals(setOf(AppFeature.SLEEP), viewModel.uiState.value.enabledFeatures)
+
+        viewModel.onFeatureToggled(AppFeature.SLEEP, enabled = false)
+        assertEquals(setOf(AppFeature.SLEEP), viewModel.uiState.value.enabledFeatures)
+    }
+
+    @Test
+    fun `onDomainToggled enabling a domain restores its features`() {
+        viewModel.onDomainToggled(com.babytracker.domain.model.FeatureDomain.GROWTH_DEVELOPMENT, enabled = false)
+        assertEquals(
+            AppFeature.ALL - AppFeature.GROWTH - AppFeature.MILESTONES,
+            viewModel.uiState.value.enabledFeatures,
+        )
+        viewModel.onDomainToggled(com.babytracker.domain.model.FeatureDomain.GROWTH_DEVELOPMENT, enabled = true)
+        assertEquals(AppFeature.ALL, viewModel.uiState.value.enabledFeatures)
     }
 
     @Test
@@ -108,7 +163,7 @@ class OnboardingViewModelTest {
 
     @Test
     fun `onNameChanged limits names by code point so emoji are not split`() {
-        val babyEmoji = "\uD83D\uDC76"
+        val babyEmoji = "👶"
         viewModel.onNameChanged(babyEmoji.repeat(51))
         assertEquals(babyEmoji.repeat(50), viewModel.uiState.value.babyName)
     }
@@ -121,8 +176,9 @@ class OnboardingViewModelTest {
 
     @Test
     fun `onNextStep from baby info with blank name stays on baby info and shows error`() {
-        viewModel.onNextStep()
-        viewModel.onNextStep()
+        viewModel.onNextStep() // WELCOME -> FEATURES
+        viewModel.onNextStep() // FEATURES -> BABY_INFO
+        viewModel.onNextStep() // blank name, stays on BABY_INFO
 
         assertEquals(OnboardingStep.BABY_INFO, viewModel.uiState.value.currentStep)
         assertEquals("Enter a name to continue.", viewModel.uiState.value.babyNameError)
@@ -130,8 +186,9 @@ class OnboardingViewModelTest {
 
     @Test
     fun `onNameChanged clears baby name error once name is valid`() {
-        viewModel.onNextStep()
-        viewModel.onNextStep()
+        viewModel.onNextStep() // WELCOME -> FEATURES
+        viewModel.onNextStep() // FEATURES -> BABY_INFO
+        viewModel.onNextStep() // blank name -> error
         assertEquals("Enter a name to continue.", viewModel.uiState.value.babyNameError)
 
         viewModel.onNameChanged("Luna")
@@ -145,30 +202,38 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun `isNextEnabled on features is true when at least one feature is on`() {
+        viewModel.onNextStep() // -> FEATURES
+        assertTrue(viewModel.isNextEnabled)
+    }
+
+    @Test
     fun `isNextEnabled on baby info with blank name is true`() {
-        viewModel.onNextStep() // move to BABY_INFO
+        viewModel.onNextStep() // -> FEATURES
+        viewModel.onNextStep() // -> BABY_INFO
         assertTrue(viewModel.isNextEnabled)
     }
 
     @Test
     fun `isNextEnabled on baby info with whitespace only name is true`() {
-        viewModel.onNextStep() // move to BABY_INFO
+        viewModel.onNextStep() // -> FEATURES
+        viewModel.onNextStep() // -> BABY_INFO
         viewModel.onNameChanged("   ")
         assertTrue(viewModel.isNextEnabled)
     }
 
     @Test
     fun `isNextEnabled on baby info with valid name is true`() {
-        viewModel.onNextStep()
+        viewModel.onNextStep() // -> FEATURES
+        viewModel.onNextStep() // -> BABY_INFO
         viewModel.onNameChanged("Luna")
         assertTrue(viewModel.isNextEnabled)
     }
 
     @Test
     fun `isNextEnabled on allergies is always true`() {
-        viewModel.onNextStep()
-        viewModel.onNameChanged("Luna")
-        viewModel.onNextStep()
+        advanceToBabyInfo()
+        viewModel.onNextStep() // -> ALLERGIES
         assertTrue(viewModel.isNextEnabled)
     }
 
@@ -216,7 +281,7 @@ class OnboardingViewModelTest {
 
     @Test
     fun `onCustomAllergyNoteChanged limits note by code point`() {
-        val pearEmoji = "\uD83C\uDF50"
+        val pearEmoji = "🍐"
         viewModel.onCustomAllergyNoteChanged(pearEmoji.repeat(101))
         assertEquals(pearEmoji.repeat(100), viewModel.uiState.value.customAllergyNote)
     }
@@ -255,11 +320,24 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun `onFinish persists chosen features`() = runTest {
+        coJustRun { saveBabyProfile(any()) }
+        viewModel.onFeatureToggled(AppFeature.DIAPERS, enabled = false)
+        viewModel.onNameChanged("Luna")
+
+        viewModel.onFinish()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { featureToggleRepository.setEnabledFeatures(AppFeature.ALL - AppFeature.DIAPERS) }
+    }
+
+    @Test
     fun `onFinish with blank name returns to baby info and does not save`() = runTest {
         viewModel.onFinish()
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 0) { saveBabyProfile(any()) }
+        coVerify(exactly = 0) { featureToggleRepository.setEnabledFeatures(any()) }
         assertEquals(OnboardingStep.BABY_INFO, viewModel.uiState.value.currentStep)
         assertEquals("Enter a name to continue.", viewModel.uiState.value.babyNameError)
     }
