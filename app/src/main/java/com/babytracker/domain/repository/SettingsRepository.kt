@@ -27,6 +27,8 @@ interface SettingsRepository {
     suspend fun setAutoUpdateEnabled(enabled: Boolean)
     fun getRichNotificationsEnabled(): Flow<Boolean>
     suspend fun setRichNotificationsEnabled(enabled: Boolean)
+    fun getPartnerFeedStashNotificationsEnabled(): Flow<Boolean>
+    suspend fun setPartnerFeedStashNotificationsEnabled(enabled: Boolean)
     fun getAppMode(): Flow<AppMode>
     suspend fun setAppMode(mode: AppMode)
     fun getShareCode(): Flow<String?>

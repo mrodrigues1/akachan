@@ -335,6 +335,12 @@ fun SettingsScreen(
                     checked = uiState.richNotificationsEnabled,
                     onCheckedChange = { viewModel.onRichNotificationsToggled(it) },
                 )
+                SettingsSwitchRow(
+                    label = "Partner stash use",
+                    description = "Notify me when my partner logs a bottle that uses milk from the stash",
+                    checked = uiState.partnerStashNotificationsEnabled,
+                    onCheckedChange = { viewModel.onPartnerStashNotificationsToggled(it) },
+                )
             }
 
             if (uiState.appMode != null && uiState.appMode != AppMode.PARTNER) {

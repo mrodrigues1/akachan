@@ -126,6 +126,16 @@
         <item quantity="other">%1$d bags (%2$d mL) are expiring today</item>
     </plurals>
 
+    <!-- Partner stash-consumption notification -->
+    <string name="notif_channel_partner_stash_name">Partner stash use</string>
+    <string name="notif_channel_partner_stash_description">When your partner logs a bottle that uses milk from the stash</string>
+    <plurals name="notif_title_partner_stash">
+        <item quantity="one">Bottle logged by partner</item>
+        <item quantity="other">Partner logged %1$d bottles</item>
+    </plurals>
+    <string name="notif_body_partner_stash_single">Partner used %1$d mL from the stash</string>
+    <string name="notif_body_partner_stash_multi">Used %1$d mL from the stash</string>
+
     <!-- Widget -->
     <string name="widget_description">Feeding side, elapsed feed time, and current sleep status</string>
     <string name="widget_loading">Just a moment…</string>

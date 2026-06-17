@@ -73,6 +73,41 @@ class SettingsRepositoryImplTest {
     }
 
     @Test
+    fun `getPartnerFeedStashNotificationsEnabled returns true when key is absent`() = runTest {
+        val prefs = mockk<Preferences>()
+        every {
+            prefs[booleanPreferencesKey("partner_feed_stash_notifications_enabled")]
+        } returns null
+        every { dataStore.data } returns flowOf(prefs)
+
+        assertTrue(repository.getPartnerFeedStashNotificationsEnabled().first())
+    }
+
+    @Test
+    fun `getPartnerFeedStashNotificationsEnabled returns stored value`() = runTest {
+        val prefs = mockk<Preferences>()
+        every {
+            prefs[booleanPreferencesKey("partner_feed_stash_notifications_enabled")]
+        } returns false
+        every { dataStore.data } returns flowOf(prefs)
+
+        assertFalse(repository.getPartnerFeedStashNotificationsEnabled().first())
+    }
+
+    @Test
+    fun `setPartnerFeedStashNotificationsEnabled persists value to DataStore`() = runTest {
+        val editSlot = slot<suspend (MutablePreferences) -> Unit>()
+        coEvery { dataStore.edit(capture(editSlot)) } returns mockk()
+
+        repository.setPartnerFeedStashNotificationsEnabled(false)
+
+        coVerify { dataStore.edit(any()) }
+        val prefs = mutablePreferencesOf()
+        editSlot.captured(prefs)
+        assertFalse(prefs[booleanPreferencesKey("partner_feed_stash_notifications_enabled")]!!)
+    }
+
+    @Test
     fun `getVolumeUnit returns ML when key is absent`() = runTest {
         val prefs = mockk<Preferences>()
         every { prefs[stringPreferencesKey("volume_unit")] } returns null

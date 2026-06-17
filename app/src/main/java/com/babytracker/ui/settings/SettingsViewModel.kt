@@ -24,6 +24,7 @@ data class SettingsUiState(
     val themeConfig: ThemeConfig = ThemeConfig.SYSTEM,
     val autoUpdateEnabled: Boolean = true,
     val richNotificationsEnabled: Boolean = true,
+    val partnerStashNotificationsEnabled: Boolean = true,
     val appMode: AppMode? = null,
     val isDisconnected: Boolean = false,
     val volumeUnit: VolumeUnit = VolumeUnit.ML,
@@ -47,6 +48,7 @@ class SettingsViewModel @Inject constructor(
                 settingsRepository.getThemeConfig(),
                 settingsRepository.getAutoUpdateEnabled(),
                 settingsRepository.getRichNotificationsEnabled(),
+                settingsRepository.getPartnerFeedStashNotificationsEnabled(),
                 settingsRepository.getAppMode(),
                 settingsRepository.getVolumeUnit(),
                 settingsRepository.getMeasurementSystem(),
@@ -55,14 +57,16 @@ class SettingsViewModel @Inject constructor(
                 val themeConfig = values[1] as ThemeConfig
                 val autoUpdate = values[2] as Boolean
                 val richNotifications = values[3] as Boolean
-                val appMode = values[4] as AppMode
-                val volumeUnit = values[5] as VolumeUnit
-                val measurementSystem = values[6] as MeasurementSystem
+                val partnerStashNotifications = values[4] as Boolean
+                val appMode = values[5] as AppMode
+                val volumeUnit = values[6] as VolumeUnit
+                val measurementSystem = values[7] as MeasurementSystem
                 SettingsUiState(
                     baby = baby,
                     themeConfig = themeConfig,
                     autoUpdateEnabled = autoUpdate,
                     richNotificationsEnabled = richNotifications,
+                    partnerStashNotificationsEnabled = partnerStashNotifications,
                     appMode = appMode,
                     volumeUnit = volumeUnit,
                     measurementSystem = measurementSystem,
@@ -87,6 +91,10 @@ class SettingsViewModel @Inject constructor(
 
     fun onRichNotificationsToggled(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.setRichNotificationsEnabled(enabled) }
+    }
+
+    fun onPartnerStashNotificationsToggled(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setPartnerFeedStashNotificationsEnabled(enabled) }
     }
 
     fun disconnect() {
