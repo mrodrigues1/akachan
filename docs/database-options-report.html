@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Akachan — Backend / Database Options &amp; Trade-offs</title>
+<style>
+  :root{
+    --bg:#0f1115; --surface:#171a21; --surface-2:#1e222b; --border:#2a2f3a;
+    --text:#e6e8ee; --muted:#9aa3b2; --faint:#6b7280;
+    --accent:#ff8fab; --accent-2:#7cc6fe; --good:#5fd08a; --warn:#f7c66b; --bad:#f78a8a;
+    --radius:14px; --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6;font-size:16px}
+  .wrap{max-width:1040px;margin:0 auto;padding:48px 24px 96px}
+  header.page{border-bottom:1px solid var(--border);padding-bottom:28px;margin-bottom:40px}
+  .eyebrow{color:var(--accent);font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.72rem;margin:0 0 10px}
+  h1{font-size:2.1rem;line-height:1.2;margin:0 0 12px}
+  h2{font-size:1.45rem;margin:52px 0 16px;padding-top:8px}
+  h3{font-size:1.1rem;margin:28px 0 10px;color:var(--text)}
+  p{color:var(--text)}
+  .lead{color:var(--muted);font-size:1.05rem;max-width:70ch}
+  .meta{color:var(--faint);font-size:.85rem;margin-top:18px}
+  a{color:var(--accent-2);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{font-family:var(--mono);background:var(--surface-2);padding:1px 6px;border-radius:6px;font-size:.88em;color:#dfe7f3}
+  strong{color:#fff}
+
+  .callout{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--radius);padding:20px 22px;margin:24px 0}
+  .callout.good{border-left-color:var(--good)}
+  .callout.warn{border-left-color:var(--warn)}
+  .callout.info{border-left-color:var(--accent-2)}
+  .callout h3{margin-top:0}
+  .callout p:last-child{margin-bottom:0}
+
+  .grid{display:grid;gap:16px}
+  .grid.two{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px}
+  .card h3{margin-top:0;display:flex;align-items:center;gap:10px;justify-content:space-between}
+  .tag{font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .tag.cur{background:rgba(124,198,254,.15);color:var(--accent-2)}
+  .tag.oss{background:rgba(95,208,138,.15);color:var(--good)}
+  .tag.host{background:rgba(247,198,107,.15);color:var(--warn)}
+  .card ul{margin:12px 0 0;padding-left:18px}
+  .card li{margin:6px 0;color:var(--muted)}
+  .card li b{color:var(--text);font-weight:600}
+  .pro::marker{color:var(--good)}
+  .con::marker{color:var(--bad)}
+
+  table{width:100%;border-collapse:collapse;margin:18px 0;font-size:.92rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{background:var(--surface-2);color:var(--text);font-weight:600;font-size:.8rem;letter-spacing:.03em;text-transform:uppercase}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);white-space:nowrap}
+  .y{color:var(--good);font-weight:600}
+  .n{color:var(--bad);font-weight:600}
+  .mid{color:var(--warn);font-weight:600}
+  .scroll{overflow-x:auto}
+
+  .pill{display:inline-block;font-size:.75rem;font-family:var(--mono);background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:4px 8px;margin:2px 4px 2px 0;color:var(--muted)}
+  hr{border:none;border-top:1px solid var(--border);margin:40px 0}
+  ol.steps{counter-reset:s;list-style:none;padding-left:0}
+  ol.steps li{position:relative;padding:10px 0 10px 44px;border-bottom:1px solid var(--border)}
+  ol.steps li:last-child{border-bottom:none}
+  ol.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#1a1a1a;font-weight:700;display:grid;place-items:center;font-size:.85rem}
+  .src{font-size:.85rem;color:var(--muted)}
+  .src li{margin:5px 0}
+  footer{margin-top:60px;padding-top:24px;border-top:1px solid var(--border);color:var(--faint);font-size:.82rem}
+  .verdict{font-size:1.05rem}
+  .verdict b{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="page">
+  <p class="eyebrow">Akachan · Architecture decision report</p>
+  <h1>Where should Akachan store data if it goes public?</h1>
+  <p class="lead">An evaluation of backend / database options for a local-first Android baby tracker, with cost-at-scale modelling and the trade-offs of each path — Firebase, Supabase, Appwrite, PocketBase, local-first sync engines, and DIY Postgres.</p>
+  <p class="meta">Prepared June 2026 · For the Akachan (BabyTracker) project · Pricing figures are indicative and change frequently — confirm against vendor pages before committing.</p>
+</header>
+
+<!-- TL;DR -->
+<h2>TL;DR</h2>
+<div class="callout good">
+  <h3>The cost fear is real in general — but probably not for <em>your</em> app.</h3>
+  <p>Akachan is <strong>local-first</strong>: Room (SQLite on-device) is the source of truth and holds all core tracking data. Firebase only stores a small <strong>read-only snapshot per family</strong> for the optional partner-sharing feature. Your <strong>fan-out is 1</strong> — one snapshot is read by one partner. The "Firestore is ruinously expensive at scale" stories almost always come from chat / social / feed apps where <strong>one write fans out to thousands of reads</strong>. That is a different workload from yours.</p>
+  <p style="margin-bottom:0">Modelled below: even at <strong>100,000 active sharing families</strong>, Firestore costs you roughly <strong>$50–80/month</strong>. Cost is <em>not</em> your real decision driver. The real drivers are <strong>vendor lock-in, bill-spike risk from bugs, data residency / GDPR (baby health data), and how much ops work you want to own.</strong></p>
+</div>
+
+<div class="callout">
+  <h3>Recommendation in one line</h3>
+  <p class="verdict"><b>Stay on Firebase now</b> (it is already built, cheap at your scale, and zero-ops). Treat a migration as a <em>later</em> decision triggered by GDPR/residency needs or a desire to kill lock-in — and if you migrate, the architecturally honest target is either <b>Supabase</b> (managed Postgres, predictable pricing, EU region) or a <b>local-first sync engine</b> (PowerSync / Turso) that mirrors how your app already works.</p>
+</div>
+
+<!-- WORKLOAD -->
+<h2>1. First, understand what you're actually paying for</h2>
+<p>"Database" is the wrong frame for this app. You already <strong>have</strong> a database — Room/SQLite on the phone — and it costs nothing and scales perfectly because every user runs their own copy. The thing under discussion is the <strong>sync / sharing backend</strong>: the small cloud layer that lets a partner see a read-only snapshot.</p>
+
+<p>So the comparison is really between <em>backend-as-a-service platforms</em> and <em>sync engines</em>, judged on: cost model, lock-in, control, data residency, and operational burden.</p>
+
+<div class="callout info">
+  <h3>Your workload, sized honestly</h3>
+  <p>A baby generates a <em>handful</em> of tracked events per day (feeds, sleeps, the odd note) — call it <strong>~15 events/day per family</strong>. Each event = 1 snapshot write. A partner with a realtime listener sees ~1 read per change. So a sharing pair is roughly <strong>~30 read+write operations per day</strong>. This is tiny. Baby tracking is one of the <em>least</em> backend-intensive app categories that exists.</p>
+</div>
+
+<h3>What makes Firestore bills explode (and whether it applies to you)</h3>
+<div class="scroll">
+<table>
+  <thead><tr><th>Cost trap</th><th>Why it bites other apps</th><th>Does it apply to Akachan?</th></tr></thead>
+  <tbody>
+    <tr><td><b>Fan-out reads</b></td><td>1 post → N followers each get a read. A query returning 200 docs = 200 reads, every time.</td><td><span class="n">No</span> — one snapshot, one partner. Fan-out of 1.</td></tr>
+    <tr><td><b>Per-event documents + big queries</b></td><td>Loading a feed re-reads hundreds of docs per screen open.</td><td><span class="mid">Mostly no</span> — keep the shared snapshot as <em>one summary document</em>, not one doc per feed.</td></tr>
+    <tr><td><b>Runaway listeners / loops</b></td><td>A bug re-subscribing in a loop can bill thousands overnight on Blaze.</td><td><span class="mid">Risk exists</span> — set a <b>budget alert + cap</b>. This is the real Firebase danger for you, not steady-state cost.</td></tr>
+    <tr><td><b>Media / storage egress</b></td><td>Photos & video dominate bills.</td><td><span class="n">No</span> — you sync structured numbers, not media.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- OPTIONS -->
+<h2>2. The options</h2>
+
+<div class="grid two">
+
+  <div class="card">
+    <h3>Firebase Firestore <span class="tag cur">Current</span></h3>
+    <p class="src">Google's serverless NoSQL document DB + Auth, realtime listeners, fully managed.</p>
+    <ul>
+      <li class="pro"><b>Already integrated</b> — anonymous auth + snapshot sync are built and working.</li>
+      <li class="pro"><b>Zero ops</b> — no servers, scaling, or patching.</li>
+      <li class="pro"><b>Generous free tier</b> — 50k reads / 20k writes / 1 GiB per day; you likely never leave it solo or in early launch.</li>
+      <li class="pro"><b>Best-in-class offline + realtime</b> SDK for Android.</li>
+      <li class="con"><b>Pay-per-operation</b> — cost is unpredictable and a bug can spike the bill.</li>
+      <li class="con"><b>Vendor lock-in</b> — proprietary query model; migration is real work.</li>
+      <li class="con"><b>Data residency</b> — region is picked at project creation and is hard to change; weaker fit for strict EU health-data stances.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Supabase <span class="tag oss">Open source</span></h3>
+    <p class="src">Managed <b>Postgres</b> + Auth + realtime + storage. Open source; self-hostable; EU regions.</p>
+    <ul>
+      <li class="pro"><b>Predictable, tier-based pricing</b> — Free, then $25/mo Pro per project; unlimited API requests (no per-read billing).</li>
+      <li class="pro"><b>Real SQL / Postgres</b> — relational, portable, no lock-in to a proprietary query model.</li>
+      <li class="pro"><b>Independent comparisons put it ~3–5× cheaper than Firebase</b> on heavy read/write workloads.</li>
+      <li class="pro"><b>EU hosting + self-host option</b> — strong for GDPR / health data.</li>
+      <li class="con"><b>You'd rebuild</b> the sync + auth layer (no anonymous-auth-to-snapshot path out of the box like you have now).</li>
+      <li class="con"><b>Free-tier projects pause</b> after 7 days of no traffic (fine once you have users; annoying pre-launch).</li>
+      <li class="con">Offline/realtime mobile story is less turnkey than Firestore's.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Local-first sync engines <span class="tag oss">Best arch fit</span></h3>
+    <p class="src"><b>PowerSync</b>, <b>Turso</b>, <b>ElectricSQL</b> — sync a cloud Postgres/SQLite down to on-device SQLite with offline + conflict resolution.</p>
+    <ul>
+      <li class="pro"><b>Matches what you already do</b> — you're local-first with SQLite/Room today; this formalizes it instead of bolting a foreign cloud DB on the side.</li>
+      <li class="pro"><b>True offline-first sync</b>, automatic conflict resolution, instant local reads.</li>
+      <li class="pro"><b>Turso embedded replicas</b> keep SQLite local and sync to edge — conceptually closest to your model.</li>
+      <li class="con"><b>Newer / smaller ecosystems</b>; Android-native (vs Flutter/RN) support varies — verify the SDK fits Kotlin/Room before betting on it.</li>
+      <li class="con"><b>More moving parts</b> than a snapshot doc for what is currently a simple one-partner share.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Appwrite <span class="tag oss">Open source</span></h3>
+    <p class="src">Open-source BaaS: DB + Auth + realtime + storage. Cloud or self-host (Docker microservices). Native Android SDK.</p>
+    <ul>
+      <li class="pro"><b>Native Android SDK</b>, REST/GraphQL/WebSocket.</li>
+      <li class="pro"><b>Very generous cloud free tier</b> (75k MAU, 10 GB); Pro ~$15/mo per member.</li>
+      <li class="pro"><b>Self-host = infra cost only</b>; full control + data residency.</li>
+      <li class="con"><b>Heavier self-host</b> — Docker microservices stack to operate.</li>
+      <li class="con">Smaller community than Firebase/Supabase; fewer Android-specific guides.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>PocketBase <span class="tag host">Self-host</span></h3>
+    <p class="src">Single ~20 MB Go binary: SQLite + Auth + realtime + file storage + admin UI. Free &amp; open source.</p>
+    <ul>
+      <li class="pro"><b>Dead-simple</b> — one binary, run anywhere; cheapest possible hosting ($5 VPS).</li>
+      <li class="pro"><b>SQLite under the hood</b> — same engine family as Room.</li>
+      <li class="pro"><b>Total control + data residency</b>; no per-op billing ever.</li>
+      <li class="con"><b>You own uptime, backups, scaling, security patching.</b></li>
+      <li class="con"><b>Single-node by design</b> — fine for an indie app, not for huge scale; no official Kotlin SDK (REST is straightforward though).</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>DIY: managed Postgres + thin API <span class="tag host">Most control</span></h3>
+    <p class="src">e.g. Neon / Supabase-Postgres / Cloud SQL behind a small Ktor or Cloud Functions API.</p>
+    <ul>
+      <li class="pro"><b>Maximum control &amp; portability</b>; pick any region.</li>
+      <li class="pro"><b>Cheap at small scale</b> (serverless Postgres free/low tiers).</li>
+      <li class="con"><b>You build &amp; maintain auth, API, sync, offline reconciliation</b> — the most engineering effort of any option.</li>
+      <li class="con"><b>Overkill</b> for a one-partner snapshot. Only worth it if the backend becomes a real product surface.</li>
+    </ul>
+  </div>
+
+</div>
+
+<!-- COMPARISON TABLE -->
+<h2>3. Side-by-side</h2>
+<div class="scroll">
+<table>
+  <thead>
+    <tr><th>Option</th><th>Pricing model</th><th>Lock-in</th><th>Ops burden</th><th>EU / residency</th><th>Offline+realtime on Android</th><th>Effort to switch from today</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>Firebase Firestore</b></td>
+      <td class="num">Per-operation (pay-as-you-go)</td>
+      <td class="n">High</td>
+      <td class="y">None</td>
+      <td class="mid">Limited</td>
+      <td class="y">Excellent</td>
+      <td class="y">— (current)</td>
+    </tr>
+    <tr>
+      <td><b>Supabase</b></td>
+      <td class="num">Flat tier + usage ($0 / $25 Pro)</td>
+      <td class="y">Low (Postgres)</td>
+      <td class="y">Low (managed)</td>
+      <td class="y">Yes (EU + self-host)</td>
+      <td class="mid">Good</td>
+      <td class="mid">Medium</td>
+    </tr>
+    <tr>
+      <td><b>Sync engine (PowerSync/Turso)</b></td>
+      <td class="num">Tier + usage</td>
+      <td class="mid">Medium</td>
+      <td class="y">Low</td>
+      <td class="y">Varies (good)</td>
+      <td class="y">Excellent (purpose-built)</td>
+      <td class="mid">Medium–High</td>
+    </tr>
+    <tr>
+      <td><b>Appwrite (cloud)</b></td>
+      <td class="num">Flat tier ($0 / ~$15)</td>
+      <td class="y">Low (OSS)</td>
+      <td class="y">Low (cloud)</td>
+      <td class="y">Yes</td>
+      <td class="mid">Good</td>
+      <td class="mid">Medium</td>
+    </tr>
+    <tr>
+      <td><b>PocketBase (self-host)</b></td>
+      <td class="num">Hosting only (~$5/mo VPS)</td>
+      <td class="y">Low (OSS)</td>
+      <td class="n">High (you own it)</td>
+      <td class="y">Full control</td>
+      <td class="mid">Good</td>
+      <td class="n">High</td>
+    </tr>
+    <tr>
+      <td><b>DIY Postgres + API</b></td>
+      <td class="num">Hosting + compute</td>
+      <td class="y">Lowest</td>
+      <td class="n">Highest</td>
+      <td class="y">Full control</td>
+      <td class="n">Build it yourself</td>
+      <td class="n">Highest</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- COST MODEL -->
+<h2>4. Cost at scale — modelled for Akachan's workload</h2>
+<p>Assumptions: ~15 writes/day and ~15 reads/day per sharing family (one summary snapshot doc, one partner with a realtime listener), tiny storage. Firestore at roughly <code>$0.30/M reads</code>, <code>$0.90/M writes</code>. These are order-of-magnitude figures to show shape, not quotes.</p>
+<div class="scroll">
+<table>
+  <thead><tr><th>Active sharing families</th><th>Ops / month (R+W)</th><th>Firestore (est.)</th><th>Supabase (est.)</th><th>PocketBase self-host (est.)</th></tr></thead>
+  <tbody>
+    <tr><td class="num">Just you (testing)</td><td class="num">~900</td><td class="y">$0 (free tier)</td><td class="y">$0 (free tier)</td><td class="num">~$5/mo VPS</td></tr>
+    <tr><td class="num">1,000</td><td class="num">~0.9M</td><td class="y">$0–1</td><td class="y">$0–25</td><td class="num">~$5–10</td></tr>
+    <tr><td class="num">10,000</td><td class="num">~9M</td><td class="num">~$6–10</td><td class="num">~$25</td><td class="num">~$10–20</td></tr>
+    <tr><td class="num">100,000</td><td class="num">~90M</td><td class="num">~$50–80</td><td class="num">~$25–100</td><td class="num">~$40–80 (needs scaling)</td></tr>
+    <tr><td class="num">1,000,000</td><td class="num">~900M</td><td class="num">~$500–800</td><td class="num">~$100s</td><td class="n">re-architect needed</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="callout warn">
+  <h3>The takeaway from the numbers</h3>
+  <p>Firebase only becomes "expensive" for this app at the <strong>million-family</strong> level — and a free baby tracker reaching a million active sharing families is a wonderful problem you'd happily re-architect for. Below that, the absolute dollars are small on every option. <strong>Optimize for lock-in, residency, and your time — not for these amounts.</strong> The one Firebase number that <em>can</em> hurt at any scale is a <strong>runaway-bug bill</strong>, which a budget cap neutralizes.</p>
+</div>
+
+<!-- HEALTH DATA -->
+<h2>5. The factor that should weigh more than cost: it's baby health data</h2>
+<div class="callout">
+  <p>Feeding, sleep, and especially <strong>allergy</strong> records are health-adjacent personal data about a minor. If Akachan ships in the EU/UK (or you want to be safe), GDPR treatment and <strong>data residency</strong> matter more than a few dollars of compute. This is the strongest <em>real</em> argument for eventually moving off Firestore toward <strong>Supabase EU</strong>, <strong>Appwrite EU</strong>, or a <strong>self-hosted</strong> option where you control exactly where data lives and can honour deletion/export requests cleanly.</p>
+  <p style="margin-bottom:0">Mitigation regardless of backend: keep the cloud snapshot <strong>minimal</strong> (only what the partner needs to see), let Room stay the real store, and make sharing strictly opt-in (which it already is).</p>
+</div>
+
+<!-- DECISION -->
+<h2>6. When to choose what</h2>
+<div class="grid two">
+  <div class="card"><h3>Choose Firebase if…</h3><ul>
+    <li>You want to ship and not touch infrastructure (today's situation).</li>
+    <li>Cost predictability is handled by a budget alert/cap.</li>
+    <li>Realtime + offline polish on Android matters most.</li>
+  </ul></div>
+  <div class="card"><h3>Choose Supabase if…</h3><ul>
+    <li>You want flat, predictable bills and real SQL/portability.</li>
+    <li>EU data residency / GDPR posture matters.</li>
+    <li>You're OK rebuilding the auth + sync layer once.</li>
+  </ul></div>
+  <div class="card"><h3>Choose a sync engine if…</h3><ul>
+    <li>You want the backend to mirror your local-first Room model directly.</li>
+    <li>Robust offline conflict resolution becomes a feature priority.</li>
+    <li>The Android/Kotlin SDK checks out for your stack.</li>
+  </ul></div>
+  <div class="card"><h3>Choose PocketBase / DIY if…</h3><ul>
+    <li>You want total control + lowest cash cost and enjoy running infra.</li>
+    <li>Scale stays indie-sized and you can own backups/uptime.</li>
+    <li>Lock-in avoidance is a top personal value.</li>
+  </ul></div>
+</div>
+
+<!-- MIGRATION PATH -->
+<h2>7. Suggested path</h2>
+<ol class="steps">
+  <li><strong>Now:</strong> stay on Firebase. Add a <strong>budget alert + hard cap</strong> in Google Cloud Billing — this is the single highest-value action and removes the only genuine Firebase risk for you.</li>
+  <li><strong>Keep the snapshot lean:</strong> ensure partner sync writes <em>one summary document per family</em>, not one document per event, and that the partner uses a single listener. This keeps every backend option cheap and makes future migration trivial.</li>
+  <li><strong>Decouple now, cheaply:</strong> your <code>SharingRepository</code> interface already abstracts the backend. Keep all Firestore types behind it so a swap later touches only <code>SharingRepositoryImpl</code> + <code>di/SharingModule.kt</code>.</li>
+  <li><strong>Trigger a migration</strong> only when one of these fires: GDPR/residency requirement, a desire to end lock-in, or unexpected cost. Default target: <strong>Supabase (EU)</strong>; consider a <strong>sync engine</strong> if offline sync becomes a headline feature.</li>
+  <li><strong>If you ever self-host</strong> (PocketBase/Appwrite), budget for backups, monitoring, and patching — that ongoing time is the real price, not the $5 VPS.</li>
+</ol>
+
+<hr>
+
+<h2>Sources</h2>
+<ul class="src">
+  <li><a href="https://cloud.google.com/firestore/pricing">Cloud Firestore pricing — Google Cloud</a></li>
+  <li><a href="https://firebase.google.com/docs/firestore/billing-example">Cloud Firestore pricing example — Firebase</a></li>
+  <li><a href="https://supertokens.com/blog/firebase-pricing">Firebase pricing: free vs Blaze, hidden charges — SuperTokens</a></li>
+  <li><a href="https://uibakery.io/blog/supabase-pricing">Supabase pricing 2026: plans &amp; free-tier limits — UI Bakery</a></li>
+  <li><a href="https://www.bytebase.com/blog/supabase-vs-aws-database-pricing/">Supabase pricing &amp; cost comparison — Bytebase</a></li>
+  <li><a href="https://tech-insider.org/supabase-vs-firebase-2026-2/">Supabase vs Firebase 2026: cost gap analysis — Tech Insider</a></li>
+  <li><a href="https://www.sashido.io/en/blog/firebase-alternatives-2025">Firebase alternatives: SQL, NoSQL, self-hosted, EU host — SashiDo</a></li>
+  <li><a href="https://blog.elest.io/supabase-vs-appwrite-vs-pocketbase-which-open-source-backend-for-your-next-app/">Supabase vs Appwrite vs PocketBase — elest.io</a></li>
+  <li><a href="https://uibakery.io/blog/supabase-alternatives">Appwrite &amp; PocketBase self-host overview — UI Bakery</a></li>
+  <li><a href="https://trybuildpilot.com/648-electric-sql-vs-powersync-vs-zero-2026">ElectricSQL vs PowerSync vs Zero: local-first sync — BuildPilot</a></li>
+  <li><a href="https://turso.tech/blog/local-first-cloud-connected-sqlite-with-turso-embedded-replicas">Local-first SQLite with Turso embedded replicas — Turso</a></li>
+</ul>
+
+<footer>
+  Generated for the Akachan project, June 2026. Pricing and tier details change often — treat all dollar figures as indicative and verify on vendor pricing pages before any commitment. This report assumes the current local-first architecture (Room as source of truth, Firebase storing only an opt-in read-only partner snapshot).
+</footer>
+
+</div>
+</body>
+</html>

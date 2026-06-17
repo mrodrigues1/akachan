@@ -4,14 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.usecase.diaper.DeleteDiaperChangeUseCase
-import com.babytracker.domain.usecase.diaper.LogDiaperChangeUseCase
 import com.babytracker.domain.usecase.diaper.ObserveDiaperChangesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -23,7 +21,6 @@ import javax.inject.Inject
 class DiaperHistoryViewModel @Inject constructor(
     observeDiaperChanges: ObserveDiaperChangesUseCase,
     private val deleteDiaperChange: DeleteDiaperChangeUseCase,
-    private val logDiaperChange: LogDiaperChangeUseCase,
     private val zone: ZoneId,
 ) : ViewModel() {
 
@@ -37,19 +34,23 @@ class DiaperHistoryViewModel @Inject constructor(
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
 
-    private val _deletions = MutableSharedFlow<DiaperChange>(extraBufferCapacity = 1)
-    val deletions: SharedFlow<DiaperChange> = _deletions.asSharedFlow()
+    // The change awaiting delete confirmation; non-null drives the confirmation dialog.
+    private val _pendingDelete = MutableStateFlow<DiaperChange?>(null)
+    val pendingDelete: StateFlow<DiaperChange?> = _pendingDelete.asStateFlow()
 
-    fun onDelete(change: DiaperChange) {
-        viewModelScope.launch {
-            runCatching { deleteDiaperChange(change.id) }
-                .onSuccess { _deletions.emit(change) }
-        }
+    fun onDeleteRequest(change: DiaperChange) {
+        _pendingDelete.value = change
     }
 
-    fun onUndoDelete(change: DiaperChange) {
+    fun onCancelDelete() {
+        _pendingDelete.value = null
+    }
+
+    fun onConfirmDelete() {
+        val change = _pendingDelete.value ?: return
+        _pendingDelete.value = null
         viewModelScope.launch {
-            runCatching { logDiaperChange(change.type, change.timestamp, change.notes) }
+            runCatching { deleteDiaperChange(change.id) }
         }
     }
 
