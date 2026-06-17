@@ -28,6 +28,7 @@ class ExportBackupUseCase @Inject constructor(
             bottleFeeds = tracking.bottleFeeds,
             growth = tracking.growth,
             milestones = tracking.milestones,
+            diapers = tracking.diapers,
         )
 
         return json.encodeToString(BackupData.serializer(), backup)

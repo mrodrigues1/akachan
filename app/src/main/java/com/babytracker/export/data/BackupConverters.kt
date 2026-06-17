@@ -2,6 +2,7 @@ package com.babytracker.export.data
 
 import com.babytracker.data.local.entity.BottleFeedEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
+import com.babytracker.data.local.entity.DiaperEntity
 import com.babytracker.data.local.entity.GrowthMeasurementEntity
 import com.babytracker.data.local.entity.MilestoneEntity
 import com.babytracker.data.local.entity.MilkBagEntity
@@ -9,6 +10,7 @@ import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
 import com.babytracker.export.domain.model.BottleFeedBackup
 import com.babytracker.export.domain.model.BreastfeedingBackup
+import com.babytracker.export.domain.model.DiaperBackup
 import com.babytracker.export.domain.model.GrowthBackup
 import com.babytracker.export.domain.model.MilestoneBackup
 import com.babytracker.export.domain.model.MilkBagBackup
@@ -24,6 +26,14 @@ fun BreastfeedingEntity.toBackup() = BreastfeedingBackup(
 fun BreastfeedingBackup.toEntity() = BreastfeedingEntity(
     id = id, startTime = startTime, endTime = endTime, startingSide = startingSide,
     switchTime = switchTime, notes = notes, pausedAt = pausedAt, pausedDurationMs = pausedDurationMs,
+)
+
+fun DiaperEntity.toBackup() = DiaperBackup(
+    id = id, timestamp = timestamp, type = type, notes = notes, createdAt = createdAt,
+)
+
+fun DiaperBackup.toEntity() = DiaperEntity(
+    id = id, timestamp = timestamp, type = type, notes = notes, createdAt = createdAt,
 )
 
 fun GrowthMeasurementEntity.toBackup() = GrowthBackup(

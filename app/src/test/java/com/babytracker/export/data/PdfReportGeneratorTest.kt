@@ -2,6 +2,8 @@ package com.babytracker.export.data
 
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.DiaperChange
+import com.babytracker.domain.model.DiaperType
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.export.domain.PdfReportData
@@ -27,6 +29,10 @@ class PdfReportGeneratorTest {
     private fun sleepRecord(startTime: Instant) = SleepRecord(
         id = 0, startTime = startTime, endTime = startTime.plusSeconds(3600),
         sleepType = SleepType.NAP,
+    )
+
+    private fun diaper(startTime: Instant) = DiaperChange(
+        id = 0, timestamp = startTime, type = DiaperType.WET, createdAt = startTime,
     )
 
     @Test
@@ -94,6 +100,27 @@ class PdfReportGeneratorTest {
             range = DateRange.lastDays(30, now),
             breastfeeding = sessions,
             sleep = sleeps,
+        )
+        try {
+            val bytes = generator.render(data)
+            assertTrue(bytes.isNotEmpty())
+            assertEquals("%PDF", bytes.copyOfRange(0, 4).decodeToString())
+        } catch (e: IllegalStateException) {
+            org.junit.Assume.assumeNoException(e)
+        }
+    }
+
+    @Test
+    fun `render with many diapers does not crash - exercises diaper pagination mirror`() {
+        val now = Instant.parse("2026-05-26T00:00:00Z")
+        // 40 diapers push the diaper section across a page boundary, exercising the
+        // countPages/render mirror for the new section to guard footer drift.
+        val diapers = (1..40).map { i -> diaper(now.minusSeconds(i * 1800L)) }
+        val data = PdfReportData(
+            range = DateRange.lastDays(30, now),
+            breastfeeding = listOf(session(now.minusSeconds(3600))),
+            sleep = listOf(sleepRecord(now.minusSeconds(7200))),
+            diapers = diapers,
         )
         try {
             val bytes = generator.render(data)

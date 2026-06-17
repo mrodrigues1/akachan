@@ -3,6 +3,7 @@ package com.babytracker.export.domain
 import com.babytracker.export.domain.model.BabyBackup
 import com.babytracker.export.domain.model.BottleFeedBackup
 import com.babytracker.export.domain.model.BreastfeedingBackup
+import com.babytracker.export.domain.model.DiaperBackup
 import com.babytracker.export.domain.model.GrowthBackup
 import com.babytracker.export.domain.model.MilestoneBackup
 import com.babytracker.export.domain.model.MilkBagBackup
@@ -18,6 +19,7 @@ data class TrackingSnapshot(
     val bottleFeeds: List<BottleFeedBackup>,
     val growth: List<GrowthBackup> = emptyList(),
     val milestones: List<MilestoneBackup> = emptyList(),
+    val diapers: List<DiaperBackup> = emptyList(),
 )
 
 data class PreferencesSnapshot(

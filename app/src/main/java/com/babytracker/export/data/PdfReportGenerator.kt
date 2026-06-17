@@ -4,6 +4,7 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.export.domain.PdfReportData
 import com.babytracker.export.domain.PdfReportRenderer
@@ -82,6 +83,26 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
             page = pos.page; canvas = pos.canvas; y = pos.y
             y = drawSleepRow(canvas, y, r)
         }
+        y += SECTION_GAP
+
+        // Diaper section
+        val diaperPos = ensureRoom(doc, page, y, totalPages)
+        page = diaperPos.page; canvas = diaperPos.canvas; y = diaperPos.y
+        canvas.drawText("Diapers (${data.diapers.size})", MARGIN, y, diaperHeaderPaint)
+        y += LINE * 0.7f
+        y = drawColumnHeaders(canvas, y, "Date & Time", "Type", "Notes")
+        canvas.drawLine(MARGIN, y - LINE * 0.15f, PAGE_WIDTH - MARGIN, y - LINE * 0.15f, separatorPaint)
+        y += LINE * 0.5f
+
+        for (d in data.diapers) {
+            val pos = ensureRoom(doc, page, y, totalPages) { c ->
+                val hy = drawColumnHeaders(c, MARGIN + LINE, "Date & Time", "Type", "Notes")
+                c.drawLine(MARGIN, hy - LINE * 0.15f, PAGE_WIDTH - MARGIN, hy - LINE * 0.15f, separatorPaint)
+                hy + LINE * 0.5f
+            }
+            page = pos.page; canvas = pos.canvas; y = pos.y
+            y = drawDiaperRow(canvas, y, d)
+        }
 
         drawPageFooter(page.canvas, page.info.pageNumber, totalPages)
         doc.finishPage(page)
@@ -103,6 +124,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         val rangeDays = Duration.between(effectiveStart, data.range.end).toDays().coerceAtLeast(1)
         val avgFeedPerDay = "%.1f".format(data.breastfeeding.size.toFloat() / rangeDays)
         val avgSleepPerDay = "%.1f".format(data.sleep.size.toFloat() / rangeDays)
+        val avgDiaperPerDay = "%.1f".format(data.diapers.size.toFloat() / rangeDays)
 
         var y = startY
 
@@ -119,6 +141,11 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         canvas.drawText("Sleep records", MARGIN, y, bodyPaint)
         canvas.drawText(data.sleep.size.toString(), COL_SUMMARY_COUNT, y, bodyBoldPaint)
         canvas.drawText("avg $avgSleepPerDay per day", COL_SUMMARY_AVG, y, captionPaint)
+        y += LINE
+
+        canvas.drawText("Diaper changes", MARGIN, y, bodyPaint)
+        canvas.drawText(data.diapers.size.toString(), COL_SUMMARY_COUNT, y, bodyBoldPaint)
+        canvas.drawText("avg $avgDiaperPerDay per day", COL_SUMMARY_AVG, y, captionPaint)
         y += LINE * 0.6f
 
         canvas.drawLine(MARGIN, y, PAGE_WIDTH - MARGIN, y, separatorPaint)
@@ -159,6 +186,14 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         return startY + LINE
     }
 
+    private fun drawDiaperRow(canvas: android.graphics.Canvas, startY: Float, d: DiaperChange): Float {
+        val type = d.type.name.lowercase().replaceFirstChar { it.uppercase() }
+        canvas.drawText(d.timestamp.formatPdfDateTime(), MARGIN, startY, bodyPaint)
+        canvas.drawText(type, COL_TYPE, startY, bodyPaint)
+        canvas.drawText(d.notes ?: "—", COL_DURATION, startY, bodyPaint)
+        return startY + LINE
+    }
+
     private fun drawPageFooter(canvas: android.graphics.Canvas, pageNumber: Int, totalPages: Int) {
         canvas.drawText("Page $pageNumber of $totalPages", PAGE_WIDTH / 2, PAGE_HEIGHT - MARGIN / 2, pageNumberPaint)
     }
@@ -195,7 +230,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
             if (y <= PAGE_HEIGHT - MARGIN - FOOTER_HEIGHT) y else { pageCount++; newPageY }
 
         var y = MARGIN + BRAND_LABEL_SIZE + LINE * 0.5f + TITLE_SIZE + LINE * 0.2f + LINE + SECTION_GAP
-        y += LINE * 0.6f + LINE + LINE + LINE * 0.6f  // mirrors drawSummary y-advances exactly
+        y += LINE * 0.6f + LINE + LINE + LINE + LINE * 0.6f  // mirrors drawSummary (feed, sleep, diaper)
         y += SECTION_GAP
         y += SECTION_GAP  // after separator
 
@@ -214,6 +249,16 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         y += LINE * 0.7f + LINE + LINE * 0.5f
 
         repeat(data.sleep.size) {
+            y = sim(y, MARGIN + LINE * 2.5f)
+            y += LINE
+        }
+        y += SECTION_GAP
+
+        // Diaper section header
+        y = sim(y, MARGIN + LINE)
+        y += LINE * 0.7f + LINE + LINE * 0.5f
+
+        repeat(data.diapers.size) {
             y = sim(y, MARGIN + LINE * 2.5f)
             y += LINE
         }
@@ -260,6 +305,11 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         textSize = HEADER_SIZE
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
+    private val diaperHeaderPaint = Paint().apply {
+        color = DIAPER
+        textSize = HEADER_SIZE
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    }
     private val bodyPaint = Paint().apply {
         color = ON_SURFACE
         textSize = BODY_SIZE
@@ -289,6 +339,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         // Design tokens re-declared as android.graphics.Color ints (cannot import Compose Color).
         private const val FEEDING = 0xFFC2185B.toInt()            // Pink700
         private const val SLEEP = 0xFF1976D2.toInt()              // Blue700
+        private const val DIAPER = 0xFF00897B.toInt()            // Teal600
         private const val ON_SURFACE = 0xFF1A1A1A.toInt()         // OnSurfaceDark
         private const val ON_SURFACE_VARIANT = 0xFF6D6A64.toInt() // OnSurfaceVariantGrey
         private const val OUTLINE_COLOR = 0xFFCAC4D0.toInt()      // OutlineVariantLight

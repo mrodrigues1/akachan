@@ -8,6 +8,7 @@ import com.babytracker.export.domain.model.BabyBackup
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.export.domain.model.BreastfeedingBackup
 import com.babytracker.export.domain.model.CURRENT_BACKUP_FORMAT_VERSION
+import com.babytracker.export.domain.model.DiaperBackup
 import com.babytracker.export.domain.model.PumpingBackup
 import com.babytracker.export.domain.model.SettingsBackup
 import com.babytracker.export.domain.model.SleepBackup
@@ -63,6 +64,22 @@ class ExportBackupUseCaseTest {
         assertEquals(1, parsed.breastfeeding.size)
         assertEquals("Mia", parsed.baby?.name)
         assertEquals(420, parsed.settings.wakeTimeMinuteOfDay)
+    }
+
+    @Test
+    fun `exports diapers as format v4 and round trips them`() = runTest {
+        coEvery { source.readTracking() } returns TrackingSnapshot(
+            breastfeeding = emptyList(), sleep = emptyList(), pumping = emptyList(),
+            milkBags = emptyList(), bottleFeeds = emptyList(),
+            diapers = listOf(DiaperBackup(id = 1, timestamp = 500, type = "BOTH", notes = "x", createdAt = 600)),
+        )
+
+        val parsed = json.decodeFromString(BackupData.serializer(), useCase())
+
+        assertEquals(4, parsed.backupFormatVersion)
+        assertEquals(1, parsed.diapers.size)
+        assertEquals("BOTH", parsed.diapers.single().type)
+        assertEquals(500L, parsed.diapers.single().timestamp)
     }
 
     @Test
