@@ -19,6 +19,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.ui.onboarding.components.AllergiesStepContent
 import com.babytracker.ui.onboarding.components.BabyInfoStepContent
+import com.babytracker.ui.onboarding.components.FeatureSelectionStepContent
 import com.babytracker.ui.onboarding.components.WelcomeStepContent
 
 @Composable
@@ -63,6 +64,13 @@ fun OnboardingScreen(
             when (step) {
                 OnboardingStep.WELCOME -> WelcomeStepContent(
                     onGetStarted = viewModel::onNextStep,
+                )
+                OnboardingStep.FEATURES -> FeatureSelectionStepContent(
+                    enabledFeatures = uiState.enabledFeatures,
+                    onFeatureToggled = viewModel::onFeatureToggled,
+                    onDomainToggled = viewModel::onDomainToggled,
+                    onBack = viewModel::onPreviousStep,
+                    onNext = viewModel::onNextStep,
                 )
                 OnboardingStep.BABY_INFO -> BabyInfoStepContent(
                     name = uiState.babyName,
