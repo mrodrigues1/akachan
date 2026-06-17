@@ -2,6 +2,7 @@ package com.babytracker.sharing.domain.model
 
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BottleFeed
+import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.GrowthMeasurement
 import com.babytracker.domain.model.Milestone
@@ -32,6 +33,12 @@ fun BottleFeed.toSnapshot(): BottleFeedSnapshot = BottleFeedSnapshot(
     type = type.name,
     clientId = clientId,
     author = author.name,
+    notes = notes,
+)
+
+fun DiaperChange.toSnapshot(): DiaperSnapshot = DiaperSnapshot(
+    timestamp = timestamp.toEpochMilli(),
+    type = type.name,
     notes = notes,
 )
 

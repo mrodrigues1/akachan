@@ -15,6 +15,7 @@ data class ShareSnapshot(
     val sleepPrediction: SleepPredictionSnapshot? = null,
     val growth: List<GrowthSnapshot> = emptyList(),
     val milestones: List<MilestoneSnapshot> = emptyList(),
+    val diapers: List<DiaperSnapshot> = emptyList(),
 )
 
 data class BabySnapshot(
@@ -70,4 +71,10 @@ data class MilestoneSnapshot(
     val dateEpochDay: Long,
     val timeMinuteOfDay: Int? = null,
     val note: String? = null,
+)
+
+data class DiaperSnapshot(
+    val timestamp: Long,
+    val type: String,
+    val notes: String? = null,
 )

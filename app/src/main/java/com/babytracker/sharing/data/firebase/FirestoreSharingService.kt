@@ -2,6 +2,7 @@ package com.babytracker.sharing.data.firebase
 
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
+import com.babytracker.sharing.domain.model.DiaperSnapshot
 import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
@@ -86,6 +87,16 @@ class FirestoreSharingService @Inject constructor(
             "data" to mapOf(
                 "lastSyncAt" to Timestamp.now(),
                 "bottleFeeds" to bottleFeeds.map { bottleFeedToMap(it) },
+            ),
+        )
+        firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()
+    }
+
+    suspend fun syncDiapers(code: String, diapers: List<DiaperSnapshot>) {
+        val data = mapOf(
+            "data" to mapOf(
+                "lastSyncAt" to Timestamp.now(),
+                "diapers" to diapers.map { diaperToMap(it) },
             ),
         )
         firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()

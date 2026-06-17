@@ -21,7 +21,7 @@ class SyncToFirestoreUseCase @Inject constructor(
     private val sources: SnapshotSources,
     private val now: () -> Instant = Instant::now,
 ) {
-    enum class SyncType { FULL, SESSIONS, SLEEP_RECORDS, BABY, INVENTORY, BOTTLE_FEEDS }
+    enum class SyncType { FULL, SESSIONS, SLEEP_RECORDS, BABY, INVENTORY, BOTTLE_FEEDS, DIAPERS }
 
     suspend operator fun invoke(syncType: SyncType = SyncType.FULL) {
         if (settingsRepository.getAppMode().first() != AppMode.PRIMARY) return
@@ -33,6 +33,7 @@ class SyncToFirestoreUseCase @Inject constructor(
             SyncType.BABY -> syncBaby(code)
             SyncType.INVENTORY -> syncInventory(code)
             SyncType.BOTTLE_FEEDS -> syncBottleFeeds(code)
+            SyncType.DIAPERS -> syncDiapers(code)
         }
     }
 
@@ -43,6 +44,7 @@ class SyncToFirestoreUseCase @Inject constructor(
         val summary = sources.inventory.currentSummary()
         val activeBags = sources.inventory.getActiveBags().first()
         val bottleFeeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
+        val diapers = sources.diaper.observeAll().first().take(SYNC_LIMIT)
         val growth = sources.growth.getAllMeasurements().first().latestPerType()
         val milestones = sources.milestones.getMilestones().first()
         val updatedAtMs = now().toEpochMilli()
@@ -62,6 +64,7 @@ class SyncToFirestoreUseCase @Inject constructor(
                 sleepPrediction = prediction,
                 growth = growth.map { it.toSnapshot() },
                 milestones = milestones.map { it.toSnapshot() },
+                diapers = diapers.map { it.toSnapshot() },
             ),
         )
     }
@@ -112,6 +115,11 @@ class SyncToFirestoreUseCase @Inject constructor(
     private suspend fun syncBottleFeeds(code: ShareCode) {
         val feeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
         sharingRepository.syncBottleFeeds(code, feeds.map { it.toSnapshot() })
+    }
+
+    private suspend fun syncDiapers(code: ShareCode) {
+        val diapers = sources.diaper.observeAll().first().take(SYNC_LIMIT)
+        sharingRepository.syncDiapers(code, diapers.map { it.toSnapshot() })
     }
 
     companion object {

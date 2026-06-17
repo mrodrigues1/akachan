@@ -63,6 +63,7 @@ class GenerateShareCodeUseCaseTest {
                 sleepRepository,
                 inventoryRepository,
                 bottleFeedRepository,
+                mockk { every { observeAll() } returns flowOf(emptyList()) },
                 predictSleepWindow,
                 mockk { every { getAllMeasurements() } returns flowOf(emptyList()) },
                 mockk { every { getMilestones() } returns flowOf(emptyList()) },

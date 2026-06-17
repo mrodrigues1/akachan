@@ -2,6 +2,7 @@ package com.babytracker.sharing.domain.repository
 
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
+import com.babytracker.sharing.domain.model.DiaperSnapshot
 import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
@@ -29,6 +30,7 @@ interface SharingRepository {
         prediction: SleepPredictionSnapshot?,
     )
     suspend fun syncBottleFeeds(code: ShareCode, bottleFeeds: List<BottleFeedSnapshot>)
+    suspend fun syncDiapers(code: ShareCode, diapers: List<DiaperSnapshot>)
     suspend fun syncBaby(code: ShareCode, baby: BabySnapshot)
     suspend fun syncInventory(
         code: ShareCode,
