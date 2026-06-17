@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.trends.DailyFeedVsSleep
 import com.babytracker.domain.trends.DailyFeedingCount
@@ -93,12 +94,15 @@ class TrendsScreenTest {
 
         setScreen(newViewModel())
 
-        composeRule.onNodeWithTag("trends_feedvssleep_chart").assertIsDisplayed()
-        composeRule.onNodeWithTag("trends_rhythm_chart").assertIsDisplayed()
-        composeRule.onNodeWithTag("trends_range_30").performClick()
+        // The charts live in a vertical scroll column; the feed-vs-sleep and rhythm charts sit
+        // below the fold, so scroll each into view (which also forces the draw pass this test guards)
+        // before asserting it is displayed.
+        composeRule.onNodeWithTag("trends_feedvssleep_chart").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("trends_rhythm_chart").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("trends_range_30").performScrollTo().performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("trends_feedvssleep_chart").assertIsDisplayed()
-        composeRule.onNodeWithTag("trends_rhythm_chart").assertIsDisplayed()
+        composeRule.onNodeWithTag("trends_feedvssleep_chart").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag("trends_rhythm_chart").performScrollTo().assertIsDisplayed()
     }
 
     @Test
