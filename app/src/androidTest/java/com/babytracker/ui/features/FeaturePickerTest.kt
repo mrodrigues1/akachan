@@ -2,6 +2,7 @@ package com.babytracker.ui.features
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -22,7 +23,7 @@ class FeaturePickerTest {
     @Test
     fun togglingSleepDomain_flipsItsSwitch() {
         composeRule.setContent {
-            var enabled by mutableStateOf(AppFeature.ALL)
+            var enabled by remember { mutableStateOf(AppFeature.ALL) }
             FeaturePicker(
                 enabledFeatures = enabled,
                 onFeatureToggled = { f, on -> enabled = FeatureSelection.setFeature(enabled, f, on) },
@@ -38,7 +39,7 @@ class FeaturePickerTest {
     @Test
     fun expandingFeedingDomain_revealsPerTrackerSwitches() {
         composeRule.setContent {
-            var enabled by mutableStateOf(AppFeature.ALL)
+            var enabled by remember { mutableStateOf(AppFeature.ALL) }
             FeaturePicker(
                 enabledFeatures = enabled,
                 onFeatureToggled = { f, on -> enabled = FeatureSelection.setFeature(enabled, f, on) },
