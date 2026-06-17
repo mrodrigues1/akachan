@@ -750,9 +750,9 @@ class SleepWindowPredictorTest {
     }
 
     @Test
-    fun `ALGORITHM_VERSION is phase5 later-shift-stale version`() {
+    fun `ALGORITHM_VERSION is phase6 personalization-rebalance version`() {
         assertEquals(
-            "sleep-pred-phase5-later-shift-stale-1",
+            "sleep-pred-phase6-personalization-rebalance-1",
             SleepPredictionTuning.ALGORITHM_VERSION,
             "ALGORITHM_VERSION must be bumped when changing prediction algorithm",
         )
