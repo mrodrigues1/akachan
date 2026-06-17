@@ -132,3 +132,35 @@ A predictor change ships only if, on the synthetic cohorts:
 | 3 | Factor confidence-decay: `factorWeight(c)` + `FACTOR_FLOOR` + cap sweep | #1 | §7.1 gate; "downweight cues" |
 | 4 | (Deferred/conditional) prior + circadian calibration | #1, #2, #3 | Only if residual late-bias remains |
 | 5 | Tuning finalize + `ALGORITHM_VERSION` bump + reason/comment/docs cleanup | #2, #3 | Lock eval-chosen constants |
+
+---
+
+## Final tuning (locked — Phase 6 shipped)
+
+Each constant carries an inline eval-citing comment in `SleepPredictionTuning.kt`; values were
+chosen on the AKA-153 cohorts under the §7.1 rule (minimize short-wake MAE, no regression on
+typical/long-wake, existing suites green).
+
+| Constant | Was | Now | Issue |
+|----------|-----|-----|-------|
+| `MAX_PERSONALIZATION_WEIGHT` | 0.6 | **0.9** | AKA-154 |
+| `FULL_PERSONALIZATION_INTERVALS` | 14 | **10** | AKA-154 |
+| `FACTOR_FLOOR` | — (factors un-decayed) | **0.6** | AKA-155 |
+| `CIRCADIAN_MAX_LATER_SHIFT_MINUTES` | — (symmetric ±20) | **5** | AKA-156 |
+| `ALGORITHM_VERSION` | `…phase5-later-shift-stale-1` | `…phase6-personalization-rebalance-1` | AKA-157 |
+
+`FACTOR_FLOOR = 0.6` (not the spec's lower grid {0,0.25,0.3,0.5}) is the lowest floor that keeps the
+existing per-factor §7.1 suites green; the suites were also reframed to demonstrate each factor at a
+prior-leaning blend (an unknown baby) since at the shipped W=0.9 a data-rich baby's own median already
+encodes the heuristic signal.
+
+Residual signed NIGHT bias (minutes; + = "too far ahead"):
+
+| cohort | pre-Phase-6 | shipped |
+|--------|-------------|---------|
+| short-wake | +38 | **+7.5** |
+| typical | (circadian-driven late) | **+3.0** |
+| long-wake | — | **−19.5** (early; opposite-direction regression guard) |
+
+AKA-156's prior-nudge half was **not** executed: the typical residual was circadian, not prior-driven
+(the typical blend is already exact), so only the asymmetric circadian cap was needed.
