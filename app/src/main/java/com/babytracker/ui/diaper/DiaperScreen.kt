@@ -9,6 +9,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun DiaperScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToHistory: () -> Unit,
     viewModel: DiaperViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -20,5 +21,6 @@ fun DiaperScreen(
         onNotesChange = viewModel::onNotesChange,
         onConfirm = viewModel::onSave,
         onDismiss = onNavigateBack,
+        onNavigateToHistory = onNavigateToHistory,
     )
 }
