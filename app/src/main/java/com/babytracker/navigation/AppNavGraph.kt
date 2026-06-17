@@ -11,6 +11,7 @@ import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.ui.bottlefeed.BottleFeedScreen
 import com.babytracker.ui.diaper.DiaperHistoryScreen
 import com.babytracker.ui.diaper.DiaperScreen
+import com.babytracker.ui.features.FeaturesScreen
 import com.babytracker.ui.breastfeeding.BreastfeedingHistoryScreen
 import com.babytracker.ui.breastfeeding.BreastfeedingScreen
 import com.babytracker.ui.breastfeeding.FeedSettingsScreen
@@ -148,8 +149,12 @@ private fun NavGraphBuilder.settingsGraph(
             onNavigateToDesignSystem = { navController.navigate(Routes.DESIGN_SYSTEM_PREVIEW) },
             onNavigateToManageSharing = { navController.navigate(Routes.MANAGE_SHARING) },
             onNavigateToConnectPartner = { navController.navigate(Routes.CONNECT_PARTNER) },
+            onNavigateToFeatures = { navController.navigate(Routes.FEATURES) },
             onDisconnect = { navController.navigateAfterDisconnect(isOnboardingComplete) },
         )
+    }
+    composable(Routes.FEATURES) {
+        FeaturesScreen(onNavigateBack = { navController.popBackStack() })
     }
     composable(Routes.DESIGN_SYSTEM_PREVIEW) {
         DesignSystemPreviewScreen(onNavigateBack = { navController.popBackStack() })
