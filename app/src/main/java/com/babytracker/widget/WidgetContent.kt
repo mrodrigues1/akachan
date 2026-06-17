@@ -1,6 +1,7 @@
 package com.babytracker.widget
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -15,7 +16,9 @@ import androidx.glance.appwidget.CircularProgressIndicator
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
+import androidx.glance.layout.ColumnScope
 import androidx.glance.layout.Row
+import androidx.glance.layout.RowScope
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
@@ -72,8 +75,6 @@ private data class DomainBlockContent(
  */
 @Composable
 fun SmallNarrowContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier) {
-    val feedingActive = data.hasActiveFeed()
-    val sleeping = data.sleepState == SleepState.SLEEPING
     Row(
         modifier = modifier
             .fillMaxSize()
@@ -81,27 +82,11 @@ fun SmallNarrowContent(data: WidgetData, now: Instant, modifier: GlanceModifier 
             .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        NarrowDomainBlock(
-            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
-            content = feedBlockContent(data, now),
-            label = "Feed",
-            contentColor = if (feedingActive) {
-                GlanceTheme.colors.onPrimary
-            } else {
-                GlanceTheme.colors.onPrimaryContainer
-            },
-            onClick = openBreastfeedingAction(),
-            modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
-        )
-        Spacer(modifier = GlanceModifier.width(4.dp))
-        NarrowDomainBlock(
-            backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-            content = sleepBlockContent(data, now),
-            label = "Sleep",
-            contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
-            onClick = openSleepAction(),
-            modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
-        )
+        if (!shouldShowFeedRow(data) && !shouldShowSleepRow(data)) {
+            BabyNameFallback(data.babyName, 12.sp)
+        } else {
+            NarrowDomainBlocks(data, now)
+        }
     }
 }
 
@@ -111,8 +96,6 @@ fun SmallNarrowContent(data: WidgetData, now: Instant, modifier: GlanceModifier 
  */
 @Composable
 fun SmallContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier) {
-    val feedingActive = data.hasActiveFeed()
-    val sleeping = data.sleepState == SleepState.SLEEPING
     Row(
         modifier = modifier
             .fillMaxSize()
@@ -120,29 +103,11 @@ fun SmallContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Glan
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DomainBlock(
-            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
-            content = feedBlockContent(data, now),
-            contentColor = if (feedingActive) {
-                GlanceTheme.colors.onPrimary
-            } else {
-                GlanceTheme.colors.onPrimaryContainer
-            },
-            sizes = SmallBlockSizes,
-            onClick = openBreastfeedingAction(),
-            stacked = true,
-            modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
-        )
-        Spacer(modifier = GlanceModifier.width(8.dp))
-        DomainBlock(
-            backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-            content = sleepBlockContent(data, now),
-            contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
-            sizes = SmallBlockSizes,
-            onClick = openSleepAction(),
-            stacked = true,
-            modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
-        )
+        if (!shouldShowFeedRow(data) && !shouldShowSleepRow(data)) {
+            BabyNameFallback(data.babyName, 14.sp)
+        } else {
+            StackedDomainBlocks(data, now, SmallBlockSizes, spacing = 8.dp, showSupporting = false)
+        }
     }
 }
 
@@ -154,9 +119,7 @@ fun SmallContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Glan
  */
 @Composable
 fun MediumContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier, isRefreshing: Boolean = false) {
-    val feedingActive = data.hasActiveFeed()
-    val sleeping = data.sleepState == SleepState.SLEEPING
-Column(
+    Column(
         modifier = modifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg_surface))
@@ -179,37 +142,13 @@ Column(
             RefreshButton(isRefreshing)
         }
         Spacer(modifier = GlanceModifier.height(8.dp))
-        DomainBlock(
-            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
-            content = feedBlockContent(data, now),
-            contentColor = if (feedingActive) {
-                GlanceTheme.colors.onPrimary
-            } else {
-                GlanceTheme.colors.onPrimaryContainer
-            },
-            sizes = MediumBlockSizes,
-            onClick = openBreastfeedingAction(),
-            showSupporting = false,
-            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-        )
-        Spacer(modifier = GlanceModifier.height(8.dp))
-        DomainBlock(
-            backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-            content = sleepBlockContent(data, now),
-            contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
-            sizes = MediumBlockSizes,
-            onClick = openSleepAction(),
-            showSupporting = false,
-            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-        )
+        FullWidthDomainBlocks(data, now, MediumBlockSizes, spacing = 8.dp)
     }
 }
 
 @Composable
 fun TwoByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier, isRefreshing: Boolean = false) {
-    val feedingActive = data.hasActiveFeed()
-    val sleeping = data.sleepState == SleepState.SLEEPING
-Column(
+    Column(
         modifier = modifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg_surface))
@@ -232,37 +171,13 @@ Column(
             RefreshButton(isRefreshing)
         }
         Spacer(modifier = GlanceModifier.height(10.dp))
-        DomainBlock(
-            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
-            content = feedBlockContent(data, now),
-            contentColor = if (feedingActive) {
-                GlanceTheme.colors.onPrimary
-            } else {
-                GlanceTheme.colors.onPrimaryContainer
-            },
-            sizes = MediumBlockSizes,
-            onClick = openBreastfeedingAction(),
-            showSupporting = false,
-            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-        )
-        Spacer(modifier = GlanceModifier.height(10.dp))
-        DomainBlock(
-            backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-            content = sleepBlockContent(data, now),
-            contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
-            sizes = MediumBlockSizes,
-            onClick = openSleepAction(),
-            showSupporting = false,
-            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-        )
+        FullWidthDomainBlocks(data, now, MediumBlockSizes, spacing = 10.dp)
     }
 }
 
 @Composable
 fun ThreeByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier, isRefreshing: Boolean = false) {
-    val feedingActive = data.hasActiveFeed()
-    val sleeping = data.sleepState == SleepState.SLEEPING
-Column(
+    Column(
         modifier = modifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg_surface))
@@ -285,37 +200,13 @@ Column(
             RefreshButton(isRefreshing)
         }
         Spacer(modifier = GlanceModifier.height(10.dp))
-        DomainBlock(
-            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
-            content = feedBlockContent(data, now),
-            contentColor = if (feedingActive) {
-                GlanceTheme.colors.onPrimary
-            } else {
-                GlanceTheme.colors.onPrimaryContainer
-            },
-            sizes = ThreeByThreeBlockSizes,
-            onClick = openBreastfeedingAction(),
-            showSupporting = false,
-            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-        )
-        Spacer(modifier = GlanceModifier.height(10.dp))
-        DomainBlock(
-            backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-            content = sleepBlockContent(data, now),
-            contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
-            sizes = ThreeByThreeBlockSizes,
-            onClick = openSleepAction(),
-            showSupporting = false,
-            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-        )
+        FullWidthDomainBlocks(data, now, ThreeByThreeBlockSizes, spacing = 10.dp)
     }
 }
 
 @Composable
 fun ThreeByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier, isRefreshing: Boolean = false) {
-    val feedingActive = data.hasActiveFeed()
-    val sleeping = data.sleepState == SleepState.SLEEPING
-Column(
+    Column(
         modifier = modifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg_surface))
@@ -338,37 +229,13 @@ Column(
             RefreshButton(isRefreshing)
         }
         Spacer(modifier = GlanceModifier.height(10.dp))
-        DomainBlock(
-            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
-            content = feedBlockContent(data, now),
-            contentColor = if (feedingActive) {
-                GlanceTheme.colors.onPrimary
-            } else {
-                GlanceTheme.colors.onPrimaryContainer
-            },
-            sizes = ThreeByThreeBlockSizes,
-            onClick = openBreastfeedingAction(),
-            showSupporting = false,
-            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-        )
-        Spacer(modifier = GlanceModifier.height(10.dp))
-        DomainBlock(
-            backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-            content = sleepBlockContent(data, now),
-            contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
-            sizes = ThreeByThreeBlockSizes,
-            onClick = openSleepAction(),
-            showSupporting = false,
-            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
-        )
+        FullWidthDomainBlocks(data, now, ThreeByThreeBlockSizes, spacing = 10.dp)
     }
 }
 
 @Composable
 fun FourByTwoContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier, isRefreshing: Boolean = false) {
-    val feedingActive = data.hasActiveFeed()
-    val sleeping = data.sleepState == SleepState.SLEEPING
-Column(
+    Column(
         modifier = modifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg_surface))
@@ -380,40 +247,14 @@ Column(
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DomainBlock(
-                backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
-                content = feedBlockContent(data, now),
-                contentColor = if (feedingActive) {
-                    GlanceTheme.colors.onPrimary
-                } else {
-                    GlanceTheme.colors.onPrimaryContainer
-                },
-                sizes = FourByTwoBlockSizes,
-                onClick = openBreastfeedingAction(),
-                stacked = true,
-                showSupporting = true,
-                modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
-            )
-            Spacer(modifier = GlanceModifier.width(10.dp))
-            DomainBlock(
-                backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-                content = sleepBlockContent(data, now),
-                contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
-                sizes = FourByTwoBlockSizes,
-                onClick = openSleepAction(),
-                stacked = true,
-                showSupporting = true,
-                modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
-            )
+            StackedDomainBlocks(data, now, FourByTwoBlockSizes, spacing = 10.dp, showSupporting = true)
         }
     }
 }
 
 @Composable
 fun FourByThreeContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier, isRefreshing: Boolean = false) {
-    val feedingActive = data.hasActiveFeed()
-    val sleeping = data.sleepState == SleepState.SLEEPING
-Column(
+    Column(
         modifier = modifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg_surface))
@@ -440,40 +281,14 @@ Column(
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DomainBlock(
-                backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
-                content = feedBlockContent(data, now),
-                contentColor = if (feedingActive) {
-                    GlanceTheme.colors.onPrimary
-                } else {
-                    GlanceTheme.colors.onPrimaryContainer
-                },
-                sizes = FourByThreeBlockSizes,
-                onClick = openBreastfeedingAction(),
-                stacked = true,
-                showSupporting = false,
-                modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
-            )
-            Spacer(modifier = GlanceModifier.width(12.dp))
-            DomainBlock(
-                backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-                content = sleepBlockContent(data, now),
-                contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
-                sizes = FourByThreeBlockSizes,
-                onClick = openSleepAction(),
-                stacked = true,
-                showSupporting = false,
-                modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
-            )
+            StackedDomainBlocks(data, now, FourByThreeBlockSizes, spacing = 12.dp, showSupporting = false)
         }
     }
 }
 
 @Composable
 fun FourByFourContent(data: WidgetData, now: Instant, modifier: GlanceModifier = GlanceModifier, isRefreshing: Boolean = false) {
-    val feedingActive = data.hasActiveFeed()
-    val sleeping = data.sleepState == SleepState.SLEEPING
-Column(
+    Column(
         modifier = modifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg_surface))
@@ -496,28 +311,106 @@ Column(
             RefreshButton(isRefreshing)
         }
         Spacer(modifier = GlanceModifier.height(12.dp))
+        FullWidthDomainBlocks(data, now, FourByFourBlockSizes, spacing = 12.dp)
+    }
+}
+
+/**
+ * Emits the feed and sleep tiles as full-width stacked blocks for the vertical layouts, each gated
+ * on its feature flag. The interior spacer is dropped when only one tile shows, and both tiles
+ * being hidden simply emits nothing (the caller keeps its baby-name header).
+ */
+@Composable
+private fun ColumnScope.FullWidthDomainBlocks(data: WidgetData, now: Instant, sizes: BlockTextSizes, spacing: Dp) {
+    val feedingActive = data.hasActiveFeed()
+    val sleeping = data.sleepState == SleepState.SLEEPING
+    if (shouldShowFeedRow(data)) {
         DomainBlock(
             backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
             content = feedBlockContent(data, now),
-            contentColor = if (feedingActive) {
-                GlanceTheme.colors.onPrimary
-            } else {
-                GlanceTheme.colors.onPrimaryContainer
-            },
-            sizes = FourByFourBlockSizes,
+            contentColor = if (feedingActive) GlanceTheme.colors.onPrimary else GlanceTheme.colors.onPrimaryContainer,
+            sizes = sizes,
             onClick = openBreastfeedingAction(),
             showSupporting = false,
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
         )
-        Spacer(modifier = GlanceModifier.height(12.dp))
+    }
+    if (shouldShowFeedRow(data) && shouldShowSleepRow(data)) {
+        Spacer(modifier = GlanceModifier.height(spacing))
+    }
+    if (shouldShowSleepRow(data)) {
         DomainBlock(
             backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
             content = sleepBlockContent(data, now),
             contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
-            sizes = FourByFourBlockSizes,
+            sizes = sizes,
             onClick = openSleepAction(),
             showSupporting = false,
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
+        )
+    }
+}
+
+/** Side-by-side stacked tiles for the horizontal layouts, each gated on its feature flag. */
+@Composable
+private fun RowScope.StackedDomainBlocks(data: WidgetData, now: Instant, sizes: BlockTextSizes, spacing: Dp, showSupporting: Boolean) {
+    val feedingActive = data.hasActiveFeed()
+    val sleeping = data.sleepState == SleepState.SLEEPING
+    if (shouldShowFeedRow(data)) {
+        DomainBlock(
+            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
+            content = feedBlockContent(data, now),
+            contentColor = if (feedingActive) GlanceTheme.colors.onPrimary else GlanceTheme.colors.onPrimaryContainer,
+            sizes = sizes,
+            onClick = openBreastfeedingAction(),
+            stacked = true,
+            showSupporting = showSupporting,
+            modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
+        )
+    }
+    if (shouldShowFeedRow(data) && shouldShowSleepRow(data)) {
+        Spacer(modifier = GlanceModifier.width(spacing))
+    }
+    if (shouldShowSleepRow(data)) {
+        DomainBlock(
+            backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
+            content = sleepBlockContent(data, now),
+            contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
+            sizes = sizes,
+            onClick = openSleepAction(),
+            stacked = true,
+            showSupporting = showSupporting,
+            modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
+        )
+    }
+}
+
+/** Side-by-side compact tiles for the smallest layout, each gated on its feature flag. */
+@Composable
+private fun RowScope.NarrowDomainBlocks(data: WidgetData, now: Instant) {
+    val feedingActive = data.hasActiveFeed()
+    val sleeping = data.sleepState == SleepState.SLEEPING
+    if (shouldShowFeedRow(data)) {
+        NarrowDomainBlock(
+            backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
+            content = feedBlockContent(data, now),
+            label = "Feed",
+            contentColor = if (feedingActive) GlanceTheme.colors.onPrimary else GlanceTheme.colors.onPrimaryContainer,
+            onClick = openBreastfeedingAction(),
+            modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
+        )
+    }
+    if (shouldShowFeedRow(data) && shouldShowSleepRow(data)) {
+        Spacer(modifier = GlanceModifier.width(4.dp))
+    }
+    if (shouldShowSleepRow(data)) {
+        NarrowDomainBlock(
+            backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
+            content = sleepBlockContent(data, now),
+            label = "Sleep",
+            contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
+            onClick = openSleepAction(),
+            modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
         )
     }
 }
@@ -697,6 +590,21 @@ private fun BlockSupporting(text: String, color: ColorProvider, size: TextUnit) 
     )
 }
 
+/** Shown in the header-less compact layouts when both feed and sleep are disabled, so the widget is never blank. */
+@Composable
+private fun BabyNameFallback(babyName: String, size: TextUnit) {
+    Text(
+        text = babyName,
+        maxLines = 1,
+        style = TextStyle(
+            color = GlanceTheme.colors.onSurfaceVariant,
+            fontWeight = FontWeight.Medium,
+            fontSize = size,
+        ),
+        modifier = GlanceModifier.fillMaxWidth().clickable(openHomeAction()),
+    )
+}
+
 private fun feedBlockContent(
     data: WidgetData,
     now: Instant,
@@ -720,6 +628,10 @@ private fun sleepBlockContent(
 )
 
 private fun WidgetData.hasActiveFeed(): Boolean = feedState == FeedState.ACTIVE || feedState == FeedState.PAUSED
+
+/** A tracker row is shown only when its feature is enabled. Disabled rows are omitted entirely. */
+internal fun shouldShowFeedRow(data: WidgetData): Boolean = data.feedEnabled
+internal fun shouldShowSleepRow(data: WidgetData): Boolean = data.sleepEnabled
 
 internal fun BreastSide.label(): String = when (this) {
     BreastSide.LEFT -> "Left"

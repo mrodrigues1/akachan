@@ -1,10 +1,12 @@
 package com.babytracker.widget
 
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.sharing.domain.model.AppMode
@@ -37,6 +39,10 @@ class WidgetDataLoaderTest {
         every { getAppMode() } returns flowOf(AppMode.NONE)
     }
 
+    private fun features(set: Set<AppFeature> = AppFeature.ALL): FeatureToggleRepository = mockk {
+        every { getEnabledFeatures() } returns flowOf(set)
+    }
+
     @Test
     fun `none mode maps local repositories to WidgetData`() = runTest {
         val baby: BabyRepository = mockk { every { getBabyProfile() } returns flowOf(happyBaby) }
@@ -51,12 +57,33 @@ class WidgetDataLoaderTest {
             baby = baby,
             feed = feed,
             sleep = sleep,
+            featureToggle = features(),
         )
 
         assertEquals("Akira", result.babyName)
         assertEquals(BreastSide.LEFT, result.lastFeedSide)
         assertEquals(SleepState.NONE, result.sleepState)
         verify(exactly = 0) { scheduler.scheduleImmediateRefresh() }
+    }
+
+    @Test
+    fun `local data hides feed and sleep when features disabled`() = runTest {
+        val baby: BabyRepository = mockk { every { getBabyProfile() } returns flowOf(happyBaby) }
+        val feed: BreastfeedingRepository = mockk { coEvery { getLastSession() } returns happyFeed }
+        val sleep: SleepRepository = mockk { coEvery { getLatestRecord() } returns null }
+
+        val result = loadWidgetData(
+            settings = noneSettings(),
+            partnerCache = mockk(),
+            scheduler = mockk(relaxUnitFun = true),
+            baby = baby,
+            feed = feed,
+            sleep = sleep,
+            featureToggle = features(setOf(AppFeature.DIAPERS)),
+        )
+
+        assertEquals(false, result.feedEnabled)
+        assertEquals(false, result.sleepEnabled)
     }
 
     @Test
@@ -74,6 +101,7 @@ class WidgetDataLoaderTest {
             baby = baby,
             feed = feed,
             sleep = sleep,
+            featureToggle = features(),
         )
 
         assertEquals(WidgetData.EMPTY, result)
@@ -94,6 +122,7 @@ class WidgetDataLoaderTest {
             baby = baby,
             feed = feed,
             sleep = sleep,
+            featureToggle = features(),
         )
 
         assertEquals(WidgetData.EMPTY, result)
@@ -114,6 +143,7 @@ class WidgetDataLoaderTest {
             baby = baby,
             feed = feed,
             sleep = sleep,
+            featureToggle = features(),
         )
 
         assertEquals(WidgetData.EMPTY, result)
@@ -143,6 +173,7 @@ class WidgetDataLoaderTest {
             baby = mockk(),
             feed = mockk(),
             sleep = mockk(),
+            featureToggle = features(),
         )
 
         assertEquals(cached, result)
@@ -165,6 +196,7 @@ class WidgetDataLoaderTest {
             baby = mockk(),
             feed = mockk(),
             sleep = mockk(),
+            featureToggle = features(),
         )
 
         assertEquals(WidgetData.EMPTY, result)
@@ -187,6 +219,7 @@ class WidgetDataLoaderTest {
             baby = mockk(),
             feed = mockk(),
             sleep = mockk(),
+            featureToggle = features(),
         )
 
         assertEquals(WidgetData.EMPTY, result)

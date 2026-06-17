@@ -9,7 +9,9 @@ import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Instant
 
@@ -48,6 +50,26 @@ class WidgetDataMapperTest {
         )
 
         assertEquals("Baby", result.babyName)
+    }
+
+    @Test
+    fun `toWidgetData defaults both sections enabled`() {
+        val data = toWidgetData(babyName = "Mia", lastFeed = null, latestSleep = null)
+        assertTrue(data.feedEnabled)
+        assertTrue(data.sleepEnabled)
+    }
+
+    @Test
+    fun `toWidgetData honors disabled sections`() {
+        val data = toWidgetData(
+            babyName = "Mia",
+            lastFeed = null,
+            latestSleep = null,
+            feedEnabled = false,
+            sleepEnabled = true,
+        )
+        assertFalse(data.feedEnabled)
+        assertTrue(data.sleepEnabled)
     }
 
     @Test

@@ -29,6 +29,8 @@ data class WidgetData(
     val feedState: FeedState,
     val sleepState: SleepState,
     val sleepSince: Instant?,
+    val feedEnabled: Boolean = true,
+    val sleepEnabled: Boolean = true,
 ) {
     companion object {
         val EMPTY: WidgetData = WidgetData(
@@ -46,6 +48,8 @@ fun toWidgetData(
     babyName: String?,
     lastFeed: BreastfeedingSession?,
     latestSleep: SleepRecord?,
+    feedEnabled: Boolean = true,
+    sleepEnabled: Boolean = true,
 ): WidgetData {
     val resolvedName = babyName?.takeIf { it.isNotBlank() } ?: "Baby"
     val sleepState = latestSleep.toSleepState()
@@ -58,6 +62,8 @@ fun toWidgetData(
         feedState = lastFeed.toFeedState(),
         sleepState = sleepState,
         sleepSince = sleepSince,
+        feedEnabled = feedEnabled,
+        sleepEnabled = sleepEnabled,
     )
 }
 
