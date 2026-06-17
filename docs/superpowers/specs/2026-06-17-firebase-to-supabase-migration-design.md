@@ -98,6 +98,9 @@ sleep_prediction    -- one row per share (nullable fields)
 bottle_feeds        -- one row per BottleFeedSnapshot
 milk_bags           -- one row per MilkBagSnapshot
 inventory           -- one row per share (totalMl, bagCount, updatedAtMs)
+growth              -- one row per GrowthSnapshot (type, takenAtMs, valueCanonical, notes)
+milestones          -- one row per MilestoneSnapshot (title, dateEpochDay, timeMinuteOfDay, note)
+                    --   NB: milestone photos stay on-device, never synced
 
 partners
   code           text references shares(code) on delete cascade
