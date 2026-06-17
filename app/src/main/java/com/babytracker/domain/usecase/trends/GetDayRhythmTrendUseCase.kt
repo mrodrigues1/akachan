@@ -39,15 +39,15 @@ class GetDayRhythmTrendUseCase @Inject constructor(
         val sleepRecords = sleepRepository.getCompletedRecordsSince(start)
             .filter { it.endTime != null && !it.startTime.isAfter(now) }
 
-        val sessionInstants = breastfeedingRepository
+        val breastByDate = breastfeedingRepository
             .getCompletedSessionsBetween(start, now)
             .map { it.startTime }
-        val bottleInstants = bottleFeedRepository
+            .groupBy { it.atZone(zone).toLocalDate() }
+        val bottleByDate = bottleFeedRepository
             .getSince(start)
             .first()
             .map { it.timestamp }
             .filter { !it.isAfter(now) }
-        val feedsByDate = (sessionInstants + bottleInstants)
             .groupBy { it.atZone(zone).toLocalDate() }
 
         return trendWindowDates(today, range.days).map { date ->
@@ -66,11 +66,19 @@ class GetDayRhythmTrendUseCase @Inject constructor(
                 )
             }
 
-            val marks = feedsByDate[date].orEmpty()
+            val breastMarks = breastByDate[date].orEmpty()
+                .map { fractionOfDay(it, dayStart, dayEnd) }
+                .sorted()
+            val bottleMarks = bottleByDate[date].orEmpty()
                 .map { fractionOfDay(it, dayStart, dayEnd) }
                 .sorted()
 
-            DayRhythm(date = date, sleepBlocks = blocks, feedMarks = marks)
+            DayRhythm(
+                date = date,
+                sleepBlocks = blocks,
+                breastFeedMarks = breastMarks,
+                bottleFeedMarks = bottleMarks,
+            )
         }
     }
 

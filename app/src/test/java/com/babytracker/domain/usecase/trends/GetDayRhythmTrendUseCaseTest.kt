@@ -124,7 +124,7 @@ class GetDayRhythmTrendUseCaseTest {
     }
 
     @Test
-    fun `feeds become sorted day fraction marks`() = runTest {
+    fun `breast and bottle feeds become separate sorted day fraction marks`() = runTest {
         coEvery { breastfeeding.getCompletedSessionsBetween(any(), any()) } returns listOf(
             session("2026-06-14T06:00:00Z"),
         )
@@ -134,7 +134,8 @@ class GetDayRhythmTrendUseCaseTest {
 
         val day = useCase(TrendRange.SEVEN_DAYS).first { it.date.toString() == "2026-06-14" }
 
-        assertEquals(listOf(6f / 24f, 9f / 24f), day.feedMarks.map { it })
+        assertEquals(listOf(6f / 24f), day.breastFeedMarks)
+        assertEquals(listOf(9f / 24f), day.bottleFeedMarks)
     }
 
     @Test
@@ -142,6 +143,10 @@ class GetDayRhythmTrendUseCaseTest {
         val result = useCase(TrendRange.SEVEN_DAYS)
 
         assertEquals(7, result.size)
-        assertTrue(result.all { it.sleepBlocks.isEmpty() && it.feedMarks.isEmpty() })
+        assertTrue(
+            result.all {
+                it.sleepBlocks.isEmpty() && it.breastFeedMarks.isEmpty() && it.bottleFeedMarks.isEmpty()
+            },
+        )
     }
 }

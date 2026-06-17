@@ -140,11 +140,11 @@ fun TrendsScreen(
                 selected = uiState.range,
                 onSelected = viewModel::onRangeSelected,
             )
+            RhythmStripCard(uiState.dayRhythm)
             FeedingFrequencyCard(uiState.feedingFrequency)
             SleepDurationCard(uiState.sleepDuration)
             FeedingIntervalCard(uiState.feedingInterval)
             FeedVsSleepCard(uiState.feedVsSleep)
-            RhythmStripCard(uiState.dayRhythm)
         }
     }
 }
@@ -422,7 +422,9 @@ private fun FeedVsSleepCard(data: List<DailyFeedVsSleep>) {
 
 @Composable
 private fun RhythmStripCard(data: List<DayRhythm>) {
-    val isEmpty = data.all { it.sleepBlocks.isEmpty() && it.feedMarks.isEmpty() }
+    val isEmpty = data.all {
+        it.sleepBlocks.isEmpty() && it.breastFeedMarks.isEmpty() && it.bottleFeedMarks.isEmpty()
+    }
     ChartCard(
         title = "Daily rhythm (sleep + feeds)",
         chartTestTag = "trends_rhythm_chart",

@@ -25,6 +25,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.babytracker.domain.trends.DayRhythm
+import com.babytracker.ui.theme.BottleFeedRed
+import com.babytracker.ui.theme.BottleFeedRedDark
+import com.babytracker.ui.theme.LocalDarkTheme
 import java.time.format.DateTimeFormatter
 
 private val ROW_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM")
@@ -49,7 +52,8 @@ fun RhythmStrip(
     val trackColor = MaterialTheme.colorScheme.surfaceVariant
     val nightColor = MaterialTheme.colorScheme.secondary
     val napColor = MaterialTheme.colorScheme.secondaryContainer
-    val feedColor = MaterialTheme.colorScheme.primary
+    val breastColor = MaterialTheme.colorScheme.primary
+    val bottleColor = if (LocalDarkTheme.current) BottleFeedRedDark else BottleFeedRed
     val feedRing = MaterialTheme.colorScheme.surface
     val labelStyle = MaterialTheme.typography.labelSmall
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -86,12 +90,12 @@ fun RhythmStrip(
                         .height(ROW_HEIGHT)
                         .clip(CircleShape),
                 ) {
-                    drawDayRow(day, trackColor, nightColor, napColor, feedColor, feedRing)
+                    drawDayRow(day, trackColor, nightColor, napColor, breastColor, bottleColor, feedRing)
                 }
             }
         }
 
-        RhythmLegend(nightColor, napColor, feedColor, labelStyle, labelColor)
+        RhythmLegend(nightColor, napColor, breastColor, bottleColor, labelStyle, labelColor)
     }
 }
 
@@ -100,7 +104,8 @@ private fun DrawScope.drawDayRow(
     trackColor: Color,
     nightColor: Color,
     napColor: Color,
-    feedColor: Color,
+    breastColor: Color,
+    bottleColor: Color,
     feedRing: Color,
 ) {
     val w = size.width
@@ -123,10 +128,23 @@ private fun DrawScope.drawDayRow(
 
     val dotRadius = FEED_DOT_RADIUS_DP.dp.toPx()
     val ringRadius = dotRadius + FEED_DOT_RING_DP.dp.toPx()
-    day.feedMarks.forEach { mark ->
+    drawFeedDots(day.breastFeedMarks, breastColor, feedRing, dotRadius, ringRadius)
+    drawFeedDots(day.bottleFeedMarks, bottleColor, feedRing, dotRadius, ringRadius)
+}
+
+private fun DrawScope.drawFeedDots(
+    marks: List<Float>,
+    dotColor: Color,
+    ringColor: Color,
+    dotRadius: Float,
+    ringRadius: Float,
+) {
+    val w = size.width
+    val h = size.height
+    marks.forEach { mark ->
         val center = Offset(x = (mark * w).coerceIn(dotRadius, w - dotRadius), y = h / 2f)
-        drawCircle(color = feedRing, radius = ringRadius, center = center)
-        drawCircle(color = feedColor, radius = dotRadius, center = center)
+        drawCircle(color = ringColor, radius = ringRadius, center = center)
+        drawCircle(color = dotColor, radius = dotRadius, center = center)
     }
 }
 
@@ -134,7 +152,8 @@ private fun DrawScope.drawDayRow(
 private fun RhythmLegend(
     nightColor: Color,
     napColor: Color,
-    feedColor: Color,
+    breastColor: Color,
+    bottleColor: Color,
     labelStyle: TextStyle,
     labelColor: Color,
 ) {
@@ -147,7 +166,8 @@ private fun RhythmLegend(
     ) {
         LegendSwatch("Night", nightColor, labelStyle, labelColor)
         LegendSwatch("Nap", napColor, labelStyle, labelColor)
-        LegendSwatch("Feed", feedColor, labelStyle, labelColor)
+        LegendSwatch("Breast", breastColor, labelStyle, labelColor)
+        LegendSwatch("Bottle", bottleColor, labelStyle, labelColor)
     }
 }
 
