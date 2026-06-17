@@ -2,6 +2,7 @@ package com.babytracker.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
@@ -25,6 +26,7 @@ import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCa
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.diaper.ObserveTodayDiaperSummaryUseCase
 import com.babytracker.domain.usecase.feeding.ObserveTodayFeedingSummaryUseCase
+import com.babytracker.domain.usecase.features.GetEnabledFeaturesUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
@@ -60,6 +62,7 @@ data class HomeUiState(
     val todayFeedingSummary: TodayFeedingSummary = TodayFeedingSummary(),
     val todayDiaperSummary: TodayDiaperSummary = TodayDiaperSummary(),
     val tileOrder: List<HomeTile> = HomeTile.DEFAULT_ORDER,
+    val enabledFeatures: Set<AppFeature> = AppFeature.ALL,
 )
 
 @HiltViewModel
@@ -75,6 +78,7 @@ class HomeViewModel @Inject constructor(
     predictSleepWindow: PredictSleepWindowUseCase,
     observeTodayFeedingSummary: ObserveTodayFeedingSummaryUseCase,
     observeTodayDiaperSummary: ObserveTodayDiaperSummaryUseCase,
+    getEnabledFeatures: GetEnabledFeaturesUseCase,
     private val logBabyEvent: LogBabyEventUseCase,
 ) : ViewModel() {
 
@@ -144,11 +148,13 @@ class HomeViewModel @Inject constructor(
         observeTodayFeedingSummary(),
         settingsRepository.getHomeTileOrder(),
         observeTodayDiaperSummary(),
-    ) { base, todayFeedingSummary, tileOrder, todayDiaperSummary ->
+        getEnabledFeatures(),
+    ) { base, todayFeedingSummary, tileOrder, todayDiaperSummary, enabledFeatures ->
         base.copy(
             todayFeedingSummary = todayFeedingSummary,
             tileOrder = tileOrder,
             todayDiaperSummary = todayDiaperSummary,
+            enabledFeatures = enabledFeatures,
         )
     }.stateIn(
         scope = viewModelScope,
