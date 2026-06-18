@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.HomeTile
@@ -84,7 +85,7 @@ class SettingsScreenTest {
             SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel(), dataVm = buildFakeDataExportViewModel())
         }
         composeRule.waitForIdle()
-        composeRule.onAllNodesWithText("Disconnect")[0].assertIsDisplayed()
+        composeRule.onAllNodesWithText("Disconnect")[0].performScrollTo().assertIsDisplayed()
     }
 
     @Test
