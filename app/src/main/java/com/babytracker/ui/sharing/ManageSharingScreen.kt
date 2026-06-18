@@ -47,6 +47,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -58,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.util.formatElapsedAgo
@@ -107,10 +109,10 @@ fun ManageSharingScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Partner Sharing") },
+                title = { Text(stringResource(R.string.settings_partner_sharing)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -154,16 +156,16 @@ fun ManageSharingScreen(
     if (showStopDialog) {
         AlertDialog(
             onDismissRequest = { showStopDialog = false },
-            title = { Text("Stop sharing?") },
-            text = { Text("This will disconnect all connected partners.") },
+            title = { Text(stringResource(R.string.sharing_stop_title)) },
+            text = { Text(stringResource(R.string.sharing_stop_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     showStopDialog = false
                     viewModel.stopSharing()
-                }) { Text("Stop") }
+                }) { Text(stringResource(R.string.sharing_stop_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showStopDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showStopDialog = false }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
@@ -171,16 +173,16 @@ fun ManageSharingScreen(
     if (showNewCodeDialog) {
         AlertDialog(
             onDismissRequest = { showNewCodeDialog = false },
-            title = { Text("Generate new code?") },
-            text = { Text("This will disconnect all current partners. They'll need the new code to reconnect.") },
+            title = { Text(stringResource(R.string.sharing_new_code_title)) },
+            text = { Text(stringResource(R.string.sharing_new_code_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     showNewCodeDialog = false
                     viewModel.generateNewCode()
-                }) { Text("Generate") }
+                }) { Text(stringResource(R.string.sharing_generate)) }
             },
             dismissButton = {
-                TextButton(onClick = { showNewCodeDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showNewCodeDialog = false }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
@@ -199,14 +201,13 @@ private fun SetupContent(
     ) {
         Spacer(modifier = Modifier.height(48.dp))
         Text(
-            text = "Share your journey",
+            text = stringResource(R.string.sharing_share_journey),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "Share read-only access to your baby's data with a partner. " +
-                "They'll see feeding sessions, sleep records, and baby info.",
+            text = stringResource(R.string.sharing_share_desc),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -225,7 +226,7 @@ private fun SetupContent(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
-            Text("Start Sharing")
+            Text(stringResource(R.string.sharing_start))
         }
         if (error != null) {
             Spacer(modifier = Modifier.height(8.dp))
@@ -235,7 +236,7 @@ private fun SetupContent(
                 color = MaterialTheme.colorScheme.error,
                 textAlign = TextAlign.Center,
             )
-            TextButton(onClick = onClearError) { Text("Dismiss") }
+            TextButton(onClick = onClearError) { Text(stringResource(R.string.dismiss)) }
         }
     }
 }
@@ -255,7 +256,7 @@ private fun PrimaryContent(
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "SHARE CODE",
+            text = stringResource(R.string.sharing_share_code_label),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -280,7 +281,7 @@ private fun PrimaryContent(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Share this code with your partner",
+                    text = stringResource(R.string.sharing_share_code_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
@@ -298,7 +299,7 @@ private fun PrimaryContent(
             ) {
                 Icon(Icons.Default.ContentCopy, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Copy")
+                Text(stringResource(R.string.sharing_copy))
             }
             OutlinedButton(
                 onClick = onShareCode,
@@ -307,12 +308,12 @@ private fun PrimaryContent(
             ) {
                 Icon(Icons.Default.Share, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Share")
+                Text(stringResource(R.string.sharing_share))
             }
         }
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "CONNECTED PARTNERS",
+            text = stringResource(R.string.sharing_connected_partners),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -328,7 +329,7 @@ private fun PrimaryContent(
             }
         } else if (partners.isEmpty()) {
             Text(
-                text = "No partners connected yet.",
+                text = stringResource(R.string.sharing_no_partners),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 8.dp),
@@ -345,7 +346,7 @@ private fun PrimaryContent(
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Generate New Code")
+            Text(stringResource(R.string.sharing_generate_new))
         }
         Spacer(modifier = Modifier.height(8.dp))
         TextButton(
@@ -356,7 +357,7 @@ private fun PrimaryContent(
                 contentColor = MaterialTheme.colorScheme.error,
             ),
         ) {
-            Text("Stop Sharing")
+            Text(stringResource(R.string.sharing_stop_sharing))
         }
         if (error != null) {
             Spacer(modifier = Modifier.height(8.dp))
@@ -365,7 +366,7 @@ private fun PrimaryContent(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error,
             )
-            TextButton(onClick = onClearError) { Text("Dismiss") }
+            TextButton(onClick = onClearError) { Text(stringResource(R.string.dismiss)) }
         }
     }
 }
@@ -386,15 +387,15 @@ private fun PartnerRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = "Partner", style = MaterialTheme.typography.bodyLarge)
+            Text(text = stringResource(R.string.sharing_partner_label), style = MaterialTheme.typography.bodyLarge)
             Text(
-                text = "Connected $connectedAgo",
+                text = stringResource(R.string.sharing_connected_ago, connectedAgo),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         TextButton(onClick = onRevoke) {
-            Text(text = "Remove", color = MaterialTheme.colorScheme.error)
+            Text(text = stringResource(R.string.sharing_remove), color = MaterialTheme.colorScheme.error)
         }
     }
 }

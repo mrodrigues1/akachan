@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -125,10 +126,10 @@ fun PartnerDashboardScreen(
     if (uiState.isDisconnected) {
         AlertDialog(
             onDismissRequest = {},
-            title = { Text("Partner access ended") },
-            text = { Text("Ask the primary parent for a new sharing code to reconnect.") },
+            title = { Text(stringResource(R.string.partner_ended_title)) },
+            text = { Text(stringResource(R.string.partner_ended_message)) },
             confirmButton = {
-                TextButton(onClick = onDisconnected) { Text("Go to settings") }
+                TextButton(onClick = onDisconnected) { Text(stringResource(R.string.partner_go_settings)) }
             },
         )
     }
@@ -172,12 +173,14 @@ fun PartnerDashboardScreen(
                 },
                 actions = {
                     if (isRefreshingExistingDashboard) {
+                        val checkingDescription = stringResource(R.string.partner_checking_updates)
+                        val checkingState = stringResource(R.string.partner_checking)
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
                                 .semantics {
-                                    contentDescription = "Checking for shared updates"
-                                    stateDescription = "Checking"
+                                    contentDescription = checkingDescription
+                                    stateDescription = checkingState
                                     liveRegion = LiveRegionMode.Polite
                                 },
                             contentAlignment = Alignment.Center,
@@ -192,11 +195,11 @@ fun PartnerDashboardScreen(
                             onClick = viewModel::refresh,
                             enabled = !uiState.isLoading,
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Check for shared updates")
+                            Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.partner_check_updates_cd))
                         }
                     }
                     IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.home_settings_content_description))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -205,6 +208,8 @@ fun PartnerDashboardScreen(
             )
         },
     ) { padding ->
+        val pullRefreshDescription = stringResource(R.string.partner_pull_refresh)
+        val loadingDescription = stringResource(R.string.partner_loading)
         PullToRefreshBox(
             isRefreshing = false,
             onRefresh = viewModel::refresh,
@@ -212,7 +217,7 @@ fun PartnerDashboardScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .semantics {
-                    contentDescription = "Pull down to check for shared updates"
+                    contentDescription = pullRefreshDescription
                 },
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -222,7 +227,7 @@ fun PartnerDashboardScreen(
                             modifier = Modifier
                                 .align(Alignment.Center)
                                 .semantics {
-                                    contentDescription = "Loading shared partner data"
+                                    contentDescription = loadingDescription
                                 },
                         )
                     }
@@ -296,7 +301,7 @@ private fun BabyAgeSubtitle(
         )
     } else {
         Text(
-            text = "Read-only partner view",
+            text = stringResource(R.string.partner_readonly),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -649,10 +654,10 @@ private fun DashboardTimelineSections(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        DashboardSection(title = "RECENT FEEDINGS") {
+        DashboardSection(title = stringResource(R.string.partner_recent_feedings)) {
             if (completedSessions.isEmpty()) {
                 EmptySectionMessage(
-                    title = "No feeding history shared",
+                    title = stringResource(R.string.partner_no_feeding_history),
                     body = "Completed feedings from the primary device will appear here.",
                 )
             } else {
@@ -664,7 +669,7 @@ private fun DashboardTimelineSections(
 
         if (recentBottles.isNotEmpty()) {
             DashboardSection(
-                title = "RECENT BOTTLES",
+                title = stringResource(R.string.partner_recent_bottles),
                 color = MaterialTheme.colorScheme.tertiary,
             ) {
                 recentBottles.forEach { feed ->
@@ -674,12 +679,12 @@ private fun DashboardTimelineSections(
         }
 
         DashboardSection(
-            title = "LAST SLEEP",
+            title = stringResource(R.string.partner_last_sleep),
             color = MaterialTheme.colorScheme.secondary,
         ) {
             if (lastSleep == null) {
                 EmptySectionMessage(
-                    title = "No sleep record shared",
+                    title = stringResource(R.string.partner_no_sleep_record),
                     body = "The latest nap or night sleep will appear after the next sync.",
                 )
             } else {
@@ -832,7 +837,7 @@ private fun PartnerStatusPanel(
                         liveRegion = LiveRegionMode.Assertive
                     },
                 )
-                TextButton(onClick = onClearError) { Text("Dismiss") }
+                TextButton(onClick = onClearError) { Text(stringResource(R.string.dismiss)) }
             }
         }
     }
@@ -842,12 +847,12 @@ private fun PartnerStatusPanel(
 private fun NoActiveSessionStatus() {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "Quiet right now",
+            text = stringResource(R.string.partner_quiet),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = "No active feeding or sleep was shared. Nothing needs attention.",
+            text = stringResource(R.string.partner_quiet_desc),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -862,13 +867,13 @@ private fun SharedUpdateMeta(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
-            text = "Shared ${lastSharedText.lowercaseFirstChar()}",
+            text = stringResource(R.string.partner_shared_ago, lastSharedText.lowercaseFirstChar()),
             style = MaterialTheme.typography.bodySmall,
             color = color,
         )
         if (lastCheckedText != null) {
             Text(
-                text = "Checked ${lastCheckedText.lowercaseFirstChar()}",
+                text = stringResource(R.string.partner_checked_ago, lastCheckedText.lowercaseFirstChar()),
                 style = MaterialTheme.typography.bodySmall,
                 color = color,
             )
@@ -918,7 +923,7 @@ private fun ActiveSessionSummary(
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Feeding when shared",
+                    text = stringResource(R.string.partner_feeding_when_shared),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
@@ -939,7 +944,7 @@ private fun ActiveSessionSummary(
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Estimate from the last shared update",
+            text = stringResource(R.string.partner_estimate),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
         )
@@ -980,7 +985,7 @@ private fun ActiveSleepSummary(
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Sleeping when shared",
+                    text = stringResource(R.string.partner_sleeping_when_shared),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
@@ -1001,7 +1006,7 @@ private fun ActiveSleepSummary(
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Estimate from the last shared update",
+            text = stringResource(R.string.partner_estimate),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
@@ -1011,12 +1016,12 @@ private fun ActiveSleepSummary(
 @Composable
 private fun SyncWarning() {
     val warningColors = warningColors()
+    val syncWarningDescription = stringResource(R.string.partner_sync_warning_cd)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .semantics {
-                contentDescription = "Stale shared data warning. This read-only view may be behind. " +
-                    "Ask the primary parent to open Akachan if something is missing."
+                contentDescription = syncWarningDescription
             }
             .background(
                 color = warningColors.container,
@@ -1025,8 +1030,7 @@ private fun SyncWarning() {
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Text(
-            text = "This read-only view may be behind. " +
-                "Ask the primary parent to open Akachan if something is missing.",
+text = stringResource(R.string.partner_stale),
             style = MaterialTheme.typography.bodyMedium,
             color = warningColors.onContainer,
         )
@@ -1048,7 +1052,7 @@ private fun SharedRecordsEmptyState(babyName: String?) {
                 .padding(horizontal = 18.dp, vertical = 18.dp),
         ) {
             Text(
-                text = "No shared records yet",
+                text = stringResource(R.string.partner_no_shared_records),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -1096,12 +1100,12 @@ private fun CareSummaryPanel(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
-            text = "Latest care",
+            text = stringResource(R.string.partner_latest_care),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
         SummaryLine(
-            label = lastFeeding?.let { "Fed ${it.feedingAgoText(now)}" } ?: "No feeding shared yet",
+            label = lastFeeding?.let { stringResource(R.string.partner_fed, it.feedingAgoText(now)) } ?: stringResource(R.string.partner_no_feeding_yet),
             color = MaterialTheme.colorScheme.primary,
         )
         SummaryLine(
@@ -1178,19 +1182,19 @@ private fun PartnerInventoryCard(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    text = "Milk stash",
+                    text = stringResource(R.string.partner_milk_stash),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.clearAndSetSemantics {},
                 )
                 Text(
-                    text = "$volumeText · $bagCount bags",
+                    text = pluralStringResource(R.plurals.partner_stash_summary, bagCount, volumeText, bagCount),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 if (updatedText != null) {
                     Text(
-                        text = "Updated $updatedText",
+                        text = stringResource(R.string.partner_updated, updatedText),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1350,7 +1354,7 @@ private fun PartnerGrowthMilestonesCard(
         ) {
             if (snapshot.growth.isNotEmpty()) {
                 Text(
-                    text = "Growth",
+                    text = stringResource(R.string.partner_growth),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -1358,7 +1362,7 @@ private fun PartnerGrowthMilestonesCard(
                     val latest = snapshot.growth.filter { it.type == type.name }.maxByOrNull { it.takenAtMs }
                     if (latest != null) {
                         SummaryLine(
-                            label = "${type.partnerLabel()}: ${formatGrowthValue(type, latest.valueCanonical)}",
+                            label = stringResource(R.string.partner_growth_label, type.partnerLabel(), formatGrowthValue(type, latest.valueCanonical)),
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
@@ -1366,7 +1370,7 @@ private fun PartnerGrowthMilestonesCard(
             }
             if (snapshot.milestones.isNotEmpty()) {
                 Text(
-                    text = "Milestones",
+                    text = stringResource(R.string.partner_milestones),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -1380,7 +1384,7 @@ private fun PartnerGrowthMilestonesCard(
                         }
                     }
                     SummaryLine(
-                        label = "${snap.title} — $whenLabel",
+                        label = stringResource(R.string.partner_milestone_label, snap.title, whenLabel),
                         color = MaterialTheme.colorScheme.secondary,
                     )
                 }
@@ -1404,11 +1408,11 @@ private fun formatGrowthValue(type: GrowthType, valueCanonical: Long): String = 
 private fun AllergySection(baby: BabySnapshot) {
     val warningColors = warningColors()
     Column {
-        SectionHeader(text = "ALLERGIES", color = warningColors.onSurfaceAccent)
+        SectionHeader(text = stringResource(R.string.partner_allergies), color = warningColors.onSurfaceAccent)
         Spacer(modifier = Modifier.height(8.dp))
         if (baby.allergies.isEmpty()) {
             EmptySectionMessage(
-                title = "No allergies shared",
+                title = stringResource(R.string.partner_no_allergies),
                 body = "Allergy notes from the primary device will appear here.",
             )
         } else {
@@ -1434,6 +1438,7 @@ private fun AllergyChip(
     label: String,
     colors: PartnerWarningColors,
 ) {
+    val allergyContentDescription = stringResource(R.string.partner_allergy_cd, label)
     Box(
         modifier = Modifier
             .widthIn(max = 280.dp)
@@ -1442,7 +1447,7 @@ private fun AllergyChip(
                 shape = MaterialTheme.shapes.small,
             )
             .semantics {
-                contentDescription = "Allergy: $label"
+                contentDescription = allergyContentDescription
             }
             .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
@@ -1478,7 +1483,7 @@ private fun RefreshSharedUpdatesButton(
         Icon(Icons.Default.Refresh, contentDescription = null)
         Spacer(modifier = Modifier.width(10.dp))
         Text(
-            text = "Check shared updates",
+            text = stringResource(R.string.partner_check_shared),
             maxLines = 2,
             textAlign = TextAlign.Center,
         )
@@ -1534,7 +1539,7 @@ private fun EmptyState(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "No shared records yet",
+            text = stringResource(R.string.partner_no_shared_records),
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
         )
@@ -1559,7 +1564,7 @@ private fun EmptyState(
             Icon(Icons.Default.Refresh, contentDescription = null)
             Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = "Check for shared updates",
+                text = stringResource(R.string.partner_check_updates_cd),
                 maxLines = 2,
                 textAlign = TextAlign.Center,
             )
@@ -1592,7 +1597,7 @@ private fun ErrorState(
         ) {
             Icon(Icons.Default.Refresh, contentDescription = null)
             Spacer(modifier = Modifier.width(10.dp))
-            Text("Check again")
+            Text(stringResource(R.string.partner_check_again))
         }
     }
 }
