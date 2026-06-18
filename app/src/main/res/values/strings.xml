@@ -660,4 +660,29 @@
     <string name="inventory_notify_at">Notify at</string>
     <string name="inventory_daily_check">Daily expiration check</string>
     <string name="inventory_reminder_time">Reminder time</string>
+
+    <!-- Pumping -->
+    <string name="pumping_title">Pumping</string>
+    <string name="pumping_cd_stash">Milk stash</string>
+    <string name="pumping_cd_history">History</string>
+    <string name="pumping_start_title">Start a session</string>
+    <string name="pumping_start_subtitle">Select which side you\'re pumping.</string>
+    <string name="pumping_start_button">Start Pumping</string>
+    <string name="pumping_volume_label">Volume pumped (mL)</string>
+    <string name="pumping_notes">Notes</string>
+    <string name="pumping_optional">Optional</string>
+    <string name="pumping_save_session">Save Session</string>
+    <string name="pumping_end_title">End session</string>
+    <string name="pumping_end_subtitle">Optionally record how much you pumped.</string>
+    <string name="pumping_breast_caps">BREAST</string>
+    <string name="pumping_breast_both">Both</string>
+    <string name="pumping_edit_title">Edit session</string>
+    <string name="pumping_history_title">Pumping History</string>
+    <string name="pumping_history_empty_title">No pumping sessions yet</string>
+    <string name="pumping_history_item">%1$s &#183; %2$s</string>
+    <string name="pumping_edit_session_cd">Edit session</string>
+    <string name="pumping_add_to_stash_title">Add to stash?</string>
+    <string name="pumping_add_to_stash_subtitle">Store this milk in your inventory.</string>
+    <string name="pumping_add_to_stash">Add to stash</string>
+    <string name="pumping_skip">Skip</string>
 </resources>

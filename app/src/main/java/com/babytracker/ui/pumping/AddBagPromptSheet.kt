@@ -19,6 +19,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.babytracker.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -46,13 +48,13 @@ fun AddBagPromptSheet(
                 .padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
             Text(
-                text = "Add to stash?",
+                text = stringResource(R.string.pumping_add_to_stash_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "Store this milk in your inventory.",
+                text = stringResource(R.string.pumping_add_to_stash_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -63,7 +65,7 @@ fun AddBagPromptSheet(
                     val parsed = input.filter { it.isDigit() }.toIntOrNull() ?: 0
                     onFieldChange { it.copy(volumeMl = parsed, volumeError = null) }
                 },
-                label = { Text("Volume (mL)") },
+                label = { Text(stringResource(R.string.bottle_feed_volume_label)) },
                 singleLine = true,
                 isError = state.volumeError != null,
                 supportingText = { state.volumeError?.let { Text(it) } },
@@ -74,7 +76,7 @@ fun AddBagPromptSheet(
             OutlinedTextField(
                 value = state.notes,
                 onValueChange = { value -> onFieldChange { it.copy(notes = value) } },
-                label = { Text("Notes (optional)") },
+                label = { Text(stringResource(R.string.growth_notes_label)) },
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(20.dp))
@@ -92,14 +94,14 @@ fun AddBagPromptSheet(
                     )
                     Spacer(Modifier.width(8.dp))
                 }
-                Text("Add to stash", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.pumping_add_to_stash), style = MaterialTheme.typography.labelLarge)
             }
             Spacer(Modifier.height(8.dp))
             TextButton(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Skip", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.pumping_skip), style = MaterialTheme.typography.labelLarge)
             }
             Spacer(Modifier.height(8.dp))
         }

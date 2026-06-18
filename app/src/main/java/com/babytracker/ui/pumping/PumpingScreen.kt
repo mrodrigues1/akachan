@@ -77,6 +77,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -89,8 +90,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.domain.model.PumpingBreast
-import com.babytracker.domain.model.displayName
 import com.babytracker.ui.component.TimerDisplay
 import com.babytracker.util.formatTime12h
 import java.time.Instant
@@ -125,18 +126,18 @@ fun PumpingScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Pumping") },
+                title = { Text(stringResource(R.string.pumping_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onNavigateToInventory) {
-                        Icon(Icons.Filled.Archive, contentDescription = "Milk stash")
+                        Icon(Icons.Filled.Archive, contentDescription = stringResource(R.string.pumping_cd_stash))
                     }
                     IconButton(onClick = onNavigateToHistory) {
-                        Icon(Icons.Filled.History, contentDescription = "History")
+                        Icon(Icons.Filled.History, contentDescription = stringResource(R.string.pumping_cd_history))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -301,13 +302,13 @@ internal fun IdleTimerContent(
     ) {
         Spacer(Modifier.height(24.dp))
         Text(
-            text = "Start a session",
+            text = stringResource(R.string.pumping_start_title),
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Select which side you're pumping.",
+            text = stringResource(R.string.pumping_start_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -334,7 +335,7 @@ internal fun IdleTimerContent(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
-                Text("Start Pumping", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.pumping_start_button), style = MaterialTheme.typography.labelLarge)
             }
         }
         Spacer(Modifier.height(32.dp))
@@ -447,7 +448,7 @@ internal fun ActiveTimerContent(
             ),
         ) {
             Text(
-                text = session.breast.displayName(),
+                text = stringResource(session.breast.labelRes()),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -478,7 +479,7 @@ internal fun ActiveTimerContent(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = if (isPaused) "Resume Session" else "Pause Session",
+                        text = if (isPaused) stringResource(R.string.breastfeeding_resume) else stringResource(R.string.breastfeeding_pause),
                         style = MaterialTheme.typography.labelLarge,
                     )
                 }
@@ -502,7 +503,7 @@ internal fun ActiveTimerContent(
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(8.dp))
-            Text(text = "Stop Session", style = MaterialTheme.typography.labelLarge)
+            Text(text = stringResource(R.string.breastfeeding_stop_session), style = MaterialTheme.typography.labelLarge)
         }
 
         Spacer(Modifier.height(24.dp))
@@ -521,7 +522,7 @@ private fun PumpingBreastSelector(
     ) {
         PumpingBreast.entries.forEach { breast ->
             val isSelected = selectedBreast == breast
-            val label = breast.displayName()
+            val label = stringResource(breast.labelRes())
 
             val containerColor by animateColorAsState(
                 targetValue = if (isSelected) {
@@ -607,7 +608,7 @@ internal fun ManualModeContent(
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "STARTED",
+            text = stringResource(R.string.breastfeeding_edit_started),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -622,7 +623,7 @@ internal fun ManualModeContent(
         Spacer(Modifier.height(20.dp))
 
         Text(
-            text = "ENDED",
+            text = stringResource(R.string.breastfeeding_edit_ended),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -637,7 +638,7 @@ internal fun ManualModeContent(
         Spacer(Modifier.height(20.dp))
 
         Text(
-            text = "BREAST",
+            text = stringResource(R.string.pumping_breast_caps),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -652,7 +653,7 @@ internal fun ManualModeContent(
         OutlinedTextField(
             value = manual.volumeMl,
             onValueChange = { value -> onFieldChange { it.copy(volumeMl = value, validationError = null) } },
-            label = { Text("Volume pumped (mL)") },
+            label = { Text(stringResource(R.string.pumping_volume_label)) },
             singleLine = true,
             isError = manual.validationError != null,
             supportingText = { manual.validationError?.let { Text(it) } },
@@ -665,7 +666,7 @@ internal fun ManualModeContent(
         OutlinedTextField(
             value = manual.notes,
             onValueChange = { value -> onFieldChange { it.copy(notes = value) } },
-            label = { Text("Notes (optional)") },
+            label = { Text(stringResource(R.string.growth_notes_label)) },
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -689,7 +690,7 @@ internal fun ManualModeContent(
                 )
                 Spacer(Modifier.width(8.dp))
             }
-            Text("Save Session", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.pumping_save_session), style = MaterialTheme.typography.labelLarge)
         }
 
         Spacer(Modifier.height(32.dp))
@@ -807,27 +808,27 @@ private fun StopVolumeSheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "End session",
+                        text = stringResource(R.string.pumping_end_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "Optionally record how much you pumped.",
+                        text = stringResource(R.string.pumping_end_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Filled.Close, contentDescription = "Cancel")
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.cancel))
                 }
             }
             Spacer(Modifier.height(20.dp))
             OutlinedTextField(
                 value = volumeInput,
                 onValueChange = { volumeInput = it.filter { c -> c.isDigit() } },
-                label = { Text("Volume pumped (mL)") },
-                placeholder = { Text("Optional") },
+                label = { Text(stringResource(R.string.pumping_volume_label)) },
+                placeholder = { Text(stringResource(R.string.pumping_optional)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
@@ -845,14 +846,14 @@ private fun StopVolumeSheet(
                     contentColor = MaterialTheme.colorScheme.onError,
                 ),
             ) {
-                Text("Stop Session", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.breastfeeding_stop_session), style = MaterialTheme.typography.labelLarge)
             }
             Spacer(Modifier.height(8.dp))
             TextButton(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Keep going", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.breastfeeding_stop_dismiss), style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -878,7 +879,7 @@ private fun ManualDatePicker(
                 onConfirm(picked)
             }) { Text("OK") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         DatePicker(state = state)
@@ -905,7 +906,7 @@ private fun ManualTimePicker(
                 Text("OK")
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
         text = { TimePicker(state = state) },
         shape = MaterialTheme.shapes.large,
     )
