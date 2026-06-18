@@ -44,9 +44,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import com.babytracker.domain.model.Milestone
 import com.babytracker.ui.theme.milestoneColors
 import kotlinx.coroutines.launch
@@ -108,14 +110,14 @@ fun MilestoneEditorSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = if (existing == null) "New moment" else "Edit moment",
+                text = if (existing == null) stringResource(R.string.milestone_editor_new) else stringResource(R.string.milestone_editor_edit),
                 style = MaterialTheme.typography.titleLarge,
             )
 
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Title") },
+                label = { Text(stringResource(R.string.milestone_title_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().testTag("milestone_title"),
             )
@@ -133,7 +135,7 @@ fun MilestoneEditorSheet(
                         onClick = { showTimePicker = true },
                         modifier = Modifier.testTag("milestone_add_time"),
                     ) {
-                        Text("Add time")
+                        Text(stringResource(R.string.milestone_add_time))
                     }
                 } else {
                     OutlinedButton(
@@ -146,7 +148,7 @@ fun MilestoneEditorSheet(
                         onClick = { time = null },
                         modifier = Modifier.testTag("milestone_clear_time"),
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Remove time")
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.milestone_remove_time))
                     }
                 }
             }
@@ -163,13 +165,13 @@ fun MilestoneEditorSheet(
                     },
                     modifier = Modifier.testTag("milestone_add_photo"),
                 ) {
-                    Text(if (photoUri == null) "Add photo" else "Change photo")
+                    Text(if (photoUri == null) stringResource(R.string.milestone_add_photo) else stringResource(R.string.milestone_change_photo))
                 }
                 Box {
                     thumbnail?.let {
                         Image(
                             bitmap = it,
-                            contentDescription = "Moment photo",
+                            contentDescription = stringResource(R.string.milestone_photo_cd),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)),
                         )
@@ -180,13 +182,13 @@ fun MilestoneEditorSheet(
             OutlinedTextField(
                 value = note,
                 onValueChange = { note = it },
-                label = { Text("Note (optional)") },
+                label = { Text(stringResource(R.string.milestone_note_label)) },
                 modifier = Modifier.fillMaxWidth().testTag("milestone_note"),
             )
 
             if (isPersistingPhoto) {
                 Text(
-                    text = "Saving photo…",
+                    text = stringResource(R.string.milestone_saving_photo),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -228,9 +230,9 @@ fun MilestoneEditorSheet(
                         date = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
                     }
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.ok)) }
             },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel)) } },
         ) {
             DatePicker(state = datePickerState)
         }
@@ -248,9 +250,9 @@ fun MilestoneEditorSheet(
                 TextButton(onClick = {
                     time = LocalTime.of(timePickerState.hour, timePickerState.minute)
                     showTimePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.ok)) }
             },
-            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.cancel)) } },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     TimePicker(state = timePickerState)

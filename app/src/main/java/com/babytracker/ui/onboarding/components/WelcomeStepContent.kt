@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -33,6 +34,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import com.babytracker.ui.theme.LocalDarkTheme
 
 @Composable
@@ -95,14 +97,14 @@ fun WelcomeStepContent(
                     )
                     Spacer(modifier = Modifier.height(previewTitleSpacing))
                     Text(
-                        text = "Welcome to Akachan",
+                        text = stringResource(R.string.onboarding_welcome_title),
                         style = MaterialTheme.typography.headlineLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.semantics { heading() },
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "A calm place to track feeds, sleep, and allergy notes during the first year.",
+                        text = stringResource(R.string.onboarding_welcome_subtitle),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -118,7 +120,7 @@ fun WelcomeStepContent(
                         .testTag("onboarding_welcome_primary_action"),
                     shape = MaterialTheme.shapes.extraLarge,
                 ) {
-                    Text("Set up baby profile")
+                    Text(stringResource(R.string.onboarding_setup_profile))
                 }
             }
         }
@@ -160,27 +162,27 @@ private fun WelcomeCarePreview(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = "Care",
+                        text = stringResource(R.string.onboarding_preview_care),
                         style = MaterialTheme.typography.titleLarge,
                     )
                 }
             }
             PreviewPill(
-                label = "Feeding",
+                label = stringResource(R.string.onboarding_preview_feeding),
                 modifier = Modifier.align(Alignment.TopStart),
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 border = darkModeBorder,
             )
             PreviewPill(
-                label = "Sleep",
+                label = stringResource(R.string.onboarding_preview_sleep),
                 modifier = Modifier.align(Alignment.BottomEnd),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 border = darkModeBorder,
             )
             PreviewPill(
-                label = "Allergies",
+                label = stringResource(R.string.onboarding_preview_allergies),
                 modifier = Modifier.align(Alignment.BottomStart),
                 containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface,
@@ -221,16 +223,16 @@ private fun WelcomeFeatureList(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         WelcomeFeatureRow(
-            label = "One-handed tracking",
-            supportingText = "Primary actions stay large and reachable.",
+            label = stringResource(R.string.onboarding_feature_one_handed),
+            supportingText = stringResource(R.string.onboarding_feature_one_handed_desc),
         )
         WelcomeFeatureRow(
-            label = "Local-first records",
-            supportingText = "Core baby data stays on this device.",
+            label = stringResource(R.string.onboarding_feature_local),
+            supportingText = stringResource(R.string.onboarding_feature_local_desc),
         )
         WelcomeFeatureRow(
-            label = "Optional partner view",
-            supportingText = "Share a read-only snapshot when you choose.",
+            label = stringResource(R.string.onboarding_feature_partner),
+            supportingText = stringResource(R.string.onboarding_feature_partner_desc),
         )
     }
 }

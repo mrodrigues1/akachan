@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -46,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.domain.model.Milestone
 import com.babytracker.ui.theme.milestoneColors
 import java.time.format.DateTimeFormatter
@@ -66,20 +68,21 @@ fun MilestonesScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Milestones") },
+                title = { Text(stringResource(R.string.milestone_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
             )
         },
         floatingActionButton = {
+            val addMomentDescription = stringResource(R.string.milestone_add_moment_cd)
             FloatingActionButton(
                 onClick = { showEditor = true },
                 containerColor = colors.accent,
                 contentColor = colors.onAccent,
-                modifier = Modifier.semantics { contentDescription = "Add a moment" }
+                modifier = Modifier.semantics { contentDescription = addMomentDescription }
                     .testTag("milestone_fab"),
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
@@ -124,14 +127,14 @@ private fun MilestonesEmptyState(modifier: Modifier = Modifier) {
         Text(text = "🎉", style = MaterialTheme.typography.displayMedium)
         Spacer(Modifier.size(12.dp))
         Text(
-            text = "No moments yet",
+            text = stringResource(R.string.milestone_empty_title),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
             color = colors.accent,
         )
         Spacer(Modifier.size(6.dp))
         Text(
-            text = "Tap + to capture your baby's first moment — a smile, a giggle, a first step.",
+            text = stringResource(R.string.milestone_empty_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -152,13 +155,14 @@ private fun MomentCard(
         append(moment.date.format(dateFormatter))
         moment.time?.let { append(" · ${it.format(timeFormatter)}") }
     }
+    val momentDescription = stringResource(R.string.milestone_card_cd, moment.title, whenLabel)
     Card(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
             .testTag("moment_card_${moment.id}")
             .semantics(mergeDescendants = true) {
-                contentDescription = "${moment.title}. $whenLabel. Tap to open."
+                contentDescription = momentDescription
             },
         colors = CardDefaults.cardColors(
             containerColor = colors.container,

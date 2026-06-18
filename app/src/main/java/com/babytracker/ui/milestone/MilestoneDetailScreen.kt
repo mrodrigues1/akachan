@@ -34,11 +34,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.domain.model.Milestone
 import com.babytracker.ui.theme.milestoneColors
 import java.time.format.DateTimeFormatter
@@ -59,10 +61,10 @@ fun MilestoneDetailScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Moment") },
+                title = { Text(stringResource(R.string.milestone_detail_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -71,13 +73,13 @@ fun MilestoneDetailScreen(
                             onClick = { showEditor = true },
                             modifier = Modifier.testTag("milestone_edit"),
                         ) {
-                            Icon(Icons.Default.Edit, contentDescription = "Edit")
+                            Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit))
                         }
                         IconButton(
                             onClick = { showDeleteConfirm = true },
                             modifier = Modifier.testTag("milestone_delete"),
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
                         }
                     }
                 },
@@ -106,8 +108,8 @@ fun MilestoneDetailScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete moment?") },
-            text = { Text("This moment and its photo will be permanently removed.") },
+            title = { Text(stringResource(R.string.milestone_delete_title)) },
+            text = { Text(stringResource(R.string.milestone_delete_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -115,10 +117,10 @@ fun MilestoneDetailScreen(
                         viewModel.onDelete(onDeleted = onNavigateBack)
                     },
                     modifier = Modifier.testTag("milestone_delete_confirm"),
-                ) { Text("Delete") }
+                ) { Text(stringResource(R.string.delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
@@ -174,7 +176,7 @@ private fun MomentHero(
     if (bitmap != null) {
         Image(
             bitmap = bitmap,
-            contentDescription = "Moment photo",
+            contentDescription = stringResource(R.string.milestone_photo_cd),
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()

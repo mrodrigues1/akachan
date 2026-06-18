@@ -483,4 +483,101 @@
     <string name="trends_legend_nap">Nap</string>
     <string name="trends_legend_breast">Breast</string>
     <string name="trends_legend_bottle">Bottle</string>
+
+    <!-- Shared generic labels (onboarding/growth/milestones) -->
+    <string name="save">Save</string>
+    <string name="state_selected">Selected</string>
+    <string name="state_not_selected">Not selected</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome_title">Welcome to Akachan</string>
+    <string name="onboarding_welcome_subtitle">A calm place to track feeds, sleep, and allergy notes during the first year.</string>
+    <string name="onboarding_setup_profile">Set up baby profile</string>
+    <string name="onboarding_preview_care">Care</string>
+    <string name="onboarding_preview_feeding">Feeding</string>
+    <string name="onboarding_preview_sleep">Sleep</string>
+    <string name="onboarding_preview_allergies">Allergies</string>
+    <string name="onboarding_feature_one_handed">One-handed tracking</string>
+    <string name="onboarding_feature_one_handed_desc">Primary actions stay large and reachable.</string>
+    <string name="onboarding_feature_local">Local-first records</string>
+    <string name="onboarding_feature_local_desc">Core baby data stays on this device.</string>
+    <string name="onboarding_feature_partner">Optional partner view</string>
+    <string name="onboarding_feature_partner_desc">Share a read-only snapshot when you choose.</string>
+    <string name="onboarding_step_indicator">Step %1$d of %2$d</string>
+    <string name="onboarding_hero_cd">%1$s, %2$s</string>
+    <string name="onboarding_hero_progress_cd">%1$s progress</string>
+    <string name="onboarding_baby_profile_title">Baby profile</string>
+    <string name="onboarding_start_basics">Start with the basics</string>
+    <string name="onboarding_basics_subtitle">This helps keep ages and records clear across feeding and sleep history.</string>
+    <string name="onboarding_baby_name_label">Baby\'s name</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_use_date">Use date</string>
+    <string name="onboarding_dob_label">Date of birth</string>
+    <string name="onboarding_dob_cd">Date of birth, %1$s</string>
+    <string name="onboarding_dob_cd_error">Date of birth, %1$s. %2$s</string>
+    <string name="onboarding_change_dob">Change date of birth</string>
+    <string name="onboarding_sex_label">Sex</string>
+    <string name="onboarding_sex_subtitle">Used to show growth percentiles against WHO charts. You can change this later.</string>
+    <string name="onboarding_age_range">Akachan is designed for babies 0-12 months.</string>
+    <string name="onboarding_char_count">%1$d/%2$d</string>
+    <string name="onboarding_allergy_notes_title">Allergy notes</string>
+    <string name="onboarding_allergies_question">Any allergies to note?</string>
+    <string name="onboarding_allergies_subtitle">Add only allergies you already know about for %1$s. If nothing is known yet, keep this empty and update it later.</string>
+    <string name="onboarding_add_known_allergies">Add known allergies</string>
+    <string name="onboarding_other_allergy_label">Describe other allergy</string>
+    <string name="onboarding_saving_setup_cd">Saving setup</string>
+    <string name="onboarding_saving">Saving</string>
+    <string name="onboarding_finish_setup">Finish setup</string>
+    <string name="onboarding_no_known_yet">None known yet</string>
+    <string name="onboarding_no_known_subtitle">Keeps allergy notes empty for now.</string>
+    <string name="onboarding_no_allergies_selected">No known allergies selected</string>
+    <string name="onboarding_allergies_selected">Known allergies selected</string>
+    <string name="onboarding_no_allergies_save">No allergies will be saved yet.</string>
+    <string name="onboarding_will_save">Will save: </string>
+
+    <!-- Growth -->
+    <string name="growth_title">Growth</string>
+    <string name="growth_add_measurement_cd">Add measurement</string>
+    <string name="growth_delete_title">Delete measurement?</string>
+    <string name="growth_delete_message">This removes %1$s from your baby\'s history. This can\'t be undone.</string>
+    <string name="growth_history">History</string>
+    <string name="growth_empty_title">No measurements yet</string>
+    <string name="growth_empty_subtitle">Tap + to log your baby\'s first measurement and see it on the WHO chart.</string>
+    <string name="growth_latest">Latest %1$s</string>
+    <string name="growth_percentile_who">%1$s (WHO)</string>
+    <string name="growth_percentile_unavailable">Percentile unavailable for this age</string>
+    <string name="growth_set_sex_percentile">Set sex to see percentile</string>
+    <string name="growth_see_who">See WHO percentiles</string>
+    <string name="growth_who_subtitle">WHO growth curves are sex-specific. Set your baby\'s sex to compare against them.</string>
+    <string name="growth_set_sex">Set sex</string>
+    <string name="growth_delete_row_cd">Delete measurement from %1$s</string>
+    <string name="growth_tab_weight">Weight</string>
+    <string name="growth_tab_length">Length</string>
+    <string name="growth_tab_head">Head</string>
+    <string name="growth_add_title">Add %1$s</string>
+    <string name="growth_date_value">Date: %1$s</string>
+    <string name="growth_unit_lb">lb</string>
+    <string name="growth_unit_oz">oz</string>
+    <string name="growth_value_label">Value (%1$s)</string>
+    <string name="growth_notes_label">Notes (optional)</string>
+
+    <!-- Milestones -->
+    <string name="milestone_title">Milestones</string>
+    <string name="milestone_add_moment_cd">Add a moment</string>
+    <string name="milestone_empty_title">No moments yet</string>
+    <string name="milestone_empty_subtitle">Tap + to capture your baby\'s first moment — a smile, a giggle, a first step.</string>
+    <string name="milestone_card_cd">%1$s. %2$s. Tap to open.</string>
+    <string name="milestone_detail_title">Moment</string>
+    <string name="milestone_delete_title">Delete moment?</string>
+    <string name="milestone_delete_message">This moment and its photo will be permanently removed.</string>
+    <string name="milestone_photo_cd">Moment photo</string>
+    <string name="milestone_editor_new">New moment</string>
+    <string name="milestone_editor_edit">Edit moment</string>
+    <string name="milestone_title_label">Title</string>
+    <string name="milestone_add_time">Add time</string>
+    <string name="milestone_remove_time">Remove time</string>
+    <string name="milestone_add_photo">Add photo</string>
+    <string name="milestone_change_photo">Change photo</string>
+    <string name="milestone_note_label">Note (optional)</string>
+    <string name="milestone_saving_photo">Saving photo…</string>
 </resources>
