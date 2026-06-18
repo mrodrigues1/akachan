@@ -107,6 +107,20 @@ android {
             excludes += "/META-INF/LICENSE-notice.md"
         }
     }
+
+    androidResources {
+        // AGP 9 replacement for resConfigs. Only these locales ship.
+        localeFilters += listOf("en", "pt-rBR")
+    }
+
+    lint {
+        baseline = file("lint-baseline.xml")
+        // Detect hardcoded UI text and translation gaps. Kept non-fatal until
+        // the final enforcement issue flips these to error.
+        warning += listOf("HardcodedText", "MissingTranslation")
+        checkDependencies = false
+        abortOnError = false
+    }
 }
 
 dependencies {
