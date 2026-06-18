@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.babytracker.R
 import com.babytracker.domain.model.DiaperType
 import com.babytracker.ui.common.DateTimeFieldRow
+import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.common.FieldAccent
 import com.babytracker.ui.theme.diaperColors
 import java.time.Instant
@@ -140,7 +141,7 @@ fun DiaperSheet(
                     colors = ButtonDefaults.textButtonColors(contentColor = diaper.accent),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("View diaper history", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.diaper_view_history), style = MaterialTheme.typography.labelLarge)
                 }
             }
             TextButton(
@@ -177,7 +178,7 @@ private fun DiaperTypeSelector(
                     activeContainerColor = activeContainerColor,
                     activeContentColor = activeContentColor,
                 ),
-                label = { Text("${type.emoji} ${type.label}") },
+                label = { Text("${type.emoji} ${stringResource(type.labelRes())}") },
             )
         }
     }

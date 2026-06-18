@@ -1,6 +1,7 @@
 package com.babytracker.domain.sleep.eval
 
 import com.babytracker.domain.model.SleepPredictionTuning
+import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -91,10 +92,7 @@ class NapBudgetFactorTest {
             ageInWeeks = ageInWeeks,
             nextType = SleepType.NAP,
         )
-        assertTrue(
-            factor.reason != null && factor.reason.contains("nap"),
-            "Reason must mention nap deficit; got: ${factor.reason}",
-        )
+        assertEquals(SleepReason.NapDeficit(deficit = 2), factor.reason)
     }
 
     @Test

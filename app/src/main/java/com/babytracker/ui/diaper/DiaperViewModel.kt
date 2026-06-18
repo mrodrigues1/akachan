@@ -1,12 +1,15 @@
 package com.babytracker.ui.diaper
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.R
 import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.model.DiaperType
 import com.babytracker.domain.usecase.diaper.EditDiaperChangeUseCase
 import com.babytracker.domain.usecase.diaper.LogDiaperChangeUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,6 +34,7 @@ data class DiaperUiState(
 class DiaperViewModel @Inject constructor(
     private val logDiaperChange: LogDiaperChangeUseCase,
     private val editDiaperChange: EditDiaperChangeUseCase,
+    @ApplicationContext private val appContext: Context,
     private val now: () -> Instant,
 ) : ViewModel() {
 
@@ -79,7 +83,12 @@ class DiaperViewModel @Inject constructor(
             }.onSuccess {
                 _uiState.update { it.copy(isSaving = false, saved = true) }
             }.onFailure { error ->
-                _uiState.update { it.copy(isSaving = false, validationError = error.message ?: "Could not save") }
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        validationError = error.message ?: appContext.getString(R.string.diaper_save_error),
+                    )
+                }
             }
         }
     }

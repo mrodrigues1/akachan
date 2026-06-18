@@ -59,6 +59,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
 import com.babytracker.domain.model.BabySex
+import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.onboarding.MAX_BABY_NAME_LENGTH
 import java.time.Instant
 import java.time.LocalDate
@@ -325,7 +326,7 @@ private fun SexSelector(
                     onClick = { onSexSelected(sex) },
                     shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                 ) {
-                    Text(sex.label)
+                    Text(stringResource(sex.labelRes()))
                 }
             }
         }

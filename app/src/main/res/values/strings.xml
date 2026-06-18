@@ -202,6 +202,22 @@
     <string name="diaper_time_label">Time</string>
     <string name="diaper_notes_label">Notes (optional)</string>
     <string name="diaper_save">Save</string>
+    <string name="diaper_view_history">View diaper history</string>
+    <string name="diaper_save_error">Could not save</string>
+    <string name="diaper_history_title">Diaper History</string>
+    <string name="diaper_history_empty">No diaper changes yet</string>
+    <plurals name="diaper_history_day_header">
+        <item quantity="one">%1$s &#183; %2$d change</item>
+        <item quantity="other">%1$s &#183; %2$d changes</item>
+    </plurals>
+    <string name="diaper_type_wet">Wet</string>
+    <string name="diaper_type_dirty">Dirty</string>
+    <string name="diaper_type_both">Both</string>
+    <string name="diaper_row_summary">%1$s &#183; %2$s</string>
+    <string name="diaper_edit_content_description">Edit %1$s change at %2$s</string>
+    <string name="diaper_delete_content_description">Delete %1$s change at %2$s</string>
+    <string name="diaper_delete_title">Delete this diaper change?</string>
+    <string name="diaper_delete_message">It can\'t be undone.</string>
     <string name="feeding_history_title">Feeding history</string>
     <string name="feeding_history_empty">No feeds logged yet</string>
     <string name="feeding_history_empty_supporting">Bottle feeds and breastfeeding sessions will appear here</string>
@@ -944,4 +960,127 @@
     <string name="action_open">Open</string>
     <string name="error_name_required">Enter a name to continue.</string>
     <string name="error_birth_date_future">Birth date cannot be in the future.</string>
+
+    <!-- Baby sex (display labels; domain enum name is the persistence token) -->
+    <string name="baby_sex_male">Boy</string>
+    <string name="baby_sex_female">Girl</string>
+    <string name="baby_sex_unspecified">Prefer not to say</string>
+
+    <!-- Allergy types (display labels; domain enum name is the persistence/sync token) -->
+    <string name="allergy_cmpa">Cow\'s Milk Protein</string>
+    <string name="allergy_soy">Soy</string>
+    <string name="allergy_egg">Egg</string>
+    <string name="allergy_wheat">Wheat</string>
+    <string name="allergy_peanut">Peanut</string>
+    <string name="allergy_tree_nuts">Tree Nuts</string>
+    <string name="allergy_other">Other</string>
+
+    <!-- Settings (residual leaks) -->
+    <string name="settings_features_title">What you track</string>
+    <string name="settings_features_value">Choose which trackers appear</string>
+    <string name="settings_features_action">Manage</string>
+    <string name="settings_measurement_metric">Metric</string>
+    <string name="settings_measurement_imperial">Imperial</string>
+    <string name="settings_birth_date_value">%1$s (%2$dw old)</string>
+    <string name="settings_default_baby_name">your baby</string>
+
+    <!-- Data export/import actions -->
+    <string name="action_export">Export…</string>
+    <string name="action_restore">Restore</string>
+    <string name="action_reimport">Re-import</string>
+    <string name="settings_import_merge_intro">This will merge into your current data:</string>
+    <string name="settings_import_merge_note">Existing records are kept; duplicates are skipped. Milestone photos are not included in backups.</string>
+    <string name="range_last_7_days">Last 7 days</string>
+    <string name="range_last_2_weeks">Last 2 weeks</string>
+    <string name="range_last_month">Last month</string>
+    <string name="range_all_time">All time</string>
+
+    <!-- Home diaper tile -->
+    <string name="home_diaper_title">Diapers</string>
+    <plurals name="home_diaper_count_today">
+        <item quantity="one">%1$d today</item>
+        <item quantity="other">%1$d today</item>
+    </plurals>
+    <string name="home_diaper_last_ago">Last %1$s</string>
+    <string name="home_diaper_cd">Diapers, %1$s. Log a diaper change.</string>
+    <string name="home_diaper_cd_empty">Diapers. Log a diaper change.</string>
+
+    <!-- Sleep schedule (structured runtime labels) -->
+    <string name="schedule_mode_demand">Demand-driven</string>
+    <string name="schedule_mode_clock">Clock-aligned</string>
+    <string name="sleep_schedule_personalized">Personalized from your logged data</string>
+    <string name="sleep_schedule_age_defaults">Using age-based defaults</string>
+    <string name="sleep_schedule_regression_show_cd">Show regression info</string>
+    <string name="sleep_schedule_regression_hide_cd">Hide regression info</string>
+    <string name="sleep_schedule_nap_number">Nap %1$d</string>
+    <string name="sleep_schedule_bedtime">Bedtime</string>
+    <string name="sleep_schedule_after_awake">After %1$s awake</string>
+    <string name="sleep_schedule_suggested_nap">Suggested nap</string>
+    <plurals name="sleep_age_weeks_old">
+        <item quantity="one">%1$d week old</item>
+        <item quantity="other">%1$d weeks old</item>
+    </plurals>
+    <plurals name="sleep_age_months_old">
+        <item quantity="one">%1$d month old</item>
+        <item quantity="other">%1$d months old</item>
+    </plurals>
+    <string name="sleep_age_months_weeks_old">%1$d months, %2$d weeks old</string>
+
+    <!-- Sleep regressions -->
+    <string name="regression_4month_name">4-Month Sleep Regression</string>
+    <string name="regression_4month_desc">Your baby\'s sleep architecture is maturing from 2-stage to 4-stage cycles. This is a permanent and healthy change. Sleep may be more disrupted than usual.</string>
+    <string name="regression_8to10month_name">8-10 Month Sleep Regression</string>
+    <string name="regression_8to10month_desc">Object permanence, separation anxiety, and motor milestones (crawling, pulling up) can temporarily disrupt sleep patterns.</string>
+    <string name="regression_12month_name">12-Month Sleep Regression</string>
+    <string name="regression_12month_desc">Walking, early language development, and nap resistance may cause temporary sleep disruption.</string>
+    <string name="regression_duration_2_6_weeks">2-6 weeks</string>
+    <string name="regression_duration_1_3_weeks">1-3 weeks</string>
+
+    <!-- Nap transition suggestion -->
+    <string name="sleep_nap_transition_suggestion">Your baby may be ready to transition from %1$d to %2$d naps. They\'ve been averaging %3$s naps per day with good night sleep.</string>
+
+    <!-- Sleep prediction reasons (resolved from structured SleepReason) -->
+    <string name="sleep_reason_personalized_nap">Fully personalized from your baby\'s nap history</string>
+    <string name="sleep_reason_personalized_night">Fully personalized from your baby\'s bedtime history</string>
+    <string name="sleep_reason_blended_nap">Blended from age-based expectations (%1$d%% personalized from your baby\'s nap history)</string>
+    <string name="sleep_reason_blended_night">Blended from age-based expectations (%1$d%% personalized from your baby\'s bedtime history)</string>
+    <string name="sleep_reason_wake_window">Typical wake window for %1$dw: %2$d–%3$d min</string>
+    <string name="sleep_reason_type_pattern_nap">Using your baby\'s nap-specific wake patterns (%1$d intervals)</string>
+    <string name="sleep_reason_type_pattern_night">Using your baby\'s bedtime-specific wake patterns (%1$d intervals)</string>
+    <string name="sleep_reason_combined_nap">Using combined wake history (not enough nap-specific data yet)</string>
+    <string name="sleep_reason_combined_night">Using combined wake history (not enough bedtime-specific data yet)</string>
+    <string name="sleep_reason_disruption">A sick, teething, or travel event in the last 48 h has reduced prediction confidence</string>
+    <string name="sleep_reason_circadian">Adjusted toward the expected bedtime circadian slot</string>
+    <plurals name="sleep_reason_nap_deficit">
+        <item quantity="one">Nap deficit: %1$d fewer nap than expected today</item>
+        <item quantity="other">Nap deficit: %1$d fewer naps than expected today</item>
+    </plurals>
+    <string name="sleep_reason_sleep_debt_earlier">Sleep debt: 24h total vs. daily target suggests earlier window</string>
+    <string name="sleep_reason_sleep_debt_later">Sleep debt: 24h total vs. daily target suggests later window</string>
+    <string name="sleep_feed_prompt">a breastfeed may be due near this window — offer a feed first if hunger cues appear</string>
+    <string name="sleep_safety_prompt">Always follow your baby\'s sleep cues — windows are estimates, not schedules.</string>
+    <string name="sleep_awake_for">Awake for %1$s</string>
+    <string name="sleep_ended_at">Ended at %1$s</string>
+
+    <!-- Trends chart axis titles -->
+    <string name="trends_axis_feeds">Feeds</string>
+    <string name="trends_axis_date">Date</string>
+    <string name="trends_axis_hours">Hours</string>
+    <string name="trends_axis_sleep_hrs">Sleep hrs</string>
+
+    <!-- Milk stash widget -->
+    <string name="widget_milk_stash_title">Inventory</string>
+    <string name="widget_milk_stash_off">Inventory is off</string>
+    <string name="widget_milk_stash_no_milk">No milk</string>
+    <string name="widget_milk_stash_tap_plus">Tap +</string>
+    <string name="widget_milk_stash_tap_add">Tap to add</string>
+    <string name="widget_milk_stash_tap_add_milk">Tap to add milk</string>
+    <string name="widget_milk_stash_empty">Stash is empty</string>
+    <plurals name="widget_milk_stash_bag_count">
+        <item quantity="one">%1$d bag</item>
+        <item quantity="other">%1$d bags</item>
+    </plurals>
+    <string name="widget_milk_stash_total_ml">mL total</string>
+    <string name="widget_milk_stash_total_l">L total</string>
+    <string name="widget_milk_stash_total_oz">oz total</string>
 </resources>

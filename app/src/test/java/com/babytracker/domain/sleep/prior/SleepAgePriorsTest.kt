@@ -1,5 +1,6 @@
 package com.babytracker.domain.sleep.prior
 
+import com.babytracker.domain.model.RegressionType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -331,28 +332,28 @@ class SleepAgePriorsTest {
         fun `4 month regression detected at 16 weeks`() {
             val info = SleepAgePriors.detectRegression(16)
             assertNotNull(info)
-            assertEquals("4-Month Sleep Regression", info!!.name)
+            assertEquals(RegressionType.FOUR_MONTH, info!!.type)
         }
 
         @Test
         fun `4 month regression detected at 20 weeks`() {
             val info = SleepAgePriors.detectRegression(20)
             assertNotNull(info)
-            assertEquals("4-Month Sleep Regression", info!!.name)
+            assertEquals(RegressionType.FOUR_MONTH, info!!.type)
         }
 
         @Test
         fun `8-10 month regression detected at 36 weeks`() {
             val info = SleepAgePriors.detectRegression(36)
             assertNotNull(info)
-            assertEquals("8-10 Month Sleep Regression", info!!.name)
+            assertEquals(RegressionType.EIGHT_TO_TEN_MONTH, info!!.type)
         }
 
         @Test
         fun `12 month regression detected at 50 weeks`() {
             val info = SleepAgePriors.detectRegression(50)
             assertNotNull(info)
-            assertEquals("12-Month Sleep Regression", info!!.name)
+            assertEquals(RegressionType.TWELVE_MONTH, info!!.type)
         }
 
         @Test

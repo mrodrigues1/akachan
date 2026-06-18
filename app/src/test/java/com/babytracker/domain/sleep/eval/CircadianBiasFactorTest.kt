@@ -1,6 +1,7 @@
 package com.babytracker.domain.sleep.eval
 
 import com.babytracker.domain.model.SleepPredictionTuning
+import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -34,7 +35,7 @@ class CircadianBiasFactorTest {
 
         assertTrue(factor.adjustment > Duration.ZERO)
         assertTrue(factor.adjustment <= Duration.ofMinutes(SleepPredictionTuning.CIRCADIAN_MAX_SHIFT_MINUTES))
-        assertTrue(factor.reason!!.contains("circadian", ignoreCase = true))
+        assertEquals(SleepReason.CircadianSlot, factor.reason)
     }
 
     @Test

@@ -37,7 +37,7 @@ class SleepScreenDesignPolishTest {
     @Test
     fun `schedule timeline labels protect compact rows from overflow`() {
         val source = sourceFile("SleepScheduleScreen.kt").readText()
-        val labelText = Regex("text = item\\.label[\\s\\S]*?\\)")
+        val labelText = Regex("text = label,[\\s\\S]*?\\)")
             .find(source)
             ?.value
             .orEmpty()

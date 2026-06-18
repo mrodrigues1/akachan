@@ -1,6 +1,7 @@
 package com.babytracker.domain.sleep.prior
 
 import com.babytracker.domain.model.RegressionInfo
+import com.babytracker.domain.model.RegressionType
 import java.time.Duration
 import java.time.LocalTime
 
@@ -65,24 +66,9 @@ object SleepAgePriors {
         getDefaultWakeWindows(ageInWeeks).last()
 
     fun detectRegression(ageInWeeks: Int): RegressionInfo? = when {
-        ageInWeeks in 14..22 -> RegressionInfo(
-            name = "4-Month Sleep Regression",
-            description = "Your baby's sleep architecture is maturing from 2-stage to 4-stage cycles. " +
-                "This is a permanent and healthy change. Sleep may be more disrupted than usual.",
-            durationWeeks = "2-6 weeks"
-        )
-        ageInWeeks in 32..44 -> RegressionInfo(
-            name = "8-10 Month Sleep Regression",
-            description = "Object permanence, separation anxiety, and motor milestones (crawling, pulling up) " +
-                "can temporarily disrupt sleep patterns.",
-            durationWeeks = "2-6 weeks"
-        )
-        ageInWeeks in 48..55 -> RegressionInfo(
-            name = "12-Month Sleep Regression",
-            description = "Walking, early language development, and nap resistance may cause temporary " +
-                "sleep disruption.",
-            durationWeeks = "1-3 weeks"
-        )
+        ageInWeeks in 14..22 -> RegressionInfo(RegressionType.FOUR_MONTH)
+        ageInWeeks in 32..44 -> RegressionInfo(RegressionType.EIGHT_TO_TEN_MONTH)
+        ageInWeeks in 48..55 -> RegressionInfo(RegressionType.TWELVE_MONTH)
         else -> null
     }
 }

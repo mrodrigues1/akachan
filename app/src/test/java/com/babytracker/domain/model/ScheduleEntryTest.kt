@@ -14,7 +14,7 @@ class ScheduleEntryTest {
         val entry = ScheduleEntry(
             startTime = LocalTime.of(9, 0),
             duration = Duration.ofMinutes(60),
-            label = "Nap 1",
+            napNumber = 1,
         )
         assertEquals("😴", entry.emoji)
     }
@@ -24,7 +24,7 @@ class ScheduleEntryTest {
         val entry = ScheduleEntry(
             startTime = LocalTime.of(20, 0),
             duration = Duration.ofHours(11),
-            label = "Bedtime",
+            napNumber = 0,
             emoji = "🌙",
         )
         assertEquals("🌙", entry.emoji)

@@ -6,39 +6,39 @@ import org.junit.jupiter.api.Test
 class FormatAgeTest {
 
     @Test
-    fun `weeks under one month shows weeks only`() {
-        assertEquals("0 weeks old", formatAge(0))
-        assertEquals("3 weeks old", formatAge(3))
-        assertEquals("4 weeks old", formatAge(4))
+    fun `weeks under one month decompose to zero months`() {
+        assertEquals(0 to 0, ageBreakdown(0))
+        assertEquals(0 to 3, ageBreakdown(3))
+        assertEquals(0 to 4, ageBreakdown(4))
     }
 
     @Test
-    fun `52 weeks renders as 12 months not 13`() {
+    fun `52 weeks decomposes to 12 months not 13`() {
         // Regression: previous (ageInWeeks / 4) returned 13.
-        assertEquals("12 months old", formatAge(52))
+        assertEquals(12 to 0, ageBreakdown(52))
     }
 
     @Test
-    fun `26 weeks renders as 6 months exactly`() {
+    fun `26 weeks decomposes to 6 months exactly`() {
         // Regression: previous (26 / 4) returned 6 months + 2 weeks.
-        assertEquals("6 months old", formatAge(26))
+        assertEquals(6 to 0, ageBreakdown(26))
     }
 
     @Test
-    fun `13 weeks renders as 3 months exactly`() {
+    fun `13 weeks decomposes to 3 months exactly`() {
         // Regression: previous (13 / 4) returned 3 months + 1 week.
-        assertEquals("3 months old", formatAge(13))
+        assertEquals(3 to 0, ageBreakdown(13))
     }
 
     @Test
     fun `non-aligned weeks include remaining weeks`() {
         // 8 weeks = 56 days; 56/30 = 1 month, remainder 26 days = 3 weeks.
-        assertEquals("1 months, 3 weeks old", formatAge(8))
+        assertEquals(1 to 3, ageBreakdown(8))
     }
 
     @Test
     fun `5 weeks crosses the one-month boundary`() {
         // 35 days / 30 = 1 month, remainder 5 days = 0 weeks.
-        assertEquals("1 months old", formatAge(5))
+        assertEquals(1 to 0, ageBreakdown(5))
     }
 }

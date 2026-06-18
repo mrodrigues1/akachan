@@ -85,6 +85,7 @@ import com.babytracker.domain.model.MeasurementSystem
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.onboarding.components.AllergiesStepContent
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -140,6 +141,7 @@ fun SettingsScreen(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri -> uri?.let(dataVm::prepareImport) }
 
+    val shareChooserTitle = stringResource(R.string.sharing_share)
     LaunchedEffect(dataState.pendingShare) {
         val share = dataState.pendingShare ?: return@LaunchedEffect
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
@@ -149,7 +151,7 @@ fun SettingsScreen(
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             clipData = ClipData.newRawUri("", share.uri)
         }
-        context.startActivity(Intent.createChooser(sendIntent, "Share"))
+        context.startActivity(Intent.createChooser(sendIntent, shareChooserTitle))
         dataVm.onShareHandled()
     }
 
@@ -231,7 +233,11 @@ fun SettingsScreen(
 
                 val dateFormatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
                 val birthDateText = uiState.baby?.let { baby ->
-                    "${baby.birthDate.format(dateFormatter)} (${baby.ageInWeeks}w old)"
+                    stringResource(
+                        R.string.settings_birth_date_value,
+                        baby.birthDate.format(dateFormatter),
+                        baby.ageInWeeks,
+                    )
                 } ?: stringResource(R.string.settings_not_set)
                 SettingsRow(
                     label = stringResource(R.string.onboarding_dob_label),
@@ -242,7 +248,8 @@ fun SettingsScreen(
 
                 SettingsRow(
                     label = stringResource(R.string.onboarding_sex_label),
-                    value = uiState.baby?.sex?.label ?: stringResource(R.string.settings_not_set),
+                    value = uiState.baby?.sex?.let { stringResource(it.labelRes()) }
+                        ?: stringResource(R.string.settings_not_set),
                     onClick = { activeSheet = SettingsSheet.SEX }
                 )
                 HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
@@ -272,7 +279,7 @@ fun SettingsScreen(
                                 allergies.forEach { allergy ->
                                     SuggestionChip(
                                         onClick = { activeSheet = SettingsSheet.ALLERGIES },
-                                        label = { Text(allergy.label) },
+                                        label = { Text(stringResource(allergy.labelRes())) },
                                         colors = SuggestionChipDefaults.suggestionChipColors(
                                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                                             labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -309,9 +316,9 @@ fun SettingsScreen(
             HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
 
             SettingsRow(
-                label = "What you track",
-                value = "Choose which trackers appear",
-                actionLabel = "Manage",
+                label = stringResource(R.string.settings_features_title),
+                value = stringResource(R.string.settings_features_value),
+                actionLabel = stringResource(R.string.settings_features_action),
                 onClick = onNavigateToFeatures,
             )
             HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
@@ -429,7 +436,7 @@ fun SettingsScreen(
                 AppMode.PARTNER -> SettingsRow(
                     label = stringResource(R.string.settings_disconnect),
                     value = stringResource(R.string.settings_disconnect_value),
-                    actionLabel = "Disconnect",
+                    actionLabel = stringResource(R.string.settings_disconnect),
                     actionColor = MaterialTheme.colorScheme.error,
                     onClick = viewModel::disconnect,
                 )
@@ -513,7 +520,7 @@ fun SettingsScreen(
                 SettingsSheet.ALLERGIES -> AllergiesEditSheet(
                     currentAllergies = uiState.baby?.allergies.orEmpty().toSet(),
                     currentCustomNote = uiState.baby?.customAllergyNote ?: "",
-                    babyName = uiState.baby?.name ?: "your baby",
+                    babyName = uiState.baby?.name ?: stringResource(R.string.settings_default_baby_name),
                     onSave = { allergies, customNote ->
                         val baby = uiState.baby
                         if (baby != null) {
@@ -549,7 +556,7 @@ internal fun SettingsRow(
     label: String,
     value: String,
     onClick: () -> Unit,
-    actionLabel: String = "Edit",
+    actionLabel: String = stringResource(R.string.edit),
     actionColor: Color = MaterialTheme.colorScheme.primary,
 ) {
     Row(
@@ -830,7 +837,7 @@ private fun SexSelectionSheet(
 
         BabySex.entries.forEach { sex ->
             ThemeOption(
-                label = sex.label,
+                label = stringResource(sex.labelRes()),
                 selected = currentSex == sex,
                 onClick = { onSave(sex) },
             )
@@ -915,8 +922,8 @@ private fun MeasurementSystemRow(
     modifier: Modifier = Modifier,
 ) {
     val options = listOf(
-        MeasurementSystem.METRIC to "Metric",
-        MeasurementSystem.IMPERIAL to "Imperial",
+        MeasurementSystem.METRIC to stringResource(R.string.settings_measurement_metric),
+        MeasurementSystem.IMPERIAL to stringResource(R.string.settings_measurement_imperial),
     )
     Column(
         modifier = modifier

@@ -1,6 +1,7 @@
 package com.babytracker.domain.sleep.eval
 
 import com.babytracker.domain.model.SleepPredictionTuning
+import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.sleep.prior.SleepAgePriors
 import java.time.Duration
 
@@ -33,10 +34,9 @@ object SleepDebtFactor {
         )
         if (clampedShiftMinutes == 0L) return SleepPredictionFactor.Neutral
 
-        val direction = if (clampedShiftMinutes > 0) "earlier" else "later"
         return SleepPredictionFactor(
             adjustment = Duration.ofMinutes(-clampedShiftMinutes),
-            reason = "Sleep debt: 24h total vs. daily target suggests $direction window",
+            reason = SleepReason.SleepDebt(earlierWindow = clampedShiftMinutes > 0),
         )
     }
 

@@ -3,6 +3,7 @@ package com.babytracker.domain.sleep.eval
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepPredictionTuning
+import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.sleep.feature.BreastfeedInterval
 import com.babytracker.domain.sleep.feature.EvidenceQuality
@@ -188,7 +189,13 @@ class SleepWindowPredictorTest {
         )
         assertInstanceOf(SleepPredictionState.Window::class.java, result)
         val window = (result as SleepPredictionState.Window).window
-        assertTrue(window.reasons.any { it.contains("personalized", ignoreCase = true) || it.contains("wake", ignoreCase = true) })
+        assertTrue(
+            window.reasons.any {
+                it is SleepReason.FullyPersonalized ||
+                    it is SleepReason.Blended ||
+                    it is SleepReason.TypicalWakeWindow
+            },
+        )
     }
 
     @Test
@@ -372,7 +379,7 @@ class SleepWindowPredictorTest {
             "predict() must route through the bedtime model when currentMinuteOfDay is within learned bedtime cutoff",
         )
         assertTrue(
-            window.reasons.any { it.contains("bedtime-specific wake patterns") },
+            window.reasons.any { it is SleepReason.TypeSpecificPattern && it.nextType == SleepType.NIGHT_SLEEP },
             "Window reasons must show the bedtime-specific path; buildWindow likely did not pass features.currentMinuteOfDay",
         )
     }
@@ -494,7 +501,7 @@ class SleepWindowPredictorTest {
         )
         val result = SleepWindowPredictor.predict(features(feedIntervals = listOf(feed1, feed2)), ageInWeeks, baseNow)
         val window = (result as SleepPredictionState.Window).window
-        assertEquals(true, window.feedPrompt != null, "Expected non-null feedPrompt when predicted feed overlaps window")
+        assertEquals(true, window.feedDue, "Expected feedDue when predicted feed overlaps window")
     }
 
     @Test
@@ -515,8 +522,8 @@ class SleepWindowPredictorTest {
         val window = (result as SleepPredictionState.Window).window
         assertEquals(
             true,
-            window.feedPrompt != null,
-            "Expected non-null feedPrompt: median interval keeps predicted feed inside the window despite an outlier gap",
+            window.feedDue,
+            "Expected feedDue: median interval keeps predicted feed inside the window despite an outlier gap",
         )
     }
 
@@ -524,7 +531,7 @@ class SleepWindowPredictorTest {
     fun `Window feedPrompt is null when no recent completed feeds`() {
         val result = SleepWindowPredictor.predict(features(feedIntervals = emptyList()), ageInWeeks, baseNow)
         val window = (result as SleepPredictionState.Window).window
-        assertEquals(true, window.feedPrompt == null, "Expected null feedPrompt when no feeds")
+        assertEquals(false, window.feedDue, "Expected no feedDue when no feeds")
     }
 
     @Test
@@ -552,7 +559,7 @@ class SleepWindowPredictorTest {
 
         val window = (result as SleepPredictionState.Window).window
         assertTrue(
-            window.reasons.any { it.contains("circadian", ignoreCase = true) },
+            window.reasons.any { it is SleepReason.CircadianSlot },
             "Circadian wiring must expose a reason when the factor changes the candidate",
         )
     }
@@ -708,11 +715,14 @@ class SleepWindowPredictorTest {
         val result = SleepWindowPredictor.predict(
             features(metrics = metrics), ageInWeeks, baseNow,
             sleepDebtFactorProvider = { _, _, _ ->
-                SleepPredictionFactor(adjustment = Duration.ofMinutes(-10), reason = "sleep debt reason")
+                SleepPredictionFactor(
+                    adjustment = Duration.ofMinutes(-10),
+                    reason = SleepReason.SleepDebt(earlierWindow = true),
+                )
             },
         )
         val window = (result as SleepPredictionState.Window).window
-        assertTrue(window.reasons.contains("sleep debt reason"),
+        assertTrue(window.reasons.contains(SleepReason.SleepDebt(earlierWindow = true)),
             "Factor reason must appear in window.reasons")
     }
 
@@ -916,12 +926,15 @@ class SleepWindowPredictorTest {
         val result = SleepWindowPredictor.predict(
             features(metrics = metrics), ageInWeeks, baseNow,
             napBudgetFactorProvider = { _, _, _ ->
-                SleepPredictionFactor(adjustment = Duration.ofMinutes(-10), reason = "nap budget reason")
+                SleepPredictionFactor(
+                    adjustment = Duration.ofMinutes(-10),
+                    reason = SleepReason.NapDeficit(deficit = 1),
+                )
             },
         )
         val window = (result as SleepPredictionState.Window).window
         assertTrue(
-            window.reasons.contains("nap budget reason"),
+            window.reasons.contains(SleepReason.NapDeficit(deficit = 1)),
             "Factor reason must appear in window.reasons",
         )
     }

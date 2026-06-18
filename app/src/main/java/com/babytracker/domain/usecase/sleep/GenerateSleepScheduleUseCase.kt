@@ -1,6 +1,7 @@
 package com.babytracker.domain.usecase.sleep
 
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.NapTransition
 import com.babytracker.domain.model.ScheduleEntry
 import com.babytracker.domain.model.ScheduleMode
 import com.babytracker.domain.model.SleepRecord
@@ -16,7 +17,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
-import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 
@@ -171,7 +171,7 @@ class GenerateSleepScheduleUseCase @Inject constructor(
                 ScheduleEntry(
                     startTime = currentTime,
                     duration = napDuration,
-                    label = "Nap ${i + 1}",
+                    napNumber = i + 1,
                     isAdjusted = isAdjusted
                 )
             )
@@ -254,7 +254,7 @@ class GenerateSleepScheduleUseCase @Inject constructor(
 
     // --- Nap Transition Detection ---
 
-    private fun detectNapTransition(recentRecords: List<SleepRecord>, ageInWeeks: Int): String? {
+    private fun detectNapTransition(recentRecords: List<SleepRecord>, ageInWeeks: Int): NapTransition? {
         val completedRecords = recentRecords.filter { it.duration != null }
         if (completedRecords.size < 5) {
             return null
@@ -282,9 +282,11 @@ class GenerateSleepScheduleUseCase @Inject constructor(
 
         val currentNaps = expectedNaps
         val targetNaps = (expectedNaps - 1).coerceAtLeast(1)
-        return "Your baby may be ready to transition from $currentNaps to $targetNaps naps. " +
-            "They've been averaging ${String.format(Locale.US, "%.1f", avgNapsPerDay)} naps per day " +
-            "with good night sleep."
+        return NapTransition(
+            fromNaps = currentNaps,
+            toNaps = targetNaps,
+            avgNapsPerDay = avgNapsPerDay,
+        )
     }
 
     private fun hasAdequateNightSleep(nightRecords: List<SleepRecord>): Boolean {

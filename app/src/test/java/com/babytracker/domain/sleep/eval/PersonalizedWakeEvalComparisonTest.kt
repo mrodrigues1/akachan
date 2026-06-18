@@ -213,8 +213,7 @@ class PersonalizedWakeEvalComparisonTest {
                 bestEstimate = bestEstimate,
                 confidence = confidence,
                 reasons = emptyList(),
-                feedPrompt = null,
-                safetyPrompt = "baseline",
+                feedDue = false,
             )
         )
     }

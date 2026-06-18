@@ -192,6 +192,31 @@
     <string name="bottle_feed_from_stash">do estoque</string>
     <string name="bottle_feed_quick_action">Mamadeira</string>
     <string name="feed_author_partner_badge">Parceiro</string>
+
+    <!-- Diaper -->
+    <string name="diaper_add_title">Registrar troca de fralda</string>
+    <string name="diaper_edit_title">Editar troca de fralda</string>
+    <string name="diaper_time_label">Horário</string>
+    <string name="diaper_notes_label">Notas (opcional)</string>
+    <string name="diaper_save">Salvar</string>
+    <string name="diaper_view_history">Ver histórico de fraldas</string>
+    <string name="diaper_save_error">Não foi possível salvar</string>
+    <string name="diaper_history_title">Histórico de fraldas</string>
+    <string name="diaper_history_empty">Nenhuma troca de fralda ainda</string>
+    <plurals name="diaper_history_day_header">
+        <item quantity="one">%1$s &#183; %2$d troca</item>
+        <item quantity="many">%1$s &#183; %2$d trocas</item>
+        <item quantity="other">%1$s &#183; %2$d trocas</item>
+    </plurals>
+    <string name="diaper_type_wet">Xixi</string>
+    <string name="diaper_type_dirty">Cocô</string>
+    <string name="diaper_type_both">Ambos</string>
+    <string name="diaper_row_summary">%1$s &#183; %2$s</string>
+    <string name="diaper_edit_content_description">Editar troca %1$s às %2$s</string>
+    <string name="diaper_delete_content_description">Excluir troca %1$s às %2$s</string>
+    <string name="diaper_delete_title">Excluir esta troca de fralda?</string>
+    <string name="diaper_delete_message">Isso não pode ser desfeito.</string>
+
     <string name="feeding_history_title">Histórico de mamadas</string>
     <string name="feeding_history_empty">Nenhuma mamada registrada ainda</string>
     <string name="feeding_history_empty_supporting">Mamadeiras e sessões de amamentação aparecerão aqui</string>
@@ -947,4 +972,132 @@
     <string name="action_open">Abrir</string>
     <string name="error_name_required">Informe um nome para continuar.</string>
     <string name="error_birth_date_future">A data de nascimento não pode ser no futuro.</string>
+
+    <!-- Sexo do bebê -->
+    <string name="baby_sex_male">Menino</string>
+    <string name="baby_sex_female">Menina</string>
+    <string name="baby_sex_unspecified">Prefiro não dizer</string>
+
+    <!-- Tipos de alergia -->
+    <string name="allergy_cmpa">Proteína do leite de vaca</string>
+    <string name="allergy_soy">Soja</string>
+    <string name="allergy_egg">Ovo</string>
+    <string name="allergy_wheat">Trigo</string>
+    <string name="allergy_peanut">Amendoim</string>
+    <string name="allergy_tree_nuts">Castanhas</string>
+    <string name="allergy_other">Outro</string>
+
+    <!-- Configurações (textos restantes) -->
+    <string name="settings_features_title">O que você acompanha</string>
+    <string name="settings_features_value">Escolha quais rastreadores aparecem</string>
+    <string name="settings_features_action">Gerenciar</string>
+    <string name="settings_measurement_metric">Métrico</string>
+    <string name="settings_measurement_imperial">Imperial</string>
+    <string name="settings_birth_date_value">%1$s (%2$d sem)</string>
+    <string name="settings_default_baby_name">seu bebê</string>
+
+    <!-- Ações de dados -->
+    <string name="action_export">Exportar…</string>
+    <string name="action_restore">Restaurar</string>
+    <string name="action_reimport">Reimportar</string>
+    <string name="settings_import_merge_intro">Isto será mesclado aos seus dados atuais:</string>
+    <string name="settings_import_merge_note">Os registros existentes são mantidos; duplicatas são ignoradas. As fotos dos marcos não são incluídas nos backups.</string>
+    <string name="range_last_7_days">Últimos 7 dias</string>
+    <string name="range_last_2_weeks">Últimas 2 semanas</string>
+    <string name="range_last_month">Último mês</string>
+    <string name="range_all_time">Todo o período</string>
+
+    <!-- Card de fraldas na tela inicial -->
+    <string name="home_diaper_title">Fraldas</string>
+    <plurals name="home_diaper_count_today">
+        <item quantity="one">%1$d hoje</item>
+        <item quantity="many">%1$d hoje</item>
+        <item quantity="other">%1$d hoje</item>
+    </plurals>
+    <string name="home_diaper_last_ago">Última %1$s</string>
+    <string name="home_diaper_cd">Fraldas, %1$s. Registrar troca de fralda.</string>
+    <string name="home_diaper_cd_empty">Fraldas. Registrar troca de fralda.</string>
+
+    <!-- Agenda de sono (rótulos dinâmicos) -->
+    <string name="schedule_mode_demand">Sob demanda</string>
+    <string name="schedule_mode_clock">Alinhado ao relógio</string>
+    <string name="sleep_schedule_personalized">Personalizado a partir dos seus dados registrados</string>
+    <string name="sleep_schedule_age_defaults">Usando padrões por idade</string>
+    <string name="sleep_schedule_regression_show_cd">Mostrar informações da regressão</string>
+    <string name="sleep_schedule_regression_hide_cd">Ocultar informações da regressão</string>
+    <string name="sleep_schedule_nap_number">Soneca %1$d</string>
+    <string name="sleep_schedule_bedtime">Hora de dormir</string>
+    <string name="sleep_schedule_after_awake">Após %1$s acordado</string>
+    <string name="sleep_schedule_suggested_nap">Soneca sugerida</string>
+    <plurals name="sleep_age_weeks_old">
+        <item quantity="one">%1$d semana</item>
+        <item quantity="many">%1$d semanas</item>
+        <item quantity="other">%1$d semanas</item>
+    </plurals>
+    <plurals name="sleep_age_months_old">
+        <item quantity="one">%1$d mês</item>
+        <item quantity="many">%1$d meses</item>
+        <item quantity="other">%1$d meses</item>
+    </plurals>
+    <string name="sleep_age_months_weeks_old">%1$d meses, %2$d semanas</string>
+
+    <!-- Regressões de sono -->
+    <string name="regression_4month_name">Regressão do sono dos 4 meses</string>
+    <string name="regression_4month_desc">A arquitetura do sono do seu bebê está amadurecendo de ciclos de 2 para 4 estágios. Essa é uma mudança permanente e saudável. O sono pode ficar mais perturbado do que o normal.</string>
+    <string name="regression_8to10month_name">Regressão do sono dos 8-10 meses</string>
+    <string name="regression_8to10month_desc">Permanência do objeto, ansiedade de separação e marcos motores (engatinhar, ficar em pé) podem perturbar temporariamente os padrões de sono.</string>
+    <string name="regression_12month_name">Regressão do sono dos 12 meses</string>
+    <string name="regression_12month_desc">Andar, o desenvolvimento inicial da linguagem e a resistência à soneca podem causar perturbação temporária do sono.</string>
+    <string name="regression_duration_2_6_weeks">2-6 semanas</string>
+    <string name="regression_duration_1_3_weeks">1-3 semanas</string>
+
+    <!-- Sugestão de transição de soneca -->
+    <string name="sleep_nap_transition_suggestion">Seu bebê pode estar pronto para passar de %1$d para %2$d sonecas. Ele tem feito em média %3$s sonecas por dia com bom sono noturno.</string>
+
+    <!-- Motivos da previsão de sono -->
+    <string name="sleep_reason_personalized_nap">Totalmente personalizado pelo histórico de sonecas do seu bebê</string>
+    <string name="sleep_reason_personalized_night">Totalmente personalizado pelo histórico de hora de dormir do seu bebê</string>
+    <string name="sleep_reason_blended_nap">Combinado com expectativas por idade (%1$d%% personalizado pelo histórico de sonecas do seu bebê)</string>
+    <string name="sleep_reason_blended_night">Combinado com expectativas por idade (%1$d%% personalizado pelo histórico de hora de dormir do seu bebê)</string>
+    <string name="sleep_reason_wake_window">Janela de vigília típica para %1$d sem: %2$d–%3$d min</string>
+    <string name="sleep_reason_type_pattern_nap">Usando os padrões de vigília de soneca do seu bebê (%1$d intervalos)</string>
+    <string name="sleep_reason_type_pattern_night">Usando os padrões de vigília de hora de dormir do seu bebê (%1$d intervalos)</string>
+    <string name="sleep_reason_combined_nap">Usando o histórico combinado de vigília (ainda sem dados suficientes de sonecas)</string>
+    <string name="sleep_reason_combined_night">Usando o histórico combinado de vigília (ainda sem dados suficientes de hora de dormir)</string>
+    <string name="sleep_reason_disruption">Um evento de doença, nascimento de dentes ou viagem nas últimas 48 h reduziu a confiança da previsão</string>
+    <string name="sleep_reason_circadian">Ajustado para o horário circadiano esperado de dormir</string>
+    <plurals name="sleep_reason_nap_deficit">
+        <item quantity="one">Déficit de soneca: %1$d soneca a menos que o esperado hoje</item>
+        <item quantity="many">Déficit de soneca: %1$d sonecas a menos que o esperado hoje</item>
+        <item quantity="other">Déficit de soneca: %1$d sonecas a menos que o esperado hoje</item>
+    </plurals>
+    <string name="sleep_reason_sleep_debt_earlier">Débito de sono: total de 24h vs. meta diária sugere janela mais cedo</string>
+    <string name="sleep_reason_sleep_debt_later">Débito de sono: total de 24h vs. meta diária sugere janela mais tarde</string>
+    <string name="sleep_feed_prompt">uma mamada pode estar próxima desta janela — ofereça o peito primeiro se houver sinais de fome</string>
+    <string name="sleep_safety_prompt">Sempre siga os sinais de sono do seu bebê — as janelas são estimativas, não horários fixos.</string>
+    <string name="sleep_awake_for">Acordado há %1$s</string>
+    <string name="sleep_ended_at">Terminou às %1$s</string>
+
+    <!-- Títulos dos eixos dos gráficos de tendências -->
+    <string name="trends_axis_feeds">Mamadas</string>
+    <string name="trends_axis_date">Data</string>
+    <string name="trends_axis_hours">Horas</string>
+    <string name="trends_axis_sleep_hrs">Horas de sono</string>
+
+    <!-- Widget de estoque de leite -->
+    <string name="widget_milk_stash_title">Estoque</string>
+    <string name="widget_milk_stash_off">Estoque desativado</string>
+    <string name="widget_milk_stash_no_milk">Sem leite</string>
+    <string name="widget_milk_stash_tap_plus">Toque em +</string>
+    <string name="widget_milk_stash_tap_add">Toque para adicionar</string>
+    <string name="widget_milk_stash_tap_add_milk">Toque para adicionar leite</string>
+    <string name="widget_milk_stash_empty">O estoque está vazio</string>
+    <plurals name="widget_milk_stash_bag_count">
+        <item quantity="one">%1$d saco</item>
+        <item quantity="many">%1$d sacos</item>
+        <item quantity="other">%1$d sacos</item>
+    </plurals>
+    <string name="widget_milk_stash_total_ml">mL no total</string>
+    <string name="widget_milk_stash_total_l">L no total</string>
+    <string name="widget_milk_stash_total_oz">oz no total</string>
 </resources>

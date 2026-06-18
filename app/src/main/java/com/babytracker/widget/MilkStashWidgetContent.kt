@@ -1,10 +1,12 @@
 package com.babytracker.widget
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.LocalContext
 import androidx.glance.action.clickable
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -18,13 +20,13 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import com.babytracker.R
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.util.mlToOz
 import java.util.Locale
 import kotlin.math.roundToInt
 
 private const val MILK_EMOJI = "🧊"
-private const val MILK_STASH_TITLE = "Inventory"
 private const val ML_PER_L = 1000
 
 /** Numeric ounce value with one decimal, trailing ".0" dropped ("28.4", "10"). */
@@ -52,7 +54,8 @@ internal fun formatVolume(totalMl: Int, unit: VolumeUnit): String = when (unit) 
 
 private fun MilkStashWidgetData.isEmpty(): Boolean = totalMl == 0 && bagCount == 0
 
-private fun bagCountLabel(bagCount: Int): String = if (bagCount == 1) "1 bag" else "$bagCount bags"
+private fun bagCountLabel(context: Context, bagCount: Int): String =
+    context.resources.getQuantityString(R.plurals.widget_milk_stash_bag_count, bagCount, bagCount)
 
 /**
  * Neutral state shown when the Inventory feature is turned off. Tapping still opens Inventory so a
@@ -60,6 +63,7 @@ private fun bagCountLabel(bagCount: Int): String = if (bagCount == 1) "1 bag" el
  */
 @Composable
 private fun MilkStashOffContent() {
+    val context = LocalContext.current
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -75,7 +79,7 @@ private fun MilkStashOffContent() {
         )
         Spacer(modifier = GlanceModifier.height(6.dp))
         Text(
-            text = "Inventory is off",
+            text = context.getString(R.string.widget_milk_stash_off),
             maxLines = 2,
             style = TextStyle(
                 color = GlanceTheme.colors.onSurfaceVariant,
@@ -93,6 +97,7 @@ fun MilkStashSmallContent(data: MilkStashWidgetData, modifier: GlanceModifier = 
         MilkStashOffContent()
         return
     }
+    val context = LocalContext.current
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -104,7 +109,7 @@ fun MilkStashSmallContent(data: MilkStashWidgetData, modifier: GlanceModifier = 
     ) {
         if (data.isEmpty()) {
             Text(
-                text = "No milk",
+                text = context.getString(R.string.widget_milk_stash_no_milk),
                 maxLines = 1,
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
@@ -113,7 +118,7 @@ fun MilkStashSmallContent(data: MilkStashWidgetData, modifier: GlanceModifier = 
                 ),
             )
             Text(
-                text = "Tap +",
+                text = context.getString(R.string.widget_milk_stash_tap_plus),
                 maxLines = 1,
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
@@ -131,7 +136,7 @@ fun MilkStashSmallContent(data: MilkStashWidgetData, modifier: GlanceModifier = 
                 ),
             )
             Text(
-                text = bagCountLabel(data.bagCount),
+                text = bagCountLabel(context, data.bagCount),
                 maxLines = 1,
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
@@ -149,6 +154,7 @@ fun MilkStashTallContent(data: MilkStashWidgetData, modifier: GlanceModifier = G
         MilkStashOffContent()
         return
     }
+    val context = LocalContext.current
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -163,7 +169,7 @@ fun MilkStashTallContent(data: MilkStashWidgetData, modifier: GlanceModifier = G
         )
         Spacer(modifier = GlanceModifier.height(2.dp))
         Text(
-            text = MILK_STASH_TITLE,
+            text = context.getString(R.string.widget_milk_stash_title),
             maxLines = 1,
             style = TextStyle(
                 color = GlanceTheme.colors.onSurfaceVariant,
@@ -172,47 +178,11 @@ fun MilkStashTallContent(data: MilkStashWidgetData, modifier: GlanceModifier = G
             ),
         )
         Spacer(modifier = GlanceModifier.height(14.dp))
-        if (data.isEmpty()) {
-            Text(
-                text = "No milk",
-                maxLines = 1,
-                style = TextStyle(
-                    color = GlanceTheme.colors.onSurfaceVariant,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 15.sp,
-                ),
-            )
-            Text(
-                text = "Tap to add",
-                maxLines = 1,
-                style = TextStyle(
-                    color = GlanceTheme.colors.onSurfaceVariant,
-                    fontSize = 12.sp,
-                ),
-            )
-        } else {
-            Text(
-                text = volumeNumber(data.totalMl, data.volumeUnit),
-                maxLines = 1,
-                style = TextStyle(
-                    color = GlanceTheme.colors.onSurfaceVariant,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp,
-                ),
-            )
-            Text(
-                text = volumeUnitLabel(data.totalMl, data.volumeUnit),
-                maxLines = 1,
-                style = TextStyle(
-                    color = GlanceTheme.colors.onSurfaceVariant,
-                    fontSize = 12.sp,
-                ),
-            )
-        }
+        MilkStashTallBody(data, context)
         Spacer(modifier = GlanceModifier.defaultWeight())
         if (!data.isEmpty()) {
             Text(
-                text = bagCountLabel(data.bagCount),
+                text = bagCountLabel(context, data.bagCount),
                 maxLines = 1,
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
@@ -224,6 +194,48 @@ fun MilkStashTallContent(data: MilkStashWidgetData, modifier: GlanceModifier = G
     }
 }
 
+/** Volume hero for the tall tile: empty prompt or the populated number/unit pair. */
+@Composable
+private fun MilkStashTallBody(data: MilkStashWidgetData, context: Context) {
+    if (data.isEmpty()) {
+        Text(
+            text = context.getString(R.string.widget_milk_stash_no_milk),
+            maxLines = 1,
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Medium,
+                fontSize = 15.sp,
+            ),
+        )
+        Text(
+            text = context.getString(R.string.widget_milk_stash_tap_add),
+            maxLines = 1,
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurfaceVariant,
+                fontSize = 12.sp,
+            ),
+        )
+    } else {
+        Text(
+            text = volumeNumber(data.totalMl, data.volumeUnit),
+            maxLines = 1,
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                fontSize = 22.sp,
+            ),
+        )
+        Text(
+            text = volumeUnitLabel(context, data.totalMl, data.volumeUnit),
+            maxLines = 1,
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurfaceVariant,
+                fontSize = 12.sp,
+            ),
+        )
+    }
+}
+
 /** 2×1 (wide, short) milk stash tile: small emoji, volume hero, and bag count, all on one row. */
 @Composable
 fun MilkStashWideContent(data: MilkStashWidgetData, modifier: GlanceModifier = GlanceModifier) {
@@ -231,6 +243,7 @@ fun MilkStashWideContent(data: MilkStashWidgetData, modifier: GlanceModifier = G
         MilkStashOffContent()
         return
     }
+    val context = LocalContext.current
     Row(
         modifier = modifier
             .fillMaxSize()
@@ -247,7 +260,7 @@ fun MilkStashWideContent(data: MilkStashWidgetData, modifier: GlanceModifier = G
         if (data.isEmpty()) {
             Column(modifier = GlanceModifier.defaultWeight()) {
                 Text(
-                    text = "No milk",
+                    text = context.getString(R.string.widget_milk_stash_no_milk),
                     maxLines = 1,
                     style = TextStyle(
                         color = GlanceTheme.colors.onSurfaceVariant,
@@ -256,7 +269,7 @@ fun MilkStashWideContent(data: MilkStashWidgetData, modifier: GlanceModifier = G
                     ),
                 )
                 Text(
-                    text = "Tap to add milk",
+                    text = context.getString(R.string.widget_milk_stash_tap_add_milk),
                     maxLines = 1,
                     style = TextStyle(
                         color = GlanceTheme.colors.onSurfaceVariant,
@@ -276,7 +289,7 @@ fun MilkStashWideContent(data: MilkStashWidgetData, modifier: GlanceModifier = G
                     ),
                 )
                 Text(
-                    text = bagCountLabel(data.bagCount),
+                    text = bagCountLabel(context, data.bagCount),
                     maxLines = 1,
                     style = TextStyle(
                         color = GlanceTheme.colors.onSurfaceVariant,
@@ -301,6 +314,7 @@ fun MilkStashMediumContent(data: MilkStashWidgetData) {
 /** Populated 2×2 tile: titled header, large volume hero, unit, and bag count row. */
 @Composable
 private fun MilkStashMediumFilled(data: MilkStashWidgetData) {
+    val context = LocalContext.current
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -315,7 +329,7 @@ private fun MilkStashMediumFilled(data: MilkStashWidgetData) {
             )
             Spacer(modifier = GlanceModifier.width(6.dp))
             Text(
-                text = MILK_STASH_TITLE,
+                text = context.getString(R.string.widget_milk_stash_title),
                 maxLines = 1,
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
@@ -335,7 +349,7 @@ private fun MilkStashMediumFilled(data: MilkStashWidgetData) {
             ),
         )
         Text(
-            text = volumeUnitLabel(data.totalMl, data.volumeUnit),
+            text = volumeUnitLabel(context, data.totalMl, data.volumeUnit),
             maxLines = 1,
             style = TextStyle(
                 color = GlanceTheme.colors.onSurfaceVariant,
@@ -344,7 +358,7 @@ private fun MilkStashMediumFilled(data: MilkStashWidgetData) {
         )
         Spacer(modifier = GlanceModifier.height(10.dp))
         Text(
-            text = bagCountLabel(data.bagCount),
+            text = bagCountLabel(context, data.bagCount),
             maxLines = 1,
             style = TextStyle(
                 color = GlanceTheme.colors.onSurfaceVariant,
@@ -358,6 +372,7 @@ private fun MilkStashMediumFilled(data: MilkStashWidgetData) {
 
 @Composable
 private fun MilkStashMediumEmpty() {
+    val context = LocalContext.current
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -373,7 +388,7 @@ private fun MilkStashMediumEmpty() {
         )
         Spacer(modifier = GlanceModifier.height(6.dp))
         Text(
-            text = "Stash is empty",
+            text = context.getString(R.string.widget_milk_stash_empty),
             maxLines = 1,
             style = TextStyle(
                 color = GlanceTheme.colors.onSurfaceVariant,
@@ -382,7 +397,7 @@ private fun MilkStashMediumEmpty() {
             ),
         )
         Text(
-            text = "Tap to add milk",
+            text = context.getString(R.string.widget_milk_stash_tap_add_milk),
             maxLines = 1,
             style = TextStyle(
                 color = GlanceTheme.colors.onSurfaceVariant,
@@ -403,7 +418,11 @@ private fun volumeNumber(totalMl: Int, unit: VolumeUnit): String = when (unit) {
 }
 
 /** Unit label sitting under the medium hero number. */
-private fun volumeUnitLabel(totalMl: Int, unit: VolumeUnit): String = when (unit) {
-    VolumeUnit.OZ -> "oz total"
-    VolumeUnit.ML -> if (totalMl >= ML_PER_L) "L total" else "mL total"
+private fun volumeUnitLabel(context: Context, totalMl: Int, unit: VolumeUnit): String = when (unit) {
+    VolumeUnit.OZ -> context.getString(R.string.widget_milk_stash_total_oz)
+    VolumeUnit.ML -> if (totalMl >= ML_PER_L) {
+        context.getString(R.string.widget_milk_stash_total_l)
+    } else {
+        context.getString(R.string.widget_milk_stash_total_ml)
+    }
 }

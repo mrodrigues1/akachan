@@ -1,6 +1,7 @@
 package com.babytracker.domain.sleep.eval
 
 import com.babytracker.domain.model.SleepPredictionTuning
+import com.babytracker.domain.model.SleepReason
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -116,8 +117,8 @@ class SleepDebtFactorTest {
             ageInWeeks = ageInWeeks,
         )
         assertTrue(
-            factor.reason != null && (factor.reason.contains("earlier") || factor.reason.contains("later")),
-            "Active factor must include direction in reason string",
+            factor.reason is SleepReason.SleepDebt,
+            "Active factor must surface a sleep-debt reason",
         )
     }
 }

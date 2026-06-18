@@ -45,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -59,6 +60,7 @@ import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.util.formatTime
+import com.babytracker.util.resolve
 
 private val EaseOutQuart = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
 
@@ -169,6 +171,7 @@ private fun WindowSectionContent(window: SleepWindow) {
             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
         )
         if (window.reasons.isNotEmpty()) {
+            val context = LocalContext.current
             Spacer(Modifier.height(12.dp))
             window.reasons.forEach { reason ->
                 Row(
@@ -185,14 +188,14 @@ private fun WindowSectionContent(window: SleepWindow) {
                             ),
                     )
                     Text(
-                        text = reason,
+                        text = reason.resolve(context),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }
             }
         }
-        window.feedPrompt?.let { prompt ->
+        if (window.feedDue) {
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.Top) {
                 Icon(
@@ -205,7 +208,7 @@ private fun WindowSectionContent(window: SleepWindow) {
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    text = prompt,
+                    text = stringResource(R.string.sleep_feed_prompt),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
@@ -243,7 +246,7 @@ private fun WindowSectionContent(window: SleepWindow) {
             exit = fadeOut(tween(120, easing = EaseOutQuart)),
         ) {
             Text(
-                text = window.safetyPrompt,
+                text = stringResource(R.string.sleep_safety_prompt),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier
                     .padding(top = 4.dp)

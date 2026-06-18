@@ -12,6 +12,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.SleepPredictionState
+import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.ui.theme.BabyTrackerTheme
 import org.junit.Rule
@@ -27,17 +28,16 @@ class SleepRecommendationSectionTest {
 
     private fun windowState(
         confidence: Confidence = Confidence.MEDIUM,
-        feedPrompt: String? = null,
-        safetyPrompt: String = "Always place baby on their back to sleep.",
+        feedDue: Boolean = false,
+        reasons: List<SleepReason> = listOf(SleepReason.Disruption, SleepReason.CircadianSlot),
     ) = SleepPredictionState.Window(
         SleepWindow(
             windowStart = Instant.parse("2024-01-01T14:20:00Z"),
             windowEnd = Instant.parse("2024-01-01T14:50:00Z"),
             bestEstimate = Instant.parse("2024-01-01T14:35:00Z"),
             confidence = confidence,
-            reasons = listOf("awake 2h05", "based on recent wake patterns"),
-            feedPrompt = feedPrompt,
-            safetyPrompt = safetyPrompt,
+            reasons = reasons,
+            feedDue = feedDue,
         )
     )
 
@@ -76,8 +76,8 @@ class SleepRecommendationSectionTest {
         composeRule.setContent {
             BabyTrackerTheme { SleepRecommendationSection(state = windowState()) }
         }
-        composeRule.onNodeWithText("awake 2h05").assertIsDisplayed()
-        composeRule.onNodeWithText("based on recent wake patterns").assertIsDisplayed()
+        composeRule.onNodeWithText("reduced prediction confidence", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("circadian slot", substring = true).assertIsDisplayed()
     }
 
     @Test
@@ -87,7 +87,7 @@ class SleepRecommendationSectionTest {
         }
         composeRule.onNodeWithContentDescription("Safe sleep tip").performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Always place baby on their back to sleep.").assertIsDisplayed()
+        composeRule.onNodeWithText("Always follow your baby's sleep cues", substring = true).assertIsDisplayed()
     }
 
     @Test
@@ -95,21 +95,21 @@ class SleepRecommendationSectionTest {
         composeRule.setContent {
             BabyTrackerTheme {
                 SleepRecommendationSection(
-                    state = windowState(feedPrompt = "a breastfeed may be due near this window"),
+                    state = windowState(feedDue = true),
                 )
             }
         }
-        composeRule.onNodeWithText("a breastfeed may be due near this window").assertIsDisplayed()
+        composeRule.onNodeWithText("a breastfeed may be due near this window", substring = true).assertIsDisplayed()
     }
 
     @Test
     fun windowState_feedPromptNotShown_whenNull() {
         composeRule.setContent {
             BabyTrackerTheme {
-                SleepRecommendationSection(state = windowState(feedPrompt = null))
+                SleepRecommendationSection(state = windowState(feedDue = false))
             }
         }
-        composeRule.onAllNodesWithText("a breastfeed may be due near this window").assertCountEquals(0)
+        composeRule.onAllNodesWithText("a breastfeed may be due near this window", substring = true).assertCountEquals(0)
     }
 
     @Test

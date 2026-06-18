@@ -7,6 +7,7 @@ import com.babytracker.domain.model.FeedAuthor
 import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.SleepPredictionState
+import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepWindow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -25,20 +26,23 @@ class DomainToSnapshotTest {
                 windowEnd = Instant.ofEpochMilli(2_000L),
                 bestEstimate = Instant.ofEpochMilli(1_500L),
                 confidence = Confidence.MEDIUM,
-                reasons = listOf("Awake 2h", "Recent wake patterns"),
-                feedPrompt = "A breastfeed may be due near this window.",
-                safetyPrompt = "Back to sleep",
+                reasons = listOf(SleepReason.Disruption, SleepReason.CircadianSlot),
+                feedDue = true,
             ),
         )
 
-        val snapshot = state.toSnapshot(generatedAt)
+        val snapshot = state.toSnapshot(
+            generatedAt = generatedAt,
+            resolveReason = { it::class.simpleName.orEmpty() },
+            feedPromptText = "A breastfeed may be due near this window.",
+        )
 
         assertEquals("WINDOW", snapshot?.stateLabel)
         assertEquals(1_000L, snapshot?.windowStart)
         assertEquals(2_000L, snapshot?.windowEnd)
         assertEquals(1_500L, snapshot?.bestEstimate)
         assertEquals("MEDIUM", snapshot?.confidence)
-        assertEquals(listOf("Awake 2h", "Recent wake patterns"), snapshot?.reasons)
+        assertEquals(listOf("Disruption", "CircadianSlot"), snapshot?.reasons)
         assertEquals("A breastfeed may be due near this window.", snapshot?.feedPrompt)
         assertEquals(generatedAt, snapshot?.generatedAt)
     }

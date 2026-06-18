@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
+import com.babytracker.domain.model.NapTransition
 import com.babytracker.domain.model.RegressionInfo
 import com.babytracker.domain.model.ScheduleEntry
 import com.babytracker.domain.model.ScheduleMode
@@ -236,9 +238,9 @@ private fun ScheduleHeader(
                                     Icons.Default.ExpandMore
                                 },
                                 contentDescription = if (isRegressionExpanded) {
-                                    "Hide regression info"
+                                    stringResource(R.string.sleep_schedule_regression_hide_cd)
                                 } else {
-                                    "Show regression info"
+                                    stringResource(R.string.sleep_schedule_regression_show_cd)
                                 },
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer
                             )
@@ -249,9 +251,9 @@ private fun ScheduleHeader(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = if (schedule.isPersonalized) {
-                    "Personalized from your logged data"
+                    stringResource(R.string.sleep_schedule_personalized)
                 } else {
-                    "Using age-based defaults"
+                    stringResource(R.string.sleep_schedule_age_defaults)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
@@ -269,7 +271,7 @@ private fun ModeBadge(mode: ScheduleMode) {
             .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
         Text(
-            text = mode.label,
+            text = stringResource(mode.labelRes()),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSecondary,
             fontWeight = FontWeight.Bold
@@ -289,20 +291,23 @@ private fun RegressionWarningCard(info: RegressionInfo) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = info.description,
+                text = stringResource(info.type.descriptionRes()),
                 style = MaterialTheme.typography.bodyMedium,
                 color = onContainerColor
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = info.name,
+                text = stringResource(info.type.nameRes()),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = onContainerColor.copy(alpha = 0.85f)
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = stringResource(R.string.sleep_schedule_typical_duration, info.durationWeeks),
+                text = stringResource(
+                    R.string.sleep_schedule_typical_duration,
+                    stringResource(info.type.durationRes()),
+                ),
                 style = MaterialTheme.typography.labelSmall,
                 color = onContainerColor.copy(alpha = 0.7f)
             )
@@ -464,10 +469,23 @@ private fun TimelineTextBlock(
             style = MaterialTheme.typography.titleMedium
         )
         Spacer(modifier = Modifier.width(10.dp))
+        val label = if (item.isBedtime) {
+            stringResource(R.string.sleep_schedule_bedtime)
+        } else {
+            stringResource(R.string.sleep_schedule_nap_number, item.napNumber)
+        }
+        val detail = when {
+            item.isBedtime -> item.bedtimeWindow?.let {
+                "${formatLocalTime(it.start)} - ${formatLocalTime(it.endInclusive)}"
+            }.orEmpty()
+            item.wakeWindow != null ->
+                stringResource(R.string.sleep_schedule_after_awake, item.wakeWindow.formatDuration())
+            else -> stringResource(R.string.sleep_schedule_suggested_nap)
+        }
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = item.label,
+                    text = label,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = contentColor,
@@ -485,7 +503,7 @@ private fun TimelineTextBlock(
             }
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = item.detail,
+                text = detail,
                 style = MaterialTheme.typography.bodySmall,
                 color = supportingColor
             )
@@ -568,7 +586,8 @@ private fun SummaryRow(label: String, value: String) {
 }
 
 @Composable
-private fun NapTransitionCard(suggestion: String) {
+private fun NapTransitionCard(transition: NapTransition) {
+    val avgFormatted = String.format(java.util.Locale.getDefault(), "%.1f", transition.avgNapsPerDay)
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
@@ -585,7 +604,12 @@ private fun NapTransitionCard(suggestion: String) {
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = suggestion,
+                text = stringResource(
+                    R.string.sleep_nap_transition_suggestion,
+                    transition.fromNaps,
+                    transition.toNaps,
+                    avgFormatted,
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -602,10 +626,10 @@ private fun formatLocalTime(time: LocalTime): String = time.format(timeFormatter
 internal data class SleepTimelineItem(
     val wakeWindow: Duration?,
     val startTime: LocalTime,
-    val label: String,
-    val detail: String,
+    val napNumber: Int,
     val trailing: String,
     val emoji: String,
+    val bedtimeWindow: ClosedRange<LocalTime>? = null,
     val isAdjusted: Boolean = false,
     val isBedtime: Boolean = false,
 )
@@ -617,12 +641,10 @@ internal fun buildSleepTimelineItems(
     bedtimeWindow: ClosedRange<LocalTime>,
 ): List<SleepTimelineItem> {
     val napItems = napTimes.mapIndexed { index, entry ->
-        val wakeWindow = wakeWindows.getOrNull(index)
         SleepTimelineItem(
-            wakeWindow = wakeWindow,
+            wakeWindow = wakeWindows.getOrNull(index),
             startTime = entry.startTime,
-            label = entry.label,
-            detail = wakeWindow?.let { "After ${it.formatDuration()} awake" } ?: "Suggested nap",
+            napNumber = entry.napNumber,
             trailing = entry.duration.formatDuration(),
             emoji = entry.emoji,
             isAdjusted = entry.isAdjusted
@@ -632,22 +654,30 @@ internal fun buildSleepTimelineItems(
     return napItems + SleepTimelineItem(
         wakeWindow = wakeWindows.lastOrNull(),
         startTime = bedtime,
-        label = "Bedtime",
-        detail = "${formatLocalTime(bedtimeWindow.start)} - ${formatLocalTime(bedtimeWindow.endInclusive)}",
+        napNumber = 0,
         trailing = formatLocalTime(bedtime),
         emoji = "\uD83C\uDF19",
+        bedtimeWindow = bedtimeWindow,
         isBedtime = true
     )
 }
 
-internal fun formatAge(ageInWeeks: Int): String {
+/** Months and remaining whole weeks for an age in weeks. Pure for unit testing; the screen
+ * renders it via localized plural resources in [formatAge]. */
+internal fun ageBreakdown(ageInWeeks: Int): Pair<Int, Int> {
     val totalDays = ageInWeeks * 7
     val months = totalDays / 30
     val remainingWeeks = (totalDays - months * 30) / 7
+    return months to remainingWeeks
+}
+
+@Composable
+internal fun formatAge(ageInWeeks: Int): String {
+    val (months, remainingWeeks) = ageBreakdown(ageInWeeks)
     return when {
-        months == 0 -> "$ageInWeeks weeks old"
-        remainingWeeks == 0 -> "$months months old"
-        else -> "$months months, $remainingWeeks weeks old"
+        months == 0 -> pluralStringResource(R.plurals.sleep_age_weeks_old, ageInWeeks, ageInWeeks)
+        remainingWeeks == 0 -> pluralStringResource(R.plurals.sleep_age_months_old, months, months)
+        else -> stringResource(R.string.sleep_age_months_weeks_old, months, remainingWeeks)
     }
 }
 
