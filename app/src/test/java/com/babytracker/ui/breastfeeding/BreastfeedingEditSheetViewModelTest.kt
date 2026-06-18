@@ -2,6 +2,7 @@ package com.babytracker.ui.breastfeeding
 
 import android.content.Context
 import app.cash.turbine.test
+import com.babytracker.R
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
@@ -93,6 +94,8 @@ class BreastfeedingEditSheetViewModelTest {
         every { predictNextFeed() } returns flowOf(null)
         coEvery { syncToFirestore(any()) } returns Unit
         appContext = mockk(relaxed = true)
+        every { appContext.getString(R.string.error_bf_end_after_start) } returns "End time must be after start time"
+        every { appContext.getString(R.string.error_bf_delete) } returns "Could not delete session. Please try again."
     }
 
     @AfterEach

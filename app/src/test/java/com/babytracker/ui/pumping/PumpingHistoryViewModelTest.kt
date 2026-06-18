@@ -1,5 +1,7 @@
 package com.babytracker.ui.pumping
 
+import android.content.Context
+import com.babytracker.R
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.VolumeUnit
@@ -37,6 +39,7 @@ class PumpingHistoryViewModelTest {
     private lateinit var updateSession: UpdatePumpingSessionUseCase
     private lateinit var deleteSession: DeletePumpingSessionUseCase
     private lateinit var settingsRepository: SettingsRepository
+    private lateinit var appContext: Context
     private lateinit var viewModel: PumpingHistoryViewModel
 
     private val testDispatcher = StandardTestDispatcher()
@@ -61,11 +64,14 @@ class PumpingHistoryViewModelTest {
         settingsRepository = mockk()
         every { getHistory() } returns historyFlow
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
+        appContext = mockk(relaxed = true)
+        every { appContext.getString(R.string.error_start_future) } returns "Start cannot be in the future"
         viewModel = PumpingHistoryViewModel(
             getHistory = getHistory,
             updateSession = updateSession,
             deleteSession = deleteSession,
             settingsRepository = settingsRepository,
+            appContext = appContext,
             now = { fixedNow },
         )
     }

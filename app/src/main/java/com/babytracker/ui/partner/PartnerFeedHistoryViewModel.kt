@@ -1,7 +1,9 @@
 package com.babytracker.ui.partner
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.R
 import com.babytracker.domain.model.FeedAuthor
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
@@ -14,6 +16,7 @@ import com.babytracker.sharing.usecase.PartnerAccessRevokedException
 import com.babytracker.sharing.usecase.PartnerDataFetchException
 import com.babytracker.widget.WidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
@@ -43,6 +46,7 @@ class PartnerFeedHistoryViewModel @Inject constructor(
     private val deletePartnerFeed: DeletePartnerFeedUseCase,
     private val widgetUpdater: WidgetUpdater,
     settingsRepository: SettingsRepository,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PartnerFeedHistoryUiState())
@@ -96,19 +100,19 @@ class PartnerFeedHistoryViewModel @Inject constructor(
                 }
             } catch (error: CancellationException) {
                 throw error
-            } catch (error: PartnerAccessRevokedException) {
+            } catch (_: PartnerAccessRevokedException) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         accessRevoked = true,
-                        error = error.message,
+                        error = appContext.getString(R.string.error_partner_access_revoked),
                     )
                 }
                 widgetUpdater.updateAll()
-            } catch (error: PartnerDataFetchException) {
-                _uiState.update { it.copy(isLoading = false, error = error.message) }
-            } catch (error: IllegalStateException) {
-                _uiState.update { it.copy(isLoading = false, error = error.message) }
+            } catch (_: PartnerDataFetchException) {
+                _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_partner_load_failed)) }
+            } catch (_: IllegalStateException) {
+                _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_partner_load_failed)) }
             }
         }
     }
@@ -118,19 +122,19 @@ class PartnerFeedHistoryViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 deletePartnerFeed(entry)
-            } catch (error: PartnerAccessRevokedException) {
+            } catch (_: PartnerAccessRevokedException) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         accessRevoked = true,
-                        error = error.message,
+                        error = appContext.getString(R.string.error_partner_access_revoked),
                     )
                 }
                 widgetUpdater.updateAll()
-            } catch (error: PartnerDataFetchException) {
-                _uiState.update { it.copy(error = error.message) }
-            } catch (error: IllegalStateException) {
-                _uiState.update { it.copy(error = error.message) }
+            } catch (_: PartnerDataFetchException) {
+                _uiState.update { it.copy(error = appContext.getString(R.string.error_partner_delete_failed)) }
+            } catch (_: IllegalStateException) {
+                _uiState.update { it.copy(error = appContext.getString(R.string.error_partner_delete_failed)) }
             }
         }
     }

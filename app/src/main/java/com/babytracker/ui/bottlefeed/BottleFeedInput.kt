@@ -1,8 +1,5 @@
 package com.babytracker.ui.bottlefeed
 
-/** Shown when the volume field is empty or not a positive number. */
-const val BOTTLE_FEED_VOLUME_ERROR = "Enter a volume greater than 0"
-
 /** Validated bottle feed form input shared by the owner and partner entry screens. */
 data class BottleFeedInput(
     val volumeMl: Int,

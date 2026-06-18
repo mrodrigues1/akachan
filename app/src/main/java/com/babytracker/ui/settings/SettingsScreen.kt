@@ -169,11 +169,13 @@ fun SettingsScreen(
         dataVm.onPdfSaveLaunched()
     }
 
+    val pdfSavedMessage = stringResource(R.string.msg_pdf_saved)
+    val openActionLabel = stringResource(R.string.action_open)
     LaunchedEffect(dataState.savedPdfUri) {
         val pdfUri = dataState.savedPdfUri ?: return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(
-            message = "PDF saved to Downloads",
-            actionLabel = "Open",
+            message = pdfSavedMessage,
+            actionLabel = openActionLabel,
             duration = SnackbarDuration.Long,
         )
         if (result == SnackbarResult.ActionPerformed) {

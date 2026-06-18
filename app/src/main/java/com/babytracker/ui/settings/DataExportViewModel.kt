@@ -1,9 +1,11 @@
 package com.babytracker.ui.settings
 
+import android.content.Context
 import android.net.Uri
 import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.R
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
@@ -19,6 +21,7 @@ import com.babytracker.export.domain.usecase.ImportBackupUseCase
 import com.babytracker.export.domain.usecase.ValidateBackupUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,6 +74,7 @@ class DataExportViewModel @Inject constructor(
     private val pumpingRepository: PumpingRepository,
     private val sleepRepository: SleepRepository,
     private val syncToFirestore: SyncToFirestoreUseCase,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DataExportUiState())
@@ -87,7 +91,7 @@ class DataExportViewModel @Inject constructor(
         }
     }
 
-    fun exportJsonTo(uri: Uri) = execute("Backup saved") {
+    fun exportJsonTo(uri: Uri) = execute(appContext.getString(R.string.msg_backup_saved)) {
         writer.writeToUri(uri, exportBackup())
     }
 
@@ -131,7 +135,7 @@ class DataExportViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     status = DataExportUiState.Status.ERROR,
-                    message = "Stop all active sessions before importing a backup.",
+                    message = appContext.getString(R.string.error_import_stop_sessions),
                 )
             }
             return@execute
@@ -157,7 +161,7 @@ class DataExportViewModel @Inject constructor(
     fun confirmImport() {
         val preview = _uiState.value.importPreview ?: return
         _uiState.update { it.copy(importPreview = null) }
-        execute("Backup imported") {
+        execute(appContext.getString(R.string.msg_backup_imported)) {
             importBackup(preview.data)
             runCatching { syncToFirestore() }
         }
@@ -202,9 +206,9 @@ class DataExportViewModel @Inject constructor(
                 }
             } catch (e: CancellationException) {
                 throw e
-            } catch (ignore: Exception) {
+            } catch (_: Exception) {
                 _uiState.update {
-                    it.copy(status = DataExportUiState.Status.ERROR, message = ignore.message ?: "Export failed. Try again.")
+                    it.copy(status = DataExportUiState.Status.ERROR, message = appContext.getString(R.string.error_export_failed))
                 }
             }
         }

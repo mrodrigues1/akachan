@@ -1,5 +1,7 @@
 package com.babytracker.ui.partner
 
+import android.content.Context
+import com.babytracker.R
 import com.babytracker.domain.model.FeedAuthor
 import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.VolumeUnit
@@ -44,6 +46,7 @@ class PartnerFeedHistoryViewModelTest {
     private val deletePartnerFeed = mockk<DeletePartnerFeedUseCase>()
     private val settingsRepository = mockk<SettingsRepository>()
     private val widgetUpdater = mockk<WidgetUpdater>()
+    private val appContext = mockk<Context>()
 
     @BeforeEach
     fun setup() {
@@ -51,6 +54,9 @@ class PartnerFeedHistoryViewModelTest {
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         coJustRun { deletePartnerFeed(any()) }
         coJustRun { widgetUpdater.updateAll() }
+        every { appContext.getString(R.string.error_partner_load_failed) } returns "load-failed"
+        every { appContext.getString(R.string.error_partner_delete_failed) } returns "delete-failed"
+        every { appContext.getString(R.string.error_partner_access_revoked) } returns "access-revoked"
     }
 
     @AfterEach
@@ -187,7 +193,7 @@ class PartnerFeedHistoryViewModelTest {
 
         assertFalse(viewModel.uiState.value.isLoading)
         assertFalse(viewModel.uiState.value.accessRevoked)
-        assertEquals("Could not load feed history", viewModel.uiState.value.error)
+        assertEquals("load-failed", viewModel.uiState.value.error)
     }
 
     @Test
@@ -198,7 +204,7 @@ class PartnerFeedHistoryViewModelTest {
 
         assertFalse(viewModel.uiState.value.isLoading)
         assertFalse(viewModel.uiState.value.accessRevoked)
-        assertEquals("Could not load partner data", viewModel.uiState.value.error)
+        assertEquals("load-failed", viewModel.uiState.value.error)
     }
 
     @Test
@@ -223,7 +229,7 @@ class PartnerFeedHistoryViewModelTest {
 
         viewModel.onDelete(entry)
 
-        assertEquals("Could not queue feed write", viewModel.uiState.value.error)
+        assertEquals("delete-failed", viewModel.uiState.value.error)
         assertFalse(viewModel.uiState.value.accessRevoked)
     }
 
@@ -247,6 +253,7 @@ class PartnerFeedHistoryViewModelTest {
         deletePartnerFeed = deletePartnerFeed,
         widgetUpdater = widgetUpdater,
         settingsRepository = settingsRepository,
+        appContext = appContext,
     )
 
     private fun snapshot() = ShareSnapshot(

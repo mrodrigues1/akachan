@@ -98,6 +98,15 @@ class BreastfeedingViewModelTest {
         every { appContext.getString(R.string.elapsed_hours_minutes_ago, any(), any()) } returns "2h 25m ago"
         every { appContext.getString(R.string.elapsed_minutes_ago, any()) } returns "0m ago"
         every { appContext.getString(R.string.elapsed_just_now) } returns "Just now"
+        every { appContext.getString(R.string.error_bf_start) } returns "Could not start session. Please try again."
+        every { appContext.getString(R.string.error_bf_stop) } returns "Could not stop session. Please try again."
+        every { appContext.getString(R.string.error_bf_save) } returns "Could not save changes. Please try again."
+        every { appContext.getString(R.string.error_bf_delete) } returns "Could not delete session. Please try again."
+        every { appContext.getString(R.string.error_bf_start_future) } returns "Start time can't be in the future"
+        every { appContext.getString(R.string.error_bf_end_future) } returns "End time can't be in the future"
+        every { appContext.getString(R.string.error_bf_end_after_start) } returns "End time must be after start time"
+        every { appContext.getString(R.string.error_bf_session_shorter_pauses) } returns
+            "Session is shorter than recorded pauses"
         pauseSession = mockk()
         resumeSession = mockk()
         updateSession = mockk()

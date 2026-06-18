@@ -1,7 +1,9 @@
 package com.babytracker.ui.pumping
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.R
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.repository.PumpingRepository
@@ -12,6 +14,7 @@ import com.babytracker.domain.usecase.pumping.SavePumpingSessionUseCase
 import com.babytracker.domain.usecase.pumping.StartPumpingSessionUseCase
 import com.babytracker.domain.usecase.pumping.StopPumpingSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -61,6 +64,7 @@ class PumpingViewModel @Inject constructor(
     private val resumeUseCase: ResumePumpingSessionUseCase,
     private val saveManual: SavePumpingSessionUseCase,
     private val addBag: AddMilkBagUseCase,
+    @ApplicationContext private val appContext: Context,
     private val now: () -> Instant,
 ) : ViewModel() {
 
@@ -108,7 +112,7 @@ class PumpingViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isStarting = true)
         viewModelScope.launch {
             runCatching { startUseCase(_uiState.value.selectedBreast) }
-                .onFailure { _uiState.value = _uiState.value.copy(error = "Could not start session.") }
+                .onFailure { _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.error_pumping_start)) }
             _uiState.value = _uiState.value.copy(isStarting = false)
         }
     }
@@ -138,7 +142,7 @@ class PumpingViewModel @Inject constructor(
                 }
                 .onFailure {
                     stoppingSessionIds.remove(session.id)
-                    _uiState.value = _uiState.value.copy(error = "Could not stop session.")
+                    _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.error_pumping_stop))
                 }
         }
     }
@@ -153,8 +157,8 @@ class PumpingViewModel @Inject constructor(
         if (manual.isSaving) return
         val volume = manual.volumeMl.toIntOrNull()
         val validationError = when {
-            volume == null || volume <= 0 -> "Enter volume in mL"
-            !manual.endTime.isAfter(manual.startTime) -> "End must be after start"
+            volume == null || volume <= 0 -> appContext.getString(R.string.error_volume_required)
+            !manual.endTime.isAfter(manual.startTime) -> appContext.getString(R.string.error_end_after_start)
             else -> null
         }
         if (validationError != null) {
@@ -186,7 +190,7 @@ class PumpingViewModel @Inject constructor(
                 )
             }.onFailure {
                 _uiState.value = _uiState.value.copy(
-                    manual = manual.copy(isSaving = false, validationError = "Could not save"),
+                    manual = manual.copy(isSaving = false, validationError = appContext.getString(R.string.error_could_not_save)),
                 )
             }
         }
@@ -216,7 +220,7 @@ class PumpingViewModel @Inject constructor(
         if (prompt.isSaving) return
         if (prompt.volumeMl <= 0) {
             _uiState.value = _uiState.value.copy(
-                bagPrompt = prompt.copy(volumeError = "Volume must be greater than 0"),
+                bagPrompt = prompt.copy(volumeError = appContext.getString(R.string.error_volume_greater_than_zero)),
             )
             return
         }
@@ -233,7 +237,7 @@ class PumpingViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(bagPrompt = null)
             }.onFailure {
                 _uiState.value = _uiState.value.copy(
-                    bagPrompt = prompt.copy(isSaving = false, volumeError = "Could not save bag"),
+                    bagPrompt = prompt.copy(isSaving = false, volumeError = appContext.getString(R.string.error_pumping_save_bag)),
                 )
             }
         }

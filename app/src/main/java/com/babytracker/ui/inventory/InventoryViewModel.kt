@@ -1,7 +1,9 @@
 package com.babytracker.ui.inventory
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.R
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.MilkBagWithExpiration
@@ -14,6 +16,7 @@ import com.babytracker.domain.usecase.inventory.MarkBagUsedUseCase
 import com.babytracker.domain.usecase.inventory.ObserveInventoryWithExpirationUseCase
 import com.babytracker.domain.usecase.inventory.UpdateMilkBagUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,6 +59,7 @@ class InventoryViewModel @Inject constructor(
     private val markUsed: MarkBagUsedUseCase,
     private val deleteBag: DeleteMilkBagUseCase,
     settingsRepository: SettingsRepository,
+    @ApplicationContext private val appContext: Context,
     private val now: () -> Instant,
 ) : ViewModel() {
 
@@ -106,13 +110,13 @@ class InventoryViewModel @Inject constructor(
         val volume = sheet.volumeMl.toIntOrNull()
         if (volume == null || volume <= 0) {
             _uiState.value = _uiState.value.copy(
-                addSheet = sheet.copy(validationError = "Volume must be greater than 0"),
+                addSheet = sheet.copy(validationError = appContext.getString(R.string.error_volume_greater_than_zero)),
             )
             return
         }
         if (sheet.collectionDate.isAfter(now())) {
             _uiState.value = _uiState.value.copy(
-                addSheet = sheet.copy(validationError = "Collection date cannot be in the future"),
+                addSheet = sheet.copy(validationError = appContext.getString(R.string.error_collection_date_future)),
             )
             return
         }
@@ -129,7 +133,7 @@ class InventoryViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(addSheet = null)
             }.onFailure {
                 _uiState.value = _uiState.value.copy(
-                    addSheet = sheet.copy(isSaving = false, validationError = "Could not save"),
+                    addSheet = sheet.copy(isSaving = false, validationError = appContext.getString(R.string.error_could_not_save)),
                 )
             }
         }
@@ -169,13 +173,13 @@ class InventoryViewModel @Inject constructor(
         val volume = form.volumeMl.toIntOrNull()
         if (volume == null || volume <= 0) {
             _uiState.value = _uiState.value.copy(
-                editSheet = sheet.copy(form = form.copy(validationError = "Volume must be greater than 0")),
+                editSheet = sheet.copy(form = form.copy(validationError = appContext.getString(R.string.error_volume_greater_than_zero))),
             )
             return
         }
         if (form.collectionDate.isAfter(now())) {
             _uiState.value = _uiState.value.copy(
-                editSheet = sheet.copy(form = form.copy(validationError = "Collection date cannot be in the future")),
+                editSheet = sheet.copy(form = form.copy(validationError = appContext.getString(R.string.error_collection_date_future))),
             )
             return
         }
@@ -202,7 +206,7 @@ class InventoryViewModel @Inject constructor(
                         error = if (syncSucceeded) {
                             _uiState.value.error
                         } else {
-                            "Saved locally. Partner sync may update later."
+                            appContext.getString(R.string.msg_saved_locally)
                         },
                     )
                 }
@@ -211,7 +215,7 @@ class InventoryViewModel @Inject constructor(
                 if (current?.bagId == sheet.bagId && current.saveToken == saveToken) {
                     _uiState.value = _uiState.value.copy(
                         editSheet = current.copy(
-                            form = current.form.copy(isSaving = false, validationError = "Could not save"),
+                            form = current.form.copy(isSaving = false, validationError = appContext.getString(R.string.error_could_not_save)),
                         ),
                     )
                 }
@@ -222,7 +226,7 @@ class InventoryViewModel @Inject constructor(
     fun onMarkUsed(bag: MilkBag) {
         viewModelScope.launch {
             runCatching { markUsed(bag) }
-                .onFailure { _uiState.value = _uiState.value.copy(error = "Could not mark used") }
+                .onFailure { _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.error_inventory_mark_used)) }
         }
     }
 
@@ -239,7 +243,7 @@ class InventoryViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(pendingDeleteBag = null)
         viewModelScope.launch {
             runCatching { deleteBag(bag) }
-                .onFailure { _uiState.value = _uiState.value.copy(error = "Could not delete bag") }
+                .onFailure { _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.error_inventory_delete_bag)) }
         }
     }
 

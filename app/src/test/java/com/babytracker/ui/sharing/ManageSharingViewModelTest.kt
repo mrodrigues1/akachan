@@ -1,5 +1,6 @@
 package com.babytracker.ui.sharing
 
+import android.content.Context
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.PartnerInfo
@@ -32,6 +33,7 @@ class ManageSharingViewModelTest {
     private lateinit var sharingRepository: SharingRepository
     private lateinit var generateShareCodeUseCase: GenerateShareCodeUseCase
     private lateinit var revokePartnerUseCase: RevokePartnerUseCase
+    private lateinit var appContext: Context
 
     @BeforeEach
     fun setup() {
@@ -40,6 +42,7 @@ class ManageSharingViewModelTest {
         sharingRepository = mockk()
         generateShareCodeUseCase = mockk()
         revokePartnerUseCase = mockk()
+        appContext = mockk(relaxed = true)
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.NONE)
         every { settingsRepository.getShareCode() } returns flowOf(null)
     }
@@ -54,6 +57,7 @@ class ManageSharingViewModelTest {
         sharingRepository = sharingRepository,
         generateShareCodeUseCase = generateShareCodeUseCase,
         revokePartnerUseCase = revokePartnerUseCase,
+        appContext = appContext,
     )
 
     @Test

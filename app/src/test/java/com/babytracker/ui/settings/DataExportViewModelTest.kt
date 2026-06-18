@@ -1,5 +1,6 @@
 package com.babytracker.ui.settings
 
+import android.content.Context
 import android.net.Uri
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
@@ -56,6 +57,7 @@ class DataExportViewModelTest {
     private val pumpingRepository: PumpingRepository = mockk()
     private val sleepRepository: SleepRepository = mockk()
     private val syncToFirestore: SyncToFirestoreUseCase = mockk()
+    private val appContext: Context = mockk(relaxed = true)
     private val uri: Uri = mockk(relaxed = true)
 
     private lateinit var vm: DataExportViewModel
@@ -84,7 +86,7 @@ class DataExportViewModelTest {
         vm = DataExportViewModel(
             exportBackup, exportCsvUseCase, generatePdf, validateBackup, importBackup,
             reader, writer, settingsRepository, breastfeedingRepository, pumpingRepository,
-            sleepRepository, syncToFirestore,
+            sleepRepository, syncToFirestore, appContext,
         )
     }
 

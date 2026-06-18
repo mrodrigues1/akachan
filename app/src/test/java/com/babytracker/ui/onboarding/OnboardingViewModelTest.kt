@@ -1,5 +1,7 @@
 package com.babytracker.ui.onboarding
 
+import android.content.Context
+import com.babytracker.R
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.Baby
@@ -8,6 +10,7 @@ import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +33,7 @@ class OnboardingViewModelTest {
 
     private lateinit var saveBabyProfile: SaveBabyProfileUseCase
     private lateinit var featureToggleRepository: FeatureToggleRepository
+    private lateinit var appContext: Context
     private lateinit var viewModel: OnboardingViewModel
     private val testDispatcher = StandardTestDispatcher()
 
@@ -38,7 +42,11 @@ class OnboardingViewModelTest {
         Dispatchers.setMain(testDispatcher)
         saveBabyProfile = mockk()
         featureToggleRepository = mockk(relaxed = true)
-        viewModel = OnboardingViewModel(saveBabyProfile, featureToggleRepository)
+        appContext = mockk {
+            every { getString(R.string.error_name_required) } returns "Enter a name to continue."
+            every { getString(R.string.error_birth_date_future) } returns "Birth date cannot be in the future."
+        }
+        viewModel = OnboardingViewModel(saveBabyProfile, featureToggleRepository, appContext)
     }
 
     @AfterEach

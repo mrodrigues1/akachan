@@ -1,11 +1,14 @@
 package com.babytracker.ui.sharing
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.R
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.usecase.ConnectAsPartnerUseCase
 import com.babytracker.widget.WidgetRefreshScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +27,7 @@ data class ConnectPartnerUiState(
 class ConnectPartnerViewModel @Inject constructor(
     private val connectAsPartnerUseCase: ConnectAsPartnerUseCase,
     private val widgetRefreshScheduler: WidgetRefreshScheduler,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ConnectPartnerUiState())
@@ -45,9 +49,9 @@ class ConnectPartnerViewModel @Inject constructor(
                 // periodic worker. Failure here must not undo the successful connection.
                 runCatching { widgetRefreshScheduler.scheduleImmediateRefresh() }
             } catch (_: IllegalStateException) {
-                _uiState.update { it.copy(isLoading = false, error = "This code doesn't exist. Check with your partner.") }
+                _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_connect_code_missing)) }
             } catch (_: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = "Couldn't connect. Check your connection.") }
+                _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_connect_failed)) }
             }
         }
     }

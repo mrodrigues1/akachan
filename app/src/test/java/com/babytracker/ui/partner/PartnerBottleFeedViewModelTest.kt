@@ -1,5 +1,7 @@
 package com.babytracker.ui.partner
 
+import android.content.Context
+import com.babytracker.R
 import com.babytracker.domain.model.FeedAuthor
 import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.VolumeUnit
@@ -36,6 +38,7 @@ class PartnerBottleFeedViewModelTest {
     private val logPartnerFeed = mockk<LogPartnerFeedUseCase>()
     private val editPartnerFeed = mockk<EditPartnerFeedUseCase>()
     private val settingsRepository = mockk<SettingsRepository>()
+    private val appContext = mockk<Context>()
     private val dispatcher = StandardTestDispatcher()
     private val now = Instant.ofEpochMilli(10_000)
 
@@ -45,6 +48,8 @@ class PartnerBottleFeedViewModelTest {
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         coEvery { logPartnerFeed(any(), any(), any(), any(), any()) } returns "entry-1"
         coJustRun { editPartnerFeed(any(), any(), any(), any(), any()) }
+        every { appContext.getString(R.string.error_volume_positive) } returns "Enter a volume greater than 0"
+        every { appContext.getString(R.string.error_could_not_save) } returns "Could not save"
     }
 
     @AfterEach
@@ -56,6 +61,7 @@ class PartnerBottleFeedViewModelTest {
         logPartnerFeed = logPartnerFeed,
         editPartnerFeed = editPartnerFeed,
         settingsRepository = settingsRepository,
+        appContext = appContext,
         now = { now },
     )
 
@@ -135,7 +141,7 @@ class PartnerBottleFeedViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
 
         assertFalse(viewModel.uiState.value.isSaving)
-        assertEquals("No share code", viewModel.uiState.value.validationError)
+        assertEquals("Could not save", viewModel.uiState.value.validationError)
     }
 
     @Test
@@ -150,7 +156,7 @@ class PartnerBottleFeedViewModelTest {
 
         assertFalse(viewModel.uiState.value.saved)
         assertFalse(viewModel.uiState.value.isSaving)
-        assertEquals("Partner access revoked", viewModel.uiState.value.validationError)
+        assertEquals("Could not save", viewModel.uiState.value.validationError)
     }
 
     @Test

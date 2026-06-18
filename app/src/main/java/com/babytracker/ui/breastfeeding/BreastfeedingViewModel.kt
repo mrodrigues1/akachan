@@ -1,8 +1,10 @@
 package com.babytracker.ui.breastfeeding
 
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.R
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedPrediction
@@ -14,6 +16,7 @@ import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUse
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SaveBreastfeedingEntryUseCase
+import com.babytracker.domain.usecase.breastfeeding.BreastfeedingEditError
 import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
@@ -205,7 +208,7 @@ class BreastfeedingViewModel @Inject constructor(
         viewModelScope.launch {
             val result = runCatching { startSession(side) }
             if (result.isFailure) {
-                _uiState.value = _uiState.value.copy(error = "Could not start session. Please try again.")
+                _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.error_bf_start))
                 return@launch
             }
             repository.getActiveSession()
@@ -223,7 +226,7 @@ class BreastfeedingViewModel @Inject constructor(
         viewModelScope.launch {
             val result = runCatching { stopSession(session) }
             if (result.isFailure) {
-                _uiState.value = _uiState.value.copy(error = "Could not stop session. Please try again.")
+                _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.error_bf_stop))
                 return@launch
             }
             notificationCoordinator.cancelAllSessionNotifications()
@@ -291,7 +294,11 @@ class BreastfeedingViewModel @Inject constructor(
             now = Instant.now(),
         )
         _uiState.value = _uiState.value.copy(
-            editSheet = current.copy(editedStart = newStart, editedEnd = newEnd, validationError = error)
+            editSheet = current.copy(
+                editedStart = newStart,
+                editedEnd = newEnd,
+                validationError = error?.let { appContext.getString(it.messageRes()) },
+            )
         )
     }
 
@@ -312,7 +319,7 @@ class BreastfeedingViewModel @Inject constructor(
             if (result.isFailure) {
                 _uiState.value = _uiState.value.copy(
                     editSheet = current.copy(isSaving = false),
-                    error = "Could not save changes. Please try again.",
+                    error = appContext.getString(R.string.error_bf_save),
                 )
                 return@launch
             }
@@ -335,7 +342,7 @@ class BreastfeedingViewModel @Inject constructor(
         viewModelScope.launch {
             if (!deleteSessionInternal(session)) {
                 _uiState.value = _uiState.value.copy(
-                    error = "Could not delete session. Please try again.",
+                    error = appContext.getString(R.string.error_bf_delete),
                 )
             }
         }
@@ -404,7 +411,7 @@ class BreastfeedingViewModel @Inject constructor(
             startInstant = state.manualEntryStartTime.atDate(state.manualEntryDate.minusDays(1)).atZone(zone).toInstant()
         }
         if (endInstant <= startInstant) {
-            _uiState.value = state.copy(manualEntryError = "End time must be after start time")
+            _uiState.value = state.copy(manualEntryError = appContext.getString(R.string.error_bf_end_after_start))
             return
         }
         viewModelScope.launch {
@@ -459,4 +466,12 @@ class BreastfeedingViewModel @Inject constructor(
             secondSideDuration = secondSideDuration
         )
     }
+}
+
+@StringRes
+internal fun BreastfeedingEditError.messageRes(): Int = when (this) {
+    BreastfeedingEditError.START_IN_FUTURE -> R.string.error_bf_start_future
+    BreastfeedingEditError.END_IN_FUTURE -> R.string.error_bf_end_future
+    BreastfeedingEditError.END_BEFORE_START -> R.string.error_bf_end_after_start
+    BreastfeedingEditError.SESSION_SHORTER_THAN_PAUSES -> R.string.error_bf_session_shorter_pauses
 }

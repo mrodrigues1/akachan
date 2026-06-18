@@ -22,7 +22,7 @@ class UpdateBreastfeedingSessionUseCase @Inject constructor(
             pausedDurationMs = newPausedDurationMs,
             now = nowProvider(),
         )
-        require(error == null) { error!! }
+        require(error == null) { "Invalid breastfeeding edit: $error" }
 
         val clampedSwitch = session.switchTime?.takeIf { sw ->
             !sw.isBefore(newStart) && (newEnd == null || !sw.isAfter(newEnd))

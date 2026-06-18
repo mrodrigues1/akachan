@@ -1,5 +1,7 @@
 package com.babytracker.ui.feeding
 
+import android.content.Context
+import com.babytracker.R
 import com.babytracker.domain.model.BottleFeed
 import com.babytracker.domain.model.FeedEntry
 import com.babytracker.domain.model.FeedType
@@ -33,11 +35,13 @@ class FeedingHistoryViewModelTest {
     private val observe = mockk<ObserveFeedingHistoryUseCase>()
     private val delete = mockk<DeleteBottleFeedUseCase>(relaxed = true)
     private val settings = mockk<SettingsRepository>()
+    private val appContext = mockk<Context>()
     private val dispatcher = StandardTestDispatcher()
 
     @BeforeEach
     fun setup() {
         Dispatchers.setMain(dispatcher)
+        every { appContext.getString(R.string.error_feed_delete) } returns "Could not delete feed"
     }
 
     @AfterEach
@@ -58,7 +62,7 @@ class FeedingHistoryViewModelTest {
         every { observe() } returns flowOf(listOf(FeedEntry.Bottle(bottle)))
         every { settings.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
 
-        val vm = FeedingHistoryViewModel(observe, delete, settings, ZoneId.of("UTC"))
+        val vm = FeedingHistoryViewModel(observe, delete, settings, appContext, ZoneId.of("UTC"))
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(1, vm.uiState.value.days.size)
@@ -79,7 +83,7 @@ class FeedingHistoryViewModelTest {
         every { observe() } returns flowOf(emptyList())
         every { settings.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
 
-        val vm = FeedingHistoryViewModel(observe, delete, settings, ZoneId.of("UTC"))
+        val vm = FeedingHistoryViewModel(observe, delete, settings, appContext, ZoneId.of("UTC"))
         vm.onDeleteBottle(bottle)
         dispatcher.scheduler.advanceUntilIdle()
 
@@ -107,12 +111,13 @@ class FeedingHistoryViewModelTest {
             observe,
             DeleteBottleFeedUseCase(bottleFeedRepository, sync),
             settings,
+            appContext,
             ZoneId.of("UTC"),
         )
         vm.onDeleteBottle(bottle)
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(false, vm.uiState.value.isDeleting)
-        assertEquals("Delete failed", vm.uiState.value.deleteError)
+        assertEquals("Could not delete feed", vm.uiState.value.deleteError)
     }
 }

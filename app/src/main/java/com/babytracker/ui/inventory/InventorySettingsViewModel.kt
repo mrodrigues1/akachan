@@ -1,10 +1,13 @@
 package com.babytracker.ui.inventory
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.R
 import com.babytracker.domain.repository.InventorySettingsRepository
 import com.babytracker.manager.StashExpirationScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +28,7 @@ data class InventorySettingsUiState(
 class InventorySettingsViewModel @Inject constructor(
     private val settings: InventorySettingsRepository,
     private val scheduler: StashExpirationScheduler,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(InventorySettingsUiState())
@@ -79,7 +83,7 @@ class InventorySettingsViewModel @Inject constructor(
         if (days == null || days < MIN_DAYS) {
             _uiState.value = _uiState.value.copy(
                 expirationDays = input,
-                validationError = DAYS_VALIDATION_ERROR,
+                validationError = appContext.getString(R.string.error_min_one_day),
             )
             return
         }
@@ -139,4 +143,3 @@ private const val DEFAULT_NOTIFICATION_TIME_MINUTES = 480
 private const val MIN_DAYS = 1
 private const val MIN_MINUTE_OF_DAY = 0
 private const val MAX_MINUTE_OF_DAY = 1439
-private const val DAYS_VALIDATION_ERROR = "Must be at least 1 day"

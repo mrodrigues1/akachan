@@ -43,7 +43,7 @@ class ValidatePumpingEditTest {
             pausedDurationMs = 0L,
             now = now,
         )
-        assertEquals("End must be after start", result)
+        assertEquals(PumpingEditError.END_BEFORE_START, result)
     }
 
     @Test
@@ -55,7 +55,7 @@ class ValidatePumpingEditTest {
             pausedDurationMs = 0L,
             now = now,
         )
-        assertEquals("End must be after start", result)
+        assertEquals(PumpingEditError.END_BEFORE_START, result)
     }
 
     @Test
@@ -67,7 +67,7 @@ class ValidatePumpingEditTest {
             pausedDurationMs = 0L,
             now = now,
         )
-        assertEquals("End cannot be in the future", result)
+        assertEquals(PumpingEditError.END_IN_FUTURE, result)
     }
 
     @Test
@@ -79,7 +79,7 @@ class ValidatePumpingEditTest {
             pausedDurationMs = 700_000L,
             now = now,
         )
-        assertEquals("Paused time exceeds session length", result)
+        assertEquals(PumpingEditError.PAUSE_EXCEEDS_SESSION, result)
     }
 
     @Test
@@ -91,7 +91,7 @@ class ValidatePumpingEditTest {
             pausedDurationMs = 0L,
             now = now,
         )
-        assertEquals("Volume must be greater than 0", result)
+        assertEquals(PumpingEditError.VOLUME_NOT_POSITIVE, result)
     }
 
     @Test
@@ -103,7 +103,7 @@ class ValidatePumpingEditTest {
             pausedDurationMs = 0L,
             now = now,
         )
-        assertEquals("Volume must be greater than 0", result)
+        assertEquals(PumpingEditError.VOLUME_NOT_POSITIVE, result)
     }
 
     @Test
@@ -115,7 +115,7 @@ class ValidatePumpingEditTest {
             pausedDurationMs = 0L,
             now = now,
         )
-        assertEquals("End must be after start", result)
+        assertEquals(PumpingEditError.END_BEFORE_START, result)
     }
 
     @Test
@@ -139,7 +139,7 @@ class ValidatePumpingEditTest {
             pausedDurationMs = 0L,
             now = now,
         )
-        assertEquals("Start cannot be in the future", result)
+        assertEquals(PumpingEditError.START_IN_FUTURE, result)
     }
 
     @Test
@@ -152,6 +152,6 @@ class ValidatePumpingEditTest {
             pausedDurationMs = 0L,
             now = now,
         )
-        assertEquals("Start cannot be in the future", result)
+        assertEquals(PumpingEditError.START_IN_FUTURE, result)
     }
 }

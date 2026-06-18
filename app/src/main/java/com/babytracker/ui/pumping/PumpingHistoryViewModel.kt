@@ -1,16 +1,21 @@
 package com.babytracker.ui.pumping
 
+import android.content.Context
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.R
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.pumping.DeletePumpingSessionUseCase
 import com.babytracker.domain.usecase.pumping.GetPumpingHistoryUseCase
+import com.babytracker.domain.usecase.pumping.PumpingEditError
 import com.babytracker.domain.usecase.pumping.UpdatePumpingSessionUseCase
 import com.babytracker.domain.usecase.pumping.validatePumpingEdit
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -57,6 +62,7 @@ class PumpingHistoryViewModel @Inject constructor(
     private val updateSession: UpdatePumpingSessionUseCase,
     private val deleteSession: DeletePumpingSessionUseCase,
     settingsRepository: SettingsRepository,
+    @ApplicationContext private val appContext: Context,
     private val now: () -> Instant,
 ) : ViewModel() {
 
@@ -99,7 +105,9 @@ class PumpingHistoryViewModel @Inject constructor(
             pausedDurationMs = updated.original.pausedDurationMs,
             now = now(),
         )
-        _uiState.value = _uiState.value.copy(editSheet = updated.copy(validationError = error))
+        _uiState.value = _uiState.value.copy(
+            editSheet = updated.copy(validationError = error?.let { appContext.getString(it.messageRes()) }),
+        )
     }
 
     fun onEditDismiss() {
@@ -124,7 +132,7 @@ class PumpingHistoryViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(editSheet = null)
             }.onFailure {
                 _uiState.value = _uiState.value.copy(
-                    editSheet = sheet.copy(isSaving = false, validationError = "Could not save"),
+                    editSheet = sheet.copy(isSaving = false, validationError = appContext.getString(R.string.error_could_not_save)),
                 )
             }
         }
@@ -149,7 +157,7 @@ class PumpingHistoryViewModel @Inject constructor(
                 .onFailure {
                     _uiState.value = _uiState.value.copy(
                         editSheet = sheet.copy(isDeleting = false, deleteConfirm = false),
-                        error = "Could not delete session",
+                        error = appContext.getString(R.string.error_pumping_delete),
                     )
                 }
         }
@@ -158,4 +166,13 @@ class PumpingHistoryViewModel @Inject constructor(
     fun onErrorDismissed() {
         _uiState.value = _uiState.value.copy(error = null)
     }
+}
+
+@StringRes
+internal fun PumpingEditError.messageRes(): Int = when (this) {
+    PumpingEditError.START_IN_FUTURE -> R.string.error_start_future
+    PumpingEditError.END_BEFORE_START -> R.string.error_end_after_start
+    PumpingEditError.END_IN_FUTURE -> R.string.error_end_future
+    PumpingEditError.PAUSE_EXCEEDS_SESSION -> R.string.error_paused_exceeds
+    PumpingEditError.VOLUME_NOT_POSITIVE -> R.string.error_volume_greater_than_zero
 }
