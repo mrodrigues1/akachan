@@ -38,12 +38,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.ui.component.HistoryCard
@@ -86,10 +89,13 @@ fun BreastfeedingHistoryScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Feeding History") },
+                title = { Text(stringResource(R.string.breastfeeding_history_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -109,13 +115,13 @@ fun BreastfeedingHistoryScreen(
                 Text(text = "🍼", style = MaterialTheme.typography.displaySmall)
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "No sessions yet",
+                    text = stringResource(R.string.breastfeeding_history_empty_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.semantics { heading() }
                 )
                 Text(
-                    text = "Sessions you track will appear here",
+                    text = stringResource(R.string.breastfeeding_history_empty_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -133,11 +139,25 @@ fun BreastfeedingHistoryScreen(
                 )
             ) {
                 sortedGroups.forEach { (date, sessions, totalDuration) ->
-                    val totalLabel = if (totalDuration.isZero) "" else " · ${totalDuration.formatDuration()} total"
-
                     stickyHeader(key = date.toString()) {
+                        val header = if (totalDuration.isZero) {
+                            pluralStringResource(
+                                R.plurals.breastfeeding_history_day_header,
+                                sessions.size,
+                                date.toRelativeLabel(),
+                                sessions.size,
+                            )
+                        } else {
+                            pluralStringResource(
+                                R.plurals.breastfeeding_history_day_header_total,
+                                sessions.size,
+                                date.toRelativeLabel(),
+                                sessions.size,
+                                totalDuration.formatDuration(),
+                            )
+                        }
                         Text(
-                            text = "${date.toRelativeLabel()} · ${sessions.size} sessions$totalLabel".uppercase(),
+                            text = header.uppercase(),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
@@ -185,9 +205,14 @@ internal fun FeedHistoryCard(
 ) {
     val isLeft = session.startingSide == BreastSide.LEFT
     HistoryCard(
-        title = if (isLeft) "Left side" else "Right side",
+        title = if (isLeft) {
+            stringResource(R.string.breastfeeding_side_left)
+        } else {
+            stringResource(R.string.breastfeeding_side_right)
+        },
         subtitle = session.startTime.formatTime12h(),
-        trailing = session.activeDuration?.formatDuration() ?: "In progress",
+        trailing = session.activeDuration?.formatDuration()
+            ?: stringResource(R.string.breastfeeding_in_progress),
         badgeEmoji = "🍼",
         badgeColor = MaterialTheme.colorScheme.primaryContainer,
         onClick = onEdit,
@@ -209,7 +234,7 @@ internal fun FeedSessionOverflowMenu(
         IconButton(onClick = { menuExpanded = true }) {
             Icon(
                 imageVector = Icons.Default.MoreVert,
-                contentDescription = "More options",
+                contentDescription = stringResource(R.string.more_options),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -218,14 +243,14 @@ internal fun FeedSessionOverflowMenu(
             onDismissRequest = { menuExpanded = false },
         ) {
             DropdownMenuItem(
-                text = { Text("Edit") },
+                text = { Text(stringResource(R.string.edit)) },
                 onClick = {
                     menuExpanded = false
                     onEdit()
                 },
             )
             DropdownMenuItem(
-                text = { Text("Delete") },
+                text = { Text(stringResource(R.string.delete)) },
                 onClick = {
                     menuExpanded = false
                     onDelete()
@@ -242,16 +267,16 @@ internal fun BreastfeedingDeleteConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Delete this session?") },
-        text = { Text("It can't be undone.") },
+        title = { Text(stringResource(R.string.breastfeeding_delete_title)) },
+        text = { Text(stringResource(R.string.breastfeeding_delete_message)) },
         confirmButton = {
             Button(
                 onClick = onConfirm,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) { Text("Delete") }
+            ) { Text(stringResource(R.string.delete)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }

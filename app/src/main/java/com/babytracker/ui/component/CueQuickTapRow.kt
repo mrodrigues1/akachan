@@ -32,12 +32,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.annotation.StringRes
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import com.babytracker.domain.model.BabyEventType
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -55,14 +58,15 @@ private val BabyEventType.emoji: String
 		BabyEventType.TRAVEL -> "✈️"
 	}
 
-private val BabyEventType.label: String
+@get:StringRes
+private val BabyEventType.labelRes: Int
 	get() = when (this) {
-		BabyEventType.SLEEPY_CUE -> "Sleepy"
-		BabyEventType.HUNGER_CUE -> "Hungry"
-		BabyEventType.FUSSY -> "Fussy"
-		BabyEventType.SICK -> "Sick"
-		BabyEventType.TEETHING -> "Teething"
-		BabyEventType.TRAVEL -> "Travel"
+		BabyEventType.SLEEPY_CUE -> R.string.cue_sleepy
+		BabyEventType.HUNGER_CUE -> R.string.cue_hungry
+		BabyEventType.FUSSY -> R.string.cue_fussy
+		BabyEventType.SICK -> R.string.cue_sick
+		BabyEventType.TEETHING -> R.string.cue_teething
+		BabyEventType.TRAVEL -> R.string.cue_travel
 	}
 
 @Composable
@@ -73,10 +77,11 @@ fun CueQuickTapRow(
 	var lastTappedLabel by remember { mutableStateOf<String?>(null) }
 	val confirmScope = rememberCoroutineScope()
 	val confirmJob = remember { arrayOfNulls<Job>(1) }
+	val cueLabels = BabyEventType.entries.associateWith { stringResource(it.labelRes) }
 
 	Column(modifier = modifier) {
 		Text(
-			text = "LOG A CUE",
+			text = stringResource(R.string.cue_log_a_cue),
 			style = MaterialTheme.typography.labelMedium,
 			color = MaterialTheme.colorScheme.secondary,
 		)
@@ -90,10 +95,11 @@ fun CueQuickTapRow(
 			BabyEventType.entries.forEach { type ->
 				CueChip(
 					type = type,
+					label = cueLabels.getValue(type),
 					onTapped = { tapped ->
 						onCueTapped(tapped)
 						confirmJob[0]?.cancel()
-						lastTappedLabel = tapped.label
+						lastTappedLabel = cueLabels.getValue(tapped)
 						confirmJob[0] = confirmScope.launch {
 							delay(2_000L)
 							lastTappedLabel = null
@@ -108,7 +114,7 @@ fun CueQuickTapRow(
 			exit = fadeOut(tween(200, easing = EaseOutQuart)),
 		) {
 			Text(
-				text = "${lastTappedLabel ?: ""} logged",
+				text = stringResource(R.string.cue_logged, lastTappedLabel ?: ""),
 				style = MaterialTheme.typography.bodySmall,
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 				modifier = Modifier.padding(top = 6.dp),
@@ -120,6 +126,7 @@ fun CueQuickTapRow(
 @Composable
 private fun CueChip(
 	type: BabyEventType,
+	label: String,
 	onTapped: (BabyEventType) -> Unit,
 ) {
 	var selected by remember { mutableStateOf(false) }
@@ -185,7 +192,7 @@ private fun CueChip(
 		},
 		label = {
 			Text(
-				text = "${type.emoji} ${type.label}",
+				text = stringResource(R.string.cue_chip_label, type.emoji, label),
 				style = MaterialTheme.typography.labelMedium,
 			)
 		},

@@ -98,10 +98,13 @@ fun FeedSettingsScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Feed Settings") },
+                title = { Text(stringResource(R.string.feed_settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -117,27 +120,27 @@ fun FeedSettingsScreen(
                 .verticalScroll(rememberScrollState()),
         ) {
             Text(
-                text = "Feeding Limits",
+                text = stringResource(R.string.feed_settings_limits_section),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             )
             SettingsRow(
-                label = "Max per breast",
+                label = stringResource(R.string.feed_settings_max_per_breast),
                 value = if (uiState.maxPerBreastMinutes > 0) {
-                    "${uiState.maxPerBreastMinutes} min"
+                    stringResource(R.string.feed_settings_minutes_value, uiState.maxPerBreastMinutes)
                 } else {
-                    "Disabled"
+                    stringResource(R.string.disabled)
                 },
                 onClick = { activeSheet = FeedSettingsSheet.MAX_PER_BREAST },
             )
             HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
             SettingsRow(
-                label = "Max total feed",
+                label = stringResource(R.string.feed_settings_max_total),
                 value = if (uiState.maxTotalFeedMinutes > 0) {
-                    "${uiState.maxTotalFeedMinutes} min"
+                    stringResource(R.string.feed_settings_minutes_value, uiState.maxTotalFeedMinutes)
                 } else {
-                    "Disabled"
+                    stringResource(R.string.disabled)
                 },
                 onClick = { activeSheet = FeedSettingsSheet.MAX_TOTAL_FEED },
             )
@@ -235,7 +238,7 @@ fun FeedSettingsScreen(
         ) {
             when (activeSheet) {
                 FeedSettingsSheet.MAX_PER_BREAST -> MinutesEditSheet(
-                    title = "Max per breast",
+                    title = stringResource(R.string.feed_settings_max_per_breast),
                     currentMinutes = uiState.maxPerBreastMinutes,
                     onSave = { minutes ->
                         viewModel.onMaxPerBreastChanged(minutes)
@@ -245,7 +248,7 @@ fun FeedSettingsScreen(
                 )
 
                 FeedSettingsSheet.MAX_TOTAL_FEED -> MinutesEditSheet(
-                    title = "Max total feed",
+                    title = stringResource(R.string.feed_settings_max_total),
                     currentMinutes = uiState.maxTotalFeedMinutes,
                     onSave = { minutes ->
                         viewModel.onMaxTotalFeedChanged(minutes)

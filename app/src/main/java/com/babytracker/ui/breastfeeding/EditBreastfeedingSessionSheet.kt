@@ -37,9 +37,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import com.babytracker.R
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.usecase.breastfeeding.foldPause
 import com.babytracker.util.formatTime12h
@@ -106,7 +108,7 @@ private fun EditSheetBody(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Edit feeding",
+                    text = stringResource(R.string.breastfeeding_edit_title),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
@@ -118,12 +120,12 @@ private fun EditSheetBody(
                 )
             }
             IconButton(onClick = onDismiss) {
-                Icon(Icons.Filled.Close, contentDescription = "Close")
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.close))
             }
         }
 
         Spacer(Modifier.height(16.dp))
-        SectionLabel("STARTED")
+        SectionLabel(stringResource(R.string.breastfeeding_edit_started))
         Spacer(Modifier.height(8.dp))
         FieldRow(
             dateLabel = state.editedStart.toDateLabel(),
@@ -133,11 +135,11 @@ private fun EditSheetBody(
         )
 
         Spacer(Modifier.height(20.dp))
-        SectionLabel("ENDED")
+        SectionLabel(stringResource(R.string.breastfeeding_edit_ended))
         Spacer(Modifier.height(8.dp))
         FieldRow(
-            dateLabel = state.editedEnd?.toDateLabel() ?: "Set date",
-            timeLabel = state.editedEnd?.formatTime12h() ?: "Set time",
+            dateLabel = state.editedEnd?.toDateLabel() ?: stringResource(R.string.breastfeeding_edit_set_date),
+            timeLabel = state.editedEnd?.formatTime12h() ?: stringResource(R.string.breastfeeding_edit_set_time),
             onDateClick = { datePickerFor = EditField.END },
             onTimeClick = { timePickerFor = EditField.END },
             placeholder = state.editedEnd == null,
@@ -160,7 +162,7 @@ private fun EditSheetBody(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
-                Text("Save changes", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.save_changes), style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -268,7 +270,7 @@ private fun DurationOrError(state: EditSheetState) {
     val end = state.editedEnd
     if (end == null) {
         Text(
-            text = "Session in progress",
+            text = stringResource(R.string.breastfeeding_edit_in_progress),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -278,8 +280,14 @@ private fun DurationOrError(state: EditSheetState) {
     val active = Duration.between(state.editedStart, end)
         .minusMillis(projectedPausedMs)
         .coerceAtLeast(Duration.ZERO)
+    val durationLabel = when {
+        active < Duration.ofMinutes(1) -> stringResource(R.string.duration_less_than_minute)
+        active.toHours() > 0 ->
+            stringResource(R.string.duration_hours_minutes, active.toHours().toInt(), (active.toMinutes() % 60).toInt())
+        else -> stringResource(R.string.duration_minutes, active.toMinutes().toInt())
+    }
     Text(
-        text = "Duration: ${formatDurationShort(active)}",
+        text = stringResource(R.string.breastfeeding_edit_duration, durationLabel),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -303,10 +311,10 @@ private fun EditDatePicker(
                 val millis = state.selectedDateMillis ?: return@TextButton
                 val picked = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
                 onConfirm(picked)
-            }) { Text("OK") }
+            }) { Text(stringResource(R.string.ok)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
@@ -326,9 +334,11 @@ private fun EditTimePicker(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = { onConfirm(LocalTime.of(state.hour, state.minute)) }) { Text("OK") }
+            TextButton(onClick = { onConfirm(LocalTime.of(state.hour, state.minute)) }) {
+                Text(stringResource(R.string.ok))
+            }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
         text = { TimePicker(state = state) },
         shape = MaterialTheme.shapes.large,
     )
@@ -336,10 +346,15 @@ private fun EditTimePicker(
 
 private enum class EditField { START, END }
 
+@Composable
 private fun subtitleFor(side: BreastSide, started: Instant): String {
-    val sideLabel = if (side == BreastSide.LEFT) "Left side" else "Right side"
+    val sideLabel = if (side == BreastSide.LEFT) {
+        stringResource(R.string.breastfeeding_side_left)
+    } else {
+        stringResource(R.string.breastfeeding_side_right)
+    }
     val date = started.atZone(ZoneId.systemDefault()).toLocalDate()
-    return "$sideLabel · ${date.toRelativeLabel()}"
+    return stringResource(R.string.breastfeeding_edit_subtitle, sideLabel, date.toRelativeLabel())
 }
 
 private fun Instant.toDateLabel(): String {
@@ -359,14 +374,4 @@ private fun Instant.withTime(time: LocalTime): Instant {
     val zone = ZoneId.systemDefault()
     val existingDate = atZone(zone).toLocalDate()
     return LocalDateTime.of(existingDate, time).atZone(zone).toInstant()
-}
-
-private fun formatDurationShort(duration: Duration): String {
-    val hours = duration.toHours()
-    val minutes = (duration.toMinutes() % 60).toInt()
-    return when {
-        hours > 0 -> "${hours}h ${minutes}m"
-        minutes > 0 -> "${minutes}m"
-        else -> "less than 1m"
-    }
 }

@@ -54,6 +54,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +65,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.model.HomeTile
@@ -73,12 +76,17 @@ import com.babytracker.domain.model.TodayDiaperSummary
 import com.babytracker.domain.model.TodayFeedingSummary
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.ui.breastfeeding.PredictionCopy
+import com.babytracker.ui.breastfeeding.contentDescriptionText
+import com.babytracker.ui.breastfeeding.detailText
+import com.babytracker.ui.breastfeeding.primaryText
+import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.theme.diaperColors
 import com.babytracker.ui.theme.growthColors
 import com.babytracker.ui.theme.milestoneColors
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatMinutesSeconds
+import com.babytracker.util.formatTime
 import com.babytracker.util.formatVolume
 import java.time.Duration
 import java.time.Instant
@@ -121,7 +129,8 @@ fun HomeScreen(
                 title = {
                     Column {
                         Text(
-                            text = uiState.baby?.let { "Hi, ${it.name} 👋" } ?: "Akachan",
+                            text = uiState.baby?.let { stringResource(R.string.home_greeting, it.name) }
+                                ?: stringResource(R.string.app_name),
                             style = MaterialTheme.typography.titleLarge
                         )
                         Text(
@@ -135,7 +144,7 @@ fun HomeScreen(
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
                             imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
+                            contentDescription = stringResource(R.string.home_settings_content_description),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -145,7 +154,7 @@ fun HomeScreen(
                             IconButton(onClick = { menuExpanded = true }) {
                                 Icon(
                                     imageVector = Icons.Default.MoreVert,
-                                    contentDescription = "More options",
+                                    contentDescription = stringResource(R.string.more_options),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
@@ -154,7 +163,7 @@ fun HomeScreen(
                                 onDismissRequest = { menuExpanded = false },
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("Reset layout") },
+                                    text = { Text(stringResource(R.string.home_reset_layout)) },
                                     onClick = {
                                         menuExpanded = false
                                         viewModel.onResetTileOrder()
@@ -213,6 +222,10 @@ internal fun FeedingPredictionSubtitle(
     modifier: Modifier = Modifier,
 ) {
     val subtitle = remember(prediction) { PredictionCopy.forPrediction(prediction) }
+    val timeLabel = remember(prediction) { prediction.predictedAt.formatTime() }
+    val primaryText = subtitle.primaryText(timeLabel)
+    val detailText = subtitle.detailText()
+    val subtitleDescription = subtitle.contentDescriptionText(timeLabel)
     val primaryColor = if (prediction.isOverdue && prediction.minutesUntil <= -5)
         MaterialTheme.colorScheme.error
     else
@@ -223,7 +236,7 @@ internal fun FeedingPredictionSubtitle(
             .fillMaxWidth()
             .padding(top = 4.dp)
             .semantics(mergeDescendants = true) {
-                contentDescription = subtitle.contentDescription
+                contentDescription = subtitleDescription
             },
     ) {
         Icon(
@@ -237,22 +250,15 @@ internal fun FeedingPredictionSubtitle(
         Spacer(Modifier.width(4.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = subtitle.primary,
+                text = primaryText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = primaryColor,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            val detail = buildString {
-                subtitle.secondary?.let { append(it) }
-                if (subtitle.lowConfidence) {
-                    if (isNotEmpty()) append(" · ")
-                    append("low confidence")
-                }
-            }
-            if (detail.isNotEmpty()) {
+            if (detailText.isNotEmpty()) {
                 Text(
-                    text = detail,
+                    text = detailText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     maxLines = 1,
@@ -270,6 +276,11 @@ internal fun PumpingHomeCard(
     modifier: Modifier = Modifier,
 ) {
     val isPumping = active != null
+    val pumpingDescription = if (isPumping) {
+        stringResource(R.string.home_pumping_active_content_description)
+    } else {
+        stringResource(R.string.home_pumping_content_description)
+    }
     val containerColor by animateColorAsState(
         targetValue = if (isPumping) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer,
         animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
@@ -290,10 +301,7 @@ internal fun PumpingHomeCard(
         modifier = modifier
             .heightIn(min = 96.dp)
             .semantics {
-                contentDescription = if (isPumping)
-                    "Pumping, session active. Open pumping screen."
-                else
-                    "Pumping. Open pumping screen."
+                contentDescription = pumpingDescription
         },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
@@ -332,7 +340,7 @@ internal fun PumpingHomeCard(
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Pumping",
+                text = stringResource(R.string.home_pumping_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = contentColor,
             )
@@ -341,7 +349,7 @@ internal fun PumpingHomeCard(
                 ActivePumpingTimer(session = active, color = contentColor)
             } else {
                 Text(
-                    text = "Tap to log",
+                    text = stringResource(R.string.home_tap_to_log),
                     style = MaterialTheme.typography.bodyMedium,
                     color = contentColor,
                 )
@@ -359,16 +367,23 @@ internal fun InventoryHomeCard(
 ) {
     val hasBags = summary.bagCount > 0
     val volumeText = formatVolume(summary.totalMl, volumeUnit)
+    val inventoryDescription = if (hasBags) {
+        pluralStringResource(
+            R.plurals.home_inventory_content_description,
+            summary.bagCount,
+            summary.bagCount,
+            volumeText,
+        )
+    } else {
+        stringResource(R.string.home_inventory_empty_content_description)
+    }
     Card(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 96.dp)
             .semantics {
-                contentDescription = if (hasBags)
-                    "Milk inventory, ${summary.bagCount} bags, $volumeText. Open inventory screen."
-                else
-                    "Milk inventory, no bags stored. Open inventory screen."
+                contentDescription = inventoryDescription
             },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
@@ -388,13 +403,22 @@ internal fun InventoryHomeCard(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Inventory",
+                text = stringResource(R.string.home_inventory_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = if (hasBags) "$volumeText · ${summary.bagCount} bags" else "No bags stored",
+                text = if (hasBags) {
+                    pluralStringResource(
+                        R.plurals.home_inventory_summary,
+                        summary.bagCount,
+                        volumeText,
+                        summary.bagCount,
+                    )
+                } else {
+                    stringResource(R.string.home_inventory_empty)
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -407,12 +431,13 @@ internal fun BottleFeedHomeCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val bottleFeedDescription = stringResource(R.string.home_bottle_feed_content_description)
     Card(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 96.dp)
-            .semantics { contentDescription = "Log a bottle feed. Open bottle feed screen." },
+            .semantics { contentDescription = bottleFeedDescription },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -431,13 +456,13 @@ internal fun BottleFeedHomeCard(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Bottle feed",
+                text = stringResource(R.string.bottle_feed_quick_action),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Tap to log",
+                text = stringResource(R.string.home_tap_to_log),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
@@ -525,12 +550,13 @@ internal fun GrowthHomeCard(
     modifier: Modifier = Modifier,
 ) {
     val growth = growthColors()
+    val growthDescription = stringResource(R.string.home_growth_content_description)
     Card(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 120.dp)
-            .semantics { contentDescription = "Growth tracking. Open growth charts." },
+            .semantics { contentDescription = growthDescription },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = growth.container,
@@ -549,13 +575,13 @@ internal fun GrowthHomeCard(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Growth",
+                text = stringResource(R.string.home_growth_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = growth.onContainer,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Weight, length & percentiles",
+                text = stringResource(R.string.home_growth_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = growth.onContainer,
             )
@@ -570,12 +596,13 @@ internal fun TrendsHomeCard(
     modifier: Modifier = Modifier,
 ) {
     val growth = growthColors()
+    val trendsDescription = stringResource(R.string.home_trends_content_description)
     Card(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 120.dp)
-            .semantics { contentDescription = "Trends. Open feeding and sleep charts." },
+            .semantics { contentDescription = trendsDescription },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = growth.container,
@@ -594,13 +621,13 @@ internal fun TrendsHomeCard(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Trends",
+                text = stringResource(R.string.home_trends_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = growth.onContainer,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Feeding & sleep patterns",
+                text = stringResource(R.string.home_trends_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = growth.onContainer,
             )
@@ -614,12 +641,13 @@ internal fun MilestonesHomeCard(
     modifier: Modifier = Modifier,
 ) {
     val colors = milestoneColors()
+    val milestonesDescription = stringResource(R.string.home_milestones_content_description)
     Card(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 120.dp)
-            .semantics { contentDescription = "Milestones. Capture special moments." },
+            .semantics { contentDescription = milestonesDescription },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = colors.container,
@@ -639,13 +667,13 @@ internal fun MilestonesHomeCard(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Milestones",
+                text = stringResource(R.string.home_milestones_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = colors.onContainer,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Capture your baby's special moments",
+                text = stringResource(R.string.home_milestones_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onContainer,
             )
@@ -660,20 +688,31 @@ internal fun FeedingHistoryHomeCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val feedsLabel = if (summary.totalFeedCount == 1) "feed" else "feeds"
     val summaryText = when {
-        !summary.hasAny -> "No feeds today"
+        !summary.hasAny -> stringResource(R.string.home_feeding_empty)
         summary.bottleVolumeMl > 0 ->
-            "${formatVolume(summary.bottleVolumeMl, volumeUnit)} · ${summary.totalFeedCount} $feedsLabel today"
-        else -> "${summary.totalFeedCount} $feedsLabel today"
+            pluralStringResource(
+                R.plurals.home_feeding_summary_volume,
+                summary.totalFeedCount,
+                formatVolume(summary.bottleVolumeMl, volumeUnit),
+                summary.totalFeedCount,
+            )
+        else ->
+            pluralStringResource(
+                R.plurals.home_feeding_summary_count,
+                summary.totalFeedCount,
+                summary.totalFeedCount,
+            )
     }
+    val feedingHistoryDescription =
+        stringResource(R.string.home_feeding_history_content_description, summaryText)
     Card(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 96.dp)
             .semantics {
-                contentDescription = "Feeding history. $summaryText. Open combined feeding history."
+                contentDescription = feedingHistoryDescription
             },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
@@ -693,7 +732,7 @@ internal fun FeedingHistoryHomeCard(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Feeding history",
+                text = stringResource(R.string.feeding_history_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
@@ -755,7 +794,7 @@ internal fun ActiveStatusBadge(
                 modifier = Modifier.size(12.dp),
             )
             Text(
-                text = if (paused) "Paused" else "Live",
+                text = if (paused) stringResource(R.string.status_paused) else stringResource(R.string.status_live),
                 style = MaterialTheme.typography.labelSmall,
                 color = contentColor,
             )

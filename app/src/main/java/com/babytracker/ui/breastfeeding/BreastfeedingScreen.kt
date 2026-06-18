@@ -83,6 +83,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -93,19 +94,21 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedPrediction
-import com.babytracker.domain.model.displayName
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.SideSelector
 import com.babytracker.ui.component.TimerDisplay
+import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
 import com.babytracker.ui.theme.OnWarningContainerAmberDark
 import com.babytracker.ui.theme.WarningContainerAmber
 import com.babytracker.ui.theme.WarningContainerAmberDark
 import com.babytracker.util.formatDuration
+import com.babytracker.util.formatTime
 import com.babytracker.util.formatTime12h
 import kotlinx.coroutines.delay
 import java.time.Duration
@@ -165,18 +168,27 @@ fun BreastfeedingScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Breastfeeding") },
+                title = { Text(stringResource(R.string.breastfeeding_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                        )
                     }
                 },
                 actions = {
                     IconButton(onClick = onNavigateToHistory) {
-                        Icon(Icons.Outlined.History, contentDescription = "Feed history")
+                        Icon(
+                            Icons.Outlined.History,
+                            contentDescription = stringResource(R.string.breastfeeding_action_history),
+                        )
                     }
                     IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Feed settings")
+                        Icon(
+                            Icons.Filled.Settings,
+                            contentDescription = stringResource(R.string.breastfeeding_action_settings),
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -286,14 +298,14 @@ fun BreastfeedingScreen(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "End this session?",
+                    text = stringResource(R.string.breastfeeding_stop_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Session will be saved to history.",
+                    text = stringResource(R.string.breastfeeding_stop_message),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -311,7 +323,10 @@ fun BreastfeedingScreen(
                         contentColor = MaterialTheme.colorScheme.onError,
                     ),
                 ) {
-                    Text("End session", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        stringResource(R.string.breastfeeding_stop_confirm),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 TextButton(
@@ -319,7 +334,10 @@ fun BreastfeedingScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.extraLarge,
                 ) {
-                    Text("Keep going", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        stringResource(R.string.breastfeeding_stop_dismiss),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
                 }
             }
         }
@@ -371,7 +389,11 @@ private fun ActiveSessionContent(
     ) {
         Spacer(modifier = Modifier.height(4.dp))
 
-        val statusText = if (session.isPaused) "Session paused" else "Session in progress"
+        val statusText = if (session.isPaused) {
+            stringResource(R.string.breastfeeding_status_paused)
+        } else {
+            stringResource(R.string.breastfeeding_status_in_progress)
+        }
         Card(
             shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(containerColor = statusCardColor),
@@ -496,7 +518,7 @@ private fun ActiveSessionContent(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = side.displayName(),
+                            text = stringResource(side.labelRes()),
                             style = MaterialTheme.typography.labelMedium,
                             color = cardTextColor,
                         )
@@ -528,7 +550,7 @@ private fun ActiveSessionContent(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Switch to ${nextSide.displayName()}",
+                    text = stringResource(R.string.breastfeeding_switch_to, stringResource(nextSide.labelRes())),
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
@@ -555,7 +577,11 @@ private fun ActiveSessionContent(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (isPaused) "Resume Session" else "Pause Session",
+                        text = if (isPaused) {
+                            stringResource(R.string.breastfeeding_resume)
+                        } else {
+                            stringResource(R.string.breastfeeding_pause)
+                        },
                         style = MaterialTheme.typography.labelLarge,
                     )
                 }
@@ -580,7 +606,7 @@ private fun ActiveSessionContent(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Stop Session",
+                text = stringResource(R.string.breastfeeding_stop_session),
                 style = MaterialTheme.typography.labelLarge,
             )
         }
@@ -605,7 +631,7 @@ private fun IdleSessionContent(
         Spacer(modifier = Modifier.height(32.dp))
 
         Text(
-            text = "Start a feeding session",
+            text = stringResource(R.string.breastfeeding_start_heading),
             style = MaterialTheme.typography.headlineLarge,
             modifier = Modifier.semantics { heading() },
         )
@@ -619,7 +645,10 @@ private fun IdleSessionContent(
                 color = MaterialTheme.colorScheme.primaryContainer,
             ) {
                 Text(
-                    text = "Start ${summary.nextRecommendedSide.displayName()} breast first",
+                    text = stringResource(
+                        R.string.breastfeeding_start_recommended,
+                        stringResource(summary.nextRecommendedSide.labelRes()),
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
@@ -641,7 +670,7 @@ private fun IdleSessionContent(
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.extraLarge,
         ) {
-            Text("Start Session", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.breastfeeding_start_session), style = MaterialTheme.typography.labelLarge)
         }
 
         if (summary is LastFeedingSummaryState.Populated) {
@@ -667,7 +696,7 @@ private fun IdleSessionContent(
                 contentColor = MaterialTheme.colorScheme.primary,
             ),
         ) {
-            Text("Log Past Feed", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.breastfeeding_log_past_feed), style = MaterialTheme.typography.titleSmall)
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -688,6 +717,10 @@ private fun LikelyHungryRow(
     modifier: Modifier = Modifier,
 ) {
     val subtitle = remember(prediction) { PredictionCopy.forPrediction(prediction) }
+    val timeLabel = remember(prediction) { prediction.predictedAt.formatTime() }
+    val primaryText = subtitle.primaryText(timeLabel)
+    val detailText = subtitle.detailText()
+    val subtitleDescription = subtitle.contentDescriptionText(timeLabel)
     val isOverdue = prediction.isOverdue && abs(prediction.minutesUntil) >= 5
     val isDark = LocalDarkTheme.current
 
@@ -711,7 +744,7 @@ private fun LikelyHungryRow(
             .background(containerColor)
             .padding(horizontal = 12.dp, vertical = 10.dp)
             .semantics(mergeDescendants = true) {
-                contentDescription = subtitle.contentDescription
+                contentDescription = subtitleDescription
             },
     ) {
         Icon(
@@ -723,22 +756,15 @@ private fun LikelyHungryRow(
         Spacer(Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = subtitle.primary,
+                text = primaryText,
                 style = MaterialTheme.typography.titleSmall,
                 color = contentColor,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            val detail = buildString {
-                subtitle.secondary?.let { append(it) }
-                if (subtitle.lowConfidence) {
-                    if (isNotEmpty()) append(" · ")
-                    append("low confidence")
-                }
-            }
-            if (detail.isNotEmpty()) {
+            if (detailText.isNotEmpty()) {
                 Text(
-                    text = detail,
+                    text = detailText,
                     style = MaterialTheme.typography.bodySmall,
                     color = contentColor.copy(alpha = 0.75f),
                     maxLines = 1,
@@ -761,7 +787,7 @@ private fun LastFeedingSummaryCard(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "LAST FEEDING",
+            text = stringResource(R.string.breastfeeding_last_feeding),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -779,8 +805,8 @@ private fun LastFeedingSummaryCard(
         Spacer(modifier = Modifier.height(12.dp))
 
         HistoryCard(
-            title = "${session.startingSide.displayName()} breast",
-            subtitle = "First side · ${session.startTime.formatTime12h()}",
+            title = stringResource(R.string.breastfeeding_breast_label, stringResource(session.startingSide.labelRes())),
+            subtitle = stringResource(R.string.breastfeeding_first_side, session.startTime.formatTime12h()),
             trailing = summary.firstSideDuration.formatDuration(),
             badgeEmoji = "🍼",
             badgeColor = MaterialTheme.colorScheme.primaryContainer,
@@ -795,8 +821,8 @@ private fun LastFeedingSummaryCard(
 
         if (summary.secondSideDuration != null) {
             HistoryCard(
-                title = "${secondSide.displayName()} breast",
-                subtitle = "Second side",
+                title = stringResource(R.string.breastfeeding_breast_label, stringResource(secondSide.labelRes())),
+                subtitle = stringResource(R.string.breastfeeding_second_side),
                 trailing = summary.secondSideDuration.formatDuration(),
                 badgeEmoji = "🍼",
                 badgeColor = MaterialTheme.colorScheme.primaryContainer,
@@ -825,6 +851,9 @@ internal fun AddFeedEntrySheetContent(
     var showDatePicker by remember { mutableStateOf(false) }
     var activePicker by remember { mutableStateOf<FeedTimePickerTarget?>(null) }
     var selectedSide by remember { mutableStateOf(uiState.manualEntrySide) }
+    val changeDateDescription = stringResource(R.string.change_date)
+    val changeStartTimeDescription = stringResource(R.string.change_start_time)
+    val changeEndTimeDescription = stringResource(R.string.change_end_time)
 
     activePicker?.let { target ->
         val initial = when (target) {
@@ -852,10 +881,10 @@ internal fun AddFeedEntrySheetContent(
                     val picked = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
                     onDateChanged(picked)
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel)) }
             },
         ) {
             DatePicker(state = datePickerState)
@@ -870,13 +899,13 @@ internal fun AddFeedEntrySheetContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = "Add Feed Session",
+            text = stringResource(R.string.breastfeeding_add_title),
             style = MaterialTheme.typography.headlineSmall,
         )
 
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "DATE",
+                text = stringResource(R.string.label_date),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -885,7 +914,7 @@ internal fun AddFeedEntrySheetContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp)
-                    .semantics { contentDescription = "Change date" },
+                    .semantics { contentDescription = changeDateDescription },
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             ) {
                 Text(
@@ -902,7 +931,7 @@ internal fun AddFeedEntrySheetContent(
 
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "STARTING SIDE",
+                text = stringResource(R.string.breastfeeding_starting_side),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -915,7 +944,7 @@ internal fun AddFeedEntrySheetContent(
                     FilterChip(
                         selected = selectedSide == side,
                         onClick = { selectedSide = side },
-                        label = { Text("🤱 ${side.displayName()}") },
+                        label = { Text(stringResource(R.string.breastfeeding_side_chip, stringResource(side.labelRes()))) },
                         modifier = Modifier.weight(1f),
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -931,7 +960,7 @@ internal fun AddFeedEntrySheetContent(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "START TIME",
+                    text = stringResource(R.string.label_start_time),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -940,7 +969,7 @@ internal fun AddFeedEntrySheetContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp)
-                        .semantics { contentDescription = "Change start time" },
+                        .semantics { contentDescription = changeStartTimeDescription },
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 ) {
                     Text(
@@ -956,7 +985,7 @@ internal fun AddFeedEntrySheetContent(
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "END TIME",
+                    text = stringResource(R.string.label_end_time),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -965,7 +994,7 @@ internal fun AddFeedEntrySheetContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp)
-                        .semantics { contentDescription = "Change end time" },
+                        .semantics { contentDescription = changeEndTimeDescription },
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 ) {
                     Text(
@@ -992,7 +1021,7 @@ internal fun AddFeedEntrySheetContent(
                     ),
                 ) {
                     Text(
-                        text = "⚠ ${uiState.manualEntryError}",
+                        text = stringResource(R.string.breastfeeding_manual_error, uiState.manualEntryError.orEmpty()),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         textAlign = TextAlign.Center,
@@ -1010,7 +1039,7 @@ internal fun AddFeedEntrySheetContent(
                     ),
                 ) {
                     Text(
-                        text = "Pick different start and end times to save this feed.",
+                        text = stringResource(R.string.breastfeeding_manual_pick_times),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -1028,7 +1057,10 @@ internal fun AddFeedEntrySheetContent(
                     ),
                 ) {
                     Text(
-                        text = "⏱ Duration: ${uiState.manualEntryDurationPreview.formatDuration()}",
+                        text = stringResource(
+                            R.string.breastfeeding_manual_duration,
+                            uiState.manualEntryDurationPreview.formatDuration(),
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -1052,7 +1084,10 @@ internal fun AddFeedEntrySheetContent(
                 containerColor = MaterialTheme.colorScheme.primary,
             ),
         ) {
-            Text("Save ${selectedSide.displayName()} Session", style = MaterialTheme.typography.titleSmall)
+            Text(
+                stringResource(R.string.breastfeeding_manual_save, stringResource(selectedSide.labelRes())),
+                style = MaterialTheme.typography.titleSmall,
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -1077,10 +1112,10 @@ internal fun FeedTimePickerDialog(
         confirmButton = {
             TextButton(onClick = {
                 onConfirm(LocalTime.of(timePickerState.hour, timePickerState.minute))
-            }) { Text("OK") }
+            }) { Text(stringResource(R.string.ok)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
         text = { TimePicker(state = timePickerState) },
     )
