@@ -17,6 +17,7 @@ import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.data.local.dao.PumpingDao
 import com.babytracker.data.local.dao.SleepDao
 import com.babytracker.data.local.dao.SleepRecommendationDao
+import com.babytracker.data.local.dao.VaccineDao
 import com.babytracker.data.local.entity.BabyEventEntity
 import com.babytracker.data.local.entity.BabyProfileEntity
 import com.babytracker.data.local.entity.BottleFeedEntity
@@ -29,6 +30,7 @@ import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
 import com.babytracker.data.local.entity.SleepRecommendationEntity
 import com.babytracker.data.local.entity.SleepRecommendationFeedbackEntity
+import com.babytracker.data.local.entity.VaccineEntity
 
 @Database(
     entities = [
@@ -44,8 +46,9 @@ import com.babytracker.data.local.entity.SleepRecommendationFeedbackEntity
         GrowthMeasurementEntity::class,
         MilestoneEntity::class,
         DiaperEntity::class,
+        VaccineEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -61,6 +64,7 @@ abstract class BabyTrackerDatabase : RoomDatabase() {
     abstract fun growthMeasurementDao(): GrowthMeasurementDao
     abstract fun milestoneDao(): MilestoneDao
     abstract fun diaperDao(): DiaperDao
+    abstract fun vaccineDao(): VaccineDao
 }
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -403,6 +407,33 @@ val MIGRATION_12_13 = object : Migration(12, 13) {
         )
         database.execSQL(
             "CREATE INDEX IF NOT EXISTS index_diaper_changes_timestamp ON diaper_changes(timestamp)",
+        )
+    }
+}
+
+// Additive: a vaccine is a point-in-time event (scheduled or administered) with no
+// in-progress state, so no active-row trigger is installed (unlike sleep/breastfeeding).
+val MIGRATION_13_14 = object : Migration(13, 14) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS vaccines (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                name TEXT NOT NULL,
+                dose_label TEXT,
+                status TEXT NOT NULL,
+                scheduled_date INTEGER,
+                administered_date INTEGER,
+                notes TEXT,
+                created_at INTEGER NOT NULL
+            )
+            """.trimIndent(),
+        )
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_vaccines_scheduled_date ON vaccines(scheduled_date)",
+        )
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_vaccines_status ON vaccines(status)",
         )
     }
 }
