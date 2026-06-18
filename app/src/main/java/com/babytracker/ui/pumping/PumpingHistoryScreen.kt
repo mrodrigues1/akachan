@@ -30,14 +30,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.domain.model.PumpingSession
-import com.babytracker.domain.model.displayName
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatVolume
@@ -65,10 +66,10 @@ fun PumpingHistoryScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Pumping History") },
+                title = { Text(stringResource(R.string.pumping_history_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -120,13 +121,13 @@ internal fun PumpingHistoryContent(
                 Text(text = "🥛", style = MaterialTheme.typography.displaySmall)
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "No pumping sessions yet",
+                    text = stringResource(R.string.pumping_history_empty_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(
-                    text = "Sessions you track will appear here",
+                    text = stringResource(R.string.breastfeeding_history_empty_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -160,7 +161,7 @@ internal fun PumpingHistoryContent(
                 items(sessions, key = { it.id }) { session ->
                     val volumeLabel = session.volumeMl?.let { formatVolume(it, state.volumeUnit) } ?: "—"
                     HistoryCard(
-                        title = "${session.breast.displayName()} · $volumeLabel",
+                        title = stringResource(R.string.pumping_history_item, stringResource(session.breast.labelRes()), volumeLabel),
                         subtitle = session.startTime.formatTime12h(),
                         trailing = session.activeDuration?.formatDuration() ?: "In progress",
                         badgeEmoji = "🥛",
@@ -168,7 +169,7 @@ internal fun PumpingHistoryContent(
                         trailingColor = MaterialTheme.colorScheme.primary,
                         onClick = { onEditClicked(session) },
                         trailingIcon = Icons.Default.Edit,
-                        trailingIconDescription = "Edit session",
+                        trailingIconDescription = stringResource(R.string.pumping_edit_session_cd),
                     )
                 }
             }
