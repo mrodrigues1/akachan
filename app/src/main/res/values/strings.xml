@@ -592,7 +592,7 @@
     <string name="onboarding_no_allergies_selected">No known allergies selected</string>
     <string name="onboarding_allergies_selected">Known allergies selected</string>
     <string name="onboarding_no_allergies_save">No allergies will be saved yet.</string>
-    <string name="onboarding_will_save">Will save: </string>
+    <string name="onboarding_will_save">"Will save: "</string>
 
     <!-- Growth -->
     <string name="growth_title">Growth</string>
@@ -874,7 +874,7 @@
         <item quantity="one">%1$d week old, read-only partner view</item>
         <item quantity="other">%1$d weeks old, read-only partner view</item>
     </plurals>
-    <string name="partner_stash_cd_updated"> Updated %1$s.</string>
+    <string name="partner_stash_cd_updated">" Updated %1$s."</string>
     <plurals name="partner_stash_cd">
         <item quantity="one">Milk stash: %1$s in %2$d bag.</item>
         <item quantity="other">Milk stash: %1$s in %2$d bags.</item>
@@ -900,7 +900,7 @@
     <string name="partner_confidence_high">high</string>
     <string name="partner_prediction_cd">Sleep prediction: %1$s. %2$s.</string>
     <string name="partner_prediction_cd_window">next window</string>
-    <string name="partner_prediction_cd_window_range"> %1$s to %2$s</string>
+    <string name="partner_prediction_cd_window_range">" %1$s to %2$s"</string>
     <string name="partner_prediction_cd_best">, best estimate %1$s</string>
     <string name="partner_prediction_cd_confidence">, %1$s confidence</string>
     <string name="partner_prediction_cd_overdue">sleep window passed, watch for sleepy cues</string>
