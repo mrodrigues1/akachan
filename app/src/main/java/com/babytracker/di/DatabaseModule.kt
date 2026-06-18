@@ -17,6 +17,7 @@ import com.babytracker.data.local.MIGRATION_9_10
 import com.babytracker.data.local.MIGRATION_10_11
 import com.babytracker.data.local.MIGRATION_11_12
 import com.babytracker.data.local.MIGRATION_12_13
+import com.babytracker.data.local.MIGRATION_13_14
 import com.babytracker.data.local.installActiveSessionInvariantTriggers
 import com.babytracker.data.local.dao.BabyEventDao
 import com.babytracker.data.local.dao.BabyProfileDao
@@ -29,6 +30,7 @@ import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.data.local.dao.PumpingDao
 import com.babytracker.data.local.dao.SleepDao
 import com.babytracker.data.local.dao.SleepRecommendationDao
+import com.babytracker.data.local.dao.VaccineDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -62,6 +64,7 @@ object DatabaseModule {
                 MIGRATION_10_11,
                 MIGRATION_11_12,
                 MIGRATION_12_13,
+                MIGRATION_13_14,
             )
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
@@ -106,6 +109,9 @@ object DatabaseModule {
 
     @Provides
     fun provideDiaperDao(database: BabyTrackerDatabase): DiaperDao = database.diaperDao()
+
+    @Provides
+    fun provideVaccineDao(database: BabyTrackerDatabase): VaccineDao = database.vaccineDao()
 
     @Provides
     fun provideNowProvider(): () -> Instant = Instant::now
