@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -56,6 +57,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import com.babytracker.domain.model.BabySex
 import com.babytracker.ui.onboarding.MAX_BABY_NAME_LENGTH
 import java.time.Instant
@@ -126,8 +128,8 @@ fun BabyInfoStepContent(
                     .imePadding(),
             ) {
                 OnboardingHeroStrip(
-                    title = "Baby profile",
-                    stepLabel = "Step 2 of 3",
+                    title = stringResource(R.string.onboarding_baby_profile_title),
+                    stepLabel = stringResource(R.string.onboarding_step_indicator, 2, 3),
                     progress = 0.66f,
                     accentColor = MaterialTheme.colorScheme.primary,
                     accentContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -143,14 +145,14 @@ fun BabyInfoStepContent(
                 ) {
                     Spacer(modifier = Modifier.height(if (isCompactHeight) 8.dp else 12.dp))
                     Text(
-                        text = "Start with the basics",
+                        text = stringResource(R.string.onboarding_start_basics),
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.semantics { heading() },
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "This helps keep ages and records clear across feeding and sleep history.",
+                        text = stringResource(R.string.onboarding_basics_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -158,7 +160,7 @@ fun BabyInfoStepContent(
                     OutlinedTextField(
                         value = name,
                         onValueChange = onNameChanged,
-                        label = { Text("Baby's name") },
+                        label = { Text(stringResource(R.string.onboarding_baby_name_label)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Words,
@@ -207,7 +209,7 @@ fun BabyInfoStepContent(
                         .testTag("onboarding_baby_info_primary_action"),
                     shape = MaterialTheme.shapes.extraLarge,
                 ) {
-                    Text("Continue")
+                    Text(stringResource(R.string.onboarding_continue))
                 }
             }
         }
@@ -228,12 +230,12 @@ fun BabyInfoStepContent(
                         showDatePicker = false
                     },
                 ) {
-                    Text("Use date")
+                    Text(stringResource(R.string.onboarding_use_date))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             },
         ) {
@@ -250,17 +252,18 @@ private fun DateOfBirthField(
     modifier: Modifier = Modifier,
 ) {
     val accessibilityLabel = if (error == null) {
-        "Date of birth, $value"
+        stringResource(R.string.onboarding_dob_cd, value)
     } else {
-        "Date of birth, $value. $error"
+        stringResource(R.string.onboarding_dob_cd_error, value, error)
     }
+    val changeDobLabel = stringResource(R.string.onboarding_change_dob)
     Box(
         modifier = modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) {
                 role = Role.Button
                 contentDescription = accessibilityLabel
-                onClick(label = "Change date of birth") {
+                onClick(label = changeDobLabel) {
                     onClick()
                     true
                 }
@@ -270,7 +273,7 @@ private fun DateOfBirthField(
             value = value,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Date of birth") },
+            label = { Text(stringResource(R.string.onboarding_dob_label)) },
             isError = error != null,
             supportingText = error?.let { { Text(it) } },
             trailingIcon = {
@@ -285,7 +288,7 @@ private fun DateOfBirthField(
             modifier = Modifier
                 .matchParentSize()
                 .clickable(
-                    onClickLabel = "Change date of birth",
+                    onClickLabel = changeDobLabel,
                     role = Role.Button,
                     onClick = onClick,
                 )
@@ -304,13 +307,13 @@ private fun SexSelector(
     val options = BabySex.entries
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = "Sex",
+            text = stringResource(R.string.onboarding_sex_label),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Used to show growth percentiles against WHO charts. You can change this later.",
+            text = stringResource(R.string.onboarding_sex_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -360,7 +363,7 @@ private fun BabyAgeSummary(
             if (showAgeWarning) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Akachan is designed for babies 0-12 months.",
+                    text = stringResource(R.string.onboarding_age_range),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -391,7 +394,7 @@ private fun nameSupportingText(
         { Text(error) }
     }
     length > COUNT_WARNING_THRESHOLD -> {
-        { Text("$length/$MAX_BABY_NAME_LENGTH") }
+        { Text(stringResource(R.string.onboarding_char_count, length, MAX_BABY_NAME_LENGTH)) }
     }
     else -> null
 }

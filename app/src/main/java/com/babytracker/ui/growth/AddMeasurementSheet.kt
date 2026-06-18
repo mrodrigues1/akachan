@@ -24,9 +24,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import com.babytracker.domain.model.GrowthType
 import com.babytracker.domain.model.MeasurementSystem
 import com.babytracker.util.centimetresToMillimetres
@@ -69,12 +71,12 @@ fun AddMeasurementSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Add ${type.tabLabel().lowercase()}",
+                text = stringResource(R.string.growth_add_title, stringResource(type.tabLabelRes()).lowercase()),
                 style = androidx.compose.material3.MaterialTheme.typography.titleLarge,
             )
 
             TextButton(onClick = { showDatePicker = true }) {
-                Text("Date: ${selectedDate.format(dateFormatter)}")
+                Text(stringResource(R.string.growth_date_value, selectedDate.format(dateFormatter)))
             }
 
             if (imperialWeight) {
@@ -82,7 +84,7 @@ fun AddMeasurementSheet(
                     OutlinedTextField(
                         value = primaryValue,
                         onValueChange = { primaryValue = it.filter(Char::isDigit) },
-                        label = { Text("lb") },
+                        label = { Text(stringResource(R.string.growth_unit_lb)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f).testTag("growth_value_input"),
@@ -90,7 +92,7 @@ fun AddMeasurementSheet(
                     OutlinedTextField(
                         value = ouncesValue,
                         onValueChange = { ouncesValue = it.filter(Char::isDigit) },
-                        label = { Text("oz") },
+                        label = { Text(stringResource(R.string.growth_unit_oz)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
@@ -101,7 +103,7 @@ fun AddMeasurementSheet(
                 OutlinedTextField(
                     value = primaryValue,
                     onValueChange = { primaryValue = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                    label = { Text("Value ($unit)") },
+                    label = { Text(stringResource(R.string.growth_value_label, unit)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth().testTag("growth_value_input"),
@@ -111,7 +113,7 @@ fun AddMeasurementSheet(
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
-                label = { Text("Notes (optional)") },
+                label = { Text(stringResource(R.string.growth_notes_label)) },
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -125,7 +127,7 @@ fun AddMeasurementSheet(
                 enabled = canonical != null,
                 modifier = Modifier.fillMaxWidth().testTag("growth_save_measurement"),
             ) {
-                Text("Save")
+                Text(stringResource(R.string.save))
             }
         }
     }
@@ -143,9 +145,9 @@ fun AddMeasurementSheet(
                         selectedDate = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
                     }
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.ok)) }
             },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel)) } },
         ) {
             DatePicker(state = datePickerState)
         }

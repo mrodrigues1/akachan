@@ -42,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -52,6 +53,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.ui.onboarding.MAX_CUSTOM_ALLERGY_NOTE_LENGTH
 
@@ -111,8 +113,8 @@ fun AllergiesStepContent(
             ) {
                 if (showHeader) {
                     OnboardingHeroStrip(
-                        title = "Allergy notes",
-                        stepLabel = "Step 3 of 3",
+                        title = stringResource(R.string.onboarding_allergy_notes_title),
+                        stepLabel = stringResource(R.string.onboarding_step_indicator, 3, 3),
                         progress = 1f,
                         accentColor = MaterialTheme.colorScheme.primary,
                         accentContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -135,15 +137,14 @@ fun AllergiesStepContent(
                 ) {
                     Spacer(modifier = Modifier.height(if (showHeader && !isCompactHeight) 12.dp else 0.dp))
                     Text(
-                        text = "Any allergies to note?",
+                        text = stringResource(R.string.onboarding_allergies_question),
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.semantics { heading() },
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Add only allergies you already know about for $babyLabel. " +
-                            "If nothing is known yet, keep this empty and update it later.",
+                        text = stringResource(R.string.onboarding_allergies_subtitle, babyLabel),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -154,7 +155,7 @@ fun AllergiesStepContent(
                     )
                     Spacer(modifier = Modifier.height(if (isCompactHeight) 14.dp else 18.dp))
                     Text(
-                        text = "Add known allergies",
+                        text = stringResource(R.string.onboarding_add_known_allergies),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.semantics { heading() },
@@ -174,12 +175,12 @@ fun AllergiesStepContent(
                             OutlinedTextField(
                                 value = customNote,
                                 onValueChange = onCustomNoteChanged,
-                                label = { Text("Describe other allergy") },
+                                label = { Text(stringResource(R.string.onboarding_other_allergy_label)) },
                                 singleLine = false,
                                 maxLines = if (isCompactHeight) 1 else 3,
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                                 supportingText = {
-                                    Text("$customNoteLength/$MAX_CUSTOM_ALLERGY_NOTE_LENGTH")
+                                    Text(stringResource(R.string.onboarding_char_count, customNoteLength, MAX_CUSTOM_ALLERGY_NOTE_LENGTH))
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                             )
@@ -189,6 +190,8 @@ fun AllergiesStepContent(
                     AllergySelectionSummary(selectedAllergies = selectedAllergies)
                 }
                 if (showActions) {
+                    val savingSetupDescription = stringResource(R.string.onboarding_saving_setup_cd)
+                    val savingStateDescription = stringResource(R.string.onboarding_saving)
                     val finishButtonModifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = horizontalPadding)
@@ -197,8 +200,8 @@ fun AllergiesStepContent(
                         .testTag("onboarding_allergies_primary_action")
                         .semantics {
                             if (isSaving) {
-                                contentDescription = "Saving setup"
-                                stateDescription = "Saving"
+                                contentDescription = savingSetupDescription
+                                stateDescription = savingStateDescription
                                 liveRegion = LiveRegionMode.Polite
                             }
                         }
@@ -218,15 +221,15 @@ fun AllergiesStepContent(
                                     modifier = Modifier
                                         .size(20.dp)
                                         .semantics {
-                                            contentDescription = "Saving setup"
+                                            contentDescription = savingSetupDescription
                                         },
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     strokeWidth = 2.dp,
                                 )
-                                Text("Saving")
+                                Text(stringResource(R.string.onboarding_saving))
                             }
                         } else {
-                            Text("Finish setup")
+                            Text(stringResource(R.string.onboarding_finish_setup))
                         }
                     }
                 }
@@ -257,6 +260,8 @@ private fun NoKnownAllergiesOption(
         MaterialTheme.colorScheme.outlineVariant
     }
 
+    val noAllergiesSelectedState = stringResource(R.string.onboarding_no_allergies_selected)
+    val allergiesSelectedState = stringResource(R.string.onboarding_allergies_selected)
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -266,7 +271,7 @@ private fun NoKnownAllergiesOption(
                 onValueChange = { onClick() },
             )
             .semantics(mergeDescendants = true) {
-                stateDescription = if (selected) "No known allergies selected" else "Known allergies selected"
+                stateDescription = if (selected) noAllergiesSelectedState else allergiesSelectedState
             },
         shape = MaterialTheme.shapes.medium,
         color = containerColor,
@@ -281,11 +286,11 @@ private fun NoKnownAllergiesOption(
             SelectionMark(selected = selected)
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "None known yet",
+                    text = stringResource(R.string.onboarding_no_known_yet),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
-                    text = "Keeps allergy notes empty for now.",
+                    text = stringResource(R.string.onboarding_no_known_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = if (selected) contentColor else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -346,6 +351,8 @@ private fun AllergyChipGrid(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        val selectedState = stringResource(R.string.state_selected)
+        val notSelectedState = stringResource(R.string.state_not_selected)
         AllergyType.entries.forEach { allergy ->
             val selected = allergy in selectedAllergies
             FilterChip(
@@ -353,7 +360,7 @@ private fun AllergyChipGrid(
                 onClick = { onAllergyToggled(allergy) },
                 label = { Text(allergy.label) },
                 modifier = Modifier.semantics {
-                    stateDescription = if (selected) "Selected" else "Not selected"
+                    stateDescription = if (selected) selectedState else notSelectedState
                 },
                 leadingIcon = if (selected) {
                     {
@@ -381,9 +388,9 @@ private fun AllergySelectionSummary(
     modifier: Modifier = Modifier,
 ) {
     val summary = if (selectedAllergies.isEmpty()) {
-        "No allergies will be saved yet."
+        stringResource(R.string.onboarding_no_allergies_save)
     } else {
-        selectedAllergies.joinToString(prefix = "Will save: ") { it.label }
+        selectedAllergies.joinToString(prefix = stringResource(R.string.onboarding_will_save)) { it.label }
     }
 
     Surface(

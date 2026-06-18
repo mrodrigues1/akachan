@@ -22,12 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import com.babytracker.ui.theme.LocalDarkTheme
 
 @Composable
@@ -43,6 +45,8 @@ fun OnboardingHeroStrip(
     isCompactHeight: Boolean = false,
 ) {
     val stepDescription = formatStepDescription(stepLabel)
+    val heroContentDescription = stringResource(R.string.onboarding_hero_cd, stepDescription, title)
+    val heroProgressDescription = stringResource(R.string.onboarding_hero_progress_cd, stepDescription)
     val containerBorder = if (LocalDarkTheme.current) {
         BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     } else {
@@ -57,7 +61,7 @@ fun OnboardingHeroStrip(
             .fillMaxWidth()
             .padding(horizontal = horizontalPadding, vertical = verticalPadding)
             .semantics {
-                contentDescription = "$stepDescription, $title"
+                contentDescription = heroContentDescription
                 liveRegion = LiveRegionMode.Polite
             },
         verticalArrangement = Arrangement.spacedBy(contentSpacing),
@@ -75,7 +79,7 @@ fun OnboardingHeroStrip(
                 IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.back),
                     )
                 }
             }
@@ -112,7 +116,7 @@ fun OnboardingHeroStrip(
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.extraSmall)
                 .semantics {
-                    contentDescription = "$stepDescription progress"
+                    contentDescription = heroProgressDescription
                 },
             color = accentColor,
             trackColor = accentContainerColor,

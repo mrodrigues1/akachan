@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -46,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.domain.growth.GROWTH_RECENCY
 import com.babytracker.domain.growth.GrowthChartData
 import com.babytracker.domain.growth.latestByRecency
@@ -91,10 +93,10 @@ fun GrowthScreen(
             modifier = modifier,
             topBar = {
                 TopAppBar(
-                    title = { Text("Growth") },
+                    title = { Text(stringResource(R.string.growth_title)) },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     },
                 )
@@ -106,7 +108,7 @@ fun GrowthScreen(
                     contentColor = growthColors().onAccent,
                     modifier = Modifier.testTag("growth_add_fab"),
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add measurement")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.growth_add_measurement_cd))
                 }
             },
         ) { padding ->
@@ -122,18 +124,18 @@ fun GrowthScreen(
         pendingDelete?.let { measurement ->
             AlertDialog(
                 onDismissRequest = { pendingDelete = null },
-                title = { Text("Delete measurement?") },
+                title = { Text(stringResource(R.string.growth_delete_title)) },
                 text = {
-                    Text("This removes ${formatValue(measurement.type, measurement.valueCanonical, uiState.measurementSystem)} from your baby's history. This can't be undone.")
+                    Text(stringResource(R.string.growth_delete_message, formatValue(measurement.type, measurement.valueCanonical, uiState.measurementSystem)))
                 },
                 confirmButton = {
                     TextButton(onClick = {
                         viewModel.onDeleteMeasurement(measurement.id)
                         pendingDelete = null
-                    }) { Text("Delete") }
+                    }) { Text(stringResource(R.string.delete)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+                    TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.cancel)) }
                 },
             )
         }
@@ -189,7 +191,7 @@ private fun GrowthContent(
                 Tab(
                     selected = uiState.selectedType == type,
                     onClick = { onTypeSelected(type) },
-                    text = { Text(type.tabLabel()) },
+                    text = { Text(stringResource(type.tabLabelRes())) },
                     modifier = Modifier.testTag("growth_tab_${type.name}"),
                 )
             }
@@ -223,7 +225,7 @@ private fun GrowthContent(
             }
             item {
                 Text(
-                    text = "History",
+                    text = stringResource(R.string.growth_history),
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.padding(top = 8.dp),
                 )
@@ -249,12 +251,12 @@ private fun GrowthEmptyState(modifier: Modifier = Modifier) {
         Text("📏", style = MaterialTheme.typography.displaySmall)
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "No measurements yet",
+            text = stringResource(R.string.growth_empty_title),
             style = MaterialTheme.typography.titleMedium,
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = "Tap + to log your baby's first measurement and see it on the WHO chart.",
+            text = stringResource(R.string.growth_empty_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -278,7 +280,7 @@ private fun GrowthSummaryCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Latest ${type.tabLabel().lowercase()}",
+                text = stringResource(R.string.growth_latest, stringResource(type.tabLabelRes()).lowercase()),
                 style = MaterialTheme.typography.labelMedium,
                 color = growth.onContainer,
             )
@@ -291,8 +293,12 @@ private fun GrowthSummaryCard(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = chart.latestPercentile?.let { "${percentileLabel(it)} (WHO)" }
-                    ?: if (chart.isSexSpecified) "Percentile unavailable for this age" else "Set sex to see percentile",
+                text = chart.latestPercentile?.let { stringResource(R.string.growth_percentile_who, percentileLabel(it)) }
+                    ?: if (chart.isSexSpecified) {
+                        stringResource(R.string.growth_percentile_unavailable)
+                    } else {
+                        stringResource(R.string.growth_set_sex_percentile)
+                    },
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = growth.onContainer,
@@ -312,19 +318,19 @@ private fun SetSexCard(onSetSex: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "See WHO percentiles",
+                text = stringResource(R.string.growth_see_who),
                 style = MaterialTheme.typography.titleSmall,
                 color = growth.onContainer,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "WHO growth curves are sex-specific. Set your baby's sex to compare against them.",
+                text = stringResource(R.string.growth_who_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = growth.onContainer,
             )
             Spacer(Modifier.height(8.dp))
             Button(onClick = onSetSex, modifier = Modifier.testTag("growth_set_sex")) {
-                Text("Set sex")
+                Text(stringResource(R.string.growth_set_sex))
             }
         }
     }
@@ -505,9 +511,10 @@ private fun GrowthHistoryItem(
                 )
             }
         }
+        val deleteRowDescription = stringResource(R.string.growth_delete_row_cd, date)
         IconButton(
             onClick = onDelete,
-            modifier = Modifier.semantics { contentDescription = "Delete measurement from $date" },
+            modifier = Modifier.semantics { contentDescription = deleteRowDescription },
         ) {
             Icon(Icons.Outlined.Delete, contentDescription = null)
         }
@@ -522,6 +529,13 @@ internal fun GrowthType.tabLabel(): String = when (this) {
     GrowthType.WEIGHT -> "Weight"
     GrowthType.LENGTH -> "Length"
     GrowthType.HEAD_CIRC -> "Head"
+}
+
+@androidx.annotation.StringRes
+internal fun GrowthType.tabLabelRes(): Int = when (this) {
+    GrowthType.WEIGHT -> R.string.growth_tab_weight
+    GrowthType.LENGTH -> R.string.growth_tab_length
+    GrowthType.HEAD_CIRC -> R.string.growth_tab_head
 }
 
 internal fun formatValue(type: GrowthType, valueCanonical: Long, system: MeasurementSystem): String =
