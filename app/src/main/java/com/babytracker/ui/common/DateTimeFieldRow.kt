@@ -27,8 +27,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import com.babytracker.R
 import com.babytracker.util.formatTime12h
 import com.babytracker.util.toRelativeLabel
 import java.time.Instant
@@ -178,10 +180,10 @@ private fun EditDatePicker(
                 val millis = state.selectedDateMillis ?: return@TextButton
                 val picked = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
                 onConfirm(picked)
-            }) { Text("OK") }
+            }) { Text(stringResource(R.string.ok)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
@@ -205,9 +207,11 @@ private fun EditTimePicker(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = { onConfirm(LocalTime.of(state.hour, state.minute)) }) { Text("OK") }
+            TextButton(onClick = { onConfirm(LocalTime.of(state.hour, state.minute)) }) {
+                Text(stringResource(R.string.ok))
+            }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
         text = { TimePicker(state = state) },
         shape = MaterialTheme.shapes.large,
     )

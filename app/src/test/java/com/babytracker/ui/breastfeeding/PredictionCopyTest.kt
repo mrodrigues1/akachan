@@ -2,7 +2,6 @@ package com.babytracker.ui.breastfeeding
 
 import com.babytracker.domain.model.FeedPrediction
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -12,46 +11,46 @@ class PredictionCopyTest {
     private val anchor = Instant.parse("2026-05-19T17:40:00Z")
 
     @Test
-    fun `future prediction beyond 30 minutes uses single line`() {
+    fun `future prediction beyond 30 minutes is upcoming without detail`() {
         val subtitle = PredictionCopy.forPrediction(
             FeedPrediction(anchor, 180, sampleSize = 5, isOverdue = false, minutesUntil = 45)
         )
-        assertTrue(subtitle.primary.startsWith("Likely hungry around "))
-        assertNull(subtitle.secondary)
+        assertEquals(PredictionCopy.Kind.UPCOMING, subtitle.kind)
     }
 
     @Test
-    fun `future prediction within 30 minutes shows secondary in-X-m`() {
+    fun `future prediction within 30 minutes carries minutes-until detail`() {
         val subtitle = PredictionCopy.forPrediction(
             FeedPrediction(anchor, 180, sampleSize = 5, isOverdue = false, minutesUntil = 12)
         )
-        assertEquals("in ~12m", subtitle.secondary)
+        assertEquals(PredictionCopy.Kind.UPCOMING_DETAIL, subtitle.kind)
+        assertEquals(12, subtitle.minutesUntil)
     }
 
     @Test
-    fun `overdue 5 minutes or more shows hungry now copy`() {
+    fun `overdue 5 minutes or more is hungry-now with ago minutes`() {
         val subtitle = PredictionCopy.forPrediction(
             FeedPrediction(anchor, 180, sampleSize = 4, isOverdue = true, minutesUntil = -7)
         )
-        assertTrue(subtitle.primary.contains("hungry now"))
-        assertTrue(subtitle.primary.contains("~7m ago"))
+        assertEquals(PredictionCopy.Kind.OVERDUE_NOW, subtitle.kind)
+        assertEquals(7, subtitle.agoMinutes)
     }
 
     @Test
-    fun `overdue less than 5 minutes shows likely hungry around copy`() {
+    fun `overdue less than 5 minutes falls back to upcoming`() {
         val subtitle = PredictionCopy.forPrediction(
             FeedPrediction(anchor, 180, sampleSize = 4, isOverdue = true, minutesUntil = -3)
         )
-        assertTrue(subtitle.primary.startsWith("Likely hungry around "))
-        assertNull(subtitle.secondary)
+        assertEquals(PredictionCopy.Kind.UPCOMING, subtitle.kind)
     }
 
     @Test
-    fun `future prediction at exactly 30 minutes shows secondary`() {
+    fun `future prediction at exactly 30 minutes carries detail`() {
         val subtitle = PredictionCopy.forPrediction(
             FeedPrediction(anchor, 180, sampleSize = 5, isOverdue = false, minutesUntil = 30)
         )
-        assertEquals("in ~30m", subtitle.secondary)
+        assertEquals(PredictionCopy.Kind.UPCOMING_DETAIL, subtitle.kind)
+        assertEquals(30, subtitle.minutesUntil)
     }
 
     @Test
@@ -71,18 +70,10 @@ class PredictionCopyTest {
     }
 
     @Test
-    fun `content description includes basis for all prediction types`() {
+    fun `subtitle carries sample size for the basis description`() {
         val subtitle = PredictionCopy.forPrediction(
             FeedPrediction(anchor, 180, sampleSize = 5, isOverdue = false, minutesUntil = 45)
         )
-        assertTrue(subtitle.contentDescription.contains("based on 5 recent feeds"))
-    }
-
-    @Test
-    fun `content description includes low confidence when sample size is 3`() {
-        val subtitle = PredictionCopy.forPrediction(
-            FeedPrediction(anchor, 180, sampleSize = 3, isOverdue = false, minutesUntil = 45)
-        )
-        assertTrue(subtitle.contentDescription.contains("low confidence"))
+        assertEquals(5, subtitle.sampleSize)
     }
 }

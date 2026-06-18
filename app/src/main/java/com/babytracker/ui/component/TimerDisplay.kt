@@ -27,11 +27,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import kotlinx.coroutines.delay
 import java.util.Locale
 
@@ -98,11 +100,15 @@ fun TimerDisplay(
 
     val percent = if (hasRing) (progress * 100).toInt() else 0
     val maxMinutes = maxDurationSeconds / 60
-    val pausedSuffix = if (!isRunning) ", paused" else ""
-    val timerDescription = if (hasRing) {
-        "Session timer: $timeText, $percent% of $maxMinutes minutes$pausedSuffix"
+    val baseDescription = if (hasRing) {
+        stringResource(R.string.timer_cd_with_ring, timeText, percent, maxMinutes)
     } else {
-        "Session timer: $timeText$pausedSuffix"
+        stringResource(R.string.timer_cd, timeText)
+    }
+    val timerDescription = if (!isRunning) {
+        stringResource(R.string.timer_cd_paused, baseDescription)
+    } else {
+        baseDescription
     }
 
     Box(
@@ -153,7 +159,7 @@ fun TimerDisplay(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "$percent% of ${maxMinutes}m",
+                    text = stringResource(R.string.timer_label_percent, percent, maxMinutes),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

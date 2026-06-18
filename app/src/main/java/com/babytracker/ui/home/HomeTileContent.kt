@@ -48,6 +48,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -55,11 +56,13 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.sleep.SleepPredictionCard
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyStaggeredGridState
@@ -186,10 +189,12 @@ internal fun HomeContent(
                 },
             ) { tile ->
                 val index = visibleTiles.indexOf(tile)
+                val moveEarlierLabel = stringResource(R.string.home_move_earlier)
+                val moveLaterLabel = stringResource(R.string.home_move_later)
                 val moveActions = buildList {
                     if (index > 0) {
                         add(
-                            CustomAccessibilityAction("Move earlier") {
+                            CustomAccessibilityAction(moveEarlierLabel) {
                                 val moved = reorderByKey(orderState, visibleTiles, tile, visibleTiles[index - 1])
                                 orderState = moved
                                 onReorder(moved)
@@ -199,7 +204,7 @@ internal fun HomeContent(
                     }
                     if (index < visibleTiles.lastIndex) {
                         add(
-                            CustomAccessibilityAction("Move later") {
+                            CustomAccessibilityAction(moveLaterLabel) {
                                 val moved = reorderByKey(orderState, visibleTiles, tile, visibleTiles[index + 1])
                                 orderState = moved
                                 onReorder(moved)
@@ -287,6 +292,11 @@ internal fun BreastfeedingHomeCard(
 ) {
     val activeSession = uiState.activeSession
     val isActiveFeeding = activeSession != null
+    val breastfeedingDescription = if (isActiveFeeding) {
+        stringResource(R.string.home_breastfeeding_active_content_description)
+    } else {
+        stringResource(R.string.home_breastfeeding_content_description)
+    }
     val feedingContainerColor by animateColorAsState(
         targetValue = if (isActiveFeeding) {
             MaterialTheme.colorScheme.primary
@@ -314,11 +324,7 @@ internal fun BreastfeedingHomeCard(
         onClick = onClick,
         modifier = modifier
             .semantics {
-                contentDescription = if (isActiveFeeding) {
-                    "Breastfeeding, session active. Open feeding screen."
-                } else {
-                    "Breastfeeding. Open feeding screen."
-                }
+                contentDescription = breastfeedingDescription
             },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
@@ -357,7 +363,7 @@ internal fun BreastfeedingHomeCard(
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Breastfeeding",
+                text = stringResource(R.string.home_breastfeeding_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = feedingContentColor,
             )
@@ -386,6 +392,11 @@ internal fun SleepHomeCard(
 ) {
     val activeSleepRecord = uiState.activeSleepRecord
     val isActiveSleep = activeSleepRecord != null
+    val sleepDescription = if (isActiveSleep) {
+        stringResource(R.string.home_sleep_active_content_description)
+    } else {
+        stringResource(R.string.home_sleep_content_description)
+    }
     val sleepContainerColor by animateColorAsState(
         targetValue = if (isActiveSleep) {
             MaterialTheme.colorScheme.secondary
@@ -413,11 +424,7 @@ internal fun SleepHomeCard(
         onClick = onClick,
         modifier = modifier
             .semantics {
-                contentDescription = if (isActiveSleep) {
-                    "Sleep, session active. Open sleep screen."
-                } else {
-                    "Sleep. Open sleep screen."
-                }
+                contentDescription = sleepDescription
             },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
@@ -456,7 +463,7 @@ internal fun SleepHomeCard(
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Sleep",
+                text = stringResource(R.string.home_sleep_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = sleepContentColor,
             )
@@ -469,7 +476,7 @@ internal fun SleepHomeCard(
                     LastSleepAgoText(endTime = lastEnd)
                 } else {
                     Text(
-                        text = "Ready when you are",
+                        text = stringResource(R.string.home_sleep_ready),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
@@ -485,8 +492,7 @@ internal fun HomeTipCard(
     nextRecommendedSide: BreastSide?,
     modifier: Modifier = Modifier,
 ) {
-    val nextSideName = nextRecommendedSide
-        ?.name?.lowercase()?.replaceFirstChar { it.uppercase() } ?: ""
+    val nextSideName = nextRecommendedSide?.let { stringResource(it.labelRes()) } ?: ""
     Card(
         modifier = modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
         shape = MaterialTheme.shapes.large,
@@ -506,12 +512,12 @@ internal fun HomeTipCard(
             )
             Column(modifier = Modifier.padding(start = 10.dp)) {
                 Text(
-                    text = "TIP",
+                    text = stringResource(R.string.home_tip_label),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = "Try $nextSideName breast next, used less last session.",
+                    text = stringResource(R.string.home_tip_message, nextSideName),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -526,12 +532,13 @@ internal fun PartnerViewCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val partnerDescription = stringResource(R.string.home_partner_content_description)
     Card(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
             .semantics {
-                contentDescription = "Partner View. Connect to see shared baby data."
+                contentDescription = partnerDescription
             },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
@@ -553,12 +560,12 @@ internal fun PartnerViewCard(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Partner View",
+                    text = stringResource(R.string.home_partner_title),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Connect to see shared baby data",
+                    text = stringResource(R.string.home_partner_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

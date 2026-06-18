@@ -186,4 +186,174 @@
     <string name="more_options">More options</string>
     <string name="loading">Loading...</string>
     <string name="cancel">Cancel</string>
+
+    <!-- Shared generic labels -->
+    <string name="ok">OK</string>
+    <string name="close">Close</string>
+    <string name="disabled">Disabled</string>
+    <string name="save_changes">Save changes</string>
+    <string name="status_live">Live</string>
+    <string name="status_paused">Paused</string>
+    <string name="side_left">Left</string>
+    <string name="side_right">Right</string>
+    <string name="label_date">DATE</string>
+    <string name="label_start_time">START TIME</string>
+    <string name="label_end_time">END TIME</string>
+    <string name="change_date">Change date</string>
+    <string name="change_start_time">Change start time</string>
+    <string name="change_end_time">Change end time</string>
+    <string name="duration_less_than_minute">less than 1m</string>
+    <string name="duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="duration_minutes">%1$dm</string>
+
+    <!-- Home -->
+    <string name="home_greeting">Hi, %1$s 👋</string>
+    <string name="home_settings_content_description">Settings</string>
+    <string name="home_reset_layout">Reset layout</string>
+    <string name="home_move_earlier">Move earlier</string>
+    <string name="home_move_later">Move later</string>
+    <string name="home_breastfeeding_title">Breastfeeding</string>
+    <string name="home_breastfeeding_content_description">Breastfeeding. Open feeding screen.</string>
+    <string name="home_breastfeeding_active_content_description">Breastfeeding, session active. Open feeding screen.</string>
+    <string name="home_sleep_title">Sleep</string>
+    <string name="home_sleep_content_description">Sleep. Open sleep screen.</string>
+    <string name="home_sleep_active_content_description">Sleep, session active. Open sleep screen.</string>
+    <string name="home_sleep_ready">Ready when you are</string>
+    <string name="home_pumping_title">Pumping</string>
+    <string name="home_pumping_content_description">Pumping. Open pumping screen.</string>
+    <string name="home_pumping_active_content_description">Pumping, session active. Open pumping screen.</string>
+    <string name="home_tap_to_log">Tap to log</string>
+    <string name="home_inventory_title">Inventory</string>
+    <string name="home_inventory_empty">No bags stored</string>
+    <plurals name="home_inventory_summary">
+        <item quantity="one">%1$s &#183; %2$d bag</item>
+        <item quantity="other">%1$s &#183; %2$d bags</item>
+    </plurals>
+    <plurals name="home_inventory_content_description">
+        <item quantity="one">Milk inventory, %1$d bag, %2$s. Open inventory screen.</item>
+        <item quantity="other">Milk inventory, %1$d bags, %2$s. Open inventory screen.</item>
+    </plurals>
+    <string name="home_inventory_empty_content_description">Milk inventory, no bags stored. Open inventory screen.</string>
+    <string name="home_bottle_feed_content_description">Log a bottle feed. Open bottle feed screen.</string>
+    <string name="home_growth_title">Growth</string>
+    <string name="home_growth_subtitle">Weight, length &amp; percentiles</string>
+    <string name="home_growth_content_description">Growth tracking. Open growth charts.</string>
+    <string name="home_trends_title">Trends</string>
+    <string name="home_trends_subtitle">Feeding &amp; sleep patterns</string>
+    <string name="home_trends_content_description">Trends. Open feeding and sleep charts.</string>
+    <string name="home_milestones_title">Milestones</string>
+    <string name="home_milestones_subtitle">Capture your baby\'s special moments</string>
+    <string name="home_milestones_content_description">Milestones. Capture special moments.</string>
+    <string name="home_feeding_empty">No feeds today</string>
+    <plurals name="home_feeding_summary_volume">
+        <item quantity="one">%1$s &#183; %2$d feed today</item>
+        <item quantity="other">%1$s &#183; %2$d feeds today</item>
+    </plurals>
+    <plurals name="home_feeding_summary_count">
+        <item quantity="one">%1$d feed today</item>
+        <item quantity="other">%1$d feeds today</item>
+    </plurals>
+    <string name="home_feeding_history_content_description">Feeding history. %1$s. Open combined feeding history.</string>
+    <string name="home_tip_label">TIP</string>
+    <string name="home_tip_message">Try %1$s breast next, used less last session.</string>
+    <string name="home_partner_title">Partner View</string>
+    <string name="home_partner_subtitle">Connect to see shared baby data</string>
+    <string name="home_partner_content_description">Partner View. Connect to see shared baby data.</string>
+
+    <!-- Log a cue (quick-tap row) -->
+    <string name="cue_log_a_cue">LOG A CUE</string>
+    <string name="cue_logged">%1$s logged</string>
+    <string name="cue_chip_label">%1$s %2$s</string>
+    <string name="cue_sleepy">Sleepy</string>
+    <string name="cue_hungry">Hungry</string>
+    <string name="cue_fussy">Fussy</string>
+    <string name="cue_sick">Sick</string>
+    <string name="cue_teething">Teething</string>
+    <string name="cue_travel">Travel</string>
+
+    <!-- Session timer -->
+    <string name="timer_label_percent">%1$d%% of %2$dm</string>
+    <string name="timer_cd_with_ring">Session timer: %1$s, %2$d%% of %3$d minutes</string>
+    <string name="timer_cd">Session timer: %1$s</string>
+    <string name="timer_cd_paused">%1$s, paused</string>
+
+    <!-- Side selector -->
+    <string name="side_selector_selected_content_description">%1$s, selected</string>
+
+    <!-- Breastfeeding prediction copy -->
+    <string name="breastfeeding_predict_hungry_now">Likely hungry now &#183; ~%1$dm ago</string>
+    <string name="breastfeeding_predict_hungry_around">Likely hungry around %1$s</string>
+    <string name="breastfeeding_predict_in_minutes">in ~%1$dm</string>
+    <string name="breastfeeding_predict_low_confidence">low confidence</string>
+    <string name="breastfeeding_predict_detail_combined">%1$s &#183; low confidence</string>
+    <string name="breastfeeding_predict_cd_now">Likely hungry now, about %1$d minutes ago</string>
+    <string name="breastfeeding_predict_cd_around_detail">Likely hungry around %1$s, in about %2$d minutes</string>
+    <string name="breastfeeding_predict_cd_around">Likely hungry around %1$s</string>
+    <string name="breastfeeding_predict_cd_low_confidence">%1$s, low confidence</string>
+    <string name="breastfeeding_predict_cd_basis">%1$s, based on %2$d recent feeds</string>
+
+    <!-- Breastfeeding screen -->
+    <string name="breastfeeding_title">Breastfeeding</string>
+    <string name="breastfeeding_action_history">Feed history</string>
+    <string name="breastfeeding_action_settings">Feed settings</string>
+    <string name="breastfeeding_stop_title">End this session?</string>
+    <string name="breastfeeding_stop_message">Session will be saved to history.</string>
+    <string name="breastfeeding_stop_confirm">End session</string>
+    <string name="breastfeeding_stop_dismiss">Keep going</string>
+    <string name="breastfeeding_status_paused">Session paused</string>
+    <string name="breastfeeding_status_in_progress">Session in progress</string>
+    <string name="breastfeeding_switch_to">Switch to %1$s</string>
+    <string name="breastfeeding_resume">Resume Session</string>
+    <string name="breastfeeding_pause">Pause Session</string>
+    <string name="breastfeeding_stop_session">Stop Session</string>
+    <string name="breastfeeding_start_heading">Start a feeding session</string>
+    <string name="breastfeeding_start_recommended">Start %1$s breast first</string>
+    <string name="breastfeeding_start_session">Start Session</string>
+    <string name="breastfeeding_log_past_feed">Log Past Feed</string>
+    <string name="breastfeeding_last_feeding">LAST FEEDING</string>
+    <string name="breastfeeding_breast_label">%1$s breast</string>
+    <string name="breastfeeding_first_side">First side &#183; %1$s</string>
+    <string name="breastfeeding_second_side">Second side</string>
+    <string name="breastfeeding_add_title">Add Feed Session</string>
+    <string name="breastfeeding_starting_side">STARTING SIDE</string>
+    <string name="breastfeeding_side_chip">🤱 %1$s</string>
+    <string name="breastfeeding_manual_error">⚠ %1$s</string>
+    <string name="breastfeeding_manual_pick_times">Pick different start and end times to save this feed.</string>
+    <string name="breastfeeding_manual_duration">⏱ Duration: %1$s</string>
+    <string name="breastfeeding_manual_save">Save %1$s Session</string>
+
+    <!-- Breastfeeding history -->
+    <string name="breastfeeding_history_title">Feeding History</string>
+    <string name="breastfeeding_history_empty_title">No sessions yet</string>
+    <string name="breastfeeding_history_empty_subtitle">Sessions you track will appear here</string>
+    <plurals name="breastfeeding_history_day_header">
+        <item quantity="one">%1$s &#183; %2$d session</item>
+        <item quantity="other">%1$s &#183; %2$d sessions</item>
+    </plurals>
+    <plurals name="breastfeeding_history_day_header_total">
+        <item quantity="one">%1$s &#183; %2$d session &#183; %3$s total</item>
+        <item quantity="other">%1$s &#183; %2$d sessions &#183; %3$s total</item>
+    </plurals>
+    <string name="breastfeeding_side_left">Left side</string>
+    <string name="breastfeeding_side_right">Right side</string>
+    <string name="breastfeeding_in_progress">In progress</string>
+    <string name="breastfeeding_delete_title">Delete this session?</string>
+    <string name="breastfeeding_delete_message">It can\'t be undone.</string>
+
+    <!-- Breastfeeding edit sheet -->
+    <string name="breastfeeding_edit_title">Edit feeding</string>
+    <string name="breastfeeding_edit_subtitle">%1$s &#183; %2$s</string>
+    <string name="breastfeeding_edit_started">STARTED</string>
+    <string name="breastfeeding_edit_ended">ENDED</string>
+    <string name="breastfeeding_edit_set_date">Set date</string>
+    <string name="breastfeeding_edit_set_time">Set time</string>
+    <string name="breastfeeding_edit_in_progress">Session in progress</string>
+    <string name="breastfeeding_edit_duration">Duration: %1$s</string>
+
+    <!-- Feed settings -->
+    <string name="feed_settings_title">Feed Settings</string>
+    <string name="feed_settings_limits_section">Feeding Limits</string>
+    <string name="feed_settings_max_per_breast">Max per breast</string>
+    <string name="feed_settings_max_total">Max total feed</string>
+    <string name="feed_settings_minutes_value">%1$d min</string>
 </resources>

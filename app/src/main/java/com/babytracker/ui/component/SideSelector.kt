@@ -23,14 +23,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import com.babytracker.domain.model.BreastSide
-import com.babytracker.domain.model.displayName
 
 @Composable
 fun SideSelector(
@@ -44,7 +45,9 @@ fun SideSelector(
     ) {
         BreastSide.entries.forEach { side ->
             val isSelected = selectedSide == side
-            val label = side.displayName()
+            val label = stringResource(side.labelRes())
+            val selectedContentDescription =
+                stringResource(R.string.side_selector_selected_content_description, label)
             val arrowIcon = if (side == BreastSide.LEFT) Icons.Filled.KeyboardArrowLeft else Icons.Filled.KeyboardArrowRight
 
             val containerColor by animateColorAsState(
@@ -89,7 +92,7 @@ fun SideSelector(
                     .semantics {
                         role = Role.RadioButton
                         selected = isSelected
-                        contentDescription = "$label${if (isSelected) ", selected" else ""}"
+                        contentDescription = if (isSelected) selectedContentDescription else label
                     },
                 shape = MaterialTheme.shapes.medium,
                 colors = CardDefaults.cardColors(containerColor = containerColor),
