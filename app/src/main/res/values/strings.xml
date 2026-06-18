@@ -356,4 +356,131 @@
     <string name="feed_settings_max_per_breast">Max per breast</string>
     <string name="feed_settings_max_total">Max total feed</string>
     <string name="feed_settings_minutes_value">%1$d min</string>
+
+    <!-- Shared generic labels (sleep + trends) -->
+    <string name="in_progress">In progress</string>
+    <string name="state_expanded">Expanded</string>
+    <string name="state_collapsed">Collapsed</string>
+
+    <!-- Sleep type labels (UI display; domain SleepType.label stays the persistence key) -->
+    <string name="sleep_type_nap">Nap</string>
+    <string name="sleep_type_night">Night Sleep</string>
+    <string name="sleep_type_chip">%1$s %2$s</string>
+
+    <!-- Sleep tracking -->
+    <string name="sleep_title">Sleep</string>
+    <string name="sleep_cd_history">Sleep history</string>
+    <string name="sleep_cd_schedule">Sleep schedule</string>
+    <string name="sleep_cd_settings">Sleep settings</string>
+    <string name="sleep_log_past">Log Past Sleep</string>
+    <string name="sleep_today">TODAY</string>
+    <string name="sleep_last_sleep_label">LAST SLEEP</string>
+    <string name="sleep_last_sleep_empty">No sleep logged yet</string>
+    <string name="sleep_last_sleep_cd_empty">Last sleep. No sleep logged yet.</string>
+    <string name="sleep_last_sleep_cd">Last sleep. %1$s. %2$s.</string>
+    <string name="sleep_wake_set">🌅 Set today\'s wake time</string>
+    <string name="sleep_wake_woke">🌅 Woke at %1$s</string>
+    <string name="sleep_wake_edit_cd">Edit wake time</string>
+    <string name="sleep_wake_set_cd">Set wake time</string>
+    <string name="sleep_stat_today">Sleep today</string>
+    <string name="sleep_stat_naps">Naps</string>
+    <string name="sleep_stat_night">Night sleep</string>
+    <string name="sleep_cd_delete_entry">Delete entry</string>
+    <string name="sleep_delete_entry_title">Delete entry?</string>
+    <string name="sleep_delete_entry_message">%1$s %2$s will be removed.</string>
+    <string name="sleep_empty_title">No sleep entries yet</string>
+    <string name="sleep_empty_subtitle">Tap below to log a past sleep</string>
+    <string name="sleep_start_nap">😴 Start Nap</string>
+    <string name="sleep_start_night">🌙 Start Night Sleep</string>
+    <string name="sleep_in_progress_status">%1$s %2$s in progress</string>
+    <string name="sleep_stop_session">Stop Session</string>
+    <string name="sleep_subtitle_range">%1$s – %2$s</string>
+    <string name="sleep_back_to_sleep">Back to Sleep</string>
+
+    <!-- Sleep entry sheet -->
+    <string name="sleep_entry_add_title">Add Sleep Entry</string>
+    <string name="sleep_entry_edit_title">Edit Sleep Entry</string>
+    <string name="sleep_entry_error">⚠ %1$s</string>
+    <string name="sleep_entry_pick_times">Pick different start and end times to save this sleep.</string>
+    <string name="sleep_entry_duration">⏱ Duration: %1$s</string>
+    <string name="sleep_save_nap">Save Nap</string>
+    <string name="sleep_save_night">Save Night Sleep</string>
+    <string name="sleep_update_nap">Update Nap</string>
+    <string name="sleep_update_night">Update Night Sleep</string>
+
+    <!-- Sleep history -->
+    <string name="sleep_history_title">Sleep History</string>
+    <string name="sleep_history_empty_title">No sleep records yet</string>
+    <string name="sleep_history_empty_subtitle">Sleep sessions you track will appear here</string>
+    <plurals name="sleep_history_day_header">
+        <item quantity="one">%1$s &#183; %2$d record</item>
+        <item quantity="other">%1$s &#183; %2$d records</item>
+    </plurals>
+    <plurals name="sleep_history_day_header_total">
+        <item quantity="one">%1$s &#183; %2$d record &#183; %3$s total</item>
+        <item quantity="other">%1$s &#183; %2$d records &#183; %3$s total</item>
+    </plurals>
+
+    <!-- Sleep schedule -->
+    <string name="sleep_schedule_title">Sleep Schedule</string>
+    <string name="sleep_schedule_refresh_cd">Refresh</string>
+    <string name="sleep_schedule_onboarding">Complete onboarding to generate a schedule</string>
+    <string name="sleep_schedule_typical_duration">Typical duration: %1$s</string>
+    <string name="sleep_schedule_adjusted">adjusted</string>
+    <string name="sleep_schedule_summary_title">Sleep Summary</string>
+    <string name="sleep_schedule_recommended_total">Recommended total sleep</string>
+    <string name="sleep_schedule_range">%1$s - %2$s</string>
+    <string name="sleep_schedule_average">Your baby\'s average (7 days)</string>
+    <string name="sleep_schedule_last_feed">Last feed</string>
+    <string name="sleep_schedule_naps_per_day">Naps per day</string>
+    <string name="sleep_schedule_nap_transition">Nap Transition</string>
+
+    <!-- Sleep settings -->
+    <string name="sleep_settings_nap_delay_helper">We\'ll remind you this many minutes after a nap ends.</string>
+
+    <!-- Sleep prediction (card + recommendation section) -->
+    <string name="sleep_prediction_label">SLEEP PREDICTION</string>
+    <string name="sleep_prediction_around">Around %1$s</string>
+    <string name="sleep_prediction_cd_around">Next sleep around %1$s</string>
+    <string name="sleep_prediction_window_range">%1$s–%2$s</string>
+    <string name="sleep_prediction_confidence_low">Confidence: Low</string>
+    <string name="sleep_prediction_confidence_medium">Confidence: Medium</string>
+    <string name="sleep_prediction_confidence_high">Confidence: High</string>
+    <string name="sleep_prediction_sessions">%1$d of %2$d sleep sessions</string>
+    <string name="sleep_prediction_a11y_progress">Learning your baby\'s patterns. %1$d of %2$d sleep sessions recorded.</string>
+    <string name="sleep_prediction_day_of">Day %1$d of %2$d</string>
+    <string name="sleep_prediction_overdue">Watch for cues — the window may open soon</string>
+    <string name="sleep_prediction_cue_led">Watching baby\'s cues — no fixed window right now</string>
+    <string name="sleep_prediction_sleeping">Baby is sleeping</string>
+    <string name="sleep_prediction_after_feed">Feeding now — sleep window appears after feed ends</string>
+    <string name="sleep_prediction_safe_sleep">Safe sleep</string>
+    <string name="sleep_prediction_safe_sleep_cd">Safe sleep tip</string>
+    <string name="sleep_prediction_card_cd_window">Next sleep around %1$s. Open sleep screen.</string>
+    <string name="sleep_prediction_card_cd_need_more">Sleep prediction: still learning patterns. Open sleep screen.</string>
+    <string name="sleep_prediction_card_cd_overdue">Sleep prediction: watch for cues. Open sleep screen.</string>
+    <string name="sleep_prediction_card_cd_sleeping">Baby is sleeping. Open sleep screen.</string>
+    <string name="sleep_prediction_card_cd_cue_led">Sleep prediction: cue-led. Open sleep screen.</string>
+    <string name="sleep_prediction_card_cd_after_feed">Sleep prediction: window appears after feed. Open sleep screen.</string>
+    <string name="sleep_prediction_card_cd_default">Sleep prediction. Open sleep screen.</string>
+
+    <!-- Trends -->
+    <string name="trends_title">Trends</string>
+    <string name="trends_range_7d">7d</string>
+    <string name="trends_range_14d">14d</string>
+    <string name="trends_range_30d">30d</string>
+    <string name="trends_empty">Not enough data yet — keep tracking.</string>
+    <string name="trends_feeds_per_day_title">Feeds per day</string>
+    <string name="trends_feeds_per_day_cd">Feeds per day. Total %1$d over %2$d days.</string>
+    <string name="trends_sleep_hours_title">Sleep hours per day (night + nap)</string>
+    <string name="trends_sleep_hours_cd">Sleep hours per day, night and nap stacked, over %1$d days.</string>
+    <string name="trends_interval_title">Average hours between feeds</string>
+    <string name="trends_interval_cd">Average hours between feeds per day over %1$d days.</string>
+    <string name="trends_feedvssleep_title">Feeds vs sleep per day</string>
+    <string name="trends_feedvssleep_cd">Feeds versus sleep per day over %1$d days. Columns are feed count, line is total sleep hours.</string>
+    <string name="trends_rhythm_title">Daily rhythm (sleep + feeds)</string>
+    <string name="trends_rhythm_cd">Daily rhythm over %1$d days, each row a day from midnight to midnight. Bars are sleep, dots are feeds.</string>
+    <string name="trends_legend_night">Night</string>
+    <string name="trends_legend_nap">Nap</string>
+    <string name="trends_legend_breast">Breast</string>
+    <string name="trends_legend_bottle">Bottle</string>
 </resources>

@@ -70,6 +70,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -77,6 +78,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.ui.component.CueQuickTapRow
@@ -178,21 +180,21 @@ fun SleepTrackingScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Sleep") },
+                title = { Text(stringResource(R.string.sleep_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onNavigateToHistory) {
-                        Icon(Icons.Outlined.History, contentDescription = "Sleep history")
+                        Icon(Icons.Outlined.History, contentDescription = stringResource(R.string.sleep_cd_history))
                     }
                     IconButton(onClick = onNavigateToSchedule) {
-                        Icon(Icons.Outlined.CalendarMonth, contentDescription = "Sleep schedule")
+                        Icon(Icons.Outlined.CalendarMonth, contentDescription = stringResource(R.string.sleep_cd_schedule))
                     }
                     IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Sleep settings")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.sleep_cd_settings))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -244,7 +246,7 @@ fun SleepTrackingScreen(
             }
             item {
                 Text(
-                    text = "TODAY",
+                    text = stringResource(R.string.sleep_today),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.secondary,
                 )
@@ -272,7 +274,7 @@ fun SleepTrackingScreen(
                         contentColor = MaterialTheme.colorScheme.secondary
                     )
                 ) {
-                    Text("Log Past Sleep", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.sleep_log_past), style = MaterialTheme.typography.titleSmall)
                 }
             }
         }
@@ -290,8 +292,9 @@ private fun TodayContextCard(
 ) {
     val formatter = remember { DateTimeFormatter.ofPattern("h:mm a").withLocale(java.util.Locale.getDefault()) }
     val semanticDescription = when (summary) {
-        LastSleepSummaryState.Empty -> "Last sleep. No sleep logged yet."
-        is LastSleepSummaryState.Populated -> "Last sleep. ${summary.awakeForLabel}. ${summary.endedAtLabel}."
+        LastSleepSummaryState.Empty -> stringResource(R.string.sleep_last_sleep_cd_empty)
+        is LastSleepSummaryState.Populated ->
+            stringResource(R.string.sleep_last_sleep_cd, summary.awakeForLabel, summary.endedAtLabel)
     }
     Card(
         modifier = Modifier
@@ -323,13 +326,13 @@ private fun TodayContextCard(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Text(
-                        text = "LAST SLEEP",
+                        text = stringResource(R.string.sleep_last_sleep_label),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     when (summary) {
                         LastSleepSummaryState.Empty -> Text(
-                            text = "No sleep logged yet",
+                            text = stringResource(R.string.sleep_last_sleep_empty),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         is LastSleepSummaryState.Populated -> {
@@ -357,13 +360,21 @@ private fun TodayContextCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = if (wakeTime != null) "🌅 Woke at ${wakeTime.format(formatter)}" else "🌅 Set today's wake time",
+                    text = if (wakeTime != null) {
+                        stringResource(R.string.sleep_wake_woke, wakeTime.format(formatter))
+                    } else {
+                        stringResource(R.string.sleep_wake_set)
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (wakeTime != null) FontWeight.Medium else FontWeight.Normal,
                 )
                 Icon(
                     imageVector = if (wakeTime != null) Icons.Default.Edit else Icons.Default.Add,
-                    contentDescription = if (wakeTime != null) "Edit wake time" else "Set wake time",
+                    contentDescription = if (wakeTime != null) {
+                        stringResource(R.string.sleep_wake_edit_cd)
+                    } else {
+                        stringResource(R.string.sleep_wake_set_cd)
+                    },
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.secondary,
                 )
@@ -376,17 +387,17 @@ private fun TodayContextCard(
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 TodayStatItem(
-                    label = "Sleep today",
+                    label = stringResource(R.string.sleep_stat_today),
                     value = if (totalSleep.isZero) "—" else totalSleep.formatDuration(),
                     modifier = Modifier.weight(1f),
                 )
                 TodayStatItem(
-                    label = "Naps",
+                    label = stringResource(R.string.sleep_stat_naps),
                     value = if (napCount == 0) "—" else napCount.toString(),
                     modifier = Modifier.weight(1f),
                 )
                 TodayStatItem(
-                    label = "Night sleep",
+                    label = stringResource(R.string.sleep_stat_night),
                     value = if (nightSleep.isZero) "—" else nightSleep.formatDuration(),
                     modifier = Modifier.weight(1f),
                 )
@@ -463,7 +474,7 @@ private fun SleepEntryDeleteBackground(targetValue: SwipeToDismissBoxValue) {
     ) {
         Icon(
             imageVector = Icons.Default.Delete,
-            contentDescription = "Delete entry",
+            contentDescription = stringResource(R.string.sleep_cd_delete_entry),
             tint = MaterialTheme.colorScheme.onErrorContainer,
             modifier = Modifier.padding(end = 20.dp)
         )
@@ -478,16 +489,24 @@ internal fun SleepDeleteConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Delete entry?") },
-        text = { Text("${record.sleepType.emoji} ${record.sleepType.label} will be removed.") },
+        title = { Text(stringResource(R.string.sleep_delete_entry_title)) },
+        text = {
+            Text(
+                stringResource(
+                    R.string.sleep_delete_entry_message,
+                    record.sleepType.emoji,
+                    stringResource(record.sleepType.labelRes()),
+                ),
+            )
+        },
         confirmButton = {
             Button(
                 onClick = onConfirm,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) { Text("Delete") }
+            ) { Text(stringResource(R.string.delete)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }
@@ -504,12 +523,12 @@ private fun TodayEmptyState() {
     ) {
         Text(text = "🌙", style = MaterialTheme.typography.headlineLarge)
         Text(
-            text = "No sleep entries yet",
+            text = stringResource(R.string.sleep_empty_title),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "Tap below to log a past sleep",
+            text = stringResource(R.string.sleep_empty_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -537,7 +556,7 @@ private fun SleepQuickStartRow(
             )
         ) {
             Text(
-                text = "😴 Start Nap",
+                text = stringResource(R.string.sleep_start_nap),
                 style = MaterialTheme.typography.labelLarge,
                 textAlign = TextAlign.Center
             )
@@ -554,7 +573,7 @@ private fun SleepQuickStartRow(
             )
         ) {
             Text(
-                text = "🌙 Start Night Sleep",
+                text = stringResource(R.string.sleep_start_night),
                 style = MaterialTheme.typography.labelLarge,
                 textAlign = TextAlign.Center
             )
@@ -579,7 +598,11 @@ private fun ActiveSleepCard(record: SleepRecord, onStop: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "${record.sleepType.emoji} ${record.sleepType.label} in progress",
+                text = stringResource(
+                    R.string.sleep_in_progress_status,
+                    record.sleepType.emoji,
+                    stringResource(record.sleepType.labelRes()),
+                ),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -602,7 +625,7 @@ private fun ActiveSleepCard(record: SleepRecord, onStop: () -> Unit) {
                     contentColor = MaterialTheme.colorScheme.onSecondary,
                 )
             ) {
-                Text("Stop Session", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.sleep_stop_session), style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -616,14 +639,19 @@ internal fun SleepEntryCard(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     HistoryCard(
-        title = record.sleepType.label,
-        subtitle = buildString {
-            append(record.startTime.formatTime12h())
-            if (record.endTime != null) append(" – ${record.endTime.formatTime12h()}")
+        title = stringResource(record.sleepType.labelRes()),
+        subtitle = if (record.endTime != null) {
+            stringResource(
+                R.string.sleep_subtitle_range,
+                record.startTime.formatTime12h(),
+                record.endTime.formatTime12h(),
+            )
+        } else {
+            record.startTime.formatTime12h()
         },
         trailing = record.endTime?.let { end ->
             Duration.between(record.startTime, end).formatDuration()
-        } ?: "In progress",
+        } ?: stringResource(R.string.in_progress),
         badgeEmoji = record.sleepType.emoji,
         badgeColor = MaterialTheme.colorScheme.secondaryContainer,
         trailingColor = MaterialTheme.colorScheme.secondary,
@@ -633,7 +661,7 @@ internal fun SleepEntryCard(
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More options",
+                            contentDescription = stringResource(R.string.more_options),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -642,14 +670,14 @@ internal fun SleepEntryCard(
                         onDismissRequest = { menuExpanded = false },
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Edit") },
+                            text = { Text(stringResource(R.string.edit)) },
                             onClick = {
                                 menuExpanded = false
                                 onEdit()
                             },
                         )
                         DropdownMenuItem(
-                            text = { Text("Delete") },
+                            text = { Text(stringResource(R.string.delete)) },
                             onClick = {
                                 menuExpanded = false
                                 onDelete()
@@ -676,6 +704,9 @@ internal fun AddSleepEntrySheetContent(
     val timeFormatter = remember { DateTimeFormatter.ofPattern("h:mm a").withLocale(java.util.Locale.getDefault()) }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("EEE, MMM d").withLocale(java.util.Locale.getDefault()) }
     var showDatePicker by remember { mutableStateOf(false) }
+    val changeDateDescription = stringResource(R.string.change_date)
+    val changeStartTimeDescription = stringResource(R.string.change_start_time)
+    val changeEndTimeDescription = stringResource(R.string.change_end_time)
 
     if (showDatePicker) {
         val initialMillis = uiState.entryDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
@@ -688,10 +719,10 @@ internal fun AddSleepEntrySheetContent(
                     val picked = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
                     onDateChanged(picked)
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel)) }
             },
         ) {
             DatePicker(state = datePickerState)
@@ -706,7 +737,7 @@ internal fun AddSleepEntrySheetContent(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = if (isEditing) "Edit Sleep Entry" else "Add Sleep Entry",
+            text = if (isEditing) stringResource(R.string.sleep_entry_edit_title) else stringResource(R.string.sleep_entry_add_title),
             style = MaterialTheme.typography.headlineSmall
         )
 
@@ -719,7 +750,7 @@ internal fun AddSleepEntrySheetContent(
                 FilterChip(
                     selected = isSelected,
                     onClick = { onTypeChanged(type) },
-                    label = { Text("${type.emoji} ${type.label}") },
+                    label = { Text(stringResource(R.string.sleep_type_chip, type.emoji, stringResource(type.labelRes()))) },
                     modifier = Modifier.weight(1f),
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -730,7 +761,7 @@ internal fun AddSleepEntrySheetContent(
 
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "DATE",
+                text = stringResource(R.string.label_date),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -739,7 +770,7 @@ internal fun AddSleepEntrySheetContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp)
-                    .semantics { contentDescription = "Change date" },
+                    .semantics { contentDescription = changeDateDescription },
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Text(
@@ -760,7 +791,7 @@ internal fun AddSleepEntrySheetContent(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "START TIME",
+                    text = stringResource(R.string.label_start_time),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -769,7 +800,7 @@ internal fun AddSleepEntrySheetContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp)
-                        .semantics { contentDescription = "Change start time" },
+                        .semantics { contentDescription = changeStartTimeDescription },
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text(
@@ -785,7 +816,7 @@ internal fun AddSleepEntrySheetContent(
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "END TIME",
+                    text = stringResource(R.string.label_end_time),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -794,7 +825,7 @@ internal fun AddSleepEntrySheetContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp)
-                        .semantics { contentDescription = "Change end time" },
+                        .semantics { contentDescription = changeEndTimeDescription },
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text(
@@ -821,7 +852,7 @@ internal fun AddSleepEntrySheetContent(
                     )
                 ) {
                     Text(
-                        text = "⚠ ${uiState.entryError}",
+                        text = stringResource(R.string.sleep_entry_error, uiState.entryError.orEmpty()),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         textAlign = TextAlign.Center,
@@ -839,7 +870,7 @@ internal fun AddSleepEntrySheetContent(
                     )
                 ) {
                     Text(
-                        text = "Pick different start and end times to save this sleep.",
+                        text = stringResource(R.string.sleep_entry_pick_times),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -857,7 +888,7 @@ internal fun AddSleepEntrySheetContent(
                     )
                 ) {
                     Text(
-                        text = "⏱ Duration: ${uiState.entryDurationPreview.formatDuration()}",
+                        text = stringResource(R.string.sleep_entry_duration, uiState.entryDurationPreview.formatDuration()),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -871,10 +902,10 @@ internal fun AddSleepEntrySheetContent(
         }
 
         val saveLabel = when {
-            isEditing && uiState.entryType == SleepType.NAP -> "Update Nap"
-            isEditing -> "Update Night Sleep"
-            uiState.entryType == SleepType.NAP -> "Save Nap"
-            else -> "Save Night Sleep"
+            isEditing && uiState.entryType == SleepType.NAP -> stringResource(R.string.sleep_update_nap)
+            isEditing -> stringResource(R.string.sleep_update_night)
+            uiState.entryType == SleepType.NAP -> stringResource(R.string.sleep_save_nap)
+            else -> stringResource(R.string.sleep_save_night)
         }
         Button(
             onClick = onSave,
@@ -913,10 +944,10 @@ internal fun SleepTimePickerDialog(
         confirmButton = {
             TextButton(onClick = {
                 onConfirm(LocalTime.of(timePickerState.hour, timePickerState.minute))
-            }) { Text("OK") }
+            }) { Text(stringResource(R.string.ok)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
         text = { TimePicker(state = timePickerState) }
     )

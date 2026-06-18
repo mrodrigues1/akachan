@@ -45,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -52,6 +53,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.SleepPredictionState
@@ -101,7 +103,7 @@ internal fun SleepRecommendationSection(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = "SLEEP PREDICTION",
+                        text = stringResource(R.string.sleep_prediction_label),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
@@ -135,23 +137,28 @@ internal fun SleepRecommendationSection(
 private fun WindowSectionContent(window: SleepWindow) {
     var safetyExpanded by remember { mutableStateOf(false) }
     val confidenceLabel = when (window.confidence) {
-        Confidence.LOW -> "Confidence: Low"
-        Confidence.MEDIUM -> "Confidence: Medium"
-        Confidence.HIGH -> "Confidence: High"
+        Confidence.LOW -> stringResource(R.string.sleep_prediction_confidence_low)
+        Confidence.MEDIUM -> stringResource(R.string.sleep_prediction_confidence_medium)
+        Confidence.HIGH -> stringResource(R.string.sleep_prediction_confidence_high)
     }
+    val aroundContentDescription =
+        stringResource(R.string.sleep_prediction_cd_around, window.bestEstimate.formatTime())
+    val safeSleepContentDescription = stringResource(R.string.sleep_prediction_safe_sleep_cd)
+    val expandedStateDescription = stringResource(R.string.state_expanded)
+    val collapsedStateDescription = stringResource(R.string.state_collapsed)
 
     Column {
         Text(
-            text = "Around ${window.bestEstimate.formatTime()}",
+            text = stringResource(R.string.sleep_prediction_around, window.bestEstimate.formatTime()),
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             modifier = Modifier.semantics {
-                contentDescription = "Next sleep around ${window.bestEstimate.formatTime()}"
+                contentDescription = aroundContentDescription
             },
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = "${window.windowStart.formatTime()}–${window.windowEnd.formatTime()}",
+            text = stringResource(R.string.sleep_prediction_window_range, window.windowStart.formatTime(), window.windowEnd.formatTime()),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
@@ -214,12 +221,12 @@ private fun WindowSectionContent(window: SleepWindow) {
                 .heightIn(min = 48.dp)
                 .clickable(role = Role.Button) { safetyExpanded = !safetyExpanded }
                 .semantics {
-                    contentDescription = "Safe sleep tip"
-                    stateDescription = if (safetyExpanded) "Expanded" else "Collapsed"
+                    contentDescription = safeSleepContentDescription
+                    stateDescription = if (safetyExpanded) expandedStateDescription else collapsedStateDescription
                 },
         ) {
             Text(
-                text = "Safe sleep",
+                text = stringResource(R.string.sleep_prediction_safe_sleep),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
@@ -250,7 +257,7 @@ private fun WindowSectionContent(window: SleepWindow) {
 private fun NeedMoreDataSectionContent(progress: EvidenceProgress) {
     val total = progress.requiredIntervals.coerceAtMost(7)
     val filled = progress.completedIntervals.coerceAtMost(total)
-    val a11yLabel = "Learning your baby's patterns. $filled of $total sleep sessions recorded."
+    val a11yLabel = stringResource(R.string.sleep_prediction_a11y_progress, filled, total)
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
@@ -281,14 +288,14 @@ private fun NeedMoreDataSectionContent(progress: EvidenceProgress) {
             }
             Spacer(Modifier.width(2.dp))
             Text(
-                text = "$filled of $total sleep sessions",
+                text = stringResource(R.string.sleep_prediction_sessions, filled, total),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
         if (progress.localDays in 1 until progress.requiredLocalDays) {
             Text(
-                text = "Day ${progress.localDays} of ${progress.requiredLocalDays}",
+                text = stringResource(R.string.sleep_prediction_day_of, progress.localDays, progress.requiredLocalDays),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
@@ -322,7 +329,7 @@ private fun StatusRow(
 private fun OverdueSectionContent() {
     StatusRow(
         icon = Icons.Outlined.HourglassEmpty,
-        text = "Watch for cues — the window may open soon",
+        text = stringResource(R.string.sleep_prediction_overdue),
     )
 }
 
@@ -330,7 +337,7 @@ private fun OverdueSectionContent() {
 private fun CueLedSectionContent() {
     StatusRow(
         icon = Icons.Outlined.Visibility,
-        text = "Watching baby's cues — no fixed window right now",
+        text = stringResource(R.string.sleep_prediction_cue_led),
     )
 }
 
@@ -338,7 +345,7 @@ private fun CueLedSectionContent() {
 private fun CurrentlySleepingSectionContent() {
     StatusRow(
         icon = Icons.Outlined.Bedtime,
-        text = "Baby is sleeping",
+        text = stringResource(R.string.sleep_prediction_sleeping),
         iconAlpha = 0.7f,
     )
 }
@@ -347,6 +354,6 @@ private fun CurrentlySleepingSectionContent() {
 private fun AfterActiveFeedSectionContent() {
     StatusRow(
         icon = Icons.Outlined.ChildCare,
-        text = "Feeding now — sleep window appears after feed ends",
+        text = stringResource(R.string.sleep_prediction_after_feed),
     )
 }

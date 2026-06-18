@@ -40,9 +40,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.SleepPredictionState
@@ -65,19 +67,19 @@ internal fun SleepPredictionCard(
 
     val cardDescription = when (visibleState) {
         is SleepPredictionState.Window ->
-            "Next sleep around ${(visibleState as SleepPredictionState.Window).window.bestEstimate.formatTime()}. Open sleep screen."
+            stringResource(R.string.sleep_prediction_card_cd_window, (visibleState as SleepPredictionState.Window).window.bestEstimate.formatTime())
         is SleepPredictionState.NeedMoreData ->
-            "Sleep prediction: still learning patterns. Open sleep screen."
+            stringResource(R.string.sleep_prediction_card_cd_need_more)
         SleepPredictionState.Overdue ->
-            "Sleep prediction: watch for cues. Open sleep screen."
+            stringResource(R.string.sleep_prediction_card_cd_overdue)
         SleepPredictionState.CurrentlySleeping ->
-            "Baby is sleeping. Open sleep screen."
+            stringResource(R.string.sleep_prediction_card_cd_sleeping)
         SleepPredictionState.CueLed ->
-            "Sleep prediction: cue-led. Open sleep screen."
+            stringResource(R.string.sleep_prediction_card_cd_cue_led)
         SleepPredictionState.AfterActiveFeed ->
-            "Sleep prediction: window appears after feed. Open sleep screen."
+            stringResource(R.string.sleep_prediction_card_cd_after_feed)
         is SleepPredictionState.Unavailable ->
-            "Sleep prediction. Open sleep screen."
+            stringResource(R.string.sleep_prediction_card_cd_default)
     }
 
     AnimatedVisibility(
@@ -114,7 +116,7 @@ internal fun SleepPredictionCard(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = "SLEEP PREDICTION",
+                        text = stringResource(R.string.sleep_prediction_label),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
@@ -147,22 +149,24 @@ internal fun SleepPredictionCard(
 @Composable
 private fun WindowCardContent(window: SleepWindow) {
     val confidenceLabel = when (window.confidence) {
-        Confidence.LOW -> "Confidence: Low"
-        Confidence.MEDIUM -> "Confidence: Medium"
-        Confidence.HIGH -> "Confidence: High"
+        Confidence.LOW -> stringResource(R.string.sleep_prediction_confidence_low)
+        Confidence.MEDIUM -> stringResource(R.string.sleep_prediction_confidence_medium)
+        Confidence.HIGH -> stringResource(R.string.sleep_prediction_confidence_high)
     }
+    val aroundContentDescription =
+        stringResource(R.string.sleep_prediction_cd_around, window.bestEstimate.formatTime())
     Column {
         Text(
-            text = "Around ${window.bestEstimate.formatTime()}",
+            text = stringResource(R.string.sleep_prediction_around, window.bestEstimate.formatTime()),
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             modifier = Modifier.semantics {
-                contentDescription = "Next sleep around ${window.bestEstimate.formatTime()}"
+                contentDescription = aroundContentDescription
             },
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = "${window.windowStart.formatTime()}–${window.windowEnd.formatTime()}",
+            text = stringResource(R.string.sleep_prediction_window_range, window.windowStart.formatTime(), window.windowEnd.formatTime()),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
@@ -179,7 +183,7 @@ private fun WindowCardContent(window: SleepWindow) {
 private fun NeedMoreDataCardContent(progress: EvidenceProgress) {
     val total = progress.requiredIntervals.coerceAtMost(7)
     val filled = progress.completedIntervals.coerceAtMost(total)
-    val a11yLabel = "Learning your baby's patterns. $filled of $total sleep sessions recorded."
+    val a11yLabel = stringResource(R.string.sleep_prediction_a11y_progress, filled, total)
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
@@ -210,14 +214,14 @@ private fun NeedMoreDataCardContent(progress: EvidenceProgress) {
             }
             Spacer(Modifier.width(2.dp))
             Text(
-                text = "$filled of $total sleep sessions",
+                text = stringResource(R.string.sleep_prediction_sessions, filled, total),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
         if (progress.localDays in 1 until progress.requiredLocalDays) {
             Text(
-                text = "Day ${progress.localDays} of ${progress.requiredLocalDays}",
+                text = stringResource(R.string.sleep_prediction_day_of, progress.localDays, progress.requiredLocalDays),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
@@ -251,7 +255,7 @@ private fun StatusRow(
 private fun OverdueCardContent() {
     StatusRow(
         icon = Icons.Outlined.HourglassEmpty,
-        text = "Watch for cues — the window may open soon",
+        text = stringResource(R.string.sleep_prediction_overdue),
     )
 }
 
@@ -259,7 +263,7 @@ private fun OverdueCardContent() {
 private fun CueLedCardContent() {
     StatusRow(
         icon = Icons.Outlined.Visibility,
-        text = "Watching baby's cues — no fixed window right now",
+        text = stringResource(R.string.sleep_prediction_cue_led),
     )
 }
 
@@ -267,7 +271,7 @@ private fun CueLedCardContent() {
 private fun CurrentlySleepingCardContent() {
     StatusRow(
         icon = Icons.Outlined.Bedtime,
-        text = "Baby is sleeping",
+        text = stringResource(R.string.sleep_prediction_sleeping),
         iconAlpha = 0.7f,
     )
 }
@@ -276,6 +280,6 @@ private fun CurrentlySleepingCardContent() {
 private fun AfterActiveFeedCardContent() {
     StatusRow(
         icon = Icons.Outlined.ChildCare,
-        text = "Feeding now — sleep window appears after feed ends",
+        text = stringResource(R.string.sleep_prediction_after_feed),
     )
 }

@@ -22,8 +22,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import com.babytracker.domain.trends.DayRhythm
 import com.babytracker.ui.theme.BottleFeedRed
 import com.babytracker.ui.theme.BottleFeedRedDark
@@ -164,10 +166,10 @@ private fun RhythmLegend(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LegendSwatch("Night", nightColor, labelStyle, labelColor)
-        LegendSwatch("Nap", napColor, labelStyle, labelColor)
-        LegendSwatch("Breast", breastColor, labelStyle, labelColor)
-        LegendSwatch("Bottle", bottleColor, labelStyle, labelColor)
+        LegendSwatch(stringResource(R.string.trends_legend_night), nightColor, labelStyle, labelColor)
+        LegendSwatch(stringResource(R.string.trends_legend_nap), napColor, labelStyle, labelColor)
+        LegendSwatch(stringResource(R.string.trends_legend_breast), breastColor, labelStyle, labelColor)
+        LegendSwatch(stringResource(R.string.trends_legend_bottle), bottleColor, labelStyle, labelColor)
     }
 }
 

@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.domain.trends.DailyFeedVsSleep
 import com.babytracker.domain.trends.DailyFeedingCount
 import com.babytracker.domain.trends.DailyFeedingInterval
@@ -66,9 +68,9 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 private val RANGE_LABELS = mapOf(
-    TrendRange.SEVEN_DAYS to "7d",
-    TrendRange.FOURTEEN_DAYS to "14d",
-    TrendRange.THIRTY_DAYS to "30d",
+    TrendRange.SEVEN_DAYS to R.string.trends_range_7d,
+    TrendRange.FOURTEEN_DAYS to R.string.trends_range_14d,
+    TrendRange.THIRTY_DAYS to R.string.trends_range_30d,
 )
 
 private const val COLUMN_THICKNESS_DP = 12
@@ -120,10 +122,10 @@ fun TrendsScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Trends") },
+                title = { Text(stringResource(R.string.trends_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
             )
@@ -168,7 +170,7 @@ private fun RangeSelector(
                 ),
                 modifier = Modifier.testTag("trends_range_${range.days}"),
             ) {
-                Text(RANGE_LABELS.getValue(range))
+                Text(stringResource(RANGE_LABELS.getValue(range)))
             }
         }
     }
@@ -188,7 +190,7 @@ private fun ChartCard(
             Text(title, style = MaterialTheme.typography.titleMedium)
             if (isEmpty) {
                 Text(
-                    text = "Not enough data yet — keep tracking.",
+                    text = stringResource(R.string.trends_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
@@ -226,11 +228,10 @@ private fun FeedingFrequencyCard(data: List<DailyFeedingCount>) {
         }
     }
     ChartCard(
-        title = "Feeds per day",
+        title = stringResource(R.string.trends_feeds_per_day_title),
         chartTestTag = "trends_feeding_chart",
         isEmpty = isEmpty,
-        chartContentDescription =
-        "Feeds per day. Total ${data.sumOf { it.count }} over ${data.size} days.",
+        chartContentDescription = stringResource(R.string.trends_feeds_per_day_cd, data.sumOf { it.count }, data.size),
     ) {
         CartesianChartHost(
             rememberCartesianChart(
@@ -277,11 +278,10 @@ private fun SleepDurationCard(data: List<DailySleepDuration>) {
         }
     }
     ChartCard(
-        title = "Sleep hours per day (night + nap)",
+        title = stringResource(R.string.trends_sleep_hours_title),
         chartTestTag = "trends_sleep_chart",
         isEmpty = isEmpty,
-        chartContentDescription =
-        "Sleep hours per day, night and nap stacked, over ${data.size} days.",
+        chartContentDescription = stringResource(R.string.trends_sleep_hours_cd, data.size),
     ) {
         CartesianChartHost(
             rememberCartesianChart(
@@ -330,10 +330,10 @@ private fun FeedingIntervalCard(data: List<DailyFeedingInterval>) {
     }
     val line = lineSpec(color)
     ChartCard(
-        title = "Average hours between feeds",
+        title = stringResource(R.string.trends_interval_title),
         chartTestTag = "trends_interval_chart",
         isEmpty = isEmpty,
-        chartContentDescription = "Average hours between feeds per day over ${data.size} days.",
+        chartContentDescription = stringResource(R.string.trends_interval_cd, data.size),
     ) {
         CartesianChartHost(
             rememberCartesianChart(
@@ -377,12 +377,10 @@ private fun FeedVsSleepCard(data: List<DailyFeedVsSleep>) {
     }
     val sleepLine = lineSpec(sleepColor)
     ChartCard(
-        title = "Feeds vs sleep per day",
+        title = stringResource(R.string.trends_feedvssleep_title),
         chartTestTag = "trends_feedvssleep_chart",
         isEmpty = isEmpty,
-        chartContentDescription =
-        "Feeds versus sleep per day over ${data.size} days. " +
-            "Columns are feed count, line is total sleep hours.",
+        chartContentDescription = stringResource(R.string.trends_feedvssleep_cd, data.size),
     ) {
         CartesianChartHost(
             rememberCartesianChart(
@@ -426,12 +424,10 @@ private fun RhythmStripCard(data: List<DayRhythm>) {
         it.sleepBlocks.isEmpty() && it.breastFeedMarks.isEmpty() && it.bottleFeedMarks.isEmpty()
     }
     ChartCard(
-        title = "Daily rhythm (sleep + feeds)",
+        title = stringResource(R.string.trends_rhythm_title),
         chartTestTag = "trends_rhythm_chart",
         isEmpty = isEmpty,
-        chartContentDescription =
-        "Daily rhythm over ${data.size} days, each row a day from midnight to midnight. " +
-            "Bars are sleep, dots are feeds.",
+        chartContentDescription = stringResource(R.string.trends_rhythm_cd, data.size),
         chartHeight = null,
     ) {
         RhythmStrip(data)

@@ -25,11 +25,11 @@ class SleepScreenDesignPolishTest {
         val source = sourceFile("SleepTrackingScreen.kt").readText()
 
         assertTrue(
-            source.contains("contentDescription = \"Change start time\""),
+            source.contains("R.string.change_start_time"),
             "start time control needs an explicit accessibility label"
         )
         assertTrue(
-            source.contains("contentDescription = \"Change end time\""),
+            source.contains("R.string.change_end_time"),
             "end time control needs an explicit accessibility label"
         )
     }
