@@ -112,7 +112,7 @@ fun SleepSettingsScreen(
                 title = { Text(stringResource(R.string.sleep_settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -162,7 +162,7 @@ fun SleepSettingsScreen(
                     if (filtered.length <= 3) napDelayDraft = filtered
                 },
                 label = { Text(stringResource(R.string.settings_nap_reminder_delay_label)) },
-                supportingText = { Text("We'll remind you this many minutes after a nap ends.") },
+                supportingText = { Text(stringResource(R.string.sleep_settings_nap_delay_helper)) },
                 enabled = uiState.napReminderEnabled,
                 modifier = Modifier
                     .fillMaxWidth()

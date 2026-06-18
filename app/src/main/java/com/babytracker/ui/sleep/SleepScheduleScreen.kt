@@ -41,12 +41,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.domain.model.RegressionInfo
 import com.babytracker.domain.model.ScheduleEntry
 import com.babytracker.domain.model.ScheduleMode
@@ -76,15 +78,15 @@ fun SleepScheduleScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Sleep Schedule") },
+                title = { Text(stringResource(R.string.sleep_schedule_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = viewModel::refreshSchedule) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.sleep_schedule_refresh_cd))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -122,7 +124,7 @@ fun SleepScheduleScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Complete onboarding to generate a schedule",
+                        text = stringResource(R.string.sleep_schedule_onboarding),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -165,7 +167,7 @@ private fun ScheduleContent(
 
         item {
             Text(
-                text = "TODAY",
+                text = stringResource(R.string.sleep_today),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
@@ -300,7 +302,7 @@ private fun RegressionWarningCard(info: RegressionInfo) {
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "Typical duration: ${info.durationWeeks}",
+                text = stringResource(R.string.sleep_schedule_typical_duration, info.durationWeeks),
                 style = MaterialTheme.typography.labelSmall,
                 color = onContainerColor.copy(alpha = 0.7f)
             )
@@ -475,7 +477,7 @@ private fun TimelineTextBlock(
                 if (item.isAdjusted) {
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "adjusted",
+                        text = stringResource(R.string.sleep_schedule_adjusted),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.tertiary
                     )
@@ -503,22 +505,25 @@ private fun SleepSummaryCard(schedule: SleepSchedule) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Sleep Summary",
+                text = stringResource(R.string.sleep_schedule_summary_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
 
             SummaryRow(
-                label = "Recommended total sleep",
-                value = "${schedule.totalSleepRecommendation.start.formatDuration()} - " +
-                    "${schedule.totalSleepRecommendation.endInclusive.formatDuration()}"
+                label = stringResource(R.string.sleep_schedule_recommended_total),
+                value = stringResource(
+                    R.string.sleep_schedule_range,
+                    schedule.totalSleepRecommendation.start.formatDuration(),
+                    schedule.totalSleepRecommendation.endInclusive.formatDuration(),
+                )
             )
 
             if (schedule.totalSleepLogged != null) {
                 Spacer(modifier = Modifier.height(4.dp))
                 SummaryRow(
-                    label = "Your baby's average (7 days)",
+                    label = stringResource(R.string.sleep_schedule_average),
                     value = schedule.totalSleepLogged.formatDuration()
                 )
             }
@@ -526,14 +531,14 @@ private fun SleepSummaryCard(schedule: SleepSchedule) {
             if (schedule.lastFeedTime != null) {
                 Spacer(modifier = Modifier.height(4.dp))
                 SummaryRow(
-                    label = "Last feed",
+                    label = stringResource(R.string.sleep_schedule_last_feed),
                     value = schedule.lastFeedTime.formatTime12h()
                 )
             }
 
             Spacer(modifier = Modifier.height(4.dp))
             SummaryRow(
-                label = "Naps per day",
+                label = stringResource(R.string.sleep_schedule_naps_per_day),
                 value = "${schedule.napTimes.size}"
             )
         }
@@ -573,7 +578,7 @@ private fun NapTransitionCard(suggestion: String) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Nap Transition",
+                text = stringResource(R.string.sleep_schedule_nap_transition),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

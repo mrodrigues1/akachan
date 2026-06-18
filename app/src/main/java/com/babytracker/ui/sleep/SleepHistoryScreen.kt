@@ -31,10 +31,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.util.formatDuration
 import com.babytracker.util.toRelativeLabel
 import java.time.Duration
@@ -94,10 +97,10 @@ fun SleepHistoryScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Sleep History") },
+                title = { Text(stringResource(R.string.sleep_history_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -118,12 +121,12 @@ fun SleepHistoryScreen(
                 Text(text = "🌙", style = MaterialTheme.typography.headlineLarge)
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "No sleep records yet",
+                    text = stringResource(R.string.sleep_history_empty_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Sleep sessions you track will appear here",
+                    text = stringResource(R.string.sleep_history_empty_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -139,7 +142,7 @@ fun SleepHistoryScreen(
                         contentColor = MaterialTheme.colorScheme.secondary
                     )
                 ) {
-                    Text("Back to Sleep", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.sleep_back_to_sleep), style = MaterialTheme.typography.labelLarge)
                 }
             }
         } else {
@@ -159,11 +162,25 @@ fun SleepHistoryScreen(
                             record.endTime?.let { end -> Duration.between(record.startTime, end) }
                         }
                         .fold(Duration.ZERO) { acc, d -> acc + d }
-                    val totalLabel = if (totalDuration.isZero) "" else " · ${totalDuration.formatDuration()} total"
-
                     stickyHeader(key = date.toString()) {
+                        val header = if (totalDuration.isZero) {
+                            pluralStringResource(
+                                R.plurals.sleep_history_day_header,
+                                records.size,
+                                date.toRelativeLabel(),
+                                records.size,
+                            )
+                        } else {
+                            pluralStringResource(
+                                R.plurals.sleep_history_day_header_total,
+                                records.size,
+                                date.toRelativeLabel(),
+                                records.size,
+                                totalDuration.formatDuration(),
+                            )
+                        }
                         Text(
-                            text = "${date.toRelativeLabel()} · ${records.size} records$totalLabel".uppercase(),
+                            text = header.uppercase(),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier
