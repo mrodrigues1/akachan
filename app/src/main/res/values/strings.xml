@@ -141,8 +141,10 @@
     <string name="widget_loading">Just a moment…</string>
     <string name="widget_preview_feed_label">Feeding: Right</string>
     <string name="widget_preview_feed_value">12m</string>
+    <string name="widget_preview_feed_emoji">🍼</string>
     <string name="widget_preview_sleep_label">Awake</string>
     <string name="widget_preview_sleep_value">3m</string>
+    <string name="widget_preview_sleep_emoji">🌙</string>
     <string name="milk_stash_widget_description">Milk stash — volume and bag count</string>
 
     <!-- Quick Settings tiles -->
@@ -634,6 +636,31 @@
     <string name="settings_edit_format">Edit %1$s</string>
     <string name="settings_disable_hint">Set to 0 to disable the limit.</string>
     <string name="settings_minutes_label">Minutes (0 = disabled)</string>
+
+    <!-- Settings — language -->
+    <string name="settings_section_language">Language</string>
+    <string name="settings_language_system">System default</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_pt_br">Português (Brasil)</string>
+
+    <!-- Settings — residual values/descriptions -->
+    <string name="settings_not_set">Not set</string>
+    <string name="settings_auto_update_desc">Check for new versions on launch</string>
+    <string name="settings_rich_notifications_desc">Show progress bars and quick actions on notifications</string>
+    <string name="settings_partner_stash_use_desc">Notify me when my partner logs a bottle that uses milk from the stash</string>
+    <string name="settings_partner_sharing_value">Set up as primary parent</string>
+    <string name="settings_connect_partner_value">View a partner\'s baby data</string>
+    <string name="settings_partner_active">Active</string>
+    <string name="settings_disconnect_value">Stop viewing as partner</string>
+    <string name="settings_design_system_value">Colors, typography, shapes</string>
+    <string name="settings_export_pdf_value">Feeding &amp; sleep summary</string>
+    <string name="settings_export_json_value">Full snapshot, restore anytime</string>
+    <string name="settings_export_csv_value">Open in Excel, Numbers, or Sheets</string>
+    <string name="settings_restore_value">Merge records from a JSON backup file</string>
+    <string name="inventory_expiration_tracking_desc">Flag stored milk before it reaches the limit</string>
+    <string name="inventory_expiration_reminders_desc">Send a daily reminder for milk expiring today</string>
+    <string name="pumping_mode_timer">Timer</string>
+    <string name="pumping_mode_manual">Manual</string>
 
     <!-- Inventory (milk stash) -->
     <string name="inventory_title">Milk Stash</string>

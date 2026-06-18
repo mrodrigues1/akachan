@@ -127,7 +127,7 @@ fun DataSection(
 
         DataActionRow(
             label = stringResource(R.string.settings_export_pdf),
-            value = "Feeding & sleep summary",
+            value = stringResource(R.string.settings_export_pdf_value),
             actionLabel = "Export…",
             enabled = !working,
             leadingIcon = {
@@ -143,7 +143,7 @@ fun DataSection(
         HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
         DataActionRow(
             label = stringResource(R.string.settings_export_json),
-            value = "Full snapshot, restore anytime",
+            value = stringResource(R.string.settings_export_json_value),
             actionLabel = "Save",
             enabled = !working,
             leadingIcon = {
@@ -159,7 +159,7 @@ fun DataSection(
         HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
         DataActionRow(
             label = stringResource(R.string.settings_export_csv),
-            value = "Open in Excel, Numbers, or Sheets",
+            value = stringResource(R.string.settings_export_csv_value),
             actionLabel = "Share",
             enabled = !working,
             leadingIcon = {
@@ -176,7 +176,7 @@ fun DataSection(
         HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
         DataActionRow(
             label = stringResource(R.string.settings_restore),
-            value = "Merge records from a JSON backup file",
+            value = stringResource(R.string.settings_restore_value),
             actionLabel = "Restore",
             enabled = !working,
             leadingIcon = {

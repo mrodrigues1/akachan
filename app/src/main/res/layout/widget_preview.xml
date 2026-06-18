@@ -31,7 +31,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
-                android:text="🍼"
+                android:text="@string/widget_preview_feed_emoji"
                 android:textSize="14sp" />
 
             <TextView
@@ -75,7 +75,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
-                android:text="🌙"
+                android:text="@string/widget_preview_sleep_emoji"
                 android:textSize="14sp" />
 
             <TextView

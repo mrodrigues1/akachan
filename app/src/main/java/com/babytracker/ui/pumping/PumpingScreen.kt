@@ -235,8 +235,8 @@ private fun ModeSegmentedControl(
                 label = {
                     Text(
                         text = when (pumpingMode) {
-                            PumpingMode.TIMER -> "Timer"
-                            PumpingMode.MANUAL -> "Manual"
+                            PumpingMode.TIMER -> stringResource(R.string.pumping_mode_timer)
+                            PumpingMode.MANUAL -> stringResource(R.string.pumping_mode_manual)
                         },
                     )
                 },

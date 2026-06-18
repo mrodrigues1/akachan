@@ -114,12 +114,10 @@ android {
     }
 
     lint {
-        baseline = file("lint-baseline.xml")
-        // Detect hardcoded UI text and translation gaps. Kept non-fatal until
-        // the final enforcement issue flips these to error.
-        warning += listOf("HardcodedText", "MissingTranslation")
+        // i18n migration complete — hardcoded UI text and translation gaps now fail the build.
+        error += listOf("HardcodedText", "MissingTranslation", "MissingQuantity", "StringFormatInvalid")
         checkDependencies = false
-        abortOnError = false
+        abortOnError = true
     }
 }
 
@@ -144,6 +142,7 @@ dependencies {
     // Core
     implementation(libs.core.ktx)
     implementation(libs.activity.compose)
+    implementation(libs.androidx.appcompat)
 
     // Lifecycle
     implementation(libs.lifecycle.runtime.ktx)

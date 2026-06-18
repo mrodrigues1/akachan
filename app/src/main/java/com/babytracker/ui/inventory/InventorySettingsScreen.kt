@@ -115,7 +115,7 @@ internal fun InventorySettingsContent(
         SettingsSectionHeader(text = stringResource(R.string.inventory_section_expiration))
         InventorySettingsSwitchRow(
             label = stringResource(R.string.inventory_expiration_tracking),
-            description = "Flag stored milk before it reaches the limit",
+            description = stringResource(R.string.inventory_expiration_tracking_desc),
             checked = state.isExpirationEnabled,
             onCheckedChange = onExpirationEnabledChanged,
         )
@@ -142,7 +142,7 @@ internal fun InventorySettingsContent(
             SettingsSectionHeader(text = stringResource(R.string.inventory_section_notifications))
             InventorySettingsSwitchRow(
                 label = stringResource(R.string.inventory_expiration_reminders),
-                description = "Send a daily reminder for milk expiring today",
+                description = stringResource(R.string.inventory_expiration_reminders_desc),
                 checked = state.isNotificationEnabled,
                 onCheckedChange = onNotifEnabledChanged,
             )

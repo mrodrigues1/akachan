@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.RadioButton
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -61,6 +63,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -219,7 +222,7 @@ fun SettingsScreen(
 
                 SettingsRow(
                     label = stringResource(R.string.settings_name),
-                    value = uiState.baby?.name ?: "Not set",
+                    value = uiState.baby?.name ?: stringResource(R.string.settings_not_set),
                     onClick = { activeSheet = SettingsSheet.NAME }
                 )
                 HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
@@ -227,7 +230,7 @@ fun SettingsScreen(
                 val dateFormatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
                 val birthDateText = uiState.baby?.let { baby ->
                     "${baby.birthDate.format(dateFormatter)} (${baby.ageInWeeks}w old)"
-                } ?: "Not set"
+                } ?: stringResource(R.string.settings_not_set)
                 SettingsRow(
                     label = stringResource(R.string.onboarding_dob_label),
                     value = birthDateText,
@@ -237,7 +240,7 @@ fun SettingsScreen(
 
                 SettingsRow(
                     label = stringResource(R.string.onboarding_sex_label),
-                    value = uiState.baby?.sex?.label ?: "Not set",
+                    value = uiState.baby?.sex?.label ?: stringResource(R.string.settings_not_set),
                     onClick = { activeSheet = SettingsSheet.SEX }
                 )
                 HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
@@ -295,9 +298,9 @@ fun SettingsScreen(
             SettingsRow(
                 label = stringResource(R.string.settings_theme),
                 value = when (uiState.themeConfig) {
-                    ThemeConfig.SYSTEM -> "System"
-                    ThemeConfig.LIGHT -> "Light"
-                    ThemeConfig.DARK -> "Dark"
+                    ThemeConfig.SYSTEM -> stringResource(R.string.settings_theme_system)
+                    ThemeConfig.LIGHT -> stringResource(R.string.settings_theme_light)
+                    ThemeConfig.DARK -> stringResource(R.string.settings_theme_dark)
                 },
                 onClick = { activeSheet = SettingsSheet.THEME }
             )
@@ -325,10 +328,39 @@ fun SettingsScreen(
 
             SettingsSwitchRow(
                 label = stringResource(R.string.settings_auto_update),
-                description = "Check for new versions on launch",
+                description = stringResource(R.string.settings_auto_update_desc),
                 checked = uiState.autoUpdateEnabled,
                 onCheckedChange = viewModel::onAutoUpdateChanged,
             )
+
+            HorizontalDivider()
+            Text(
+                text = stringResource(R.string.settings_section_language),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            )
+            var selectedLocale by remember { mutableStateOf(AppLocale.current()) }
+            AppLocale.entries.forEach { appLocale ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .selectable(
+                            selected = selectedLocale == appLocale,
+                            role = Role.RadioButton,
+                            onClick = {
+                                selectedLocale = appLocale
+                                AppLocale.apply(appLocale)
+                            },
+                        )
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = selectedLocale == appLocale, onClick = null)
+                    Spacer(Modifier.width(12.dp))
+                    Text(stringResource(appLocale.labelRes))
+                }
+            }
 
             if (uiState.appMode != null && uiState.appMode != AppMode.PARTNER) {
                 HorizontalDivider()
@@ -340,13 +372,13 @@ fun SettingsScreen(
                 )
                 SettingsSwitchRow(
                     label = stringResource(R.string.settings_rich_notifications),
-                    description = "Show progress bars and quick actions on notifications",
+                    description = stringResource(R.string.settings_rich_notifications_desc),
                     checked = uiState.richNotificationsEnabled,
                     onCheckedChange = { viewModel.onRichNotificationsToggled(it) },
                 )
                 SettingsSwitchRow(
                     label = stringResource(R.string.settings_partner_stash_use),
-                    description = "Notify me when my partner logs a bottle that uses milk from the stash",
+                    description = stringResource(R.string.settings_partner_stash_use_desc),
                     checked = uiState.partnerStashNotificationsEnabled,
                     onCheckedChange = { viewModel.onPartnerStashNotificationsToggled(it) },
                 )
@@ -377,24 +409,24 @@ fun SettingsScreen(
                 AppMode.NONE -> {
                     SettingsRow(
                         label = stringResource(R.string.settings_partner_sharing),
-                        value = "Set up as primary parent",
+                        value = stringResource(R.string.settings_partner_sharing_value),
                         onClick = onNavigateToManageSharing,
                     )
                     HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
                     SettingsRow(
                         label = stringResource(R.string.settings_connect_partner),
-                        value = "View a partner's baby data",
+                        value = stringResource(R.string.settings_connect_partner_value),
                         onClick = onNavigateToConnectPartner,
                     )
                 }
                 AppMode.PRIMARY -> SettingsRow(
                     label = stringResource(R.string.settings_manage_sharing),
-                    value = "Active",
+                    value = stringResource(R.string.settings_partner_active),
                     onClick = onNavigateToManageSharing,
                 )
                 AppMode.PARTNER -> SettingsRow(
                     label = stringResource(R.string.settings_disconnect),
-                    value = "Stop viewing as partner",
+                    value = stringResource(R.string.settings_disconnect_value),
                     actionLabel = "Disconnect",
                     actionColor = MaterialTheme.colorScheme.error,
                     onClick = viewModel::disconnect,
@@ -414,7 +446,7 @@ fun SettingsScreen(
 
                 SettingsRow(
                     label = stringResource(R.string.settings_design_system),
-                    value = "Colors, typography, shapes",
+                    value = stringResource(R.string.settings_design_system_value),
                     onClick = onNavigateToDesignSystem,
                 )
 
