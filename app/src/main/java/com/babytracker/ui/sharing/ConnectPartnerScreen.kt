@@ -30,6 +30,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.babytracker.R
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -58,10 +60,10 @@ fun ConnectPartnerScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Connect as Partner") },
+                title = { Text(stringResource(R.string.settings_connect_partner)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -79,13 +81,13 @@ fun ConnectPartnerScreen(
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "Enter the code shared by your partner",
+                text = stringResource(R.string.sharing_connect_enter_code),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Ask the primary parent to open Partner Sharing in their app settings.",
+                text = stringResource(R.string.sharing_connect_ask),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -94,8 +96,8 @@ fun ConnectPartnerScreen(
             OutlinedTextField(
                 value = uiState.code,
                 onValueChange = viewModel::onCodeChanged,
-                label = { Text("Share code") },
-                placeholder = { Text("ABCD1234") },
+                label = { Text(stringResource(R.string.sharing_code_label)) },
+                placeholder = { Text(stringResource(R.string.sharing_code_placeholder)) },
                 singleLine = true,
                 isError = uiState.error != null,
                 keyboardOptions = KeyboardOptions(
@@ -131,11 +133,11 @@ fun ConnectPartnerScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text("Connect")
+                Text(stringResource(R.string.sharing_connect))
             }
             Spacer(modifier = Modifier.height(16.dp))
             TextButton(onClick = onNavigateBack) {
-                Text("I'm the primary parent →")
+                Text(stringResource(R.string.sharing_im_primary))
             }
         }
     }
