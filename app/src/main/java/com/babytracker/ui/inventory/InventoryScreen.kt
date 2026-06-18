@@ -47,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +59,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import com.babytracker.R
 import com.babytracker.domain.model.ExpirationStatus
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.MilkBag
@@ -102,15 +104,15 @@ fun InventoryScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Milk Stash") },
+                title = { Text(stringResource(R.string.inventory_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Milk stash settings")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.inventory_settings_cd))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -120,7 +122,7 @@ fun InventoryScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = viewModel::onAddBagClicked) {
-                Icon(Icons.Default.Add, contentDescription = "Add bag")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.inventory_add_bag_cd))
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -154,7 +156,7 @@ fun InventoryScreen(
             onFieldChange = viewModel::onEditBagFieldChange,
             onConfirm = viewModel::onEditBagConfirm,
             onDismiss = viewModel::onEditBagDismiss,
-            title = "Edit milk bag",
+            title = stringResource(R.string.inventory_edit_bag_title),
             confirmLabel = "Save changes",
         )
     }
@@ -188,13 +190,13 @@ internal fun InventoryContent(
                 Text(text = "🧊", style = MaterialTheme.typography.displaySmall)
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = "No bags in your stash yet",
+                    text = stringResource(R.string.inventory_empty_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(
-                    text = "Tap + to add a bag manually",
+                    text = stringResource(R.string.inventory_empty_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -252,7 +254,7 @@ private fun SummaryCard(
         ) {
             StatColumn(
                 value = formatVolume(summary.totalMl, volumeUnit),
-                label = "TOTAL",
+                label = stringResource(R.string.inventory_stat_total),
                 modifier = Modifier.weight(1f),
             )
             VerticalDivider(
@@ -261,7 +263,7 @@ private fun SummaryCard(
             )
             StatColumn(
                 value = "${summary.bagCount}",
-                label = "BAGS",
+                label = stringResource(R.string.inventory_stat_bags),
                 modifier = Modifier.weight(1f),
             )
             if (summary.oldestBagDate != null) {
@@ -271,7 +273,7 @@ private fun SummaryCard(
                 )
                 StatColumn(
                     value = Duration.between(summary.oldestBagDate, Instant.now()).formatElapsedCompact(),
-                    label = "OLDEST",
+                    label = stringResource(R.string.inventory_stat_oldest),
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -389,7 +391,7 @@ private fun MilkBagRow(
                     color = contentColor.copy(alpha = 0.8f),
                 )
                 Text(
-                    text = "Pumped ${Duration.between(bag.collectionDate, Instant.now()).formatElapsedAgo()}",
+                    text = stringResource(R.string.inventory_pumped, Duration.between(bag.collectionDate, Instant.now()).formatElapsedAgo()),
                     style = MaterialTheme.typography.bodySmall,
                     color = supportingColor,
                 )
@@ -398,7 +400,7 @@ private fun MilkBagRow(
             IconButton(onClick = onMarkUsed) {
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = "Mark used",
+                    contentDescription = stringResource(R.string.inventory_mark_used_cd),
                     tint = markUsedColor,
                 )
             }
@@ -407,7 +409,7 @@ private fun MilkBagRow(
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "More options",
+                        contentDescription = stringResource(R.string.more_options),
                         tint = contentColor,
                     )
                 }
@@ -416,14 +418,14 @@ private fun MilkBagRow(
                     onDismissRequest = { menuExpanded = false },
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Edit") },
+                        text = { Text(stringResource(R.string.edit)) },
                         onClick = {
                             menuExpanded = false
                             onEdit()
                         },
                     )
                     DropdownMenuItem(
-                        text = { Text("Delete") },
+                        text = { Text(stringResource(R.string.delete)) },
                         onClick = {
                             menuExpanded = false
                             onDelete()
@@ -444,16 +446,16 @@ private fun MilkBagDeleteConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Delete bag?") },
-        text = { Text("${formatVolume(bag.volumeMl, volumeUnit)} bag will be removed.") },
+        title = { Text(stringResource(R.string.inventory_delete_title)) },
+        text = { Text(stringResource(R.string.inventory_delete_message, formatVolume(bag.volumeMl, volumeUnit))) },
         confirmButton = {
             Button(
                 onClick = onConfirm,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) { Text("Delete") }
+            ) { Text(stringResource(R.string.delete)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }

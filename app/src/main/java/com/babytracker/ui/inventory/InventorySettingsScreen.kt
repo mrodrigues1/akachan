@@ -37,6 +37,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.babytracker.R
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
@@ -60,10 +62,10 @@ fun InventorySettingsScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Milk Stash Settings") },
+                title = { Text(stringResource(R.string.inventory_settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -110,9 +112,9 @@ internal fun InventorySettingsContent(
             .verticalScroll(rememberScrollState())
             .imePadding(),
     ) {
-        SettingsSectionHeader(text = "EXPIRATION TRACKING")
+        SettingsSectionHeader(text = stringResource(R.string.inventory_section_expiration))
         InventorySettingsSwitchRow(
-            label = "Expiration tracking",
+            label = stringResource(R.string.inventory_expiration_tracking),
             description = "Flag stored milk before it reaches the limit",
             checked = state.isExpirationEnabled,
             onCheckedChange = onExpirationEnabledChanged,
@@ -123,8 +125,8 @@ internal fun InventorySettingsContent(
             OutlinedTextField(
                 value = state.expirationDays,
                 onValueChange = onDaysChanged,
-                label = { Text("Expires after") },
-                suffix = { Text("days") },
+                label = { Text(stringResource(R.string.inventory_expires_after)) },
+                suffix = { Text(stringResource(R.string.inventory_days_suffix)) },
                 isError = state.validationError != null,
                 supportingText = state.validationError?.let { error ->
                     { Text(error) }
@@ -137,9 +139,9 @@ internal fun InventorySettingsContent(
             )
 
             HorizontalDivider()
-            SettingsSectionHeader(text = "NOTIFICATIONS")
+            SettingsSectionHeader(text = stringResource(R.string.inventory_section_notifications))
             InventorySettingsSwitchRow(
-                label = "Expiration reminders",
+                label = stringResource(R.string.inventory_expiration_reminders),
                 description = "Send a daily reminder for milk expiring today",
                 checked = state.isNotificationEnabled,
                 onCheckedChange = onNotifEnabledChanged,
@@ -214,9 +216,9 @@ private fun NotificationTimeRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = "Notify at", style = MaterialTheme.typography.bodyLarge)
+            Text(text = stringResource(R.string.inventory_notify_at), style = MaterialTheme.typography.bodyLarge)
             Text(
-                text = "Daily expiration check",
+                text = stringResource(R.string.inventory_daily_check),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -246,20 +248,20 @@ private fun InventorySettingsTimePickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
         confirmButton = {
             TextButton(
                 onClick = {
                     onConfirm(pickerState.hour * MINUTES_PER_HOUR + pickerState.minute)
                 },
             ) {
-                Text("OK")
+                Text(stringResource(R.string.ok))
             }
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
-                    text = "Reminder time",
+                    text = stringResource(R.string.inventory_reminder_time),
                     style = MaterialTheme.typography.titleMedium,
                 )
                 TimePicker(state = pickerState)

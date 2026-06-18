@@ -267,12 +267,12 @@ internal fun MinutesEditSheet(
             .imePadding(),
     ) {
         Text(
-            text = "Edit $title",
+            text = stringResource(R.string.settings_edit_format, title),
             style = MaterialTheme.typography.titleLarge,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Set to 0 to disable the limit.",
+            text = stringResource(R.string.settings_disable_hint),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -283,7 +283,7 @@ internal fun MinutesEditSheet(
                 val filtered = input.filter { it.isDigit() }
                 if (filtered.length <= 3) text = filtered
             },
-            label = { Text("Minutes (0 = disabled)") },
+            label = { Text(stringResource(R.string.settings_minutes_label)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth(),
@@ -293,9 +293,9 @@ internal fun MinutesEditSheet(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
         ) {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
             Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-            Button(onClick = { onSave(minutes) }) { Text("Save") }
+            Button(onClick = { onSave(minutes) }) { Text(stringResource(R.string.save)) }
         }
     }
 }
@@ -308,8 +308,8 @@ private fun TimePickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("OK") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.ok)) } },
         text = { content() },
     )
 }

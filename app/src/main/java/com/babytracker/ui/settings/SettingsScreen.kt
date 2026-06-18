@@ -191,10 +191,10 @@ fun SettingsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -211,14 +211,14 @@ fun SettingsScreen(
         ) {
             if (uiState.appMode != null && uiState.appMode != AppMode.PARTNER) {
                 Text(
-                    text = "Baby Profile",
+                    text = stringResource(R.string.settings_baby_profile),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                 )
 
                 SettingsRow(
-                    label = "Name",
+                    label = stringResource(R.string.settings_name),
                     value = uiState.baby?.name ?: "Not set",
                     onClick = { activeSheet = SettingsSheet.NAME }
                 )
@@ -229,14 +229,14 @@ fun SettingsScreen(
                     "${baby.birthDate.format(dateFormatter)} (${baby.ageInWeeks}w old)"
                 } ?: "Not set"
                 SettingsRow(
-                    label = "Date of birth",
+                    label = stringResource(R.string.onboarding_dob_label),
                     value = birthDateText,
                     onClick = { activeSheet = SettingsSheet.BIRTH_DATE }
                 )
                 HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
 
                 SettingsRow(
-                    label = "Sex",
+                    label = stringResource(R.string.onboarding_sex_label),
                     value = uiState.baby?.sex?.label ?: "Not set",
                     onClick = { activeSheet = SettingsSheet.SEX }
                 )
@@ -252,13 +252,13 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Allergies",
+                            text = stringResource(R.string.onboarding_preview_allergies),
                             style = MaterialTheme.typography.bodyLarge,
                         )
                         val allergies = uiState.baby?.allergies.orEmpty()
                         if (allergies.isEmpty()) {
                             Text(
-                                text = "None",
+                                text = stringResource(R.string.settings_allergies_none),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -278,7 +278,7 @@ fun SettingsScreen(
                         }
                     }
                     TextButton(onClick = { activeSheet = SettingsSheet.ALLERGIES }) {
-                        Text("Edit")
+                        Text(stringResource(R.string.edit))
                     }
                 }
 
@@ -286,14 +286,14 @@ fun SettingsScreen(
             }
 
             Text(
-                text = "App Settings",
+                text = stringResource(R.string.settings_app_settings),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
             )
 
             SettingsRow(
-                label = "Theme",
+                label = stringResource(R.string.settings_theme),
                 value = when (uiState.themeConfig) {
                     ThemeConfig.SYSTEM -> "System"
                     ThemeConfig.LIGHT -> "Light"
@@ -324,7 +324,7 @@ fun SettingsScreen(
             HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
 
             SettingsSwitchRow(
-                label = "Auto-update",
+                label = stringResource(R.string.settings_auto_update),
                 description = "Check for new versions on launch",
                 checked = uiState.autoUpdateEnabled,
                 onCheckedChange = viewModel::onAutoUpdateChanged,
@@ -333,19 +333,19 @@ fun SettingsScreen(
             if (uiState.appMode != null && uiState.appMode != AppMode.PARTNER) {
                 HorizontalDivider()
                 Text(
-                    text = "Notifications",
+                    text = stringResource(R.string.settings_notifications_section),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                 )
                 SettingsSwitchRow(
-                    label = "Rich notifications",
+                    label = stringResource(R.string.settings_rich_notifications),
                     description = "Show progress bars and quick actions on notifications",
                     checked = uiState.richNotificationsEnabled,
                     onCheckedChange = { viewModel.onRichNotificationsToggled(it) },
                 )
                 SettingsSwitchRow(
-                    label = "Partner stash use",
+                    label = stringResource(R.string.settings_partner_stash_use),
                     description = "Notify me when my partner logs a bottle that uses milk from the stash",
                     checked = uiState.partnerStashNotificationsEnabled,
                     onCheckedChange = { viewModel.onPartnerStashNotificationsToggled(it) },
@@ -368,7 +368,7 @@ fun SettingsScreen(
             }
 
             Text(
-                text = "Partner Access",
+                text = stringResource(R.string.settings_partner_access),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -376,24 +376,24 @@ fun SettingsScreen(
             when (uiState.appMode) {
                 AppMode.NONE -> {
                     SettingsRow(
-                        label = "Partner Sharing",
+                        label = stringResource(R.string.settings_partner_sharing),
                         value = "Set up as primary parent",
                         onClick = onNavigateToManageSharing,
                     )
                     HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
                     SettingsRow(
-                        label = "Connect as Partner",
+                        label = stringResource(R.string.settings_connect_partner),
                         value = "View a partner's baby data",
                         onClick = onNavigateToConnectPartner,
                     )
                 }
                 AppMode.PRIMARY -> SettingsRow(
-                    label = "Manage Sharing",
+                    label = stringResource(R.string.settings_manage_sharing),
                     value = "Active",
                     onClick = onNavigateToManageSharing,
                 )
                 AppMode.PARTNER -> SettingsRow(
-                    label = "Disconnect",
+                    label = stringResource(R.string.settings_disconnect),
                     value = "Stop viewing as partner",
                     actionLabel = "Disconnect",
                     actionColor = MaterialTheme.colorScheme.error,
@@ -406,14 +406,14 @@ fun SettingsScreen(
 
             if (BuildConfig.DEBUG) {
                 Text(
-                    text = "Developer",
+                    text = stringResource(R.string.settings_developer),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                 )
 
                 SettingsRow(
-                    label = "Design System",
+                    label = stringResource(R.string.settings_design_system),
                     value = "Colors, typography, shapes",
                     onClick = onNavigateToDesignSystem,
                 )
@@ -423,7 +423,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
             Text(
-                text = "Akachan v${BuildConfig.VERSION_NAME}",
+                text = stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
@@ -556,14 +556,14 @@ private fun NameEditSheet(
             .imePadding(),
     ) {
         Text(
-            text = "Edit name",
+            text = stringResource(R.string.settings_edit_name),
             style = MaterialTheme.typography.titleLarge,
         )
         Spacer(modifier = Modifier.height(16.dp))
         OutlinedTextField(
             value = name,
             onValueChange = { if (it.length <= 50) name = it },
-            label = { Text("Baby's name") },
+            label = { Text(stringResource(R.string.onboarding_baby_name_label)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Words,
@@ -575,12 +575,12 @@ private fun NameEditSheet(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
         ) {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
             Spacer(modifier = Modifier.padding(horizontal = 4.dp))
             Button(
                 onClick = { onSave(name) },
                 enabled = name.isNotBlank(),
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.save)) }
         }
     }
 }
@@ -603,7 +603,7 @@ private fun BirthDateEditSheet(
             .padding(bottom = 24.dp),
     ) {
         Text(
-            text = "Edit date of birth",
+            text = stringResource(R.string.settings_edit_dob),
             style = MaterialTheme.typography.titleLarge,
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -611,21 +611,21 @@ private fun BirthDateEditSheet(
             value = selectedDate.format(formatter),
             onValueChange = {},
             readOnly = true,
-            label = { Text("Date of birth") },
+            label = { Text(stringResource(R.string.onboarding_dob_label)) },
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(8.dp))
         TextButton(onClick = { showPicker = true }) {
-            Text("Change date")
+            Text(stringResource(R.string.change_date))
         }
         Spacer(modifier = Modifier.height(16.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
         ) {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
             Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-            Button(onClick = { onSave(selectedDate) }) { Text("Save") }
+            Button(onClick = { onSave(selectedDate) }) { Text(stringResource(R.string.save)) }
         }
     }
 
@@ -655,10 +655,10 @@ private fun BirthDateEditSheet(
                             .toLocalDate()
                     }
                     showPicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showPicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.cancel)) }
             },
         ) {
             DatePicker(state = datePickerState)
@@ -685,7 +685,7 @@ private fun AllergiesEditSheet(
             .padding(bottom = 24.dp),
     ) {
         Text(
-            text = "Edit allergies",
+            text = stringResource(R.string.settings_edit_allergies),
             style = MaterialTheme.typography.titleLarge,
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -719,9 +719,9 @@ private fun AllergiesEditSheet(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
         ) {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
             Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-            Button(onClick = { onSave(selectedAllergies, customNote) }) { Text("Save") }
+            Button(onClick = { onSave(selectedAllergies, customNote) }) { Text(stringResource(R.string.save)) }
         }
     }
 }
@@ -739,23 +739,23 @@ private fun ThemeSelectionSheet(
             .padding(bottom = 24.dp),
     ) {
         Text(
-            text = "Select theme",
+            text = stringResource(R.string.settings_select_theme),
             style = MaterialTheme.typography.titleLarge,
         )
         Spacer(modifier = Modifier.height(16.dp))
 
         ThemeOption(
-            label = "System",
+            label = stringResource(R.string.settings_theme_system),
             selected = currentConfig == ThemeConfig.SYSTEM,
             onClick = { onSave(ThemeConfig.SYSTEM) },
         )
         ThemeOption(
-            label = "Light",
+            label = stringResource(R.string.settings_theme_light),
             selected = currentConfig == ThemeConfig.LIGHT,
             onClick = { onSave(ThemeConfig.LIGHT) },
         )
         ThemeOption(
-            label = "Dark",
+            label = stringResource(R.string.settings_theme_dark),
             selected = currentConfig == ThemeConfig.DARK,
             onClick = { onSave(ThemeConfig.DARK) },
         )
@@ -765,7 +765,7 @@ private fun ThemeSelectionSheet(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
         ) {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     }
 }
@@ -783,12 +783,12 @@ private fun SexSelectionSheet(
             .padding(bottom = 24.dp),
     ) {
         Text(
-            text = "Baby's sex",
+            text = stringResource(R.string.settings_baby_sex),
             style = MaterialTheme.typography.titleLarge,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Used to show growth percentiles against the WHO charts.",
+            text = stringResource(R.string.settings_sex_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -807,7 +807,7 @@ private fun SexSelectionSheet(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
         ) {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     }
 }
