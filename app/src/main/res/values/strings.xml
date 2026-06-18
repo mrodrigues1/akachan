@@ -580,4 +580,84 @@
     <string name="milestone_change_photo">Change photo</string>
     <string name="milestone_note_label">Note (optional)</string>
     <string name="milestone_saving_photo">Saving photo…</string>
+
+    <!-- Shared generic labels (settings/inventory) -->
+    <string name="dismiss">Dismiss</string>
+
+    <!-- Settings (residual) -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_baby_profile">Baby Profile</string>
+    <string name="settings_name">Name</string>
+    <string name="settings_allergies_none">None</string>
+    <string name="settings_app_settings">App Settings</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_auto_update">Auto-update</string>
+    <string name="settings_notifications_section">Notifications</string>
+    <string name="settings_rich_notifications">Rich notifications</string>
+    <string name="settings_partner_stash_use">Partner stash use</string>
+    <string name="settings_partner_access">Partner Access</string>
+    <string name="settings_partner_sharing">Partner Sharing</string>
+    <string name="settings_connect_partner">Connect as Partner</string>
+    <string name="settings_manage_sharing">Manage Sharing</string>
+    <string name="settings_disconnect">Disconnect</string>
+    <string name="settings_developer">Developer</string>
+    <string name="settings_design_system">Design System</string>
+    <string name="settings_version">Akachan v%1$s</string>
+    <string name="settings_edit_name">Edit name</string>
+    <string name="settings_edit_dob">Edit date of birth</string>
+    <string name="settings_edit_allergies">Edit allergies</string>
+    <string name="settings_select_theme">Select theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_baby_sex">Baby\'s sex</string>
+    <string name="settings_sex_subtitle">Used to show growth percentiles against the WHO charts.</string>
+    <string name="settings_data_section">Data</string>
+    <string name="settings_import_incomplete">Your last import may be incomplete. Re-import your backup to finish.</string>
+    <string name="settings_export_pdf">PDF report</string>
+    <string name="settings_export_json">Backup (JSON)</string>
+    <string name="settings_export_csv">Spreadsheet (CSV)</string>
+    <string name="settings_restore">Restore from backup</string>
+    <string name="settings_import_title">Import backup?</string>
+    <string name="settings_import_feeding">• %1$d feeding sessions</string>
+    <string name="settings_import_sleep">• %1$d sleep records</string>
+    <string name="settings_import_pumping">• %1$d pumping sessions</string>
+    <string name="settings_import_milk_bags">• %1$d milk bags</string>
+    <string name="settings_import_bottle_feeds">• %1$d bottle feeds</string>
+    <string name="settings_import_growth">• %1$d growth measurements</string>
+    <string name="settings_import_milestones">• %1$d milestones</string>
+    <string name="settings_import_confirm">Import</string>
+    <string name="settings_pdf_report_title">PDF Report</string>
+    <string name="settings_pdf_date_range">Choose the date range to include</string>
+    <string name="settings_save_pdf">Save PDF</string>
+    <string name="settings_share_pdf">Share PDF</string>
+    <string name="settings_edit_format">Edit %1$s</string>
+    <string name="settings_disable_hint">Set to 0 to disable the limit.</string>
+    <string name="settings_minutes_label">Minutes (0 = disabled)</string>
+
+    <!-- Inventory (milk stash) -->
+    <string name="inventory_title">Milk Stash</string>
+    <string name="inventory_settings_cd">Milk stash settings</string>
+    <string name="inventory_settings_title">Milk Stash Settings</string>
+    <string name="inventory_add_bag_cd">Add bag</string>
+    <string name="inventory_edit_bag_title">Edit milk bag</string>
+    <string name="inventory_empty_title">No bags in your stash yet</string>
+    <string name="inventory_empty_subtitle">Tap + to add a bag manually</string>
+    <string name="inventory_stat_total">TOTAL</string>
+    <string name="inventory_stat_bags">BAGS</string>
+    <string name="inventory_stat_oldest">OLDEST</string>
+    <string name="inventory_pumped">Pumped %1$s</string>
+    <string name="inventory_mark_used_cd">Mark used</string>
+    <string name="inventory_delete_title">Delete bag?</string>
+    <string name="inventory_delete_message">%1$s bag will be removed.</string>
+    <string name="inventory_collection_date">COLLECTION DATE</string>
+    <string name="inventory_section_expiration">EXPIRATION TRACKING</string>
+    <string name="inventory_expiration_tracking">Expiration tracking</string>
+    <string name="inventory_expires_after">Expires after</string>
+    <string name="inventory_days_suffix">days</string>
+    <string name="inventory_section_notifications">NOTIFICATIONS</string>
+    <string name="inventory_expiration_reminders">Expiration reminders</string>
+    <string name="inventory_notify_at">Notify at</string>
+    <string name="inventory_daily_check">Daily expiration check</string>
+    <string name="inventory_reminder_time">Reminder time</string>
 </resources>

@@ -40,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -47,6 +48,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import com.babytracker.export.domain.model.DateRange
 import kotlinx.coroutines.launch
 
@@ -68,7 +70,7 @@ fun DataSection(
 
     Column(modifier = modifier) {
         Text(
-            text = "Data",
+            text = stringResource(R.string.settings_data_section),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -109,14 +111,14 @@ fun DataSection(
                     onClick = onDismissMessage,
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
                 ) {
-                    Text("Dismiss")
+                    Text(stringResource(R.string.dismiss))
                 }
             }
         }
 
         if (state.importIncomplete) {
             WarningSurface(
-                title = "Your last import may be incomplete. Re-import your backup to finish.",
+                title = stringResource(R.string.settings_import_incomplete),
                 actionLabel = "Re-import",
                 onAction = onImport,
                 modifier = Modifier.testTag("importIncompleteNotice"),
@@ -124,7 +126,7 @@ fun DataSection(
         }
 
         DataActionRow(
-            label = "PDF report",
+            label = stringResource(R.string.settings_export_pdf),
             value = "Feeding & sleep summary",
             actionLabel = "Export…",
             enabled = !working,
@@ -140,7 +142,7 @@ fun DataSection(
         )
         HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
         DataActionRow(
-            label = "Backup (JSON)",
+            label = stringResource(R.string.settings_export_json),
             value = "Full snapshot, restore anytime",
             actionLabel = "Save",
             enabled = !working,
@@ -156,7 +158,7 @@ fun DataSection(
         )
         HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
         DataActionRow(
-            label = "Spreadsheet (CSV)",
+            label = stringResource(R.string.settings_export_csv),
             value = "Open in Excel, Numbers, or Sheets",
             actionLabel = "Share",
             enabled = !working,
@@ -173,7 +175,7 @@ fun DataSection(
 
         HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
         DataActionRow(
-            label = "Restore from backup",
+            label = stringResource(R.string.settings_restore),
             value = "Merge records from a JSON backup file",
             actionLabel = "Restore",
             enabled = !working,
@@ -207,7 +209,7 @@ fun DataSection(
     if (preview != null) {
         AlertDialog(
             onDismissRequest = onCancelImport,
-            title = { Text("Import backup?") },
+            title = { Text(stringResource(R.string.settings_import_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
@@ -215,13 +217,13 @@ fun DataSection(
                         modifier = Modifier.testTag("importConfirmText"),
                     )
                     Spacer(Modifier.height(8.dp))
-                    Text("• ${preview.breastfeeding} feeding sessions")
-                    Text("• ${preview.sleep} sleep records")
-                    Text("• ${preview.pumping} pumping sessions")
-                    Text("• ${preview.milkBags} milk bags")
-                    Text("• ${preview.bottleFeeds} bottle feeds")
-                    Text("• ${preview.growth} growth measurements")
-                    Text("• ${preview.milestones} milestones")
+                    Text(stringResource(R.string.settings_import_feeding, preview.breastfeeding))
+                    Text(stringResource(R.string.settings_import_sleep, preview.sleep))
+                    Text(stringResource(R.string.settings_import_pumping, preview.pumping))
+                    Text(stringResource(R.string.settings_import_milk_bags, preview.milkBags))
+                    Text(stringResource(R.string.settings_import_bottle_feeds, preview.bottleFeeds))
+                    Text(stringResource(R.string.settings_import_growth, preview.growth))
+                    Text(stringResource(R.string.settings_import_milestones, preview.milestones))
                     Spacer(Modifier.height(8.dp))
                     Text(
                         "Existing records are kept; duplicates are skipped. Milestone photos are not included in backups.",
@@ -230,8 +232,8 @@ fun DataSection(
                     )
                 }
             },
-            confirmButton = { TextButton(onClick = onConfirmImport, enabled = !working) { Text("Import") } },
-            dismissButton = { TextButton(onClick = onCancelImport) { Text("Cancel") } },
+            confirmButton = { TextButton(onClick = onConfirmImport, enabled = !working) { Text(stringResource(R.string.settings_import_confirm)) } },
+            dismissButton = { TextButton(onClick = onCancelImport) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }
@@ -303,10 +305,10 @@ private fun RangePickerSheet(
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 32.dp),
         ) {
-            Text("PDF Report", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.settings_pdf_report_title), style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "Choose the date range to include",
+                text = stringResource(R.string.settings_pdf_date_range),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -328,14 +330,14 @@ private fun RangePickerSheet(
                 onClick = { dismissThen(onSave) },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Save PDF")
+                Text(stringResource(R.string.settings_save_pdf))
             }
             Spacer(Modifier.height(8.dp))
             OutlinedButton(
                 onClick = { dismissThen(onShare) },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Share PDF")
+                Text(stringResource(R.string.settings_share_pdf))
             }
         }
     }

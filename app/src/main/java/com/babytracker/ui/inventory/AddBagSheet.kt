@@ -19,9 +19,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import com.babytracker.ui.common.DateTimeFieldRow
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,7 +59,7 @@ fun AddBagSheet(
             )
             Spacer(Modifier.height(16.dp))
             DateTimeFieldRow(
-                label = "COLLECTION DATE",
+                label = stringResource(R.string.inventory_collection_date),
                 timestamp = state.collectionDate,
                 onChange = { newDate -> onFieldChange { it.copy(collectionDate = newDate) } },
                 enabled = !state.isSaving,
@@ -73,7 +75,7 @@ fun AddBagSheet(
                         )
                     }
                 },
-                label = { Text("Volume (mL)") },
+                label = { Text(stringResource(R.string.bottle_feed_volume_label)) },
                 singleLine = true,
                 isError = state.validationError != null,
                 enabled = !state.isSaving,
@@ -85,7 +87,7 @@ fun AddBagSheet(
             OutlinedTextField(
                 value = state.notes,
                 onValueChange = { value -> onFieldChange { it.copy(notes = value) } },
-                label = { Text("Notes (optional)") },
+                label = { Text(stringResource(R.string.growth_notes_label)) },
                 enabled = !state.isSaving,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -112,7 +114,7 @@ fun AddBagSheet(
                 enabled = !state.isSaving,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Cancel", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.cancel), style = MaterialTheme.typography.labelLarge)
             }
             Spacer(Modifier.height(8.dp))
         }
