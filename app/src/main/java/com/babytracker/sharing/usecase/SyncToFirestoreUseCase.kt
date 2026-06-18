@@ -1,5 +1,7 @@
 package com.babytracker.sharing.usecase
 
+import android.content.Context
+import com.babytracker.R
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.sharing.domain.model.AppMode
@@ -10,6 +12,8 @@ import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.toSnapshot
 import com.babytracker.sharing.domain.model.toSnapshotFields
 import com.babytracker.sharing.domain.repository.SharingRepository
+import com.babytracker.util.resolve
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import java.time.Instant
 import javax.inject.Inject
@@ -19,6 +23,7 @@ class SyncToFirestoreUseCase @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val sleepSettingsRepository: SleepSettingsRepository,
     private val sources: SnapshotSources,
+    @ApplicationContext private val appContext: Context,
     private val now: () -> Instant = Instant::now,
 ) {
     enum class SyncType { FULL, SESSIONS, SLEEP_RECORDS, BABY, INVENTORY, BOTTLE_FEEDS, DIAPERS }
@@ -92,7 +97,11 @@ class SyncToFirestoreUseCase @Inject constructor(
     // until the next full sync.
     private suspend fun currentPrediction(generatedAtMs: Long): SleepPredictionSnapshot? =
         if (sleepSettingsRepository.getPredictiveSleepEnabled().first()) {
-            sources.predictSleepWindow().first().toSnapshot(generatedAtMs)
+            sources.predictSleepWindow().first().toSnapshot(
+                generatedAt = generatedAtMs,
+                resolveReason = { it.resolve(appContext) },
+                feedPromptText = appContext.getString(R.string.sleep_feed_prompt),
+            )
         } else {
             null
         }

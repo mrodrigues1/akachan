@@ -119,7 +119,7 @@ fun DataSection(
         if (state.importIncomplete) {
             WarningSurface(
                 title = stringResource(R.string.settings_import_incomplete),
-                actionLabel = "Re-import",
+                actionLabel = stringResource(R.string.action_reimport),
                 onAction = onImport,
                 modifier = Modifier.testTag("importIncompleteNotice"),
             )
@@ -128,7 +128,7 @@ fun DataSection(
         DataActionRow(
             label = stringResource(R.string.settings_export_pdf),
             value = stringResource(R.string.settings_export_pdf_value),
-            actionLabel = "Export…",
+            actionLabel = stringResource(R.string.action_export),
             enabled = !working,
             leadingIcon = {
                 Icon(
@@ -144,7 +144,7 @@ fun DataSection(
         DataActionRow(
             label = stringResource(R.string.settings_export_json),
             value = stringResource(R.string.settings_export_json_value),
-            actionLabel = "Save",
+            actionLabel = stringResource(R.string.save),
             enabled = !working,
             leadingIcon = {
                 Icon(
@@ -160,7 +160,7 @@ fun DataSection(
         DataActionRow(
             label = stringResource(R.string.settings_export_csv),
             value = stringResource(R.string.settings_export_csv_value),
-            actionLabel = "Share",
+            actionLabel = stringResource(R.string.sharing_share),
             enabled = !working,
             leadingIcon = {
                 Icon(
@@ -177,7 +177,7 @@ fun DataSection(
         DataActionRow(
             label = stringResource(R.string.settings_restore),
             value = stringResource(R.string.settings_restore_value),
-            actionLabel = "Restore",
+            actionLabel = stringResource(R.string.action_restore),
             enabled = !working,
             leadingIcon = {
                 Icon(
@@ -213,7 +213,7 @@ fun DataSection(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        "This will merge into your current data:",
+                        stringResource(R.string.settings_import_merge_intro),
                         modifier = Modifier.testTag("importConfirmText"),
                     )
                     Spacer(Modifier.height(8.dp))
@@ -226,7 +226,7 @@ fun DataSection(
                     Text(stringResource(R.string.settings_import_milestones, preview.milestones))
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Existing records are kept; duplicates are skipped. Milestone photos are not included in backups.",
+                        stringResource(R.string.settings_import_merge_note),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -284,7 +284,12 @@ private fun RangePickerSheet(
     val scope = rememberCoroutineScope()
     var selected by rememberSaveable { mutableStateOf(7) }
 
-    val options = listOf(7 to "Last 7 days", 14 to "Last 2 weeks", 30 to "Last month", -1 to "All time")
+    val options = listOf(
+        7 to stringResource(R.string.range_last_7_days),
+        14 to stringResource(R.string.range_last_2_weeks),
+        30 to stringResource(R.string.range_last_month),
+        -1 to stringResource(R.string.range_all_time),
+    )
 
     fun dismissThen(action: (DateRange) -> Unit) {
         val days = selected
@@ -345,13 +350,14 @@ private fun RangePickerSheet(
 
 @Composable
 private fun RangeOption(label: String, selected: Boolean, onClick: () -> Unit) {
+    val selectedState = stringResource(R.string.state_selected)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .semantics {
                 role = Role.RadioButton
                 this.selected = selected
-                stateDescription = if (selected) "Selected" else ""
+                stateDescription = if (selected) selectedState else ""
             }
             .clickable(onClick = onClick)
             .padding(vertical = 14.dp),

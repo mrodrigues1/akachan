@@ -118,8 +118,7 @@ private fun sweepBuildWindow(
             bestEstimate = adjusted,
             confidence = Confidence.MEDIUM,
             reasons = emptyList(),
-            feedPrompt = null,
-            safetyPrompt = "sweep",
+            feedDue = false,
         ),
     )
 }

@@ -8,6 +8,7 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.SleepPredictionState
+import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.BabyEventRepository
@@ -393,7 +394,7 @@ class PredictSleepWindowUseCaseTest {
     inner class WindowTests {
 
         @Test
-        fun `emits Window with non-null safetyPrompt and valid bounds when data is sufficient`() = runTest {
+        fun `emits Window with reasons and valid bounds when data is sufficient`() = runTest {
             every { sleepRepository.getAllRecords() } returns flowOf(sufficientSleepRecords())
             every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
             every { babyRepository.getBabyProfile() } returns flowOf(babyOfWeeks(12))
@@ -402,8 +403,7 @@ class PredictSleepWindowUseCaseTest {
                 val state = awaitItem()
                 assertTrue(state is SleepPredictionState.Window)
                 val window = (state as SleepPredictionState.Window).window
-                assertNotNull(window.safetyPrompt)
-                assertTrue(window.safetyPrompt.isNotEmpty())
+                assertTrue(window.reasons.isNotEmpty())
                 assertTrue(window.windowEnd.isAfter(window.windowStart))
                 // bestEstimate is the midpoint of the 30-min window
                 assertEquals(
@@ -445,7 +445,7 @@ class PredictSleepWindowUseCaseTest {
                     "Expected a Window for the nap-deficit fixture — got $state"
                 }
                 val reasons = (state as SleepPredictionState.Window).window.reasons
-                assertTrue(reasons.any { it.contains("Nap deficit", ignoreCase = true) }) {
+                assertTrue(reasons.any { it is SleepReason.NapDeficit }) {
                     "NapBudgetFactor must be wired — expected a nap-deficit reason, got $reasons"
                 }
                 awaitComplete()

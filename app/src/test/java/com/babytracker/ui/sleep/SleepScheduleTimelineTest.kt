@@ -3,6 +3,7 @@ package com.babytracker.ui.sleep
 import com.babytracker.domain.model.ScheduleEntry
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.LocalTime
@@ -16,13 +17,13 @@ class SleepScheduleTimelineTest {
                 ScheduleEntry(
                     startTime = LocalTime.of(9, 0),
                     duration = Duration.ofMinutes(45),
-                    label = "Nap 1",
+                    napNumber = 1,
                     emoji = "N"
                 ),
                 ScheduleEntry(
                     startTime = LocalTime.of(12, 0),
                     duration = Duration.ofMinutes(60),
-                    label = "Nap 2",
+                    napNumber = 2,
                     emoji = "N"
                 )
             ),
@@ -37,10 +38,10 @@ class SleepScheduleTimelineTest {
 
         assertEquals(3, items.size)
         assertEquals(Duration.ofMinutes(90), items[0].wakeWindow)
-        assertEquals("Nap 1", items[0].label)
+        assertEquals(1, items[0].napNumber)
         assertFalse(items[0].isBedtime)
         assertEquals(Duration.ofMinutes(150), items[2].wakeWindow)
-        assertEquals("Bedtime", items[2].label)
-        assertEquals("7:00 PM - 8:00 PM", items[2].detail)
+        assertTrue(items[2].isBedtime)
+        assertEquals(LocalTime.of(19, 0)..LocalTime.of(20, 0), items[2].bedtimeWindow)
     }
 }

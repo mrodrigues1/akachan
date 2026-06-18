@@ -30,8 +30,7 @@ class PersistSleepRecommendationUseCaseTest {
         bestEstimate = fixedNow.plusSeconds(3600),
         confidence = Confidence.MEDIUM,
         reasons = emptyList(),
-        feedPrompt = null,
-        safetyPrompt = "Safe sleep reminder.",
+        feedDue = false,
     )
 
     @BeforeEach

@@ -1,5 +1,6 @@
 package com.babytracker.ui.partner
 
+import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.runtime.CompositionLocalProvider
@@ -71,13 +72,15 @@ class PartnerDashboardScreenTest {
     private val fixedNow = Instant.parse("2026-05-12T06:00:00Z")
     private val fixedNowProvider = { fixedNow.toEpochMilli() }
     private val noOpWidgetUpdater = object : WidgetUpdater { override suspend fun updateAll() = Unit }
+    private val appContext: Context
+        get() = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
 
     private fun buildViewModel(): PartnerDashboardViewModel {
-        return PartnerDashboardViewModel(buildFetchUseCase(snapshot = null), noOpWidgetUpdater, FakePartnerSettingsRepository())
+        return PartnerDashboardViewModel(buildFetchUseCase(snapshot = null), noOpWidgetUpdater, FakePartnerSettingsRepository(), appContext)
     }
 
     private fun buildViewModel(snapshot: ShareSnapshot): PartnerDashboardViewModel {
-        return PartnerDashboardViewModel(buildFetchUseCase(snapshot), noOpWidgetUpdater, FakePartnerSettingsRepository())
+        return PartnerDashboardViewModel(buildFetchUseCase(snapshot), noOpWidgetUpdater, FakePartnerSettingsRepository(), appContext)
     }
 
     private fun buildFetchUseCase(
@@ -97,6 +100,7 @@ class PartnerDashboardScreenTest {
             logPartnerFeed = LogPartnerFeedUseCase(submitFeedOp),
             editPartnerFeed = EditPartnerFeedUseCase(submitFeedOp),
             settingsRepository = FakePartnerSettingsRepository(),
+            appContext = appContext,
             now = Instant::now,
         )
     }
@@ -348,7 +352,7 @@ class PartnerDashboardScreenTest {
     fun pullDownRefreshChecksForSharedUpdates() {
         val sharingRepository = FakeSharingRepository(makeSnapshot())
         val fetchUseCase = buildFetchUseCase(makeSnapshot(), sharingRepository)
-        val viewModel = PartnerDashboardViewModel(fetchUseCase, noOpWidgetUpdater, FakePartnerSettingsRepository())
+        val viewModel = PartnerDashboardViewModel(fetchUseCase, noOpWidgetUpdater, FakePartnerSettingsRepository(), appContext)
 
         composeRule.setContent {
             PartnerDashboardScreen(
@@ -377,7 +381,7 @@ class PartnerDashboardScreenTest {
                 }
             },
         )
-        val viewModel = PartnerDashboardViewModel(buildFetchUseCase(makeSnapshot(), sharingRepository), noOpWidgetUpdater, FakePartnerSettingsRepository())
+        val viewModel = PartnerDashboardViewModel(buildFetchUseCase(makeSnapshot(), sharingRepository), noOpWidgetUpdater, FakePartnerSettingsRepository(), appContext)
 
         composeRule.setContent {
             PartnerDashboardScreen(

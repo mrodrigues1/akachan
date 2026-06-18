@@ -63,6 +63,7 @@ class SyncToFirestoreUseCaseInventoryTest {
                 mockk { every { getAllMeasurements() } returns flowOf(emptyList()) },
                 mockk { every { getMilestones() } returns flowOf(emptyList()) },
             ),
+            appContext = mockk(relaxed = true),
         ) { fixedNow }
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
         every { settingsRepository.getShareCode() } returns flowOf(shareCode.value)

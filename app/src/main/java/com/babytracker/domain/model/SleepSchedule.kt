@@ -14,7 +14,7 @@ data class SleepSchedule(
     val totalSleepRecommendation: ClosedRange<Duration>,
     val totalSleepLogged: Duration?,
     val regressionWarning: RegressionInfo?,
-    val napTransitionSuggestion: String?,
+    val napTransitionSuggestion: NapTransition?,
     val lastFeedTime: Instant?,
     val isPersonalized: Boolean
 )
@@ -22,18 +22,33 @@ data class SleepSchedule(
 data class ScheduleEntry(
     val startTime: LocalTime,
     val duration: Duration,
-    val label: String,
+    val napNumber: Int,
     val isAdjusted: Boolean = false,
     val emoji: String = "😴"
 )
 
-enum class ScheduleMode(val label: String) {
-    DEMAND_DRIVEN("Demand-driven"),
-    CLOCK_ALIGNED("Clock-aligned")
+enum class ScheduleMode {
+    DEMAND_DRIVEN,
+    CLOCK_ALIGNED
 }
 
-data class RegressionInfo(
-    val name: String,
-    val description: String,
-    val durationWeeks: String
+/**
+ * Known infant sleep regression. Locale-agnostic; the UI resolves [type] to a name,
+ * description, and typical-duration string (see `ui/sleep/RegressionText.kt`).
+ */
+data class RegressionInfo(val type: RegressionType)
+
+enum class RegressionType {
+    FOUR_MONTH,
+    EIGHT_TO_TEN_MONTH,
+    TWELVE_MONTH,
+}
+
+/**
+ * Suggested nap-count transition. The UI formats it into a localized sentence.
+ */
+data class NapTransition(
+    val fromNaps: Int,
+    val toNaps: Int,
+    val avgNapsPerDay: Double,
 )

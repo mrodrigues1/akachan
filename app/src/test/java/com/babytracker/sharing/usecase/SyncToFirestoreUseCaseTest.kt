@@ -10,6 +10,7 @@ import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BottleFeedRepository
@@ -94,6 +95,7 @@ class SyncToFirestoreUseCaseTest {
                 mockk { every { getAllMeasurements() } returns flowOf(emptyList()) },
                 mockk { every { getMilestones() } returns flowOf(emptyList()) },
             ),
+            appContext = mockk(relaxed = true),
         ) { fixedNow }
         every { settingsRepository.getShareCode() } returns flowOf(shareCode.value)
         every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
@@ -203,9 +205,8 @@ class SyncToFirestoreUseCaseTest {
                     windowEnd = Instant.parse("2026-05-16T11:30:00Z"),
                     bestEstimate = Instant.parse("2026-05-16T11:15:00Z"),
                     confidence = Confidence.HIGH,
-                    reasons = listOf("Awake 2h"),
-                    feedPrompt = null,
-                    safetyPrompt = "Back to sleep",
+                    reasons = listOf(SleepReason.Disruption),
+                    feedDue = false,
                 ),
             ),
         )

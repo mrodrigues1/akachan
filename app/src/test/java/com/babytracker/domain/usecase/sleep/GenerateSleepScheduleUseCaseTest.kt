@@ -2,6 +2,7 @@ package com.babytracker.domain.usecase.sleep
 
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
+import com.babytracker.domain.model.RegressionType
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.ScheduleMode
 import com.babytracker.domain.model.SleepRecord
@@ -263,28 +264,28 @@ class GenerateSleepScheduleUseCaseTest {
         fun `4 month regression detected at 16 weeks`() {
             val info = SleepAgePriors.detectRegression(16)
             assertNotNull(info)
-            assertEquals("4-Month Sleep Regression", info!!.name)
+            assertEquals(RegressionType.FOUR_MONTH, info!!.type)
         }
 
         @Test
         fun `4 month regression detected at 20 weeks`() {
             val info = SleepAgePriors.detectRegression(20)
             assertNotNull(info)
-            assertEquals("4-Month Sleep Regression", info!!.name)
+            assertEquals(RegressionType.FOUR_MONTH, info!!.type)
         }
 
         @Test
         fun `8-10 month regression detected at 36 weeks`() {
             val info = SleepAgePriors.detectRegression(36)
             assertNotNull(info)
-            assertEquals("8-10 Month Sleep Regression", info!!.name)
+            assertEquals(RegressionType.EIGHT_TO_TEN_MONTH, info!!.type)
         }
 
         @Test
         fun `12 month regression detected at 50 weeks`() {
             val info = SleepAgePriors.detectRegression(50)
             assertNotNull(info)
-            assertEquals("12-Month Sleep Regression", info!!.name)
+            assertEquals(RegressionType.TWELVE_MONTH, info!!.type)
         }
 
         @Test
@@ -382,7 +383,7 @@ class GenerateSleepScheduleUseCaseTest {
             assertEquals(ScheduleMode.CLOCK_ALIGNED, schedule.mode)
             assertEquals(2, schedule.napTimes.size)
             assertNotNull(schedule.regressionWarning)
-            assertEquals("8-10 Month Sleep Regression", schedule.regressionWarning!!.name)
+            assertEquals(RegressionType.EIGHT_TO_TEN_MONTH, schedule.regressionWarning!!.type)
         }
 
         @Test

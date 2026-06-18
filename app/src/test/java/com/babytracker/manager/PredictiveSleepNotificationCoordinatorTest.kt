@@ -38,8 +38,7 @@ class PredictiveSleepNotificationCoordinatorTest {
                 bestEstimate = bestEstimate,
                 confidence = Confidence.MEDIUM,
                 reasons = emptyList(),
-                feedPrompt = null,
-                safetyPrompt = "Safe to sleep",
+                feedDue = false,
             ),
         )
 

@@ -27,16 +27,14 @@ class HomeSleepPredictionCardTest {
 
     private fun windowState(
         confidence: Confidence = Confidence.MEDIUM,
-        feedPrompt: String? = null,
     ) = SleepPredictionState.Window(
         SleepWindow(
             windowStart = Instant.parse("2024-01-01T14:20:00Z"),
             windowEnd = Instant.parse("2024-01-01T14:50:00Z"),
             bestEstimate = Instant.parse("2024-01-01T14:35:00Z"),
             confidence = confidence,
-            reasons = listOf("awake 2h05"),
-            feedPrompt = feedPrompt,
-            safetyPrompt = "Always place baby on their back to sleep.",
+            reasons = emptyList(),
+            feedDue = false,
         )
     )
 

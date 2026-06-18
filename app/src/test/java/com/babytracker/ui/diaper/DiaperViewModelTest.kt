@@ -1,5 +1,6 @@
 package com.babytracker.ui.diaper
 
+import android.content.Context
 import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.model.DiaperType
 import com.babytracker.domain.usecase.diaper.EditDiaperChangeUseCase
@@ -23,6 +24,7 @@ import java.time.Instant
 class DiaperViewModelTest {
     private val log = mockk<LogDiaperChangeUseCase>()
     private val edit = mockk<EditDiaperChangeUseCase>(relaxed = true)
+    private val appContext = mockk<Context>(relaxed = true)
     private val fixedNow = Instant.ofEpochMilli(50_000)
 
     @BeforeEach
@@ -31,7 +33,7 @@ class DiaperViewModelTest {
     @AfterEach
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = DiaperViewModel(log, edit) { fixedNow }
+    private fun viewModel() = DiaperViewModel(log, edit, appContext) { fixedNow }
 
     @Test
     fun `save logs a new change and flags saved`() = runTest {

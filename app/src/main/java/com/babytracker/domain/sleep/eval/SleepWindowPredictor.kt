@@ -4,6 +4,7 @@ import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepPredictionTuning
+import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.domain.sleep.feature.BreastfeedInterval
@@ -111,11 +112,7 @@ object SleepWindowPredictor {
         }
         val confidence = if (features.hasActiveDisruption) rawConfidence.loweredByOne() else rawConfidence
 
-        val disruptionReason = if (features.hasActiveDisruption) {
-            "A sick, teething, or travel event in the last 48 h has reduced prediction confidence"
-        } else {
-            null
-        }
+        val disruptionReason = if (features.hasActiveDisruption) SleepReason.Disruption else null
         return SleepPredictionState.Window(
             SleepWindow(
                 windowStart = windowStart,
@@ -124,8 +121,7 @@ object SleepWindowPredictor {
                 confidence = confidence,
                 reasons = buildReasons(qualityC, ageInWeeks, nextType, typeIntervalCount) +
                     listOfNotNull(disruptionReason) + factors.mapNotNull { it.reason },
-                feedPrompt = computeFeedPrompt(features.feedIntervals, windowStart, windowEnd, now),
-                safetyPrompt = "Always follow your baby's sleep cues — windows are estimates, not schedules.",
+                feedDue = computeFeedDue(features.feedIntervals, windowStart, windowEnd, now),
             )
         )
     }
@@ -270,49 +266,44 @@ object SleepWindowPredictor {
         ageInWeeks: Int,
         nextType: SleepType,
         typeIntervalCount: Int,
-    ): List<String> {
+    ): List<SleepReason> {
         val pct = (qualityC * 100).toInt()
         val (minBound, maxBound) = SleepAgePriors.getWakeWindowBounds(ageInWeeks)
-        val typeLabel = if (nextType == SleepType.NIGHT_SLEEP) "bedtime" else "nap"
         return listOf(
             if (qualityC >= 1f) {
-                "Fully personalized from your baby's $typeLabel history"
+                SleepReason.FullyPersonalized(nextType)
             } else {
-                "Blended from age-based expectations ($pct% personalized from your baby's $typeLabel history)"
+                SleepReason.Blended(pct, nextType)
             },
-            "Typical wake window for ${ageInWeeks}w: ${minBound.toMinutes()}–${maxBound.toMinutes()} min",
+            SleepReason.TypicalWakeWindow(ageInWeeks, minBound.toMinutes(), maxBound.toMinutes()),
             if (typeIntervalCount >= SleepPredictionTuning.MIN_TYPE_INTERVALS) {
-                "Using your baby's ${typeLabel}-specific wake patterns ($typeIntervalCount intervals)"
+                SleepReason.TypeSpecificPattern(nextType, typeIntervalCount)
             } else {
-                "Using combined wake history (not enough $typeLabel-specific data yet)"
+                SleepReason.CombinedHistory(nextType)
             },
         )
     }
 
-    private fun computeFeedPrompt(
+    private fun computeFeedDue(
         feedIntervals: List<BreastfeedInterval>,
         windowStart: Instant,
         windowEnd: Instant,
         now: Instant,
-    ): String? {
+    ): Boolean {
         val freshnessMillis = Duration.ofHours(SleepPredictionTuning.FRESHNESS_HORIZON_HOURS).toMillis()
         val nowMillis = now.toEpochMilli()
         val recent = feedIntervals
             .filter { it.endMillis != null && (nowMillis - it.startMillis) <= freshnessMillis }
             .sortedByDescending { it.startMillis }
-        val lastFeed = recent.firstOrNull() ?: return null
+        val lastFeed = recent.firstOrNull() ?: return false
         val intervals = recent.zipWithNext { a, b -> a.startMillis - b.startMillis }.filter { it > 0 }
-        val medianIntervalMillis = median(intervals) ?: return null
+        val medianIntervalMillis = median(intervals) ?: return false
         val predictedNextFeed = Instant.ofEpochMilli(lastFeed.startMillis + medianIntervalMillis)
         val toleranceMillis = Duration.ofMinutes(30).toMillis()
         val predictedMillis = predictedNextFeed.toEpochMilli()
         val windowStartMillis = windowStart.toEpochMilli()
         val windowEndMillis = windowEnd.toEpochMilli()
-        return if (predictedMillis in (windowStartMillis - toleranceMillis)..(windowEndMillis + toleranceMillis)) {
-            "a breastfeed may be due near this window — offer a feed first if hunger cues appear"
-        } else {
-            null
-        }
+        return predictedMillis in (windowStartMillis - toleranceMillis)..(windowEndMillis + toleranceMillis)
     }
 
     private fun median(values: List<Long>): Long? {

@@ -1,11 +1,12 @@
 package com.babytracker.domain.sleep.eval
 
+import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepType
 import java.time.Duration
 
 data class SleepPredictionFactor(
     val adjustment: Duration,
-    val reason: String? = null,
+    val reason: SleepReason? = null,
 ) {
     companion object {
         val Neutral = SleepPredictionFactor(Duration.ZERO)

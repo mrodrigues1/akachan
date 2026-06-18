@@ -478,18 +478,19 @@ internal fun DiaperHomeCard(
     modifier: Modifier = Modifier,
 ) {
     val diaper = diaperColors()
-    val countText = if (summary.count == 1) "1 today" else "${summary.count} today"
+    val countText = pluralStringResource(R.plurals.home_diaper_count_today, summary.count, summary.count)
+    val diaperCd = if (summary.hasAny) {
+        stringResource(R.string.home_diaper_cd, countText)
+    } else {
+        stringResource(R.string.home_diaper_cd_empty)
+    }
     Card(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 96.dp)
             .semantics {
-                contentDescription = if (summary.hasAny) {
-                    "Diapers, $countText. Log a diaper change."
-                } else {
-                    "Diapers. Log a diaper change."
-                }
+                contentDescription = diaperCd
             },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = diaper.container),
@@ -507,7 +508,7 @@ internal fun DiaperHomeCard(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Diapers",
+                text = stringResource(R.string.home_diaper_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = diaper.onContainer,
             )
@@ -521,7 +522,7 @@ internal fun DiaperHomeCard(
                 summary.lastChangeAt?.let { LastDiaperAgoText(it) }
             } else {
                 Text(
-                    text = "Tap to log",
+                    text = stringResource(R.string.home_tap_to_log),
                     style = MaterialTheme.typography.bodyMedium,
                     color = diaper.onContainer,
                 )
@@ -539,7 +540,10 @@ internal fun LastDiaperAgoText(lastChangeAt: Instant) {
         }
     }
     Text(
-        text = "Last ${Duration.between(lastChangeAt, now).formatElapsedAgo()}",
+        text = stringResource(
+            R.string.home_diaper_last_ago,
+            Duration.between(lastChangeAt, now).formatElapsedAgo(LocalContext.current),
+        ),
         style = MaterialTheme.typography.bodySmall,
         color = diaperColors().onContainer,
     )

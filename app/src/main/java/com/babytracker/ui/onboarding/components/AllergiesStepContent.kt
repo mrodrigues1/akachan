@@ -55,6 +55,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
 import com.babytracker.domain.model.AllergyType
+import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.onboarding.MAX_CUSTOM_ALLERGY_NOTE_LENGTH
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -358,7 +359,7 @@ private fun AllergyChipGrid(
             FilterChip(
                 selected = selected,
                 onClick = { onAllergyToggled(allergy) },
-                label = { Text(allergy.label) },
+                label = { Text(stringResource(allergy.labelRes())) },
                 modifier = Modifier.semantics {
                     stateDescription = if (selected) selectedState else notSelectedState
                 },
@@ -390,7 +391,8 @@ private fun AllergySelectionSummary(
     val summary = if (selectedAllergies.isEmpty()) {
         stringResource(R.string.onboarding_no_allergies_save)
     } else {
-        selectedAllergies.joinToString(prefix = stringResource(R.string.onboarding_will_save)) { it.label }
+        val prefix = stringResource(R.string.onboarding_will_save)
+        selectedAllergies.map { stringResource(it.labelRes()) }.joinToString(prefix = prefix)
     }
 
     Surface(

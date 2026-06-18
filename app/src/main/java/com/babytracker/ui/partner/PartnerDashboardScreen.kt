@@ -80,6 +80,7 @@ import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.ui.bottlefeed.BottleFeedSheet
 import com.babytracker.ui.component.HistoryCard
+import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
 import com.babytracker.ui.theme.OnWarningContainerAmberDark
@@ -1448,7 +1449,8 @@ private fun AllergySection(baby: BabySnapshot) {
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 baby.allergies.forEach { allergyName ->
-                    val label = AllergyType.entries.find { it.name == allergyName }?.label ?: allergyName
+                    val allergyType = AllergyType.entries.find { it.name == allergyName }
+                    val label = allergyType?.let { stringResource(it.labelRes()) } ?: allergyName
                     AllergyChip(
                         label = label,
                         colors = warningColors,

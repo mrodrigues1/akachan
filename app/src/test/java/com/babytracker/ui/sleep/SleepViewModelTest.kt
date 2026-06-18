@@ -1,5 +1,7 @@
 package com.babytracker.ui.sleep
 
+import android.content.Context
+import com.babytracker.R
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
@@ -66,6 +68,7 @@ class SleepViewModelTest {
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
     private lateinit var predictSleepWindow: PredictSleepWindowUseCase
     private lateinit var logBabyEvent: LogBabyEventUseCase
+    private lateinit var appContext: Context
     private lateinit var viewModel: SleepViewModel
     private val testDispatcher = StandardTestDispatcher()
 
@@ -88,6 +91,13 @@ class SleepViewModelTest {
         predictSleepWindow = mockk()
         logBabyEvent = mockk()
         coJustRun { logBabyEvent(any()) }
+        appContext = mockk()
+        every { appContext.getString(eq(R.string.sleep_awake_for), *anyVararg()) } answers {
+            "Awake for ${secondArg<Array<Any?>>()[0]}"
+        }
+        every { appContext.getString(eq(R.string.sleep_ended_at), *anyVararg()) } answers {
+            "Ended at ${secondArg<Array<Any?>>()[0]}"
+        }
 
         every { getSleepHistory() } returns flowOf(emptyList())
         every { settingsRepository.getWakeTime() } returns flowOf(null)
@@ -121,6 +131,7 @@ class SleepViewModelTest {
         syncToFirestore,
         predictSleepWindow,
         logBabyEvent,
+        appContext,
     )
 
     @Test

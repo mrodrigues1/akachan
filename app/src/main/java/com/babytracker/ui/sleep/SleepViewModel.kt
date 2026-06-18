@@ -1,7 +1,9 @@
 package com.babytracker.ui.sleep
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.R
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepPredictionTuning
 import com.babytracker.domain.model.SleepRecord
@@ -26,6 +28,7 @@ import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
 import com.babytracker.util.formatElapsedShort
 import com.babytracker.util.formatTime12h
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -94,6 +97,7 @@ class SleepViewModel @Inject constructor(
     private val syncToFirestore: SyncToFirestoreUseCase,
     private val predictSleepWindow: PredictSleepWindowUseCase,
     private val logBabyEvent: LogBabyEventUseCase,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SleepUiState())
@@ -411,8 +415,8 @@ class SleepViewModel @Inject constructor(
 
         return LastSleepSummaryState.Populated(
             record = latestCompleted,
-            awakeForLabel = "Awake for ${awakeDuration.formatElapsedShort()}",
-            endedAtLabel = "Ended at ${endTime.formatTime12h()}",
+            awakeForLabel = appContext.getString(R.string.sleep_awake_for, awakeDuration.formatElapsedShort()),
+            endedAtLabel = appContext.getString(R.string.sleep_ended_at, endTime.formatTime12h()),
         )
     }
 

@@ -185,6 +185,7 @@ class OnboardingComponentsTest {
         val viewModel = OnboardingViewModel(
             SaveBabyProfileUseCase(FailingBabyRepository(), mockk(relaxed = true)),
             mockk(relaxed = true),
+            mockk(relaxed = true),
         )
 
         composeRule.setContent {

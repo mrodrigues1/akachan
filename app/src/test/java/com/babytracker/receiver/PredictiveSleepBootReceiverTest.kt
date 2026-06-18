@@ -68,8 +68,7 @@ class PredictiveSleepBootReceiverTest {
                 bestEstimate = bestEstimate,
                 confidence = Confidence.HIGH,
                 reasons = emptyList(),
-                feedPrompt = null,
-                safetyPrompt = "",
+                feedDue = false,
             )
         )
         every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(true)
@@ -110,8 +109,7 @@ class PredictiveSleepBootReceiverTest {
                 bestEstimate = bestEstimate,
                 confidence = Confidence.HIGH,
                 reasons = emptyList(),
-                feedPrompt = null,
-                safetyPrompt = "",
+                feedDue = false,
             )
         )
         every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(true)
@@ -133,8 +131,7 @@ class PredictiveSleepBootReceiverTest {
                 bestEstimate = bestEstimate,
                 confidence = Confidence.HIGH,
                 reasons = emptyList(),
-                feedPrompt = null,
-                safetyPrompt = "",
+                feedDue = false,
             )
         )
         every { sleepSettings.getPredictiveSleepLeadMinutes() } returns flowOf(20)
@@ -157,8 +154,7 @@ class PredictiveSleepBootReceiverTest {
                 bestEstimate = bestEstimate,
                 confidence = Confidence.HIGH,
                 reasons = emptyList(),
-                feedPrompt = null,
-                safetyPrompt = "",
+                feedDue = false,
             )
         )
         val snapshot = SleepRecommendationSnapshot(
@@ -189,8 +185,7 @@ class PredictiveSleepBootReceiverTest {
                 bestEstimate = bestEstimate,
                 confidence = Confidence.HIGH,
                 reasons = emptyList(),
-                feedPrompt = null,
-                safetyPrompt = "",
+                feedDue = false,
             )
         )
         val snapshot = SleepRecommendationSnapshot(
@@ -222,8 +217,7 @@ class PredictiveSleepBootReceiverTest {
                 bestEstimate = bestEstimate,
                 confidence = Confidence.HIGH,
                 reasons = emptyList(),
-                feedPrompt = null,
-                safetyPrompt = "",
+                feedDue = false,
             )
         )
         every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(true)

@@ -1,6 +1,7 @@
 package com.babytracker.domain.sleep.eval
 
 import com.babytracker.domain.model.SleepPredictionTuning
+import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.sleep.prior.SleepAgePriors
 import java.time.Duration
@@ -41,7 +42,7 @@ object CircadianBiasFactor {
 
         return SleepPredictionFactor(
             adjustment = Duration.ofMinutes(adjustmentMinutes),
-            reason = "Adjusted toward the expected bedtime circadian slot",
+            reason = SleepReason.CircadianSlot,
         )
     }
 

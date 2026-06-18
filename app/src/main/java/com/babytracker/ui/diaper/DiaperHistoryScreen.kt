@@ -38,11 +38,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.domain.model.DiaperChange
+import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.theme.diaperColors
 import com.babytracker.util.toRelativeLabel
 import java.time.ZoneId
@@ -90,10 +94,13 @@ fun DiaperHistoryScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Diaper History") },
+                title = { Text(stringResource(R.string.diaper_history_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -114,7 +121,7 @@ fun DiaperHistoryScreen(
                 Text("🧷", style = MaterialTheme.typography.headlineLarge)
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = "No diaper changes yet",
+                    text = stringResource(R.string.diaper_history_empty),
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,
                 )
@@ -132,7 +139,15 @@ fun DiaperHistoryScreen(
                 grouped.forEach { (date, changes) ->
                     stickyHeader(key = date.toString()) {
                         Text(
-                            text = "${date.toRelativeLabel()} · ${changes.size} changes".uppercase(),
+                            text = pluralStringResource(
+                                R.plurals.diaper_history_day_header,
+                                changes.size,
+                                date.toRelativeLabel(
+                                    stringResource(R.string.relative_today),
+                                    stringResource(R.string.relative_yesterday),
+                                ),
+                                changes.size,
+                            ).uppercase(),
                             style = MaterialTheme.typography.labelMedium,
                             color = diaperColors().onContainer,
                             modifier = Modifier
@@ -185,9 +200,10 @@ private fun DiaperHistoryRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(change.type.emoji, style = MaterialTheme.typography.titleLarge)
+            val typeLabel = stringResource(change.type.labelRes())
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${change.type.label} · $time",
+                    text = stringResource(R.string.diaper_row_summary, typeLabel, time),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -202,14 +218,14 @@ private fun DiaperHistoryRow(
             IconButton(onClick = onEdit) {
                 Icon(
                     Icons.Outlined.Edit,
-                    contentDescription = "Edit ${change.type.label} change at $time",
+                    contentDescription = stringResource(R.string.diaper_edit_content_description, typeLabel, time),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             IconButton(onClick = onDelete) {
                 Icon(
                     Icons.Outlined.Delete,
-                    contentDescription = "Delete ${change.type.label} change at $time",
+                    contentDescription = stringResource(R.string.diaper_delete_content_description, typeLabel, time),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -224,8 +240,8 @@ private fun DiaperDeleteConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Delete this diaper change?") },
-        text = { Text("It can't be undone.") },
+        title = { Text(stringResource(R.string.diaper_delete_title)) },
+        text = { Text(stringResource(R.string.diaper_delete_message)) },
         confirmButton = {
             Button(
                 onClick = onConfirm,
@@ -233,13 +249,13 @@ private fun DiaperDeleteConfirmationDialog(
                     containerColor = diaperColors().accent,
                     contentColor = diaperColors().onAccent,
                 ),
-            ) { Text("Delete") }
+            ) { Text(stringResource(R.string.delete)) }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismiss,
                 colors = ButtonDefaults.textButtonColors(contentColor = diaperColors().onContainer),
-            ) { Text("Cancel") }
+            ) { Text(stringResource(R.string.cancel)) }
         },
     )
 }

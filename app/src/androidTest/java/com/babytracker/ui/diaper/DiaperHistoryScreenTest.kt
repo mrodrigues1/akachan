@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.model.DiaperType
@@ -58,7 +59,9 @@ class DiaperHistoryScreenTest {
         val log = mockk<LogDiaperChangeUseCase>(relaxed = true)
         val edit = mockk<EditDiaperChangeUseCase>(relaxed = true)
         val historyVm = DiaperHistoryViewModel(observe, delete, zone)
-        val editVm = DiaperViewModel(log, edit) { Instant.ofEpochMilli(2_000) }
+        val editVm = DiaperViewModel(log, edit, ApplicationProvider.getApplicationContext()) {
+            Instant.ofEpochMilli(2_000)
+        }
         composeRule.setContent {
             BabyTrackerTheme {
                 DiaperHistoryScreen(
@@ -74,7 +77,7 @@ class DiaperHistoryScreenTest {
     fun rendersDayHeadersForEachDay() {
         setScreen(listOf(dirtyDay16, wetDay15))
 
-        composeRule.onAllNodesWithText("CHANGES", substring = true).assertCountEquals(2)
+        composeRule.onAllNodesWithText("CHANGE", substring = true).assertCountEquals(2)
         composeRule.onNodeWithText("Dirty", substring = true).assertIsDisplayed()
         composeRule.onNodeWithText("Wet", substring = true).assertIsDisplayed()
     }

@@ -41,7 +41,13 @@ class SyncToFirestoreDiapersTest {
         every { settings.getShareCode() } returns flowOf("ABCD")
         val sleepSettings = mockk<SleepSettingsRepository>(relaxed = true)
 
-        val useCase = SyncToFirestoreUseCase(sharingRepository, settings, sleepSettings, sources) {
+        val useCase = SyncToFirestoreUseCase(
+            sharingRepository,
+            settings,
+            sleepSettings,
+            sources,
+            appContext = mockk(relaxed = true),
+        ) {
             Instant.ofEpochMilli(99)
         }
 

@@ -219,6 +219,8 @@ private fun FeedingFrequencyCard(data: List<DailyFeedingCount>) {
     val color = MaterialTheme.colorScheme.primary
     val label = rememberChartLabel()
     val axisTitle = rememberAxisTitle()
+    val feedsTitle = stringResource(R.string.trends_axis_feeds)
+    val dateTitle = stringResource(R.string.trends_axis_date)
     val producer = remember { CartesianChartModelProducer() }
     LaunchedEffect(data) {
         if (!isEmpty) {
@@ -243,14 +245,14 @@ private fun FeedingFrequencyCard(data: List<DailyFeedingCount>) {
                 startAxis = VerticalAxis.rememberStart(
                     label = label,
                     titleComponent = axisTitle,
-                    title = { "Feeds" },
+                    title = { feedsTitle },
                 ),
                 bottomAxis = HorizontalAxis.rememberBottom(
                     label = label,
                     valueFormatter = dateAxisFormatter(data.map { it.date }),
                     itemPlacer = dayAxisItemPlacer(data.size),
                     titleComponent = axisTitle,
-                    title = { "Date" },
+                    title = { dateTitle },
                 ),
             ),
             producer,
@@ -266,6 +268,8 @@ private fun SleepDurationCard(data: List<DailySleepDuration>) {
     val napColor = MaterialTheme.colorScheme.secondaryContainer
     val label = rememberChartLabel()
     val axisTitle = rememberAxisTitle()
+    val hoursTitle = stringResource(R.string.trends_axis_hours)
+    val dateTitle = stringResource(R.string.trends_axis_date)
     val producer = remember { CartesianChartModelProducer() }
     LaunchedEffect(data) {
         if (!isEmpty) {
@@ -295,14 +299,14 @@ private fun SleepDurationCard(data: List<DailySleepDuration>) {
                 startAxis = VerticalAxis.rememberStart(
                     label = label,
                     titleComponent = axisTitle,
-                    title = { "Hours" },
+                    title = { hoursTitle },
                 ),
                 bottomAxis = HorizontalAxis.rememberBottom(
                     label = label,
                     valueFormatter = dateAxisFormatter(data.map { it.date }),
                     itemPlacer = dayAxisItemPlacer(data.size),
                     titleComponent = axisTitle,
-                    title = { "Date" },
+                    title = { dateTitle },
                 ),
             ),
             producer,
@@ -320,6 +324,8 @@ private fun FeedingIntervalCard(data: List<DailyFeedingInterval>) {
     val color = MaterialTheme.colorScheme.primary
     val label = rememberChartLabel()
     val axisTitle = rememberAxisTitle()
+    val hoursTitle = stringResource(R.string.trends_axis_hours)
+    val dateTitle = stringResource(R.string.trends_axis_date)
     val producer = remember { CartesianChartModelProducer() }
     LaunchedEffect(data) {
         if (!isEmpty) {
@@ -343,14 +349,14 @@ private fun FeedingIntervalCard(data: List<DailyFeedingInterval>) {
                 startAxis = VerticalAxis.rememberStart(
                     label = label,
                     titleComponent = axisTitle,
-                    title = { "Hours" },
+                    title = { hoursTitle },
                 ),
                 bottomAxis = HorizontalAxis.rememberBottom(
                     label = label,
                     valueFormatter = dateAxisFormatter(data.map { it.date }),
                     itemPlacer = dayAxisItemPlacer(data.size),
                     titleComponent = axisTitle,
-                    title = { "Date" },
+                    title = { dateTitle },
                 ),
             ),
             producer,
@@ -366,6 +372,9 @@ private fun FeedVsSleepCard(data: List<DailyFeedVsSleep>) {
     val sleepColor = MaterialTheme.colorScheme.secondary
     val label = rememberChartLabel()
     val axisTitle = rememberAxisTitle()
+    val feedsTitle = stringResource(R.string.trends_axis_feeds)
+    val sleepHrsTitle = stringResource(R.string.trends_axis_sleep_hrs)
+    val dateTitle = stringResource(R.string.trends_axis_date)
     val producer = remember { CartesianChartModelProducer() }
     LaunchedEffect(data) {
         if (!isEmpty) {
@@ -397,19 +406,19 @@ private fun FeedVsSleepCard(data: List<DailyFeedVsSleep>) {
                 startAxis = VerticalAxis.rememberStart(
                     label = label,
                     titleComponent = axisTitle,
-                    title = { "Feeds" },
+                    title = { feedsTitle },
                 ),
                 endAxis = VerticalAxis.rememberEnd(
                     label = label,
                     titleComponent = axisTitle,
-                    title = { "Sleep hrs" },
+                    title = { sleepHrsTitle },
                 ),
                 bottomAxis = HorizontalAxis.rememberBottom(
                     label = label,
                     valueFormatter = dateAxisFormatter(data.map { it.date }),
                     itemPlacer = dayAxisItemPlacer(data.size),
                     titleComponent = axisTitle,
-                    title = { "Date" },
+                    title = { dateTitle },
                 ),
             ),
             producer,
