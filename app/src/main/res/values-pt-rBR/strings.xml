@@ -600,7 +600,7 @@
     <string name="onboarding_no_allergies_selected">Nenhuma alergia conhecida selecionada</string>
     <string name="onboarding_allergies_selected">Alergias conhecidas selecionadas</string>
     <string name="onboarding_no_allergies_save">Nenhuma alergia será salva ainda.</string>
-    <string name="onboarding_will_save">Vai salvar: </string>
+    <string name="onboarding_will_save">"Vai salvar: "</string>
 
     <!-- Growth -->
     <string name="growth_title">Crescimento</string>
