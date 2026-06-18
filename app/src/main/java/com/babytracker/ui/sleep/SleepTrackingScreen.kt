@@ -651,7 +651,7 @@ internal fun SleepEntryCard(
         },
         trailing = record.endTime?.let { end ->
             Duration.between(record.startTime, end).formatDuration()
-        } ?: stringResource(R.string.in_progress),
+        } ?: stringResource(R.string.label_in_progress),
         badgeEmoji = record.sleepType.emoji,
         badgeColor = MaterialTheme.colorScheme.secondaryContainer,
         trailingColor = MaterialTheme.colorScheme.secondary,

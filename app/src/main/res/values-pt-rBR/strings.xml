@@ -1,0 +1,759 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Akachan</string>
+
+    <!-- Notification channel names and descriptions -->
+    <string name="notif_channel_breastfeeding_name">Lembretes de amamentação</string>
+    <string name="notif_channel_breastfeeding_description">Notificações para cronômetros de sessões de amamentação</string>
+    <string name="notif_channel_sleep_name">Lembretes de sono</string>
+    <string name="notif_channel_sleep_description">Notificações para sessões de sono ativas</string>
+
+    <!-- Notification action labels -->
+    <string name="notif_action_switch_now">Trocar agora</string>
+    <string name="notif_action_keep_current_side">Manter o lado atual</string>
+    <string name="notif_action_stop_feeding">Parar amamentação</string>
+    <string name="notif_action_continue">Continuar</string>
+    <string name="notif_action_end_sleep">Encerrar sono</string>
+    <string name="notif_action_pause">Pausar</string>
+    <string name="notif_action_resume">Retomar</string>
+    <string name="notif_action_switch_sides">Trocar de lado</string>
+    <string name="notif_action_stop_session">Parar sessão</string>
+
+    <!-- Notification titles -->
+    <string name="notif_title_breastfeeding_group">Amamentação</string>
+    <string name="notif_title_switch_sides">🍼 Hora de trocar de lado</string>
+    <string name="notif_title_feeding_limit">⏱ Limite de mamada atingido</string>
+    <string name="notif_title_feeding_paused">🍼 Amamentação pausada</string>
+    <string name="notif_title_feeding_active">🍼 Amamentação ativa</string>
+    <string name="notif_title_sleep_active">🌙 Sono ativo</string>
+
+    <!-- Notification body format strings -->
+    <string name="notif_body_switch_sides">Seio %1$s &#183; %2$dm &#183; Troque para o %3$s</string>
+    <string name="notif_body_feeding_limit">Sessão de %1$d min. Toque em Parar ou Continuar.</string>
+    <string name="notif_body_feeding_paused">Seio %1$s &#183; pausado</string>
+    <string name="notif_body_feeding_active">Seio %1$s &#183; em andamento</string>
+    <string name="notif_body_sleep_active">%1$s &#183; iniciado às %2$s</string>
+
+    <!-- Collapsed notification status text (no emoji) -->
+    <string name="notif_status_feeding_paused">Amamentação pausada</string>
+    <string name="notif_status_feeding_active">Amamentação ativa</string>
+
+    <!-- Side labels for notification body text -->
+    <string name="notif_side_left">Esquerdo</string>
+    <string name="notif_side_right">Direito</string>
+
+    <!-- Sleep type labels for notification body text -->
+    <string name="notif_sleep_type_night">Sono noturno</string>
+    <string name="notif_sleep_type_nap">Soneca</string>
+
+    <!-- Chronometer accessibility descriptions -->
+    <string name="notif_timer_feeding_description">Tempo de amamentação decorrido</string>
+    <string name="notif_timer_sleep_description">Tempo de sono decorrido</string>
+
+    <!-- Predictive feed reminder channel -->
+    <string name="notif_channel_predictive_feed_name">Lembretes de mamada</string>
+    <string name="notif_channel_predictive_feed_description">Lembretes suaves antes de um provável horário de mamada</string>
+
+    <!-- Predictive feed reminder notification -->
+    <string name="notif_title_predictive_feed">Mamada provável em breve</string>
+    <string name="notif_body_predictive_feed">Por volta de %1$s (em %2$d min). Estimado a partir de mamadas recentes.</string>
+    <string name="notif_body_predictive_feed_now">Por volta de %1$s. Estimado a partir de mamadas recentes.</string>
+    <string name="notif_action_start_feeding">Iniciar amamentação</string>
+    <string name="notif_action_snooze_15">Adiar 15m</string>
+
+    <!-- Settings — predictive feeding reminders section -->
+    <string name="settings_section_feeding_reminders">Lembretes de mamada</string>
+    <string name="settings_predictive_toggle_title">Lembrete preditivo</string>
+    <string name="settings_predictive_toggle_subtitle">Notificar antes da próxima mamada provável</string>
+    <string name="settings_notifications_blocked_title">Notificações bloqueadas</string>
+    <string name="settings_notifications_blocked_subtitle">Toque em \'Abrir configurações\' para permitir notificações.</string>
+    <string name="settings_open_settings">Abrir configurações</string>
+    <string name="settings_volume_unit_title">Unidade de volume</string>
+    <string name="settings_measurement_system_title">Unidades de crescimento</string>
+    <string name="settings_lead_time_title">Notificar com antecedência de</string>
+    <string name="settings_lead_time_5">5m</string>
+    <string name="settings_lead_time_10">10m</string>
+    <string name="settings_lead_time_15">15m</string>
+    <string name="settings_lead_time_30">30m</string>
+    <string name="settings_quiet_hours_title">Pular durante horário de silêncio</string>
+    <string name="settings_quiet_hours_start">Início</string>
+    <string name="settings_quiet_hours_end">Fim</string>
+    <string name="settings_quiet_hours_helper">Lembretes durante este horário são ignorados.</string>
+    <string name="settings_quiet_hours_disabled">Horário de silêncio desativado</string>
+    <plurals name="settings_predictive_feeds_remaining">
+        <item quantity="one">Precisa de mais %d mamada para ativar</item>
+        <item quantity="other">Precisa de mais %d mamadas para ativar</item>
+        <item quantity="many">Precisa de mais %d mamadas para ativar</item>
+    </plurals>
+
+    <!-- Sleep settings screen -->
+    <string name="sleep_settings_title">Configurações de sono</string>
+
+    <!-- Settings — nap reminder section -->
+    <string name="settings_nap_reminder_toggle_title">Lembrete de soneca</string>
+    <string name="settings_nap_reminder_toggle_subtitle">Notificar após o fim de uma soneca</string>
+    <string name="settings_nap_reminder_delay_label">Lembrar após (minutos)</string>
+
+    <!-- Nap reminder notification -->
+    <string name="notif_title_nap_reminder">Próxima janela de soneca se aproximando</string>
+    <string name="notif_body_nap_reminder">Considere iniciar a próxima soneca em breve</string>
+
+    <!-- Predictive sleep reminder channel -->
+    <string name="notif_channel_predictive_sleep_name">Lembretes de sono</string>
+    <string name="notif_channel_predictive_sleep_description">Lembretes suaves antes de uma provável janela de sono</string>
+
+    <!-- Predictive sleep reminder notification -->
+    <string name="notif_title_predictive_sleep">Janela de sono provável em breve</string>
+    <string name="notif_body_predictive_sleep">Por volta de %1$s (em %2$d min). Estimado a partir do sono recente.</string>
+    <string name="notif_body_predictive_sleep_now">Por volta de %1$s. Estimado a partir do sono recente.</string>
+    <string name="notif_action_start_sleep">Iniciar sono</string>
+
+    <!-- Settings — predictive sleep reminders -->
+    <string name="settings_predictive_sleep_toggle_title">Lembrete preditivo de sono</string>
+    <string name="settings_predictive_sleep_toggle_subtitle">Notificar antes da próxima janela de sono provável</string>
+
+    <!-- Stash expiration notification -->
+    <string name="notif_channel_stash_expiration_name">Validade do estoque</string>
+    <string name="notif_channel_stash_expiration_description">Lembrete diário quando sacos de leite estão vencendo</string>
+    <string name="notif_title_stash_expiration">Leite vencendo hoje</string>
+    <plurals name="notif_body_stash_expiration">
+        <item quantity="one">%1$d saco (%2$d mL) vence hoje</item>
+        <item quantity="other">%1$d sacos (%2$d mL) vencem hoje</item>
+        <item quantity="many">%1$d sacos (%2$d mL) vencem hoje</item>
+    </plurals>
+
+    <!-- Partner stash-consumption notification -->
+    <string name="notif_channel_partner_stash_name">Uso do estoque pelo parceiro</string>
+    <string name="notif_channel_partner_stash_description">Quando seu parceiro registra uma mamadeira que usa leite do estoque</string>
+    <plurals name="notif_title_partner_stash">
+        <item quantity="one">Parceiro registrou %1$d mamadeira</item>
+        <item quantity="other">Parceiro registrou %1$d mamadeiras</item>
+        <item quantity="many">Parceiro registrou %1$d mamadeiras</item>
+    </plurals>
+    <string name="notif_body_partner_stash_single">Parceiro usou %1$d mL do estoque</string>
+    <string name="notif_body_partner_stash_multi">Usou %1$d mL do estoque</string>
+
+    <!-- Widget -->
+    <string name="widget_description">Lado da mamada, tempo decorrido e status atual de sono</string>
+    <string name="widget_loading">Só um momento…</string>
+    <string name="widget_preview_feed_label">Mamada: Direito</string>
+    <string name="widget_preview_feed_value">12m</string>
+    <string name="widget_preview_sleep_label">Acordado</string>
+    <string name="widget_preview_sleep_value">3m</string>
+    <string name="milk_stash_widget_description">Estoque de leite — volume e contagem de sacos</string>
+
+    <!-- Quick Settings tiles -->
+    <string name="tile_feed_label">Mamada</string>
+    <string name="tile_sleep_label">Sono</string>
+    <string name="tile_feed_description">Iniciar ou parar uma sessão de mamada</string>
+    <string name="tile_sleep_description">Iniciar ou parar uma sessão de sono</string>
+
+    <!-- Bottle feed -->
+    <string name="bottle_feed_add_title">Registrar mamadeira</string>
+    <string name="bottle_feed_edit_title">Editar mamadeira</string>
+    <string name="bottle_feed_volume_label">Volume (mL)</string>
+    <string name="bottle_feed_time_label">HORÁRIO DA MAMADA</string>
+    <string name="bottle_feed_notes_label">Notas (opcional)</string>
+    <string name="bottle_feed_save">Salvar mamada</string>
+    <string name="bottle_feed_type_breast_milk">Leite materno</string>
+    <string name="bottle_feed_type_formula">Fórmula</string>
+    <string name="bottle_feed_bag_picker_label">DO SACO DO ESTOQUE (OPCIONAL)</string>
+    <string name="bottle_feed_quick_action">Mamadeira</string>
+    <string name="feed_author_partner_badge">Parceiro</string>
+    <string name="feeding_history_title">Histórico de mamadas</string>
+    <string name="feeding_history_empty">Nenhuma mamada registrada ainda</string>
+    <string name="feeding_history_empty_supporting">Mamadeiras e sessões de amamentação aparecerão aqui</string>
+    <string name="feeding_history_day_totals">%1$s &#183; %2$d mamadas</string>
+    <string name="feeding_delete_title">Excluir mamada?</string>
+    <string name="feeding_delete_message">Esta mamadeira será removida. Isso não pode ser desfeito.</string>
+    <string name="partner_log_bottle">Registrar mamadeira</string>
+    <string name="partner_feeding_history">Histórico de mamadas</string>
+    <string name="partner_feeding_history_error_title">Não foi possível carregar o histórico</string>
+    <string name="try_again">Tentar novamente</string>
+    <string name="back">Voltar</string>
+    <string name="delete">Excluir</string>
+    <string name="edit">Editar</string>
+    <string name="more_options">Mais opções</string>
+    <string name="loading">Carregando...</string>
+    <string name="cancel">Cancelar</string>
+
+    <!-- Shared generic labels -->
+    <string name="ok">OK</string>
+    <string name="close">Fechar</string>
+    <string name="disabled">Desativado</string>
+    <string name="save_changes">Salvar alterações</string>
+    <string name="status_live">Ao vivo</string>
+    <string name="status_paused">Pausado</string>
+    <string name="side_left">Esquerdo</string>
+    <string name="side_right">Direito</string>
+    <string name="label_date">DATA</string>
+    <string name="label_start_time">INÍCIO</string>
+    <string name="label_end_time">FIM</string>
+    <string name="change_date">Alterar data</string>
+    <string name="change_start_time">Alterar horário de início</string>
+    <string name="change_end_time">Alterar horário de término</string>
+    <string name="duration_less_than_minute">menos de 1m</string>
+    <string name="duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="duration_minutes">%1$dm</string>
+
+    <!-- Home -->
+    <string name="home_greeting">Oi, %1$s 👋</string>
+    <string name="home_settings_content_description">Configurações</string>
+    <string name="home_reset_layout">Redefinir layout</string>
+    <string name="home_move_earlier">Mover para cima</string>
+    <string name="home_move_later">Mover para baixo</string>
+    <string name="home_breastfeeding_title">Amamentação</string>
+    <string name="home_breastfeeding_content_description">Amamentação. Abrir tela de amamentação.</string>
+    <string name="home_breastfeeding_active_content_description">Amamentação, sessão ativa. Abrir tela de amamentação.</string>
+    <string name="home_sleep_title">Sono</string>
+    <string name="home_sleep_content_description">Sono. Abrir tela de sono.</string>
+    <string name="home_sleep_active_content_description">Sono, sessão ativa. Abrir tela de sono.</string>
+    <string name="home_sleep_ready">Pronto quando você estiver</string>
+    <string name="home_pumping_title">Extração</string>
+    <string name="home_pumping_content_description">Extração. Abrir tela de extração.</string>
+    <string name="home_pumping_active_content_description">Extração, sessão ativa. Abrir tela de extração.</string>
+    <string name="home_tap_to_log">Toque para registrar</string>
+    <string name="home_inventory_title">Estoque</string>
+    <string name="home_inventory_empty">Nenhum saco armazenado</string>
+    <plurals name="home_inventory_summary">
+        <item quantity="one">%1$s &#183; %2$d saco</item>
+        <item quantity="other">%1$s &#183; %2$d sacos</item>
+        <item quantity="many">%1$s &#183; %2$d sacos</item>
+    </plurals>
+    <plurals name="home_inventory_content_description">
+        <item quantity="one">Estoque de leite, %1$d saco, %2$s. Abrir tela de estoque.</item>
+        <item quantity="other">Estoque de leite, %1$d sacos, %2$s. Abrir tela de estoque.</item>
+        <item quantity="many">Estoque de leite, %1$d sacos, %2$s. Abrir tela de estoque.</item>
+    </plurals>
+    <string name="home_inventory_empty_content_description">Estoque de leite, nenhum saco armazenado. Abrir tela de estoque.</string>
+    <string name="home_bottle_feed_content_description">Registrar uma mamadeira. Abrir tela de mamadeira.</string>
+    <string name="home_growth_title">Crescimento</string>
+    <string name="home_growth_subtitle">Peso, comprimento &amp; percentis</string>
+    <string name="home_growth_content_description">Acompanhamento de crescimento. Abrir gráficos de crescimento.</string>
+    <string name="home_trends_title">Tendências</string>
+    <string name="home_trends_subtitle">Padrões de mamada &amp; sono</string>
+    <string name="home_trends_content_description">Tendências. Abrir gráficos de mamada e sono.</string>
+    <string name="home_milestones_title">Marcos</string>
+    <string name="home_milestones_subtitle">Capture os momentos especiais do seu bebê</string>
+    <string name="home_milestones_content_description">Marcos. Capture momentos especiais.</string>
+    <string name="home_feeding_empty">Nenhuma mamada hoje</string>
+    <plurals name="home_feeding_summary_volume">
+        <item quantity="one">%1$s &#183; %2$d mamada hoje</item>
+        <item quantity="other">%1$s &#183; %2$d mamadas hoje</item>
+        <item quantity="many">%1$s &#183; %2$d mamadas hoje</item>
+    </plurals>
+    <plurals name="home_feeding_summary_count">
+        <item quantity="one">%1$d mamada hoje</item>
+        <item quantity="other">%1$d mamadas hoje</item>
+        <item quantity="many">%1$d mamadas hoje</item>
+    </plurals>
+    <string name="home_feeding_history_content_description">Histórico de mamadas. %1$s. Abrir histórico combinado de mamadas.</string>
+    <string name="home_tip_label">DICA</string>
+    <string name="home_tip_message">Tente o seio %1$s na próxima, foi menos usado na última sessão.</string>
+    <string name="home_partner_title">Visão do parceiro</string>
+    <string name="home_partner_subtitle">Conecte-se para ver os dados compartilhados do bebê</string>
+    <string name="home_partner_content_description">Visão do parceiro. Conecte-se para ver os dados compartilhados do bebê.</string>
+
+    <!-- Log a cue (quick-tap row) -->
+    <string name="cue_log_a_cue">REGISTRAR SINAL</string>
+    <string name="cue_logged">%1$s registrado</string>
+    <string name="cue_chip_label">%1$s %2$s</string>
+    <string name="cue_sleepy">Sonolento</string>
+    <string name="cue_hungry">Com fome</string>
+    <string name="cue_fussy">Agitado</string>
+    <string name="cue_sick">Doente</string>
+    <string name="cue_teething">Dentição</string>
+    <string name="cue_travel">Viagem</string>
+
+    <!-- Session timer -->
+    <string name="timer_label_percent">%1$d%% de %2$dm</string>
+    <string name="timer_cd_with_ring">Cronômetro da sessão: %1$s, %2$d%% de %3$d minutos</string>
+    <string name="timer_cd">Cronômetro da sessão: %1$s</string>
+    <string name="timer_cd_paused">%1$s, pausado</string>
+
+    <!-- Side selector -->
+    <string name="side_selector_selected_content_description">%1$s, selecionado</string>
+
+    <!-- Breastfeeding prediction copy -->
+    <string name="breastfeeding_predict_hungry_now">Provável fome agora &#183; ~%1$dm atrás</string>
+    <string name="breastfeeding_predict_hungry_around">Provável fome por volta de %1$s</string>
+    <string name="breastfeeding_predict_in_minutes">em ~%1$dm</string>
+    <string name="breastfeeding_predict_low_confidence">baixa confiança</string>
+    <string name="breastfeeding_predict_detail_combined">%1$s &#183; baixa confiança</string>
+    <string name="breastfeeding_predict_cd_now">Provável fome agora, há cerca de %1$d minutos</string>
+    <string name="breastfeeding_predict_cd_around_detail">Provável fome por volta de %1$s, em cerca de %2$d minutos</string>
+    <string name="breastfeeding_predict_cd_around">Provável fome por volta de %1$s</string>
+    <string name="breastfeeding_predict_cd_low_confidence">%1$s, baixa confiança</string>
+    <string name="breastfeeding_predict_cd_basis">%1$s, com base em %2$d mamadas recentes</string>
+
+    <!-- Breastfeeding screen -->
+    <string name="breastfeeding_title">Amamentação</string>
+    <string name="breastfeeding_action_history">Histórico de mamadas</string>
+    <string name="breastfeeding_action_settings">Configurações de mamada</string>
+    <string name="breastfeeding_stop_title">Encerrar esta sessão?</string>
+    <string name="breastfeeding_stop_message">A sessão será salva no histórico.</string>
+    <string name="breastfeeding_stop_confirm">Encerrar sessão</string>
+    <string name="breastfeeding_stop_dismiss">Continuar</string>
+    <string name="breastfeeding_status_paused">Sessão pausada</string>
+    <string name="breastfeeding_status_in_progress">Sessão em andamento</string>
+    <string name="breastfeeding_switch_to">Trocar para %1$s</string>
+    <string name="breastfeeding_resume">Retomar sessão</string>
+    <string name="breastfeeding_pause">Pausar sessão</string>
+    <string name="breastfeeding_stop_session">Parar sessão</string>
+    <string name="breastfeeding_start_heading">Iniciar uma sessão de amamentação</string>
+    <string name="breastfeeding_start_recommended">Comece pelo seio %1$s</string>
+    <string name="breastfeeding_start_session">Iniciar sessão</string>
+    <string name="breastfeeding_log_past_feed">Registrar mamada anterior</string>
+    <string name="breastfeeding_last_feeding">ÚLTIMA MAMADA</string>
+    <string name="breastfeeding_breast_label">Seio %1$s</string>
+    <string name="breastfeeding_first_side">Primeiro lado &#183; %1$s</string>
+    <string name="breastfeeding_second_side">Segundo lado</string>
+    <string name="breastfeeding_add_title">Adicionar sessão de mamada</string>
+    <string name="breastfeeding_starting_side">LADO INICIAL</string>
+    <string name="breastfeeding_side_chip">🤱 %1$s</string>
+    <string name="breastfeeding_manual_error">⚠ %1$s</string>
+    <string name="breastfeeding_manual_pick_times">Escolha horários de início e término diferentes para salvar esta mamada.</string>
+    <string name="breastfeeding_manual_duration">⏱ Duração: %1$s</string>
+    <string name="breastfeeding_manual_save">Salvar sessão %1$s</string>
+
+    <!-- Breastfeeding history -->
+    <string name="breastfeeding_history_title">Histórico de mamadas</string>
+    <string name="breastfeeding_history_empty_title">Nenhuma sessão ainda</string>
+    <string name="breastfeeding_history_empty_subtitle">As sessões que você registrar aparecerão aqui</string>
+    <plurals name="breastfeeding_history_day_header">
+        <item quantity="one">%1$s &#183; %2$d sessão</item>
+        <item quantity="other">%1$s &#183; %2$d sessões</item>
+        <item quantity="many">%1$s &#183; %2$d sessões</item>
+    </plurals>
+    <plurals name="breastfeeding_history_day_header_total">
+        <item quantity="one">%1$s &#183; %2$d sessão &#183; %3$s no total</item>
+        <item quantity="other">%1$s &#183; %2$d sessões &#183; %3$s no total</item>
+        <item quantity="many">%1$s &#183; %2$d sessões &#183; %3$s no total</item>
+    </plurals>
+    <string name="breastfeeding_side_left">Lado esquerdo</string>
+    <string name="breastfeeding_side_right">Lado direito</string>
+    <string name="breastfeeding_in_progress">Em andamento</string>
+    <string name="breastfeeding_delete_title">Excluir esta sessão?</string>
+    <string name="breastfeeding_delete_message">Não pode ser desfeito.</string>
+
+    <!-- Breastfeeding edit sheet -->
+    <string name="breastfeeding_edit_title">Editar mamada</string>
+    <string name="breastfeeding_edit_subtitle">%1$s &#183; %2$s</string>
+    <string name="breastfeeding_edit_started">INÍCIO</string>
+    <string name="breastfeeding_edit_ended">TÉRMINO</string>
+    <string name="breastfeeding_edit_set_date">Definir data</string>
+    <string name="breastfeeding_edit_set_time">Definir horário</string>
+    <string name="breastfeeding_edit_in_progress">Sessão em andamento</string>
+    <string name="breastfeeding_edit_duration">Duração: %1$s</string>
+
+    <!-- Feed settings -->
+    <string name="feed_settings_title">Configurações de mamada</string>
+    <string name="feed_settings_limits_section">Limites de mamada</string>
+    <string name="feed_settings_max_per_breast">Máx. por seio</string>
+    <string name="feed_settings_max_total">Máx. total da mamada</string>
+    <string name="feed_settings_minutes_value">%1$d min</string>
+
+    <!-- Shared generic labels (sleep + trends) -->
+    <string name="label_in_progress">Em andamento</string>
+    <string name="state_expanded">Expandido</string>
+    <string name="state_collapsed">Recolhido</string>
+
+    <!-- Sleep type labels -->
+    <string name="sleep_type_nap">Soneca</string>
+    <string name="sleep_type_night">Sono noturno</string>
+    <string name="sleep_type_chip">%1$s %2$s</string>
+
+    <!-- Sleep tracking -->
+    <string name="sleep_title">Sono</string>
+    <string name="sleep_cd_history">Histórico de sono</string>
+    <string name="sleep_cd_schedule">Agenda de sono</string>
+    <string name="sleep_cd_settings">Configurações de sono</string>
+    <string name="sleep_log_past">Registrar sono anterior</string>
+    <string name="sleep_today">HOJE</string>
+    <string name="sleep_last_sleep_label">ÚLTIMO SONO</string>
+    <string name="sleep_last_sleep_empty">Nenhum sono registrado ainda</string>
+    <string name="sleep_last_sleep_cd_empty">Último sono. Nenhum sono registrado ainda.</string>
+    <string name="sleep_last_sleep_cd">Último sono. %1$s. %2$s.</string>
+    <string name="sleep_wake_set">🌅 Definir horário de acordar de hoje</string>
+    <string name="sleep_wake_woke">🌅 Acordou às %1$s</string>
+    <string name="sleep_wake_edit_cd">Editar horário de acordar</string>
+    <string name="sleep_wake_set_cd">Definir horário de acordar</string>
+    <string name="sleep_stat_today">Sono hoje</string>
+    <string name="sleep_stat_naps">Sonecas</string>
+    <string name="sleep_stat_night">Sono noturno</string>
+    <string name="sleep_cd_delete_entry">Excluir registro</string>
+    <string name="sleep_delete_entry_title">Excluir registro?</string>
+    <string name="sleep_delete_entry_message">%1$s %2$s será removido.</string>
+    <string name="sleep_empty_title">Nenhum registro de sono ainda</string>
+    <string name="sleep_empty_subtitle">Toque abaixo para registrar um sono anterior</string>
+    <string name="sleep_start_nap">😴 Iniciar soneca</string>
+    <string name="sleep_start_night">🌙 Iniciar sono noturno</string>
+    <string name="sleep_in_progress_status">%1$s %2$s em andamento</string>
+    <string name="sleep_stop_session">Parar sessão</string>
+    <string name="sleep_subtitle_range">%1$s – %2$s</string>
+    <string name="sleep_back_to_sleep">Voltar ao sono</string>
+
+    <!-- Sleep entry sheet -->
+    <string name="sleep_entry_add_title">Adicionar registro de sono</string>
+    <string name="sleep_entry_edit_title">Editar registro de sono</string>
+    <string name="sleep_entry_error">⚠ %1$s</string>
+    <string name="sleep_entry_pick_times">Escolha horários de início e término diferentes para salvar este sono.</string>
+    <string name="sleep_entry_duration">⏱ Duração: %1$s</string>
+    <string name="sleep_save_nap">Salvar soneca</string>
+    <string name="sleep_save_night">Salvar sono noturno</string>
+    <string name="sleep_update_nap">Atualizar soneca</string>
+    <string name="sleep_update_night">Atualizar sono noturno</string>
+
+    <!-- Sleep history -->
+    <string name="sleep_history_title">Histórico de sono</string>
+    <string name="sleep_history_empty_title">Nenhum registro de sono ainda</string>
+    <string name="sleep_history_empty_subtitle">As sessões de sono que você registrar aparecerão aqui</string>
+    <plurals name="sleep_history_day_header">
+        <item quantity="one">%1$s &#183; %2$d registro</item>
+        <item quantity="other">%1$s &#183; %2$d registros</item>
+        <item quantity="many">%1$s &#183; %2$d registros</item>
+    </plurals>
+    <plurals name="sleep_history_day_header_total">
+        <item quantity="one">%1$s &#183; %2$d registro &#183; %3$s no total</item>
+        <item quantity="other">%1$s &#183; %2$d registros &#183; %3$s no total</item>
+        <item quantity="many">%1$s &#183; %2$d registros &#183; %3$s no total</item>
+    </plurals>
+
+    <!-- Sleep schedule -->
+    <string name="sleep_schedule_title">Agenda de sono</string>
+    <string name="sleep_schedule_refresh_cd">Atualizar</string>
+    <string name="sleep_schedule_onboarding">Complete a configuração inicial para gerar uma agenda</string>
+    <string name="sleep_schedule_typical_duration">Duração típica: %1$s</string>
+    <string name="sleep_schedule_adjusted">ajustado</string>
+    <string name="sleep_schedule_summary_title">Resumo do sono</string>
+    <string name="sleep_schedule_recommended_total">Sono total recomendado</string>
+    <string name="sleep_schedule_range">%1$s - %2$s</string>
+    <string name="sleep_schedule_average">Média do seu bebê (7 dias)</string>
+    <string name="sleep_schedule_last_feed">Última mamada</string>
+    <string name="sleep_schedule_naps_per_day">Sonecas por dia</string>
+    <string name="sleep_schedule_nap_transition">Transição de soneca</string>
+
+    <!-- Sleep settings -->
+    <string name="sleep_settings_nap_delay_helper">Vamos lembrar você esta quantidade de minutos após o fim de uma soneca.</string>
+
+    <!-- Sleep prediction (card + recommendation section) -->
+    <string name="sleep_prediction_label">PREVISÃO DE SONO</string>
+    <string name="sleep_prediction_around">Por volta de %1$s</string>
+    <string name="sleep_prediction_cd_around">Próximo sono por volta de %1$s</string>
+    <string name="sleep_prediction_window_range">%1$s–%2$s</string>
+    <string name="sleep_prediction_confidence_low">Confiança: Baixa</string>
+    <string name="sleep_prediction_confidence_medium">Confiança: Média</string>
+    <string name="sleep_prediction_confidence_high">Confiança: Alta</string>
+    <string name="sleep_prediction_sessions">%1$d de %2$d sessões de sono</string>
+    <string name="sleep_prediction_a11y_progress">Aprendendo os padrões do seu bebê. %1$d de %2$d sessões de sono registradas.</string>
+    <string name="sleep_prediction_day_of">Dia %1$d de %2$d</string>
+    <string name="sleep_prediction_overdue">Fique atento aos sinais — a janela pode abrir em breve</string>
+    <string name="sleep_prediction_cue_led">Observando os sinais do bebê — sem janela fixa no momento</string>
+    <string name="sleep_prediction_sleeping">O bebê está dormindo</string>
+    <string name="sleep_prediction_after_feed">Mamando agora — a janela de sono aparece após o fim da mamada</string>
+    <string name="sleep_prediction_safe_sleep">Sono seguro</string>
+    <string name="sleep_prediction_safe_sleep_cd">Dica de sono seguro</string>
+    <string name="sleep_prediction_card_cd_window">Próximo sono por volta de %1$s. Abrir tela de sono.</string>
+    <string name="sleep_prediction_card_cd_need_more">Previsão de sono: ainda aprendendo os padrões. Abrir tela de sono.</string>
+    <string name="sleep_prediction_card_cd_overdue">Previsão de sono: fique atento aos sinais. Abrir tela de sono.</string>
+    <string name="sleep_prediction_card_cd_sleeping">O bebê está dormindo. Abrir tela de sono.</string>
+    <string name="sleep_prediction_card_cd_cue_led">Previsão de sono: guiada por sinais. Abrir tela de sono.</string>
+    <string name="sleep_prediction_card_cd_after_feed">Previsão de sono: a janela aparece após a mamada. Abrir tela de sono.</string>
+    <string name="sleep_prediction_card_cd_default">Previsão de sono. Abrir tela de sono.</string>
+
+    <!-- Trends -->
+    <string name="trends_title">Tendências</string>
+    <string name="trends_range_7d">7d</string>
+    <string name="trends_range_14d">14d</string>
+    <string name="trends_range_30d">30d</string>
+    <string name="trends_empty">Dados insuficientes ainda — continue registrando.</string>
+    <string name="trends_feeds_per_day_title">Mamadas por dia</string>
+    <string name="trends_feeds_per_day_cd">Mamadas por dia. Total de %1$d em %2$d dias.</string>
+    <string name="trends_sleep_hours_title">Horas de sono por dia (noturno + soneca)</string>
+    <string name="trends_sleep_hours_cd">Horas de sono por dia, noturno e soneca empilhados, em %1$d dias.</string>
+    <string name="trends_interval_title">Média de horas entre mamadas</string>
+    <string name="trends_interval_cd">Média de horas entre mamadas por dia em %1$d dias.</string>
+    <string name="trends_feedvssleep_title">Mamadas x sono por dia</string>
+    <string name="trends_feedvssleep_cd">Mamadas versus sono por dia em %1$d dias. As colunas são a contagem de mamadas, a linha é o total de horas de sono.</string>
+    <string name="trends_rhythm_title">Ritmo diário (sono + mamadas)</string>
+    <string name="trends_rhythm_cd">Ritmo diário em %1$d dias, cada linha é um dia da meia-noite à meia-noite. As barras são sono, os pontos são mamadas.</string>
+    <string name="trends_legend_night">Noturno</string>
+    <string name="trends_legend_nap">Soneca</string>
+    <string name="trends_legend_breast">Seio</string>
+    <string name="trends_legend_bottle">Mamadeira</string>
+
+    <!-- Shared generic labels (onboarding/growth/milestones) -->
+    <string name="save">Salvar</string>
+    <string name="state_selected">Selecionado</string>
+    <string name="state_not_selected">Não selecionado</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome_title">Bem-vindo ao Akachan</string>
+    <string name="onboarding_welcome_subtitle">Um lugar tranquilo para acompanhar mamadas, sono e notas de alergia durante o primeiro ano.</string>
+    <string name="onboarding_setup_profile">Configurar perfil do bebê</string>
+    <string name="onboarding_preview_care">Cuidado</string>
+    <string name="onboarding_preview_feeding">Mamadas</string>
+    <string name="onboarding_preview_sleep">Sono</string>
+    <string name="onboarding_preview_allergies">Alergias</string>
+    <string name="onboarding_feature_one_handed">Uso com uma mão</string>
+    <string name="onboarding_feature_one_handed_desc">As ações principais ficam grandes e ao alcance.</string>
+    <string name="onboarding_feature_local">Registros locais primeiro</string>
+    <string name="onboarding_feature_local_desc">Os dados principais do bebê ficam neste dispositivo.</string>
+    <string name="onboarding_feature_partner">Visão de parceiro opcional</string>
+    <string name="onboarding_feature_partner_desc">Compartilhe um resumo somente leitura quando quiser.</string>
+    <string name="onboarding_step_indicator">Etapa %1$d de %2$d</string>
+    <string name="onboarding_hero_cd">%1$s, %2$s</string>
+    <string name="onboarding_hero_progress_cd">progresso de %1$s</string>
+    <string name="onboarding_baby_profile_title">Perfil do bebê</string>
+    <string name="onboarding_start_basics">Comece pelo básico</string>
+    <string name="onboarding_basics_subtitle">Isso ajuda a manter idades e registros claros no histórico de mamadas e sono.</string>
+    <string name="onboarding_baby_name_label">Nome do bebê</string>
+    <string name="onboarding_continue">Continuar</string>
+    <string name="onboarding_use_date">Usar data</string>
+    <string name="onboarding_dob_label">Data de nascimento</string>
+    <string name="onboarding_dob_cd">Data de nascimento, %1$s</string>
+    <string name="onboarding_dob_cd_error">Data de nascimento, %1$s. %2$s</string>
+    <string name="onboarding_change_dob">Alterar data de nascimento</string>
+    <string name="onboarding_sex_label">Sexo</string>
+    <string name="onboarding_sex_subtitle">Usado para mostrar percentis de crescimento nos gráficos da OMS. Você pode alterar isso depois.</string>
+    <string name="onboarding_age_range">O Akachan foi feito para bebês de 0 a 12 meses.</string>
+    <string name="onboarding_char_count">%1$d/%2$d</string>
+    <string name="onboarding_allergy_notes_title">Notas de alergia</string>
+    <string name="onboarding_allergies_question">Alguma alergia a registrar?</string>
+    <string name="onboarding_allergies_subtitle">Adicione apenas alergias que você já conhece para %1$s. Se nada for conhecido ainda, deixe vazio e atualize depois.</string>
+    <string name="onboarding_add_known_allergies">Adicionar alergias conhecidas</string>
+    <string name="onboarding_other_allergy_label">Descrever outra alergia</string>
+    <string name="onboarding_saving_setup_cd">Salvando configuração</string>
+    <string name="onboarding_saving">Salvando</string>
+    <string name="onboarding_finish_setup">Concluir configuração</string>
+    <string name="onboarding_no_known_yet">Nenhuma conhecida ainda</string>
+    <string name="onboarding_no_known_subtitle">Mantém as notas de alergia vazias por enquanto.</string>
+    <string name="onboarding_no_allergies_selected">Nenhuma alergia conhecida selecionada</string>
+    <string name="onboarding_allergies_selected">Alergias conhecidas selecionadas</string>
+    <string name="onboarding_no_allergies_save">Nenhuma alergia será salva ainda.</string>
+    <string name="onboarding_will_save">Vai salvar: </string>
+
+    <!-- Growth -->
+    <string name="growth_title">Crescimento</string>
+    <string name="growth_add_measurement_cd">Adicionar medição</string>
+    <string name="growth_delete_title">Excluir medição?</string>
+    <string name="growth_delete_message">Isso remove %1$s do histórico do seu bebê. Não pode ser desfeito.</string>
+    <string name="growth_history">Histórico</string>
+    <string name="growth_empty_title">Nenhuma medição ainda</string>
+    <string name="growth_empty_subtitle">Toque em + para registrar a primeira medição do seu bebê e vê-la no gráfico da OMS.</string>
+    <string name="growth_latest">Mais recente: %1$s</string>
+    <string name="growth_percentile_who">%1$s (OMS)</string>
+    <string name="growth_percentile_unavailable">Percentil indisponível para esta idade</string>
+    <string name="growth_set_sex_percentile">Defina o sexo para ver o percentil</string>
+    <string name="growth_see_who">Ver percentis da OMS</string>
+    <string name="growth_who_subtitle">As curvas de crescimento da OMS são específicas por sexo. Defina o sexo do seu bebê para comparar com elas.</string>
+    <string name="growth_set_sex">Definir sexo</string>
+    <string name="growth_delete_row_cd">Excluir medição de %1$s</string>
+    <string name="growth_tab_weight">Peso</string>
+    <string name="growth_tab_length">Comprimento</string>
+    <string name="growth_tab_head">Cabeça</string>
+    <string name="growth_add_title">Adicionar %1$s</string>
+    <string name="growth_date_value">Data: %1$s</string>
+    <string name="growth_unit_lb">lb</string>
+    <string name="growth_unit_oz">oz</string>
+    <string name="growth_value_label">Valor (%1$s)</string>
+    <string name="growth_notes_label">Notas (opcional)</string>
+
+    <!-- Milestones -->
+    <string name="milestone_title">Marcos</string>
+    <string name="milestone_add_moment_cd">Adicionar um momento</string>
+    <string name="milestone_empty_title">Nenhum momento ainda</string>
+    <string name="milestone_empty_subtitle">Toque em + para capturar o primeiro momento do seu bebê — um sorriso, uma risada, um primeiro passo.</string>
+    <string name="milestone_card_cd">%1$s. %2$s. Toque para abrir.</string>
+    <string name="milestone_detail_title">Momento</string>
+    <string name="milestone_delete_title">Excluir momento?</string>
+    <string name="milestone_delete_message">Este momento e sua foto serão removidos permanentemente.</string>
+    <string name="milestone_photo_cd">Foto do momento</string>
+    <string name="milestone_editor_new">Novo momento</string>
+    <string name="milestone_editor_edit">Editar momento</string>
+    <string name="milestone_title_label">Título</string>
+    <string name="milestone_add_time">Adicionar horário</string>
+    <string name="milestone_remove_time">Remover horário</string>
+    <string name="milestone_add_photo">Adicionar foto</string>
+    <string name="milestone_change_photo">Alterar foto</string>
+    <string name="milestone_note_label">Nota (opcional)</string>
+    <string name="milestone_saving_photo">Salvando foto…</string>
+
+    <!-- Shared generic labels (settings/inventory) -->
+    <string name="dismiss">Dispensar</string>
+
+    <!-- Settings (residual) -->
+    <string name="settings_title">Configurações</string>
+    <string name="settings_baby_profile">Perfil do bebê</string>
+    <string name="settings_name">Nome</string>
+    <string name="settings_allergies_none">Nenhuma</string>
+    <string name="settings_app_settings">Configurações do app</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_auto_update">Atualização automática</string>
+    <string name="settings_notifications_section">Notificações</string>
+    <string name="settings_rich_notifications">Notificações avançadas</string>
+    <string name="settings_partner_stash_use">Uso do estoque pelo parceiro</string>
+    <string name="settings_partner_access">Acesso de parceiro</string>
+    <string name="settings_partner_sharing">Compartilhamento com parceiro</string>
+    <string name="settings_connect_partner">Conectar como parceiro</string>
+    <string name="settings_manage_sharing">Gerenciar compartilhamento</string>
+    <string name="settings_disconnect">Desconectar</string>
+    <string name="settings_developer">Desenvolvedor</string>
+    <string name="settings_design_system">Design System</string>
+    <string name="settings_version">Akachan v%1$s</string>
+    <string name="settings_edit_name">Editar nome</string>
+    <string name="settings_edit_dob">Editar data de nascimento</string>
+    <string name="settings_edit_allergies">Editar alergias</string>
+    <string name="settings_select_theme">Selecionar tema</string>
+    <string name="settings_theme_system">Sistema</string>
+    <string name="settings_theme_light">Claro</string>
+    <string name="settings_theme_dark">Escuro</string>
+    <string name="settings_baby_sex">Sexo do bebê</string>
+    <string name="settings_sex_subtitle">Usado para mostrar percentis de crescimento nos gráficos da OMS.</string>
+    <string name="settings_data_section">Dados</string>
+    <string name="settings_import_incomplete">Sua última importação pode estar incompleta. Reimporte seu backup para concluir.</string>
+    <string name="settings_export_pdf">Relatório em PDF</string>
+    <string name="settings_export_json">Backup (JSON)</string>
+    <string name="settings_export_csv">Planilha (CSV)</string>
+    <string name="settings_restore">Restaurar de backup</string>
+    <string name="settings_import_title">Importar backup?</string>
+    <string name="settings_import_feeding">• %1$d sessões de amamentação</string>
+    <string name="settings_import_sleep">• %1$d registros de sono</string>
+    <string name="settings_import_pumping">• %1$d sessões de extração</string>
+    <string name="settings_import_milk_bags">• %1$d sacos de leite</string>
+    <string name="settings_import_bottle_feeds">• %1$d mamadeiras</string>
+    <string name="settings_import_growth">• %1$d medições de crescimento</string>
+    <string name="settings_import_milestones">• %1$d marcos</string>
+    <string name="settings_import_confirm">Importar</string>
+    <string name="settings_pdf_report_title">Relatório em PDF</string>
+    <string name="settings_pdf_date_range">Escolha o período a incluir</string>
+    <string name="settings_save_pdf">Salvar PDF</string>
+    <string name="settings_share_pdf">Compartilhar PDF</string>
+    <string name="settings_edit_format">Editar %1$s</string>
+    <string name="settings_disable_hint">Defina como 0 para desativar o limite.</string>
+    <string name="settings_minutes_label">Minutos (0 = desativado)</string>
+
+    <!-- Inventory (milk stash) -->
+    <string name="inventory_title">Estoque de leite</string>
+    <string name="inventory_settings_cd">Configurações do estoque</string>
+    <string name="inventory_settings_title">Configurações do estoque</string>
+    <string name="inventory_add_bag_cd">Adicionar saco</string>
+    <string name="inventory_edit_bag_title">Editar saco de leite</string>
+    <string name="inventory_empty_title">Nenhum saco no seu estoque ainda</string>
+    <string name="inventory_empty_subtitle">Toque em + para adicionar um saco manualmente</string>
+    <string name="inventory_stat_total">TOTAL</string>
+    <string name="inventory_stat_bags">SACOS</string>
+    <string name="inventory_stat_oldest">MAIS ANTIGO</string>
+    <string name="inventory_pumped">Extraído %1$s</string>
+    <string name="inventory_mark_used_cd">Marcar como usado</string>
+    <string name="inventory_delete_title">Excluir saco?</string>
+    <string name="inventory_delete_message">O saco de %1$s será removido.</string>
+    <string name="inventory_collection_date">DATA DE COLETA</string>
+    <string name="inventory_section_expiration">CONTROLE DE VALIDADE</string>
+    <string name="inventory_expiration_tracking">Controle de validade</string>
+    <string name="inventory_expires_after">Vence após</string>
+    <string name="inventory_days_suffix">dias</string>
+    <string name="inventory_section_notifications">NOTIFICAÇÕES</string>
+    <string name="inventory_expiration_reminders">Lembretes de validade</string>
+    <string name="inventory_notify_at">Notificar às</string>
+    <string name="inventory_daily_check">Verificação diária de validade</string>
+    <string name="inventory_reminder_time">Horário do lembrete</string>
+
+    <!-- Pumping -->
+    <string name="pumping_title">Extração</string>
+    <string name="pumping_cd_stash">Estoque de leite</string>
+    <string name="pumping_cd_history">Histórico</string>
+    <string name="pumping_start_title">Iniciar uma sessão</string>
+    <string name="pumping_start_subtitle">Selecione de qual lado você está extraindo.</string>
+    <string name="pumping_start_button">Iniciar extração</string>
+    <string name="pumping_volume_label">Volume extraído (mL)</string>
+    <string name="pumping_notes">Notas</string>
+    <string name="pumping_optional">Opcional</string>
+    <string name="pumping_save_session">Salvar sessão</string>
+    <string name="pumping_end_title">Encerrar sessão</string>
+    <string name="pumping_end_subtitle">Opcionalmente, registre quanto você extraiu.</string>
+    <string name="pumping_breast_caps">SEIO</string>
+    <string name="pumping_breast_both">Ambos</string>
+    <string name="pumping_edit_title">Editar sessão</string>
+    <string name="pumping_history_title">Histórico de extração</string>
+    <string name="pumping_history_empty_title">Nenhuma sessão de extração ainda</string>
+    <string name="pumping_history_item">%1$s &#183; %2$s</string>
+    <string name="pumping_edit_session_cd">Editar sessão</string>
+    <string name="pumping_add_to_stash_title">Adicionar ao estoque?</string>
+    <string name="pumping_add_to_stash_subtitle">Armazene este leite no seu estoque.</string>
+    <string name="pumping_add_to_stash">Adicionar ao estoque</string>
+    <string name="pumping_skip">Pular</string>
+
+    <!-- Sharing -->
+    <string name="sharing_stop_title">Parar de compartilhar?</string>
+    <string name="sharing_stop_message">Isso desconectará todos os parceiros conectados.</string>
+    <string name="sharing_stop_confirm">Parar</string>
+    <string name="sharing_new_code_title">Gerar novo código?</string>
+    <string name="sharing_new_code_message">Isso desconectará todos os parceiros atuais. Eles precisarão do novo código para reconectar.</string>
+    <string name="sharing_generate">Gerar</string>
+    <string name="sharing_share_journey">Compartilhe sua jornada</string>
+    <string name="sharing_share_desc">Compartilhe acesso somente leitura aos dados do seu bebê com um parceiro. Ele verá sessões de mamada, registros de sono e informações do bebê.</string>
+    <string name="sharing_start">Começar a compartilhar</string>
+    <string name="sharing_share_code_label">CÓDIGO DE COMPARTILHAMENTO</string>
+    <string name="sharing_share_code_hint">Compartilhe este código com seu parceiro</string>
+    <string name="sharing_copy">Copiar</string>
+    <string name="sharing_share">Compartilhar</string>
+    <string name="sharing_connected_partners">PARCEIROS CONECTADOS</string>
+    <string name="sharing_no_partners">Nenhum parceiro conectado ainda.</string>
+    <string name="sharing_generate_new">Gerar novo código</string>
+    <string name="sharing_stop_sharing">Parar de compartilhar</string>
+    <string name="sharing_partner_label">Parceiro</string>
+    <string name="sharing_connected_ago">Conectado %1$s</string>
+    <string name="sharing_remove">Remover</string>
+    <string name="sharing_connect_enter_code">Digite o código compartilhado pelo seu parceiro</string>
+    <string name="sharing_connect_ask">Peça ao responsável principal para abrir Compartilhamento com parceiro nas configurações do app dele.</string>
+    <string name="sharing_code_label">Código de compartilhamento</string>
+    <string name="sharing_code_placeholder">ABCD1234</string>
+    <string name="sharing_connect">Conectar</string>
+    <string name="sharing_im_primary">Sou o responsável principal →</string>
+
+    <!-- Partner dashboard -->
+    <string name="partner_ended_title">Acesso de parceiro encerrado</string>
+    <string name="partner_ended_message">Peça ao responsável principal um novo código de compartilhamento para reconectar.</string>
+    <string name="partner_go_settings">Ir para configurações</string>
+    <string name="partner_checking_updates">Verificando atualizações compartilhadas</string>
+    <string name="partner_checking">Verificando</string>
+    <string name="partner_check_updates_cd">Verificar atualizações compartilhadas</string>
+    <string name="partner_pull_refresh">Puxe para baixo para verificar atualizações compartilhadas</string>
+    <string name="partner_loading">Carregando dados compartilhados do parceiro</string>
+    <string name="partner_readonly">Visão somente leitura do parceiro</string>
+    <string name="partner_recent_feedings">MAMADAS RECENTES</string>
+    <string name="partner_no_feeding_history">Nenhum histórico de mamada compartilhado</string>
+    <string name="partner_recent_bottles">MAMADEIRAS RECENTES</string>
+    <string name="partner_last_sleep">ÚLTIMO SONO</string>
+    <string name="partner_no_sleep_record">Nenhum registro de sono compartilhado</string>
+    <string name="partner_quiet">Tudo tranquilo agora</string>
+    <string name="partner_quiet_desc">Nenhuma mamada ou sono ativo foi compartilhado. Nada precisa de atenção.</string>
+    <string name="partner_shared_ago">Compartilhado %1$s</string>
+    <string name="partner_checked_ago">Verificado %1$s</string>
+    <string name="partner_feeding_when_shared">Mamando quando compartilhado</string>
+    <string name="partner_estimate">Estimativa da última atualização compartilhada</string>
+    <string name="partner_sleeping_when_shared">Dormindo quando compartilhado</string>
+    <string name="partner_sync_warning_cd">Aviso de dados compartilhados desatualizados. Esta visão somente leitura pode estar atrasada. Peça ao responsável principal para abrir o Akachan se algo estiver faltando.</string>
+    <string name="partner_stale">Esta visão somente leitura pode estar atrasada. Peça ao responsável principal para abrir o Akachan se algo estiver faltando.</string>
+    <string name="partner_no_shared_records">Nenhum registro compartilhado ainda</string>
+    <string name="partner_latest_care">Último cuidado</string>
+    <string name="partner_fed">Mamou %1$s</string>
+    <string name="partner_no_feeding_yet">Nenhuma mamada compartilhada ainda</string>
+    <string name="partner_milk_stash">Estoque de leite</string>
+    <plurals name="partner_stash_summary">
+        <item quantity="one">%1$s &#183; %2$d saco</item>
+        <item quantity="other">%1$s &#183; %2$d sacos</item>
+        <item quantity="many">%1$s &#183; %2$d sacos</item>
+    </plurals>
+    <string name="partner_updated">Atualizado %1$s</string>
+    <string name="partner_growth">Crescimento</string>
+    <string name="partner_growth_label">%1$s: %2$s</string>
+    <string name="partner_milestones">Marcos</string>
+    <string name="partner_milestone_label">%1$s — %2$s</string>
+    <string name="partner_allergies">ALERGIAS</string>
+    <string name="partner_no_allergies">Nenhuma alergia compartilhada</string>
+    <string name="partner_allergy_cd">Alergia: %1$s</string>
+    <string name="partner_check_shared">Verificar atualizações compartilhadas</string>
+    <string name="partner_check_again">Verificar novamente</string>
+</resources>

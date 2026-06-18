@@ -130,7 +130,7 @@
     <string name="notif_channel_partner_stash_name">Partner stash use</string>
     <string name="notif_channel_partner_stash_description">When your partner logs a bottle that uses milk from the stash</string>
     <plurals name="notif_title_partner_stash">
-        <item quantity="one">Bottle logged by partner</item>
+        <item quantity="one">Partner logged %1$d bottle</item>
         <item quantity="other">Partner logged %1$d bottles</item>
     </plurals>
     <string name="notif_body_partner_stash_single">Partner used %1$d mL from the stash</string>
@@ -358,7 +358,7 @@
     <string name="feed_settings_minutes_value">%1$d min</string>
 
     <!-- Shared generic labels (sleep + trends) -->
-    <string name="in_progress">In progress</string>
+    <string name="label_in_progress">In progress</string>
     <string name="state_expanded">Expanded</string>
     <string name="state_collapsed">Collapsed</string>
 
