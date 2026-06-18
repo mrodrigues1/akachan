@@ -1,5 +1,7 @@
 package com.babytracker.ui.inventory
 
+import android.content.Context
+import com.babytracker.R
 import com.babytracker.domain.repository.InventorySettingsRepository
 import com.babytracker.manager.StashExpirationScheduler
 import io.mockk.coVerify
@@ -25,6 +27,7 @@ class InventorySettingsViewModelTest {
 
     private lateinit var settings: InventorySettingsRepository
     private lateinit var scheduler: StashExpirationScheduler
+    private lateinit var appContext: Context
 
     private val testDispatcher = StandardTestDispatcher()
     private val enabled = MutableStateFlow(false)
@@ -41,6 +44,9 @@ class InventorySettingsViewModelTest {
         every { settings.getExpirationDays() } returns days
         every { settings.getExpirationNotifEnabled() } returns notifEnabled
         every { settings.getExpirationNotifTimeMinutes() } returns notifTime
+        appContext = mockk {
+            every { getString(R.string.error_min_one_day) } returns "Must be at least 1 day"
+        }
     }
 
     @AfterEach
@@ -49,7 +55,7 @@ class InventorySettingsViewModelTest {
         unmockkAll()
     }
 
-    private fun viewModel(): InventorySettingsViewModel = InventorySettingsViewModel(settings, scheduler)
+    private fun viewModel(): InventorySettingsViewModel = InventorySettingsViewModel(settings, scheduler, appContext)
 
     @Test
     fun `master toggle off cancels scheduler`() = runTest {

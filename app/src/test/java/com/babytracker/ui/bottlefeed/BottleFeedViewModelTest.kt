@@ -1,5 +1,7 @@
 package com.babytracker.ui.bottlefeed
 
+import android.content.Context
+import com.babytracker.R
 import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.VolumeUnit
@@ -31,6 +33,7 @@ class BottleFeedViewModelTest {
     private val edit = mockk<EditBottleFeedUseCase>(relaxed = true)
     private val getInventory = mockk<GetInventoryUseCase>()
     private val settings = mockk<SettingsRepository>()
+    private val appContext = mockk<Context>()
     private val dispatcher = StandardTestDispatcher()
 
     @BeforeEach
@@ -38,12 +41,14 @@ class BottleFeedViewModelTest {
         Dispatchers.setMain(dispatcher)
         every { getInventory() } returns flowOf(emptyList())
         every { settings.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
+        every { appContext.getString(R.string.error_volume_positive) } returns "Enter a volume greater than 0"
+        every { appContext.getString(R.string.error_could_not_save) } returns "Could not save"
     }
 
     @AfterEach
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm() = BottleFeedViewModel(log, edit, getInventory, settings) { Instant.ofEpochMilli(10_000) }
+    private fun vm() = BottleFeedViewModel(log, edit, getInventory, settings, appContext) { Instant.ofEpochMilli(10_000) }
 
     @Test
     fun `blank volume sets validation error and does not save`() = runTest {

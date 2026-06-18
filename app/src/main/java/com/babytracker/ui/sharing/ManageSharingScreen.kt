@@ -79,25 +79,25 @@ fun ManageSharingScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val shareCode = uiState.shareCode.orEmpty()
+    val codeCopiedMessage = stringResource(R.string.msg_code_copied)
+    val shareCodeMessage = stringResource(R.string.share_code_message, shareCode)
+    val noShareAppMessage = stringResource(R.string.error_no_share_app)
     val clipboard = LocalClipboardManager.current
     val onCopyCode: () -> Unit = {
         clipboard.setText(AnnotatedString(shareCode))
-        scope.launch { snackbarHostState.showSnackbar("Code copied to clipboard") }
+        scope.launch { snackbarHostState.showSnackbar(codeCopiedMessage) }
     }
     val context = LocalContext.current
     val onShareCode: () -> Unit = {
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
-            putExtra(
-                Intent.EXTRA_TEXT,
-                "Use this code to connect to my baby tracker: $shareCode",
-            )
+            putExtra(Intent.EXTRA_TEXT, shareCodeMessage)
         }
         try {
             context.startActivity(Intent.createChooser(sendIntent, null))
         } catch (e: ActivityNotFoundException) {
             Log.d("ManageSharingScreen", "No app available to share code", e)
-            scope.launch { snackbarHostState.showSnackbar("No app available to share this code.") }
+            scope.launch { snackbarHostState.showSnackbar(noShareAppMessage) }
         }
     }
 

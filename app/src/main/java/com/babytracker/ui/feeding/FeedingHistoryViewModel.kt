@@ -1,7 +1,9 @@
 package com.babytracker.ui.feeding
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.R
 import com.babytracker.domain.model.BottleFeed
 import com.babytracker.domain.model.FeedingDayGroup
 import com.babytracker.domain.model.VolumeUnit
@@ -10,6 +12,7 @@ import com.babytracker.domain.usecase.bottlefeed.DeleteBottleFeedUseCase
 import com.babytracker.domain.usecase.feeding.ObserveFeedingHistoryUseCase
 import com.babytracker.domain.usecase.feeding.groupFeedEntriesByDay
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +36,7 @@ class FeedingHistoryViewModel @Inject constructor(
     observeFeedingHistory: ObserveFeedingHistoryUseCase,
     private val deleteBottleFeed: DeleteBottleFeedUseCase,
     settingsRepository: SettingsRepository,
+    @ApplicationContext private val appContext: Context,
     private val zone: ZoneId,
 ) : ViewModel() {
 
@@ -71,11 +75,11 @@ class FeedingHistoryViewModel @Inject constructor(
                         it.copy(isDeleting = false, deletedBottleId = feed.id)
                     }
                 }
-                .onFailure { error ->
+                .onFailure {
                     _uiState.update {
                         it.copy(
                             isDeleting = false,
-                            deleteError = error.message ?: "Could not delete feed",
+                            deleteError = appContext.getString(R.string.error_feed_delete),
                         )
                     }
                 }

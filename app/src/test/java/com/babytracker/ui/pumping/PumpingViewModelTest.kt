@@ -1,5 +1,6 @@
 package com.babytracker.ui.pumping
 
+import android.content.Context
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.repository.PumpingRepository
@@ -42,6 +43,7 @@ class PumpingViewModelTest {
     private lateinit var resumeUseCase: ResumePumpingSessionUseCase
     private lateinit var saveManual: SavePumpingSessionUseCase
     private lateinit var addBag: AddMilkBagUseCase
+    private lateinit var appContext: Context
 
     private lateinit var viewModel: PumpingViewModel
     private val testDispatcher = StandardTestDispatcher()
@@ -60,6 +62,7 @@ class PumpingViewModelTest {
         resumeUseCase = mockk()
         saveManual = mockk()
         addBag = mockk()
+        appContext = mockk(relaxed = true)
 
         every { repository.getActiveSession() } returns activeSessionFlow
 
@@ -80,6 +83,7 @@ class PumpingViewModelTest {
         resumeUseCase = resumeUseCase,
         saveManual = saveManual,
         addBag = addBag,
+        appContext = appContext,
         now = { fixedNow },
     )
 

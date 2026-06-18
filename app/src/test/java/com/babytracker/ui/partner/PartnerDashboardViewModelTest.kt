@@ -1,5 +1,7 @@
 package com.babytracker.ui.partner
 
+import android.content.Context
+import com.babytracker.R
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.BabySnapshot
@@ -36,6 +38,7 @@ class PartnerDashboardViewModelTest {
     private lateinit var fetchPartnerDataUseCase: FetchPartnerDataUseCase
     private lateinit var widgetUpdater: WidgetUpdater
     private lateinit var settingsRepository: SettingsRepository
+    private lateinit var appContext: Context
 
     @BeforeEach
     fun setup() {
@@ -43,6 +46,12 @@ class PartnerDashboardViewModelTest {
         fetchPartnerDataUseCase = mockk()
         widgetUpdater = mockk { coJustRun { updateAll() } }
         settingsRepository = mockk { every { getVolumeUnit() } returns flowOf(VolumeUnit.ML) }
+        appContext = mockk {
+            every { getString(R.string.error_partner_refresh_no_data) } returns
+                "We couldn't check for shared updates. Pull down to try again."
+            every { getString(R.string.error_partner_refresh_stale) } returns
+                "We couldn't check just now. Showing the last shared update."
+        }
     }
 
     @AfterEach
@@ -62,7 +71,7 @@ class PartnerDashboardViewModelTest {
         val snapshot = makeSnapshot()
         coEvery { fetchPartnerDataUseCase() } returns snapshot
 
-        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository)
+        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository, appContext)
 
         assertEquals(snapshot, viewModel.uiState.value.snapshot)
         assertFalse(viewModel.uiState.value.isLoading)
@@ -73,7 +82,7 @@ class PartnerDashboardViewModelTest {
     fun `refresh sets isDisconnected on IllegalStateException`() = runTest {
         coEvery { fetchPartnerDataUseCase() } throws IllegalStateException("Partner access revoked")
 
-        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository)
+        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository, appContext)
 
         assertTrue(viewModel.uiState.value.isDisconnected)
         assertFalse(viewModel.uiState.value.isLoading)
@@ -83,7 +92,7 @@ class PartnerDashboardViewModelTest {
     fun `revoke triggers widget update so stale partner data is not shown`() = runTest {
         coEvery { fetchPartnerDataUseCase() } throws IllegalStateException("Partner access revoked")
 
-        PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository)
+        PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository, appContext)
 
         coVerify(exactly = 1) { widgetUpdater.updateAll() }
     }
@@ -95,7 +104,7 @@ class PartnerDashboardViewModelTest {
             .throws(IllegalStateException("Partner access revoked"))
             .andThen(snapshot)
 
-        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository)
+        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository, appContext)
         viewModel.refresh()
 
         assertEquals(snapshot, viewModel.uiState.value.snapshot)
@@ -107,7 +116,7 @@ class PartnerDashboardViewModelTest {
     fun `refresh sets error on generic exception`() = runTest {
         coEvery { fetchPartnerDataUseCase() } throws RuntimeException("Network error")
 
-        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository)
+        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository, appContext)
 
         assertEquals(
             "We couldn't check for shared updates. Pull down to try again.",
@@ -121,7 +130,7 @@ class PartnerDashboardViewModelTest {
     fun `partner data fetch failure is retryable and not disconnected`() = runTest {
         coEvery { fetchPartnerDataUseCase() } throws PartnerDataFetchException("Could not load partner data")
 
-        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository)
+        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository, appContext)
 
         assertEquals(
             "We couldn't check for shared updates. Pull down to try again.",
@@ -144,7 +153,7 @@ class PartnerDashboardViewModelTest {
             }
         }
 
-        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository)
+        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository, appContext)
         viewModel.refresh()
 
         assertEquals(snapshot, viewModel.uiState.value.snapshot)
@@ -162,7 +171,7 @@ class PartnerDashboardViewModelTest {
         val snapshot2 = makeSnapshot()
         coEvery { fetchPartnerDataUseCase() } returnsMany listOf(snapshot1, snapshot2)
 
-        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository)
+        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository, appContext)
         viewModel.refresh()
 
         assertEquals(snapshot2, viewModel.uiState.value.snapshot)
@@ -178,7 +187,7 @@ class PartnerDashboardViewModelTest {
             makeSnapshot()
         }
 
-        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository)
+        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository, appContext)
         fetchStarted.await()
 
         viewModel.refresh()
@@ -190,7 +199,7 @@ class PartnerDashboardViewModelTest {
     @Test
     fun `clearError removes error from state`() = runTest {
         coEvery { fetchPartnerDataUseCase() } throws RuntimeException("Network error")
-        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository)
+        val viewModel = PartnerDashboardViewModel(fetchPartnerDataUseCase, widgetUpdater, settingsRepository, appContext)
 
         viewModel.clearError()
 

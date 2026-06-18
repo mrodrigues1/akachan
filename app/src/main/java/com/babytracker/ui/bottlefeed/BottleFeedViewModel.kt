@@ -1,7 +1,9 @@
 package com.babytracker.ui.bottlefeed
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.R
 import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.VolumeUnit
@@ -10,6 +12,7 @@ import com.babytracker.domain.usecase.bottlefeed.EditBottleFeedUseCase
 import com.babytracker.domain.usecase.bottlefeed.LogBottleFeedUseCase
 import com.babytracker.domain.usecase.inventory.GetInventoryUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,6 +42,7 @@ class BottleFeedViewModel @Inject constructor(
     private val editBottleFeed: EditBottleFeedUseCase,
     private val getInventory: GetInventoryUseCase,
     private val settingsRepository: SettingsRepository,
+    @ApplicationContext private val appContext: Context,
     private val now: () -> Instant,
 ) : ViewModel() {
 
@@ -103,7 +107,7 @@ class BottleFeedViewModel @Inject constructor(
         if (state.isSaving) return
         val input = state.parseBottleFeedInput()
         if (input == null) {
-            _uiState.update { it.copy(validationError = BOTTLE_FEED_VOLUME_ERROR) }
+            _uiState.update { it.copy(validationError = appContext.getString(R.string.error_volume_positive)) }
             return
         }
         // Set the guard synchronously so a second rapid tap is rejected before its coroutine launches.
@@ -121,8 +125,10 @@ class BottleFeedViewModel @Inject constructor(
                 }
             }.onSuccess {
                 _uiState.update { it.copy(isSaving = false, saved = true) }
-            }.onFailure { error ->
-                _uiState.update { it.copy(isSaving = false, validationError = error.message ?: "Could not save") }
+            }.onFailure {
+                _uiState.update {
+                    it.copy(isSaving = false, validationError = appContext.getString(R.string.error_could_not_save))
+                }
             }
         }
     }

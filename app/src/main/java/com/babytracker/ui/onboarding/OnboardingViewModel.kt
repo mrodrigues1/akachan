@@ -1,8 +1,10 @@
 package com.babytracker.ui.onboarding
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.R
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.Baby
@@ -12,6 +14,7 @@ import com.babytracker.domain.model.FeatureSelection
 import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +31,6 @@ const val MAX_BABY_NAME_LENGTH = 50
 const val MAX_CUSTOM_ALLERGY_NOTE_LENGTH = 100
 const val MAX_CUSTOM_ALLERGY_NOTE_LINES = 3
 
-private const val BABY_NAME_REQUIRED_ERROR = "Enter a name to continue."
 private val LINE_BREAK_REGEX = Regex("[\\r\\n]+")
 
 data class OnboardingUiState(
@@ -51,6 +53,7 @@ data class OnboardingUiState(
 class OnboardingViewModel @Inject constructor(
     private val saveBabyProfile: SaveBabyProfileUseCase,
     private val featureToggleRepository: FeatureToggleRepository,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -91,7 +94,7 @@ class OnboardingViewModel @Inject constructor(
     fun onBirthDateSelected(date: LocalDate) {
         val today = LocalDate.now()
         if (date.isAfter(today)) {
-            _uiState.update { it.copy(birthDateError = FUTURE_BIRTH_DATE_ERROR) }
+            _uiState.update { it.copy(birthDateError = appContext.getString(R.string.error_birth_date_future)) }
             return
         }
 
@@ -143,7 +146,8 @@ class OnboardingViewModel @Inject constructor(
             when (state.currentStep) {
                 OnboardingStep.WELCOME -> state.copy(currentStep = OnboardingStep.FEATURES)
                 OnboardingStep.FEATURES -> state.copy(currentStep = OnboardingStep.BABY_INFO)
-                OnboardingStep.BABY_INFO -> state.nextFromBabyInfo()
+                OnboardingStep.BABY_INFO ->
+                    state.nextFromBabyInfo(appContext.getString(R.string.error_name_required))
                 OnboardingStep.ALLERGIES -> state
             }
         }
@@ -162,8 +166,9 @@ class OnboardingViewModel @Inject constructor(
 
     fun onFinish() {
         if (!_uiState.value.isBabyInfoValid()) {
+            val nameRequiredError = appContext.getString(R.string.error_name_required)
             _uiState.update {
-                it.withBabyInfoValidationErrors()
+                it.withBabyInfoValidationErrors(nameRequiredError)
                     .copy(currentStep = OnboardingStep.BABY_INFO)
             }
             return
@@ -196,14 +201,13 @@ class OnboardingViewModel @Inject constructor(
 
     private companion object {
         const val TAG = "OnboardingViewModel"
-        const val FUTURE_BIRTH_DATE_ERROR = "Birth date cannot be in the future."
     }
 }
 
 private fun OnboardingUiState.isBabyInfoValid(): Boolean =
     babyName.isNotBlank() && birthDateError == null
 
-private fun OnboardingUiState.nextFromBabyInfo(): OnboardingUiState =
+private fun OnboardingUiState.nextFromBabyInfo(nameRequiredError: String): OnboardingUiState =
     if (isBabyInfoValid()) {
         copy(
             currentStep = OnboardingStep.ALLERGIES,
@@ -211,12 +215,12 @@ private fun OnboardingUiState.nextFromBabyInfo(): OnboardingUiState =
             birthDateError = null,
         )
     } else {
-        withBabyInfoValidationErrors()
+        withBabyInfoValidationErrors(nameRequiredError)
     }
 
-private fun OnboardingUiState.withBabyInfoValidationErrors(): OnboardingUiState =
+private fun OnboardingUiState.withBabyInfoValidationErrors(nameRequiredError: String): OnboardingUiState =
     copy(
-        babyNameError = if (babyName.isBlank()) BABY_NAME_REQUIRED_ERROR else babyNameError,
+        babyNameError = if (babyName.isBlank()) nameRequiredError else babyNameError,
     )
 
 private fun String.takeCodePoints(maxCodePoints: Int): String {

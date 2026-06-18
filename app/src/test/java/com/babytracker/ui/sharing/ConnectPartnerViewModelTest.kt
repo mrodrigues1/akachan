@@ -1,5 +1,7 @@
 package com.babytracker.ui.sharing
 
+import android.content.Context
+import com.babytracker.R
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.usecase.ConnectAsPartnerUseCase
 import com.babytracker.widget.WidgetRefreshScheduler
@@ -26,6 +28,7 @@ class ConnectPartnerViewModelTest {
 
     private lateinit var connectAsPartnerUseCase: ConnectAsPartnerUseCase
     private lateinit var widgetRefreshScheduler: WidgetRefreshScheduler
+    private lateinit var appContext: Context
     private lateinit var viewModel: ConnectPartnerViewModel
 
     @BeforeEach
@@ -33,7 +36,12 @@ class ConnectPartnerViewModelTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         connectAsPartnerUseCase = mockk()
         widgetRefreshScheduler = mockk(relaxUnitFun = true)
-        viewModel = ConnectPartnerViewModel(connectAsPartnerUseCase, widgetRefreshScheduler)
+        appContext = mockk(relaxed = true)
+        every { appContext.getString(R.string.error_connect_code_missing) } returns
+            "This code doesn't exist. Check with your partner."
+        every { appContext.getString(R.string.error_connect_failed) } returns
+            "Couldn't connect. Check your connection."
+        viewModel = ConnectPartnerViewModel(connectAsPartnerUseCase, widgetRefreshScheduler, appContext)
     }
 
     @AfterEach

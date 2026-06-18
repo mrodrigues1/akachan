@@ -1,5 +1,7 @@
 package com.babytracker.ui.inventory
 
+import android.content.Context
+import com.babytracker.R
 import com.babytracker.domain.model.ExpirationStatus
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.MilkBag
@@ -48,6 +50,7 @@ class InventoryViewModelTest {
     private lateinit var markUsed: MarkBagUsedUseCase
     private lateinit var deleteBag: DeleteMilkBagUseCase
     private lateinit var settingsRepository: SettingsRepository
+    private lateinit var appContext: Context
     private lateinit var viewModel: InventoryViewModel
 
     private val testDispatcher = StandardTestDispatcher()
@@ -75,6 +78,14 @@ class InventoryViewModelTest {
         every { observeInventory(any<Flow<LocalDate>>()) } returns bagsFlow
         every { getSummary() } returns summaryFlow
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
+        appContext = mockk {
+            every { getString(R.string.error_volume_greater_than_zero) } returns "Volume must be greater than 0"
+            every { getString(R.string.error_collection_date_future) } returns "Collection date cannot be in the future"
+            every { getString(R.string.error_could_not_save) } returns "Could not save"
+            every { getString(R.string.msg_saved_locally) } returns "Saved locally. Partner sync may update later."
+            every { getString(R.string.error_inventory_mark_used) } returns "Could not mark used"
+            every { getString(R.string.error_inventory_delete_bag) } returns "Could not delete bag"
+        }
         viewModel = InventoryViewModel(
             observeInventory = observeInventory,
             getSummary = getSummary,
@@ -83,6 +94,7 @@ class InventoryViewModelTest {
             markUsed = markUsed,
             deleteBag = deleteBag,
             settingsRepository = settingsRepository,
+            appContext = appContext,
             now = { fixedNow },
         )
     }

@@ -1,13 +1,16 @@
 package com.babytracker.ui.partner
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.R
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
 import com.babytracker.widget.WidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +32,7 @@ class PartnerDashboardViewModel @Inject constructor(
     private val fetchPartnerDataUseCase: FetchPartnerDataUseCase,
     private val widgetUpdater: WidgetUpdater,
     settingsRepository: SettingsRepository,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PartnerDashboardUiState())
@@ -81,9 +85,9 @@ class PartnerDashboardViewModel @Inject constructor(
             } catch (_: Exception) {
                 _uiState.update {
                     val errorMessage = if (it.snapshot == null) {
-                        "We couldn't check for shared updates. Pull down to try again."
+                        appContext.getString(R.string.error_partner_refresh_no_data)
                     } else {
-                        "We couldn't check just now. Showing the last shared update."
+                        appContext.getString(R.string.error_partner_refresh_stale)
                     }
                     it.copy(
                         isLoading = false,

@@ -1,7 +1,9 @@
 package com.babytracker.ui.sharing
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.babytracker.R
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.PartnerInfo
@@ -10,6 +12,7 @@ import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.GenerateShareCodeUseCase
 import com.babytracker.sharing.usecase.RevokePartnerUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +36,7 @@ class ManageSharingViewModel @Inject constructor(
     private val sharingRepository: SharingRepository,
     private val generateShareCodeUseCase: GenerateShareCodeUseCase,
     private val revokePartnerUseCase: RevokePartnerUseCase,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ManageSharingUiState())
@@ -59,7 +63,7 @@ class ManageSharingViewModel @Inject constructor(
                 val partners = sharingRepository.getPartners(ShareCode(state.shareCode))
                 _uiState.update { it.copy(partners = partners, isLoading = false, error = null) }
             } catch (_: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = "Couldn't load partners. Check your connection.") }
+                _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_sharing_load_partners)) }
             }
         }
     }
@@ -73,7 +77,7 @@ class ManageSharingViewModel @Inject constructor(
                 val partners = sharingRepository.getPartners(code)
                 _uiState.update { it.copy(partners = partners, isLoading = false) }
             } catch (_: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = "Couldn't enable sharing. Check your connection.") }
+                _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_sharing_enable)) }
             }
         }
     }
@@ -88,7 +92,7 @@ class ManageSharingViewModel @Inject constructor(
                 settingsRepository.setAppMode(AppMode.NONE)
                 _uiState.update { it.copy(isLoading = false, partners = emptyList()) }
             } catch (_: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = "Couldn't stop sharing. Check your connection.") }
+                _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_sharing_stop)) }
             }
         }
     }
@@ -105,7 +109,7 @@ class ManageSharingViewModel @Inject constructor(
                 val partners = sharingRepository.getPartners(newCode)
                 _uiState.update { it.copy(partners = partners, isLoading = false) }
             } catch (_: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = "Couldn't generate new code. Check your connection.") }
+                _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_sharing_new_code)) }
             }
         }
     }
@@ -118,7 +122,7 @@ class ManageSharingViewModel @Inject constructor(
                     state.copy(partners = state.partners.filter { it.uid != partnerUid })
                 }
             } catch (_: Exception) {
-                _uiState.update { it.copy(error = "Couldn't remove partner. Check your connection.") }
+                _uiState.update { it.copy(error = appContext.getString(R.string.error_sharing_remove_partner)) }
             }
         }
     }

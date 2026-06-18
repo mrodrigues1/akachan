@@ -40,7 +40,7 @@ class ValidateBreastfeedingEditTest {
             pausedDurationMs = 0L,
             now = now,
         )
-        assertEquals("End time must be after start time", result)
+        assertEquals(BreastfeedingEditError.END_BEFORE_START, result)
     }
 
     @Test
@@ -51,7 +51,7 @@ class ValidateBreastfeedingEditTest {
             pausedDurationMs = 0L,
             now = now,
         )
-        assertEquals("End time must be after start time", result)
+        assertEquals(BreastfeedingEditError.END_BEFORE_START, result)
     }
 
     @Test
@@ -62,7 +62,7 @@ class ValidateBreastfeedingEditTest {
             pausedDurationMs = 0L,
             now = now,
         )
-        assertEquals("End time can't be in the future", result)
+        assertEquals(BreastfeedingEditError.END_IN_FUTURE, result)
     }
 
     @Test
@@ -73,7 +73,7 @@ class ValidateBreastfeedingEditTest {
             pausedDurationMs = 0L,
             now = now,
         )
-        assertEquals("Start time can't be in the future", result)
+        assertEquals(BreastfeedingEditError.START_IN_FUTURE, result)
     }
 
     @Test
@@ -84,7 +84,7 @@ class ValidateBreastfeedingEditTest {
             pausedDurationMs = 700_000L,
             now = now,
         )
-        assertEquals("Session is shorter than recorded pauses", result)
+        assertEquals(BreastfeedingEditError.SESSION_SHORTER_THAN_PAUSES, result)
     }
 
     @Test
@@ -96,6 +96,6 @@ class ValidateBreastfeedingEditTest {
             pausedDurationMs = 0L,
             now = now,
         )
-        assertEquals("Start time can't be in the future", result)
+        assertEquals(BreastfeedingEditError.START_IN_FUTURE, result)
     }
 }

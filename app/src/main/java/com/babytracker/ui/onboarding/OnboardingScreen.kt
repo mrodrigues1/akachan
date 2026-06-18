@@ -14,9 +14,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.babytracker.R
 import com.babytracker.ui.onboarding.components.AllergiesStepContent
 import com.babytracker.ui.onboarding.components.BabyInfoStepContent
 import com.babytracker.ui.onboarding.components.FeatureSelectionStepContent
@@ -30,10 +32,11 @@ fun OnboardingScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val savingErrorMessage = stringResource(R.string.error_onboarding_save)
 
     LaunchedEffect(uiState.savingError) {
         if (uiState.savingError) {
-            snackbarHostState.showSnackbar("Could not save. Please try again.")
+            snackbarHostState.showSnackbar(savingErrorMessage)
         }
     }
     LaunchedEffect(uiState.navigationComplete) {
