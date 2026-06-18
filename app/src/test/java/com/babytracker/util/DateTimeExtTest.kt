@@ -1,13 +1,21 @@
 package com.babytracker.util
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Test
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import org.junit.Assert.assertEquals
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 
+@Config(sdk = [34])
+@RunWith(RobolectricTestRunner::class)
 class DateTimeExtTest {
+
+    private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
     fun formatTime12hMorningReturnsAmFormat() {
@@ -52,45 +60,45 @@ class DateTimeExtTest {
     @Test
     fun localDateToRelativeLabelTodayReturnsToday() {
         val today = LocalDate.now()
-        assertEquals("Today", today.toRelativeLabel())
+        assertEquals("Today", today.toRelativeLabel("Today", "Yesterday"))
     }
 
     @Test
     fun localDateToRelativeLabelYesterdayReturnsYesterday() {
         val yesterday = LocalDate.now().minusDays(1)
-        assertEquals("Yesterday", yesterday.toRelativeLabel())
+        assertEquals("Yesterday", yesterday.toRelativeLabel("Today", "Yesterday"))
     }
 
     @Test
     fun localDateToRelativeLabelOlderDateReturnsFormattedDate() {
         val date = LocalDate.of(2026, 3, 15)
-        val result = date.toRelativeLabel()
+        val result = date.toRelativeLabel("Today", "Yesterday")
         assertEquals("Mar 15", result)
     }
 
     @Test
     fun formatElapsedAgoUnderOneMinuteReturnsJustNow() {
-        assertEquals("Just now", Duration.ofSeconds(30).formatElapsedAgo())
+        assertEquals("Just now", Duration.ofSeconds(30).formatElapsedAgo(context))
     }
 
     @Test
     fun formatElapsedAgoExactlyOneMinuteReturnsMinutesAgo() {
-        assertEquals("1m ago", Duration.ofMinutes(1).formatElapsedAgo())
+        assertEquals("1m ago", Duration.ofMinutes(1).formatElapsedAgo(context))
     }
 
     @Test
     fun formatElapsedAgoMinutesReturnsMinutesAgo() {
-        assertEquals("14m ago", Duration.ofMinutes(14).formatElapsedAgo())
+        assertEquals("14m ago", Duration.ofMinutes(14).formatElapsedAgo(context))
     }
 
     @Test
     fun formatElapsedAgoHoursAndMinutesReturnsHoursAndMinutesAgo() {
-        assertEquals("2h 14m ago", Duration.ofHours(2).plus(Duration.ofMinutes(14)).formatElapsedAgo())
+        assertEquals("2h 14m ago", Duration.ofHours(2).plus(Duration.ofMinutes(14)).formatElapsedAgo(context))
     }
 
     @Test
     fun formatElapsedAgoExactHourReturnsZeroMinutes() {
-        assertEquals("1h 0m ago", Duration.ofHours(1).formatElapsedAgo())
+        assertEquals("1h 0m ago", Duration.ofHours(1).formatElapsedAgo(context))
     }
 
     @Test
@@ -120,26 +128,26 @@ class DateTimeExtTest {
 
     @Test
     fun formatElapsedCompactUnderOneMinuteReturnsJustNow() {
-        assertEquals("Just now", Duration.ofSeconds(30).formatElapsedCompact())
+        assertEquals("Just now", Duration.ofSeconds(30).formatElapsedCompact(context))
     }
 
     @Test
     fun formatElapsedCompactMinutesReturnsMinutes() {
-        assertEquals("14m", Duration.ofMinutes(14).formatElapsedCompact())
+        assertEquals("14m", Duration.ofMinutes(14).formatElapsedCompact(context))
     }
 
     @Test
     fun formatElapsedCompactHoursAndMinutesReturnsHoursAndMinutes() {
-        assertEquals("2h 14m", Duration.ofHours(2).plus(Duration.ofMinutes(14)).formatElapsedCompact())
+        assertEquals("2h 14m", Duration.ofHours(2).plus(Duration.ofMinutes(14)).formatElapsedCompact(context))
     }
 
     @Test
     fun formatElapsedCompactExactDayReturnsDays() {
-        assertEquals("1d", Duration.ofDays(1).formatElapsedCompact())
+        assertEquals("1d", Duration.ofDays(1).formatElapsedCompact(context))
     }
 
     @Test
     fun formatElapsedCompactMultipleDaysDropsHours() {
-        assertEquals("7d", Duration.ofHours(174).plus(Duration.ofMinutes(8)).formatElapsedCompact())
+        assertEquals("7d", Duration.ofHours(174).plus(Duration.ofMinutes(8)).formatElapsedCompact(context))
     }
 }

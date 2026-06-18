@@ -354,14 +354,25 @@ private fun subtitleFor(side: BreastSide, started: Instant): String {
         stringResource(R.string.breastfeeding_side_right)
     }
     val date = started.atZone(ZoneId.systemDefault()).toLocalDate()
-    return stringResource(R.string.breastfeeding_edit_subtitle, sideLabel, date.toRelativeLabel())
+    return stringResource(
+        R.string.breastfeeding_edit_subtitle,
+        sideLabel,
+        date.toRelativeLabel(
+            stringResource(R.string.relative_today),
+            stringResource(R.string.relative_yesterday),
+        ),
+    )
 }
 
+@Composable
 private fun Instant.toDateLabel(): String {
     val date = atZone(ZoneId.systemDefault()).toLocalDate()
-    val relative = date.toRelativeLabel()
-    return if (relative == "Today" || relative == "Yesterday") relative
-    else DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()).format(date)
+    val today = LocalDate.now()
+    return when (date) {
+        today -> stringResource(R.string.relative_today)
+        today.minusDays(1) -> stringResource(R.string.relative_yesterday)
+        else -> DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()).format(date)
+    }
 }
 
 private fun Instant.withDate(date: LocalDate): Instant {

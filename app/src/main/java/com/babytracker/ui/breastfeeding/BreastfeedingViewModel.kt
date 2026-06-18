@@ -1,5 +1,6 @@
 package com.babytracker.ui.breastfeeding
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.BreastSide
@@ -22,6 +23,7 @@ import com.babytracker.domain.usecase.breastfeeding.validateBreastfeedingEdit
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -98,6 +100,7 @@ private const val MANUAL_ENTRY_DEFAULT_MINUTES = 15L
 
 @HiltViewModel
 class BreastfeedingViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val startSession: StartBreastfeedingSessionUseCase,
     private val stopSession: StopBreastfeedingSessionUseCase,
     private val switchSide: SwitchBreastfeedingSideUseCase,
@@ -432,7 +435,7 @@ class BreastfeedingViewModel @Inject constructor(
         val endTime = lastSession.endTime ?: return LastFeedingSummaryState.Empty
 
         val elapsed = Duration.between(lastSession.startTime, Instant.now())
-        val elapsedLabel = elapsed.formatElapsedAgo()
+        val elapsedLabel = elapsed.formatElapsedAgo(appContext)
 
         val sideDurations = lastSession.sideDurationsUntil(endTime)
         val firstSideDuration = sideDurations.first

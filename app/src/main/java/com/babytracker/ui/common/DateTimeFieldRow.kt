@@ -217,13 +217,14 @@ private fun EditTimePicker(
     )
 }
 
+@Composable
 private fun Instant.toDateLabel(): String {
     val date = atZone(ZoneId.systemDefault()).toLocalDate()
-    val relative = date.toRelativeLabel()
-    return if (relative == "Today" || relative == "Yesterday") {
-        relative
-    } else {
-        DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()).format(date)
+    val today = LocalDate.now()
+    return when (date) {
+        today -> stringResource(R.string.relative_today)
+        today.minusDays(1) -> stringResource(R.string.relative_yesterday)
+        else -> DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()).format(date)
     }
 }
 

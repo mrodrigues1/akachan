@@ -1,5 +1,6 @@
 package com.babytracker.widget
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -10,6 +11,7 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
 import androidx.glance.action.Action
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.CircularProgressIndicator
@@ -241,7 +243,7 @@ fun FourByTwoContent(data: WidgetData, now: Instant, modifier: GlanceModifier = 
             .background(ImageProvider(R.drawable.widget_bg_surface))
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
-        WidgetHeader(data = data, status = widgetStatusSummary(data, now), titleSize = 13.sp, statusSize = 10.sp, isRefreshing = isRefreshing)
+        WidgetHeader(data = data, status = widgetStatusSummary(data, now, LocalContext.current), titleSize = 13.sp, statusSize = 10.sp, isRefreshing = isRefreshing)
         Spacer(modifier = GlanceModifier.height(6.dp))
         Row(
             modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
@@ -327,7 +329,7 @@ private fun ColumnScope.FullWidthDomainBlocks(data: WidgetData, now: Instant, si
     if (shouldShowFeedRow(data)) {
         DomainBlock(
             backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
-            content = feedBlockContent(data, now),
+            content = feedBlockContent(data, now, LocalContext.current),
             contentColor = if (feedingActive) GlanceTheme.colors.onPrimary else GlanceTheme.colors.onPrimaryContainer,
             sizes = sizes,
             onClick = openBreastfeedingAction(),
@@ -341,7 +343,7 @@ private fun ColumnScope.FullWidthDomainBlocks(data: WidgetData, now: Instant, si
     if (shouldShowSleepRow(data)) {
         DomainBlock(
             backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-            content = sleepBlockContent(data, now),
+            content = sleepBlockContent(data, now, LocalContext.current),
             contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
             sizes = sizes,
             onClick = openSleepAction(),
@@ -359,7 +361,7 @@ private fun RowScope.StackedDomainBlocks(data: WidgetData, now: Instant, sizes: 
     if (shouldShowFeedRow(data)) {
         DomainBlock(
             backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
-            content = feedBlockContent(data, now),
+            content = feedBlockContent(data, now, LocalContext.current),
             contentColor = if (feedingActive) GlanceTheme.colors.onPrimary else GlanceTheme.colors.onPrimaryContainer,
             sizes = sizes,
             onClick = openBreastfeedingAction(),
@@ -374,7 +376,7 @@ private fun RowScope.StackedDomainBlocks(data: WidgetData, now: Instant, sizes: 
     if (shouldShowSleepRow(data)) {
         DomainBlock(
             backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-            content = sleepBlockContent(data, now),
+            content = sleepBlockContent(data, now, LocalContext.current),
             contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
             sizes = sizes,
             onClick = openSleepAction(),
@@ -393,7 +395,7 @@ private fun RowScope.NarrowDomainBlocks(data: WidgetData, now: Instant) {
     if (shouldShowFeedRow(data)) {
         NarrowDomainBlock(
             backgroundRes = if (feedingActive) R.drawable.widget_feed_active else R.drawable.widget_feed_badge,
-            content = feedBlockContent(data, now),
+            content = feedBlockContent(data, now, LocalContext.current),
             label = "Feed",
             contentColor = if (feedingActive) GlanceTheme.colors.onPrimary else GlanceTheme.colors.onPrimaryContainer,
             onClick = openBreastfeedingAction(),
@@ -406,7 +408,7 @@ private fun RowScope.NarrowDomainBlocks(data: WidgetData, now: Instant) {
     if (shouldShowSleepRow(data)) {
         NarrowDomainBlock(
             backgroundRes = if (sleeping) R.drawable.widget_sleep_active else R.drawable.widget_sleep_badge,
-            content = sleepBlockContent(data, now),
+            content = sleepBlockContent(data, now, LocalContext.current),
             label = "Sleep",
             contentColor = if (sleeping) GlanceTheme.colors.onSecondary else GlanceTheme.colors.onSecondaryContainer,
             onClick = openSleepAction(),
@@ -608,23 +610,25 @@ private fun BabyNameFallback(babyName: String, size: TextUnit) {
 private fun feedBlockContent(
     data: WidgetData,
     now: Instant,
+    context: Context,
 ) = DomainBlockContent(
     emoji = FEED_EMOJI,
-    label = feedLabel(data.lastFeedSide, data.feedState),
-    value = feedValue(data.lastFeedStart, data.feedState, now),
-    supporting = feedSupporting(data.lastFeedSide, data.feedState, data.lastFeedStart, now),
-    description = feedContentDescription(data.lastFeedSide, data.feedState, data.lastFeedStart, now),
+    label = feedLabel(data.lastFeedSide, data.feedState, context),
+    value = feedValue(data.lastFeedStart, data.feedState, now, context),
+    supporting = feedSupporting(data.lastFeedSide, data.feedState, data.lastFeedStart, now, context),
+    description = feedContentDescription(data.lastFeedSide, data.feedState, data.lastFeedStart, now, context),
 )
 
 private fun sleepBlockContent(
     data: WidgetData,
     now: Instant,
+    context: Context,
 ) = DomainBlockContent(
     emoji = SLEEP_EMOJI,
-    label = sleepLabel(data.sleepState),
+    label = sleepLabel(data.sleepState, context),
     value = sleepValue(data.sleepState, data.sleepSince, now),
-    supporting = sleepSupporting(data.sleepState, data.sleepSince, now),
-    description = sleepContentDescription(data.sleepState, data.sleepSince, now),
+    supporting = sleepSupporting(data.sleepState, data.sleepSince, now, context),
+    description = sleepContentDescription(data.sleepState, data.sleepSince, now, context),
 )
 
 private fun WidgetData.hasActiveFeed(): Boolean = feedState == FeedState.ACTIVE || feedState == FeedState.PAUSED
@@ -633,39 +637,46 @@ private fun WidgetData.hasActiveFeed(): Boolean = feedState == FeedState.ACTIVE 
 internal fun shouldShowFeedRow(data: WidgetData): Boolean = data.feedEnabled
 internal fun shouldShowSleepRow(data: WidgetData): Boolean = data.sleepEnabled
 
-internal fun BreastSide.label(): String = when (this) {
-    BreastSide.LEFT -> "Left"
-    BreastSide.RIGHT -> "Right"
+internal fun BreastSide.label(context: Context): String = when (this) {
+    BreastSide.LEFT -> context.getString(R.string.side_left)
+    BreastSide.RIGHT -> context.getString(R.string.side_right)
 }
 
-// --- Pure label/value builders, shared by both sizes (unit-tested in WidgetContentHelpersTest) ---
+// --- Resource-backed label/value builders, shared by both sizes (unit-tested in WidgetContentHelpersTest) ---
 
-internal fun feedLabel(side: BreastSide?, state: FeedState): String =
+internal fun feedLabel(side: BreastSide?, state: FeedState, context: Context): String =
     when (state) {
-        FeedState.ACTIVE -> side?.let { "Feeding: ${it.label()}" } ?: "Feeding"
-        FeedState.PAUSED -> side?.let { "Paused: ${it.label()}" } ?: "Paused"
-        FeedState.RECENT -> side?.let { "Last: ${it.label()}" } ?: "Last feed"
-        FeedState.NONE -> "No feeds yet"
+        FeedState.ACTIVE -> side?.let { context.getString(R.string.widget_feed_active_side, it.label(context)) }
+            ?: context.getString(R.string.widget_feed_active)
+        FeedState.PAUSED -> side?.let { context.getString(R.string.widget_feed_paused_side, it.label(context)) }
+            ?: context.getString(R.string.widget_feed_paused)
+        FeedState.RECENT -> side?.let { context.getString(R.string.widget_feed_last_side, it.label(context)) }
+            ?: context.getString(R.string.widget_feed_last)
+        FeedState.NONE -> context.getString(R.string.widget_feed_none)
     }
 
-internal fun feedValue(start: Instant?, state: FeedState, now: Instant): String? =
+internal fun feedValue(start: Instant?, state: FeedState, now: Instant, context: Context): String? =
     start?.let {
         val elapsed = Duration.between(it, now).formatElapsedShort()
-        if (state == FeedState.RECENT) "$elapsed ago" else elapsed
+        if (state == FeedState.RECENT) context.getString(R.string.widget_elapsed_ago, elapsed) else elapsed
     }
 
-internal fun feedSupporting(side: BreastSide?, state: FeedState, start: Instant?, now: Instant): String? =
+internal fun feedSupporting(side: BreastSide?, state: FeedState, start: Instant?, now: Instant, context: Context): String? =
     when (state) {
-        FeedState.ACTIVE -> start?.let { "Started ${Duration.between(it, now).formatElapsedShort()} ago" }
-        FeedState.PAUSED -> start?.let { "Paused, started ${Duration.between(it, now).formatElapsedShort()} ago" }
-        FeedState.RECENT -> side?.let { "Last side ${it.label()}" }
+        FeedState.ACTIVE -> start?.let {
+            context.getString(R.string.widget_feed_started_ago, Duration.between(it, now).formatElapsedShort())
+        }
+        FeedState.PAUSED -> start?.let {
+            context.getString(R.string.widget_feed_paused_started_ago, Duration.between(it, now).formatElapsedShort())
+        }
+        FeedState.RECENT -> side?.let { context.getString(R.string.widget_feed_last_side_supporting, it.label(context)) }
         FeedState.NONE -> null
     }
 
-internal fun sleepLabel(state: SleepState): String = when (state) {
-    SleepState.SLEEPING -> "Sleeping"
-    SleepState.AWAKE -> "Awake"
-    SleepState.NONE -> "No sleep yet"
+internal fun sleepLabel(state: SleepState, context: Context): String = when (state) {
+    SleepState.SLEEPING -> context.getString(R.string.widget_sleep_sleeping)
+    SleepState.AWAKE -> context.getString(R.string.widget_sleep_awake)
+    SleepState.NONE -> context.getString(R.string.widget_sleep_none)
 }
 
 internal fun sleepValue(state: SleepState, since: Instant?, now: Instant): String? =
@@ -674,40 +685,52 @@ internal fun sleepValue(state: SleepState, since: Instant?, now: Instant): Strin
         SleepState.SLEEPING, SleepState.AWAKE -> since?.let { Duration.between(it, now).formatElapsedShort() }
     }
 
-internal fun sleepSupporting(state: SleepState, since: Instant?, now: Instant): String? =
+internal fun sleepSupporting(state: SleepState, since: Instant?, now: Instant, context: Context): String? =
     when (state) {
         SleepState.NONE -> null
-        SleepState.SLEEPING -> since?.let { "Asleep ${Duration.between(it, now).formatElapsedShort()}" } ?: "Asleep now"
-        SleepState.AWAKE -> since?.let { "Awake ${Duration.between(it, now).formatElapsedShort()}" } ?: "Awake now"
+        SleepState.SLEEPING -> since?.let {
+            context.getString(R.string.widget_sleep_asleep_for, Duration.between(it, now).formatElapsedShort())
+        } ?: context.getString(R.string.widget_sleep_asleep_now)
+        SleepState.AWAKE -> since?.let {
+            context.getString(R.string.widget_sleep_awake_for, Duration.between(it, now).formatElapsedShort())
+        } ?: context.getString(R.string.widget_sleep_awake_now)
     }
 
-internal fun widgetStatusSummary(data: WidgetData, now: Instant): String =
+internal fun widgetStatusSummary(data: WidgetData, now: Instant, context: Context): String =
     when {
-        data.feedState == FeedState.ACTIVE -> feedValue(data.lastFeedStart, data.feedState, now)?.let { "Feeding $it" }
-            ?: "Feeding"
-        data.feedState == FeedState.PAUSED -> "Feed paused"
-        data.sleepState == SleepState.SLEEPING -> sleepValue(data.sleepState, data.sleepSince, now)?.let { "Sleeping $it" }
-            ?: "Sleeping"
-        else -> "Ready"
+        data.feedState == FeedState.ACTIVE ->
+            feedValue(data.lastFeedStart, data.feedState, now, context)
+                ?.let { context.getString(R.string.widget_status_feeding, it) }
+                ?: context.getString(R.string.widget_feed_active)
+        data.feedState == FeedState.PAUSED -> context.getString(R.string.widget_status_feed_paused)
+        data.sleepState == SleepState.SLEEPING ->
+            sleepValue(data.sleepState, data.sleepSince, now)
+                ?.let { context.getString(R.string.widget_status_sleeping, it) }
+                ?: context.getString(R.string.widget_sleep_sleeping)
+        else -> context.getString(R.string.widget_status_ready)
     }
 
 // Screen-reader copy: each tile merges emoji + label + value into one spoken phrase with the
 // context the loose nodes lack ("1h 20m" alone never says "1h 20m of what").
 
-internal fun feedContentDescription(side: BreastSide?, state: FeedState, start: Instant?, now: Instant): String {
-    if (side == null || start == null) return "No feeds yet"
+internal fun feedContentDescription(side: BreastSide?, state: FeedState, start: Instant?, now: Instant, context: Context): String {
+    if (side == null || start == null) return context.getString(R.string.widget_feed_none)
     val elapsed = Duration.between(start, now).formatElapsedShort()
     return when (state) {
-        FeedState.ACTIVE -> "Feeding active: ${side.label()} side, started $elapsed ago"
-        FeedState.PAUSED -> "Feeding paused: ${side.label()} side, started $elapsed ago"
-        FeedState.RECENT -> "Last feeding started $elapsed ago; last side used ${side.label()}"
-        FeedState.NONE -> "No feeds yet"
+        FeedState.ACTIVE -> context.getString(R.string.widget_cd_feed_active, side.label(context), elapsed)
+        FeedState.PAUSED -> context.getString(R.string.widget_cd_feed_paused, side.label(context), elapsed)
+        FeedState.RECENT -> context.getString(R.string.widget_cd_feed_recent, elapsed, side.label(context))
+        FeedState.NONE -> context.getString(R.string.widget_feed_none)
     }
 }
 
-internal fun sleepContentDescription(state: SleepState, since: Instant?, now: Instant): String =
+internal fun sleepContentDescription(state: SleepState, since: Instant?, now: Instant, context: Context): String =
     when (state) {
-        SleepState.NONE -> "No sleep yet"
-        SleepState.SLEEPING -> since?.let { "Sleeping for ${Duration.between(it, now).formatElapsedShort()}" } ?: "Sleeping"
-        SleepState.AWAKE -> since?.let { "Awake for ${Duration.between(it, now).formatElapsedShort()}" } ?: "Awake"
+        SleepState.NONE -> context.getString(R.string.widget_sleep_none)
+        SleepState.SLEEPING -> since?.let {
+            context.getString(R.string.widget_cd_sleep_for, Duration.between(it, now).formatElapsedShort())
+        } ?: context.getString(R.string.widget_sleep_sleeping)
+        SleepState.AWAKE -> since?.let {
+            context.getString(R.string.widget_cd_awake_for, Duration.between(it, now).formatElapsedShort())
+        } ?: context.getString(R.string.widget_sleep_awake)
     }

@@ -144,14 +144,20 @@ fun BreastfeedingHistoryScreen(
                             pluralStringResource(
                                 R.plurals.breastfeeding_history_day_header,
                                 sessions.size,
-                                date.toRelativeLabel(),
+                                date.toRelativeLabel(
+                                    stringResource(R.string.relative_today),
+                                    stringResource(R.string.relative_yesterday),
+                                ),
                                 sessions.size,
                             )
                         } else {
                             pluralStringResource(
                                 R.plurals.breastfeeding_history_day_header_total,
                                 sessions.size,
-                                date.toRelativeLabel(),
+                                date.toRelativeLabel(
+                                    stringResource(R.string.relative_today),
+                                    stringResource(R.string.relative_yesterday),
+                                ),
                                 sessions.size,
                                 totalDuration.formatDuration(),
                             )

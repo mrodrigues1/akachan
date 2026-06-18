@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -149,7 +150,15 @@ internal fun PumpingHistoryContent(
             sortedGroups.forEach { (date, sessions) ->
                 stickyHeader(key = date.toString()) {
                     Text(
-                        text = "${date.toRelativeLabel()} · ${sessions.size} sessions".uppercase(),
+                        text = pluralStringResource(
+                            R.plurals.pumping_history_day_header,
+                            sessions.size,
+                            date.toRelativeLabel(
+                                stringResource(R.string.relative_today),
+                                stringResource(R.string.relative_yesterday),
+                            ),
+                            sessions.size,
+                        ).uppercase(),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
@@ -163,7 +172,7 @@ internal fun PumpingHistoryContent(
                     HistoryCard(
                         title = stringResource(R.string.pumping_history_item, stringResource(session.breast.labelRes()), volumeLabel),
                         subtitle = session.startTime.formatTime12h(),
-                        trailing = session.activeDuration?.formatDuration() ?: "In progress",
+                        trailing = session.activeDuration?.formatDuration() ?: stringResource(R.string.label_in_progress),
                         badgeEmoji = "🥛",
                         badgeColor = MaterialTheme.colorScheme.primaryContainer,
                         trailingColor = MaterialTheme.colorScheme.primary,

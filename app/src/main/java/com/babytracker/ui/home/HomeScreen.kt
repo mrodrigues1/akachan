@@ -54,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -860,6 +861,7 @@ private fun computeFeedingElapsed(session: BreastfeedingSession, now: Instant): 
 
 @Composable
 internal fun LastFeedingAgoText(lastStart: Instant) {
+    val context = LocalContext.current
     val now by produceState(initialValue = Instant.now(), key1 = lastStart) {
         while (true) {
             delay(60_000L)
@@ -867,7 +869,7 @@ internal fun LastFeedingAgoText(lastStart: Instant) {
         }
     }
     Text(
-        text = Duration.between(lastStart, now).formatElapsedAgo(),
+        text = Duration.between(lastStart, now).formatElapsedAgo(context),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onPrimaryContainer,
     )
@@ -875,6 +877,7 @@ internal fun LastFeedingAgoText(lastStart: Instant) {
 
 @Composable
 internal fun LastSleepAgoText(endTime: Instant) {
+    val context = LocalContext.current
     val now by produceState(initialValue = Instant.now(), key1 = endTime) {
         while (true) {
             delay(60_000L)
@@ -882,7 +885,7 @@ internal fun LastSleepAgoText(endTime: Instant) {
         }
     }
     Text(
-        text = Duration.between(endTime, now).formatElapsedAgo(),
+        text = Duration.between(endTime, now).formatElapsedAgo(context),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSecondaryContainer,
     )

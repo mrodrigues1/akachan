@@ -260,10 +260,14 @@ private fun DayHeader(
     volumeUnit: VolumeUnit,
 ) {
     val totalVolume = formatVolume(day.totals.bottleVolumeMl, volumeUnit)
+    val relativeDay = day.date.toRelativeLabel(
+        stringResource(R.string.relative_today),
+        stringResource(R.string.relative_yesterday),
+    )
     Text(
         text = stringResource(
             R.string.feeding_history_day_totals,
-            "${day.date.toRelativeLabel()} · $totalVolume",
+            "$relativeDay · $totalVolume",
             day.totals.totalFeedCount,
         ).uppercase(),
         style = MaterialTheme.typography.labelMedium,
@@ -286,7 +290,7 @@ internal fun BottleFeedHistoryCard(
         title = feed.type.historyLabel(),
         subtitle = buildString {
             append(feed.timestamp.formatTime12h())
-            if (feed.linkedMilkBagId != null) append(" · from stash")
+            if (feed.linkedMilkBagId != null) append(" · ").append(stringResource(R.string.bottle_feed_from_stash))
             if (feed.author == FeedAuthor.PARTNER) {
                 append(" · ").append(stringResource(R.string.feed_author_partner_badge))
             }
@@ -309,11 +313,17 @@ internal fun BreastfeedingFeedHistoryCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val sideLabel = if (session.startingSide == BreastSide.LEFT) "Left side" else "Right side"
+    val sideLabel = stringResource(
+        if (session.startingSide == BreastSide.LEFT) {
+            R.string.breastfeeding_side_left
+        } else {
+            R.string.breastfeeding_side_right
+        },
+    )
     HistoryCard(
         title = sideLabel,
         subtitle = session.startTime.formatTime12h(),
-        trailing = session.activeDuration?.formatDuration() ?: "In progress",
+        trailing = session.activeDuration?.formatDuration() ?: stringResource(R.string.label_in_progress),
         badgeEmoji = "🤱",
         badgeColor = MaterialTheme.colorScheme.primaryContainer,
         onClick = onEdit,

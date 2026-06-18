@@ -1,5 +1,6 @@
 package com.babytracker.ui.partner
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -158,7 +160,7 @@ fun PartnerDashboardScreen(
                         verticalArrangement = Arrangement.Center,
                     ) {
                         Text(
-                            text = babyName ?: "Baby Tracker",
+                            text = babyName ?: stringResource(R.string.partner_default_name),
                             style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier.semantics { heading() },
                             maxLines = 1,
@@ -293,7 +295,7 @@ private fun BabyAgeSubtitle(
             )
         }
         Text(
-            text = babyAgeSubtitleText(ageWeeks),
+            text = babyAgeSubtitleText(ageWeeks, LocalContext.current),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -342,16 +344,17 @@ private fun DashboardContent(
         snapshot.growth.isNotEmpty() ||
         snapshot.milestones.isNotEmpty() ||
         snapshot.diapers.isNotEmpty()
-    val lastSharedText = remember(snapshot.lastSyncAt, nowMs) {
-        Duration.between(snapshot.lastSyncAt, now).coerceAtLeast(Duration.ZERO).formatElapsedAgo()
+    val context = LocalContext.current
+    val lastSharedText = remember(snapshot.lastSyncAt, nowMs, context) {
+        Duration.between(snapshot.lastSyncAt, now).coerceAtLeast(Duration.ZERO).formatElapsedAgo(context)
     }
-    val lastCheckedText = remember(lastRefreshAt, nowMs) {
+    val lastCheckedText = remember(lastRefreshAt, nowMs, context) {
         if (lastRefreshAt == 0L) {
             null
         } else {
             Duration.between(Instant.ofEpochMilli(lastRefreshAt), now)
                 .coerceAtLeast(Duration.ZERO)
-                .formatElapsedAgo()
+                .formatElapsedAgo(context)
         }
     }
     val isShareStale = remember(snapshot.lastSyncAt, nowMs) {
@@ -658,7 +661,7 @@ private fun DashboardTimelineSections(
             if (completedSessions.isEmpty()) {
                 EmptySectionMessage(
                     title = stringResource(R.string.partner_no_feeding_history),
-                    body = "Completed feedings from the primary device will appear here.",
+                    body = stringResource(R.string.partner_empty_feeding_body),
                 )
             } else {
                 completedSessions.forEach { session ->
@@ -685,7 +688,7 @@ private fun DashboardTimelineSections(
             if (lastSleep == null) {
                 EmptySectionMessage(
                     title = stringResource(R.string.partner_no_sleep_record),
-                    body = "The latest nap or night sleep will appear after the next sync.",
+                    body = stringResource(R.string.partner_empty_sleep_body),
                 )
             } else {
                 SleepHistoryRow(sleep = lastSleep, now = now)
@@ -758,22 +761,35 @@ private fun PartnerStatusPanel(
         activeSleep != null -> MaterialTheme.colorScheme.onSecondaryContainer
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
+    val context = LocalContext.current
     val activeStateText = when {
-        activeSession != null -> "Feeding in progress"
-        activeSleep != null -> "${sleepTypeLabel(activeSleep.sleepType)} in progress"
-        else -> "Quiet right now"
+        activeSession != null -> stringResource(R.string.partner_status_feeding)
+        activeSleep != null -> stringResource(
+            R.string.partner_status_in_progress,
+            sleepTypeLabel(activeSleep.sleepType, context),
+        )
+        else -> stringResource(R.string.partner_status_quiet)
     }
-    val stateText = if (isShareStale) "Shared update may be behind" else "Shared update is current"
-    val statusDescription = buildString {
-        append(activeStateText)
-        append(". ")
-        append(stateText)
-        append(". Shared ")
-        append(lastSharedText.lowercaseFirstChar())
-        if (lastCheckedText != null) {
-            append(". Checked ")
-            append(lastCheckedText.lowercaseFirstChar())
-        }
+    val stateText = if (isShareStale) {
+        stringResource(R.string.partner_share_behind)
+    } else {
+        stringResource(R.string.partner_share_current)
+    }
+    val statusDescription = if (lastCheckedText != null) {
+        stringResource(
+            R.string.partner_status_cd_checked,
+            activeStateText,
+            stateText,
+            lastSharedText.lowercaseFirstChar(),
+            lastCheckedText.lowercaseFirstChar(),
+        )
+    } else {
+        stringResource(
+            R.string.partner_status_cd,
+            activeStateText,
+            stateText,
+            lastSharedText.lowercaseFirstChar(),
+        )
     }
 
     Card(
@@ -894,14 +910,16 @@ private fun ActiveSessionSummary(
             now = now,
         )
     }
-    val sideLabel = remember(session.startingSide, session.switchTime) {
-        val started = if (session.startingSide == "LEFT") "Left" else "Right"
-        if (session.switchTime != null) {
-            val current = if (session.startingSide == "LEFT") "Right" else "Left"
-            "$started to $current breast"
-        } else {
-            "$started breast"
-        }
+    val started = stringResource(
+        if (session.startingSide == "LEFT") R.string.side_left else R.string.side_right,
+    )
+    val sideLabel = if (session.switchTime != null) {
+        val current = stringResource(
+            if (session.startingSide == "LEFT") R.string.side_right else R.string.side_left,
+        )
+        stringResource(R.string.partner_side_switch, started, current)
+    } else {
+        stringResource(R.string.partner_side_single, started)
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -964,7 +982,8 @@ private fun ActiveSleepSummary(
             now = now,
         )
     }
-    val typeLabel = remember(sleep.sleepType) { sleepTypeLabel(sleep.sleepType) }
+    val context = LocalContext.current
+    val typeLabel = remember(sleep.sleepType, context) { sleepTypeLabel(sleep.sleepType, context) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -1059,9 +1078,9 @@ private fun SharedRecordsEmptyState(babyName: String?) {
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = if (babyName != null) {
-                    "When the primary parent tracks $babyName, shared feedings and sleep will appear here."
+                    stringResource(R.string.partner_empty_records_named, babyName)
                 } else {
-                    "When the primary parent tracks a feeding or sleep, it will appear here."
+                    stringResource(R.string.partner_empty_records)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1099,21 +1118,23 @@ private fun CareSummaryPanel(
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        val context = LocalContext.current
         Text(
             text = stringResource(R.string.partner_latest_care),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
         SummaryLine(
-            label = lastFeeding?.let { stringResource(R.string.partner_fed, it.feedingAgoText(now)) } ?: stringResource(R.string.partner_no_feeding_yet),
+            label = lastFeeding?.let { stringResource(R.string.partner_fed, it.feedingAgoText(now, context)) } ?: stringResource(R.string.partner_no_feeding_yet),
             color = MaterialTheme.colorScheme.primary,
         )
         SummaryLine(
-            label = lastSleep?.let { "${it.sleepVerb()} ${it.sleepAgoText(now)}" } ?: "No sleep shared yet",
+            label = lastSleep?.let { "${it.sleepVerb(context)} ${it.sleepAgoText(now, context)}" }
+                ?: stringResource(R.string.partner_no_sleep_shared),
             color = MaterialTheme.colorScheme.secondary,
         )
         SummaryLine(
-            label = allergySummaryText(allergyCount),
+            label = allergySummaryText(allergyCount, context),
             color = warningColors().accent,
         )
     }
@@ -1128,20 +1149,18 @@ private fun PartnerInventoryCard(
     volumeUnit: VolumeUnit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val volumeText = formatVolume(totalMl, volumeUnit)
-    val updatedText = remember(updatedAtMs, now) {
+    val updatedText = remember(updatedAtMs, now, context) {
         updatedAtMs?.let {
             Duration.between(Instant.ofEpochMilli(it), now)
                 .coerceAtLeast(Duration.ZERO)
-                .formatElapsedAgo()
+                .formatElapsedAgo(context)
         }
     }
-    val cardDescription = remember(volumeText, bagCount, updatedText) {
-        buildString {
-            append("Milk stash: $volumeText in $bagCount bags.")
-            if (updatedText != null) append(" Updated $updatedText.")
-        }
-    }
+    val stashSummary = pluralStringResource(R.plurals.partner_stash_cd, bagCount, volumeText, bagCount)
+    val updatedSuffix = updatedText?.let { stringResource(R.string.partner_stash_cd_updated, it) }.orEmpty()
+    val cardDescription = stashSummary + updatedSuffix
 
     Card(
         modifier = modifier
@@ -1267,17 +1286,20 @@ private fun FeedingHistoryRow(session: SessionSnapshot, now: Instant) {
             .minusMillis(session.pausedDurationMs)
             .coerceAtLeast(Duration.ZERO)
     }
-    val timeAgo = remember(session.startTime, now) {
-        Duration.between(startInstant, now).coerceAtLeast(Duration.ZERO).formatElapsedAgo()
+    val context = LocalContext.current
+    val timeAgo = remember(session.startTime, now, context) {
+        Duration.between(startInstant, now).coerceAtLeast(Duration.ZERO).formatElapsedAgo(context)
     }
-    val sideText = remember(session.startingSide, session.switchTime) {
-        val from = if (session.startingSide == "LEFT") "Left" else "Right"
-        if (session.switchTime != null) {
-            val to = if (session.startingSide == "LEFT") "Right" else "Left"
-            "$from to $to"
-        } else {
-            "$from breast"
-        }
+    val from = stringResource(
+        if (session.startingSide == "LEFT") R.string.side_left else R.string.side_right,
+    )
+    val sideText = if (session.switchTime != null) {
+        val to = stringResource(
+            if (session.startingSide == "LEFT") R.string.side_right else R.string.side_left,
+        )
+        stringResource(R.string.partner_side_switch_short, from, to)
+    } else {
+        stringResource(R.string.partner_side_single, from)
     }
 
     HistoryCard(
@@ -1295,12 +1317,15 @@ private fun BottleHistoryRow(
     now: Instant,
     volumeUnit: VolumeUnit,
 ) {
+    val context = LocalContext.current
     val volumeText = remember(feed.volumeMl, volumeUnit) { formatVolume(feed.volumeMl, volumeUnit) }
-    val typeLabel = if (feed.type == "BREAST_MILK") "Breast milk" else "Formula"
-    val timeAgo = remember(feed.timestamp, now) {
+    val typeLabel = stringResource(
+        if (feed.type == "BREAST_MILK") R.string.bottle_feed_type_breast_milk else R.string.bottle_feed_type_formula,
+    )
+    val timeAgo = remember(feed.timestamp, now, context) {
         Duration.between(Instant.ofEpochMilli(feed.timestamp), now)
             .coerceAtLeast(Duration.ZERO)
-            .formatElapsedAgo()
+            .formatElapsedAgo(context)
     }
 
     HistoryCard(
@@ -1320,13 +1345,14 @@ private fun SleepHistoryRow(sleep: SleepSnapshot, now: Instant) {
     val duration = remember(sleep.startTime, sleep.endTime) {
         endInstant?.let { Duration.between(startInstant, it) }
     }
-    val timeAgo = remember(sleep.endTime, now) {
-        endInstant?.let { Duration.between(it, now).coerceAtLeast(Duration.ZERO).formatElapsedAgo() }
+    val context = LocalContext.current
+    val timeAgo = remember(sleep.endTime, now, context) {
+        endInstant?.let { Duration.between(it, now).coerceAtLeast(Duration.ZERO).formatElapsedAgo(context) }
     }
-    val typeLabel = sleepTypeLabel(sleep.sleepType)
+    val typeLabel = sleepTypeLabel(sleep.sleepType, context)
 
     HistoryCard(
-        title = duration?.formatDuration() ?: "In progress",
+        title = duration?.formatDuration() ?: stringResource(R.string.label_in_progress),
         subtitle = typeLabel,
         trailing = timeAgo ?: "",
         badgeEmoji = "\uD83D\uDCA4",
@@ -1362,7 +1388,7 @@ private fun PartnerGrowthMilestonesCard(
                     val latest = snapshot.growth.filter { it.type == type.name }.maxByOrNull { it.takenAtMs }
                     if (latest != null) {
                         SummaryLine(
-                            label = stringResource(R.string.partner_growth_label, type.partnerLabel(), formatGrowthValue(type, latest.valueCanonical)),
+                            label = stringResource(R.string.partner_growth_label, type.partnerLabel(LocalContext.current), formatGrowthValue(type, latest.valueCanonical)),
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
@@ -1393,10 +1419,10 @@ private fun PartnerGrowthMilestonesCard(
     }
 }
 
-private fun GrowthType.partnerLabel(): String = when (this) {
-    GrowthType.WEIGHT -> "Weight"
-    GrowthType.LENGTH -> "Length"
-    GrowthType.HEAD_CIRC -> "Head"
+private fun GrowthType.partnerLabel(context: Context): String = when (this) {
+    GrowthType.WEIGHT -> context.getString(R.string.growth_tab_weight)
+    GrowthType.LENGTH -> context.getString(R.string.growth_tab_length)
+    GrowthType.HEAD_CIRC -> context.getString(R.string.growth_tab_head)
 }
 
 private fun formatGrowthValue(type: GrowthType, valueCanonical: Long): String = when (type) {
@@ -1413,7 +1439,7 @@ private fun AllergySection(baby: BabySnapshot) {
         if (baby.allergies.isEmpty()) {
             EmptySectionMessage(
                 title = stringResource(R.string.partner_no_allergies),
-                body = "Allergy notes from the primary device will appear here.",
+                body = stringResource(R.string.partner_empty_allergy_body),
             )
         } else {
             FlowRow(
@@ -1466,6 +1492,8 @@ private fun RefreshSharedUpdatesButton(
     isLoading: Boolean,
     onRefresh: () -> Unit,
 ) {
+    val checkingDescription = stringResource(R.string.partner_check_state_loading)
+    val readyDescription = stringResource(R.string.partner_check_state_ready)
     Button(
         onClick = onRefresh,
         enabled = !isLoading,
@@ -1473,11 +1501,7 @@ private fun RefreshSharedUpdatesButton(
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .semantics {
-                stateDescription = if (isLoading) {
-                    "Checking for shared updates"
-                } else {
-                    "Ready to check shared updates"
-                }
+                stateDescription = if (isLoading) checkingDescription else readyDescription
             },
     ) {
         Icon(Icons.Default.Refresh, contentDescription = null)
@@ -1490,31 +1514,39 @@ private fun RefreshSharedUpdatesButton(
     }
 }
 
-private fun SessionSnapshot.feedingAgoText(now: Instant): String =
+private fun SessionSnapshot.feedingAgoText(now: Instant, context: Context): String =
     Duration.between(Instant.ofEpochMilli(startTime), now)
         .coerceAtLeast(Duration.ZERO)
-        .formatElapsedAgo()
+        .formatElapsedAgo(context)
         .lowercaseFirstChar()
 
-private fun SleepSnapshot.sleepAgoText(now: Instant): String {
+private fun SleepSnapshot.sleepAgoText(now: Instant, context: Context): String {
     val time = endTime ?: startTime
     return Duration.between(Instant.ofEpochMilli(time), now)
         .coerceAtLeast(Duration.ZERO)
-        .formatElapsedAgo()
+        .formatElapsedAgo(context)
         .lowercaseFirstChar()
 }
 
-private fun SleepSnapshot.sleepVerb(): String =
-    if (sleepType == "NAP") "Napped" else "Slept"
+private fun SleepSnapshot.sleepVerb(context: Context): String =
+    if (sleepType == "NAP") {
+        context.getString(R.string.partner_slept_nap)
+    } else {
+        context.getString(R.string.partner_slept_night)
+    }
 
-internal fun sleepTypeLabel(sleepType: String): String =
-    if (sleepType == "NAP") "Nap" else "Night sleep"
+internal fun sleepTypeLabel(sleepType: String, context: Context): String =
+    if (sleepType == "NAP") {
+        context.getString(R.string.sleep_type_nap)
+    } else {
+        context.getString(R.string.sleep_type_night)
+    }
 
-private fun allergySummaryText(count: Int): String =
-    when (count) {
-        0 -> "No allergies shared"
-        1 -> "1 allergy shared"
-        else -> "$count allergies shared"
+private fun allergySummaryText(count: Int, context: Context): String =
+    if (count == 0) {
+        context.getString(R.string.partner_no_allergies_shared)
+    } else {
+        context.resources.getQuantityString(R.plurals.partner_allergies_shared, count, count)
     }
 
 private fun String.lowercaseFirstChar(): String =
@@ -1546,9 +1578,9 @@ private fun EmptyState(
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = if (babyName != null) {
-                "When the primary parent tracks $babyName, shared feedings and sleep will appear here."
+                stringResource(R.string.partner_empty_records_named, babyName)
             } else {
-                "When the primary parent tracks a feeding or sleep, it will appear here."
+                stringResource(R.string.partner_empty_records)
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1691,9 +1723,9 @@ private fun activeSessionReferenceTime(
         now
     }
 
-internal fun babyAgeSubtitleText(ageWeeks: Int): String =
-    when (ageWeeks) {
-        0 -> "Less than 1 week old, read-only partner view"
-        1 -> "1 week old, read-only partner view"
-        else -> "$ageWeeks weeks old, read-only partner view"
+internal fun babyAgeSubtitleText(ageWeeks: Int, context: Context): String =
+    if (ageWeeks == 0) {
+        context.getString(R.string.partner_age_under_week)
+    } else {
+        context.resources.getQuantityString(R.plurals.partner_age_weeks, ageWeeks, ageWeeks)
     }

@@ -1,10 +1,15 @@
 package com.babytracker.widget
 
+import android.content.Context
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.glance.GlanceTheme
+import androidx.glance.LocalContext
 import androidx.glance.appwidget.testing.unit.runGlanceAppWidgetUnitTest
 import androidx.glance.testing.unit.assertHasClickAction
 import androidx.glance.testing.unit.hasContentDescription
 import androidx.glance.testing.unit.hasText
+import androidx.test.core.app.ApplicationProvider
 import com.babytracker.widget.data.WidgetData
 import com.babytracker.widget.theme.BabyWidgetColors
 import org.junit.Test
@@ -21,7 +26,7 @@ class WidgetHeaderTest {
     @Test
     fun `medium content header shows baby name and refresh`() = runGlanceAppWidgetUnitTest {
         provideComposable {
-            GlanceTheme(colors = BabyWidgetColors) { MediumContent(data, now) }
+            WidgetTestContent { MediumContent(data, now) }
         }
         onNode(hasText(BABY_NAME)).assertExists()
         onNode(hasContentDescription(REFRESH_DESCRIPTION)).assertHasClickAction()
@@ -30,7 +35,7 @@ class WidgetHeaderTest {
     @Test
     fun `medium content shows progress instead of refresh action while refreshing`() = runGlanceAppWidgetUnitTest {
         provideComposable {
-            GlanceTheme(colors = BabyWidgetColors) { MediumContent(data, now, isRefreshing = true) }
+            WidgetTestContent { MediumContent(data, now, isRefreshing = true) }
         }
         onNode(hasText(UPDATING_LABEL)).assertExists()
         onNode(hasContentDescription(UPDATING_DESCRIPTION)).assertExists()
@@ -40,7 +45,7 @@ class WidgetHeaderTest {
     @Test
     fun `two by four content header shows baby name and refresh`() = runGlanceAppWidgetUnitTest {
         provideComposable {
-            GlanceTheme(colors = BabyWidgetColors) { TwoByFourContent(data, now) }
+            WidgetTestContent { TwoByFourContent(data, now) }
         }
         onNode(hasText(BABY_NAME)).assertExists()
         onNode(hasContentDescription(REFRESH_DESCRIPTION)).assertExists()
@@ -49,7 +54,7 @@ class WidgetHeaderTest {
     @Test
     fun `three by three content header shows baby name and refresh`() = runGlanceAppWidgetUnitTest {
         provideComposable {
-            GlanceTheme(colors = BabyWidgetColors) { ThreeByThreeContent(data, now) }
+            WidgetTestContent { ThreeByThreeContent(data, now) }
         }
         onNode(hasText(BABY_NAME)).assertExists()
         onNode(hasContentDescription(REFRESH_DESCRIPTION)).assertExists()
@@ -58,7 +63,7 @@ class WidgetHeaderTest {
     @Test
     fun `three by four content header shows baby name and refresh`() = runGlanceAppWidgetUnitTest {
         provideComposable {
-            GlanceTheme(colors = BabyWidgetColors) { ThreeByFourContent(data, now) }
+            WidgetTestContent { ThreeByFourContent(data, now) }
         }
         onNode(hasText(BABY_NAME)).assertExists()
         onNode(hasContentDescription(REFRESH_DESCRIPTION)).assertExists()
@@ -67,7 +72,7 @@ class WidgetHeaderTest {
     @Test
     fun `four by two content header shows baby name and refresh`() = runGlanceAppWidgetUnitTest {
         provideComposable {
-            GlanceTheme(colors = BabyWidgetColors) { FourByTwoContent(data, now) }
+            WidgetTestContent { FourByTwoContent(data, now) }
         }
         onNode(hasText(BABY_NAME)).assertExists()
         onNode(hasContentDescription(REFRESH_DESCRIPTION)).assertExists()
@@ -76,7 +81,7 @@ class WidgetHeaderTest {
     @Test
     fun `four by three content header shows baby name and refresh`() = runGlanceAppWidgetUnitTest {
         provideComposable {
-            GlanceTheme(colors = BabyWidgetColors) { FourByThreeContent(data, now) }
+            WidgetTestContent { FourByThreeContent(data, now) }
         }
         onNode(hasText(BABY_NAME)).assertExists()
         onNode(hasContentDescription(REFRESH_DESCRIPTION)).assertExists()
@@ -85,7 +90,7 @@ class WidgetHeaderTest {
     @Test
     fun `four by four content header shows baby name and refresh`() = runGlanceAppWidgetUnitTest {
         provideComposable {
-            GlanceTheme(colors = BabyWidgetColors) { FourByFourContent(data, now) }
+            WidgetTestContent { FourByFourContent(data, now) }
         }
         onNode(hasText(BABY_NAME)).assertExists()
         onNode(hasContentDescription(REFRESH_DESCRIPTION)).assertExists()
@@ -94,7 +99,7 @@ class WidgetHeaderTest {
     @Test
     fun `small content does not show baby name or refresh`() = runGlanceAppWidgetUnitTest {
         provideComposable {
-            GlanceTheme(colors = BabyWidgetColors) { SmallContent(data, now) }
+            WidgetTestContent { SmallContent(data, now) }
         }
         onNode(hasText(BABY_NAME)).assertDoesNotExist()
         onNode(hasContentDescription(REFRESH_DESCRIPTION)).assertDoesNotExist()
@@ -103,10 +108,17 @@ class WidgetHeaderTest {
     @Test
     fun `small narrow content does not show baby name or refresh`() = runGlanceAppWidgetUnitTest {
         provideComposable {
-            GlanceTheme(colors = BabyWidgetColors) { SmallNarrowContent(data, now) }
+            WidgetTestContent { SmallNarrowContent(data, now) }
         }
         onNode(hasText(BABY_NAME)).assertDoesNotExist()
         onNode(hasContentDescription(REFRESH_DESCRIPTION)).assertDoesNotExist()
+    }
+
+    @Composable
+    private fun WidgetTestContent(content: @Composable () -> Unit) {
+        CompositionLocalProvider(LocalContext provides ApplicationProvider.getApplicationContext<Context>()) {
+            GlanceTheme(colors = BabyWidgetColors) { content() }
+        }
     }
 
     private companion object {
