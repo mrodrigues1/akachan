@@ -376,8 +376,9 @@ private fun PartnerRow(
     partner: PartnerInfo,
     onRevoke: () -> Unit,
 ) {
-    val connectedAgo = remember(partner.connectedAt) {
-        Duration.between(partner.connectedAt, Instant.now()).formatElapsedAgo()
+    val context = LocalContext.current
+    val connectedAgo = remember(partner.connectedAt, context) {
+        Duration.between(partner.connectedAt, Instant.now()).formatElapsedAgo(context)
     }
     Row(
         modifier = Modifier

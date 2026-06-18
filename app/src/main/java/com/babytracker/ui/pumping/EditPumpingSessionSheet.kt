@@ -141,7 +141,7 @@ private fun EditPumpingSheetBody(
         }
 
         Spacer(Modifier.height(16.dp))
-        SectionLabel("STARTED")
+        SectionLabel(stringResource(R.string.breastfeeding_edit_started))
         Spacer(Modifier.height(8.dp))
         FieldRow(
             dateLabel = state.editedStart.toDateLabel(),
@@ -151,11 +151,11 @@ private fun EditPumpingSheetBody(
         )
 
         Spacer(Modifier.height(20.dp))
-        SectionLabel("ENDED")
+        SectionLabel(stringResource(R.string.breastfeeding_edit_ended))
         Spacer(Modifier.height(8.dp))
         FieldRow(
-            dateLabel = state.editedEnd?.toDateLabel() ?: "Set date",
-            timeLabel = state.editedEnd?.formatTime12h() ?: "Set time",
+            dateLabel = state.editedEnd?.toDateLabel() ?: stringResource(R.string.breastfeeding_edit_set_date),
+            timeLabel = state.editedEnd?.formatTime12h() ?: stringResource(R.string.breastfeeding_edit_set_time),
             onDateClick = { datePickerFor = EditField.END },
             onTimeClick = { timePickerFor = EditField.END },
             placeholder = state.editedEnd == null,
@@ -470,7 +470,7 @@ private fun EditDatePicker(
                 val millis = state.selectedDateMillis ?: return@TextButton
                 val picked = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
                 onConfirm(picked)
-            }) { Text("OK") }
+            }) { Text(stringResource(android.R.string.ok)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
@@ -493,7 +493,7 @@ private fun EditTimePicker(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = { onConfirm(LocalTime.of(state.hour, state.minute)) }) { Text("OK") }
+            TextButton(onClick = { onConfirm(LocalTime.of(state.hour, state.minute)) }) { Text(stringResource(android.R.string.ok)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
         text = { TimePicker(state = state) },
@@ -506,14 +506,25 @@ private enum class EditField { START, END }
 @Composable
 private fun subtitleFor(breast: PumpingBreast, started: Instant): String {
     val date = started.atZone(ZoneId.systemDefault()).toLocalDate()
-    return stringResource(R.string.breastfeeding_edit_subtitle, stringResource(breast.labelRes()), date.toRelativeLabel())
+    return stringResource(
+        R.string.breastfeeding_edit_subtitle,
+        stringResource(breast.labelRes()),
+        date.toRelativeLabel(
+            stringResource(R.string.relative_today),
+            stringResource(R.string.relative_yesterday),
+        ),
+    )
 }
 
+@Composable
 private fun Instant.toDateLabel(): String {
     val date = atZone(ZoneId.systemDefault()).toLocalDate()
-    val relative = date.toRelativeLabel()
-    return if (relative == "Today" || relative == "Yesterday") relative
-    else DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()).format(date)
+    val today = LocalDate.now()
+    return when (date) {
+        today -> stringResource(R.string.relative_today)
+        today.minusDays(1) -> stringResource(R.string.relative_yesterday)
+        else -> DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()).format(date)
+    }
 }
 
 private fun Instant.withDate(date: LocalDate): Instant {

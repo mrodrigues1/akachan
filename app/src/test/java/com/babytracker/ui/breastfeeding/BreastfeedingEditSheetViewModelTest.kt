@@ -1,5 +1,6 @@
 package com.babytracker.ui.breastfeeding
 
+import android.content.Context
 import app.cash.turbine.test
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
@@ -58,6 +59,7 @@ class BreastfeedingEditSheetViewModelTest {
     private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
     private lateinit var predictNextFeed: PredictNextFeedUseCase
+    private lateinit var appContext: Context
 
     private val sampleSession = BreastfeedingSession(
         id = 42L,
@@ -90,6 +92,7 @@ class BreastfeedingEditSheetViewModelTest {
         every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns flowOf(0)
         every { predictNextFeed() } returns flowOf(null)
         coEvery { syncToFirestore(any()) } returns Unit
+        appContext = mockk(relaxed = true)
     }
 
     @AfterEach
@@ -98,6 +101,7 @@ class BreastfeedingEditSheetViewModelTest {
     }
 
     private fun viewModel() = BreastfeedingViewModel(
+        appContext,
         startSession, stopSession, switchSide, getHistory, pauseSession, resumeSession,
         updateSession, deleteSession, saveBreastfeedingEntry, repository, feedSettingsRepository,
         notificationCoordinator, syncToFirestore, predictNextFeed,

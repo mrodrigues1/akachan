@@ -1,5 +1,7 @@
 package com.babytracker.ui.breastfeeding
 
+import android.content.Context
+import com.babytracker.R
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
@@ -64,6 +66,7 @@ class BreastfeedingViewModelTest {
     private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
     private lateinit var predictNextFeed: PredictNextFeedUseCase
+    private lateinit var appContext: Context
 
     private lateinit var viewModel: BreastfeedingViewModel
     private val testDispatcher = StandardTestDispatcher()
@@ -91,6 +94,10 @@ class BreastfeedingViewModelTest {
         every { feedSettingsRepository.getMaxPerBreastMinutes() } returns maxPerBreastFlow
         every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns maxTotalFlow
         every { predictNextFeed() } returns flowOf(null)
+        appContext = mockk()
+        every { appContext.getString(R.string.elapsed_hours_minutes_ago, any(), any()) } returns "2h 25m ago"
+        every { appContext.getString(R.string.elapsed_minutes_ago, any()) } returns "0m ago"
+        every { appContext.getString(R.string.elapsed_just_now) } returns "Just now"
         pauseSession = mockk()
         resumeSession = mockk()
         updateSession = mockk()
@@ -119,6 +126,7 @@ class BreastfeedingViewModelTest {
     }
 
     private fun createViewModel() = BreastfeedingViewModel(
+        appContext,
         startSession,
         stopSession,
         switchSide,

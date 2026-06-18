@@ -144,6 +144,35 @@
     <string name="widget_preview_sleep_emoji">🌙</string>
     <string name="milk_stash_widget_description">Estoque de leite — volume e contagem de sacos</string>
 
+    <!-- Widget runtime status labels (resolved by WidgetContent helpers) -->
+    <string name="widget_feed_active_side">Amamentando: %1$s</string>
+    <string name="widget_feed_active">Amamentando</string>
+    <string name="widget_feed_paused_side">Pausado: %1$s</string>
+    <string name="widget_feed_paused">Pausado</string>
+    <string name="widget_feed_last_side">Última: %1$s</string>
+    <string name="widget_feed_last">Última mamada</string>
+    <string name="widget_feed_none">Nenhuma mamada ainda</string>
+    <string name="widget_elapsed_ago">há %1$s</string>
+    <string name="widget_feed_started_ago">Iniciada há %1$s</string>
+    <string name="widget_feed_paused_started_ago">Pausada, iniciada há %1$s</string>
+    <string name="widget_feed_last_side_supporting">Último lado %1$s</string>
+    <string name="widget_sleep_sleeping">Dormindo</string>
+    <string name="widget_sleep_awake">Acordado</string>
+    <string name="widget_sleep_none">Nenhum sono ainda</string>
+    <string name="widget_sleep_asleep_for">Dormindo há %1$s</string>
+    <string name="widget_sleep_asleep_now">Dormindo agora</string>
+    <string name="widget_sleep_awake_for">Acordado há %1$s</string>
+    <string name="widget_sleep_awake_now">Acordado agora</string>
+    <string name="widget_status_feeding">Amamentando %1$s</string>
+    <string name="widget_status_feed_paused">Mamada pausada</string>
+    <string name="widget_status_sleeping">Dormindo %1$s</string>
+    <string name="widget_status_ready">Pronto</string>
+    <string name="widget_cd_feed_active">Amamentação ativa: lado %1$s, iniciada há %2$s</string>
+    <string name="widget_cd_feed_paused">Amamentação pausada: lado %1$s, iniciada há %2$s</string>
+    <string name="widget_cd_feed_recent">Última mamada iniciada há %1$s; último lado usado %2$s</string>
+    <string name="widget_cd_sleep_for">Dormindo há %1$s</string>
+    <string name="widget_cd_awake_for">Acordado há %1$s</string>
+
     <!-- Quick Settings tiles -->
     <string name="tile_feed_label">Mamada</string>
     <string name="tile_sleep_label">Sono</string>
@@ -160,6 +189,7 @@
     <string name="bottle_feed_type_breast_milk">Leite materno</string>
     <string name="bottle_feed_type_formula">Fórmula</string>
     <string name="bottle_feed_bag_picker_label">DO SACO DO ESTOQUE (OPCIONAL)</string>
+    <string name="bottle_feed_from_stash">do estoque</string>
     <string name="bottle_feed_quick_action">Mamadeira</string>
     <string name="feed_author_partner_badge">Parceiro</string>
     <string name="feeding_history_title">Histórico de mamadas</string>
@@ -332,6 +362,11 @@
         <item quantity="other">%1$s &#183; %2$d sessões &#183; %3$s no total</item>
         <item quantity="many">%1$s &#183; %2$d sessões &#183; %3$s no total</item>
     </plurals>
+    <plurals name="pumping_history_day_header">
+        <item quantity="one">%1$s &#183; %2$d sessão</item>
+        <item quantity="other">%1$s &#183; %2$d sessões</item>
+        <item quantity="many">%1$s &#183; %2$d sessões</item>
+    </plurals>
     <string name="breastfeeding_side_left">Lado esquerdo</string>
     <string name="breastfeeding_side_right">Lado direito</string>
     <string name="breastfeeding_in_progress">Em andamento</string>
@@ -359,6 +394,13 @@
     <string name="label_in_progress">Em andamento</string>
     <string name="state_expanded">Expandido</string>
     <string name="state_collapsed">Recolhido</string>
+
+    <!-- Relative date + elapsed-time labels (resolved by DateTimeExt / WidgetContent formatters) -->
+    <string name="relative_today">Hoje</string>
+    <string name="relative_yesterday">Ontem</string>
+    <string name="elapsed_hours_minutes_ago">há %1$dh %2$dm</string>
+    <string name="elapsed_minutes_ago">há %1$dm</string>
+    <string name="elapsed_just_now">Agora mesmo</string>
 
     <!-- Sleep type labels -->
     <string name="sleep_type_nap">Soneca</string>
@@ -783,4 +825,74 @@
     <string name="partner_allergy_cd">Alergia: %1$s</string>
     <string name="partner_check_shared">Verificar atualizações compartilhadas</string>
     <string name="partner_check_again">Verificar novamente</string>
+
+    <!-- Partner dashboard runtime (computed labels + accessibility) -->
+    <string name="partner_default_name">Monitor do bebê</string>
+    <string name="partner_empty_feeding_body">As mamadas concluídas no dispositivo principal aparecerão aqui.</string>
+    <string name="partner_empty_sleep_body">A soneca ou o sono noturno mais recente aparecerá após a próxima sincronização.</string>
+    <string name="partner_empty_allergy_body">As notas de alergia do dispositivo principal aparecerão aqui.</string>
+    <string name="partner_empty_records_named">Quando o responsável principal registrar dados de %1$s, as mamadas e os sonos compartilhados aparecerão aqui.</string>
+    <string name="partner_empty_records">Quando o responsável principal registrar uma mamada ou sono, aparecerá aqui.</string>
+    <string name="partner_status_feeding">Amamentação em andamento</string>
+    <string name="partner_status_in_progress">%1$s em andamento</string>
+    <string name="partner_status_quiet">Tudo tranquilo agora</string>
+    <string name="partner_share_behind">A atualização compartilhada pode estar atrasada</string>
+    <string name="partner_share_current">A atualização compartilhada está em dia</string>
+    <string name="partner_status_cd">%1$s. %2$s. Compartilhado %3$s</string>
+    <string name="partner_status_cd_checked">%1$s. %2$s. Compartilhado %3$s. Verificado %4$s</string>
+    <string name="partner_side_switch">Seio %1$s para %2$s</string>
+    <string name="partner_side_switch_short">%1$s para %2$s</string>
+    <string name="partner_side_single">Seio %1$s</string>
+    <string name="partner_no_sleep_shared">Nenhum sono compartilhado ainda</string>
+    <string name="partner_slept_nap">Cochilou</string>
+    <string name="partner_slept_night">Dormiu</string>
+    <string name="partner_check_state_loading">Verificando atualizações compartilhadas</string>
+    <string name="partner_check_state_ready">Pronto para verificar atualizações compartilhadas</string>
+    <string name="partner_no_allergies_shared">Nenhuma alergia compartilhada</string>
+    <plurals name="partner_allergies_shared">
+        <item quantity="one">%1$d alergia compartilhada</item>
+        <item quantity="other">%1$d alergias compartilhadas</item>
+        <item quantity="many">%1$d alergias compartilhadas</item>
+    </plurals>
+    <string name="partner_age_under_week">Menos de 1 semana de idade, visualização somente leitura do parceiro</string>
+    <plurals name="partner_age_weeks">
+        <item quantity="one">%1$d semana de idade, visualização somente leitura do parceiro</item>
+        <item quantity="other">%1$d semanas de idade, visualização somente leitura do parceiro</item>
+        <item quantity="many">%1$d semanas de idade, visualização somente leitura do parceiro</item>
+    </plurals>
+    <string name="partner_stash_cd_updated"> Atualizado %1$s.</string>
+    <plurals name="partner_stash_cd">
+        <item quantity="one">Estoque de leite: %1$s em %2$d saco.</item>
+        <item quantity="other">Estoque de leite: %1$s em %2$d sacos.</item>
+        <item quantity="many">Estoque de leite: %1$s em %2$d sacos.</item>
+    </plurals>
+
+    <!-- Partner sleep prediction card -->
+    <string name="partner_prediction_estimated">Estimado %1$s</string>
+    <string name="partner_prediction_header_window">PRÓXIMA JANELA DE SONO</string>
+    <string name="partner_prediction_header_passed">JANELA DE SONO PASSOU</string>
+    <string name="partner_prediction_header_sleeping">DORMINDO</string>
+    <string name="partner_prediction_header_feeding">AMAMENTANDO AGORA</string>
+    <string name="partner_prediction_header_generic">PREVISÃO DE SONO</string>
+    <string name="partner_prediction_overdue_primary">Observe os sinais de sono</string>
+    <string name="partner_prediction_overdue_secondary">Próxima oportunidade em breve</string>
+    <string name="partner_prediction_sleeping_primary">Sono em andamento</string>
+    <string name="partner_prediction_sleeping_secondary">A próxima janela aparece após acordar</string>
+    <string name="partner_prediction_after_feed">A janela de sono aparece após o fim desta mamada</string>
+    <string name="partner_prediction_need_more_data">Dados insuficientes ainda para uma previsão</string>
+    <string name="partner_prediction_cue_led">Cedo demais para previsões. Observe os sinais</string>
+    <string name="partner_prediction_range">%1$s – %2$s</string>
+    <string name="partner_confidence_low">baixa</string>
+    <string name="partner_confidence_medium">média</string>
+    <string name="partner_confidence_high">alta</string>
+    <string name="partner_prediction_cd">Previsão de sono: %1$s. %2$s.</string>
+    <string name="partner_prediction_cd_window">próxima janela</string>
+    <string name="partner_prediction_cd_window_range"> %1$s a %2$s</string>
+    <string name="partner_prediction_cd_best">, melhor estimativa %1$s</string>
+    <string name="partner_prediction_cd_confidence">, confiança %1$s</string>
+    <string name="partner_prediction_cd_overdue">janela de sono passou, observe os sinais de sono</string>
+    <string name="partner_prediction_cd_sleeping">o bebê está dormindo, a próxima janela aparece após acordar</string>
+    <string name="partner_prediction_cd_after_feed">amamentando agora, a janela de sono aparece após o fim desta mamada</string>
+    <string name="partner_prediction_cd_need_more_data">dados insuficientes ainda para uma previsão</string>
+    <string name="partner_prediction_cd_cue_led">cedo demais para previsões, observe os sinais</string>
 </resources>

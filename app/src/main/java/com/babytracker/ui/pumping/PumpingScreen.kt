@@ -877,7 +877,7 @@ private fun ManualDatePicker(
                 val millis = state.selectedDateMillis ?: return@TextButton
                 val picked = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
                 onConfirm(picked)
-            }) { Text("OK") }
+            }) { Text(stringResource(android.R.string.ok)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
         properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -903,7 +903,7 @@ private fun ManualTimePicker(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = { onConfirm(LocalTime.of(state.hour, state.minute)) }) {
-                Text("OK")
+                Text(stringResource(android.R.string.ok))
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
@@ -914,13 +914,14 @@ private fun ManualTimePicker(
 
 private enum class ManualField { START, END }
 
+@Composable
 private fun Instant.toManualDateLabel(): String {
     val zone = ZoneId.systemDefault()
     val date = atZone(zone).toLocalDate()
     val today = LocalDate.now(zone)
     return when (date) {
-        today -> "Today"
-        today.minusDays(1) -> "Yesterday"
+        today -> stringResource(R.string.relative_today)
+        today.minusDays(1) -> stringResource(R.string.relative_yesterday)
         else -> DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()).format(date)
     }
 }

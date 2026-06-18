@@ -167,14 +167,20 @@ fun SleepHistoryScreen(
                             pluralStringResource(
                                 R.plurals.sleep_history_day_header,
                                 records.size,
-                                date.toRelativeLabel(),
+                                date.toRelativeLabel(
+                                    stringResource(R.string.relative_today),
+                                    stringResource(R.string.relative_yesterday),
+                                ),
                                 records.size,
                             )
                         } else {
                             pluralStringResource(
                                 R.plurals.sleep_history_day_header_total,
                                 records.size,
-                                date.toRelativeLabel(),
+                                date.toRelativeLabel(
+                                    stringResource(R.string.relative_today),
+                                    stringResource(R.string.relative_yesterday),
+                                ),
                                 records.size,
                                 totalDuration.formatDuration(),
                             )

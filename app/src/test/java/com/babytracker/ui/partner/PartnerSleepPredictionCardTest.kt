@@ -129,7 +129,7 @@ class PartnerSleepPredictionCardTest {
             hasActiveSleep = true,
         )
 
-        composeRule.onNodeWithText("Night sleep in progress", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Night Sleep in progress", useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test

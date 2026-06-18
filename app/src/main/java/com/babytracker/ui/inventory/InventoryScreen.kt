@@ -47,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -272,7 +273,7 @@ private fun SummaryCard(
                     color = MaterialTheme.colorScheme.outlineVariant,
                 )
                 StatColumn(
-                    value = Duration.between(summary.oldestBagDate, Instant.now()).formatElapsedCompact(),
+                    value = Duration.between(summary.oldestBagDate, Instant.now()).formatElapsedCompact(LocalContext.current),
                     label = stringResource(R.string.inventory_stat_oldest),
                     modifier = Modifier.weight(1f),
                 )
@@ -391,7 +392,7 @@ private fun MilkBagRow(
                     color = contentColor.copy(alpha = 0.8f),
                 )
                 Text(
-                    text = stringResource(R.string.inventory_pumped, Duration.between(bag.collectionDate, Instant.now()).formatElapsedAgo()),
+                    text = stringResource(R.string.inventory_pumped, Duration.between(bag.collectionDate, Instant.now()).formatElapsedAgo(LocalContext.current)),
                     style = MaterialTheme.typography.bodySmall,
                     color = supportingColor,
                 )

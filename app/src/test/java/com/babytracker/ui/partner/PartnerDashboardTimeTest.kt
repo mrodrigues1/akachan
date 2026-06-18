@@ -1,13 +1,22 @@
 package com.babytracker.ui.partner
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Test
+import org.junit.Assert.assertEquals
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.time.Duration
 import java.time.Instant
 
+@Config(sdk = [34])
+@RunWith(RobolectricTestRunner::class)
 class PartnerDashboardTimeTest {
+
+    private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
     fun `baby age weeks uses injected dashboard time`() {
@@ -19,9 +28,9 @@ class PartnerDashboardTimeTest {
 
     @Test
     fun `baby age subtitle uses readable week copy`() {
-        assertEquals("Less than 1 week old, read-only partner view", babyAgeSubtitleText(0))
-        assertEquals("1 week old, read-only partner view", babyAgeSubtitleText(1))
-        assertEquals("5 weeks old, read-only partner view", babyAgeSubtitleText(5))
+        assertEquals("Less than 1 week old, read-only partner view", babyAgeSubtitleText(0, context))
+        assertEquals("1 week old, read-only partner view", babyAgeSubtitleText(1, context))
+        assertEquals("5 weeks old, read-only partner view", babyAgeSubtitleText(5, context))
     }
 
     @Test
@@ -74,8 +83,8 @@ class PartnerDashboardTimeTest {
 
     @Test
     fun `sleep type label maps nap and night sleep`() {
-        assertEquals("Nap", sleepTypeLabel("NAP"))
-        assertEquals("Night sleep", sleepTypeLabel("NIGHT_SLEEP"))
+        assertEquals("Nap", sleepTypeLabel("NAP", context))
+        assertEquals("Night Sleep", sleepTypeLabel("NIGHT_SLEEP", context))
     }
 
     @Test

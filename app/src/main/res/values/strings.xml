@@ -147,6 +147,35 @@
     <string name="widget_preview_sleep_emoji">🌙</string>
     <string name="milk_stash_widget_description">Milk stash — volume and bag count</string>
 
+    <!-- Widget runtime status labels (resolved by WidgetContent helpers) -->
+    <string name="widget_feed_active_side">Feeding: %1$s</string>
+    <string name="widget_feed_active">Feeding</string>
+    <string name="widget_feed_paused_side">Paused: %1$s</string>
+    <string name="widget_feed_paused">Paused</string>
+    <string name="widget_feed_last_side">Last: %1$s</string>
+    <string name="widget_feed_last">Last feed</string>
+    <string name="widget_feed_none">No feeds yet</string>
+    <string name="widget_elapsed_ago">%1$s ago</string>
+    <string name="widget_feed_started_ago">Started %1$s ago</string>
+    <string name="widget_feed_paused_started_ago">Paused, started %1$s ago</string>
+    <string name="widget_feed_last_side_supporting">Last side %1$s</string>
+    <string name="widget_sleep_sleeping">Sleeping</string>
+    <string name="widget_sleep_awake">Awake</string>
+    <string name="widget_sleep_none">No sleep yet</string>
+    <string name="widget_sleep_asleep_for">Asleep %1$s</string>
+    <string name="widget_sleep_asleep_now">Asleep now</string>
+    <string name="widget_sleep_awake_for">Awake %1$s</string>
+    <string name="widget_sleep_awake_now">Awake now</string>
+    <string name="widget_status_feeding">Feeding %1$s</string>
+    <string name="widget_status_feed_paused">Feed paused</string>
+    <string name="widget_status_sleeping">Sleeping %1$s</string>
+    <string name="widget_status_ready">Ready</string>
+    <string name="widget_cd_feed_active">Feeding active: %1$s side, started %2$s ago</string>
+    <string name="widget_cd_feed_paused">Feeding paused: %1$s side, started %2$s ago</string>
+    <string name="widget_cd_feed_recent">Last feeding started %1$s ago; last side used %2$s</string>
+    <string name="widget_cd_sleep_for">Sleeping for %1$s</string>
+    <string name="widget_cd_awake_for">Awake for %1$s</string>
+
     <!-- Quick Settings tiles -->
     <string name="tile_feed_label">Feed</string>
     <string name="tile_sleep_label">Sleep</string>
@@ -163,6 +192,7 @@
     <string name="bottle_feed_type_breast_milk">Breast milk</string>
     <string name="bottle_feed_type_formula">Formula</string>
     <string name="bottle_feed_bag_picker_label">FROM STASH BAG (OPTIONAL)</string>
+    <string name="bottle_feed_from_stash">from stash</string>
     <string name="bottle_feed_quick_action">Bottle feed</string>
     <string name="feed_author_partner_badge">Partner</string>
 
@@ -336,6 +366,10 @@
         <item quantity="one">%1$s &#183; %2$d session &#183; %3$s total</item>
         <item quantity="other">%1$s &#183; %2$d sessions &#183; %3$s total</item>
     </plurals>
+    <plurals name="pumping_history_day_header">
+        <item quantity="one">%1$s &#183; %2$d session</item>
+        <item quantity="other">%1$s &#183; %2$d sessions</item>
+    </plurals>
     <string name="breastfeeding_side_left">Left side</string>
     <string name="breastfeeding_side_right">Right side</string>
     <string name="breastfeeding_in_progress">In progress</string>
@@ -363,6 +397,13 @@
     <string name="label_in_progress">In progress</string>
     <string name="state_expanded">Expanded</string>
     <string name="state_collapsed">Collapsed</string>
+
+    <!-- Relative date + elapsed-time labels (resolved by DateTimeExt / WidgetContent formatters) -->
+    <string name="relative_today">Today</string>
+    <string name="relative_yesterday">Yesterday</string>
+    <string name="elapsed_hours_minutes_ago">%1$dh %2$dm ago</string>
+    <string name="elapsed_minutes_ago">%1$dm ago</string>
+    <string name="elapsed_just_now">Just now</string>
 
     <!-- Sleep type labels (UI display; domain SleepType.label stays the persistence key) -->
     <string name="sleep_type_nap">Nap</string>
@@ -784,4 +825,71 @@
     <string name="partner_allergy_cd">Allergy: %1$s</string>
     <string name="partner_check_shared">Check shared updates</string>
     <string name="partner_check_again">Check again</string>
+
+    <!-- Partner dashboard runtime (computed labels + accessibility) -->
+    <string name="partner_default_name">Baby Tracker</string>
+    <string name="partner_empty_feeding_body">Completed feedings from the primary device will appear here.</string>
+    <string name="partner_empty_sleep_body">The latest nap or night sleep will appear after the next sync.</string>
+    <string name="partner_empty_allergy_body">Allergy notes from the primary device will appear here.</string>
+    <string name="partner_empty_records_named">When the primary parent tracks %1$s, shared feedings and sleep will appear here.</string>
+    <string name="partner_empty_records">When the primary parent tracks a feeding or sleep, it will appear here.</string>
+    <string name="partner_status_feeding">Feeding in progress</string>
+    <string name="partner_status_in_progress">%1$s in progress</string>
+    <string name="partner_status_quiet">Quiet right now</string>
+    <string name="partner_share_behind">Shared update may be behind</string>
+    <string name="partner_share_current">Shared update is current</string>
+    <string name="partner_status_cd">%1$s. %2$s. Shared %3$s</string>
+    <string name="partner_status_cd_checked">%1$s. %2$s. Shared %3$s. Checked %4$s</string>
+    <string name="partner_side_switch">%1$s to %2$s breast</string>
+    <string name="partner_side_switch_short">%1$s to %2$s</string>
+    <string name="partner_side_single">%1$s breast</string>
+    <string name="partner_no_sleep_shared">No sleep shared yet</string>
+    <string name="partner_slept_nap">Napped</string>
+    <string name="partner_slept_night">Slept</string>
+    <string name="partner_check_state_loading">Checking for shared updates</string>
+    <string name="partner_check_state_ready">Ready to check shared updates</string>
+    <string name="partner_no_allergies_shared">No allergies shared</string>
+    <plurals name="partner_allergies_shared">
+        <item quantity="one">%1$d allergy shared</item>
+        <item quantity="other">%1$d allergies shared</item>
+    </plurals>
+    <string name="partner_age_under_week">Less than 1 week old, read-only partner view</string>
+    <plurals name="partner_age_weeks">
+        <item quantity="one">%1$d week old, read-only partner view</item>
+        <item quantity="other">%1$d weeks old, read-only partner view</item>
+    </plurals>
+    <string name="partner_stash_cd_updated"> Updated %1$s.</string>
+    <plurals name="partner_stash_cd">
+        <item quantity="one">Milk stash: %1$s in %2$d bag.</item>
+        <item quantity="other">Milk stash: %1$s in %2$d bags.</item>
+    </plurals>
+
+    <!-- Partner sleep prediction card -->
+    <string name="partner_prediction_estimated">Estimated %1$s</string>
+    <string name="partner_prediction_header_window">NEXT SLEEP WINDOW</string>
+    <string name="partner_prediction_header_passed">SLEEP WINDOW PASSED</string>
+    <string name="partner_prediction_header_sleeping">SLEEPING</string>
+    <string name="partner_prediction_header_feeding">FEEDING NOW</string>
+    <string name="partner_prediction_header_generic">SLEEP PREDICTION</string>
+    <string name="partner_prediction_overdue_primary">Watch for sleepy cues</string>
+    <string name="partner_prediction_overdue_secondary">Next opportunity soon</string>
+    <string name="partner_prediction_sleeping_primary">Sleep in progress</string>
+    <string name="partner_prediction_sleeping_secondary">Next window appears after wake</string>
+    <string name="partner_prediction_after_feed">Sleep window appears after this feed ends</string>
+    <string name="partner_prediction_need_more_data">Not enough logged data yet for a prediction</string>
+    <string name="partner_prediction_cue_led">Too early for predictions. Watch for cues</string>
+    <string name="partner_prediction_range">%1$s – %2$s</string>
+    <string name="partner_confidence_low">low</string>
+    <string name="partner_confidence_medium">medium</string>
+    <string name="partner_confidence_high">high</string>
+    <string name="partner_prediction_cd">Sleep prediction: %1$s. %2$s.</string>
+    <string name="partner_prediction_cd_window">next window</string>
+    <string name="partner_prediction_cd_window_range"> %1$s to %2$s</string>
+    <string name="partner_prediction_cd_best">, best estimate %1$s</string>
+    <string name="partner_prediction_cd_confidence">, %1$s confidence</string>
+    <string name="partner_prediction_cd_overdue">sleep window passed, watch for sleepy cues</string>
+    <string name="partner_prediction_cd_sleeping">baby is sleeping, next window appears after wake</string>
+    <string name="partner_prediction_cd_after_feed">feeding now, sleep window appears after this feed ends</string>
+    <string name="partner_prediction_cd_need_more_data">not enough logged data yet for a prediction</string>
+    <string name="partner_prediction_cd_cue_led">too early for predictions, watch for cues</string>
 </resources>

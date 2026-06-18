@@ -1,5 +1,7 @@
 package com.babytracker.util
 
+import android.content.Context
+import com.babytracker.R
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -41,22 +43,22 @@ fun Duration.formatDuration(): String {
 fun <T> List<T>.groupByLocalDate(keySelector: (T) -> Instant): Map<LocalDate, List<T>> =
     groupBy { keySelector(it).atZone(ZoneId.systemDefault()).toLocalDate() }
 
-fun LocalDate.toRelativeLabel(): String {
-    val today = LocalDate.now()
+fun LocalDate.toRelativeLabel(today: String, yesterday: String): String {
+    val now = LocalDate.now()
     return when (this) {
-        today -> "Today"
-        today.minusDays(1) -> "Yesterday"
+        now -> today
+        now.minusDays(1) -> yesterday
         else -> DateTimeFormatter.ofPattern("MMM d").format(this)
     }
 }
 
-fun Duration.formatElapsedAgo(): String {
+fun Duration.formatElapsedAgo(context: Context): String {
     val hours = toHours()
     val minutes = (toMinutes() % 60).toInt()
     return when {
-        hours > 0 -> "${hours}h ${minutes}m ago"
-        minutes > 0 -> "${minutes}m ago"
-        else -> "Just now"
+        hours > 0 -> context.getString(R.string.elapsed_hours_minutes_ago, hours, minutes)
+        minutes > 0 -> context.getString(R.string.elapsed_minutes_ago, minutes)
+        else -> context.getString(R.string.elapsed_just_now)
     }
 }
 
@@ -73,7 +75,7 @@ fun Duration.formatElapsedShort(): String {
     return if (hours > 0) "${hours}h ${"%02d".format(minutes)}m" else "${minutes}m"
 }
 
-fun Duration.formatElapsedCompact(): String {
+fun Duration.formatElapsedCompact(context: Context): String {
     val days = toDays()
     val hours = toHours()
     val minutes = (toMinutes() % 60).toInt()
@@ -81,6 +83,6 @@ fun Duration.formatElapsedCompact(): String {
         days > 0 -> "${days}d"
         hours > 0 -> "${hours}h ${minutes}m"
         minutes > 0 -> "${minutes}m"
-        else -> "Just now"
+        else -> context.getString(R.string.elapsed_just_now)
     }
 }

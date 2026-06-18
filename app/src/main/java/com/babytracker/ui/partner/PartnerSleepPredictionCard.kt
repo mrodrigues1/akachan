@@ -1,5 +1,6 @@
 package com.babytracker.ui.partner
 
+import android.content.Context
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
@@ -25,10 +26,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatTime
@@ -63,17 +67,18 @@ internal fun PartnerSleepPredictionCard(
     if (prediction == null) return
     val variant = prediction.toVariant(now, hasActiveSleep, hasActiveFeeding) ?: return
 
+    val context = LocalContext.current
     val estimatedAgo = Duration.between(Instant.ofEpochMilli(prediction.generatedAt), now)
         .coerceAtLeast(Duration.ZERO)
-        .formatElapsedAgo()
+        .formatElapsedAgo(context)
         .replaceFirstChar { it.lowercase() }
-    val estimatedLine = "Estimated $estimatedAgo"
+    val estimatedLine = stringResource(R.string.partner_prediction_estimated, estimatedAgo)
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) {
-                contentDescription = prediction.cardDescription(variant, estimatedLine)
+                contentDescription = prediction.cardDescription(variant, estimatedLine, context)
             },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
@@ -87,28 +92,28 @@ internal fun PartnerSleepPredictionCard(
                 .padding(16.dp)
                 .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
         ) {
-            HeaderRow(label = variant.headerLabel(), confidenceDots = variant.confidenceDots(prediction))
+            HeaderRow(label = variant.headerLabel(context), confidenceDots = variant.confidenceDots(prediction))
             Spacer(Modifier.height(12.dp))
             when (variant) {
                 PredictionVariant.WINDOW -> WindowContent(prediction)
                 PredictionVariant.OVERDUE -> TwoLineContent(
-                    primary = "Watch for sleepy cues",
-                    secondary = "Next opportunity soon",
+                    primary = stringResource(R.string.partner_prediction_overdue_primary),
+                    secondary = stringResource(R.string.partner_prediction_overdue_secondary),
                 )
                 PredictionVariant.CURRENTLY_SLEEPING -> TwoLineContent(
                     primary = activeSleepType
-                        ?.let { "${sleepTypeLabel(it)} in progress" }
-                        ?: "Sleep in progress",
-                    secondary = "Next window appears after wake",
+                        ?.let { stringResource(R.string.partner_status_in_progress, sleepTypeLabel(it, context)) }
+                        ?: stringResource(R.string.partner_prediction_sleeping_primary),
+                    secondary = stringResource(R.string.partner_prediction_sleeping_secondary),
                 )
                 PredictionVariant.AFTER_ACTIVE_FEED -> SingleLineContent(
-                    "Sleep window appears after this feed ends",
+                    stringResource(R.string.partner_prediction_after_feed),
                 )
                 PredictionVariant.NEED_MORE_DATA -> SingleLineContent(
-                    "Not enough logged data yet for a prediction",
+                    stringResource(R.string.partner_prediction_need_more_data),
                 )
                 PredictionVariant.CUE_LED -> SingleLineContent(
-                    "Too early for predictions. Watch for cues",
+                    stringResource(R.string.partner_prediction_cue_led),
                 )
             }
             Spacer(Modifier.height(8.dp))
@@ -169,8 +174,9 @@ private fun ConfidenceDots(filled: Int) {
 
 @Composable
 private fun WindowContent(prediction: SleepPredictionSnapshot) {
+    val context = LocalContext.current
     val bestEstimate = prediction.bestEstimate?.let { Instant.ofEpochMilli(it).formatTime() }
-    val range = rangeText(prediction)
+    val range = rangeText(prediction, context)
     val reasons = prediction.reasons.take(MAX_REASONS).joinToString(" · ")
 
     Column {
@@ -255,13 +261,22 @@ private fun SleepPredictionSnapshot.isStale(now: Instant): Boolean {
     return now.toEpochMilli() > end + graceMs
 }
 
-private fun PredictionVariant.headerLabel(): String =
+private fun PredictionVariant.headerLabel(context: Context): String =
     when (this) {
-        PredictionVariant.WINDOW -> "NEXT SLEEP WINDOW"
-        PredictionVariant.OVERDUE -> "SLEEP WINDOW PASSED"
-        PredictionVariant.CURRENTLY_SLEEPING -> "SLEEPING"
-        PredictionVariant.AFTER_ACTIVE_FEED -> "FEEDING NOW"
-        PredictionVariant.NEED_MORE_DATA, PredictionVariant.CUE_LED -> "SLEEP PREDICTION"
+        PredictionVariant.WINDOW -> context.getString(R.string.partner_prediction_header_window)
+        PredictionVariant.OVERDUE -> context.getString(R.string.partner_prediction_header_passed)
+        PredictionVariant.CURRENTLY_SLEEPING -> context.getString(R.string.partner_prediction_header_sleeping)
+        PredictionVariant.AFTER_ACTIVE_FEED -> context.getString(R.string.partner_prediction_header_feeding)
+        PredictionVariant.NEED_MORE_DATA, PredictionVariant.CUE_LED ->
+            context.getString(R.string.partner_prediction_header_generic)
+    }
+
+private fun confidenceLabel(confidence: String, context: Context): String =
+    when (confidence) {
+        "LOW" -> context.getString(R.string.partner_confidence_low)
+        "MEDIUM" -> context.getString(R.string.partner_confidence_medium)
+        "HIGH" -> context.getString(R.string.partner_confidence_high)
+        else -> confidence.lowercase()
     }
 
 private fun PredictionVariant.confidenceDots(prediction: SleepPredictionSnapshot): Int =
@@ -276,34 +291,43 @@ private fun PredictionVariant.confidenceDots(prediction: SleepPredictionSnapshot
         0
     }
 
-private fun rangeText(prediction: SleepPredictionSnapshot): String? {
+private fun rangeText(prediction: SleepPredictionSnapshot, context: Context): String? {
     val start = prediction.windowStart?.let { Instant.ofEpochMilli(it).formatTime() }
     val end = prediction.windowEnd?.let { Instant.ofEpochMilli(it).formatTime() }
-    return if (start != null && end != null) "$start – $end" else null
+    return if (start != null && end != null) {
+        context.getString(R.string.partner_prediction_range, start, end)
+    } else {
+        null
+    }
 }
 
 private fun SleepPredictionSnapshot.cardDescription(
     variant: PredictionVariant,
     estimatedLine: String,
+    context: Context,
 ): String {
     val summary = when (variant) {
         PredictionVariant.WINDOW -> {
             val best = bestEstimate?.let { Instant.ofEpochMilli(it).formatTime() }
             val start = windowStart?.let { Instant.ofEpochMilli(it).formatTime() }
             val end = windowEnd?.let { Instant.ofEpochMilli(it).formatTime() }
-            val confidenceText = confidence?.lowercase()
+            val confidenceText = confidence?.let { confidenceLabel(it, context) }
             buildString {
-                append("next window")
-                if (start != null && end != null) append(" $start to $end")
-                if (best != null) append(", best estimate $best")
-                if (confidenceText != null) append(", $confidenceText confidence")
+                append(context.getString(R.string.partner_prediction_cd_window))
+                if (start != null && end != null) {
+                    append(context.getString(R.string.partner_prediction_cd_window_range, start, end))
+                }
+                if (best != null) append(context.getString(R.string.partner_prediction_cd_best, best))
+                if (confidenceText != null) {
+                    append(context.getString(R.string.partner_prediction_cd_confidence, confidenceText))
+                }
             }
         }
-        PredictionVariant.OVERDUE -> "sleep window passed, watch for sleepy cues"
-        PredictionVariant.CURRENTLY_SLEEPING -> "baby is sleeping, next window appears after wake"
-        PredictionVariant.AFTER_ACTIVE_FEED -> "feeding now, sleep window appears after this feed ends"
-        PredictionVariant.NEED_MORE_DATA -> "not enough logged data yet for a prediction"
-        PredictionVariant.CUE_LED -> "too early for predictions, watch for cues"
+        PredictionVariant.OVERDUE -> context.getString(R.string.partner_prediction_cd_overdue)
+        PredictionVariant.CURRENTLY_SLEEPING -> context.getString(R.string.partner_prediction_cd_sleeping)
+        PredictionVariant.AFTER_ACTIVE_FEED -> context.getString(R.string.partner_prediction_cd_after_feed)
+        PredictionVariant.NEED_MORE_DATA -> context.getString(R.string.partner_prediction_cd_need_more_data)
+        PredictionVariant.CUE_LED -> context.getString(R.string.partner_prediction_cd_cue_led)
     }
-    return "Sleep prediction: $summary. $estimatedLine."
+    return context.getString(R.string.partner_prediction_cd, summary, estimatedLine)
 }
