@@ -139,7 +139,9 @@
     <string name="widget_preview_feed_label">Mamada: Direito</string>
     <string name="widget_preview_feed_value">12m</string>
     <string name="widget_preview_sleep_label">Acordado</string>
+    <string name="widget_preview_feed_emoji">🍼</string>
     <string name="widget_preview_sleep_value">3m</string>
+    <string name="widget_preview_sleep_emoji">🌙</string>
     <string name="milk_stash_widget_description">Estoque de leite — volume e contagem de sacos</string>
 
     <!-- Quick Settings tiles -->
@@ -632,6 +634,31 @@
     <string name="settings_edit_format">Editar %1$s</string>
     <string name="settings_disable_hint">Defina como 0 para desativar o limite.</string>
     <string name="settings_minutes_label">Minutos (0 = desativado)</string>
+
+    <!-- Settings — language -->
+    <string name="settings_section_language">Idioma</string>
+    <string name="settings_language_system">Padrão do sistema</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_pt_br">Português (Brasil)</string>
+
+    <!-- Settings — residual values/descriptions -->
+    <string name="settings_not_set">Não definido</string>
+    <string name="settings_auto_update_desc">Verificar novas versões ao abrir</string>
+    <string name="settings_rich_notifications_desc">Mostrar barras de progresso e ações rápidas nas notificações</string>
+    <string name="settings_partner_stash_use_desc">Avisar quando meu parceiro registrar uma mamadeira que usa leite do estoque</string>
+    <string name="settings_partner_sharing_value">Configurar como responsável principal</string>
+    <string name="settings_connect_partner_value">Ver os dados do bebê de um parceiro</string>
+    <string name="settings_partner_active">Ativo</string>
+    <string name="settings_disconnect_value">Parar de ver como parceiro</string>
+    <string name="settings_design_system_value">Cores, tipografia, formas</string>
+    <string name="settings_export_pdf_value">Resumo de mamadas e sono</string>
+    <string name="settings_export_json_value">Snapshot completo, restaure quando quiser</string>
+    <string name="settings_export_csv_value">Abrir no Excel, Numbers ou Sheets</string>
+    <string name="settings_restore_value">Mesclar registros de um arquivo de backup JSON</string>
+    <string name="inventory_expiration_tracking_desc">Sinalizar o leite armazenado antes de atingir o limite</string>
+    <string name="inventory_expiration_reminders_desc">Enviar um lembrete diário para o leite que vence hoje</string>
+    <string name="pumping_mode_timer">Cronômetro</string>
+    <string name="pumping_mode_manual">Manual</string>
 
     <!-- Inventory (milk stash) -->
     <string name="inventory_title">Estoque de leite</string>
