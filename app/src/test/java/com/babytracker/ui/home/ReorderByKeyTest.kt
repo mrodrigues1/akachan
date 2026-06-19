@@ -69,6 +69,7 @@ class ReorderByKeyTest {
             HomeTile.INVENTORY,
             HomeTile.BOTTLE_FEED,
             HomeTile.DIAPER,
+            HomeTile.VACCINE,
             HomeTile.GROWTH,
             HomeTile.MILESTONES,
             HomeTile.TRENDS,

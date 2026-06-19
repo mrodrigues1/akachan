@@ -11,6 +11,7 @@ import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.ui.bottlefeed.BottleFeedScreen
 import com.babytracker.ui.diaper.DiaperHistoryScreen
 import com.babytracker.ui.diaper.DiaperScreen
+import com.babytracker.ui.vaccine.VaccineHistoryScreen
 import com.babytracker.ui.vaccine.VaccineScreen
 import com.babytracker.ui.features.FeaturesScreen
 import com.babytracker.ui.breastfeeding.BreastfeedingHistoryScreen
@@ -215,7 +216,13 @@ private fun NavGraphBuilder.pumpingGraph(navController: NavHostController) {
         DiaperHistoryScreen(onNavigateBack = { navController.popBackStack() })
     }
     composable(Routes.VACCINE) {
-        VaccineScreen(onNavigateBack = { navController.popBackStack() })
+        VaccineScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToHistory = { navController.navigate(Routes.VACCINE_HISTORY) },
+        )
+    }
+    composable(Routes.VACCINE_HISTORY) {
+        VaccineHistoryScreen(onNavigateBack = { navController.popBackStack() })
     }
 }
 

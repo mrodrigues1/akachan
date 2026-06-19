@@ -9,6 +9,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun VaccineScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToHistory: () -> Unit,
     viewModel: VaccineViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -22,5 +23,6 @@ fun VaccineScreen(
         onNotesChange = viewModel::onNotesChange,
         onConfirm = viewModel::onSave,
         onDismiss = onNavigateBack,
+        onNavigateToHistory = onNavigateToHistory,
     )
 }

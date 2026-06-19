@@ -1137,4 +1137,18 @@
         <item>Meningocócica</item>
         <item>Influenza (Gripe)</item>
     </string-array>
+
+    <!-- Vaccine history -->
+    <string name="vaccine_history_title">Histórico de vacinas</string>
+    <string name="vaccine_history_upcoming">Próximas</string>
+    <string name="vaccine_history_administered">Aplicadas</string>
+    <string name="vaccine_history_empty">Nenhuma vacina ainda</string>
+    <string name="vaccine_mark_given">Marcar como aplicada</string>
+    <string name="vaccine_overdue_badge">Atrasada</string>
+    <string name="vaccine_scheduled_for">Agendada para %1$s</string>
+    <string name="vaccine_view_history">Ver histórico de vacinas</string>
+    <string name="vaccine_deleted">Vacina excluída</string>
+    <string name="vaccine_undo">Desfazer</string>
+    <string name="vaccine_edit_content_description">Editar %1$s</string>
+    <string name="vaccine_delete_content_description">Excluir %1$s</string>
 </resources>
