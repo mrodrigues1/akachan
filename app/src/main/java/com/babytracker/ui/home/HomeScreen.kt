@@ -75,15 +75,22 @@ import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.TodayDiaperSummary
 import com.babytracker.domain.model.TodayFeedingSummary
+import com.babytracker.domain.model.VaccineSummary
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.ui.breastfeeding.PredictionCopy
 import com.babytracker.ui.breastfeeding.contentDescriptionText
 import com.babytracker.ui.breastfeeding.detailText
 import com.babytracker.ui.breastfeeding.primaryText
 import com.babytracker.ui.component.labelRes
+import com.babytracker.ui.theme.LocalDarkTheme
+import com.babytracker.ui.theme.OnWarningContainerAmber
+import com.babytracker.ui.theme.OnWarningContainerAmberDark
+import com.babytracker.ui.theme.WarningContainerAmber
+import com.babytracker.ui.theme.WarningContainerAmberDark
 import com.babytracker.ui.theme.diaperColors
 import com.babytracker.ui.theme.growthColors
 import com.babytracker.ui.theme.milestoneColors
+import com.babytracker.ui.theme.vaccineColors
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatMinutesSeconds
@@ -91,8 +98,10 @@ import com.babytracker.util.formatTime
 import com.babytracker.util.formatVolume
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.delay
 
 internal val EaseOutQuart = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
@@ -109,6 +118,7 @@ fun HomeScreen(
     onNavigateToInventory: () -> Unit = {},
     onNavigateToBottleFeed: () -> Unit = {},
     onNavigateToDiaper: () -> Unit = {},
+    onNavigateToVaccine: () -> Unit = {},
     onNavigateToFeedingHistory: () -> Unit = {},
     onNavigateToGrowth: () -> Unit = {},
     onNavigateToMilestones: () -> Unit = {},
@@ -187,6 +197,7 @@ fun HomeScreen(
             onNavigateToInventory,
             onNavigateToBottleFeed,
             onNavigateToDiaper,
+            onNavigateToVaccine,
             onNavigateToFeedingHistory,
             onNavigateToConnectPartner,
             onNavigateToGrowth,
@@ -199,6 +210,7 @@ fun HomeScreen(
                 onInventory = onNavigateToInventory,
                 onBottleFeed = onNavigateToBottleFeed,
                 onDiaper = onNavigateToDiaper,
+                onVaccine = onNavigateToVaccine,
                 onFeedingHistory = onNavigateToFeedingHistory,
                 onConnectPartner = onNavigateToConnectPartner,
                 onGrowth = onNavigateToGrowth,
@@ -547,6 +559,94 @@ internal fun LastDiaperAgoText(lastChangeAt: Instant) {
         style = MaterialTheme.typography.bodySmall,
         color = diaperColors().onContainer,
     )
+}
+
+@Composable
+internal fun VaccineHomeCard(
+    summary: VaccineSummary,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val vaccine = vaccineColors()
+    val isDark = LocalDarkTheme.current
+    val overdue = summary.overdueCount > 0
+    val next = summary.nextUpcoming
+    val last = summary.lastAdministered
+
+    // Overdue borrows the warning-amber surface; otherwise the section Indigo.
+    val containerColor = when {
+        !overdue -> vaccine.container
+        isDark -> WarningContainerAmberDark
+        else -> WarningContainerAmber
+    }
+    val contentColor = when {
+        !overdue -> vaccine.onContainer
+        isDark -> OnWarningContainerAmberDark
+        else -> OnWarningContainerAmber
+    }
+
+    val title = stringResource(R.string.vaccine_tile_label)
+    val subtitle = when {
+        overdue -> stringResource(R.string.vaccine_tile_overdue)
+        next != null -> stringResource(R.string.vaccine_tile_next, next.name)
+        last != null -> stringResource(R.string.vaccine_tile_last_given, last.name)
+        else -> stringResource(R.string.vaccine_tile_none)
+    }
+    val countdown = next?.scheduledDate?.takeIf { !overdue }?.let { daysUntilLabel(it) }
+    val cardCd = listOfNotNull(title, subtitle, countdown).joinToString(", ")
+
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 96.dp)
+            .semantics { contentDescription = cardCd },
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
+        ) {
+            Text(
+                text = "💉",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = contentColor,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = contentColor,
+            )
+            countdown?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun daysUntilLabel(scheduledDate: Instant): String {
+    val zone = ZoneId.systemDefault()
+    val days = ChronoUnit.DAYS.between(LocalDate.now(zone), scheduledDate.atZone(zone).toLocalDate())
+    return if (days <= 0L) {
+        stringResource(R.string.vaccine_tile_today)
+    } else {
+        pluralStringResource(R.plurals.vaccine_tile_in_days, days.toInt(), days.toInt())
+    }
 }
 
 @Composable
