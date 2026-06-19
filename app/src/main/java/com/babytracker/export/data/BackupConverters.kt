@@ -8,6 +8,7 @@ import com.babytracker.data.local.entity.MilestoneEntity
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
+import com.babytracker.data.local.entity.VaccineEntity
 import com.babytracker.export.domain.model.BottleFeedBackup
 import com.babytracker.export.domain.model.BreastfeedingBackup
 import com.babytracker.export.domain.model.DiaperBackup
@@ -16,6 +17,7 @@ import com.babytracker.export.domain.model.MilestoneBackup
 import com.babytracker.export.domain.model.MilkBagBackup
 import com.babytracker.export.domain.model.PumpingBackup
 import com.babytracker.export.domain.model.SleepBackup
+import com.babytracker.export.domain.model.VaccineBackup
 import java.util.UUID
 
 fun BreastfeedingEntity.toBackup() = BreastfeedingBackup(
@@ -34,6 +36,28 @@ fun DiaperEntity.toBackup() = DiaperBackup(
 
 fun DiaperBackup.toEntity() = DiaperEntity(
     id = id, timestamp = timestamp, type = type, notes = notes, createdAt = createdAt,
+)
+
+fun VaccineEntity.toBackup() = VaccineBackup(
+    id = id,
+    name = name,
+    doseLabel = doseLabel,
+    status = status,
+    scheduledDate = scheduledDate,
+    administeredDate = administeredDate,
+    notes = notes,
+    createdAt = createdAt,
+)
+
+fun VaccineBackup.toEntity() = VaccineEntity(
+    id = id,
+    name = name,
+    doseLabel = doseLabel,
+    status = status,
+    scheduledDate = scheduledDate,
+    administeredDate = administeredDate,
+    notes = notes,
+    createdAt = createdAt,
 )
 
 fun GrowthMeasurementEntity.toBackup() = GrowthBackup(

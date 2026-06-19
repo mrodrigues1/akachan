@@ -3,6 +3,7 @@ package com.babytracker.export.domain
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.model.SleepRecord
+import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.export.domain.model.DateRange
 
 data class PdfReportData(
@@ -10,6 +11,7 @@ data class PdfReportData(
     val breastfeeding: List<BreastfeedingSession>,
     val sleep: List<SleepRecord>,
     val diapers: List<DiaperChange> = emptyList(),
+    val vaccines: List<VaccineRecord> = emptyList(),
 )
 
 /** Renders the report to PDF bytes. Implemented in export/data (Android Canvas). */

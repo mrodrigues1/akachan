@@ -67,7 +67,7 @@ class ExportBackupUseCaseTest {
     }
 
     @Test
-    fun `exports diapers as format v4 and round trips them`() = runTest {
+    fun `exports diapers at the current format version and round trips them`() = runTest {
         coEvery { source.readTracking() } returns TrackingSnapshot(
             breastfeeding = emptyList(), sleep = emptyList(), pumping = emptyList(),
             milkBags = emptyList(), bottleFeeds = emptyList(),
@@ -76,7 +76,7 @@ class ExportBackupUseCaseTest {
 
         val parsed = json.decodeFromString(BackupData.serializer(), useCase())
 
-        assertEquals(4, parsed.backupFormatVersion)
+        assertEquals(CURRENT_BACKUP_FORMAT_VERSION, parsed.backupFormatVersion)
         assertEquals(1, parsed.diapers.size)
         assertEquals("BOTH", parsed.diapers.single().type)
         assertEquals(500L, parsed.diapers.single().timestamp)

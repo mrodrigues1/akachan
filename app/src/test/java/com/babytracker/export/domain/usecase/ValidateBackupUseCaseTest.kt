@@ -11,6 +11,7 @@ import com.babytracker.export.domain.model.MilkBagBackup
 import com.babytracker.export.domain.model.PumpingBackup
 import com.babytracker.export.domain.model.SettingsBackup
 import com.babytracker.export.domain.model.SleepBackup
+import com.babytracker.export.domain.model.VaccineBackup
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -292,6 +293,82 @@ class ValidateBackupUseCaseTest {
         )
         val result = useCase(json.encodeToString(BackupData.serializer(), data))
         assertEquals(1, result.bottleFeeds.size)
+    }
+
+    @Test
+    fun `migrates a v4 backup to the current version with empty vaccines`() {
+        // A v4 export predates vaccines; bumping the current version to 5 must NOT reject it
+        // (regression: restoring an existing user's backup after a reinstall).
+        val v4Json = json.encodeToString(BackupData.serializer(), backup(version = 4))
+
+        val result = useCase(v4Json)
+
+        assertEquals(CURRENT_BACKUP_FORMAT_VERSION, result.backupFormatVersion)
+        assertTrue(result.vaccines.isEmpty())
+    }
+
+    @Test
+    fun `accepts valid scheduled and administered vaccines`() {
+        val data = backup().copy(
+            vaccines = listOf(
+                VaccineBackup(id = 1, name = "BCG", status = "ADMINISTERED", administeredDate = 1_000, createdAt = 500),
+                VaccineBackup(id = 2, name = "Hep B", status = "SCHEDULED", scheduledDate = 2_000, createdAt = 600),
+            ),
+        )
+
+        val result = useCase(json.encodeToString(BackupData.serializer(), data))
+
+        assertEquals(2, result.vaccines.size)
+    }
+
+    @Test
+    fun `rejects an unknown vaccine status`() {
+        val data = backup().copy(
+            vaccines = listOf(VaccineBackup(id = 1, name = "BCG", status = "NONSENSE", administeredDate = 1_000, createdAt = 500)),
+        )
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
+    }
+
+    @Test
+    fun `rejects a blank vaccine name`() {
+        val data = backup().copy(
+            vaccines = listOf(VaccineBackup(id = 1, name = "   ", status = "ADMINISTERED", administeredDate = 1_000, createdAt = 500)),
+        )
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
+    }
+
+    @Test
+    fun `rejects a scheduled vaccine missing its scheduled date`() {
+        val data = backup().copy(
+            vaccines = listOf(VaccineBackup(id = 1, name = "BCG", status = "SCHEDULED", scheduledDate = null, createdAt = 500)),
+        )
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
+    }
+
+    @Test
+    fun `rejects an administered vaccine missing its administered date`() {
+        val data = backup().copy(
+            vaccines = listOf(VaccineBackup(id = 1, name = "BCG", status = "ADMINISTERED", administeredDate = null, createdAt = 500)),
+        )
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
+    }
+
+    @Test
+    fun `rejects a vaccine with a negative created time`() {
+        val data = backup().copy(
+            vaccines = listOf(VaccineBackup(id = 1, name = "BCG", status = "ADMINISTERED", administeredDate = 1_000, createdAt = -1)),
+        )
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
     }
 
     @Test

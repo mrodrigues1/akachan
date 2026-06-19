@@ -54,6 +54,7 @@ class BackupSourceImpl @Inject constructor(
             growth = db.growthMeasurementDao().getAllOnce().map { it.toBackup() },
             milestones = db.milestoneDao().getAllOnce().map { it.toBackup() },
             diapers = db.diaperDao().getAllOnce().map { it.toBackup() },
+            vaccines = db.vaccineDao().getAllOnce().map { it.toBackup() },
         )
     }
 
