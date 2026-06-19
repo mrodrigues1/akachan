@@ -6,6 +6,7 @@
 
 - **Codebase**: [github.com/mrodrigues1/akachan](https://github.com/mrodrigues1/akachan) — Android, Kotlin, Jetpack Compose + Material 3
 - **Design spec**: `specs/SPEC-001-APP-STRUCTURE.md` (within repo)
+- **Section icon spec**: `specs/SPEC-008-SECTION-ICON-STYLE-SYSTEM.md` (custom section icon rules)
 - **No Figma link provided** — design system derived entirely from codebase analysis
 
 ## Product Overview
@@ -177,7 +178,7 @@ Surface-colored, no scroll behavior. Left: back arrow or title. Right: text acti
 
 ## ICONOGRAPHY
 
-Akachan uses **Material Icons (filled style)** exclusively — no custom icon set, no SVG sprite, no icon font beyond Material Icons which is bundled with Compose.
+Akachan uses **Material Icons (filled style)** for standard actions and navigation. Custom section icon rules are defined in `specs/SPEC-008-SECTION-ICON-STYLE-SYSTEM.md`; those rules replace emoji section markers over time without adding an icon font or third-party runtime.
 
 **Icons used:**
 - `Icons.Default.Restaurant` — Feeding / breastfeeding
@@ -196,6 +197,8 @@ Akachan uses **Material Icons (filled style)** exclusively — no custom icon se
 - 🌙 Sleep card, empty state
 - 🌅 Wake time chip
 - ✨ Tip card
+
+These emoji are legacy section markers. Follow `specs/SPEC-008-SECTION-ICON-STYLE-SYSTEM.md` for replacements.
 
 **App icon**: Pink circle with a minimalist baby face (two white dot eyes + white smile arc on `#C2185B` background). See `assets/logo.svg`.
 
