@@ -28,6 +28,7 @@ class HomeReorderTest {
         onInventory = {},
         onBottleFeed = {},
         onDiaper = {},
+        onVaccine = {},
         onFeedingHistory = {},
         onConnectPartner = {},
         onGrowth = {},

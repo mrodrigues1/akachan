@@ -1100,4 +1100,41 @@
     <string name="widget_milk_stash_total_ml">mL no total</string>
     <string name="widget_milk_stash_total_l">L no total</string>
     <string name="widget_milk_stash_total_oz">oz no total</string>
+
+    <!-- Vaccine -->
+    <string name="vaccine_tile_label">Vacinas</string>
+    <string name="vaccine_add_title">Adicionar vacina</string>
+    <string name="vaccine_edit_title">Editar vacina</string>
+    <string name="vaccine_name_label">Nome da vacina</string>
+    <string name="vaccine_dose_label">Dose (opcional)</string>
+    <string name="vaccine_notes_label">Notas (opcional)</string>
+    <string name="vaccine_mode_administered">Já aplicada</string>
+    <string name="vaccine_mode_scheduled">Agendar</string>
+    <string name="vaccine_date_administered_label">Data de aplicação</string>
+    <string name="vaccine_date_scheduled_label">Data agendada</string>
+    <string name="vaccine_save">Salvar</string>
+    <string name="vaccine_save_error">Não foi possível salvar a vacina</string>
+    <string name="vaccine_tile_next">Próxima: %1$s</string>
+    <string name="vaccine_tile_today">Hoje</string>
+    <string name="vaccine_tile_overdue">Atrasada</string>
+    <string name="vaccine_tile_last_given">Última: %1$s</string>
+    <string name="vaccine_tile_none">Nenhuma vacina agendada</string>
+    <plurals name="vaccine_tile_in_days">
+        <item quantity="one">em %1$d dia</item>
+        <item quantity="other">em %1$d dias</item>
+    </plurals>
+    <string-array name="vaccine_suggestions">
+        <item>BCG</item>
+        <item>Hepatite B</item>
+        <item>DTaP</item>
+        <item>Hib</item>
+        <item>Poliomielite (VIP)</item>
+        <item>Rotavírus</item>
+        <item>Pneumocócica (PCV)</item>
+        <item>Tríplice viral (MMR)</item>
+        <item>Varicela</item>
+        <item>Hepatite A</item>
+        <item>Meningocócica</item>
+        <item>Influenza (Gripe)</item>
+    </string-array>
 </resources>

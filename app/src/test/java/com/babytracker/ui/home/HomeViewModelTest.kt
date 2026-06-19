@@ -25,7 +25,9 @@ import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCa
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.diaper.ObserveTodayDiaperSummaryUseCase
 import com.babytracker.domain.usecase.feeding.ObserveTodayFeedingSummaryUseCase
+import com.babytracker.domain.model.VaccineSummary
 import com.babytracker.domain.usecase.features.GetEnabledFeaturesUseCase
+import com.babytracker.domain.usecase.vaccine.ObserveVaccineSummaryUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
@@ -65,6 +67,7 @@ class HomeViewModelTest {
     private lateinit var observeTodayFeedingSummary: ObserveTodayFeedingSummaryUseCase
     private lateinit var observeTodayDiaperSummary: ObserveTodayDiaperSummaryUseCase
     private lateinit var getEnabledFeatures: GetEnabledFeaturesUseCase
+    private lateinit var observeVaccineSummary: ObserveVaccineSummaryUseCase
     private lateinit var logBabyEvent: LogBabyEventUseCase
     private lateinit var viewModel: HomeViewModel
     private val testDispatcher = StandardTestDispatcher()
@@ -98,6 +101,7 @@ class HomeViewModelTest {
         observeTodayFeedingSummary = mockk()
         observeTodayDiaperSummary = mockk()
         getEnabledFeatures = mockk()
+        observeVaccineSummary = mockk()
         logBabyEvent = mockk()
 
         every { getBabyProfile() } returns flowOf(testBaby)
@@ -112,6 +116,7 @@ class HomeViewModelTest {
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("test"))
         every { observeTodayFeedingSummary() } returns flowOf(TodayFeedingSummary())
         every { observeTodayDiaperSummary() } returns flowOf(TodayDiaperSummary())
+        every { observeVaccineSummary() } returns flowOf(VaccineSummary())
         every { getEnabledFeatures() } returns flowOf(AppFeature.ALL)
         coJustRun { syncToFirestore(any()) }
         coJustRun { logBabyEvent(any()) }
@@ -135,6 +140,7 @@ class HomeViewModelTest {
         observeTodayFeedingSummary,
         observeTodayDiaperSummary,
         getEnabledFeatures,
+        observeVaccineSummary,
         logBabyEvent,
     )
 
