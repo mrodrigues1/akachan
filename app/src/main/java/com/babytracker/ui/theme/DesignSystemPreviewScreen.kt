@@ -88,6 +88,12 @@ fun DesignSystemPreviewScreen(
                     "Soft" to SoftYellow, "Surface" to SurfaceYellow,
                 ))
             }
+            item {
+                SwatchRow("Indigo", listOf(
+                    "100" to Indigo100, "200" to Indigo200,
+                    "700" to Indigo700, "900" to Indigo900,
+                ))
+            }
 
             // ── Semantic Tokens — current theme ───────────────────────────────
             item { Spacer(Modifier.height(4.dp)) }
