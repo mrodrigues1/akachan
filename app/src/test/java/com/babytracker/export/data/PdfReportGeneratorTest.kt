@@ -6,6 +6,8 @@ import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.model.DiaperType
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.model.VaccineRecord
+import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.export.domain.PdfReportData
 import com.babytracker.export.domain.model.DateRange
 import org.junit.Assert.assertEquals
@@ -33,6 +35,16 @@ class PdfReportGeneratorTest {
 
     private fun diaper(startTime: Instant) = DiaperChange(
         id = 0, timestamp = startTime, type = DiaperType.WET, createdAt = startTime,
+    )
+
+    private fun administeredVaccine(date: Instant) = VaccineRecord(
+        id = 0, name = "BCG", doseLabel = "Dose 1", status = VaccineStatus.ADMINISTERED,
+        administeredDate = date, createdAt = date,
+    )
+
+    private fun scheduledVaccine(date: Instant) = VaccineRecord(
+        id = 0, name = "Hep B", doseLabel = null, status = VaccineStatus.SCHEDULED,
+        scheduledDate = date, createdAt = date,
     )
 
     @Test
@@ -100,6 +112,49 @@ class PdfReportGeneratorTest {
             range = DateRange.lastDays(30, now),
             breastfeeding = sessions,
             sleep = sleeps,
+        )
+        try {
+            val bytes = generator.render(data)
+            assertTrue(bytes.isNotEmpty())
+            assertEquals("%PDF", bytes.copyOfRange(0, 4).decodeToString())
+        } catch (e: IllegalStateException) {
+            org.junit.Assume.assumeNoException(e)
+        }
+    }
+
+    @Test
+    fun `render with vaccines does not crash and produces valid PDF`() {
+        val now = Instant.parse("2026-05-26T00:00:00Z")
+        val data = PdfReportData(
+            range = DateRange.lastDays(30, now),
+            breastfeeding = listOf(session(now.minusSeconds(3600))),
+            sleep = listOf(sleepRecord(now.minusSeconds(7200))),
+            vaccines = listOf(
+                administeredVaccine(now.minusSeconds(86_400)),
+                scheduledVaccine(now.plusSeconds(86_400)),
+            ),
+        )
+        try {
+            val bytes = generator.render(data)
+            assertTrue(bytes.isNotEmpty())
+            assertEquals("%PDF", bytes.copyOfRange(0, 4).decodeToString())
+        } catch (e: IllegalStateException) {
+            org.junit.Assume.assumeNoException(e)
+        }
+    }
+
+    @Test
+    fun `render with many vaccines does not crash - exercises vaccine pagination mirror`() {
+        val now = Instant.parse("2026-05-26T00:00:00Z")
+        // 30 administered + 30 upcoming push both sub-lists across page boundaries, exercising the
+        // countPages/render mirror for the new section to guard footer drift.
+        val administered = (1..30).map { i -> administeredVaccine(now.minusSeconds(i * 86_400L)) }
+        val scheduled = (1..30).map { i -> scheduledVaccine(now.plusSeconds(i * 86_400L)) }
+        val data = PdfReportData(
+            range = DateRange.lastDays(30, now),
+            breastfeeding = emptyList(),
+            sleep = emptyList(),
+            vaccines = administered + scheduled,
         )
         try {
             val bytes = generator.render(data)

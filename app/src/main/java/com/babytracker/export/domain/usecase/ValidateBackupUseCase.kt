@@ -7,7 +7,10 @@ import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.GrowthType
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.ThemeConfig
+import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.domain.model.toSleepTypeOrNull
+import com.babytracker.domain.model.toVaccineStatusOrNull
+import com.babytracker.domain.model.toVaccineStatusSafe
 import com.babytracker.export.domain.BackupTooNewException
 import com.babytracker.export.domain.InvalidBackupException
 import com.babytracker.export.domain.model.BackupData
@@ -42,6 +45,9 @@ class ValidateBackupUseCase @Inject constructor(
             backupFormatVersion = CURRENT_BACKUP_FORMAT_VERSION,
             milestones = emptyList(),
         )
+        // v3 added free-form milestones, v4 added diapers; both carry forward unchanged. The new
+        // vaccines field defaults to emptyList(), so no data synthesis is needed.
+        3, 4 -> data.copy(backupFormatVersion = CURRENT_BACKUP_FORMAT_VERSION)
         else -> throw InvalidBackupException("Unsupported backup format v${data.backupFormatVersion}")
     }
 
@@ -63,6 +69,7 @@ class ValidateBackupUseCase @Inject constructor(
             data.baby?.allergies?.forEach { AllergyType.valueOf(it) }
             data.baby?.sex?.let { BabySex.valueOf(it) }
             data.growth.forEach { GrowthType.valueOf(it.type) }
+            data.vaccines.forEach { it.status.toVaccineStatusOrNull() ?: throw IllegalArgumentException(it.status) }
             ThemeConfig.valueOf(data.settings.themeConfig)
         }.onFailure { throw InvalidBackupException("Backup contains an invalid enum value: ${it.message}") }
 
@@ -79,6 +86,24 @@ class ValidateBackupUseCase @Inject constructor(
         validateBottleFeedInvariants(data)
         validateGrowthInvariants(data)
         validateMilestoneInvariants(data)
+        validateVaccineInvariants(data)
+    }
+
+    private fun validateVaccineInvariants(data: BackupData) {
+        data.vaccines.forEach { v ->
+            if (v.name.isBlank()) bad("vaccine ${v.id} has a blank name")
+            if (v.createdAt < 0) bad("vaccine ${v.id} has negative created time")
+            if (v.scheduledDate != null && v.scheduledDate < 0) bad("vaccine ${v.id} has negative scheduled date")
+            if (v.administeredDate != null && v.administeredDate < 0) {
+                bad("vaccine ${v.id} has negative administered date")
+            }
+            when (v.status.toVaccineStatusSafe()) {
+                VaccineStatus.SCHEDULED ->
+                    if (v.scheduledDate == null) bad("scheduled vaccine ${v.id} has no scheduled date")
+                VaccineStatus.ADMINISTERED ->
+                    if (v.administeredDate == null) bad("administered vaccine ${v.id} has no administered date")
+            }
+        }
     }
 
     private fun validateGrowthInvariants(data: BackupData) {

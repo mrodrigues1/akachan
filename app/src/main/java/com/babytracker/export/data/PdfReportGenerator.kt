@@ -6,6 +6,8 @@ import android.graphics.pdf.PdfDocument
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.model.SleepRecord
+import com.babytracker.domain.model.VaccineRecord
+import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.export.domain.PdfReportData
 import com.babytracker.export.domain.PdfReportRenderer
 import com.babytracker.util.formatPdfDateTime
@@ -85,24 +87,9 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         }
         y += SECTION_GAP
 
-        // Diaper section
-        val diaperPos = ensureRoom(doc, page, y, totalPages)
-        page = diaperPos.page; canvas = diaperPos.canvas; y = diaperPos.y
-        canvas.drawText("Diapers (${data.diapers.size})", MARGIN, y, diaperHeaderPaint)
-        y += LINE * 0.7f
-        y = drawColumnHeaders(canvas, y, "Date & Time", "Type", "Notes")
-        canvas.drawLine(MARGIN, y - LINE * 0.15f, PAGE_WIDTH - MARGIN, y - LINE * 0.15f, separatorPaint)
-        y += LINE * 0.5f
-
-        for (d in data.diapers) {
-            val pos = ensureRoom(doc, page, y, totalPages) { c ->
-                val hy = drawColumnHeaders(c, MARGIN + LINE, "Date & Time", "Type", "Notes")
-                c.drawLine(MARGIN, hy - LINE * 0.15f, PAGE_WIDTH - MARGIN, hy - LINE * 0.15f, separatorPaint)
-                hy + LINE * 0.5f
-            }
-            page = pos.page; canvas = pos.canvas; y = pos.y
-            y = drawDiaperRow(canvas, y, d)
-        }
+        val diaperPos = drawDiaperSection(doc, PagePos(page, canvas, y), totalPages, data.diapers)
+        val vaxStart = PagePos(diaperPos.page, diaperPos.canvas, diaperPos.y + SECTION_GAP)
+        page = drawVaccinesSection(doc, vaxStart, totalPages, data.vaccines).page
 
         drawPageFooter(page.canvas, page.info.pageNumber, totalPages)
         doc.finishPage(page)
@@ -186,11 +173,126 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         return startY + LINE
     }
 
+    /**
+     * Renders the Diaper section (header + Date/Type/Notes columns + rows), paginating mid-list.
+     * The y-advancement here MUST stay mirrored in [countPages].
+     */
+    private fun drawDiaperSection(
+        doc: PdfDocument,
+        start: PagePos,
+        totalPages: Int,
+        diapers: List<DiaperChange>,
+    ): PagePos {
+        var page = start.page
+        var canvas = start.canvas
+        var y = start.y
+
+        val headerPos = ensureRoom(doc, page, y, totalPages)
+        page = headerPos.page; canvas = headerPos.canvas; y = headerPos.y
+        canvas.drawText("Diapers (${diapers.size})", MARGIN, y, diaperHeaderPaint)
+        y += LINE * 0.7f
+        y = drawColumnHeaders(canvas, y, "Date & Time", "Type", "Notes")
+        canvas.drawLine(MARGIN, y - LINE * 0.15f, PAGE_WIDTH - MARGIN, y - LINE * 0.15f, separatorPaint)
+        y += LINE * 0.5f
+
+        for (d in diapers) {
+            val pos = ensureRoom(doc, page, y, totalPages) { c ->
+                val hy = drawColumnHeaders(c, MARGIN + LINE, "Date & Time", "Type", "Notes")
+                c.drawLine(MARGIN, hy - LINE * 0.15f, PAGE_WIDTH - MARGIN, hy - LINE * 0.15f, separatorPaint)
+                hy + LINE * 0.5f
+            }
+            page = pos.page; canvas = pos.canvas; y = pos.y
+            y = drawDiaperRow(canvas, y, d)
+        }
+        return PagePos(page, canvas, y)
+    }
+
     private fun drawDiaperRow(canvas: android.graphics.Canvas, startY: Float, d: DiaperChange): Float {
         val type = d.type.name.lowercase().replaceFirstChar { it.uppercase() }
         canvas.drawText(d.timestamp.formatPdfDateTime(), MARGIN, startY, bodyPaint)
         canvas.drawText(type, COL_TYPE, startY, bodyPaint)
         canvas.drawText(d.notes ?: "—", COL_DURATION, startY, bodyPaint)
+        return startY + LINE
+    }
+
+    /**
+     * Renders the whole Vaccines section: a coloured header plus an "Administered" and an "Upcoming"
+     * sub-list. Splitting by status keeps the immunization history and the forward schedule visually
+     * separate. The y-advancement here MUST stay mirrored in [countPages].
+     */
+    private fun drawVaccinesSection(
+        doc: PdfDocument,
+        start: PagePos,
+        totalPages: Int,
+        vaccines: List<VaccineRecord>,
+    ): PagePos {
+        val administered = vaccines
+            .filter { it.status == VaccineStatus.ADMINISTERED }
+            .sortedBy { it.administeredDate ?: it.createdAt }
+        val upcoming = vaccines
+            .filter { it.status == VaccineStatus.SCHEDULED }
+            .sortedBy { it.scheduledDate ?: it.createdAt }
+
+        val headerPos = ensureRoom(doc, start.page, start.y, totalPages)
+        headerPos.canvas.drawText("Vaccines (${vaccines.size})", MARGIN, headerPos.y, vaccineHeaderPaint)
+
+        val admStart = PagePos(headerPos.page, headerPos.canvas, headerPos.y + LINE * 0.7f)
+        val admPos = drawVaccineSubsection(doc, admStart, totalPages, "Administered", administered) {
+            it.administeredDate
+        }
+        val upStart = PagePos(admPos.page, admPos.canvas, admPos.y + SECTION_GAP)
+        return drawVaccineSubsection(doc, upStart, totalPages, "Upcoming", upcoming) {
+            it.scheduledDate
+        }
+    }
+
+    /**
+     * Draws one labelled vaccine sub-list (header + Date/Vaccine/Dose columns + rows), paginating
+     * mid-list like the other sections. [dateOf] selects which timestamp the row shows (administered
+     * vs scheduled). Returns the cursor after the last row so the caller can continue laying out.
+     * The y-advancement here MUST stay mirrored in [countPages].
+     */
+    private fun drawVaccineSubsection(
+        doc: PdfDocument,
+        start: PagePos,
+        totalPages: Int,
+        label: String,
+        rows: List<VaccineRecord>,
+        dateOf: (VaccineRecord) -> Instant?,
+    ): PagePos {
+        var page = start.page
+        var canvas = start.canvas
+        var y = start.y
+
+        val labelPos = ensureRoom(doc, page, y, totalPages)
+        page = labelPos.page; canvas = labelPos.canvas; y = labelPos.y
+        canvas.drawText("$label (${rows.size})", MARGIN, y, sectionLabelPaint)
+        y += LINE * 0.7f
+        y = drawColumnHeaders(canvas, y, "Date", "Vaccine", "Dose")
+        canvas.drawLine(MARGIN, y - LINE * 0.15f, PAGE_WIDTH - MARGIN, y - LINE * 0.15f, separatorPaint)
+        y += LINE * 0.5f
+
+        for (v in rows) {
+            val pos = ensureRoom(doc, page, y, totalPages) { c ->
+                val hy = drawColumnHeaders(c, MARGIN + LINE, "Date", "Vaccine", "Dose")
+                c.drawLine(MARGIN, hy - LINE * 0.15f, PAGE_WIDTH - MARGIN, hy - LINE * 0.15f, separatorPaint)
+                hy + LINE * 0.5f
+            }
+            page = pos.page; canvas = pos.canvas; y = pos.y
+            y = drawVaccineRow(canvas, y, v, dateOf(v))
+        }
+        return PagePos(page, canvas, y)
+    }
+
+    private fun drawVaccineRow(
+        canvas: android.graphics.Canvas,
+        startY: Float,
+        v: VaccineRecord,
+        date: Instant?,
+    ): Float {
+        canvas.drawText(date?.formatPdfDateTime() ?: "—", MARGIN, startY, bodyPaint)
+        canvas.drawText(v.name, COL_TYPE, startY, bodyPaint)
+        canvas.drawText(v.doseLabel ?: "—", COL_DURATION, startY, bodyPaint)
         return startY + LINE
     }
 
@@ -262,6 +364,30 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
             y = sim(y, MARGIN + LINE * 2.5f)
             y += LINE
         }
+        y += SECTION_GAP
+
+        // Vaccines section header
+        y = sim(y, MARGIN + LINE)
+        y += LINE * 0.7f
+
+        // Administered subsection (label + column headers + rows)
+        val administeredCount = data.vaccines.count { it.status == VaccineStatus.ADMINISTERED }
+        y = sim(y, MARGIN + LINE)
+        y += LINE * 0.7f + LINE + LINE * 0.5f
+        repeat(administeredCount) {
+            y = sim(y, MARGIN + LINE * 2.5f)
+            y += LINE
+        }
+        y += SECTION_GAP
+
+        // Upcoming subsection (label + column headers + rows)
+        val upcomingCount = data.vaccines.count { it.status == VaccineStatus.SCHEDULED }
+        y = sim(y, MARGIN + LINE)
+        y += LINE * 0.7f + LINE + LINE * 0.5f
+        repeat(upcomingCount) {
+            y = sim(y, MARGIN + LINE * 2.5f)
+            y += LINE
+        }
 
         return pageCount
     }
@@ -310,6 +436,11 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         textSize = HEADER_SIZE
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
+    private val vaccineHeaderPaint = Paint().apply {
+        color = VACCINE
+        textSize = HEADER_SIZE
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    }
     private val bodyPaint = Paint().apply {
         color = ON_SURFACE
         textSize = BODY_SIZE
@@ -340,6 +471,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         private const val FEEDING = 0xFFC2185B.toInt()            // Pink700
         private const val SLEEP = 0xFF1976D2.toInt()              // Blue700
         private const val DIAPER = 0xFF00897B.toInt()            // Teal600
+        private const val VACCINE = 0xFF303F9F.toInt()           // Indigo700
         private const val ON_SURFACE = 0xFF1A1A1A.toInt()         // OnSurfaceDark
         private const val ON_SURFACE_VARIANT = 0xFF6D6A64.toInt() // OnSurfaceVariantGrey
         private const val OUTLINE_COLOR = 0xFFCAC4D0.toInt()      // OutlineVariantLight

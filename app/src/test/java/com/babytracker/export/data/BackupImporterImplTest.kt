@@ -14,6 +14,10 @@ import com.babytracker.export.domain.model.MilkBagBackup
 import com.babytracker.export.domain.model.PumpingBackup
 import com.babytracker.export.domain.model.SettingsBackup
 import com.babytracker.export.domain.model.SleepBackup
+import com.babytracker.export.domain.model.VaccineBackup
+import com.babytracker.manager.VaccineReminderScheduler
+import io.mockk.coVerify
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -27,6 +31,7 @@ import org.robolectric.RobolectricTestRunner
 class BackupImporterImplTest {
 
     private lateinit var db: BabyTrackerDatabase
+    private lateinit var scheduler: VaccineReminderScheduler
     private lateinit var importer: BackupImporterImpl
 
     @Before
@@ -35,7 +40,8 @@ class BackupImporterImplTest {
             ApplicationProvider.getApplicationContext(),
             BabyTrackerDatabase::class.java,
         ).allowMainThreadQueries().build()
-        importer = BackupImporterImpl(db)
+        scheduler = mockk(relaxed = true)
+        importer = BackupImporterImpl(db, scheduler)
     }
 
     @After
@@ -51,11 +57,12 @@ class BackupImporterImplTest {
         milkBags: List<MilkBagBackup> = emptyList(),
         bottleFeeds: List<BottleFeedBackup> = emptyList(),
         diapers: List<DiaperBackup> = emptyList(),
+        vaccines: List<VaccineBackup> = emptyList(),
     ) = BackupData(
         backupFormatVersion = 1, roomSchemaVersion = 3, appVersion = "1.0.0", exportedAt = 0,
         baby = null, settings = settings(), breastfeeding = emptyList(),
         sleep = sleep, pumping = pumping, milkBags = milkBags, bottleFeeds = bottleFeeds,
-        diapers = diapers,
+        diapers = diapers, vaccines = vaccines,
     )
 
     @Test
@@ -103,6 +110,28 @@ class BackupImporterImplTest {
         val again = importer.merge(data)
         assertEquals(0, again.diapersInserted)
         assertEquals(2, db.diaperDao().getAllOnce().size)
+    }
+
+    @Test
+    fun `imports vaccines, dedupes on re-import, and re-arms reminders`() = runTest {
+        val data = backup(
+            vaccines = listOf(
+                VaccineBackup(id = 1, name = "BCG", doseLabel = "Dose 1", status = "ADMINISTERED", administeredDate = 1_000, createdAt = 1_000),
+                VaccineBackup(id = 2, name = "Hep B", doseLabel = null, status = "SCHEDULED", scheduledDate = 9_999, createdAt = 2_000),
+            ),
+        )
+
+        val counts = importer.merge(data)
+        assertEquals(2, counts.vaccinesInserted)
+        assertEquals(2, db.vaccineDao().getAllOnce().size)
+
+        // Re-importing the same backup inserts nothing (identity dedup).
+        val again = importer.merge(data)
+        assertEquals(0, again.vaccinesInserted)
+        assertEquals(2, db.vaccineDao().getAllOnce().size)
+
+        // Reminders are re-armed after each import so imported scheduled vaccines get alarms.
+        coVerify(exactly = 2) { scheduler.rescheduleAll() }
     }
 
     @Test

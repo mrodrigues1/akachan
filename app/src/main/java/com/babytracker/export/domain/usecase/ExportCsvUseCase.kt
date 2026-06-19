@@ -67,6 +67,18 @@ class ExportCsvUseCase @Inject constructor(
                     listOf(it.id, it.timestamp, it.type, it.notes, it.createdAt)
                 },
             ),
+            "vaccines" to buildCsv(
+                listOf(
+                    "id", "name", "dose_label", "status",
+                    "scheduled_date", "administered_date", "notes", "created_at",
+                ),
+                t.vaccines.map {
+                    listOf(
+                        it.id, it.name, it.doseLabel, it.status,
+                        it.scheduledDate, it.administeredDate, it.notes, it.createdAt,
+                    )
+                },
+            ),
         )
     }
 

@@ -5,6 +5,7 @@ import com.babytracker.export.domain.TrackingSnapshot
 import com.babytracker.export.domain.model.BottleFeedBackup
 import com.babytracker.export.domain.model.BreastfeedingBackup
 import com.babytracker.export.domain.model.DiaperBackup
+import com.babytracker.export.domain.model.VaccineBackup
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -28,7 +29,11 @@ class ExportCsvUseCaseTest {
         breastfeeding: List<BreastfeedingBackup> = emptyList(),
         bottleFeeds: List<BottleFeedBackup> = emptyList(),
         diapers: List<DiaperBackup> = emptyList(),
-    ) = TrackingSnapshot(breastfeeding, emptyList(), emptyList(), emptyList(), bottleFeeds, diapers = diapers)
+        vaccines: List<VaccineBackup> = emptyList(),
+    ) = TrackingSnapshot(
+        breastfeeding, emptyList(), emptyList(), emptyList(), bottleFeeds,
+        diapers = diapers, vaccines = vaccines,
+    )
 
     @Test
     fun `breastfeeding csv has header and escaped notes row`() = runTest {
@@ -50,9 +55,29 @@ class ExportCsvUseCaseTest {
     fun `returns a csv for every table`() = runTest {
         coEvery { source.readTracking() } returns tracking()
         assertEquals(
-            setOf("breastfeeding", "sleep", "pumping", "milk_bags", "bottle_feeds", "diapers"),
+            setOf("breastfeeding", "sleep", "pumping", "milk_bags", "bottle_feeds", "diapers", "vaccines"),
             useCase().keys,
         )
+    }
+
+    @Test
+    fun `vaccines csv has header and an escaped data row`() = runTest {
+        coEvery { source.readTracking() } returns tracking(
+            vaccines = listOf(
+                VaccineBackup(
+                    id = 1, name = "BCG", doseLabel = "Dose 1", status = "ADMINISTERED",
+                    scheduledDate = null, administeredDate = 1_000, notes = "left, arm", createdAt = 2_000,
+                ),
+            ),
+        )
+        val csv = useCase().getValue("vaccines")
+        val lines = csv.trim().split("\n")
+        assertEquals(
+            "id,name,dose_label,status,scheduled_date,administered_date,notes,created_at",
+            lines[0],
+        )
+        // notes contains a comma -> RFC-4180 quoted; null scheduled_date renders as an empty field.
+        assertEquals("1,BCG,Dose 1,ADMINISTERED,,1000,\"left, arm\",2000", lines[1])
     }
 
     @Test
