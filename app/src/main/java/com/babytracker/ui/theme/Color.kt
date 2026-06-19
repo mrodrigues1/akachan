@@ -184,3 +184,24 @@ val OnDiaperContainerYellow = Yellow900
 val DiaperYellowDark = Color(0xFFFFD54F)
 val DiaperContainerYellowDark = Color(0xFF4A3800)
 val OnDiaperContainerYellowDark = Yellow200
+
+// ─── Raw palette — Vaccine / Indigo ──────────────────────────
+// New scale, not borrowed by any other section. Scale semantics match Pink/Blue/Green.
+val Indigo900 = Color(0xFF1A237E)
+val Indigo800 = Color(0xFF283593)
+val Indigo700 = Color(0xFF303F9F)
+val Indigo200 = Color(0xFF9FA8DA)
+val Indigo100 = Color(0xFFC5CAE9)
+
+// ─── Vaccine semantic tokens (extended, non-M3) ──────────────
+// Light scheme — white-on-Indigo700 ≈ 8.6:1; Indigo900-on-Indigo100 ≈ 9.7:1.
+val VaccineIndigo = Indigo700
+val OnVaccine = Color(0xFFFFFFFF) // white text on the dark accent (light scheme)
+val VaccineContainerIndigo = Indigo100
+val OnVaccineContainerIndigo = Indigo900
+
+// Dark scheme — the Indigo200 accent is light, so dark text reaches contrast on it.
+val VaccineIndigoDark = Indigo200
+val OnVaccineDark = Indigo900 // dark text on the light accent (dark scheme)
+val VaccineContainerIndigoDark = Indigo800
+val OnVaccineContainerIndigoDark = Indigo100
