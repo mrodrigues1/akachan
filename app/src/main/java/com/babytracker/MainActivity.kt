@@ -46,7 +46,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-internal val ALLOWED_NAV_ROUTES = setOf(Routes.HOME, Routes.BREASTFEEDING, Routes.SLEEP_TRACKING, Routes.INVENTORY)
+internal val ALLOWED_NAV_ROUTES =
+    setOf(Routes.HOME, Routes.BREASTFEEDING, Routes.SLEEP_TRACKING, Routes.INVENTORY, Routes.VACCINE_HISTORY)
 
 internal enum class PendingNavAction { NAVIGATE, CLEAR, WAIT }
 

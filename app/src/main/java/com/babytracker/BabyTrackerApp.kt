@@ -9,11 +9,14 @@ import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.usecase.baby.BootstrapBabyProfileUseCase
 import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.InventorySettingsRepository
+import com.babytracker.domain.repository.VaccineSettingsRepository
 import com.babytracker.manager.FeatureSuppressionCoordinator
 import com.babytracker.manager.PredictiveFeedNotificationCoordinator
 import com.babytracker.manager.PredictiveSleepNotificationCoordinator
 import com.babytracker.manager.StashExpirationScheduler
+import com.babytracker.manager.VaccineReminderScheduler
 import com.babytracker.util.NotificationHelper
+import com.babytracker.util.VaccineNotificationHelper
 import com.babytracker.util.createPredictiveFeedNotificationChannel
 import com.babytracker.util.createPredictiveSleepNotificationChannel
 import com.babytracker.widget.MilkStashWidgetSyncManager
@@ -40,6 +43,8 @@ class BabyTrackerApp : Application(), Configuration.Provider {
     @Inject lateinit var stashExpirationScheduler: StashExpirationScheduler
     @Inject lateinit var featureToggleRepository: FeatureToggleRepository
     @Inject lateinit var bootstrapBabyProfile: BootstrapBabyProfileUseCase
+    @Inject lateinit var vaccineReminderScheduler: VaccineReminderScheduler
+    @Inject lateinit var vaccineSettings: VaccineSettingsRepository
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -55,6 +60,7 @@ class BabyTrackerApp : Application(), Configuration.Provider {
         NotificationHelper.createSleepNotificationChannel(this)
         NotificationHelper.createStashExpirationNotificationChannel(this)
         NotificationHelper.createPartnerStashNotificationChannel(this)
+        VaccineNotificationHelper.createChannel(this)
         createPredictiveFeedNotificationChannel(this)
         predictiveCoordinator.start()
         createPredictiveSleepNotificationChannel(this)
@@ -63,6 +69,7 @@ class BabyTrackerApp : Application(), Configuration.Provider {
         widgetSyncManager.start()
         milkStashWidgetSyncManager.start()
         reconcileStashExpirationAlarm()
+        reconcileVaccineReminders()
         appScope.launch { runCatching { bootstrapBabyProfile() } }
         if (BuildConfig.DEBUG) {
             appScope.launch { debugDataSeeder.seedIfEmpty() }
@@ -82,6 +89,18 @@ class BabyTrackerApp : Application(), Configuration.Provider {
                     stashExpirationScheduler.scheduleDaily(
                         inventorySettings.getExpirationNotifTimeMinutes().first(),
                     )
+                }
+            }
+        }
+    }
+
+    // Re-arm vaccine reminders on cold start (covers the OS dropping inexact alarms without a
+    // BOOT_COMPLETED, e.g. after force-stop), mirroring reconcileStashExpirationAlarm().
+    private fun reconcileVaccineReminders() {
+        appScope.launch {
+            runCatching {
+                if (vaccineSettings.getReminderEnabled().first()) {
+                    vaccineReminderScheduler.rescheduleAll()
                 }
             }
         }

@@ -14,9 +14,9 @@ import com.babytracker.manager.PredictiveFeedScheduler
 import com.babytracker.manager.PredictiveFeedSchedulerImpl
 import com.babytracker.manager.PredictiveSleepScheduler
 import com.babytracker.manager.PredictiveSleepSchedulerImpl
-import com.babytracker.manager.NoOpVaccineReminderScheduler
 import com.babytracker.manager.SleepNotificationManager
 import com.babytracker.manager.SleepNotificationScheduler
+import com.babytracker.manager.VaccineReminderManager
 import com.babytracker.manager.VaccineReminderScheduler
 import dagger.Binds
 import dagger.Module
@@ -85,12 +85,11 @@ abstract class PartnerFeedNotifierModule {
     abstract fun bindPartnerFeedNotifier(impl: PartnerFeedNotificationManager): PartnerFeedNotifier
 }
 
-// No-op until plan 6 (AKA-198) replaces this binding with the real VaccineReminderManager.
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class VaccineReminderSchedulerModule {
 
     @Binds
     @Singleton
-    abstract fun bindVaccineReminderScheduler(impl: NoOpVaccineReminderScheduler): VaccineReminderScheduler
+    abstract fun bindVaccineReminderScheduler(impl: VaccineReminderManager): VaccineReminderScheduler
 }
