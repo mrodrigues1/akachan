@@ -27,6 +27,7 @@ object Routes {
     const val DIAPER_HISTORY = "diaper/history"
     const val VACCINE = "vaccine"
     const val VACCINE_HISTORY = "vaccine/history"
+    const val VACCINE_SETTINGS = "vaccine/settings"
     const val GROWTH = "growth"
     const val MILESTONES = "milestones"
     const val MILESTONE_DETAIL_ARG = "milestoneId"

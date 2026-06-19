@@ -1134,4 +1134,19 @@
     <string name="vaccine_undo">Undo</string>
     <string name="vaccine_edit_content_description">Edit %1$s</string>
     <string name="vaccine_delete_content_description">Delete %1$s</string>
+
+    <!-- Vaccine reminders -->
+    <string name="notif_channel_vaccine_reminders_name">Vaccine reminders</string>
+    <string name="notif_channel_vaccine_reminders_description">Reminds you before a scheduled vaccine</string>
+    <string name="vaccine_reminder_title">Vaccine coming up</string>
+    <string name="vaccine_reminder_body">%1$s is scheduled for %2$s</string>
+    <string name="vaccine_reminder_settings_title">Vaccine reminders</string>
+    <string name="vaccine_reminder_settings_button">Reminder settings</string>
+    <string name="vaccine_reminder_toggle_title">Remind me before vaccines</string>
+    <string name="vaccine_reminder_toggle_subtitle">Get a notification before a scheduled vaccine</string>
+    <string name="vaccine_reminder_lead_label">How early to remind me</string>
+    <plurals name="vaccine_reminder_lead_option">
+        <item quantity="one">%1$d day before</item>
+        <item quantity="other">%1$d days before</item>
+    </plurals>
 </resources>
