@@ -55,6 +55,7 @@ fun VaccineSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateToHistory: (() -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val vaccine = vaccineColors()
@@ -199,6 +200,16 @@ fun VaccineSheet(
                 Text(stringResource(R.string.vaccine_save), style = MaterialTheme.typography.labelLarge)
             }
             Spacer(Modifier.height(8.dp))
+            if (onNavigateToHistory != null && !state.isEditing) {
+                TextButton(
+                    onClick = onNavigateToHistory,
+                    enabled = !state.isSaving,
+                    colors = ButtonDefaults.textButtonColors(contentColor = vaccine.accent),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.vaccine_view_history), style = MaterialTheme.typography.labelLarge)
+                }
+            }
             TextButton(
                 onClick = onDismiss,
                 enabled = !state.isSaving,
