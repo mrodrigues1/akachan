@@ -1,13 +1,19 @@
 package com.babytracker.ui.growth
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -17,6 +23,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,18 +49,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.growth.GROWTH_RECENCY
 import com.babytracker.domain.growth.GrowthChartData
-import com.babytracker.domain.growth.latestByRecency
 import com.babytracker.domain.model.GrowthMeasurement
 import com.babytracker.domain.model.GrowthType
 import com.babytracker.domain.model.MeasurementSystem
+import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.growthColors
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
@@ -118,6 +129,7 @@ fun GrowthScreen(
                 onTypeSelected = viewModel::onTypeSelected,
                 onRequestDelete = { pendingDelete = it },
                 onSetSex = onNavigateToSettings,
+                onAddFirst = { showAddSheet = true },
                 modifier = Modifier.padding(padding),
             )
         }
@@ -130,10 +142,17 @@ fun GrowthScreen(
                     Text(stringResource(R.string.growth_delete_message, formatValue(measurement.type, measurement.valueCanonical, uiState.measurementSystem)))
                 },
                 confirmButton = {
-                    TextButton(onClick = {
-                        viewModel.onDeleteMeasurement(measurement.id)
-                        pendingDelete = null
-                    }) { Text(stringResource(R.string.delete)) }
+                    Button(
+                        onClick = {
+                            viewModel.onDeleteMeasurement(measurement.id)
+                            pendingDelete = null
+                        },
+                        // Destructive action carries the error role, not the friendly Teal accent.
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
+                        ),
+                    ) { Text(stringResource(R.string.delete)) }
                 },
                 dismissButton = {
                     TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.cancel)) }
@@ -183,10 +202,11 @@ private fun GrowthContent(
     onTypeSelected: (GrowthType) -> Unit,
     onRequestDelete: (GrowthMeasurement) -> Unit,
     onSetSex: () -> Unit,
+    onAddFirst: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val chart = uiState.chart
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = GrowthType.entries.indexOf(uiState.selectedType)) {
             GrowthType.entries.forEach { type ->
                 Tab(
@@ -199,7 +219,15 @@ private fun GrowthContent(
         }
 
         if (chart == null || chart.measurements.isEmpty()) {
-            GrowthEmptyState(modifier = Modifier.padding(24.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                GrowthEmptyState(onAddFirst = onAddFirst)
+            }
             return@Column
         }
 
@@ -226,13 +254,16 @@ private fun GrowthContent(
             }
             item {
                 Text(
-                    text = stringResource(R.string.growth_history),
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(top = 8.dp),
+                    text = stringResource(R.string.growth_history).uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = growthColors().onContainer,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .semantics { heading() },
                 )
             }
             items(chart.measurements.sortedWith(GROWTH_RECENCY.reversed()), key = { it.id }) { measurement ->
-                GrowthHistoryItem(
+                GrowthHistoryRow(
                     measurement = measurement,
                     type = uiState.selectedType,
                     system = uiState.measurementSystem,
@@ -244,23 +275,37 @@ private fun GrowthContent(
 }
 
 @Composable
-private fun GrowthEmptyState(modifier: Modifier = Modifier) {
+private fun GrowthEmptyState(
+    onAddFirst: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text("📏", style = MaterialTheme.typography.displaySmall)
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.growth_empty_title),
             style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading() },
         )
         Spacer(Modifier.height(4.dp))
         Text(
             text = stringResource(R.string.growth_empty_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
         )
+        Spacer(Modifier.height(20.dp))
+        Button(
+            onClick = onAddFirst,
+            modifier = Modifier.testTag("growth_empty_cta"),
+        ) {
+            Text(stringResource(R.string.growth_empty_cta))
+        }
     }
 }
 
@@ -270,8 +315,12 @@ private fun GrowthSummaryCard(
     system: MeasurementSystem,
     chart: GrowthChartData,
 ) {
-    val latest = chart.measurements.latestByRecency()
     val growth = growthColors()
+    // Recency-ordered so the last two entries drive both the hero value and the trend line.
+    val ordered = remember(chart.measurements) { chart.measurements.sortedWith(GROWTH_RECENCY) }
+    val latest = ordered.lastOrNull()
+    val previous = ordered.getOrNull(ordered.lastIndex - 1)
+    val percentile = chart.latestPercentile
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -292,19 +341,76 @@ private fun GrowthSummaryCard(
                 fontWeight = FontWeight.SemiBold,
                 color = growth.onContainer,
             )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = chart.latestPercentile?.let { stringResource(R.string.growth_percentile_who, percentileLabel(it)) }
-                    ?: if (chart.isSexSpecified) {
+            Spacer(Modifier.height(8.dp))
+            if (percentile != null) {
+                PercentilePill(percentileLabel(percentile))
+            } else {
+                Text(
+                    text = if (chart.isSexSpecified) {
                         stringResource(R.string.growth_percentile_unavailable)
                     } else {
                         stringResource(R.string.growth_set_sex_percentile)
                     },
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = growth.onContainer,
-            )
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = growth.onContainer,
+                )
+            }
+            trendLabel(type, system, latest, previous)?.let { trend ->
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = trend,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = growth.onContainer,
+                )
+            }
         }
+    }
+}
+
+/**
+ * The latest WHO percentile as a Teal-outlined chip. Outlined rather than filled so the text always
+ * lands on the card's `container`, the one Teal pair guaranteed AA in both schemes; the dark accent
+ * is too light to carry readable text on a filled chip.
+ */
+@Composable
+private fun PercentilePill(label: String) {
+    val growth = growthColors()
+    Box(
+        modifier = Modifier
+            .border(BorderStroke(1.5.dp, growth.accent), shape = CircleShape)
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = growth.onContainer,
+        )
+    }
+}
+
+/**
+ * A gentle change line comparing the two most recent measurements, e.g. "Up 0.4 kg since May 20".
+ * Null until there are two measurements to compare. Framed as reassurance, not a performance score.
+ */
+@Composable
+private fun trendLabel(
+    type: GrowthType,
+    system: MeasurementSystem,
+    latest: GrowthMeasurement?,
+    previous: GrowthMeasurement?,
+): String? {
+    if (latest == null || previous == null) return null
+    val delta = latest.valueCanonical - previous.valueCanonical
+    val magnitude = formatValue(type, abs(delta), system)
+    val since = remember(previous.takenAt) {
+        previous.takenAt.atZone(ZoneId.systemDefault()).toLocalDate()
+            .format(DateTimeFormatter.ofPattern("MMM d"))
+    }
+    return when {
+        delta > 0 -> stringResource(R.string.growth_trend_up, magnitude, since)
+        delta < 0 -> stringResource(R.string.growth_trend_down, magnitude, since)
+        else -> stringResource(R.string.growth_trend_same, since)
     }
 }
 
@@ -496,45 +602,83 @@ private fun measurementLine(color: Color): LineCartesianLayer.Line =
         ),
     )
 
+/**
+ * One measurement as a card, following the app-wide HistoryCard vocabulary used by every other
+ * tracker: surface fill with a 1dp ambient lift in light, swapped for an outlineVariant stroke in
+ * dark. A Teal badge carries the metric's glyph; the value leads, the date and any note follow.
+ */
 @Composable
-private fun GrowthHistoryItem(
+private fun GrowthHistoryRow(
     measurement: GrowthMeasurement,
     type: GrowthType,
     system: MeasurementSystem,
     onDelete: () -> Unit,
 ) {
+    val growth = growthColors()
+    val isDark = LocalDarkTheme.current
     val formatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
     val date = remember(measurement.takenAt) {
         measurement.takenAt.atZone(ZoneId.systemDefault()).toLocalDate().format(formatter)
     }
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 1.dp),
+        border = if (isDark) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = formatValue(type, measurement.valueCanonical, system),
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Text(
-                text = date,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            measurement.notes?.let {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(color = growth.container, shape = MaterialTheme.shapes.small),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(type.badgeEmoji(), style = MaterialTheme.typography.bodyLarge.copy(fontSize = 20.sp))
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = it,
+                    text = formatValue(type, measurement.valueCanonical, system),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = date,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                measurement.notes?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
-        }
-        val deleteRowDescription = stringResource(R.string.growth_delete_row_cd, date)
-        IconButton(
-            onClick = onDelete,
-            modifier = Modifier.semantics { contentDescription = deleteRowDescription },
-        ) {
-            Icon(Icons.Outlined.Delete, contentDescription = null)
+
+            val deleteRowDescription = stringResource(R.string.growth_delete_row_cd, date)
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.semantics { contentDescription = deleteRowDescription },
+            ) {
+                Icon(
+                    Icons.Outlined.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -547,6 +691,13 @@ internal fun GrowthType.tabLabel(): String = when (this) {
     GrowthType.WEIGHT -> "Weight"
     GrowthType.LENGTH -> "Length"
     GrowthType.HEAD_CIRC -> "Head"
+}
+
+/** The glyph shown in a history row's badge, one per metric so the list stays scannable. */
+private fun GrowthType.badgeEmoji(): String = when (this) {
+    GrowthType.WEIGHT -> "⚖️"
+    GrowthType.LENGTH -> "📏"
+    GrowthType.HEAD_CIRC -> "🧢"
 }
 
 @androidx.annotation.StringRes
