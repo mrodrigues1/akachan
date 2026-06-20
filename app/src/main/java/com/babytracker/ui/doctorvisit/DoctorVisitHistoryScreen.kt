@@ -1,6 +1,5 @@
 package com.babytracker.ui.doctorvisit
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -53,9 +52,10 @@ import com.babytracker.domain.model.hasSnapshot
 import com.babytracker.ui.theme.doctorVisitColors
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Locale
+import java.time.format.FormatStyle
 
-private val visitDateFormatter = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", Locale.getDefault())
+// Localized full date incl. weekday, locale-aware field order (e.g. "Saturday, June 20, 2026").
+private val visitDateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)
 
 @Composable
 fun DoctorVisitHistoryScreen(

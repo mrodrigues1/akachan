@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -38,11 +39,12 @@ import com.babytracker.ui.theme.doctorVisitColors
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Locale
+import java.time.format.FormatStyle
 
 const val DOCTOR_VISIT_SAVE_TAG = "DoctorVisitSaveButton"
 
-private val snapshotDateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())
+// Localized (locale-aware field order) medium date, e.g. "Jun 20, 2026" / "20 de jun. de 2026".
+private val snapshotDateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -254,7 +256,9 @@ private fun SnapshotSection(
         )
         return
     }
-    val todayLabel = snapshotDateFormatter.format(Instant.now().atZone(ZoneId.systemDefault()).toLocalDate())
+    val todayLabel = remember {
+        snapshotDateFormatter.format(Instant.now().atZone(ZoneId.systemDefault()).toLocalDate())
+    }
     val snapshotLabel = stringResource(R.string.doctor_visit_snapshot_label, todayLabel)
     Row(
         modifier = Modifier.fillMaxWidth(),
