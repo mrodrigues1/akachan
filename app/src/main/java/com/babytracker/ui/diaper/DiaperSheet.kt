@@ -42,6 +42,9 @@ import java.time.Instant
 
 const val DIAPER_SAVE_TAG = "DiaperSaveButton"
 
+// Reveal the note counter only within this many chars of the cap; stays hidden the rest of the time.
+private const val COUNTER_REVEAL_AT = 40
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiaperSheet(
@@ -99,6 +102,14 @@ fun DiaperSheet(
                     onContainer = diaper.onContainer,
                 ),
             )
+            state.timeError?.let { error ->
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
             Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
@@ -106,8 +117,22 @@ fun DiaperSheet(
                 onValueChange = onNotesChange,
                 label = { Text(stringResource(R.string.diaper_notes_label)) },
                 enabled = !state.isSaving,
-                isError = state.validationError != null,
-                supportingText = state.validationError?.let { error -> { Text(error) } },
+                // Bound the height so a long note scrolls inside the field instead of growing the sheet.
+                maxLines = 4,
+                // Show the counter only as the limit nears, keeping the resting state calm.
+                supportingText = if (state.notes.length >= DIAPER_NOTES_MAX - COUNTER_REVEAL_AT) {
+                    {
+                        Text(
+                            text = stringResource(
+                                R.string.diaper_notes_counter,
+                                state.notes.length,
+                                DIAPER_NOTES_MAX,
+                            ),
+                        )
+                    }
+                } else {
+                    null
+                },
                 // Keep the field in the diaper (yellow) palette instead of the M3 primary (pink) default.
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = diaper.accent,
@@ -116,6 +141,15 @@ fun DiaperSheet(
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
+            state.saveError?.let { error ->
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             Spacer(Modifier.height(20.dp))
 
             Button(
