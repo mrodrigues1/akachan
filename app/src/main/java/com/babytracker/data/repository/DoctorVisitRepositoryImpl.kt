@@ -29,10 +29,6 @@ class DoctorVisitRepositoryImpl @Inject constructor(
 
     override suspend fun updateVisit(visit: DoctorVisit) = dao.updateVisit(visit.toEntity())
 
-    override suspend fun deleteVisitById(id: Long) {
-        dao.deleteVisitById(id)
-    }
-
     override suspend fun deleteVisitDetachingQuestions(id: Long) {
         dao.deleteVisitDetachingQuestions(id)
     }
@@ -63,10 +59,4 @@ class DoctorVisitRepositoryImpl @Inject constructor(
     override suspend fun deleteQuestionById(id: Long) {
         dao.deleteQuestionById(id)
     }
-
-    override suspend fun attachQuestions(ids: List<Long>, visitId: Long) {
-        if (ids.isNotEmpty()) dao.attachQuestions(ids, visitId)
-    }
-
-    override suspend fun detachQuestionsForVisit(visitId: Long) = dao.detachQuestionsForVisit(visitId)
 }
