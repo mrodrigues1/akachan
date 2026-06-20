@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.FeatureDomain
 import com.babytracker.ui.component.BreastfeedingIcon
+import com.babytracker.ui.component.SleepIcon
 
 /**
  * Stateless picker for the set of enabled [AppFeature]s, grouped by [FeatureDomain]. Single-feature
@@ -86,7 +87,7 @@ private fun DomainCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = domain.emoji, style = MaterialTheme.typography.titleLarge)
+                DomainIcon(domain = domain)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = domain.title, style = MaterialTheme.typography.titleMedium)
                     if (!domain.isSingleFeature) {
@@ -166,10 +167,19 @@ private fun FeatureRow(
 
 @Composable
 private fun FeatureIcon(feature: AppFeature) {
-    if (feature == AppFeature.BREASTFEEDING) {
-        BreastfeedingIcon(modifier = Modifier.size(24.dp))
+    when (feature) {
+        AppFeature.BREASTFEEDING -> BreastfeedingIcon(modifier = Modifier.size(24.dp))
+        AppFeature.SLEEP -> SleepIcon(modifier = Modifier.size(24.dp))
+        else -> Text(text = feature.emoji, style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+@Composable
+private fun DomainIcon(domain: FeatureDomain) {
+    if (domain == FeatureDomain.SLEEP) {
+        SleepIcon(modifier = Modifier.size(28.dp))
     } else {
-        Text(text = feature.emoji, style = MaterialTheme.typography.titleMedium)
+        Text(text = domain.emoji, style = MaterialTheme.typography.titleLarge)
     }
 }
 
@@ -191,7 +201,7 @@ private val AppFeature.emoji: String
         AppFeature.BOTTLE_FEED -> "🍼"
         AppFeature.PUMPING -> "🥛"
         AppFeature.INVENTORY -> "🧊"
-        AppFeature.SLEEP -> "🌙"
+        AppFeature.SLEEP -> ""
         AppFeature.DIAPERS -> "🧷"
         AppFeature.GROWTH -> "📈"
         AppFeature.MILESTONES -> "🎉"
@@ -200,7 +210,7 @@ private val AppFeature.emoji: String
 private val FeatureDomain.emoji: String
     get() = when (this) {
         FeatureDomain.FEEDING -> "🍼"
-        FeatureDomain.SLEEP -> "🌙"
+        FeatureDomain.SLEEP -> ""
         FeatureDomain.DIAPERS -> "🧷"
         FeatureDomain.GROWTH_DEVELOPMENT -> "📈"
     }

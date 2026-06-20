@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -39,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
+import com.babytracker.ui.component.SleepIcon
 import com.babytracker.util.formatDuration
 import com.babytracker.util.toRelativeLabel
 import java.time.Duration
@@ -119,7 +121,7 @@ fun SleepHistoryScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "🌙", style = MaterialTheme.typography.headlineLarge)
+                SleepIcon(modifier = Modifier.size(64.dp))
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = stringResource(R.string.sleep_history_empty_title),

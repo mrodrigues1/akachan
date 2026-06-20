@@ -15,3 +15,12 @@ fun BreastfeedingIcon(modifier: Modifier = Modifier) {
         modifier = modifier.clearAndSetSemantics {},
     )
 }
+
+@Composable
+fun SleepIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_sleep_section),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}

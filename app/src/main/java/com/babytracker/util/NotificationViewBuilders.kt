@@ -104,7 +104,9 @@ internal fun buildChronometerBigView(
     body: String,
     chronometerBaseElapsedMs: Long,
     chronometerRunning: Boolean,
+    titleIconRes: Int? = null,
 ): RemoteViews = RemoteViews(context.packageName, layoutRes).apply {
+    titleIconRes?.let { setImageViewResource(R.id.notification_title_icon, it) }
     setTextViewText(R.id.notification_title, title)
     setTextViewText(R.id.notification_body, body)
     setChronometer(R.id.notification_timer, chronometerBaseElapsedMs, null, chronometerRunning)

@@ -43,8 +43,6 @@ import com.babytracker.widget.data.WidgetData
 import java.time.Duration
 import java.time.Instant
 
-private const val SLEEP_EMOJI = "🌙"
-
 /** Text scale presets for a [DomainBlock], so each size variant tunes the hero hierarchy in one place. */
 private data class BlockTextSizes(
     val emoji: TextUnit,
@@ -116,7 +114,7 @@ fun SmallContent(data: WidgetData, now: Instant, modifier: GlanceModifier = Glan
 
 /**
  * Medium widget: a quiet baby-name header over two full-width domain tiles. Each tile leads
- * with its emoji, a small label, and the elapsed value rendered large + Bold as the hero.
+ * with its icon, a small label, and the elapsed value rendered large + Bold as the hero.
  * The sleep tile fills solid Sleep Blue while the baby is asleep now. Header → Home, feed
  * tile → Breastfeeding, sleep tile → Sleep.
  */
@@ -644,7 +642,8 @@ private fun sleepBlockContent(
     now: Instant,
     context: Context,
 ) = DomainBlockContent(
-    emoji = SLEEP_EMOJI,
+    emoji = "",
+    iconRes = R.drawable.ic_sleep_section,
     label = sleepLabel(data.sleepState, context),
     value = sleepValue(data.sleepState, data.sleepSince, now),
     supporting = sleepSupporting(data.sleepState, data.sleepSince, now, context),
