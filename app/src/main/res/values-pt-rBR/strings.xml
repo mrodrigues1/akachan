@@ -1121,6 +1121,7 @@
     <string name="vaccine_tile_none">Nenhuma vacina agendada</string>
     <plurals name="vaccine_tile_in_days">
         <item quantity="one">em %1$d dia</item>
+        <item quantity="many">em %1$d dias</item>
         <item quantity="other">em %1$d dias</item>
     </plurals>
     <string-array name="vaccine_suggestions">
@@ -1164,6 +1165,7 @@
     <string name="vaccine_reminder_lead_label">Com quanta antecedência</string>
     <plurals name="vaccine_reminder_lead_option">
         <item quantity="one">%1$d dia antes</item>
+        <item quantity="many">%1$d dias antes</item>
         <item quantity="other">%1$d dias antes</item>
     </plurals>
 
@@ -1200,10 +1202,12 @@
     <string name="doctor_visit_tile_empty">Nenhuma consulta registrada</string>
     <plurals name="doctor_visit_tile_in_days">
         <item quantity="one">Próxima consulta em %1$d dia</item>
+        <item quantity="many">Próxima consulta em %1$d dias</item>
         <item quantity="other">Próxima consulta em %1$d dias</item>
     </plurals>
     <plurals name="doctor_visit_tile_open_questions">
         <item quantity="one">%1$d pergunta para fazer</item>
+        <item quantity="many">%1$d perguntas para fazer</item>
         <item quantity="other">%1$d perguntas para fazer</item>
     </plurals>
 
@@ -1221,6 +1225,7 @@
     <string name="doctor_visit_delete">Excluir consulta</string>
     <plurals name="doctor_visit_history_question_count">
         <item quantity="one">%1$d pergunta</item>
+        <item quantity="many">%1$d perguntas</item>
         <item quantity="other">%1$d perguntas</item>
     </plurals>
 
@@ -1237,6 +1242,7 @@
     <string name="doctor_visit_reminder_lead_label">Com quanta antecedência</string>
     <plurals name="doctor_visit_reminder_lead_option">
         <item quantity="one">%1$d dia antes</item>
+        <item quantity="many">%1$d dias antes</item>
         <item quantity="other">%1$d dias antes</item>
     </plurals>
 
