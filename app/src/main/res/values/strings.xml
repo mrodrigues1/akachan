@@ -604,7 +604,8 @@
     <string name="growth_delete_message">This removes %1$s from your baby\'s history. This can\'t be undone.</string>
     <string name="growth_history">History</string>
     <string name="growth_empty_title">No measurements yet</string>
-    <string name="growth_empty_subtitle">Tap + to log your baby\'s first measurement and see it on the WHO chart.</string>
+    <string name="growth_empty_subtitle">Log your baby\'s first measurement to see it on the WHO percentile chart.</string>
+    <string name="growth_empty_cta">Log first measurement</string>
     <string name="growth_latest">Latest %1$s</string>
     <string name="growth_percentile_who">%1$s (WHO)</string>
     <string name="growth_percentile_unavailable">Percentile unavailable for this age</string>
@@ -617,7 +618,10 @@
     <string name="growth_tab_length">Length</string>
     <string name="growth_tab_head">Head</string>
     <string name="growth_add_title">Add %1$s</string>
-    <string name="growth_date_value">Date: %1$s</string>
+    <string name="growth_date_field_label">Date</string>
+    <string name="growth_trend_up">Up %1$s since %2$s</string>
+    <string name="growth_trend_down">Down %1$s since %2$s</string>
+    <string name="growth_trend_same">No change since %1$s</string>
     <string name="growth_unit_lb">lb</string>
     <string name="growth_unit_oz">oz</string>
     <string name="growth_value_label">Value (%1$s)</string>

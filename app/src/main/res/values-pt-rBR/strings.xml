@@ -612,7 +612,8 @@
     <string name="growth_delete_message">Isso remove %1$s do histórico do seu bebê. Não pode ser desfeito.</string>
     <string name="growth_history">Histórico</string>
     <string name="growth_empty_title">Nenhuma medição ainda</string>
-    <string name="growth_empty_subtitle">Toque em + para registrar a primeira medição do seu bebê e vê-la no gráfico da OMS.</string>
+    <string name="growth_empty_subtitle">Registre a primeira medição do seu bebê para vê-la no gráfico de percentis da OMS.</string>
+    <string name="growth_empty_cta">Registrar primeira medição</string>
     <string name="growth_latest">Mais recente: %1$s</string>
     <string name="growth_percentile_who">%1$s (OMS)</string>
     <string name="growth_percentile_unavailable">Percentil indisponível para esta idade</string>
@@ -625,7 +626,10 @@
     <string name="growth_tab_length">Comprimento</string>
     <string name="growth_tab_head">Cabeça</string>
     <string name="growth_add_title">Adicionar %1$s</string>
-    <string name="growth_date_value">Data: %1$s</string>
+    <string name="growth_date_field_label">Data</string>
+    <string name="growth_trend_up">Subiu %1$s desde %2$s</string>
+    <string name="growth_trend_down">Caiu %1$s desde %2$s</string>
+    <string name="growth_trend_same">Sem mudança desde %1$s</string>
     <string name="growth_unit_lb">lb</string>
     <string name="growth_unit_oz">oz</string>
     <string name="growth_value_label">Valor (%1$s)</string>
