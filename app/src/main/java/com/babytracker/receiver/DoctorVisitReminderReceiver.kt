@@ -8,15 +8,9 @@ import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.domain.repository.DoctorVisitSettingsRepository
 import com.babytracker.manager.DoctorVisitReminderManager
 import com.babytracker.util.DoctorVisitNotificationHelper
+import com.babytracker.util.goAsyncWithTimeout
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import java.time.Instant
 import javax.inject.Inject
 
@@ -30,22 +24,7 @@ class DoctorVisitReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val id = intent.getLongExtra(DoctorVisitReminderManager.EXTRA_VISIT_ID, -1L)
         if (id < 0) return
-        val result = goAsync()
-        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
-            try {
-                val failure = runCatching {
-                    withTimeout(TIMEOUT_MS) { handle(context, id) }
-                }.exceptionOrNull()
-                when (failure) {
-                    null -> Unit
-                    is TimeoutCancellationException -> Log.e(TAG, "onReceive timed out", failure)
-                    is CancellationException -> throw failure
-                    else -> Log.e(TAG, "onReceive failed", failure)
-                }
-            } finally {
-                result.finish()
-            }
-        }
+        goAsyncWithTimeout(TAG) { handle(context, id) }
     }
 
     // One-shot: no re-arm. Re-queries the visit so a since-deleted / moved-to-past visit (or a
@@ -60,7 +39,6 @@ class DoctorVisitReminderReceiver : BroadcastReceiver() {
     }
 
     private companion object {
-        const val TIMEOUT_MS = 10_000L
         const val TAG = "DoctorVisitReminderReceiver"
     }
 }

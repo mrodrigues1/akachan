@@ -6,15 +6,9 @@ import android.content.Intent
 import android.util.Log
 import com.babytracker.domain.repository.InventorySettingsRepository
 import com.babytracker.manager.StashExpirationScheduler
+import com.babytracker.util.goAsyncWithTimeout
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -25,22 +19,7 @@ class StashExpirationBootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (!shouldHandle(intent.action)) return
-        val result = goAsync()
-        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
-            try {
-                val failure = runCatching {
-                    withTimeout(TIMEOUT_MS) { handle() }
-                }.exceptionOrNull()
-                when (failure) {
-                    null -> Unit
-                    is TimeoutCancellationException -> Log.e(TAG, "onReceive timed out", failure)
-                    is CancellationException -> throw failure
-                    else -> Log.e(TAG, "onReceive failed", failure)
-                }
-            } finally {
-                result.finish()
-            }
-        }
+        goAsyncWithTimeout(TAG) { handle() }
     }
 
     internal fun shouldHandle(action: String?): Boolean = action in HANDLED_ACTIONS
@@ -55,7 +34,6 @@ class StashExpirationBootReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "StashExpirationBoot"
-        private const val TIMEOUT_MS = 10_000L
         private val HANDLED_ACTIONS = setOf(
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_TIME_CHANGED,

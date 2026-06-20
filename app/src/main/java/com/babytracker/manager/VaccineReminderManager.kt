@@ -10,10 +10,10 @@ import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.domain.repository.VaccineRepository
 import com.babytracker.domain.repository.VaccineSettingsRepository
+import com.babytracker.util.PENDING_INTENT_IMMUTABLE_UPDATE
+import com.babytracker.util.computeReminderTriggerAtMs
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
-import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -49,27 +49,9 @@ class VaccineReminderManager @Inject constructor(
         Log.d(TAG, "Scheduled vaccine reminder id=${record.id} at $triggerAtMs")
     }
 
-    /**
-     * Reminder trigger: ~09:00 local, [leadDays] before the scheduled date. If that lead window
-     * has already passed, fall back to the NEXT 09:00 strictly after now — but never at/after the
-     * scheduled instant (no immediate late-night ping, no post-shot ping). Returns null when no
-     * window remains. Pure + testable without AlarmManager.
-     */
-    internal fun computeTriggerAtMs(scheduledMs: Long, leadDays: Int, nowMs: Long, zone: ZoneId): Long? {
-        if (scheduledMs <= nowMs) return null
-        fun nineAmOn(date: LocalDate): Long =
-            date.atTime(REMINDER_HOUR_OF_DAY, 0).atZone(zone).toInstant().toEpochMilli()
-        val scheduledDate = Instant.ofEpochMilli(scheduledMs).atZone(zone).toLocalDate()
-        val leadTrigger = nineAmOn(scheduledDate.minusDays(leadDays.toLong()))
-        val candidate = if (leadTrigger > nowMs) {
-            leadTrigger
-        } else {
-            val today = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
-            val today9 = nineAmOn(today)
-            if (today9 > nowMs) today9 else nineAmOn(today.plusDays(1))
-        }
-        return candidate.takeIf { it < scheduledMs }
-    }
+    /** Delegates to the shared [computeReminderTriggerAtMs]; kept as a seam for unit tests. */
+    internal fun computeTriggerAtMs(scheduledMs: Long, leadDays: Int, nowMs: Long, zone: ZoneId): Long? =
+        computeReminderTriggerAtMs(scheduledMs, leadDays, nowMs, zone)
 
     override fun cancel(recordId: Long) {
         alarmManager.cancel(buildPendingIntent(recordId))
@@ -92,13 +74,12 @@ class VaccineReminderManager @Inject constructor(
             context,
             (RC_BASE + recordId).toInt(),
             intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            PENDING_INTENT_IMMUTABLE_UPDATE,
         )
     }
 
     companion object {
         const val EXTRA_VACCINE_ID = "vaccine_id"
-        const val REMINDER_HOUR_OF_DAY = 9
         private const val RC_BASE = 5000L
         private const val RECEIVER_CLASS = "com.babytracker.receiver.VaccineReminderReceiver"
         private const val TAG = "VaccineReminderManager"
