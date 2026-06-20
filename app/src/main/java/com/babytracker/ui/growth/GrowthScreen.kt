@@ -74,6 +74,7 @@ import com.babytracker.util.formatLength
 import com.babytracker.util.formatWeight
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -445,10 +446,27 @@ private val monthAxisFormatter = CartesianValueFormatter { _, value, _ -> value.
  */
 private object GrowthRangeProvider : CartesianLayerRangeProvider {
     override fun getMinY(minY: Double, maxY: Double, extraStore: ExtraStore): Double =
-        minY - (maxY - minY) * RANGE_PADDING
+        minY - growthYPadding(minY, maxY)
 
     override fun getMaxY(minY: Double, maxY: Double, extraStore: ExtraStore): Double =
-        maxY + (maxY - minY) * RANGE_PADDING
+        maxY + growthYPadding(minY, maxY)
+}
+
+/**
+ * Vertical padding added on each side of the data range by [GrowthRangeProvider].
+ *
+ * Normally a fraction of the span. When the span is zero — the first measurement plotted with no WHO
+ * curves, so every Y value is equal — that fraction collapses to 0 and would hand Vico a zero-height
+ * range to divide by, crashing the chart at draw. Fall back to a fraction of the value's magnitude
+ * (with an absolute floor for values near zero) so the axis always has real height.
+ */
+internal fun growthYPadding(minY: Double, maxY: Double): Double {
+    val span = maxY - minY
+    return if (span > 0.0) {
+        span * RANGE_PADDING
+    } else {
+        (abs(maxY) * SINGLE_POINT_PADDING).coerceAtLeast(MIN_Y_PADDING)
+    }
 }
 
 /** A muted, thin reference curve (non-median WHO percentiles) — stroke only, no points. */
@@ -581,7 +599,12 @@ private fun Double.roundX(): Double = (this * X_PRECISION).roundToInt() / X_PREC
 
 private const val X_PRECISION = 10_000.0
 private const val AXIS_MONTH_SPACING = 3
-private const val RANGE_PADDING = 0.08
+internal const val RANGE_PADDING = 0.08
+
+// Fallbacks for a zero-span (single point, no curves) Y range: a fraction of the value's magnitude,
+// floored by a small absolute padding so a value of ~0 still produces a non-degenerate axis.
+private const val SINGLE_POINT_PADDING = 0.1
+internal const val MIN_Y_PADDING = 0.5
 private const val MEDIAN_PERCENTILE = 50
 private val REFERENCE_PERCENTILES = setOf(3, MEDIAN_PERCENTILE, 97)
 private const val WHO_CURVE_THICKNESS_DP = 1.5f
