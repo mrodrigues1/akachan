@@ -12,7 +12,6 @@ interface DoctorVisitRepository {
     suspend fun getUpcomingVisitsAfter(nowMs: Long): List<DoctorVisit>
     suspend fun insertVisit(visit: DoctorVisit): Long
     suspend fun updateVisit(visit: DoctorVisit)
-    suspend fun deleteVisitById(id: Long)
     suspend fun deleteVisitDetachingQuestions(id: Long)
     suspend fun insertVisitWithAttachments(visit: DoctorVisit, questionIds: List<Long>): Long
     suspend fun updateVisitReconcilingAttachments(visit: DoctorVisit, questionIds: List<Long>)
@@ -26,6 +25,4 @@ interface DoctorVisitRepository {
     suspend fun insertQuestion(question: VisitQuestion): Long
     suspend fun updateQuestion(question: VisitQuestion)
     suspend fun deleteQuestionById(id: Long)
-    suspend fun attachQuestions(ids: List<Long>, visitId: Long)
-    suspend fun detachQuestionsForVisit(visitId: Long)
 }

@@ -6,7 +6,6 @@ import com.babytracker.data.local.entity.DoctorVisitEntity
 import com.babytracker.data.local.entity.VisitQuestionEntity
 import com.babytracker.domain.model.DoctorVisit
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -61,13 +60,5 @@ class DoctorVisitRepositoryImplTest {
         assertEquals(42, id)
         assertEquals(10L, captured.captured.date)
         assertEquals("Dr B", captured.captured.providerName)
-    }
-
-    @Test
-    fun `attachQuestions skips empty list`() = runTest {
-        repository.attachQuestions(emptyList(), 9)
-        coVerify(exactly = 0) { dao.attachQuestions(any(), any()) }
-        repository.attachQuestions(listOf(1, 2), 9)
-        coVerify { dao.attachQuestions(listOf(1, 2), 9) }
     }
 }

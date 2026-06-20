@@ -28,13 +28,11 @@ class DoctorVisitSettingsRepositoryImpl @Inject constructor(
     }
 
     override fun getReminderLeadDays(): Flow<Int> =
-        dataStore.data.map { prefs ->
-            val raw = prefs[leadDaysKey] ?: DEFAULT_LEAD_DAYS
-            if (raw in ALLOWED_LEAD_DAYS) raw else DEFAULT_LEAD_DAYS
-        }
+        dataStore.data.map { prefs -> (prefs[leadDaysKey] ?: DEFAULT_LEAD_DAYS).sanitizedLeadDays() }
 
     override suspend fun setReminderLeadDays(days: Int) {
-        val sanitized = if (days in ALLOWED_LEAD_DAYS) days else DEFAULT_LEAD_DAYS
-        dataStore.edit { it[leadDaysKey] = sanitized }
+        dataStore.edit { it[leadDaysKey] = days.sanitizedLeadDays() }
     }
+
+    private fun Int.sanitizedLeadDays(): Int = if (this in ALLOWED_LEAD_DAYS) this else DEFAULT_LEAD_DAYS
 }
