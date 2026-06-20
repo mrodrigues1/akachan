@@ -66,6 +66,7 @@ import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import java.time.Instant
 import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.ui.component.BreastfeedingIcon
 import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.sleep.SleepPredictionCard
 import sh.calvin.reorderable.ReorderableItem
@@ -373,12 +374,7 @@ internal fun BreastfeedingHomeCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top,
             ) {
-                Text(
-                    text = "🍼",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = feedingContentColor,
-                    modifier = Modifier.clearAndSetSemantics {},
-                )
+                BreastfeedingIcon(modifier = Modifier.size(40.dp))
                 AnimatedVisibility(
                     visible = activeSession != null,
                     enter = fadeIn(tween(180, easing = EaseOutQuart)) +

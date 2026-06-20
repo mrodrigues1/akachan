@@ -98,6 +98,7 @@ import com.babytracker.R
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedPrediction
+import com.babytracker.ui.component.BreastfeedingIcon
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.SideSelector
 import com.babytracker.ui.component.TimerDisplay
@@ -808,8 +809,8 @@ private fun LastFeedingSummaryCard(
             title = stringResource(R.string.breastfeeding_breast_label, stringResource(session.startingSide.labelRes())),
             subtitle = stringResource(R.string.breastfeeding_first_side, session.startTime.formatTime12h()),
             trailing = summary.firstSideDuration.formatDuration(),
-            badgeEmoji = "🍼",
             badgeColor = MaterialTheme.colorScheme.primaryContainer,
+            badgeContent = { BreastfeedingIcon(modifier = Modifier.size(34.dp)) },
             onClick = { onEditSession(session) },
             trailingContent = {
                 FeedSessionOverflowMenu(
@@ -824,8 +825,8 @@ private fun LastFeedingSummaryCard(
                 title = stringResource(R.string.breastfeeding_breast_label, stringResource(secondSide.labelRes())),
                 subtitle = stringResource(R.string.breastfeeding_second_side),
                 trailing = summary.secondSideDuration.formatDuration(),
-                badgeEmoji = "🍼",
                 badgeColor = MaterialTheme.colorScheme.primaryContainer,
+                badgeContent = { BreastfeedingIcon(modifier = Modifier.size(34.dp)) },
                 onClick = { onEditSession(session) },
                 trailingContent = {
                     FeedSessionOverflowMenu(
@@ -945,6 +946,7 @@ internal fun AddFeedEntrySheetContent(
                         selected = selectedSide == side,
                         onClick = { selectedSide = side },
                         label = { Text(stringResource(R.string.breastfeeding_side_chip, stringResource(side.labelRes()))) },
+                        leadingIcon = { BreastfeedingIcon(modifier = Modifier.size(18.dp)) },
                         modifier = Modifier.weight(1f),
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,

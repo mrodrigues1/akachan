@@ -66,9 +66,11 @@ internal fun buildProgressBigView(
     )
 
     if (chronometerBaseElapsedMs != null) {
+        setImageViewResource(R.id.notification_title_icon, R.drawable.ic_breastfeeding_section)
         setViewVisibility(R.id.notification_timer, View.VISIBLE)
         setChronometer(R.id.notification_timer, chronometerBaseElapsedMs, null, chronometerRunning)
     } else {
+        setImageViewResource(R.id.notification_title_icon, R.drawable.ic_breastfeeding_section)
         setViewVisibility(R.id.notification_timer, View.GONE)
     }
 }
@@ -116,8 +118,10 @@ internal fun buildCollapsedView(
     progress: Int,
     maxProgress: Int,
     showProgress: Boolean,
+    titleIconRes: Int? = null,
 ): RemoteViews = RemoteViews(context.packageName, layoutRes).apply {
     val safeMax = maxProgress.coerceAtLeast(1)
+    titleIconRes?.let { setImageViewResource(R.id.notification_title_icon, it) }
     setTextViewText(R.id.notification_title, title)
     setTextViewText(R.id.notification_body, body)
     setViewVisibility(R.id.notification_progress, if (showProgress) View.VISIBLE else View.GONE)
@@ -141,8 +145,7 @@ internal fun buildFeedingActiveCollapsedView(
     timer: CollapsedTimerContent,
 ): RemoteViews = RemoteViews(context.packageName, layoutRes).apply {
     val safeMax = maxProgress.coerceAtLeast(1)
-    setTextViewText(R.id.notification_title_prefix, "🍼 ")
-    setViewVisibility(R.id.notification_title_prefix, View.VISIBLE)
+    setImageViewResource(R.id.notification_title_icon, R.drawable.ic_breastfeeding_section)
     setTextViewText(R.id.notification_title, timer.titleSuffix)
     setViewVisibility(R.id.notification_collapsed_timer, View.VISIBLE)
     setChronometer(R.id.notification_collapsed_timer, timer.chronometerBaseElapsedMs, null, timer.chronometerRunning)

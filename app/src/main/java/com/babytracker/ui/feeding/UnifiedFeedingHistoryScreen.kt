@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -61,6 +62,7 @@ import com.babytracker.ui.breastfeeding.EditBreastfeedingSessionSheet
 import com.babytracker.ui.breastfeeding.FeedSessionOverflowMenu
 import com.babytracker.ui.bottlefeed.BottleFeedSheet
 import com.babytracker.ui.bottlefeed.BottleFeedViewModel
+import com.babytracker.ui.component.BreastfeedingIcon
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
@@ -324,8 +326,8 @@ internal fun BreastfeedingFeedHistoryCard(
         title = sideLabel,
         subtitle = session.startTime.formatTime12h(),
         trailing = session.activeDuration?.formatDuration() ?: stringResource(R.string.label_in_progress),
-        badgeEmoji = "🤱",
         badgeColor = MaterialTheme.colorScheme.primaryContainer,
+        badgeContent = { BreastfeedingIcon(modifier = Modifier.size(34.dp)) },
         onClick = onEdit,
         trailingContent = { FeedSessionOverflowMenu(onEdit = onEdit, onDelete = onDelete) },
     )

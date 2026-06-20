@@ -43,28 +43,29 @@ import com.babytracker.widget.data.WidgetData
 import java.time.Duration
 import java.time.Instant
 
-private const val FEED_EMOJI = "🍼"
 private const val SLEEP_EMOJI = "🌙"
 
 /** Text scale presets for a [DomainBlock], so each size variant tunes the hero hierarchy in one place. */
 private data class BlockTextSizes(
     val emoji: TextUnit,
+    val icon: Dp,
     val label: TextUnit,
     val value: TextUnit,
     val supporting: TextUnit,
 )
 
-private val NarrowBlockSizes = BlockTextSizes(emoji = 14.sp, label = 10.sp, value = 12.sp, supporting = 9.sp)
-private val SmallBlockSizes = BlockTextSizes(emoji = 14.sp, label = 10.sp, value = 16.sp, supporting = 9.sp)
-private val MediumBlockSizes = BlockTextSizes(emoji = 18.sp, label = 11.sp, value = 20.sp, supporting = 10.sp)
-private val ThreeByThreeBlockSizes = BlockTextSizes(emoji = 20.sp, label = 12.sp, value = 22.sp, supporting = 11.sp)
-private val FourByTwoBlockSizes = BlockTextSizes(emoji = 18.sp, label = 11.sp, value = 22.sp, supporting = 10.sp)
-private val FourByThreeBlockSizes = BlockTextSizes(emoji = 22.sp, label = 12.sp, value = 26.sp, supporting = 11.sp)
-private val FourByFourBlockSizes = BlockTextSizes(emoji = 22.sp, label = 12.sp, value = 28.sp, supporting = 11.sp)
+private val NarrowBlockSizes = BlockTextSizes(emoji = 14.sp, icon = 14.dp, label = 10.sp, value = 12.sp, supporting = 9.sp)
+private val SmallBlockSizes = BlockTextSizes(emoji = 14.sp, icon = 14.dp, label = 10.sp, value = 16.sp, supporting = 9.sp)
+private val MediumBlockSizes = BlockTextSizes(emoji = 18.sp, icon = 18.dp, label = 11.sp, value = 20.sp, supporting = 10.sp)
+private val ThreeByThreeBlockSizes = BlockTextSizes(emoji = 20.sp, icon = 20.dp, label = 12.sp, value = 22.sp, supporting = 11.sp)
+private val FourByTwoBlockSizes = BlockTextSizes(emoji = 18.sp, icon = 18.dp, label = 11.sp, value = 22.sp, supporting = 10.sp)
+private val FourByThreeBlockSizes = BlockTextSizes(emoji = 22.sp, icon = 22.dp, label = 12.sp, value = 26.sp, supporting = 11.sp)
+private val FourByFourBlockSizes = BlockTextSizes(emoji = 22.sp, icon = 22.dp, label = 12.sp, value = 28.sp, supporting = 11.sp)
 
-/** What a [DomainBlock] shows: the visible emoji/label/value plus the merged screen-reader phrase. */
+/** What a [DomainBlock] shows: the visible mark/label/value plus the merged screen-reader phrase. */
 private data class DomainBlockContent(
     val emoji: String,
+    val iconRes: Int? = null,
     val label: String,
     val value: String?,
     val supporting: String?,
@@ -514,7 +515,7 @@ private fun NarrowDomainBlock(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = content.emoji, style = TextStyle(fontSize = NarrowBlockSizes.emoji))
+            DomainGlyph(content = content, iconSize = NarrowBlockSizes.icon, emojiSize = NarrowBlockSizes.emoji)
             Spacer(modifier = GlanceModifier.width(4.dp))
             BlockLabel(label, contentColor, NarrowBlockSizes.label)
         }
@@ -541,7 +542,7 @@ private fun DomainBlock(
     if (stacked) {
         Column(modifier = surface, verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = content.emoji, style = TextStyle(fontSize = sizes.emoji))
+                DomainGlyph(content = content, iconSize = sizes.icon, emojiSize = sizes.emoji)
                 Spacer(modifier = GlanceModifier.width(8.dp))
                 BlockLabel(content.label, contentColor, sizes.label)
             }
@@ -552,7 +553,7 @@ private fun DomainBlock(
         }
     } else {
         Row(modifier = surface, verticalAlignment = Alignment.CenterVertically) {
-            Text(text = content.emoji, style = TextStyle(fontSize = sizes.emoji))
+            DomainGlyph(content = content, iconSize = sizes.icon, emojiSize = sizes.emoji)
             Spacer(modifier = GlanceModifier.width(8.dp))
             Column {
                 BlockLabel(content.label, contentColor, sizes.label)
@@ -562,6 +563,24 @@ private fun DomainBlock(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DomainGlyph(
+    content: DomainBlockContent,
+    iconSize: Dp,
+    emojiSize: TextUnit,
+) {
+    val iconRes = content.iconRes
+    if (iconRes != null) {
+        Image(
+            provider = ImageProvider(iconRes),
+            contentDescription = null,
+            modifier = GlanceModifier.width(iconSize).height(iconSize),
+        )
+    } else {
+        Text(text = content.emoji, style = TextStyle(fontSize = emojiSize))
     }
 }
 
@@ -612,7 +631,8 @@ private fun feedBlockContent(
     now: Instant,
     context: Context,
 ) = DomainBlockContent(
-    emoji = FEED_EMOJI,
+    emoji = "",
+    iconRes = R.drawable.ic_breastfeeding_section,
     label = feedLabel(data.lastFeedSide, data.feedState, context),
     value = feedValue(data.lastFeedStart, data.feedState, now, context),
     supporting = feedSupporting(data.lastFeedSide, data.feedState, data.lastFeedStart, now, context),

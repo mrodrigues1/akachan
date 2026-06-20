@@ -21,10 +21,10 @@
 
     <!-- Notification titles -->
     <string name="notif_title_breastfeeding_group">Amamentação</string>
-    <string name="notif_title_switch_sides">🍼 Hora de trocar de lado</string>
+    <string name="notif_title_switch_sides">Hora de trocar de lado</string>
     <string name="notif_title_feeding_limit">⏱ Limite de mamada atingido</string>
-    <string name="notif_title_feeding_paused">🍼 Amamentação pausada</string>
-    <string name="notif_title_feeding_active">🍼 Amamentação ativa</string>
+    <string name="notif_title_feeding_paused">Amamentação pausada</string>
+    <string name="notif_title_feeding_active">Amamentação ativa</string>
     <string name="notif_title_sleep_active">🌙 Sono ativo</string>
 
     <!-- Notification body format strings -->
@@ -139,7 +139,6 @@
     <string name="widget_preview_feed_label">Mamada: Direito</string>
     <string name="widget_preview_feed_value">12m</string>
     <string name="widget_preview_sleep_label">Acordado</string>
-    <string name="widget_preview_feed_emoji">🍼</string>
     <string name="widget_preview_sleep_value">3m</string>
     <string name="widget_preview_sleep_emoji">🌙</string>
     <string name="milk_stash_widget_description">Estoque de leite — volume e contagem de sacos</string>
@@ -370,7 +369,7 @@
     <string name="breastfeeding_second_side">Segundo lado</string>
     <string name="breastfeeding_add_title">Adicionar sessão de mamada</string>
     <string name="breastfeeding_starting_side">LADO INICIAL</string>
-    <string name="breastfeeding_side_chip">🤱 %1$s</string>
+    <string name="breastfeeding_side_chip">%1$s</string>
     <string name="breastfeeding_manual_error">⚠ %1$s</string>
     <string name="breastfeeding_manual_pick_times">Escolha horários de início e término diferentes para salvar esta mamada.</string>
     <string name="breastfeeding_manual_duration">⏱ Duração: %1$s</string>

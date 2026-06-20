@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -30,6 +31,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.FeatureDomain
+import com.babytracker.ui.component.BreastfeedingIcon
 
 /**
  * Stateless picker for the set of enabled [AppFeature]s, grouped by [FeatureDomain]. Single-feature
@@ -146,7 +148,7 @@ private fun FeatureRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = feature.emoji, style = MaterialTheme.typography.titleMedium)
+        FeatureIcon(feature = feature)
         Text(
             text = feature.label,
             style = MaterialTheme.typography.bodyLarge,
@@ -159,6 +161,15 @@ private fun FeatureRow(
                 .testTag("feature_switch_${feature.name}")
                 .semantics { stateDescription = if (checked) "On" else "Off" },
         )
+    }
+}
+
+@Composable
+private fun FeatureIcon(feature: AppFeature) {
+    if (feature == AppFeature.BREASTFEEDING) {
+        BreastfeedingIcon(modifier = Modifier.size(24.dp))
+    } else {
+        Text(text = feature.emoji, style = MaterialTheme.typography.titleMedium)
     }
 }
 
@@ -176,7 +187,7 @@ private val AppFeature.label: String
 
 private val AppFeature.emoji: String
     get() = when (this) {
-        AppFeature.BREASTFEEDING -> "🤱"
+        AppFeature.BREASTFEEDING -> ""
         AppFeature.BOTTLE_FEED -> "🍼"
         AppFeature.PUMPING -> "🥛"
         AppFeature.INVENTORY -> "🧊"
