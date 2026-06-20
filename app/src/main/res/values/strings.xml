@@ -1228,4 +1228,12 @@
     <!-- Doctor Visit — partner dashboard -->
     <string name="partner_doctor_visits_heading">🩺 Doctor visits</string>
     <string name="partner_doctor_visits_empty">No visits shared</string>
+
+    <!-- Diaper — partner dashboard -->
+    <string name="partner_diaper_heading">🧷 Diapers</string>
+    <plurals name="partner_diaper_count_today">
+        <item quantity="one">%1$d change today</item>
+        <item quantity="other">%1$d changes today</item>
+    </plurals>
+    <string name="partner_diaper_last">Last: %1$s at %2$s</string>
 </resources>
