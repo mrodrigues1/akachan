@@ -162,7 +162,7 @@ fun DoctorVisitHistoryContent(
                         SectionHeader(stringResource(R.string.doctor_visit_history_past))
                     }
                     items(state.past, key = { "p_${it.id}" }) { visit ->
-                        VisitRow(visit, state.questionCounts[visit.id] ?: 0, onEdit, onDelete)
+                        VisitRow(visit, state.questionCounts[visit.id] ?: 0, onEdit, onDelete, past = true)
                     }
                 }
             }
@@ -190,15 +190,18 @@ private fun VisitRow(
     questionCount: Int,
     onEdit: (DoctorVisit) -> Unit,
     onDelete: (DoctorVisit) -> Unit,
+    past: Boolean = false,
 ) {
     val colors = doctorVisitColors()
+    val container = if (past) MaterialTheme.colorScheme.surfaceVariant else colors.container
+    val onContainer = if (past) MaterialTheme.colorScheme.onSurface else colors.onContainer
     Card(
         onClick = { onEdit(visit) },
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = colors.container),
+        colors = CardDefaults.cardColors(containerColor = container),
     ) {
         Row(
             modifier = Modifier
@@ -210,19 +213,19 @@ private fun VisitRow(
                 Text(
                     text = visitDateFormatter.format(visit.date.atZone(ZoneId.systemDefault()).toLocalDate()),
                     style = MaterialTheme.typography.titleSmall,
-                    color = colors.onContainer,
+                    color = onContainer,
                 )
                 Text(
                     text = visit.providerName?.takeIf { it.isNotBlank() }
                         ?: stringResource(R.string.doctor_visit_history_no_provider),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onContainer,
+                    color = onContainer,
                 )
                 visit.notes?.takeIf { it.isNotBlank() }?.let {
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = colors.onContainer,
+                        color = onContainer,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -250,12 +253,12 @@ private fun VisitRow(
                                     )
                                 },
                                 colors = AssistChipDefaults.assistChipColors(
-                                    labelColor = colors.onContainer,
-                                    leadingIconContentColor = colors.onContainer,
+                                    labelColor = onContainer,
+                                    leadingIconContentColor = onContainer,
                                 ),
                                 border = AssistChipDefaults.assistChipBorder(
                                     enabled = true,
-                                    borderColor = colors.onContainer.copy(alpha = 0.3f),
+                                    borderColor = onContainer.copy(alpha = 0.3f),
                                 ),
                             )
                         }
@@ -271,12 +274,12 @@ private fun VisitRow(
                                     )
                                 },
                                 colors = AssistChipDefaults.assistChipColors(
-                                    labelColor = colors.onContainer,
-                                    leadingIconContentColor = colors.onContainer,
+                                    labelColor = onContainer,
+                                    leadingIconContentColor = onContainer,
                                 ),
                                 border = AssistChipDefaults.assistChipBorder(
                                     enabled = true,
-                                    borderColor = colors.onContainer.copy(alpha = 0.3f),
+                                    borderColor = onContainer.copy(alpha = 0.3f),
                                 ),
                             )
                         }
@@ -287,7 +290,7 @@ private fun VisitRow(
                 Icon(
                     Icons.Outlined.Delete,
                     contentDescription = stringResource(R.string.doctor_visit_delete),
-                    tint = colors.onContainer,
+                    tint = onContainer,
                 )
             }
         }
