@@ -13,18 +13,20 @@ Create real raster PNG icons, not vectors or emoji placeholders, that work acros
 - Glance widgets and widget previews
 - Custom notification RemoteViews
 
-The icon should feel related to the app launcher icon: soft, rounded, warm, polished, and calm. It should still be readable at small sizes.
+The icon should closely follow the app launcher icon at `app/src/main/res/mipmap-xxxhdpi/ic_launcher.png`: soft rounded forms, warm cream highlights, gentle depth, and a calm polished finish. It should still be readable at small sizes.
 
 ## Visual Direction
 
 Do:
 
 - Use a soft rounded app-icon illustration style.
+- Use `app/src/main/res/mipmap-xxxhdpi/ic_launcher.png` as the primary style reference, not just a loose inspiration.
 - Keep shapes simple enough to read at `18dp`, `24dp`, `34dp`, and `40dp`.
 - Prefer compact silhouettes with strong negative space.
 - Use matte or satin surfaces rather than shiny plastic.
-- Make the icon more opaque and solid than glossy.
+- Make the icon opaque and solid, with subtle launcher-like depth instead of glossy specular highlights.
 - Include enough light/cream area inside the mark so it still pops on colored cards.
+- Test the palette against every background where the icon appears before replacing resources.
 - Match Akachan's warm, calm product tone.
 - Preserve semantic domain color logic from `DESIGN.md`.
 
@@ -59,7 +61,7 @@ This preserved the feeding-domain feel while improving contrast on pink backgrou
 
 ## Prompt Pattern
 
-Use the existing icon or launcher icon as a style reference when possible.
+Use the existing icon for concept/framing and the launcher icon as the primary style reference.
 
 Example prompt for a revised section icon:
 
@@ -67,11 +69,11 @@ Example prompt for a revised section icon:
 Use case: style-transfer
 Asset type: Android app section icon, raster PNG source for density export
 Primary request: Revise the current <domain> icon into a clearer, more readable small-size icon for Akachan.
-Input images: The current icon is the structure reference. Screenshots show where it appears in the app.
+Input images: The current icon is the structure reference. The app launcher icon at app/src/main/res/mipmap-xxxhdpi/ic_launcher.png is the style reference. Screenshots show every background where the icon appears.
 Subject: Keep the same tasteful abstract concept, but simplify the silhouette so it is readable at 18dp-48dp.
-Style/medium: Soft rounded app-icon illustration matching the BabyTracker launcher style, but with a matte satin finish rather than glossy plastic. Fewer specular highlights, more opaque solid forms, cleaner edges, stronger silhouette.
+Style/medium: Soft rounded app-icon illustration closely matching the BabyTracker launcher style, but with a matte satin finish rather than glossy plastic. Fewer specular highlights, more opaque solid forms, cleaner edges, stronger silhouette.
 Composition/framing: Centered square composition, generous padding, transparent-output source via chroma key. The icon should look good at 18dp, 24dp, 34dp, and 40dp.
-Color palette: Choose colors that contrast with the destination card background. Use cream negative space where useful. Avoid relying on the same dominant hue as the background.
+Color palette: Choose colors that contrast with every destination background, including light cream surfaces, pastel cards, saturated active cards, notification backgrounds, widgets, and dark mode surfaces. Use cream negative space where useful. Avoid relying on the same dominant hue as the background.
 Materials/textures: Opaque matte satin shapes, soft ambient occlusion, subtle depth, no mirror shine, no wet/glass/plastic gloss.
 Scene/backdrop: Perfectly flat solid #00ff00 chroma-key background for background removal.
 Constraints: Preserve the domain concept and compact centered shape. Background must be one uniform #00ff00 color with no shadows, gradients, texture, reflections, floor plane, or lighting variation. Keep subject fully separated from the background with crisp antialiased edges. No text, no letters, no watermark, no emoji.
@@ -147,15 +149,37 @@ for folder, size in outputs.items():
 '@ | & $py -
 ```
 
-## Small-Size Preview
+## User Preview Gate
 
-Before replacing resources, preview the icon over actual destination colors.
+Before replacing resources or wiring the icon into code, show the user a preview and wait for approval unless they explicitly asked to skip review.
+
+The preview must include:
+
+- The full-size transparent icon on a neutral surface.
+- Small-size renderings on the actual destination backgrounds.
+- At least the common app sizes: `18dp`, `24dp`, `34dp`, `40dp`, and `64dp`.
+
+Do not implement a generated icon directly into the codebase after the first generation. Iterate on the preview first, then export and replace resources only after the user confirms the design.
+
+## Small-Size And Background Preview
+
+Preview the icon over actual destination colors before replacing resources.
 
 For breastfeeding, test at least:
 
 - `#F8BBD0` primary container
 - `#C2185B` primary
 - `#FFFDE7` warm cream
+
+For sleep, test at least:
+
+- `#FFFDE7` warm cream
+- `#B3E5FC` sleep container
+- `#1976D2` active sleep blue
+- `#0D47A1` deep sleep blue
+- dark notification/widget surfaces, for example `#1C1B1F`
+
+For any other domain, inspect the current screens and widgets first, then build the preview sheet from the exact colors the icon will sit on. Include active, inactive, history-row, widget, notification, and dark-mode backgrounds when applicable.
 
 Preview sizes:
 
@@ -165,7 +189,7 @@ Preview sizes:
 - `40dp` home tile
 - `64dp` empty state
 
-Do not judge only the full-size PNG. The icon can look good large and fail in a history badge.
+Do not judge only the full-size PNG. The icon can look good large and fail in a history badge or on a saturated active card.
 
 ## Android Resource Rules
 
@@ -348,16 +372,18 @@ Known caveat from this session: full `build` may fail on unrelated sleep predict
 
 1. Read `docs/AI_REPO_MAP.md`.
 2. Inspect destination screens and current icon usage with `rg`.
-3. Inspect the launcher icon and current icon visually.
-4. Pick the actual destination backgrounds before choosing a palette.
-5. Generate on chroma key.
-6. Remove chroma key and validate alpha.
-7. Preview at real small sizes on real backgrounds.
-8. Trim source, add modest padding, export densities.
-9. Replace emoji/vector usage only where the domain icon is intended.
-10. Leave bottle-feed or mixed-domain emoji alone unless they are explicitly part of the redesign.
-11. Use a reusable Compose icon wrapper.
-12. Use `ImageView`/`RemoteViews` for notifications, not emoji prefixes.
-13. Update layout-contract tests.
-14. Run targeted tests and `assembleDebug`.
-15. Clean `tmp/imagegen/` before finishing.
+3. Inspect `app/src/main/res/mipmap-xxxhdpi/ic_launcher.png` and the current icon visually.
+4. Use the launcher icon as the primary style reference: opaque, soft rounded, warm, polished, and not glossy.
+5. Pick every actual destination background before choosing a palette.
+6. Generate on chroma key.
+7. Remove chroma key and validate alpha.
+8. Preview at real small sizes on all real backgrounds.
+9. Show the preview to the user and wait for approval before replacing resources or code usage.
+10. Trim source, add modest padding, export densities.
+11. Replace emoji/vector usage only where the domain icon is intended.
+12. Leave bottle-feed or mixed-domain emoji alone unless they are explicitly part of the redesign.
+13. Use a reusable Compose icon wrapper.
+14. Use `ImageView`/`RemoteViews` for notifications, not emoji prefixes.
+15. Update layout-contract tests.
+16. Run targeted tests and `assembleDebug`.
+17. Clean `tmp/imagegen/` before finishing.
