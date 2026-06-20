@@ -5,10 +5,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
 import android.os.Build
 import android.util.Log
-import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
 import com.babytracker.MainActivity
 import com.babytracker.R
@@ -45,8 +43,7 @@ object VaccineNotificationHelper {
     fun show(context: Context, vaccineName: String, scheduledDate: Instant) {
         val dateLabel = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault())
             .format(scheduledDate.atZone(ZoneId.systemDefault()).toLocalDate())
-        val nightMask = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        val accent = (if (nightMask == Configuration.UI_MODE_NIGHT_YES) VaccineIndigoDark else VaccineIndigo).toArgb()
+        val accent = NotificationHelper.resolveAccent(context, VaccineIndigo, VaccineIndigoDark)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notif_limit)
             .setColor(accent)
@@ -74,6 +71,6 @@ object VaccineNotificationHelper {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 putExtra(NotificationHelper.EXTRA_NAV_ROUTE, Routes.VACCINE_HISTORY)
             },
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            PENDING_INTENT_IMMUTABLE_UPDATE,
         )
 }

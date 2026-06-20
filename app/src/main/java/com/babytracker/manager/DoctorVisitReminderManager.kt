@@ -9,10 +9,10 @@ import android.util.Log
 import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.domain.repository.DoctorVisitSettingsRepository
+import com.babytracker.util.PENDING_INTENT_IMMUTABLE_UPDATE
+import com.babytracker.util.computeReminderTriggerAtMs
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
-import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -46,27 +46,9 @@ class DoctorVisitReminderManager @Inject constructor(
         Log.d(TAG, "Scheduled doctor visit reminder id=${visit.id} at $triggerAtMs")
     }
 
-    /**
-     * Reminder trigger: ~09:00 local, [leadDays] before the visit date. If that lead window has
-     * already passed, fall back to the NEXT 09:00 strictly after now — but never at/after the visit
-     * instant (no immediate late-night ping, no post-visit ping). Returns null when no window
-     * remains or the visit is already past. Pure + testable without AlarmManager.
-     */
-    internal fun computeTriggerAtMs(visitMs: Long, leadDays: Int, nowMs: Long, zone: ZoneId): Long? {
-        if (visitMs <= nowMs) return null
-        fun nineAmOn(date: LocalDate): Long =
-            date.atTime(REMINDER_HOUR_OF_DAY, 0).atZone(zone).toInstant().toEpochMilli()
-        val visitDate = Instant.ofEpochMilli(visitMs).atZone(zone).toLocalDate()
-        val leadTrigger = nineAmOn(visitDate.minusDays(leadDays.toLong()))
-        val candidate = if (leadTrigger > nowMs) {
-            leadTrigger
-        } else {
-            val today = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
-            val today9 = nineAmOn(today)
-            if (today9 > nowMs) today9 else nineAmOn(today.plusDays(1))
-        }
-        return candidate.takeIf { it < visitMs }
-    }
+    /** Delegates to the shared [computeReminderTriggerAtMs]; kept as a seam for unit tests. */
+    internal fun computeTriggerAtMs(visitMs: Long, leadDays: Int, nowMs: Long, zone: ZoneId): Long? =
+        computeReminderTriggerAtMs(visitMs, leadDays, nowMs, zone)
 
     override fun cancel(visitId: Long) {
         alarmManager.cancel(buildPendingIntent(visitId))
@@ -90,14 +72,13 @@ class DoctorVisitReminderManager @Inject constructor(
             context,
             (RC_BASE + visitId).toInt(),
             intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            PENDING_INTENT_IMMUTABLE_UPDATE,
         )
     }
 
     companion object {
         const val EXTRA_VISIT_ID = "visit_id"
         const val ACTION_FIRE = "com.babytracker.DOCTOR_VISIT_REMINDER_FIRE"
-        const val REMINDER_HOUR_OF_DAY = 9
         private const val RC_BASE = 6000L
         private const val RECEIVER_CLASS = "com.babytracker.receiver.DoctorVisitReminderReceiver"
         private const val TAG = "DoctorVisitReminderManager"

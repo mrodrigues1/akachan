@@ -62,7 +62,7 @@ object NotificationHelper {
     const val BREASTFEEDING_GROUP_KEY = "com.babytracker.notifications.breastfeeding"
     const val SLEEP_GROUP_KEY = "com.babytracker.notifications.sleep"
 
-    private fun resolveAccent(context: Context, light: Color, dark: Color): Int {
+    internal fun resolveAccent(context: Context, light: Color, dark: Color): Int {
         val nightMask = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
         val isDark = nightMask == Configuration.UI_MODE_NIGHT_YES
         return (if (isDark) dark else light).toArgb()

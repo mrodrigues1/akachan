@@ -5,10 +5,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
 import android.os.Build
 import android.util.Log
-import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
 import com.babytracker.MainActivity
 import com.babytracker.R
@@ -43,11 +41,9 @@ object DoctorVisitNotificationHelper {
     }
 
     fun show(context: Context, providerName: String?, date: Instant) {
-        createChannel(context)
         val dateLabel = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault())
             .format(date.atZone(ZoneId.systemDefault()).toLocalDate())
-        val nightMask = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        val accent = (if (nightMask == Configuration.UI_MODE_NIGHT_YES) DoctorSlateDark else DoctorSlate).toArgb()
+        val accent = NotificationHelper.resolveAccent(context, DoctorSlate, DoctorSlateDark)
         val body = if (!providerName.isNullOrBlank()) {
             context.getString(R.string.doctor_visit_reminder_body, providerName, dateLabel)
         } else {
@@ -80,6 +76,6 @@ object DoctorVisitNotificationHelper {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 putExtra(NotificationHelper.EXTRA_NAV_ROUTE, Routes.DOCTOR_VISIT_HISTORY)
             },
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            PENDING_INTENT_IMMUTABLE_UPDATE,
         )
 }
