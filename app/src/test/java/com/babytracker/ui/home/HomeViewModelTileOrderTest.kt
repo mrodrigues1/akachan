@@ -17,9 +17,11 @@ import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCa
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.diaper.ObserveTodayDiaperSummaryUseCase
 import com.babytracker.domain.usecase.feeding.ObserveTodayFeedingSummaryUseCase
+import com.babytracker.domain.model.DoctorVisitSummary
 import com.babytracker.domain.model.VaccineSummary
 import com.babytracker.domain.usecase.features.GetEnabledFeaturesUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
+import com.babytracker.domain.usecase.doctorvisit.ObserveDoctorVisitSummaryUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineSummaryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
@@ -59,6 +61,7 @@ class HomeViewModelTileOrderTest {
     private lateinit var observeTodayDiaperSummary: ObserveTodayDiaperSummaryUseCase
     private lateinit var getEnabledFeatures: GetEnabledFeaturesUseCase
     private lateinit var observeVaccineSummary: ObserveVaccineSummaryUseCase
+    private lateinit var observeDoctorVisitSummary: ObserveDoctorVisitSummaryUseCase
     private lateinit var logBabyEvent: LogBabyEventUseCase
     private lateinit var viewModel: HomeViewModel
     private val testDispatcher = StandardTestDispatcher()
@@ -81,6 +84,7 @@ class HomeViewModelTileOrderTest {
         observeTodayDiaperSummary = mockk()
         getEnabledFeatures = mockk()
         observeVaccineSummary = mockk()
+        observeDoctorVisitSummary = mockk()
         logBabyEvent = mockk()
 
         every { getBabyProfile() } returns flowOf(testBaby)
@@ -96,6 +100,7 @@ class HomeViewModelTileOrderTest {
         every { observeTodayFeedingSummary() } returns flowOf(TodayFeedingSummary())
         every { observeTodayDiaperSummary() } returns flowOf(TodayDiaperSummary())
         every { observeVaccineSummary() } returns flowOf(VaccineSummary())
+        every { observeDoctorVisitSummary() } returns flowOf(DoctorVisitSummary())
         every { getEnabledFeatures() } returns flowOf(AppFeature.ALL)
         coJustRun { syncToFirestore(any()) }
         coJustRun { logBabyEvent(any()) }
@@ -120,6 +125,7 @@ class HomeViewModelTileOrderTest {
         observeTodayDiaperSummary,
         getEnabledFeatures,
         observeVaccineSummary,
+        observeDoctorVisitSummary,
         logBabyEvent,
     )
 

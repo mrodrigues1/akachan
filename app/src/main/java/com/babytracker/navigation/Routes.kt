@@ -33,7 +33,12 @@ object Routes {
     const val MILESTONE_DETAIL_ARG = "milestoneId"
     const val MILESTONE_DETAIL = "milestones/{$MILESTONE_DETAIL_ARG}"
     const val TRENDS = "trends"
+    const val DOCTOR_VISIT_ARG = "visitId"
+    const val DOCTOR_VISIT = "doctor_visit?visitId={$DOCTOR_VISIT_ARG}"
     const val VISIT_QUESTIONS = "doctor_visit/questions"
+
+    fun doctorVisit(visitId: Long? = null): String =
+        if (visitId == null) "doctor_visit?visitId=-1" else "doctor_visit?visitId=$visitId"
 
     fun milestoneDetail(id: Long): String = "milestones/$id"
 }

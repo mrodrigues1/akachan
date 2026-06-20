@@ -15,6 +15,7 @@ import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.TodayDiaperSummary
 import com.babytracker.domain.model.TodayFeedingSummary
+import com.babytracker.domain.model.DoctorVisitSummary
 import com.babytracker.domain.model.VaccineSummary
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.InventoryRepository
@@ -28,6 +29,7 @@ import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.diaper.ObserveTodayDiaperSummaryUseCase
 import com.babytracker.domain.usecase.feeding.ObserveTodayFeedingSummaryUseCase
 import com.babytracker.domain.usecase.features.GetEnabledFeaturesUseCase
+import com.babytracker.domain.usecase.doctorvisit.ObserveDoctorVisitSummaryUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineSummaryUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
@@ -64,6 +66,7 @@ data class HomeUiState(
     val todayFeedingSummary: TodayFeedingSummary = TodayFeedingSummary(),
     val todayDiaperSummary: TodayDiaperSummary = TodayDiaperSummary(),
     val vaccineSummary: VaccineSummary = VaccineSummary(),
+    val doctorVisitSummary: DoctorVisitSummary = DoctorVisitSummary(),
     val tileOrder: List<HomeTile> = HomeTile.DEFAULT_ORDER,
     val enabledFeatures: Set<AppFeature> = AppFeature.ALL,
 )
@@ -83,6 +86,7 @@ class HomeViewModel @Inject constructor(
     observeTodayDiaperSummary: ObserveTodayDiaperSummaryUseCase,
     getEnabledFeatures: GetEnabledFeaturesUseCase,
     observeVaccineSummary: ObserveVaccineSummaryUseCase,
+    observeDoctorVisitSummary: ObserveDoctorVisitSummaryUseCase,
     private val logBabyEvent: LogBabyEventUseCase,
 ) : ViewModel() {
 
@@ -152,15 +156,21 @@ class HomeViewModel @Inject constructor(
         observeTodayFeedingSummary(),
         settingsRepository.getHomeTileOrder(),
         observeTodayDiaperSummary(),
-        // combine is capped at 5 typed flows, so fold the features+vaccine pair into one slot.
-        combine(getEnabledFeatures(), observeVaccineSummary()) { features, vaccine -> features to vaccine },
-    ) { base, todayFeedingSummary, tileOrder, todayDiaperSummary, (enabledFeatures, vaccineSummary) ->
+        // combine is capped at 5 typed flows, so fold the features+vaccine+doctor-visit triple
+        // into one slot.
+        combine(
+            getEnabledFeatures(),
+            observeVaccineSummary(),
+            observeDoctorVisitSummary(),
+        ) { features, vaccine, doctor -> Triple(features, vaccine, doctor) },
+    ) { base, todayFeedingSummary, tileOrder, todayDiaperSummary, (enabledFeatures, vaccineSummary, doctorVisitSummary) ->
         base.copy(
             todayFeedingSummary = todayFeedingSummary,
             tileOrder = tileOrder,
             todayDiaperSummary = todayDiaperSummary,
             enabledFeatures = enabledFeatures,
             vaccineSummary = vaccineSummary,
+            doctorVisitSummary = doctorVisitSummary,
         )
     }.stateIn(
         scope = viewModelScope,

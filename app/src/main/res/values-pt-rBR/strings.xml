@@ -1178,4 +1178,32 @@
     <string name="visit_questions_deleted">Pergunta excluída</string>
     <string name="visit_questions_undo">Desfazer</string>
     <string name="visit_questions_expand_close">Fechar</string>
+
+    <!-- Doctor Visit — visit sheet + home tile -->
+    <string name="doctor_visit_tile_label">Consultas médicas</string>
+    <string name="doctor_visit_add_title">Registrar consulta</string>
+    <string name="doctor_visit_edit_title">Editar consulta</string>
+    <string name="doctor_visit_date">Data</string>
+    <string name="doctor_visit_provider_hint">Médico ou clínica (opcional)</string>
+    <string name="doctor_visit_notes_hint">Anotações</string>
+    <string name="doctor_visit_attach_questions">Anexar perguntas</string>
+    <string name="doctor_visit_manage_questions">Gerenciar perguntas</string>
+    <string name="doctor_visit_snapshot_attach">Anexar cópia dos dados</string>
+    <string name="doctor_visit_snapshot_view">Ver cópia</string>
+    <string name="doctor_visit_snapshot_attached">Cópia anexada</string>
+    <string name="doctor_visit_snapshot_failed">Não foi possível gerar a cópia</string>
+    <string name="doctor_visit_snapshot_hint">Salve a consulta primeiro para anexar uma cópia dos dados</string>
+    <string name="doctor_visit_snapshot_label">Cópia dos dados · %1$s</string>
+    <string name="doctor_visit_save">Salvar</string>
+    <string name="doctor_visit_tile_today">Consulta hoje</string>
+    <string name="doctor_visit_tile_last">Última consulta %1$s</string>
+    <string name="doctor_visit_tile_empty">Nenhuma consulta registrada</string>
+    <plurals name="doctor_visit_tile_in_days">
+        <item quantity="one">Próxima consulta em %1$d dia</item>
+        <item quantity="other">Próxima consulta em %1$d dias</item>
+    </plurals>
+    <plurals name="doctor_visit_tile_open_questions">
+        <item quantity="one">%1$d pergunta para fazer</item>
+        <item quantity="other">%1$d perguntas para fazer</item>
+    </plurals>
 </resources>

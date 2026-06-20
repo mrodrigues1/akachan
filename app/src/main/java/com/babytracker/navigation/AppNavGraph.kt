@@ -11,6 +11,7 @@ import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.ui.bottlefeed.BottleFeedScreen
 import com.babytracker.ui.diaper.DiaperHistoryScreen
 import com.babytracker.ui.diaper.DiaperScreen
+import com.babytracker.ui.doctorvisit.DoctorVisitScreen
 import com.babytracker.ui.doctorvisit.VisitQuestionsScreen
 import com.babytracker.ui.vaccine.VaccineHistoryScreen
 import com.babytracker.ui.vaccine.VaccineScreen
@@ -75,6 +76,7 @@ fun AppNavGraph(
                 onNavigateToBottleFeed = { navController.navigate(Routes.BOTTLE_FEED) },
                 onNavigateToDiaper = { navController.navigate(Routes.DIAPER) },
                 onNavigateToVaccine = { navController.navigate(Routes.VACCINE) },
+                onNavigateToDoctorVisit = { navController.navigate(Routes.doctorVisit()) },
                 onNavigateToFeedingHistory = { navController.navigate(Routes.FEEDING_HISTORY) },
                 onNavigateToGrowth = { navController.navigate(Routes.GROWTH) },
                 onNavigateToMilestones = { navController.navigate(Routes.MILESTONES) },
@@ -232,6 +234,22 @@ private fun NavGraphBuilder.pumpingGraph(navController: NavHostController) {
     }
     composable(Routes.VISIT_QUESTIONS) {
         VisitQuestionsScreen(onNavigateBack = { navController.popBackStack() })
+    }
+    composable(
+        route = Routes.DOCTOR_VISIT,
+        arguments = listOf(
+            navArgument(Routes.DOCTOR_VISIT_ARG) {
+                type = NavType.LongType
+                defaultValue = -1L
+            },
+        ),
+    ) { entry ->
+        val visitId = entry.arguments?.getLong(Routes.DOCTOR_VISIT_ARG) ?: -1L
+        DoctorVisitScreen(
+            editVisitId = visitId.takeIf { it >= 0 },
+            onManageQuestions = { navController.navigate(Routes.VISIT_QUESTIONS) },
+            onDismiss = { navController.popBackStack() },
+        )
     }
 }
 

@@ -29,6 +29,7 @@ class HomeReorderTest {
         onBottleFeed = {},
         onDiaper = {},
         onVaccine = {},
+        onDoctorVisit = {},
         onFeedingHistory = {},
         onConnectPartner = {},
         onGrowth = {},

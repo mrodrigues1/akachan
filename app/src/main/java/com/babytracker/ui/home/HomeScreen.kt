@@ -68,6 +68,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.DoctorVisitSummary
 import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.InventorySummary
@@ -88,6 +89,7 @@ import com.babytracker.ui.theme.OnWarningContainerAmberDark
 import com.babytracker.ui.theme.WarningContainerAmber
 import com.babytracker.ui.theme.WarningContainerAmberDark
 import com.babytracker.ui.theme.diaperColors
+import com.babytracker.ui.theme.doctorVisitColors
 import com.babytracker.ui.theme.growthColors
 import com.babytracker.ui.theme.milestoneColors
 import com.babytracker.ui.theme.vaccineColors
@@ -119,6 +121,7 @@ fun HomeScreen(
     onNavigateToBottleFeed: () -> Unit = {},
     onNavigateToDiaper: () -> Unit = {},
     onNavigateToVaccine: () -> Unit = {},
+    onNavigateToDoctorVisit: () -> Unit = {},
     onNavigateToFeedingHistory: () -> Unit = {},
     onNavigateToGrowth: () -> Unit = {},
     onNavigateToMilestones: () -> Unit = {},
@@ -198,6 +201,7 @@ fun HomeScreen(
             onNavigateToBottleFeed,
             onNavigateToDiaper,
             onNavigateToVaccine,
+            onNavigateToDoctorVisit,
             onNavigateToFeedingHistory,
             onNavigateToConnectPartner,
             onNavigateToGrowth,
@@ -211,6 +215,7 @@ fun HomeScreen(
                 onBottleFeed = onNavigateToBottleFeed,
                 onDiaper = onNavigateToDiaper,
                 onVaccine = onNavigateToVaccine,
+                onDoctorVisit = onNavigateToDoctorVisit,
                 onFeedingHistory = onNavigateToFeedingHistory,
                 onConnectPartner = onNavigateToConnectPartner,
                 onGrowth = onNavigateToGrowth,
@@ -633,6 +638,75 @@ internal fun VaccineHomeCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = contentColor,
                 )
+            }
+        }
+    }
+}
+
+private val visitDateFormatter = DateTimeFormatter.ofPattern("MMM d")
+
+@Composable
+internal fun DoctorVisitHomeCard(
+    summary: DoctorVisitSummary,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = doctorVisitColors()
+    val zone = ZoneId.systemDefault()
+    val next = summary.nextUpcoming
+    val last = summary.lastPast
+
+    val title = stringResource(R.string.doctor_visit_tile_label)
+    val subtitle = when {
+        next != null -> {
+            val days = ChronoUnit.DAYS.between(LocalDate.now(zone), next.date.atZone(zone).toLocalDate())
+            if (days <= 0L) {
+                stringResource(R.string.doctor_visit_tile_today)
+            } else {
+                pluralStringResource(R.plurals.doctor_visit_tile_in_days, days.toInt(), days.toInt())
+            }
+        }
+        last != null -> stringResource(
+            R.string.doctor_visit_tile_last,
+            visitDateFormatter.format(last.date.atZone(zone).toLocalDate()),
+        )
+        else -> stringResource(R.string.doctor_visit_tile_empty)
+    }
+    val provider = (next ?: last)?.providerName?.takeIf { it.isNotBlank() }
+    val questionsLine = summary.openQuestionCount.takeIf { it > 0 }?.let {
+        pluralStringResource(R.plurals.doctor_visit_tile_open_questions, it, it)
+    }
+    val cardCd = listOfNotNull(title, subtitle, provider, questionsLine).joinToString(", ")
+
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 96.dp)
+            .semantics { contentDescription = cardCd },
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = colors.container),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
+        ) {
+            Text(
+                text = "🩺",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = title, style = MaterialTheme.typography.titleMedium, color = colors.onContainer)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = subtitle, style = MaterialTheme.typography.bodyMedium, color = colors.onContainer)
+            provider?.let {
+                Text(text = it, style = MaterialTheme.typography.bodySmall, color = colors.onContainer)
+            }
+            questionsLine?.let {
+                Text(text = it, style = MaterialTheme.typography.bodySmall, color = colors.onContainer)
             }
         }
     }

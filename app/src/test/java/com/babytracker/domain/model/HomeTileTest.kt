@@ -55,6 +55,19 @@ class HomeTileTest {
     }
 
     @Test
+    fun `default order includes the doctor visit tile after vaccine`() {
+        val order = HomeTile.deserialize(null)
+        assert(HomeTile.DOCTOR_VISIT in order)
+        assertEquals(order.indexOf(HomeTile.VACCINE) + 1, order.indexOf(HomeTile.DOCTOR_VISIT))
+    }
+
+    @Test
+    fun `reconcile appends doctor visit to a pre-doctor-visit stored order`() {
+        val result = HomeTile.reconcile(listOf("SLEEP", "BREASTFEEDING"))
+        assert(HomeTile.DOCTOR_VISIT in result.drop(2))
+    }
+
+    @Test
     fun `reconcile deduplicates a repeated stored name`() {
         val result = HomeTile.deserialize("SLEEP,SLEEP,BREASTFEEDING")
         assertEquals(1, result.count { it == HomeTile.SLEEP })
