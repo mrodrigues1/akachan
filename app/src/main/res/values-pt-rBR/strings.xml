@@ -1166,4 +1166,16 @@
         <item quantity="one">%1$d dia antes</item>
         <item quantity="other">%1$d dias antes</item>
     </plurals>
+
+    <!-- Doctor Visit — question inbox -->
+    <string name="visit_questions_title">Perguntas para o médico</string>
+    <string name="visit_questions_add_hint">Adicionar pergunta…</string>
+    <string name="visit_questions_add">Adicionar</string>
+    <string name="visit_questions_empty">Nenhuma pergunta ainda. Adicione uma para perguntar na próxima consulta.</string>
+    <string name="visit_questions_mark_answered">Marcar como respondida</string>
+    <string name="visit_questions_mark_unanswered">Marcar como não respondida</string>
+    <string name="visit_questions_delete">Excluir</string>
+    <string name="visit_questions_deleted">Pergunta excluída</string>
+    <string name="visit_questions_undo">Desfazer</string>
+    <string name="visit_questions_expand_close">Fechar</string>
 </resources>

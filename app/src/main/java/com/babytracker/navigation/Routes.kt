@@ -33,6 +33,7 @@ object Routes {
     const val MILESTONE_DETAIL_ARG = "milestoneId"
     const val MILESTONE_DETAIL = "milestones/{$MILESTONE_DETAIL_ARG}"
     const val TRENDS = "trends"
+    const val VISIT_QUESTIONS = "doctor_visit/questions"
 
     fun milestoneDetail(id: Long): String = "milestones/$id"
 }

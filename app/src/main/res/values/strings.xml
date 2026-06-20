@@ -1149,4 +1149,16 @@
         <item quantity="one">%1$d day before</item>
         <item quantity="other">%1$d days before</item>
     </plurals>
+
+    <!-- Doctor Visit — question inbox -->
+    <string name="visit_questions_title">Questions to ask</string>
+    <string name="visit_questions_add_hint">Add a question…</string>
+    <string name="visit_questions_add">Add</string>
+    <string name="visit_questions_empty">No questions yet. Add one to ask at your next visit.</string>
+    <string name="visit_questions_mark_answered">Mark answered</string>
+    <string name="visit_questions_mark_unanswered">Mark unanswered</string>
+    <string name="visit_questions_delete">Delete</string>
+    <string name="visit_questions_deleted">Question deleted</string>
+    <string name="visit_questions_undo">Undo</string>
+    <string name="visit_questions_expand_close">Close</string>
 </resources>
