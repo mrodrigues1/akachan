@@ -1251,4 +1251,13 @@
     <!-- Doctor Visit — partner dashboard -->
     <string name="partner_doctor_visits_heading">🩺 Consultas médicas</string>
     <string name="partner_doctor_visits_empty">Nenhuma consulta compartilhada</string>
+
+    <!-- Fraldas — painel do parceiro -->
+    <string name="partner_diaper_heading">🧷 Fraldas</string>
+    <plurals name="partner_diaper_count_today">
+        <item quantity="one">%1$d troca hoje</item>
+        <item quantity="many">%1$d trocas hoje</item>
+        <item quantity="other">%1$d trocas hoje</item>
+    </plurals>
+    <string name="partner_diaper_last">Última: %1$s às %2$s</string>
 </resources>

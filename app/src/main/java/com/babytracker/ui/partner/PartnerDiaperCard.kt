@@ -11,8 +11,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.babytracker.R
+import com.babytracker.domain.model.toDiaperTypeSafe
 import com.babytracker.sharing.domain.model.DiaperSnapshot
+import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.theme.diaperColors
 import java.time.Instant
 import java.time.ZoneId
@@ -38,13 +43,17 @@ fun PartnerDiaperCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "🧷 Diapers",
+                text = stringResource(R.string.partner_diaper_heading),
                 style = MaterialTheme.typography.titleMedium,
                 color = diaper.onContainer,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = if (todayCount == 1) "1 change today" else "$todayCount changes today",
+                text = pluralStringResource(
+                    R.plurals.partner_diaper_count_today,
+                    todayCount,
+                    todayCount,
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = diaper.onContainer,
             )
@@ -52,8 +61,9 @@ fun PartnerDiaperCard(
                 val time = diaperTimeFormatter.format(
                     Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalTime(),
                 )
+                val typeLabel = stringResource(it.type.toDiaperTypeSafe().labelRes())
                 Text(
-                    text = "Last: ${it.type.lowercase().replaceFirstChar(Char::uppercase)} at $time",
+                    text = stringResource(R.string.partner_diaper_last, typeLabel, time),
                     style = MaterialTheme.typography.bodySmall,
                     color = diaper.onContainer,
                 )
