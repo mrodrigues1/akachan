@@ -94,6 +94,13 @@ fun DesignSystemPreviewScreen(
                     "700" to Indigo700, "900" to Indigo900,
                 ))
             }
+            item {
+                SwatchRow("Blue Grey", listOf(
+                    "100" to BlueGrey100, "200" to BlueGrey200,
+                    "300" to BlueGrey300, "700" to BlueGrey700,
+                    "800" to BlueGrey800, "900" to BlueGrey900,
+                ))
+            }
 
             // ── Semantic Tokens — current theme ───────────────────────────────
             item { Spacer(Modifier.height(4.dp)) }
