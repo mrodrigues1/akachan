@@ -28,7 +28,7 @@ class DoctorVisitSheetTest {
         composeRule.setContent {
             BabyTrackerTheme { DoctorVisitHomeCard(summary = DoctorVisitSummary(), onClick = {}) }
         }
-        composeRule.onNodeWithText("No visits logged").assertIsDisplayed()
+        composeRule.onNodeWithText("No visits yet").assertIsDisplayed()
     }
 
     @Test

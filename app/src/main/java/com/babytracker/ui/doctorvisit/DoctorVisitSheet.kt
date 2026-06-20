@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,6 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
@@ -68,6 +72,7 @@ fun DoctorVisitSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val colors = doctorVisitColors()
+    val savingDescription = stringResource(R.string.doctor_visit_saving)
     ModalBottomSheet(
         onDismissRequest = { if (!state.isSaving) onDismiss() },
         sheetState = sheetState,
@@ -79,6 +84,7 @@ fun DoctorVisitSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
+                .imePadding()
                 .padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
             Text(
@@ -87,6 +93,7 @@ fun DoctorVisitSheet(
                 ),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.semantics { heading() },
             )
             Spacer(Modifier.height(16.dp))
 
@@ -137,7 +144,7 @@ fun DoctorVisitSheet(
                 onAttachSnapshot = onAttachSnapshot,
                 onViewSnapshot = onViewSnapshot,
             )
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(24.dp))
 
             Button(
                 onClick = onSave,
@@ -149,7 +156,8 @@ fun DoctorVisitSheet(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag(DOCTOR_VISIT_SAVE_TAG),
+                    .testTag(DOCTOR_VISIT_SAVE_TAG)
+                    .semantics { if (state.isSaving) stateDescription = savingDescription },
             ) {
                 if (state.isSaving) {
                     CircularProgressIndicator(
@@ -205,9 +213,10 @@ private fun AttachQuestionsSection(
     onManageQuestions: () -> Unit,
 ) {
     val colors = doctorVisitColors()
-    val attachedIds = state.attachedQuestions.map { it.id }.toSet()
-    val questions: List<VisitQuestion> =
+    val questions: List<VisitQuestion> = remember(state.attachedQuestions, state.inboxQuestions) {
+        val attachedIds = state.attachedQuestions.map { it.id }.toSet()
         state.attachedQuestions + state.inboxQuestions.filterNot { it.id in attachedIds }
+    }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -286,7 +295,7 @@ private fun SnapshotSection(
             Text(
                 stringResource(
                     if (state.snapshotLabel != null) {
-                        R.string.doctor_visit_snapshot_attached
+                        R.string.doctor_visit_snapshot_replace
                     } else {
                         R.string.doctor_visit_snapshot_attach
                     },

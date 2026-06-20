@@ -65,7 +65,7 @@ class DoctorVisitHistoryScreenTest {
         composeRule.onNodeWithText("Upcoming").assertIsDisplayed()
         composeRule.onNodeWithText("Past").assertIsDisplayed()
         composeRule.onNodeWithText("Dr. Tanaka").assertIsDisplayed()
-        composeRule.onNodeWithText("Snapshot").assertIsDisplayed()
+        composeRule.onNodeWithText("Summary").assertIsDisplayed()
         composeRule.onNodeWithText("2 questions").assertIsDisplayed()
     }
 
@@ -88,6 +88,6 @@ class DoctorVisitHistoryScreenTest {
     @Test
     fun emptyStateShown() {
         setContent(DoctorVisitHistoryUiState())
-        composeRule.onNodeWithText("No visits yet").assertIsDisplayed()
+        composeRule.onNodeWithText("No visits yet. Log your first one to keep a record.").assertIsDisplayed()
     }
 }

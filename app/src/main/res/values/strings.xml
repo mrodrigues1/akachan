@@ -1153,14 +1153,15 @@
     <!-- Doctor Visit — question inbox -->
     <string name="visit_questions_title">Questions to ask</string>
     <string name="visit_questions_add_hint">Add a question…</string>
-    <string name="visit_questions_add">Add</string>
+    <string name="visit_questions_add">Add question</string>
     <string name="visit_questions_empty">No questions yet. Add one to ask at your next visit.</string>
     <string name="visit_questions_mark_answered">Mark answered</string>
     <string name="visit_questions_mark_unanswered">Mark unanswered</string>
-    <string name="visit_questions_delete">Delete</string>
+    <string name="visit_questions_delete">Delete question</string>
     <string name="visit_questions_deleted">Question deleted</string>
     <string name="visit_questions_undo">Undo</string>
-    <string name="visit_questions_expand_close">Close</string>
+    <string name="visit_questions_expand">Expand question</string>
+    <string name="visit_questions_collapse">Collapse question</string>
 
     <!-- Doctor Visit — visit sheet + home tile -->
     <string name="doctor_visit_tile_label">Doctor visits</string>
@@ -1169,18 +1170,19 @@
     <string name="doctor_visit_date">Date</string>
     <string name="doctor_visit_provider_hint">Doctor or clinic (optional)</string>
     <string name="doctor_visit_notes_hint">Notes</string>
-    <string name="doctor_visit_attach_questions">Attach questions to ask</string>
+    <string name="doctor_visit_attach_questions">Questions to ask</string>
     <string name="doctor_visit_manage_questions">Manage questions</string>
-    <string name="doctor_visit_snapshot_attach">Attach data snapshot</string>
-    <string name="doctor_visit_snapshot_view">View snapshot</string>
-    <string name="doctor_visit_snapshot_attached">Snapshot attached</string>
-    <string name="doctor_visit_snapshot_failed">Couldn\'t generate snapshot</string>
-    <string name="doctor_visit_snapshot_hint">Save the visit first to attach a data snapshot</string>
-    <string name="doctor_visit_snapshot_label">Data snapshot · %1$s</string>
+    <string name="doctor_visit_snapshot_attach">Attach data summary</string>
+    <string name="doctor_visit_snapshot_view">View summary</string>
+    <string name="doctor_visit_snapshot_replace">Replace summary</string>
+    <string name="doctor_visit_snapshot_failed">Couldn\'t create the summary. Try again.</string>
+    <string name="doctor_visit_snapshot_hint">Save the visit first to attach a data summary</string>
+    <string name="doctor_visit_snapshot_label">Data summary · %1$s</string>
     <string name="doctor_visit_save">Save</string>
+    <string name="doctor_visit_saving">Saving</string>
     <string name="doctor_visit_tile_today">Visit today</string>
     <string name="doctor_visit_tile_last">Last visit %1$s</string>
-    <string name="doctor_visit_tile_empty">No visits logged</string>
+    <string name="doctor_visit_tile_empty">No visits yet</string>
     <plurals name="doctor_visit_tile_in_days">
         <item quantity="one">Next visit in %1$d day</item>
         <item quantity="other">Next visit in %1$d days</item>
@@ -1194,8 +1196,8 @@
     <string name="doctor_visit_history_title">Visit history</string>
     <string name="doctor_visit_history_upcoming">Upcoming</string>
     <string name="doctor_visit_history_past">Past</string>
-    <string name="doctor_visit_history_empty">No visits yet</string>
-    <string name="doctor_visit_history_has_snapshot">Snapshot</string>
+    <string name="doctor_visit_history_empty">No visits yet. Log your first one to keep a record.</string>
+    <string name="doctor_visit_history_has_snapshot">Summary</string>
     <string name="doctor_visit_history_deleted">Visit deleted</string>
     <string name="doctor_visit_history_undo">Undo</string>
     <string name="doctor_visit_history_no_provider">Visit</string>

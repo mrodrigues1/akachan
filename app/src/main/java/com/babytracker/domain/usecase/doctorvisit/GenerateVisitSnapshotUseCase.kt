@@ -5,7 +5,7 @@ import com.babytracker.export.domain.usecase.GeneratePdfReportUseCase
 import javax.inject.Inject
 
 /**
- * Re-generates a fresh data snapshot on demand when the user taps "View snapshot" on a visit.
+ * Re-generates a fresh data summary on demand when the user taps "View summary" on a visit.
  * Pure delegation to the existing export pipeline — no snapshot file is persisted on the visit.
  * Defaults to the full-history range; the caller (plan 5) may pass an explicit range.
  */

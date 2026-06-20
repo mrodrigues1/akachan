@@ -1,5 +1,6 @@
 package com.babytracker.ui.doctorvisit
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,9 +34,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -50,12 +49,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.VisitQuestion
+import com.babytracker.ui.theme.DoctorVisitPalette
 import com.babytracker.ui.theme.doctorVisitColors
 
 @Composable
@@ -108,6 +106,7 @@ fun VisitQuestionsContent(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = doctorVisitColors()
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -129,7 +128,12 @@ fun VisitQuestionsContent(
         },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            QuestionInputRow(draft = state.draft, onDraftChange = onDraftChange, onAdd = onAdd)
+            QuestionInputRow(
+                draft = state.draft,
+                onDraftChange = onDraftChange,
+                onAdd = onAdd,
+                colors = colors,
+            )
             if (state.questions.isEmpty()) {
                 EmptyInbox()
             } else {
@@ -138,10 +142,13 @@ fun VisitQuestionsContent(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 ) {
                     items(state.questions, key = { it.id }) { question ->
+                        val expanded = state.expandedQuestion?.id == question.id
                         QuestionRow(
                             question = question,
+                            expanded = expanded,
+                            colors = colors,
                             onToggleAnswered = { onToggleAnswered(question.id) },
-                            onExpand = { onExpand(question) },
+                            onExpand = { onExpand(if (expanded) null else question) },
                             onDelete = { onDelete(question) },
                         )
                     }
@@ -149,16 +156,16 @@ fun VisitQuestionsContent(
             }
         }
     }
-
-    state.expandedQuestion?.let { question ->
-        ExpandedQuestionDialog(question = question, onClose = { onExpand(null) })
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QuestionInputRow(draft: String, onDraftChange: (String) -> Unit, onAdd: () -> Unit) {
-    val colors = doctorVisitColors()
+private fun QuestionInputRow(
+    draft: String,
+    onDraftChange: (String) -> Unit,
+    onAdd: () -> Unit,
+    colors: DoctorVisitPalette,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -194,11 +201,15 @@ private fun QuestionInputRow(draft: String, onDraftChange: (String) -> Unit, onA
 @Composable
 private fun QuestionRow(
     question: VisitQuestion,
+    expanded: Boolean,
+    colors: DoctorVisitPalette,
     onToggleAnswered: () -> Unit,
     onExpand: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val colors = doctorVisitColors()
+    val expandLabel = stringResource(
+        if (expanded) R.string.visit_questions_collapse else R.string.visit_questions_expand,
+    )
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -218,12 +229,13 @@ private fun QuestionRow(
                 text = question.text,
                 style = MaterialTheme.typography.bodyLarge,
                 color = colors.onContainer,
-                maxLines = 2,
+                maxLines = if (expanded) Int.MAX_VALUE else 2,
                 overflow = TextOverflow.Ellipsis,
                 textDecoration = if (question.answered) TextDecoration.LineThrough else null,
                 modifier = Modifier
                     .weight(1f)
-                    .clickable(onClick = onExpand)
+                    .clickable(onClickLabel = expandLabel, onClick = onExpand)
+                    .animateContentSize()
                     .padding(vertical = 16.dp),
             )
             IconButton(onClick = onDelete) {
@@ -253,37 +265,5 @@ private fun EmptyInbox() {
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
         )
-    }
-}
-
-@Composable
-private fun ExpandedQuestionDialog(question: VisitQuestion, onClose: () -> Unit) {
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = question.text,
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(top = 48.dp),
-                )
-                TextButton(
-                    onClick = onClose,
-                    modifier = Modifier.align(Alignment.End),
-                ) {
-                    Text(stringResource(R.string.visit_questions_expand_close))
-                }
-            }
-        }
     }
 }

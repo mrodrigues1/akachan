@@ -57,14 +57,14 @@ class VisitQuestionsScreenTest {
     @Test
     fun addButtonDisabledWhenDraftBlank() {
         setContent(VisitQuestionsUiState(draft = ""))
-        composeRule.onNodeWithContentDescription("Add").assertIsNotEnabled()
+        composeRule.onNodeWithContentDescription("Add question").assertIsNotEnabled()
     }
 
     @Test
     fun addInvokesCallbackWhenDraftPresent() {
         var added = false
         setContent(VisitQuestionsUiState(draft = "New question"), onAdd = { added = true })
-        composeRule.onNodeWithContentDescription("Add").performClick()
+        composeRule.onNodeWithContentDescription("Add question").performClick()
         composeRule.runOnIdle { assertEquals(true, added) }
     }
 
@@ -77,16 +77,21 @@ class VisitQuestionsScreenTest {
     }
 
     @Test
-    fun expandedDialogShowsClose() {
-        setContent(VisitQuestionsUiState(questions = listOf(q1), expandedQuestion = q1))
-        composeRule.onNodeWithText("Close").assertIsDisplayed()
+    fun tappingExpandedRowCollapses() {
+        var expanded: VisitQuestion? = q1
+        setContent(
+            VisitQuestionsUiState(questions = listOf(q1), expandedQuestion = q1),
+            onExpand = { expanded = it },
+        )
+        composeRule.onNodeWithText("Ask about sleep").performClick()
+        composeRule.runOnIdle { assertEquals(null, expanded) }
     }
 
     @Test
     fun deleteInvokesCallback() {
         var deleted: VisitQuestion? = null
         setContent(VisitQuestionsUiState(questions = listOf(q1)), onDelete = { deleted = it })
-        composeRule.onNodeWithContentDescription("Delete").performClick()
+        composeRule.onNodeWithContentDescription("Delete question").performClick()
         composeRule.runOnIdle { assertEquals(q1, deleted) }
     }
 }
