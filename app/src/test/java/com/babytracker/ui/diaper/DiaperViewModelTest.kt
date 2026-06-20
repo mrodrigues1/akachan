@@ -7,6 +7,7 @@ import com.babytracker.domain.usecase.diaper.EditDiaperChangeUseCase
 import com.babytracker.domain.usecase.diaper.LogDiaperChangeUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
@@ -64,11 +65,30 @@ class DiaperViewModelTest {
     }
 
     @Test
-    fun `failure surfaces validation error and clears saving`() = runTest {
-        coEvery { log(any(), any(), any()) } throws IllegalArgumentException("future")
+    fun `failure surfaces a localized save error and never leaks the exception message`() = runTest {
+        every { appContext.getString(any()) } returns "save_failed"
+        coEvery { log(any(), any(), any()) } throws IllegalStateException("raw db detail")
         val vm = viewModel()
         vm.onSave()
-        assertEquals("future", vm.uiState.value.validationError)
+        assertEquals("save_failed", vm.uiState.value.saveError)
         assertTrue(!vm.uiState.value.isSaving)
+    }
+
+    @Test
+    fun `future timestamp is rejected on the time field without calling the use case`() = runTest {
+        every { appContext.getString(any()) } returns "future_error"
+        val vm = viewModel()
+        vm.onTimeChange(fixedNow.plusSeconds(60))
+        vm.onSave()
+        assertEquals("future_error", vm.uiState.value.timeError)
+        assertTrue(!vm.uiState.value.isSaving)
+        coVerify(exactly = 0) { log(any(), any(), any()) }
+    }
+
+    @Test
+    fun `notes longer than the cap are truncated`() = runTest {
+        val vm = viewModel()
+        vm.onNotesChange("x".repeat(DIAPER_NOTES_MAX + 50))
+        assertEquals(DIAPER_NOTES_MAX, vm.uiState.value.notes.length)
     }
 }

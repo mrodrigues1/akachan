@@ -201,6 +201,8 @@
     <string name="diaper_save">Salvar</string>
     <string name="diaper_view_history">Ver histórico de fraldas</string>
     <string name="diaper_save_error">Não foi possível salvar a troca. Tente novamente.</string>
+    <string name="diaper_time_future_error">O horário não pode estar no futuro</string>
+    <string name="diaper_notes_counter">%1$d/%2$d</string>
     <string name="diaper_history_title">Histórico de fraldas</string>
     <string name="diaper_history_empty">Nenhuma troca de fralda ainda</string>
     <string name="diaper_history_empty_supporting">As trocas que você registrar aparecerão aqui</string>

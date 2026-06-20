@@ -204,6 +204,8 @@
     <string name="diaper_save">Save</string>
     <string name="diaper_view_history">View diaper history</string>
     <string name="diaper_save_error">Couldn\'t save this change. Try again.</string>
+    <string name="diaper_time_future_error">Time can\'t be in the future</string>
+    <string name="diaper_notes_counter">%1$d/%2$d</string>
     <string name="diaper_history_title">Diaper history</string>
     <string name="diaper_history_empty">No diaper changes yet</string>
     <string name="diaper_history_empty_supporting">Changes you log will appear here</string>
