@@ -36,6 +36,7 @@ object Routes {
     const val DOCTOR_VISIT_ARG = "visitId"
     const val DOCTOR_VISIT = "doctor_visit?visitId={$DOCTOR_VISIT_ARG}"
     const val DOCTOR_VISIT_HISTORY = "doctor_visit/history"
+    const val DOCTOR_VISIT_SETTINGS = "doctor_visit/settings"
     const val VISIT_QUESTIONS = "doctor_visit/questions"
 
     fun doctorVisit(visitId: Long? = null): String =

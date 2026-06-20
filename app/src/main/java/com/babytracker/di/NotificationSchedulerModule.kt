@@ -3,9 +3,9 @@ package com.babytracker.di
 import android.content.Context
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.manager.BreastfeedingNotificationManager
+import com.babytracker.manager.DoctorVisitReminderManager
 import com.babytracker.manager.DoctorVisitReminderScheduler
 import com.babytracker.manager.NapReminderManager
-import com.babytracker.manager.NoOpDoctorVisitReminderScheduler
 import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.NotificationPermissionChecker
 import com.babytracker.manager.NotificationPermissionCheckerImpl
@@ -96,7 +96,6 @@ abstract class VaccineReminderSchedulerModule {
     abstract fun bindVaccineReminderScheduler(impl: VaccineReminderManager): VaccineReminderScheduler
 }
 
-// Plan 7 replaces NoOpDoctorVisitReminderScheduler with the real DoctorVisitReminderManager here.
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class DoctorVisitReminderSchedulerModule {
@@ -104,6 +103,6 @@ abstract class DoctorVisitReminderSchedulerModule {
     @Binds
     @Singleton
     abstract fun bindDoctorVisitReminderScheduler(
-        impl: NoOpDoctorVisitReminderScheduler,
+        impl: DoctorVisitReminderManager,
     ): DoctorVisitReminderScheduler
 }

@@ -153,6 +153,20 @@
         </receiver>
 
         <receiver
+            android:name=".receiver.DoctorVisitReminderReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".receiver.DoctorVisitReminderBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name="com.babytracker.widget.BabyWidgetReceiver"
             android:exported="false">
             <intent-filter>

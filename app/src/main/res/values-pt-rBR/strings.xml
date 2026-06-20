@@ -1223,4 +1223,20 @@
         <item quantity="one">%1$d pergunta</item>
         <item quantity="other">%1$d perguntas</item>
     </plurals>
+
+    <!-- Doctor Visit — reminders -->
+    <string name="notif_channel_doctor_visit_reminders_name">Lembretes de consulta</string>
+    <string name="notif_channel_doctor_visit_reminders_description">Lembretes antes de uma consulta médica</string>
+    <string name="doctor_visit_reminder_title">Consulta médica próxima</string>
+    <string name="doctor_visit_reminder_body">%1$s · %2$s</string>
+    <string name="doctor_visit_reminder_body_generic">Consulta em %1$s</string>
+    <string name="doctor_visit_reminder_settings_title">Lembretes de consulta</string>
+    <string name="doctor_visit_reminder_settings_button">Configurar lembretes</string>
+    <string name="doctor_visit_reminder_toggle_title">Lembrar antes das consultas</string>
+    <string name="doctor_visit_reminder_toggle_subtitle">Receba uma notificação antes de uma consulta</string>
+    <string name="doctor_visit_reminder_lead_label">Com quanta antecedência</string>
+    <plurals name="doctor_visit_reminder_lead_option">
+        <item quantity="one">%1$d dia antes</item>
+        <item quantity="other">%1$d dias antes</item>
+    </plurals>
 </resources>
