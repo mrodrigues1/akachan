@@ -203,9 +203,10 @@
     <string name="diaper_notes_label">Notes (optional)</string>
     <string name="diaper_save">Save</string>
     <string name="diaper_view_history">View diaper history</string>
-    <string name="diaper_save_error">Could not save</string>
-    <string name="diaper_history_title">Diaper History</string>
+    <string name="diaper_save_error">Couldn\'t save this change. Try again.</string>
+    <string name="diaper_history_title">Diaper history</string>
     <string name="diaper_history_empty">No diaper changes yet</string>
+    <string name="diaper_history_empty_supporting">Changes you log will appear here</string>
     <plurals name="diaper_history_day_header">
         <item quantity="one">%1$s &#183; %2$d change</item>
         <item quantity="other">%1$s &#183; %2$d changes</item>
@@ -217,7 +218,7 @@
     <string name="diaper_edit_content_description">Edit %1$s change at %2$s</string>
     <string name="diaper_delete_content_description">Delete %1$s change at %2$s</string>
     <string name="diaper_delete_title">Delete this diaper change?</string>
-    <string name="diaper_delete_message">It can\'t be undone.</string>
+    <string name="diaper_delete_message">This can\'t be undone.</string>
     <string name="feeding_history_title">Feeding history</string>
     <string name="feeding_history_empty">No feeds logged yet</string>
     <string name="feeding_history_empty_supporting">Bottle feeds and breastfeeding sessions will appear here</string>
