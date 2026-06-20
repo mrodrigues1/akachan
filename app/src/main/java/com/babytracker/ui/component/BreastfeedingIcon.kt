@@ -24,3 +24,12 @@ fun SleepIcon(modifier: Modifier = Modifier) {
         modifier = modifier.clearAndSetSemantics {},
     )
 }
+
+@Composable
+fun PumpingIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_pumping_section),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}

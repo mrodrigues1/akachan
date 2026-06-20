@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.FeatureDomain
 import com.babytracker.ui.component.BreastfeedingIcon
+import com.babytracker.ui.component.PumpingIcon
 import com.babytracker.ui.component.SleepIcon
 
 /**
@@ -169,6 +170,7 @@ private fun FeatureRow(
 private fun FeatureIcon(feature: AppFeature) {
     when (feature) {
         AppFeature.BREASTFEEDING -> BreastfeedingIcon(modifier = Modifier.size(24.dp))
+        AppFeature.PUMPING -> PumpingIcon(modifier = Modifier.size(24.dp))
         AppFeature.SLEEP -> SleepIcon(modifier = Modifier.size(24.dp))
         else -> Text(text = feature.emoji, style = MaterialTheme.typography.titleMedium)
     }
@@ -199,7 +201,7 @@ private val AppFeature.emoji: String
     get() = when (this) {
         AppFeature.BREASTFEEDING -> ""
         AppFeature.BOTTLE_FEED -> "🍼"
-        AppFeature.PUMPING -> "🥛"
+        AppFeature.PUMPING -> ""
         AppFeature.INVENTORY -> "🧊"
         AppFeature.SLEEP -> ""
         AppFeature.DIAPERS -> "🧷"
