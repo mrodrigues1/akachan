@@ -57,17 +57,18 @@ class GrowthScreenTest {
         }
     }
 
+    private var baby = Baby(name = "Leo", birthDate = LocalDate.now().minusMonths(3), sex = BabySex.MALE)
+    private var lmsTable = listOf(
+        LmsPoint(3, 0.1738, 6.3762, 0.11727),
+        LmsPoint(4, 0.1553, 7.0023, 0.11316),
+    )
+
     private val babyRepository = mockk<BabyRepository> {
-        every { getBabyProfile() } returns flowOf(
-            Baby(name = "Leo", birthDate = LocalDate.now().minusMonths(3), sex = BabySex.MALE),
-        )
+        every { getBabyProfile() } answers { flowOf(baby) }
     }
 
     private val whoReferenceData = mockk<WhoReferenceData> {
-        coEvery { lmsTable(any(), any()) } returns listOf(
-            LmsPoint(3, 0.1738, 6.3762, 0.11727),
-            LmsPoint(4, 0.1553, 7.0023, 0.11316),
-        )
+        coEvery { lmsTable(any(), any()) } answers { lmsTable }
     }
 
     private val settingsRepository = mockk<com.babytracker.domain.repository.SettingsRepository> {
@@ -106,5 +107,35 @@ class GrowthScreenTest {
         // The value appears in exactly two places: the summary card and the history row.
         // Asserting the count proves the history row rendered, not just the summary.
         composeRule.onAllNodesWithText("6.50 kg").assertCountEquals(2)
+    }
+
+    /**
+     * Regression for AKA-210: a brand-new user keeps the default unspecified sex (onboarding does not
+     * require it), so the WHO table is empty and the first measurement is the chart's only point. The
+     * chart must render that lone point — with a flat Y range and no curves — without crashing.
+     */
+    @Test
+    fun addingFirstMeasurementWithoutSexDoesNotCrash() {
+        baby = baby.copy(sex = BabySex.UNSPECIFIED)
+        lmsTable = emptyList()
+
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                GrowthScreen(
+                    onNavigateBack = {},
+                    onNavigateToSettings = {},
+                    viewModel = viewModel(),
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("growth_add_fab").performClick()
+        composeRule.onNodeWithTag("growth_value_input").performTextInput("6.5")
+        composeRule.onNodeWithTag("growth_save_measurement").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag("growth_chart").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("growth_chart").assertIsDisplayed()
     }
 }
