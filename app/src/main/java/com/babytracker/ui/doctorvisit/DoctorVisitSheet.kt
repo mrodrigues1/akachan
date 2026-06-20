@@ -6,10 +6,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -29,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
@@ -116,9 +119,9 @@ fun DoctorVisitSheet(
                 onValueChange = onNotesChange,
                 label = { Text(stringResource(R.string.doctor_visit_notes_hint)) },
                 enabled = !state.isSaving,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
+                minLines = 4,
+                maxLines = 8,
+                modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(16.dp))
 
@@ -158,6 +161,7 @@ fun DoctorVisitSheet(
                 }
                 Text(stringResource(R.string.doctor_visit_save), style = MaterialTheme.typography.labelLarge)
             }
+            Spacer(Modifier.height(8.dp))
             if (onNavigateToHistory != null && !state.isEditing) {
                 TextButton(
                     onClick = onNavigateToHistory,
@@ -223,15 +227,24 @@ private fun AttachQuestionsSection(
         }
     }
     questions.forEach { question ->
+        val checked = question.id in state.selectedQuestionIds
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .toggleable(
+                    value = checked,
+                    role = Role.Checkbox,
+                    onValueChange = { onToggleQuestion(question.id) },
+                ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Checkbox(
-                checked = question.id in state.selectedQuestionIds,
-                onCheckedChange = { onToggleQuestion(question.id) },
+                checked = checked,
+                onCheckedChange = null,
                 colors = CheckboxDefaults.colors(checkedColor = colors.accent),
             )
+            Spacer(Modifier.width(8.dp))
             Text(
                 text = question.text,
                 style = MaterialTheme.typography.bodyMedium,

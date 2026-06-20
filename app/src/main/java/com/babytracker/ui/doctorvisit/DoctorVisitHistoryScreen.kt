@@ -9,12 +9,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
@@ -239,14 +242,42 @@ private fun VisitRow(
                                         ),
                                     )
                                 },
-                                colors = AssistChipDefaults.assistChipColors(labelColor = colors.onContainer),
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.AutoMirrored.Outlined.HelpOutline,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(AssistChipDefaults.IconSize),
+                                    )
+                                },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    labelColor = colors.onContainer,
+                                    leadingIconContentColor = colors.onContainer,
+                                ),
+                                border = AssistChipDefaults.assistChipBorder(
+                                    enabled = true,
+                                    borderColor = colors.onContainer.copy(alpha = 0.3f),
+                                ),
                             )
                         }
                         if (visit.hasSnapshot()) {
                             AssistChip(
                                 onClick = { onEdit(visit) },
                                 label = { Text(stringResource(R.string.doctor_visit_history_has_snapshot)) },
-                                colors = AssistChipDefaults.assistChipColors(labelColor = colors.onContainer),
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Outlined.Description,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(AssistChipDefaults.IconSize),
+                                    )
+                                },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    labelColor = colors.onContainer,
+                                    leadingIconContentColor = colors.onContainer,
+                                ),
+                                border = AssistChipDefaults.assistChipBorder(
+                                    enabled = true,
+                                    borderColor = colors.onContainer.copy(alpha = 0.3f),
+                                ),
                             )
                         }
                     }
