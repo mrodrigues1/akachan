@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -41,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.ui.component.HistoryCard
+import com.babytracker.ui.component.PumpingIcon
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatVolume
 import com.babytracker.util.formatTime12h
@@ -119,7 +121,7 @@ internal fun PumpingHistoryContent(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(text = "🥛", style = MaterialTheme.typography.displaySmall)
+                PumpingIcon(modifier = Modifier.size(64.dp))
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = stringResource(R.string.pumping_history_empty_title),
@@ -173,8 +175,8 @@ internal fun PumpingHistoryContent(
                         title = stringResource(R.string.pumping_history_item, stringResource(session.breast.labelRes()), volumeLabel),
                         subtitle = session.startTime.formatTime12h(),
                         trailing = session.activeDuration?.formatDuration() ?: stringResource(R.string.label_in_progress),
-                        badgeEmoji = "🥛",
                         badgeColor = MaterialTheme.colorScheme.primaryContainer,
+                        badgeContent = { PumpingIcon(modifier = Modifier.size(34.dp)) },
                         trailingColor = MaterialTheme.colorScheme.primary,
                         onClick = { onEditClicked(session) },
                         trailingIcon = Icons.Default.Edit,

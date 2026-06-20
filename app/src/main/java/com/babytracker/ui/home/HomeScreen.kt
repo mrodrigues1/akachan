@@ -82,6 +82,7 @@ import com.babytracker.ui.breastfeeding.PredictionCopy
 import com.babytracker.ui.breastfeeding.contentDescriptionText
 import com.babytracker.ui.breastfeeding.detailText
 import com.babytracker.ui.breastfeeding.primaryText
+import com.babytracker.ui.component.PumpingIcon
 import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
@@ -337,12 +338,7 @@ internal fun PumpingHomeCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top,
             ) {
-                Text(
-                    text = "🥛",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = contentColor,
-                    modifier = Modifier.clearAndSetSemantics {},
-                )
+                PumpingIcon(modifier = Modifier.size(40.dp))
                 AnimatedVisibility(
                     visible = isPumping,
                     enter = fadeIn(tween(180, easing = EaseOutQuart)) +
