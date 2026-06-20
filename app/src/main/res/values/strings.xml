@@ -609,7 +609,6 @@
     <string name="growth_latest">Latest %1$s</string>
     <string name="growth_percentile_who">%1$s (WHO)</string>
     <string name="growth_percentile_unavailable">Percentile unavailable for this age</string>
-    <string name="growth_set_sex_percentile">Set sex to see percentile</string>
     <string name="growth_see_who">See WHO percentiles</string>
     <string name="growth_who_subtitle">WHO growth curves are sex-specific. Set your baby\'s sex to compare against them.</string>
     <string name="growth_set_sex">Set sex</string>

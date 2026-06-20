@@ -617,7 +617,6 @@
     <string name="growth_latest">Mais recente: %1$s</string>
     <string name="growth_percentile_who">%1$s (OMS)</string>
     <string name="growth_percentile_unavailable">Percentil indisponível para esta idade</string>
-    <string name="growth_set_sex_percentile">Defina o sexo para ver o percentil</string>
     <string name="growth_see_who">Ver percentis da OMS</string>
     <string name="growth_who_subtitle">As curvas de crescimento da OMS são específicas por sexo. Defina o sexo do seu bebê para comparar com elas.</string>
     <string name="growth_set_sex">Definir sexo</string>
