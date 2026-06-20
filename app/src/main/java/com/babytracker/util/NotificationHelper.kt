@@ -38,10 +38,6 @@ object NotificationHelper {
     const val BREASTFEEDING_ACTIVE_NOTIFICATION_ID = 1004
     const val BREASTFEEDING_GROUP_SUMMARY_NOTIFICATION_ID = 1005
     const val NAP_REMINDER_NOTIFICATION_ID = 1007
-    const val STASH_EXPIRATION_CHANNEL_ID = "stash_expiration_notifications"
-    const val STASH_EXPIRATION_NOTIFICATION_ID = 1009
-    const val PARTNER_STASH_CHANNEL_ID = "partner_stash_notifications"
-    const val PARTNER_STASH_NOTIFICATION_ID = 1010
     private const val RC_MAIN_TAP = 0
     private const val RC_SWITCH_NOW = 2001
     private const val RC_BF_DISMISS = 2002
@@ -54,8 +50,6 @@ object NotificationHelper {
     private const val RC_RESUME_BF_ACTIVE = 2009
     private const val RC_SWITCH_BF_ACTIVE = 2010
     private const val RC_NAP_REMINDER_TAP = 3002
-    private const val RC_STASH_EXPIRATION_TAP = 3003
-    private const val RC_PARTNER_STASH_TAP = 3004
     private const val TAG = "NotificationHelper"
     private const val SECONDS_PER_MINUTE = 60
     private const val ACTIVE_REFRESH_INTERVAL_MS = 30_000L
@@ -102,32 +96,6 @@ object NotificationHelper {
             context.getSystemService(NotificationManager::class.java)
                 .createNotificationChannel(channel)
             Log.d(TAG, "Channel created: $SLEEP_CHANNEL_ID")
-        }
-    }
-
-    fun createStashExpirationNotificationChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                STASH_EXPIRATION_CHANNEL_ID,
-                context.getString(R.string.notif_channel_stash_expiration_name),
-                NotificationManager.IMPORTANCE_DEFAULT,
-            ).apply { description = context.getString(R.string.notif_channel_stash_expiration_description) }
-            context.getSystemService(NotificationManager::class.java)
-                .createNotificationChannel(channel)
-            Log.d(TAG, "Channel created: $STASH_EXPIRATION_CHANNEL_ID")
-        }
-    }
-
-    fun createPartnerStashNotificationChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                PARTNER_STASH_CHANNEL_ID,
-                context.getString(R.string.notif_channel_partner_stash_name),
-                NotificationManager.IMPORTANCE_DEFAULT,
-            ).apply { description = context.getString(R.string.notif_channel_partner_stash_description) }
-            context.getSystemService(NotificationManager::class.java)
-                .createNotificationChannel(channel)
-            Log.d(TAG, "Channel created: $PARTNER_STASH_CHANNEL_ID")
         }
     }
 
@@ -446,7 +414,7 @@ object NotificationHelper {
                         body = body,
                         progress = 0,
                         maxProgress = 1,
-                        showProgress = false
+                        showProgress = false,
                     )
                 )
                 .setCustomBigContentView(
@@ -456,7 +424,7 @@ object NotificationHelper {
                         title = title,
                         body = body,
                         chronometerBaseElapsedMs = chronometerBase,
-                        chronometerRunning = true
+                        chronometerRunning = true,
                     )
                 )
                 .setStyle(NotificationCompat.DecoratedCustomViewStyle())
@@ -522,76 +490,6 @@ object NotificationHelper {
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 putExtra(EXTRA_NAV_ROUTE, Routes.SLEEP_TRACKING)
-            },
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-
-    fun showStashExpiration(context: Context, count: Int, totalMl: Int) {
-        val title = context.getString(R.string.notif_title_stash_expiration)
-        val body = context.resources.getQuantityString(
-            R.plurals.notif_body_stash_expiration, count, count, totalMl,
-        )
-        val accent = resolveAccent(context, WarningAmber, WarningAmberDark)
-        val notification = NotificationCompat.Builder(context, STASH_EXPIRATION_CHANNEL_ID)
-            .applyDesignSystem(accent, R.drawable.ic_notif_limit)
-            .setContentTitle(title)
-            .setContentText(body)
-            .setTicker(title)
-            .setAutoCancel(true)
-            .setOngoing(false)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .setContentIntent(stashExpirationTapPendingIntent(context))
-            .build()
-        context.getSystemService(NotificationManager::class.java)
-            .notify(STASH_EXPIRATION_NOTIFICATION_ID, notification)
-        Log.d(TAG, "showStashExpiration posted (count=$count, totalMl=$totalMl)")
-    }
-
-    private fun stashExpirationTapPendingIntent(context: Context): PendingIntent =
-        PendingIntent.getActivity(
-            context,
-            RC_STASH_EXPIRATION_TAP,
-            Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                putExtra(EXTRA_NAV_ROUTE, Routes.INVENTORY)
-            },
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-
-    fun showPartnerStashConsumed(context: Context, feedCount: Int, totalMl: Int) {
-        val title = context.resources.getQuantityString(
-            R.plurals.notif_title_partner_stash, feedCount, feedCount,
-        )
-        val body = if (feedCount == 1) {
-            context.getString(R.string.notif_body_partner_stash_single, totalMl)
-        } else {
-            context.getString(R.string.notif_body_partner_stash_multi, totalMl)
-        }
-        val accent = resolveAccent(context, Pink700, PrimaryPinkDark)
-        val notification = NotificationCompat.Builder(context, PARTNER_STASH_CHANNEL_ID)
-            .applyDesignSystem(accent, R.drawable.ic_notif_breastfeeding)
-            .setContentTitle(title)
-            .setContentText(body)
-            .setTicker(title)
-            .setAutoCancel(true)
-            .setOngoing(false)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .setContentIntent(partnerStashTapPendingIntent(context))
-            .build()
-        context.getSystemService(NotificationManager::class.java)
-            .notify(PARTNER_STASH_NOTIFICATION_ID, notification)
-        Log.d(TAG, "showPartnerStashConsumed posted (feedCount=$feedCount, totalMl=$totalMl)")
-    }
-
-    private fun partnerStashTapPendingIntent(context: Context): PendingIntent =
-        PendingIntent.getActivity(
-            context,
-            RC_PARTNER_STASH_TAP,
-            Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                putExtra(EXTRA_NAV_ROUTE, Routes.INVENTORY)
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )

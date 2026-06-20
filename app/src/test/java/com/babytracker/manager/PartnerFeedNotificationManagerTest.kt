@@ -3,7 +3,7 @@ package com.babytracker.manager
 import android.content.Context
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.util.NotificationHelper
+import com.babytracker.util.StashNotificationHelper
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -28,13 +28,13 @@ class PartnerFeedNotificationManagerTest {
         inventoryRepository = mockk()
         settingsRepository = mockk()
         manager = PartnerFeedNotificationManager(context, inventoryRepository, settingsRepository)
-        mockkObject(NotificationHelper)
-        every { NotificationHelper.showPartnerStashConsumed(any(), any(), any()) } returns Unit
+        mockkObject(StashNotificationHelper)
+        every { StashNotificationHelper.showPartnerStashConsumed(any(), any(), any()) } returns Unit
     }
 
     @AfterEach
     fun tearDown() {
-        unmockkObject(NotificationHelper)
+        unmockkObject(StashNotificationHelper)
     }
 
     @Test
@@ -44,7 +44,7 @@ class PartnerFeedNotificationManagerTest {
 
         manager.notifyStashConsumed(listOf(11L, 22L))
 
-        coVerify(exactly = 1) { NotificationHelper.showPartnerStashConsumed(context, 2, 450) }
+        coVerify(exactly = 1) { StashNotificationHelper.showPartnerStashConsumed(context, 2, 450) }
     }
 
     @Test
@@ -54,7 +54,7 @@ class PartnerFeedNotificationManagerTest {
         manager.notifyStashConsumed(listOf(11L))
 
         coVerify(exactly = 0) { inventoryRepository.sumVolumeForIds(any()) }
-        coVerify(exactly = 0) { NotificationHelper.showPartnerStashConsumed(any(), any(), any()) }
+        coVerify(exactly = 0) { StashNotificationHelper.showPartnerStashConsumed(any(), any(), any()) }
     }
 
     @Test
@@ -62,7 +62,7 @@ class PartnerFeedNotificationManagerTest {
         manager.notifyStashConsumed(emptyList())
 
         coVerify(exactly = 0) { settingsRepository.getPartnerFeedStashNotificationsEnabled() }
-        coVerify(exactly = 0) { NotificationHelper.showPartnerStashConsumed(any(), any(), any()) }
+        coVerify(exactly = 0) { StashNotificationHelper.showPartnerStashConsumed(any(), any(), any()) }
     }
 
     @Test
@@ -72,6 +72,6 @@ class PartnerFeedNotificationManagerTest {
 
         manager.notifyStashConsumed(listOf(11L))
 
-        coVerify(exactly = 0) { NotificationHelper.showPartnerStashConsumed(any(), any(), any()) }
+        coVerify(exactly = 0) { StashNotificationHelper.showPartnerStashConsumed(any(), any(), any()) }
     }
 }

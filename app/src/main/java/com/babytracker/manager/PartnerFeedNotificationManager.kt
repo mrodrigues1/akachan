@@ -3,7 +3,7 @@ package com.babytracker.manager
 import android.content.Context
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.util.NotificationHelper
+import com.babytracker.util.StashNotificationHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -24,7 +24,7 @@ class PartnerFeedNotificationManager @Inject constructor(
         // bag deleted between apply and lookup) contribute 0 mL, as before. Non-empty by the guard above.
         val totalMl = inventoryRepository.sumVolumeForIds(consumedBagIds)
         if (totalMl <= 0) return
-        NotificationHelper.showPartnerStashConsumed(
+        StashNotificationHelper.showPartnerStashConsumed(
             context = context,
             feedCount = consumedBagIds.size,
             totalMl = totalMl,

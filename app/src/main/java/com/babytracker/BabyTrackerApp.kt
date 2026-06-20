@@ -21,6 +21,7 @@ import com.babytracker.ui.milestone.evictMilestoneBitmapCache
 import com.babytracker.ui.milestone.trimMilestoneBitmapCache
 import com.babytracker.util.DoctorVisitNotificationHelper
 import com.babytracker.util.NotificationHelper
+import com.babytracker.util.StashNotificationHelper
 import com.babytracker.util.VaccineNotificationHelper
 import com.babytracker.util.createPredictiveFeedNotificationChannel
 import com.babytracker.util.createPredictiveSleepNotificationChannel
@@ -104,8 +105,8 @@ class BabyTrackerApp : Application(), Configuration.Provider {
     private fun createNotificationChannels() {
         NotificationHelper.createBreastfeedingNotificationChannel(this)
         NotificationHelper.createSleepNotificationChannel(this)
-        NotificationHelper.createStashExpirationNotificationChannel(this)
-        NotificationHelper.createPartnerStashNotificationChannel(this)
+        StashNotificationHelper.createStashExpirationNotificationChannel(this)
+        StashNotificationHelper.createPartnerStashNotificationChannel(this)
         VaccineNotificationHelper.createChannel(this)
         DoctorVisitNotificationHelper.createChannel(this)
         createPredictiveFeedNotificationChannel(this)
