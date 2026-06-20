@@ -41,6 +41,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -121,12 +123,14 @@ fun DiaperHistoryScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("🧷", style = MaterialTheme.typography.headlineLarge)
+                Text("🧷", style = MaterialTheme.typography.displaySmall)
                 Spacer(Modifier.height(12.dp))
                 Text(
                     text = stringResource(R.string.diaper_history_empty),
                     style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
+                    modifier = Modifier.semantics { heading() },
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
