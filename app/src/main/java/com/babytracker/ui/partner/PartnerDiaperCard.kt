@@ -10,6 +10,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -32,9 +33,11 @@ fun PartnerDiaperCard(
     modifier: Modifier = Modifier,
 ) {
     val zone = ZoneId.systemDefault()
-    val today = Instant.now().atZone(zone).toLocalDate()
-    val todayCount = diapers.count { Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate() == today }
-    val last = diapers.maxByOrNull { it.timestamp }
+    val (todayCount, last) = remember(diapers) {
+        val today = Instant.now().atZone(zone).toLocalDate()
+        val count = diapers.count { Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate() == today }
+        count to diapers.maxByOrNull { it.timestamp }
+    }
     val diaper = diaperColors()
     Card(
         modifier = modifier.fillMaxWidth(),
