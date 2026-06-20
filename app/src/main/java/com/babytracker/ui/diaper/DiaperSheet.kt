@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,6 +17,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -28,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
 import com.babytracker.domain.model.DiaperType
@@ -103,12 +106,16 @@ fun DiaperSheet(
                 onValueChange = onNotesChange,
                 label = { Text(stringResource(R.string.diaper_notes_label)) },
                 enabled = !state.isSaving,
+                isError = state.validationError != null,
+                supportingText = state.validationError?.let { error -> { Text(error) } },
+                // Keep the field in the diaper (yellow) palette instead of the M3 primary (pink) default.
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = diaper.accent,
+                    focusedLabelColor = diaper.accent,
+                    cursorColor = diaper.accent,
+                ),
                 modifier = Modifier.fillMaxWidth(),
             )
-            state.validationError?.let {
-                Spacer(Modifier.height(8.dp))
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            }
             Spacer(Modifier.height(20.dp))
 
             Button(
@@ -166,7 +173,12 @@ private fun DiaperTypeSelector(
     activeContainerColor: Color,
     activeContentColor: Color,
 ) {
-    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+    SingleChoiceSegmentedButtonRow(
+        // 48dp floor: the M3 segmented default (40dp) is below the one-handed-at-3am tap minimum.
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp),
+    ) {
         DiaperType.entries.forEachIndexed { index, type ->
             SegmentedButton(
                 selected = selected == type,
@@ -178,7 +190,13 @@ private fun DiaperTypeSelector(
                     activeContainerColor = activeContainerColor,
                     activeContentColor = activeContentColor,
                 ),
-                label = { Text("${type.emoji} ${stringResource(type.labelRes())}") },
+                label = {
+                    Text(
+                        text = "${type.emoji} ${stringResource(type.labelRes())}",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
             )
         }
     }

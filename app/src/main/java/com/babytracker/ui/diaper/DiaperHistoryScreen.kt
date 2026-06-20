@@ -1,5 +1,6 @@
 package com.babytracker.ui.diaper
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -48,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.DiaperChange
 import com.babytracker.ui.component.labelRes
+import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.diaperColors
 import com.babytracker.util.toRelativeLabel
 import java.time.ZoneId
@@ -186,12 +188,16 @@ private fun DiaperHistoryRow(
     onDelete: () -> Unit,
 ) {
     val time = timeFormatter.format(change.timestamp.atZone(ZoneId.systemDefault()).toLocalTime())
+    val isDark = LocalDarkTheme.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        // HistoryCard rule: 1dp ambient lift in light; swap to an outlineVariant stroke in dark.
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 1.dp),
+        border = if (isDark) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
     ) {
         Row(
             modifier = Modifier
@@ -241,6 +247,7 @@ private fun DiaperDeleteConfirmationDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val diaper = diaperColors()
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.diaper_delete_title)) },
@@ -248,16 +255,17 @@ private fun DiaperDeleteConfirmationDialog(
         confirmButton = {
             Button(
                 onClick = onConfirm,
+                // Destructive action carries the error role, not the friendly domain accent.
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = diaperColors().accent,
-                    contentColor = diaperColors().onAccent,
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
                 ),
             ) { Text(stringResource(R.string.delete)) }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(contentColor = diaperColors().onContainer),
+                colors = ButtonDefaults.textButtonColors(contentColor = diaper.onContainer),
             ) { Text(stringResource(R.string.cancel)) }
         },
     )
