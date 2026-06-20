@@ -299,7 +299,7 @@ private fun GrowthEmptyState(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(24.dp))
         Button(
             onClick = onAddFirst,
             modifier = Modifier.testTag("growth_empty_cta"),
@@ -341,23 +341,22 @@ private fun GrowthSummaryCard(
                 fontWeight = FontWeight.SemiBold,
                 color = growth.onContainer,
             )
-            Spacer(Modifier.height(8.dp))
+            // Percentile line. When sex is unset we show nothing here: the SetSexCard directly below
+            // carries that single ask, so repeating it in the summary would nag for the same thing twice.
             if (percentile != null) {
+                Spacer(Modifier.height(8.dp))
                 PercentilePill(percentileLabel(percentile))
-            } else {
+            } else if (chart.isSexSpecified) {
+                Spacer(Modifier.height(8.dp))
                 Text(
-                    text = if (chart.isSexSpecified) {
-                        stringResource(R.string.growth_percentile_unavailable)
-                    } else {
-                        stringResource(R.string.growth_set_sex_percentile)
-                    },
+                    text = stringResource(R.string.growth_percentile_unavailable),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = growth.onContainer,
                 )
             }
             trendLabel(type, system, latest, previous)?.let { trend ->
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 Text(
                     text = trend,
                     style = MaterialTheme.typography.bodyMedium,
