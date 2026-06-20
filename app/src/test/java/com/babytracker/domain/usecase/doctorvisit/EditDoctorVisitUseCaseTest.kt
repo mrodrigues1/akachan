@@ -3,6 +3,7 @@ package com.babytracker.domain.usecase.doctorvisit
 import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.manager.DoctorVisitReminderScheduler
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coVerifyOrder
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -13,13 +14,15 @@ import java.time.Instant
 class EditDoctorVisitUseCaseTest {
     private lateinit var repository: DoctorVisitRepository
     private lateinit var scheduler: DoctorVisitReminderScheduler
+    private lateinit var syncToFirestore: SyncToFirestoreUseCase
     private lateinit var useCase: EditDoctorVisitUseCase
 
     @BeforeEach
     fun setup() {
         repository = mockk(relaxed = true)
         scheduler = mockk(relaxed = true)
-        useCase = EditDoctorVisitUseCase(repository, scheduler)
+        syncToFirestore = mockk(relaxed = true)
+        useCase = EditDoctorVisitUseCase(repository, scheduler, syncToFirestore)
     }
 
     @Test

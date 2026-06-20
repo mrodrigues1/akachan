@@ -1222,4 +1222,8 @@
         <item quantity="one">%1$d day before</item>
         <item quantity="other">%1$d days before</item>
     </plurals>
+
+    <!-- Doctor Visit — partner dashboard -->
+    <string name="partner_doctor_visits_heading">🩺 Doctor visits</string>
+    <string name="partner_doctor_visits_empty">No visits shared</string>
 </resources>

@@ -52,6 +52,7 @@ class SyncToFirestoreUseCase @Inject constructor(
         val diapers = sources.diaper.observeAll().first().take(SYNC_LIMIT)
         val growth = sources.growth.getAllMeasurements().first().latestPerType()
         val milestones = sources.milestones.getMilestones().first()
+        val doctorVisits = sources.doctorVisit.observeAllVisits().first().take(SYNC_LIMIT)
         val updatedAtMs = now().toEpochMilli()
         val prediction = currentPrediction(updatedAtMs)
         sharingRepository.syncFullSnapshot(
@@ -70,6 +71,7 @@ class SyncToFirestoreUseCase @Inject constructor(
                 growth = growth.map { it.toSnapshot() },
                 milestones = milestones.map { it.toSnapshot() },
                 diapers = diapers.map { it.toSnapshot() },
+                doctorVisits = doctorVisits.map { it.toSnapshot() },
             ),
         )
     }

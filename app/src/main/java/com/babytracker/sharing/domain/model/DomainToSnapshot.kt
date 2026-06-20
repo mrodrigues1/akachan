@@ -3,6 +3,7 @@ package com.babytracker.sharing.domain.model
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BottleFeed
 import com.babytracker.domain.model.DiaperChange
+import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.GrowthMeasurement
 import com.babytracker.domain.model.Milestone
@@ -40,6 +41,13 @@ fun BottleFeed.toSnapshot(): BottleFeedSnapshot = BottleFeedSnapshot(
 fun DiaperChange.toSnapshot(): DiaperSnapshot = DiaperSnapshot(
     timestamp = timestamp.toEpochMilli(),
     type = type.name,
+    notes = notes,
+)
+
+// Visit-only: questions and the local snapshot reference are intentionally not synced.
+fun DoctorVisit.toSnapshot(): DoctorVisitSnapshot = DoctorVisitSnapshot(
+    date = date.toEpochMilli(),
+    providerName = providerName,
     notes = notes,
 )
 
