@@ -18,3 +18,12 @@
 # Keeping all classes that might be used by Hilt for reflection
 -keep class com.babytracker.** { *; }
 -keep interface com.babytracker.** { *; }
+
+# Hilt generates a `BabyTrackerApp_HiltComponents` holder whose nested subcomponent builders
+# (ActivityC$Builder, FragmentC$Builder, ViewModelC$Builder, …) and the `Hilt_BabyTrackerApp`
+# base class are compile-time scaffolding. Under R8 full mode these are reported as "missing
+# classes" because they are referenced but not retained as standalone types — they are not
+# needed at runtime. Suppress per AGP's auto-generated missing_rules.txt so the minified release
+# build (`minifyReleaseWithR8`) succeeds.
+-dontwarn com.babytracker.BabyTrackerApp_HiltComponents$**
+-dontwarn com.babytracker.Hilt_BabyTrackerApp
