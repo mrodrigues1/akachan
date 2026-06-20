@@ -1206,4 +1206,20 @@
         <item quantity="one">%1$d question</item>
         <item quantity="other">%1$d questions</item>
     </plurals>
+
+    <!-- Doctor Visit — reminders -->
+    <string name="notif_channel_doctor_visit_reminders_name">Doctor visit reminders</string>
+    <string name="notif_channel_doctor_visit_reminders_description">Reminders before an upcoming doctor visit</string>
+    <string name="doctor_visit_reminder_title">Upcoming doctor visit</string>
+    <string name="doctor_visit_reminder_body">%1$s · %2$s</string>
+    <string name="doctor_visit_reminder_body_generic">Visit on %1$s</string>
+    <string name="doctor_visit_reminder_settings_title">Visit reminders</string>
+    <string name="doctor_visit_reminder_settings_button">Reminder settings</string>
+    <string name="doctor_visit_reminder_toggle_title">Remind me before visits</string>
+    <string name="doctor_visit_reminder_toggle_subtitle">Get a notification before an upcoming visit</string>
+    <string name="doctor_visit_reminder_lead_label">How early to remind me</string>
+    <plurals name="doctor_visit_reminder_lead_option">
+        <item quantity="one">%1$d day before</item>
+        <item quantity="other">%1$d days before</item>
+    </plurals>
 </resources>
