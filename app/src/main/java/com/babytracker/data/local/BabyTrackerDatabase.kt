@@ -11,6 +11,7 @@ import com.babytracker.data.local.dao.BabyProfileDao
 import com.babytracker.data.local.dao.BottleFeedDao
 import com.babytracker.data.local.dao.BreastfeedingDao
 import com.babytracker.data.local.dao.DiaperDao
+import com.babytracker.data.local.dao.DoctorVisitDao
 import com.babytracker.data.local.dao.GrowthMeasurementDao
 import com.babytracker.data.local.dao.MilestoneDao
 import com.babytracker.data.local.dao.MilkBagDao
@@ -23,6 +24,7 @@ import com.babytracker.data.local.entity.BabyProfileEntity
 import com.babytracker.data.local.entity.BottleFeedEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
 import com.babytracker.data.local.entity.DiaperEntity
+import com.babytracker.data.local.entity.DoctorVisitEntity
 import com.babytracker.data.local.entity.GrowthMeasurementEntity
 import com.babytracker.data.local.entity.MilestoneEntity
 import com.babytracker.data.local.entity.MilkBagEntity
@@ -31,6 +33,7 @@ import com.babytracker.data.local.entity.SleepEntity
 import com.babytracker.data.local.entity.SleepRecommendationEntity
 import com.babytracker.data.local.entity.SleepRecommendationFeedbackEntity
 import com.babytracker.data.local.entity.VaccineEntity
+import com.babytracker.data.local.entity.VisitQuestionEntity
 
 @Database(
     entities = [
@@ -47,8 +50,10 @@ import com.babytracker.data.local.entity.VaccineEntity
         MilestoneEntity::class,
         DiaperEntity::class,
         VaccineEntity::class,
+        DoctorVisitEntity::class,
+        VisitQuestionEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -65,6 +70,7 @@ abstract class BabyTrackerDatabase : RoomDatabase() {
     abstract fun milestoneDao(): MilestoneDao
     abstract fun diaperDao(): DiaperDao
     abstract fun vaccineDao(): VaccineDao
+    abstract fun doctorVisitDao(): DoctorVisitDao
 }
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -435,6 +441,40 @@ val MIGRATION_13_14 = object : Migration(13, 14) {
         database.execSQL(
             "CREATE INDEX IF NOT EXISTS index_vaccines_status ON vaccines(status)",
         )
+    }
+}
+
+// Additive: a doctor visit is a point-in-time event (no in-progress state), so no active-row
+// trigger is installed. Two tables: doctor_visits and visit_questions (the latter carries a
+// nullable visit_id FK-less link; NULL = inbox).
+val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS doctor_visits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                date INTEGER NOT NULL,
+                provider_name TEXT,
+                notes TEXT,
+                snapshot_label TEXT,
+                snapshot_created_at INTEGER,
+                created_at INTEGER NOT NULL
+            )
+            """.trimIndent(),
+        )
+        database.execSQL("CREATE INDEX IF NOT EXISTS index_doctor_visits_date ON doctor_visits(date)")
+        database.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS visit_questions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                text TEXT NOT NULL,
+                answered INTEGER NOT NULL,
+                visit_id INTEGER,
+                created_at INTEGER NOT NULL
+            )
+            """.trimIndent(),
+        )
+        database.execSQL("CREATE INDEX IF NOT EXISTS index_visit_questions_visit_id ON visit_questions(visit_id)")
     }
 }
 
