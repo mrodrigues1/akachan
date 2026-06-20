@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -48,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -231,6 +233,11 @@ private fun GrowthContent(
             return@Column
         }
 
+        // Sorted once per measurement change, not on every recomposition (LazyListScope is not a
+        // composable scope, so the remember is hoisted here above the LazyColumn).
+        val historyByRecency = remember(chart.measurements) {
+            chart.measurements.sortedWith(GROWTH_RECENCY.reversed())
+        }
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
@@ -262,7 +269,7 @@ private fun GrowthContent(
                         .semantics { heading() },
                 )
             }
-            items(chart.measurements.sortedWith(GROWTH_RECENCY.reversed()), key = { it.id }) { measurement ->
+            items(historyByRecency, key = { it.id }) { measurement ->
                 GrowthHistoryRow(
                     measurement = measurement,
                     type = uiState.selectedType,
@@ -283,7 +290,13 @@ private fun GrowthEmptyState(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("📏", style = MaterialTheme.typography.displaySmall)
+        // Decorative glyph: hidden from TalkBack so the heading is the first thing announced.
+        // headlineLarge, not displaySmall — displaySmall is reserved for the live timer readout.
+        Text(
+            "📏",
+            style = MaterialTheme.typography.headlineLarge,
+            modifier = Modifier.clearAndSetSemantics {},
+        )
         Spacer(Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.growth_empty_title),
@@ -302,7 +315,9 @@ private fun GrowthEmptyState(
         Spacer(Modifier.height(24.dp))
         Button(
             onClick = onAddFirst,
-            modifier = Modifier.testTag("growth_empty_cta"),
+            modifier = Modifier
+                .heightIn(min = 48.dp)
+                .testTag("growth_empty_cta"),
         ) {
             Text(stringResource(R.string.growth_empty_cta))
         }
@@ -435,7 +450,12 @@ private fun SetSexCard(onSetSex: () -> Unit) {
                 color = growth.onContainer,
             )
             Spacer(Modifier.height(8.dp))
-            Button(onClick = onSetSex, modifier = Modifier.testTag("growth_set_sex")) {
+            Button(
+                onClick = onSetSex,
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .testTag("growth_set_sex"),
+            ) {
                 Text(stringResource(R.string.growth_set_sex))
             }
         }
@@ -535,7 +555,8 @@ private fun GrowthChart(
                     getXStep = { 1.0 },
                 ),
                 producer,
-                modifier = Modifier.fillMaxWidth().height(220.dp),
+                // Height comes from the Box this chart fills (set by the caller); no second literal.
+                modifier = Modifier.fillMaxSize(),
             )
         }
     }

@@ -24,7 +24,9 @@ fun growthColors(): GrowthPalette =
             accent = GrowthTealDark,
             container = GrowthContainerTealDark,
             onContainer = OnGrowthContainerTealDark,
-            onAccent = OnGrowthContainerTealDark,
+            // Dark text on the bright dark-mode accent. Reusing the container's light on-color here
+            // produced light-on-light (≈1.68:1) on the FAB and every filled button.
+            onAccent = OnGrowthDark,
         )
     } else {
         GrowthPalette(
