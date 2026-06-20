@@ -7,7 +7,7 @@ import android.util.Log
 import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.domain.repository.InventorySettingsRepository
 import com.babytracker.manager.StashExpirationScheduler
-import com.babytracker.util.NotificationHelper
+import com.babytracker.util.StashNotificationHelper
 import com.babytracker.util.goAsyncWithTimeout
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
@@ -57,7 +57,7 @@ class StashExpirationReceiver : BroadcastReceiver() {
 
                     if (expiringToday.isNotEmpty()) {
                         try {
-                            NotificationHelper.showStashExpiration(
+                            StashNotificationHelper.showStashExpiration(
                                 context = context,
                                 count = expiringToday.size,
                                 totalMl = expiringToday.sumOf { it.volumeMl },

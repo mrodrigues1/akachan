@@ -5,7 +5,7 @@ import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.domain.repository.InventorySettingsRepository
 import com.babytracker.manager.StashExpirationScheduler
-import com.babytracker.util.NotificationHelper
+import com.babytracker.util.StashNotificationHelper
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -42,15 +42,15 @@ class StashExpirationReceiverTest {
             this.inventorySettings = this@StashExpirationReceiverTest.inventorySettings
             this.scheduler = this@StashExpirationReceiverTest.scheduler
         }
-        mockkObject(NotificationHelper)
-        every { NotificationHelper.showStashExpiration(any(), any(), any()) } returns Unit
+        mockkObject(StashNotificationHelper)
+        every { StashNotificationHelper.showStashExpiration(any(), any(), any()) } returns Unit
         every { inventorySettings.getExpirationNotifTimeMinutes() } returns flowOf(NOTIF_TIME_MINUTES)
         every { inventorySettings.getExpirationDays() } returns flowOf(EXPIRATION_DAYS)
     }
 
     @AfterEach
     fun tearDown() {
-        unmockkObject(NotificationHelper)
+        unmockkObject(StashNotificationHelper)
     }
 
     @Test
@@ -68,7 +68,7 @@ class StashExpirationReceiverTest {
 
         receiver.handle(context)
 
-        verify(exactly = 1) { NotificationHelper.showStashExpiration(context, 2, 150) }
+        verify(exactly = 1) { StashNotificationHelper.showStashExpiration(context, 2, 150) }
         verify(exactly = 1) { scheduler.scheduleDaily(NOTIF_TIME_MINUTES) }
     }
 
@@ -82,7 +82,7 @@ class StashExpirationReceiverTest {
 
         receiver.handle(context)
 
-        verify(exactly = 0) { NotificationHelper.showStashExpiration(any(), any(), any()) }
+        verify(exactly = 0) { StashNotificationHelper.showStashExpiration(any(), any(), any()) }
         verify(exactly = 1) { scheduler.scheduleDaily(NOTIF_TIME_MINUTES) }
     }
 
@@ -94,7 +94,7 @@ class StashExpirationReceiverTest {
 
         coVerify(exactly = 0) { milkBagDao.getAllBagsOnce() }
         verify(exactly = 0) { inventorySettings.getExpirationNotifEnabled() }
-        verify(exactly = 0) { NotificationHelper.showStashExpiration(any(), any(), any()) }
+        verify(exactly = 0) { StashNotificationHelper.showStashExpiration(any(), any(), any()) }
         verify(exactly = 0) { scheduler.scheduleDaily(any()) }
     }
 
@@ -107,7 +107,7 @@ class StashExpirationReceiverTest {
 
         coVerify(exactly = 0) { milkBagDao.getAllBagsOnce() }
         verify(exactly = 0) { inventorySettings.getExpirationNotifTimeMinutes() }
-        verify(exactly = 0) { NotificationHelper.showStashExpiration(any(), any(), any()) }
+        verify(exactly = 0) { StashNotificationHelper.showStashExpiration(any(), any(), any()) }
         verify(exactly = 0) { scheduler.scheduleDaily(any()) }
     }
 
@@ -120,7 +120,7 @@ class StashExpirationReceiverTest {
         receiver.handle(context)
 
         verify(exactly = 1) { scheduler.scheduleDaily(NOTIF_TIME_MINUTES) }
-        verify(exactly = 0) { NotificationHelper.showStashExpiration(any(), any(), any()) }
+        verify(exactly = 0) { StashNotificationHelper.showStashExpiration(any(), any(), any()) }
     }
 
     @Test
@@ -130,7 +130,7 @@ class StashExpirationReceiverTest {
         receiver.handle(context)
 
         verify(exactly = 1) { scheduler.scheduleDaily(DEFAULT_NOTIF_TIME_MINUTES) }
-        verify(exactly = 0) { NotificationHelper.showStashExpiration(any(), any(), any()) }
+        verify(exactly = 0) { StashNotificationHelper.showStashExpiration(any(), any(), any()) }
     }
 
     @Test
@@ -180,7 +180,7 @@ class StashExpirationReceiverTest {
         receiver.handle(context)
 
         verify(exactly = 1) { scheduler.scheduleDaily(NOTIF_TIME_MINUTES) }
-        verify(exactly = 1) { NotificationHelper.showStashExpiration(context, 1, 100) }
+        verify(exactly = 1) { StashNotificationHelper.showStashExpiration(context, 1, 100) }
     }
 
     @Test
@@ -191,12 +191,12 @@ class StashExpirationReceiverTest {
             bagExpiringOn(LocalDate.now(zone), volumeMl = 100),
         )
         every {
-            NotificationHelper.showStashExpiration(any(), any(), any())
+            StashNotificationHelper.showStashExpiration(any(), any(), any())
         } throws SecurityException("POST_NOTIFICATIONS denied")
 
         receiver.handle(context)
 
-        verify(exactly = 1) { NotificationHelper.showStashExpiration(context, 1, 100) }
+        verify(exactly = 1) { StashNotificationHelper.showStashExpiration(context, 1, 100) }
         verify(exactly = 1) { scheduler.scheduleDaily(NOTIF_TIME_MINUTES) }
     }
 
