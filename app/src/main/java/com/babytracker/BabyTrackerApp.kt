@@ -7,14 +7,17 @@ import com.babytracker.BuildConfig
 import com.babytracker.debug.DebugDataSeeder
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.usecase.baby.BootstrapBabyProfileUseCase
+import com.babytracker.domain.repository.DoctorVisitSettingsRepository
 import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.InventorySettingsRepository
 import com.babytracker.domain.repository.VaccineSettingsRepository
+import com.babytracker.manager.DoctorVisitReminderScheduler
 import com.babytracker.manager.FeatureSuppressionCoordinator
 import com.babytracker.manager.PredictiveFeedNotificationCoordinator
 import com.babytracker.manager.PredictiveSleepNotificationCoordinator
 import com.babytracker.manager.StashExpirationScheduler
 import com.babytracker.manager.VaccineReminderScheduler
+import com.babytracker.util.DoctorVisitNotificationHelper
 import com.babytracker.util.NotificationHelper
 import com.babytracker.util.VaccineNotificationHelper
 import com.babytracker.util.createPredictiveFeedNotificationChannel
@@ -45,6 +48,8 @@ class BabyTrackerApp : Application(), Configuration.Provider {
     @Inject lateinit var bootstrapBabyProfile: BootstrapBabyProfileUseCase
     @Inject lateinit var vaccineReminderScheduler: VaccineReminderScheduler
     @Inject lateinit var vaccineSettings: VaccineSettingsRepository
+    @Inject lateinit var doctorVisitReminderScheduler: DoctorVisitReminderScheduler
+    @Inject lateinit var doctorVisitSettings: DoctorVisitSettingsRepository
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -61,6 +66,7 @@ class BabyTrackerApp : Application(), Configuration.Provider {
         NotificationHelper.createStashExpirationNotificationChannel(this)
         NotificationHelper.createPartnerStashNotificationChannel(this)
         VaccineNotificationHelper.createChannel(this)
+        DoctorVisitNotificationHelper.createChannel(this)
         createPredictiveFeedNotificationChannel(this)
         predictiveCoordinator.start()
         createPredictiveSleepNotificationChannel(this)
@@ -70,6 +76,7 @@ class BabyTrackerApp : Application(), Configuration.Provider {
         milkStashWidgetSyncManager.start()
         reconcileStashExpirationAlarm()
         reconcileVaccineReminders()
+        reconcileDoctorVisitReminders()
         appScope.launch { runCatching { bootstrapBabyProfile() } }
         if (BuildConfig.DEBUG) {
             appScope.launch { debugDataSeeder.seedIfEmpty() }
@@ -101,6 +108,17 @@ class BabyTrackerApp : Application(), Configuration.Provider {
             runCatching {
                 if (vaccineSettings.getReminderEnabled().first()) {
                     vaccineReminderScheduler.rescheduleAll()
+                }
+            }
+        }
+    }
+
+    // Re-arm doctor-visit reminders on cold start, mirroring reconcileVaccineReminders().
+    private fun reconcileDoctorVisitReminders() {
+        appScope.launch {
+            runCatching {
+                if (doctorVisitSettings.getReminderEnabled().first()) {
+                    doctorVisitReminderScheduler.rescheduleAll()
                 }
             }
         }
