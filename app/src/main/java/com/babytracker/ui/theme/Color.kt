@@ -205,3 +205,28 @@ val VaccineIndigoDark = Indigo200
 val OnVaccineDark = Indigo900 // dark text on the light accent (dark scheme)
 val VaccineContainerIndigoDark = Indigo800
 val OnVaccineContainerIndigoDark = Indigo100
+
+// ─── Raw palette — Doctor Visit / Blue Grey ──────────────────
+// Extended (non-M3) accent. A clinical slate (stethoscope steel / medical clipboard),
+// distinct from sleep blue, vaccine indigo, growth teal, and the Success/Tertiary green.
+// Scale semantics match Pink/Blue/Green/Teal (700 = primary, 200 = container, 900 = on-container).
+val BlueGrey900 = Color(0xFF263238)
+val BlueGrey800 = Color(0xFF37474F)
+val BlueGrey700 = Color(0xFF455A64)
+val BlueGrey300 = Color(0xFF90A4AE)
+val BlueGrey200 = Color(0xFFCFD8DC)
+val BlueGrey100 = Color(0xFFECEFF1)
+
+// ─── Doctor Visit semantic tokens (extended, non-M3) ─────────
+// Accessed via doctorVisitColors(), NOT through MaterialTheme.colorScheme.
+// Light scheme — white-on-BlueGrey700 ≈ 7.4:1; BlueGrey900-on-BlueGrey200 well above 4.5:1.
+val DoctorSlate = BlueGrey700
+val OnDoctorWhite = Color(0xFFFFFFFF) // white text on the dark accent (light scheme)
+val DoctorContainerSlate = BlueGrey200
+val OnDoctorContainerSlate = BlueGrey900
+
+// Dark scheme — the BlueGrey300 accent is light, so dark text reaches contrast on it.
+val DoctorSlateDark = BlueGrey300
+val OnDoctorDark = BlueGrey900 // dark text on the light accent (dark scheme)
+val DoctorContainerSlateDark = BlueGrey800
+val OnDoctorContainerSlateDark = BlueGrey200
