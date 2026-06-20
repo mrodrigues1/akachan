@@ -25,6 +25,7 @@ class HomeFeatureGatingTest {
         onBottleFeed = {},
         onDiaper = {},
         onVaccine = {},
+        onDoctorVisit = {},
         onFeedingHistory = {},
         onConnectPartner = {},
         onGrowth = {},

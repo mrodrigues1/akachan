@@ -49,7 +49,7 @@ class ReorderByKeyTest {
 
     @Test
     fun hiddenTileBetweenVisibleTiles_keepsAbsolutePosition() {
-        // SLEEP_PREDICTION (full index 6) is hidden, sitting between FEEDING_HISTORY (5) and TIP (7).
+        // SLEEP_PREDICTION is hidden, sitting between FEEDING_HISTORY and GROWTH in DEFAULT_ORDER.
         val hidden = HomeTile.SLEEP_PREDICTION
         val hiddenIdx = fullOrder.indexOf(hidden)
         val visible = fullOrder.filter { it != hidden }
@@ -70,6 +70,7 @@ class ReorderByKeyTest {
             HomeTile.BOTTLE_FEED,
             HomeTile.DIAPER,
             HomeTile.VACCINE,
+            HomeTile.DOCTOR_VISIT,
             HomeTile.GROWTH,
             HomeTile.MILESTONES,
             HomeTile.TRENDS,

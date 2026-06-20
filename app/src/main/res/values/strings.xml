@@ -1161,4 +1161,32 @@
     <string name="visit_questions_deleted">Question deleted</string>
     <string name="visit_questions_undo">Undo</string>
     <string name="visit_questions_expand_close">Close</string>
+
+    <!-- Doctor Visit — visit sheet + home tile -->
+    <string name="doctor_visit_tile_label">Doctor visits</string>
+    <string name="doctor_visit_add_title">Log a visit</string>
+    <string name="doctor_visit_edit_title">Edit visit</string>
+    <string name="doctor_visit_date">Date</string>
+    <string name="doctor_visit_provider_hint">Doctor or clinic (optional)</string>
+    <string name="doctor_visit_notes_hint">Notes</string>
+    <string name="doctor_visit_attach_questions">Attach questions to ask</string>
+    <string name="doctor_visit_manage_questions">Manage questions</string>
+    <string name="doctor_visit_snapshot_attach">Attach data snapshot</string>
+    <string name="doctor_visit_snapshot_view">View snapshot</string>
+    <string name="doctor_visit_snapshot_attached">Snapshot attached</string>
+    <string name="doctor_visit_snapshot_failed">Couldn\'t generate snapshot</string>
+    <string name="doctor_visit_snapshot_hint">Save the visit first to attach a data snapshot</string>
+    <string name="doctor_visit_snapshot_label">Data snapshot · %1$s</string>
+    <string name="doctor_visit_save">Save</string>
+    <string name="doctor_visit_tile_today">Visit today</string>
+    <string name="doctor_visit_tile_last">Last visit %1$s</string>
+    <string name="doctor_visit_tile_empty">No visits logged</string>
+    <plurals name="doctor_visit_tile_in_days">
+        <item quantity="one">Next visit in %1$d day</item>
+        <item quantity="other">Next visit in %1$d days</item>
+    </plurals>
+    <plurals name="doctor_visit_tile_open_questions">
+        <item quantity="one">%1$d question to ask</item>
+        <item quantity="other">%1$d questions to ask</item>
+    </plurals>
 </resources>

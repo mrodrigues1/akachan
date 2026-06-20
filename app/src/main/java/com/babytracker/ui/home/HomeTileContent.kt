@@ -82,7 +82,8 @@ internal fun HomeTile.minTileHeightDp(): Dp = when {
     isFullWidth() -> 0.dp
     this == HomeTile.PUMPING || this == HomeTile.INVENTORY ||
         this == HomeTile.BOTTLE_FEED || this == HomeTile.DIAPER ||
-        this == HomeTile.VACCINE || this == HomeTile.FEEDING_HISTORY -> 0.dp
+        this == HomeTile.VACCINE || this == HomeTile.DOCTOR_VISIT ||
+        this == HomeTile.FEEDING_HISTORY -> 0.dp
     else -> 140.dp
 }
 
@@ -129,6 +130,8 @@ internal fun HomeTile.requiredFeature(): AppFeature? = when (this) {
     HomeTile.PARTNER -> null
     // Always-on: vaccine ships outside the feature-toggle set (Feature Selection project).
     HomeTile.VACCINE -> null
+    // Always-on: doctor visits ship outside the feature-toggle set.
+    HomeTile.DOCTOR_VISIT -> null
 }
 
 internal fun HomeTile.isVisible(uiState: HomeUiState): Boolean {
@@ -260,6 +263,8 @@ internal fun HomeTileContent(
         HomeTile.BOTTLE_FEED -> BottleFeedHomeCard(callbacks.onBottleFeed, modifier)
         HomeTile.DIAPER -> DiaperHomeCard(uiState.todayDiaperSummary, callbacks.onDiaper, modifier)
         HomeTile.VACCINE -> VaccineHomeCard(uiState.vaccineSummary, callbacks.onVaccine, modifier)
+        HomeTile.DOCTOR_VISIT ->
+            DoctorVisitHomeCard(uiState.doctorVisitSummary, callbacks.onDoctorVisit, modifier)
         HomeTile.FEEDING_HISTORY ->
             FeedingHistoryHomeCard(uiState.todayFeedingSummary, uiState.volumeUnit, callbacks.onFeedingHistory, modifier)
         HomeTile.SLEEP_PREDICTION ->
@@ -280,6 +285,7 @@ internal data class HomeTileCallbacks(
     val onBottleFeed: () -> Unit,
     val onDiaper: () -> Unit,
     val onVaccine: () -> Unit,
+    val onDoctorVisit: () -> Unit,
     val onFeedingHistory: () -> Unit,
     val onConnectPartner: () -> Unit,
     val onGrowth: () -> Unit,
