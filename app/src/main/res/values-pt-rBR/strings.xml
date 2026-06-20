@@ -626,6 +626,7 @@
     <string name="growth_tab_head">Cabeça</string>
     <string name="growth_add_title">Adicionar %1$s</string>
     <string name="growth_date_field_label">Data</string>
+    <string name="growth_date_field_cd">Data, %1$s. Toque para alterar.</string>
     <string name="growth_trend_up">Subiu %1$s desde %2$s</string>
     <string name="growth_trend_down">Caiu %1$s desde %2$s</string>
     <string name="growth_trend_same">Sem mudança desde %1$s</string>

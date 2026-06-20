@@ -618,6 +618,7 @@
     <string name="growth_tab_head">Head</string>
     <string name="growth_add_title">Add %1$s</string>
     <string name="growth_date_field_label">Date</string>
+    <string name="growth_date_field_cd">Date, %1$s. Tap to change.</string>
     <string name="growth_trend_up">Up %1$s since %2$s</string>
     <string name="growth_trend_down">Down %1$s since %2$s</string>
     <string name="growth_trend_same">No change since %1$s</string>

@@ -136,8 +136,11 @@ val BottleFeedRedDark = Color(0xFFFF8A80)   // Material Red A100 — brighter on
 // ─── Raw palette — Growth / Teal ─────────────────────────────
 // Extended (non-M3) accent. Teal conveys growth/vitality and stays clear of the
 // forest-green Success/Tertiary token. Scale semantics match Pink/Blue/Green
-// (700 = primary action, 200 = container, 900 = on-container text, 100 = softest).
+// (800 = primary action, 200 = container, 900 = on-container text, 100 = softest).
+// Teal700 (#00897B) tops out at 4.34:1 under white, just shy of AA, so the action
+// step is Teal800 like the deeper sibling accents (Purple700/Indigo700/BlueGrey700).
 val Teal900 = Color(0xFF004D40)
+val Teal800 = Color(0xFF00796B)
 val Teal700 = Color(0xFF00897B)
 val Teal200 = Color(0xFFB2DFDB)
 val Teal100 = Color(0xFF80CBC4)
@@ -146,14 +149,18 @@ val Teal100 = Color(0xFF80CBC4)
 // Accessed as top-level vals / via growthColors(), NOT through MaterialTheme.colorScheme.
 // Mirrors the Milestone/Warning extended-token convention.
 
-// Light scheme — white-on-GrowthTeal ≈ 4.6:1; Teal900-on-Teal200 well above 4.5:1.
-val GrowthTeal = Teal700
+// Light scheme — white-on-GrowthTeal ≈ 5.3:1; Teal900-on-Teal200 ≈ 6.8:1.
+val GrowthTeal = Teal800
 val OnGrowthWhite = Color(0xFFFFFFFF)
 val GrowthContainerTeal = Teal200
 val OnGrowthContainerTeal = Teal900
 
-// Dark scheme — brighter accent on dark surface; light text on the deep container.
+// Dark scheme — light accent on dark surface paired with DARK on-accent text, mirroring
+// the Vaccine/Doctor/Diaper dark convention. The earlier Teal200 on-accent was light-on-light
+// (≈1.68:1); OnGrowthDark restores ≈5.2:1 on the bright accent. OnGrowthContainerTealDark
+// stays light — it is the on-color for the deep Teal900 container, not the accent.
 val GrowthTealDark = Color(0xFF4DB6AC)
+val OnGrowthDark = Color(0xFF003A2F) // dark teal text on the bright accent (dark scheme); no scale equivalent
 val GrowthContainerTealDark = Teal900
 val OnGrowthContainerTealDark = Teal200
 

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -34,6 +35,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
@@ -69,6 +74,7 @@ fun AddMeasurementSheet(
     val imperialWeight = type == GrowthType.WEIGHT && system == MeasurementSystem.IMPERIAL
     val canonical = parseCanonical(type, system, primaryValue, ouncesValue)
     val dateFormatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
+    val dateDescription = stringResource(R.string.growth_date_field_cd, selectedDate.format(dateFormatter))
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -108,6 +114,11 @@ fun AddMeasurementSheet(
                             shape = MaterialTheme.shapes.medium,
                         )
                         .clickable { showDatePicker = true }
+                        // Announce as a button carrying the date, so TalkBack users know it opens a picker.
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = dateDescription
+                        }
                         .padding(horizontal = 16.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
@@ -165,7 +176,10 @@ fun AddMeasurementSheet(
                     onSave(value, takenAt, notes.takeIf { it.isNotBlank() })
                 },
                 enabled = canonical != null,
-                modifier = Modifier.fillMaxWidth().testTag("growth_save_measurement"),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .testTag("growth_save_measurement"),
             ) {
                 Text(stringResource(R.string.save))
             }
