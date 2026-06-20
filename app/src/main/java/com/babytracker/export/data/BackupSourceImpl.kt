@@ -55,6 +55,8 @@ class BackupSourceImpl @Inject constructor(
             milestones = db.milestoneDao().getAllOnce().map { it.toBackup() },
             diapers = db.diaperDao().getAllOnce().map { it.toBackup() },
             vaccines = db.vaccineDao().getAllOnce().map { it.toBackup() },
+            doctorVisits = db.doctorVisitDao().getAllVisitsOnce().map { it.toBackup() },
+            visitQuestions = db.doctorVisitDao().getAllQuestionsOnce().map { it.toBackup() },
         )
     }
 

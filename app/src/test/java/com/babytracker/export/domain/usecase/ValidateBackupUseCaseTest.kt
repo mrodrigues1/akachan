@@ -375,4 +375,16 @@ class ValidateBackupUseCaseTest {
     fun `propagates malformed json`() {
         assertThrows(SerializationException::class.java) { useCase("{not valid json") }
     }
+
+    @Test
+    fun `migrates a v5 backup to the current version with empty doctor visit fields`() {
+        // A v5 export predates doctor visits; bumping the current version to 6 must NOT reject it.
+        val v5Json = json.encodeToString(BackupData.serializer(), backup(version = 5))
+
+        val result = useCase(v5Json)
+
+        assertEquals(CURRENT_BACKUP_FORMAT_VERSION, result.backupFormatVersion)
+        assertTrue(result.doctorVisits.isEmpty())
+        assertTrue(result.visitQuestions.isEmpty())
+    }
 }

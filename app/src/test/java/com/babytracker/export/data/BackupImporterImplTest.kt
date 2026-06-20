@@ -3,11 +3,13 @@ package com.babytracker.export.data
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.babytracker.data.local.BabyTrackerDatabase
+import com.babytracker.data.local.entity.DoctorVisitEntity
 import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.export.domain.model.BottleFeedBackup
 import com.babytracker.export.domain.model.DiaperBackup
+import com.babytracker.export.domain.model.DoctorVisitBackup
 import com.babytracker.export.domain.model.GrowthBackup
 import com.babytracker.export.domain.model.MilestoneBackup
 import com.babytracker.export.domain.model.MilkBagBackup
@@ -15,6 +17,8 @@ import com.babytracker.export.domain.model.PumpingBackup
 import com.babytracker.export.domain.model.SettingsBackup
 import com.babytracker.export.domain.model.SleepBackup
 import com.babytracker.export.domain.model.VaccineBackup
+import com.babytracker.export.domain.model.VisitQuestionBackup
+import com.babytracker.manager.DoctorVisitReminderScheduler
 import com.babytracker.manager.VaccineReminderScheduler
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -32,6 +36,7 @@ class BackupImporterImplTest {
 
     private lateinit var db: BabyTrackerDatabase
     private lateinit var scheduler: VaccineReminderScheduler
+    private lateinit var doctorScheduler: DoctorVisitReminderScheduler
     private lateinit var importer: BackupImporterImpl
 
     @Before
@@ -41,7 +46,8 @@ class BackupImporterImplTest {
             BabyTrackerDatabase::class.java,
         ).allowMainThreadQueries().build()
         scheduler = mockk(relaxed = true)
-        importer = BackupImporterImpl(db, scheduler)
+        doctorScheduler = mockk(relaxed = true)
+        importer = BackupImporterImpl(db, scheduler, doctorScheduler)
     }
 
     @After
@@ -314,5 +320,65 @@ class BackupImporterImplTest {
         assertEquals(1, bags.size)
         val pumpId = db.pumpingDao().getAllSessionsOnce().single().id
         assertEquals(pumpId, bags.single().sourceSessionId)
+    }
+
+    private fun doctorVisitBackup(
+        doctorVisits: List<DoctorVisitBackup> = emptyList(),
+        visitQuestions: List<VisitQuestionBackup> = emptyList(),
+    ) = BackupData(
+        backupFormatVersion = 6, roomSchemaVersion = 15, appVersion = "1.0.0", exportedAt = 0,
+        baby = null, settings = settings(), breastfeeding = emptyList(),
+        sleep = emptyList(), pumping = emptyList(), milkBags = emptyList(), bottleFeeds = emptyList(),
+        doctorVisits = doctorVisits, visitQuestions = visitQuestions,
+    )
+
+    @Test
+    fun `imports visits and re-links attached questions, deduping on re-import`() = runTest {
+        val data = doctorVisitBackup(
+            doctorVisits = listOf(
+                DoctorVisitBackup(id = 100, date = 5000, providerName = "Dr A", createdAt = 1000),
+            ),
+            visitQuestions = listOf(
+                VisitQuestionBackup(id = 200, text = "attached?", visitId = 100, createdAt = 10),
+                VisitQuestionBackup(id = 201, text = "inbox?", visitId = null, createdAt = 20),
+            ),
+        )
+
+        val counts = importer.merge(data)
+
+        assertEquals(1, counts.doctorVisitsInserted)
+        assertEquals(2, counts.visitQuestionsInserted)
+        val visitId = db.doctorVisitDao().getAllVisitsOnce().single().id
+        val questions = db.doctorVisitDao().getAllQuestionsOnce()
+        assertEquals(visitId, questions.single { it.text == "attached?" }.visitId)
+        assertEquals(null, questions.single { it.text == "inbox?" }.visitId)
+        coVerify { doctorScheduler.rescheduleAll() }
+
+        // Re-importing the same backup inserts nothing (identity dedup).
+        val again = importer.merge(data)
+        assertEquals(0, again.doctorVisitsInserted)
+        assertEquals(0, again.visitQuestionsInserted)
+    }
+
+    @Test
+    fun `re-links question to an already-existing matching visit instead of the inbox`() = runTest {
+        val existingId = db.doctorVisitDao().insertVisit(
+            DoctorVisitEntity(date = 5000, providerName = "Dr A", createdAt = 1000),
+        )
+        val data = doctorVisitBackup(
+            doctorVisits = listOf(
+                DoctorVisitBackup(id = 100, date = 5000, providerName = "Dr A", createdAt = 1000),
+            ),
+            visitQuestions = listOf(
+                VisitQuestionBackup(id = 200, text = "q?", visitId = 100, createdAt = 10),
+            ),
+        )
+
+        val counts = importer.merge(data)
+
+        assertEquals(0, counts.doctorVisitsInserted) // deduped against the existing visit
+        assertEquals(1, counts.visitQuestionsInserted)
+        val question = db.doctorVisitDao().getAllQuestionsOnce().single { it.text == "q?" }
+        assertEquals(existingId, question.visitId) // re-linked to the existing visit, not the inbox
     }
 }

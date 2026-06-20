@@ -5,6 +5,7 @@ import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.DiaperChange
+import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.VaccineStatus
@@ -89,7 +90,9 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
 
         val diaperPos = drawDiaperSection(doc, PagePos(page, canvas, y), totalPages, data.diapers)
         val vaxStart = PagePos(diaperPos.page, diaperPos.canvas, diaperPos.y + SECTION_GAP)
-        page = drawVaccinesSection(doc, vaxStart, totalPages, data.vaccines).page
+        val vaxPos = drawVaccinesSection(doc, vaxStart, totalPages, data.vaccines)
+        val visitStart = PagePos(vaxPos.page, vaxPos.canvas, vaxPos.y + SECTION_GAP)
+        page = drawDoctorVisitsSection(doc, visitStart, totalPages, data.doctorVisits).page
 
         drawPageFooter(page.canvas, page.info.pageNumber, totalPages)
         doc.finishPage(page)
@@ -296,6 +299,48 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         return startY + LINE
     }
 
+    /**
+     * Renders the Doctor visits section (header + Date/Provider/Notes columns + rows, most recent
+     * first), paginating mid-list. The y-advancement here MUST stay mirrored in [countPages].
+     */
+    private fun drawDoctorVisitsSection(
+        doc: PdfDocument,
+        start: PagePos,
+        totalPages: Int,
+        visits: List<DoctorVisit>,
+    ): PagePos {
+        var page = start.page
+        var canvas = start.canvas
+        var y = start.y
+        val sorted = visits.sortedByDescending { it.date }
+
+        val headerPos = ensureRoom(doc, page, y, totalPages)
+        page = headerPos.page; canvas = headerPos.canvas; y = headerPos.y
+        canvas.drawText("Doctor visits (${visits.size})", MARGIN, y, doctorVisitHeaderPaint)
+        y += LINE * 0.7f
+        y = drawColumnHeaders(canvas, y, "Date", "Provider", "Notes")
+        canvas.drawLine(MARGIN, y - LINE * 0.15f, PAGE_WIDTH - MARGIN, y - LINE * 0.15f, separatorPaint)
+        y += LINE * 0.5f
+
+        for (v in sorted) {
+            val pos = ensureRoom(doc, page, y, totalPages) { c ->
+                val hy = drawColumnHeaders(c, MARGIN + LINE, "Date", "Provider", "Notes")
+                c.drawLine(MARGIN, hy - LINE * 0.15f, PAGE_WIDTH - MARGIN, hy - LINE * 0.15f, separatorPaint)
+                hy + LINE * 0.5f
+            }
+            page = pos.page; canvas = pos.canvas; y = pos.y
+            y = drawDoctorVisitRow(canvas, y, v)
+        }
+        return PagePos(page, canvas, y)
+    }
+
+    private fun drawDoctorVisitRow(canvas: android.graphics.Canvas, startY: Float, v: DoctorVisit): Float {
+        canvas.drawText(v.date.formatPdfDateTime(), MARGIN, startY, bodyPaint)
+        canvas.drawText(v.providerName?.takeIf { it.isNotBlank() } ?: "—", COL_TYPE, startY, bodyPaint)
+        canvas.drawText(v.notes?.takeIf { it.isNotBlank() } ?: "—", COL_DURATION, startY, bodyPaint)
+        return startY + LINE
+    }
+
     private fun drawPageFooter(canvas: android.graphics.Canvas, pageNumber: Int, totalPages: Int) {
         canvas.drawText("Page $pageNumber of $totalPages", PAGE_WIDTH / 2, PAGE_HEIGHT - MARGIN / 2, pageNumberPaint)
     }
@@ -388,6 +433,15 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
             y = sim(y, MARGIN + LINE * 2.5f)
             y += LINE
         }
+        y += SECTION_GAP
+
+        // Doctor visits section (header + column headers + rows)
+        y = sim(y, MARGIN + LINE)
+        y += LINE * 0.7f + LINE + LINE * 0.5f
+        repeat(data.doctorVisits.size) {
+            y = sim(y, MARGIN + LINE * 2.5f)
+            y += LINE
+        }
 
         return pageCount
     }
@@ -441,6 +495,11 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         textSize = HEADER_SIZE
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
+    private val doctorVisitHeaderPaint = Paint().apply {
+        color = DOCTOR_VISIT
+        textSize = HEADER_SIZE
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    }
     private val bodyPaint = Paint().apply {
         color = ON_SURFACE
         textSize = BODY_SIZE
@@ -472,6 +531,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         private const val SLEEP = 0xFF1976D2.toInt()              // Blue700
         private const val DIAPER = 0xFF00897B.toInt()            // Teal600
         private const val VACCINE = 0xFF303F9F.toInt()           // Indigo700
+        private const val DOCTOR_VISIT = 0xFF455A64.toInt()      // BlueGrey700 (DoctorSlate)
         private const val ON_SURFACE = 0xFF1A1A1A.toInt()         // OnSurfaceDark
         private const val ON_SURFACE_VARIANT = 0xFF6D6A64.toInt() // OnSurfaceVariantGrey
         private const val OUTLINE_COLOR = 0xFFCAC4D0.toInt()      // OutlineVariantLight

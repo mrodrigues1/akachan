@@ -4,6 +4,7 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.DiaperRepository
+import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.repository.VaccineRepository
 import com.babytracker.export.domain.PdfReportData
@@ -25,6 +26,7 @@ class GeneratePdfReportUseCaseTest {
     private lateinit var sleepRepository: SleepRepository
     private lateinit var diaperRepository: DiaperRepository
     private lateinit var vaccineRepository: VaccineRepository
+    private lateinit var doctorVisitRepository: DoctorVisitRepository
     private lateinit var renderer: PdfReportRenderer
     private lateinit var useCase: GeneratePdfReportUseCase
 
@@ -34,9 +36,11 @@ class GeneratePdfReportUseCaseTest {
         sleepRepository = mockk()
         diaperRepository = mockk()
         vaccineRepository = mockk()
+        doctorVisitRepository = mockk()
         renderer = mockk()
         useCase = GeneratePdfReportUseCase(
-            breastfeedingRepository, sleepRepository, diaperRepository, vaccineRepository, renderer,
+            breastfeedingRepository, sleepRepository, diaperRepository, vaccineRepository,
+            doctorVisitRepository, renderer,
         )
     }
 
@@ -54,6 +58,7 @@ class GeneratePdfReportUseCaseTest {
         coEvery { sleepRepository.getCompletedRecordsBetween(range.start, range.end) } returns emptyList()
         coEvery { diaperRepository.getBetween(range.start, range.end) } returns emptyList()
         coEvery { vaccineRepository.getAllOnce() } returns emptyList()
+        coEvery { doctorVisitRepository.getAllVisitsOnce() } returns emptyList()
 
         val captured = slot<PdfReportData>()
         every { renderer.render(capture(captured)) } returns byteArrayOf(1, 2, 3)

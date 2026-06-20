@@ -5,16 +5,19 @@ import com.babytracker.data.local.BabyTrackerDatabase
 import com.babytracker.data.local.entity.BottleFeedEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
 import com.babytracker.data.local.entity.DiaperEntity
+import com.babytracker.data.local.entity.DoctorVisitEntity
 import com.babytracker.data.local.entity.GrowthMeasurementEntity
 import com.babytracker.data.local.entity.MilestoneEntity
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
 import com.babytracker.data.local.entity.VaccineEntity
+import com.babytracker.data.local.entity.VisitQuestionEntity
 import com.babytracker.export.domain.BackupImporter
 import com.babytracker.export.domain.ImportCounts
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.domain.model.toSleepTypeOrNull
+import com.babytracker.manager.DoctorVisitReminderScheduler
 import com.babytracker.manager.VaccineReminderScheduler
 import java.util.UUID
 import javax.inject.Inject
@@ -24,6 +27,7 @@ import javax.inject.Singleton
 class BackupImporterImpl @Inject constructor(
     private val db: BabyTrackerDatabase,
     private val vaccineReminderScheduler: VaccineReminderScheduler,
+    private val doctorVisitReminderScheduler: DoctorVisitReminderScheduler,
 ) : BackupImporter {
 
     override suspend fun merge(data: BackupData): ImportCounts {
@@ -37,13 +41,69 @@ class BackupImporterImpl @Inject constructor(
             val milestones = mergeMilestones(data)
             val diapers = mergeDiapers(data)
             val vaccines = mergeVaccines(data)
-            ImportCounts(bf, sleep, pumpInserted, bags, bottles, growth, milestones, diapers, vaccines)
+            val (visitsInserted, visitIdMap) = mergeDoctorVisits(data)
+            val questions = mergeVisitQuestions(data, visitIdMap)
+            ImportCounts(
+                bf, sleep, pumpInserted, bags, bottles, growth, milestones, diapers, vaccines,
+                doctorVisitsInserted = visitsInserted,
+                visitQuestionsInserted = questions,
+            )
         }
         // Re-arm reminders only after the transaction commits, so imported future scheduled
-        // vaccines get their alarms. rescheduleAll() cancels stale alarms then re-arms from the
-        // now-persisted rows; it is a no-op-safe call when no scheduled future vaccines exist.
+        // rows get their alarms. rescheduleAll() cancels stale alarms then re-arms from the
+        // now-persisted rows; it is a no-op-safe call when nothing future remains.
         vaccineReminderScheduler.rescheduleAll()
+        doctorVisitReminderScheduler.rescheduleAll()
         return counts
+    }
+
+    /**
+     * Dedup visits by [date, providerName, createdAt]. Returns (insertedCount, oldId -> resolvedId)
+     * for EVERY backup visit id — both newly-inserted and already-existing (deduped) — so attached
+     * questions can re-link to the right parent regardless of whether it was new or pre-existing.
+     */
+    private suspend fun mergeDoctorVisits(data: BackupData): Pair<Int, Map<Long, Long>> {
+        val existingByIdentity = db.doctorVisitDao().getAllVisitsOnce()
+            .associate { it.identity() to it.id }
+            .toMutableMap()
+        val idMap = HashMap<Long, Long>()
+        var inserted = 0
+        for (v in data.doctorVisits) {
+            val entity = DoctorVisitEntity(
+                date = v.date, providerName = v.providerName, notes = v.notes,
+                snapshotLabel = v.snapshotLabel, snapshotCreatedAt = v.snapshotCreatedAt,
+                createdAt = v.createdAt,
+            )
+            val key = entity.identity()
+            val dbId = existingByIdentity[key] ?: run {
+                val newId = db.doctorVisitDao().insertVisit(entity)
+                existingByIdentity[key] = newId
+                inserted++
+                newId
+            }
+            idMap[v.id] = dbId
+        }
+        return inserted to idMap
+    }
+
+    /**
+     * Dedup questions by [text, createdAt]. Re-link [visitId] through the old->resolved visit map;
+     * only fall back to the inbox (null) when no parent resolves (orphaned attachment).
+     */
+    private suspend fun mergeVisitQuestions(data: BackupData, visitIdMap: Map<Long, Long>): Int {
+        val seen = db.doctorVisitDao().getAllQuestionsOnce().map { it.identity() }.toMutableSet()
+        var inserted = 0
+        for (q in data.visitQuestions) {
+            val resolvedVisitId = q.visitId?.let { visitIdMap[it] }
+            val entity = VisitQuestionEntity(
+                text = q.text, answered = q.answered, visitId = resolvedVisitId, createdAt = q.createdAt,
+            )
+            if (seen.add(entity.identity())) {
+                db.doctorVisitDao().insertQuestion(entity)
+                inserted++
+            }
+        }
+        return inserted
     }
 
     // Identity excludes the autogenerated id (same as the other trackers) and also doseLabel/notes,
@@ -258,4 +318,6 @@ class BackupImporterImpl @Inject constructor(
     private fun MilestoneEntity.identity() = listOf(title, dateEpochDay, timeMinuteOfDay, note)
     private fun DiaperEntity.identity() = listOf(timestamp, type, notes, createdAt)
     private fun VaccineEntity.identity() = listOf(name, status, scheduledDate, administeredDate, createdAt)
+    private fun DoctorVisitEntity.identity() = listOf(date, providerName, createdAt)
+    private fun VisitQuestionEntity.identity() = listOf(text, createdAt)
 }

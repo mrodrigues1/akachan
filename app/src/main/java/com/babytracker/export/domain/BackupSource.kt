@@ -4,6 +4,7 @@ import com.babytracker.export.domain.model.BabyBackup
 import com.babytracker.export.domain.model.BottleFeedBackup
 import com.babytracker.export.domain.model.BreastfeedingBackup
 import com.babytracker.export.domain.model.DiaperBackup
+import com.babytracker.export.domain.model.DoctorVisitBackup
 import com.babytracker.export.domain.model.GrowthBackup
 import com.babytracker.export.domain.model.MilestoneBackup
 import com.babytracker.export.domain.model.MilkBagBackup
@@ -11,6 +12,7 @@ import com.babytracker.export.domain.model.PumpingBackup
 import com.babytracker.export.domain.model.SettingsBackup
 import com.babytracker.export.domain.model.SleepBackup
 import com.babytracker.export.domain.model.VaccineBackup
+import com.babytracker.export.domain.model.VisitQuestionBackup
 
 data class TrackingSnapshot(
     val breastfeeding: List<BreastfeedingBackup>,
@@ -22,6 +24,8 @@ data class TrackingSnapshot(
     val milestones: List<MilestoneBackup> = emptyList(),
     val diapers: List<DiaperBackup> = emptyList(),
     val vaccines: List<VaccineBackup> = emptyList(),
+    val doctorVisits: List<DoctorVisitBackup> = emptyList(),
+    val visitQuestions: List<VisitQuestionBackup> = emptyList(),
 )
 
 data class PreferencesSnapshot(

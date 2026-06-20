@@ -3,21 +3,25 @@ package com.babytracker.export.data
 import com.babytracker.data.local.entity.BottleFeedEntity
 import com.babytracker.data.local.entity.BreastfeedingEntity
 import com.babytracker.data.local.entity.DiaperEntity
+import com.babytracker.data.local.entity.DoctorVisitEntity
 import com.babytracker.data.local.entity.GrowthMeasurementEntity
 import com.babytracker.data.local.entity.MilestoneEntity
 import com.babytracker.data.local.entity.MilkBagEntity
 import com.babytracker.data.local.entity.PumpingEntity
 import com.babytracker.data.local.entity.SleepEntity
 import com.babytracker.data.local.entity.VaccineEntity
+import com.babytracker.data.local.entity.VisitQuestionEntity
 import com.babytracker.export.domain.model.BottleFeedBackup
 import com.babytracker.export.domain.model.BreastfeedingBackup
 import com.babytracker.export.domain.model.DiaperBackup
+import com.babytracker.export.domain.model.DoctorVisitBackup
 import com.babytracker.export.domain.model.GrowthBackup
 import com.babytracker.export.domain.model.MilestoneBackup
 import com.babytracker.export.domain.model.MilkBagBackup
 import com.babytracker.export.domain.model.PumpingBackup
 import com.babytracker.export.domain.model.SleepBackup
 import com.babytracker.export.domain.model.VaccineBackup
+import com.babytracker.export.domain.model.VisitQuestionBackup
 import java.util.UUID
 
 fun BreastfeedingEntity.toBackup() = BreastfeedingBackup(
@@ -58,6 +62,34 @@ fun VaccineBackup.toEntity() = VaccineEntity(
     administeredDate = administeredDate,
     notes = notes,
     createdAt = createdAt,
+)
+
+fun DoctorVisitEntity.toBackup() = DoctorVisitBackup(
+    id = id,
+    date = date,
+    providerName = providerName,
+    notes = notes,
+    snapshotLabel = snapshotLabel,
+    snapshotCreatedAt = snapshotCreatedAt,
+    createdAt = createdAt,
+)
+
+fun DoctorVisitBackup.toEntity() = DoctorVisitEntity(
+    id = id,
+    date = date,
+    providerName = providerName,
+    notes = notes,
+    snapshotLabel = snapshotLabel,
+    snapshotCreatedAt = snapshotCreatedAt,
+    createdAt = createdAt,
+)
+
+fun VisitQuestionEntity.toBackup() = VisitQuestionBackup(
+    id = id, text = text, answered = answered, visitId = visitId, createdAt = createdAt,
+)
+
+fun VisitQuestionBackup.toEntity() = VisitQuestionEntity(
+    id = id, text = text, answered = answered, visitId = visitId, createdAt = createdAt,
 )
 
 fun GrowthMeasurementEntity.toBackup() = GrowthBackup(

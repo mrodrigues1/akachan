@@ -2,7 +2,7 @@ package com.babytracker.export.domain.model
 
 import kotlinx.serialization.Serializable
 
-const val CURRENT_BACKUP_FORMAT_VERSION = 5
+const val CURRENT_BACKUP_FORMAT_VERSION = 6
 
 @Serializable
 data class BackupData(
@@ -24,6 +24,29 @@ data class BackupData(
     val diapers: List<DiaperBackup> = emptyList(),
     // Added in format version 5; default-empty so pre-v5 backups still deserialize.
     val vaccines: List<VaccineBackup> = emptyList(),
+    // Added in format version 6; default-empty so pre-v6 backups still deserialize.
+    val doctorVisits: List<DoctorVisitBackup> = emptyList(),
+    val visitQuestions: List<VisitQuestionBackup> = emptyList(),
+)
+
+@Serializable
+data class DoctorVisitBackup(
+    val id: Long,
+    val date: Long,
+    val providerName: String? = null,
+    val notes: String? = null,
+    val snapshotLabel: String? = null,
+    val snapshotCreatedAt: Long? = null,
+    val createdAt: Long,
+)
+
+@Serializable
+data class VisitQuestionBackup(
+    val id: Long,
+    val text: String,
+    val answered: Boolean = false,
+    val visitId: Long? = null,
+    val createdAt: Long,
 )
 
 @Serializable
