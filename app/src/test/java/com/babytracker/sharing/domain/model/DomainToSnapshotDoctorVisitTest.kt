@@ -8,13 +8,13 @@ import java.time.Instant
 
 class DomainToSnapshotDoctorVisitTest {
     @Test
-    fun `maps date to epoch-ms and carries provider and notes`() {
+    fun `maps date to epoch-ms and carries provider, dropping local-only fields`() {
         val visit = DoctorVisit(
             id = 5,
             date = Instant.ofEpochMilli(5_000),
             providerName = "Dr. A",
+            // notes / snapshotLabel / snapshotCreatedAt are local-only and must NOT appear in the snapshot.
             notes = "follow up",
-            // snapshotLabel / snapshotCreatedAt are local-only and must NOT appear in the snapshot.
             snapshotLabel = "local",
             snapshotCreatedAt = Instant.ofEpochMilli(4_000),
             createdAt = Instant.ofEpochMilli(1_000),
@@ -22,15 +22,13 @@ class DomainToSnapshotDoctorVisitTest {
         val snapshot = visit.toSnapshot()
         assertEquals(5_000L, snapshot.date)
         assertEquals("Dr. A", snapshot.providerName)
-        assertEquals("follow up", snapshot.notes)
     }
 
     @Test
-    fun `preserves null provider and notes`() {
+    fun `preserves null provider`() {
         val visit = DoctorVisit(date = Instant.ofEpochMilli(2_000), createdAt = Instant.ofEpochMilli(1_000))
         val snapshot = visit.toSnapshot()
         assertEquals(2_000L, snapshot.date)
         assertNull(snapshot.providerName)
-        assertNull(snapshot.notes)
     }
 }

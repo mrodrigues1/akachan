@@ -80,10 +80,10 @@ data class DiaperSnapshot(
     val notes: String? = null,
 )
 
-// Visit-only: questions are private prep notes and are never synced; the on-demand snapshot
-// reference is local-only.
+// Visit-only: questions, free-text notes, and the on-demand snapshot reference stay local and are
+// never synced. Notes can hold sensitive clinical text and are not shown on the partner side, so
+// they are deliberately excluded from the read-only partner snapshot.
 data class DoctorVisitSnapshot(
     val date: Long,
     val providerName: String? = null,
-    val notes: String? = null,
 )
