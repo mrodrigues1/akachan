@@ -16,6 +16,10 @@ import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.google.firebase.Timestamp
 import java.time.Instant
 
+/** Read [key] as a Firestore list of maps and map each entry, defaulting to empty. */
+private inline fun <T> Map<*, *>.mapList(key: String, mapper: (Map<*, *>) -> T): List<T> =
+    (this[key] as? List<*>)?.filterIsInstance<Map<*, *>>()?.map(mapper).orEmpty()
+
 internal fun snapshotToMap(snapshot: ShareSnapshot): Map<String, Any?> = mapOf(
     "lastSyncAt" to Timestamp(snapshot.lastSyncAt.epochSecond, snapshot.lastSyncAt.nano),
     "baby" to babyToMap(snapshot.baby),
@@ -48,13 +52,11 @@ internal fun mapToDiaper(map: Map<*, *>): DiaperSnapshot = DiaperSnapshot(
 internal fun doctorVisitToMap(visit: DoctorVisitSnapshot): Map<String, Any?> = mapOf(
     "date" to visit.date,
     "providerName" to visit.providerName,
-    "notes" to visit.notes,
 )
 
 internal fun mapToDoctorVisit(map: Map<*, *>): DoctorVisitSnapshot = DoctorVisitSnapshot(
     date = (map["date"] as? Number)?.toLong() ?: 0L,
     providerName = map["providerName"] as? String,
-    notes = map["notes"] as? String,
 )
 
 internal fun growthToMap(growth: GrowthSnapshot): Map<String, Any?> = mapOf(
@@ -128,39 +130,15 @@ internal fun mapToSnapshot(data: Map<*, *>): ShareSnapshot {
         ?: Instant.EPOCH
     val baby = (data["baby"] as? Map<*, *>)?.let { mapToBaby(it) }
         ?: BabySnapshot("", 0L, emptyList())
-    val sessions = (data["sessions"] as? List<*>)
-        ?.filterIsInstance<Map<*, *>>()
-        ?.map { mapToSession(it) }
-        .orEmpty()
-    val sleepRecords = (data["sleepRecords"] as? List<*>)
-        ?.filterIsInstance<Map<*, *>>()
-        ?.map { mapToSleep(it) }
-        .orEmpty()
-    val bottleFeeds = (data["bottleFeeds"] as? List<*>)
-        ?.filterIsInstance<Map<*, *>>()
-        ?.map { mapToBottleFeed(it) }
-        .orEmpty()
-    val milkBags = (data["milkBags"] as? List<*>)
-        ?.filterIsInstance<Map<*, *>>()
-        ?.map { mapToMilkBag(it) }
-        .orEmpty()
+    val sessions = data.mapList("sessions", ::mapToSession)
+    val sleepRecords = data.mapList("sleepRecords", ::mapToSleep)
+    val bottleFeeds = data.mapList("bottleFeeds", ::mapToBottleFeed)
+    val milkBags = data.mapList("milkBags", ::mapToMilkBag)
     val sleepPrediction = (data["sleepPrediction"] as? Map<*, *>)?.let { mapToPrediction(it) }
-    val growth = (data["growth"] as? List<*>)
-        ?.filterIsInstance<Map<*, *>>()
-        ?.map { mapToGrowth(it) }
-        .orEmpty()
-    val milestones = (data["milestones"] as? List<*>)
-        ?.filterIsInstance<Map<*, *>>()
-        ?.map { mapToMilestone(it) }
-        .orEmpty()
-    val diapers = (data["diapers"] as? List<*>)
-        ?.filterIsInstance<Map<*, *>>()
-        ?.map { mapToDiaper(it) }
-        .orEmpty()
-    val doctorVisits = (data["doctorVisits"] as? List<*>)
-        ?.filterIsInstance<Map<*, *>>()
-        ?.map { mapToDoctorVisit(it) }
-        .orEmpty()
+    val growth = data.mapList("growth", ::mapToGrowth)
+    val milestones = data.mapList("milestones", ::mapToMilestone)
+    val diapers = data.mapList("diapers", ::mapToDiaper)
+    val doctorVisits = data.mapList("doctorVisits", ::mapToDoctorVisit)
     return ShareSnapshot(
         lastSyncAt = lastSyncAt,
         baby = baby,

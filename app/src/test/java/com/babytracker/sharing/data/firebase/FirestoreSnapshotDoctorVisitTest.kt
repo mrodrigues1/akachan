@@ -22,8 +22,8 @@ class FirestoreSnapshotDoctorVisitTest {
     fun `doctor visits round-trip through the map`() {
         val snapshot = baseSnapshot(
             listOf(
-                DoctorVisitSnapshot(date = 5_000, providerName = "Dr. A", notes = "n"),
-                DoctorVisitSnapshot(date = 6_000, providerName = null, notes = null),
+                DoctorVisitSnapshot(date = 5_000, providerName = "Dr. A"),
+                DoctorVisitSnapshot(date = 6_000, providerName = null),
             ),
         )
         val roundTripped = mapToSnapshot(snapshotToMap(snapshot))

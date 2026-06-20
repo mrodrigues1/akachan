@@ -44,11 +44,10 @@ fun DiaperChange.toSnapshot(): DiaperSnapshot = DiaperSnapshot(
     notes = notes,
 )
 
-// Visit-only: questions and the local snapshot reference are intentionally not synced.
+// Visit-only: questions, notes, and the local snapshot reference are intentionally not synced.
 fun DoctorVisit.toSnapshot(): DoctorVisitSnapshot = DoctorVisitSnapshot(
     date = date.toEpochMilli(),
     providerName = providerName,
-    notes = notes,
 )
 
 fun MilkBag.toSnapshot(): MilkBagSnapshot = MilkBagSnapshot(
