@@ -1,16 +1,24 @@
 package com.babytracker.ui.milestone
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -33,15 +41,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.Milestone
+import com.babytracker.ui.theme.MilestonePalette
 import com.babytracker.ui.theme.milestoneColors
 import java.time.format.DateTimeFormatter
 
@@ -86,11 +101,15 @@ fun MilestoneDetailScreen(
             )
         },
     ) { padding ->
-        if (moment != null) {
-            MomentDetailContent(
-                moment = moment,
-                modifier = Modifier.fillMaxSize().padding(padding),
-            )
+        when {
+            moment != null ->
+                MomentDetailContent(
+                    moment = moment,
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                )
+
+            uiState.isLoading ->
+                MomentDetailSkeleton(modifier = Modifier.fillMaxSize().padding(padding))
         }
     }
 
@@ -141,14 +160,18 @@ private fun MomentDetailContent(
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
     ) {
-        MomentHero(photoUri = moment.photoUri, accent = colors.accent, onAccent = colors.onAccent)
-        Column(modifier = Modifier.padding(20.dp)) {
+        MomentHero(photoUri = moment.photoUri, colors = colors)
+        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
             Text(
                 text = moment.title,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.testTag("milestone_detail_title"),
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .testTag("milestone_detail_title")
+                    .semantics { heading() },
             )
+            Spacer(Modifier.size(4.dp))
             Text(
                 text = whenLabel,
                 style = MaterialTheme.typography.bodyMedium,
@@ -159,7 +182,7 @@ private fun MomentDetailContent(
                     text = it,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 16.dp),
+                    modifier = Modifier.padding(top = 20.dp),
                 )
             }
         }
@@ -169,8 +192,7 @@ private fun MomentDetailContent(
 @Composable
 private fun MomentHero(
     photoUri: String?,
-    accent: androidx.compose.ui.graphics.Color,
-    onAccent: androidx.compose.ui.graphics.Color,
+    colors: MilestonePalette,
 ) {
     val bitmap = rememberMilestoneBitmap(photoUri)
     if (bitmap != null) {
@@ -183,21 +205,78 @@ private fun MomentHero(
                 .aspectRatio(DEFAULT_ASPECT_RATIO),
         )
     } else {
+        // No photo: a soft container wash, not a full-accent slab. Accent stays small.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(WIDE_ASPECT_RATIO)
-                .background(accent),
+                .background(colors.container),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Default.PhotoCamera,
                 contentDescription = null,
-                tint = onAccent,
-                modifier = Modifier.size(48.dp),
+                tint = colors.accent,
+                modifier = Modifier.size(48.dp).clearAndSetSemantics {},
             )
         }
     }
+}
+
+/**
+ * Calm loading placeholder mirroring the detail layout: a breathing hero band, a title bar,
+ * a meta bar, and a couple of note lines. A skeleton (not a spinner) keeps the layout stable
+ * while the moment resolves from the local store.
+ */
+@Composable
+private fun MomentDetailSkeleton(modifier: Modifier = Modifier) {
+    val loadingLabel = stringResource(R.string.loading)
+    val transition = rememberInfiniteTransition(label = "milestoneDetailSkeleton")
+    val alpha by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.75f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "milestoneDetailSkeletonAlpha",
+    )
+    val block = MaterialTheme.colorScheme.outlineVariant.copy(alpha = alpha)
+
+    Column(
+        modifier = modifier.clearAndSetSemantics { contentDescription = loadingLabel },
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(WIDE_ASPECT_RATIO)
+                .background(block),
+        )
+        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
+            SkeletonBar(widthFraction = 0.7f, height = 26.dp, color = block)
+            Spacer(Modifier.size(10.dp))
+            SkeletonBar(widthFraction = 0.4f, height = 16.dp, color = block)
+            Spacer(Modifier.size(24.dp))
+            SkeletonBar(widthFraction = 1f, height = 14.dp, color = block)
+            Spacer(Modifier.size(8.dp))
+            SkeletonBar(widthFraction = 0.85f, height = 14.dp, color = block)
+        }
+    }
+}
+
+@Composable
+private fun SkeletonBar(
+    widthFraction: Float,
+    height: androidx.compose.ui.unit.Dp,
+    color: Color,
+) {
+    Box(
+        modifier = Modifier
+            .height(height)
+            .fillMaxWidth(widthFraction)
+            .clip(RoundedCornerShape(4.dp))
+            .background(color),
+    )
 }
 
 private const val DEFAULT_ASPECT_RATIO = 1f
