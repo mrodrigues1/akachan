@@ -57,6 +57,21 @@ class DoctorVisitDaoTest {
     }
 
     @Test
+    fun observeAttachedQuestionCountsGroupsByVisit() = runTest {
+        val v1 = dao.insertVisit(DoctorVisitEntity(date = 100, createdAt = 1))
+        val v2 = dao.insertVisit(DoctorVisitEntity(date = 200, createdAt = 1))
+        dao.insertQuestion(VisitQuestionEntity(text = "a", visitId = v1, createdAt = 1))
+        dao.insertQuestion(VisitQuestionEntity(text = "b", visitId = v1, createdAt = 2))
+        dao.insertQuestion(VisitQuestionEntity(text = "c", visitId = v2, createdAt = 3))
+        dao.insertQuestion(VisitQuestionEntity(text = "inbox", visitId = null, createdAt = 4))
+
+        val counts = dao.observeAttachedQuestionCounts().first().associate { it.visitId to it.count }
+        assertEquals(2, counts[v1])
+        assertEquals(1, counts[v2])
+        assertEquals(null, counts[-1L]) // inbox questions excluded
+    }
+
+    @Test
     fun deleteVisitDetachingQuestionsIsAtomic() = runTest {
         val visitId = dao.insertVisit(DoctorVisitEntity(date = 100, createdAt = 1))
         dao.insertQuestion(VisitQuestionEntity(text = "A", visitId = visitId, createdAt = 1))

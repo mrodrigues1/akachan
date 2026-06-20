@@ -43,6 +43,12 @@ interface DoctorVisitDao {
     @Query("SELECT * FROM visit_questions ORDER BY created_at ASC")
     suspend fun getAllQuestionsOnce(): List<VisitQuestionEntity>
 
+    @Query(
+        "SELECT visit_id AS visitId, COUNT(*) AS count FROM visit_questions " +
+            "WHERE visit_id IS NOT NULL GROUP BY visit_id",
+    )
+    fun observeAttachedQuestionCounts(): Flow<List<VisitQuestionCount>>
+
     @Query("SELECT * FROM visit_questions WHERE id = :id LIMIT 1")
     suspend fun getQuestionById(id: Long): VisitQuestionEntity?
 

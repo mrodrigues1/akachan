@@ -49,6 +49,9 @@ class DoctorVisitRepositoryImpl @Inject constructor(
     override fun observeQuestionsForVisit(visitId: Long): Flow<List<VisitQuestion>> =
         dao.observeQuestionsForVisit(visitId).map { rows -> rows.map { it.toDomain() } }
 
+    override fun observeAttachedQuestionCounts(): Flow<Map<Long, Int>> =
+        dao.observeAttachedQuestionCounts().map { rows -> rows.associate { it.visitId to it.count } }
+
     override suspend fun getAllQuestionsOnce(): List<VisitQuestion> = dao.getAllQuestionsOnce().map { it.toDomain() }
 
     override suspend fun getQuestionById(id: Long): VisitQuestion? = dao.getQuestionById(id)?.toDomain()
