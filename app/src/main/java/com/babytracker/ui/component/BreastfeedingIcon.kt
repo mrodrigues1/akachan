@@ -1,0 +1,17 @@
+package com.babytracker.ui.component
+
+import androidx.compose.foundation.Image
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import com.babytracker.R
+
+@Composable
+fun BreastfeedingIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_breastfeeding_section),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}

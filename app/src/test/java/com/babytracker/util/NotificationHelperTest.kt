@@ -388,20 +388,22 @@ class NotificationHelperTest {
             "notification_collapsed_feeding_active.xml must contain a Chronometer with id notification_collapsed_timer"
         )
         assertTrue(
-            file.contains("notification_title_prefix"),
-            "notification_collapsed_feeding_active.xml must contain a prefix TextView with id notification_title_prefix"
+            file.contains("notification_title_icon"),
+            "notification_collapsed_feeding_active.xml must contain an ImageView with id notification_title_icon"
         )
+        assertTrue(file.contains("@drawable/ic_breastfeeding_section"))
     }
 
     @Test
-    fun `simple feeding collapsed layout has no active-session timer views`() {
+    fun `simple feeding collapsed layout has breastfeeding icon and no active-session timer views`() {
         val file = listOf(
             java.io.File("src/main/res/layout/notification_collapsed_feeding.xml"),
             java.io.File("app/src/main/res/layout/notification_collapsed_feeding.xml")
         ).first { it.exists() }.readText()
 
+        assertTrue(file.contains("notification_title_icon"), "simple feeding collapsed layout must contain breastfeeding icon")
+        assertTrue(file.contains("@drawable/ic_breastfeeding_section"))
         assertFalse(file.contains("notification_collapsed_timer"), "simple feeding collapsed layout must not contain active timer")
-        assertFalse(file.contains("notification_title_prefix"), "simple feeding collapsed layout must not contain active title prefix")
     }
 
     @Test

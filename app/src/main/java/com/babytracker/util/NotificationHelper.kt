@@ -168,7 +168,8 @@ object NotificationHelper {
                         body = body,
                         progress = 1,
                         maxProgress = 1,
-                        showProgress = false
+                        showProgress = false,
+                        titleIconRes = R.drawable.ic_breastfeeding_section,
                     )
                 )
                 .setCustomBigContentView(

@@ -79,6 +79,7 @@ import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.ui.bottlefeed.BottleFeedSheet
+import com.babytracker.ui.component.BreastfeedingIcon
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.theme.LocalDarkTheme
@@ -953,7 +954,7 @@ private fun ActiveSessionSummary(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(text = "\uD83E\uDD31", style = MaterialTheme.typography.headlineSmall)
+                BreastfeedingIcon(modifier = Modifier.size(42.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -1322,8 +1323,8 @@ private fun FeedingHistoryRow(session: SessionSnapshot, now: Instant) {
         title = duration.formatDuration(),
         subtitle = sideText,
         trailing = timeAgo,
-        badgeEmoji = "\uD83E\uDD31",
         badgeColor = MaterialTheme.colorScheme.primaryContainer,
+        badgeContent = { BreastfeedingIcon(modifier = Modifier.size(34.dp)) },
     )
 }
 

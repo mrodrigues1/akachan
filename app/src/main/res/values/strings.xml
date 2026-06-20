@@ -21,10 +21,10 @@
 
     <!-- Notification titles -->
     <string name="notif_title_breastfeeding_group">Breastfeeding</string>
-    <string name="notif_title_switch_sides">🍼 Time to switch sides</string>
+    <string name="notif_title_switch_sides">Time to switch sides</string>
     <string name="notif_title_feeding_limit">⏱ Feeding limit reached</string>
-    <string name="notif_title_feeding_paused">🍼 Feeding paused</string>
-    <string name="notif_title_feeding_active">🍼 Feeding active</string>
+    <string name="notif_title_feeding_paused">Feeding paused</string>
+    <string name="notif_title_feeding_active">Feeding active</string>
     <string name="notif_title_sleep_active">🌙 Sleep active</string>
 
     <!-- Notification body format strings -->
@@ -141,7 +141,6 @@
     <string name="widget_loading">Just a moment…</string>
     <string name="widget_preview_feed_label">Feeding: Right</string>
     <string name="widget_preview_feed_value">12m</string>
-    <string name="widget_preview_feed_emoji">🍼</string>
     <string name="widget_preview_sleep_label">Awake</string>
     <string name="widget_preview_sleep_value">3m</string>
     <string name="widget_preview_sleep_emoji">🌙</string>
@@ -367,7 +366,7 @@
     <string name="breastfeeding_second_side">Second side</string>
     <string name="breastfeeding_add_title">Add Feed Session</string>
     <string name="breastfeeding_starting_side">STARTING SIDE</string>
-    <string name="breastfeeding_side_chip">🤱 %1$s</string>
+    <string name="breastfeeding_side_chip">%1$s</string>
     <string name="breastfeeding_manual_error">⚠ %1$s</string>
     <string name="breastfeeding_manual_pick_times">Pick different start and end times to save this feed.</string>
     <string name="breastfeeding_manual_duration">⏱ Duration: %1$s</string>
