@@ -1,6 +1,7 @@
 package com.babytracker.export.domain.usecase
 
 import com.babytracker.export.domain.BackupSource
+import com.babytracker.export.domain.TrackingSnapshot
 import javax.inject.Inject
 
 class ExportCsvUseCase @Inject constructor(
@@ -79,8 +80,29 @@ class ExportCsvUseCase @Inject constructor(
                     )
                 },
             ),
-        )
+        ) + doctorVisitCsvSections(t)
     }
+
+    private fun doctorVisitCsvSections(t: TrackingSnapshot): Map<String, String> = mapOf(
+        "doctor_visits" to buildCsv(
+            listOf(
+                "id", "date", "provider_name", "notes",
+                "snapshot_label", "snapshot_created_at", "created_at",
+            ),
+            t.doctorVisits.map {
+                listOf(
+                    it.id, it.date, it.providerName, it.notes,
+                    it.snapshotLabel, it.snapshotCreatedAt, it.createdAt,
+                )
+            },
+        ),
+        "visit_questions" to buildCsv(
+            listOf("id", "text", "answered", "visit_id", "created_at"),
+            t.visitQuestions.map {
+                listOf(it.id, it.text, it.answered, it.visitId, it.createdAt)
+            },
+        ),
+    )
 
     private fun buildCsv(header: List<String>, rows: List<List<Any?>>): String {
         val sb = StringBuilder()

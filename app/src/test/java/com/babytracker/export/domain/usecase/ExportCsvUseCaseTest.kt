@@ -5,7 +5,9 @@ import com.babytracker.export.domain.TrackingSnapshot
 import com.babytracker.export.domain.model.BottleFeedBackup
 import com.babytracker.export.domain.model.BreastfeedingBackup
 import com.babytracker.export.domain.model.DiaperBackup
+import com.babytracker.export.domain.model.DoctorVisitBackup
 import com.babytracker.export.domain.model.VaccineBackup
+import com.babytracker.export.domain.model.VisitQuestionBackup
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -30,9 +32,12 @@ class ExportCsvUseCaseTest {
         bottleFeeds: List<BottleFeedBackup> = emptyList(),
         diapers: List<DiaperBackup> = emptyList(),
         vaccines: List<VaccineBackup> = emptyList(),
+        doctorVisits: List<DoctorVisitBackup> = emptyList(),
+        visitQuestions: List<VisitQuestionBackup> = emptyList(),
     ) = TrackingSnapshot(
         breastfeeding, emptyList(), emptyList(), emptyList(), bottleFeeds,
         diapers = diapers, vaccines = vaccines,
+        doctorVisits = doctorVisits, visitQuestions = visitQuestions,
     )
 
     @Test
@@ -55,9 +60,40 @@ class ExportCsvUseCaseTest {
     fun `returns a csv for every table`() = runTest {
         coEvery { source.readTracking() } returns tracking()
         assertEquals(
-            setOf("breastfeeding", "sleep", "pumping", "milk_bags", "bottle_feeds", "diapers", "vaccines"),
+            setOf(
+                "breastfeeding", "sleep", "pumping", "milk_bags", "bottle_feeds",
+                "diapers", "vaccines", "doctor_visits", "visit_questions",
+            ),
             useCase().keys,
         )
+    }
+
+    @Test
+    fun `doctor visits csv has header and an escaped data row`() = runTest {
+        coEvery { source.readTracking() } returns tracking(
+            doctorVisits = listOf(
+                DoctorVisitBackup(
+                    id = 1, date = 5_000, providerName = "Dr, A", notes = "follow up",
+                    snapshotLabel = null, snapshotCreatedAt = null, createdAt = 2_000,
+                ),
+            ),
+        )
+        val lines = useCase().getValue("doctor_visits").trim().split("\n")
+        assertEquals("id,date,provider_name,notes,snapshot_label,snapshot_created_at,created_at", lines[0])
+        // provider_name has a comma -> RFC-4180 quoted; null snapshot fields render as empty.
+        assertEquals("1,5000,\"Dr, A\",follow up,,,2000", lines[1])
+    }
+
+    @Test
+    fun `visit questions csv has header and a data row`() = runTest {
+        coEvery { source.readTracking() } returns tracking(
+            visitQuestions = listOf(
+                VisitQuestionBackup(id = 2, text = "rash?", answered = true, visitId = 1, createdAt = 3_000),
+            ),
+        )
+        val lines = useCase().getValue("visit_questions").trim().split("\n")
+        assertEquals("id,text,answered,visit_id,created_at", lines[0])
+        assertEquals("2,rash?,true,1,3000", lines[1])
     }
 
     @Test

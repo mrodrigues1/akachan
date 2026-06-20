@@ -29,6 +29,11 @@ class ExportBackupUseCase @Inject constructor(
             growth = tracking.growth,
             milestones = tracking.milestones,
             diapers = tracking.diapers,
+            // vaccines were read into the snapshot but never written here (AKA-199 oversight);
+            // included now alongside the doctor-visit fields so the backup is complete.
+            vaccines = tracking.vaccines,
+            doctorVisits = tracking.doctorVisits,
+            visitQuestions = tracking.visitQuestions,
         )
 
         return json.encodeToString(BackupData.serializer(), backup)

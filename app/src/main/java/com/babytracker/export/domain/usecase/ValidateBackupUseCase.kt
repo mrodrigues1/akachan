@@ -45,9 +45,10 @@ class ValidateBackupUseCase @Inject constructor(
             backupFormatVersion = CURRENT_BACKUP_FORMAT_VERSION,
             milestones = emptyList(),
         )
-        // v3 added free-form milestones, v4 added diapers; both carry forward unchanged. The new
-        // vaccines field defaults to emptyList(), so no data synthesis is needed.
-        3, 4 -> data.copy(backupFormatVersion = CURRENT_BACKUP_FORMAT_VERSION)
+        // v3 added free-form milestones, v4 added diapers, v5 added vaccines; all carry forward
+        // unchanged. The new doctorVisits/visitQuestions fields default to emptyList(), so no data
+        // synthesis is needed.
+        3, 4, 5 -> data.copy(backupFormatVersion = CURRENT_BACKUP_FORMAT_VERSION)
         else -> throw InvalidBackupException("Unsupported backup format v${data.backupFormatVersion}")
     }
 
