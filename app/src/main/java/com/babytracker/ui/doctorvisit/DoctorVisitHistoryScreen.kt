@@ -18,8 +18,6 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,8 +39,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.model.hasSnapshot
+import com.babytracker.ui.theme.DoctorVisitPalette
 import com.babytracker.ui.theme.doctorVisitColors
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -151,18 +154,18 @@ fun DoctorVisitHistoryContent(
             ) {
                 if (state.upcoming.isNotEmpty()) {
                     item(key = "upcoming_header") {
-                        SectionHeader(stringResource(R.string.doctor_visit_history_upcoming))
+                        SectionHeader(stringResource(R.string.doctor_visit_history_upcoming), colors.onContainer)
                     }
                     items(state.upcoming, key = { "u_${it.id}" }) { visit ->
-                        VisitRow(visit, state.questionCounts[visit.id] ?: 0, onEdit, onDelete)
+                        VisitRow(visit, state.questionCounts[visit.id] ?: 0, colors, onEdit, onDelete)
                     }
                 }
                 if (state.past.isNotEmpty()) {
                     item(key = "past_header") {
-                        SectionHeader(stringResource(R.string.doctor_visit_history_past))
+                        SectionHeader(stringResource(R.string.doctor_visit_history_past), colors.onContainer)
                     }
                     items(state.past, key = { "p_${it.id}" }) { visit ->
-                        VisitRow(visit, state.questionCounts[visit.id] ?: 0, onEdit, onDelete, past = true)
+                        VisitRow(visit, state.questionCounts[visit.id] ?: 0, colors, onEdit, onDelete, past = true)
                     }
                 }
             }
@@ -171,15 +174,16 @@ fun DoctorVisitHistoryContent(
 }
 
 @Composable
-private fun SectionHeader(text: String) {
+private fun SectionHeader(text: String, color: Color) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.SemiBold,
-        color = doctorVisitColors().onContainer,
+        color = color,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp, bottom = 4.dp),
+            .padding(top = 12.dp, bottom = 4.dp)
+            .semantics { heading() },
     )
 }
 
@@ -188,13 +192,14 @@ private fun SectionHeader(text: String) {
 private fun VisitRow(
     visit: DoctorVisit,
     questionCount: Int,
+    colors: DoctorVisitPalette,
     onEdit: (DoctorVisit) -> Unit,
     onDelete: (DoctorVisit) -> Unit,
     past: Boolean = false,
 ) {
-    val colors = doctorVisitColors()
     val container = if (past) MaterialTheme.colorScheme.surfaceVariant else colors.container
     val onContainer = if (past) MaterialTheme.colorScheme.onSurface else colors.onContainer
+    val secondary = onContainer.copy(alpha = 0.8f)
     Card(
         onClick = { onEdit(visit) },
         modifier = Modifier
@@ -206,7 +211,7 @@ private fun VisitRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
+                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -219,68 +224,38 @@ private fun VisitRow(
                     text = visit.providerName?.takeIf { it.isNotBlank() }
                         ?: stringResource(R.string.doctor_visit_history_no_provider),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = onContainer,
+                    color = secondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 visit.notes?.takeIf { it.isNotBlank() }?.let {
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = onContainer,
+                        color = secondary,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
                 if (questionCount > 0 || visit.hasSnapshot()) {
-                    Spacer(Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         if (questionCount > 0) {
-                            AssistChip(
-                                onClick = { onEdit(visit) },
-                                label = {
-                                    Text(
-                                        pluralStringResource(
-                                            R.plurals.doctor_visit_history_question_count,
-                                            questionCount,
-                                            questionCount,
-                                        ),
-                                    )
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.AutoMirrored.Outlined.HelpOutline,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(AssistChipDefaults.IconSize),
-                                    )
-                                },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    labelColor = onContainer,
-                                    leadingIconContentColor = onContainer,
+                            VisitMeta(
+                                icon = Icons.AutoMirrored.Outlined.HelpOutline,
+                                text = pluralStringResource(
+                                    R.plurals.doctor_visit_history_question_count,
+                                    questionCount,
+                                    questionCount,
                                 ),
-                                border = AssistChipDefaults.assistChipBorder(
-                                    enabled = true,
-                                    borderColor = onContainer.copy(alpha = 0.3f),
-                                ),
+                                color = secondary,
                             )
                         }
                         if (visit.hasSnapshot()) {
-                            AssistChip(
-                                onClick = { onEdit(visit) },
-                                label = { Text(stringResource(R.string.doctor_visit_history_has_snapshot)) },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Outlined.Description,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(AssistChipDefaults.IconSize),
-                                    )
-                                },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    labelColor = onContainer,
-                                    leadingIconContentColor = onContainer,
-                                ),
-                                border = AssistChipDefaults.assistChipBorder(
-                                    enabled = true,
-                                    borderColor = onContainer.copy(alpha = 0.3f),
-                                ),
+                            VisitMeta(
+                                icon = Icons.Outlined.Description,
+                                text = stringResource(R.string.doctor_visit_history_has_snapshot),
+                                color = secondary,
                             )
                         }
                     }
@@ -294,6 +269,17 @@ private fun VisitRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun VisitMeta(icon: ImageVector, text: String, color: Color) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
+        Text(text, style = MaterialTheme.typography.bodySmall, color = color)
     }
 }
 
