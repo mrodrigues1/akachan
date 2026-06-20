@@ -56,6 +56,7 @@ class GenerateShareCodeUseCase @Inject constructor(
         val bottleFeeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
         val growth = sources.growth.getAllMeasurements().first().latestPerType()
         val milestones = sources.milestones.getMilestones().first()
+        val doctorVisits = sources.doctorVisit.observeAllVisits().first().take(SYNC_LIMIT)
         val timestamp = now()
         val prediction = buildPrediction(timestamp.toEpochMilli())
         return ShareSnapshot(
@@ -71,6 +72,7 @@ class GenerateShareCodeUseCase @Inject constructor(
             sleepPrediction = prediction,
             growth = growth.map { it.toSnapshot() },
             milestones = milestones.map { it.toSnapshot() },
+            doctorVisits = doctorVisits.map { it.toSnapshot() },
         )
     }
 

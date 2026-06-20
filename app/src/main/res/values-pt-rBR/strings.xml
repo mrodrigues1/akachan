@@ -1239,4 +1239,8 @@
         <item quantity="one">%1$d dia antes</item>
         <item quantity="other">%1$d dias antes</item>
     </plurals>
+
+    <!-- Doctor Visit — partner dashboard -->
+    <string name="partner_doctor_visits_heading">🩺 Consultas médicas</string>
+    <string name="partner_doctor_visits_empty">Nenhuma consulta compartilhada</string>
 </resources>

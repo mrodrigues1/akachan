@@ -3,6 +3,7 @@ package com.babytracker.domain.usecase.doctorvisit
 import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.manager.DoctorVisitReminderScheduler
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -17,13 +18,15 @@ import java.time.Instant
 class AddDoctorVisitUseCaseTest {
     private lateinit var repository: DoctorVisitRepository
     private lateinit var scheduler: DoctorVisitReminderScheduler
+    private lateinit var syncToFirestore: SyncToFirestoreUseCase
     private lateinit var useCase: AddDoctorVisitUseCase
 
     @BeforeEach
     fun setup() {
         repository = mockk(relaxed = true)
         scheduler = mockk(relaxed = true)
-        useCase = AddDoctorVisitUseCase(repository, scheduler)
+        syncToFirestore = mockk(relaxed = true)
+        useCase = AddDoctorVisitUseCase(repository, scheduler, syncToFirestore)
         coEvery { repository.insertVisitWithAttachments(any(), any()) } returns 11
     }
 
@@ -43,5 +46,6 @@ class AddDoctorVisitUseCaseTest {
         assertEquals("Bring chart", captured.captured.notes)
         coVerify { repository.insertVisitWithAttachments(any(), listOf(1, 2)) }
         coVerify { scheduler.schedule(match { it.id == 11L }) }
+        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.FULL) }
     }
 }

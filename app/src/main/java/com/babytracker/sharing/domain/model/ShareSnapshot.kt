@@ -16,6 +16,7 @@ data class ShareSnapshot(
     val growth: List<GrowthSnapshot> = emptyList(),
     val milestones: List<MilestoneSnapshot> = emptyList(),
     val diapers: List<DiaperSnapshot> = emptyList(),
+    val doctorVisits: List<DoctorVisitSnapshot> = emptyList(),
 )
 
 data class BabySnapshot(
@@ -76,5 +77,13 @@ data class MilestoneSnapshot(
 data class DiaperSnapshot(
     val timestamp: Long,
     val type: String,
+    val notes: String? = null,
+)
+
+// Visit-only: questions are private prep notes and are never synced; the on-demand snapshot
+// reference is local-only.
+data class DoctorVisitSnapshot(
+    val date: Long,
+    val providerName: String? = null,
     val notes: String? = null,
 )

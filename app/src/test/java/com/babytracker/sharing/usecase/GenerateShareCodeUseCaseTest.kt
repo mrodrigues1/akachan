@@ -67,6 +67,7 @@ class GenerateShareCodeUseCaseTest {
                 predictSleepWindow,
                 mockk { every { getAllMeasurements() } returns flowOf(emptyList()) },
                 mockk { every { getMilestones() } returns flowOf(emptyList()) },
+                mockk { every { observeAllVisits() } returns flowOf(emptyList()) },
             ),
             appContext = mockk(relaxed = true),
         ) { fixedNow }

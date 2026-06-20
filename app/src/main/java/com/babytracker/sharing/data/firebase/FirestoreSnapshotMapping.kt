@@ -3,6 +3,7 @@ package com.babytracker.sharing.data.firebase
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.DiaperSnapshot
+import com.babytracker.sharing.domain.model.DoctorVisitSnapshot
 import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.FeedOpAction
 import com.babytracker.sharing.domain.model.GrowthSnapshot
@@ -29,6 +30,7 @@ internal fun snapshotToMap(snapshot: ShareSnapshot): Map<String, Any?> = mapOf(
     "growth" to snapshot.growth.map { growthToMap(it) },
     "milestones" to snapshot.milestones.map { milestoneToMap(it) },
     "diapers" to snapshot.diapers.map { diaperToMap(it) },
+    "doctorVisits" to snapshot.doctorVisits.map { doctorVisitToMap(it) },
 )
 
 internal fun diaperToMap(diaper: DiaperSnapshot): Map<String, Any?> = mapOf(
@@ -40,6 +42,18 @@ internal fun diaperToMap(diaper: DiaperSnapshot): Map<String, Any?> = mapOf(
 internal fun mapToDiaper(map: Map<*, *>): DiaperSnapshot = DiaperSnapshot(
     timestamp = (map["timestamp"] as? Number)?.toLong() ?: 0L,
     type = map["type"] as? String ?: "WET",
+    notes = map["notes"] as? String,
+)
+
+internal fun doctorVisitToMap(visit: DoctorVisitSnapshot): Map<String, Any?> = mapOf(
+    "date" to visit.date,
+    "providerName" to visit.providerName,
+    "notes" to visit.notes,
+)
+
+internal fun mapToDoctorVisit(map: Map<*, *>): DoctorVisitSnapshot = DoctorVisitSnapshot(
+    date = (map["date"] as? Number)?.toLong() ?: 0L,
+    providerName = map["providerName"] as? String,
     notes = map["notes"] as? String,
 )
 
@@ -143,6 +157,10 @@ internal fun mapToSnapshot(data: Map<*, *>): ShareSnapshot {
         ?.filterIsInstance<Map<*, *>>()
         ?.map { mapToDiaper(it) }
         .orEmpty()
+    val doctorVisits = (data["doctorVisits"] as? List<*>)
+        ?.filterIsInstance<Map<*, *>>()
+        ?.map { mapToDoctorVisit(it) }
+        .orEmpty()
     return ShareSnapshot(
         lastSyncAt = lastSyncAt,
         baby = baby,
@@ -157,6 +175,7 @@ internal fun mapToSnapshot(data: Map<*, *>): ShareSnapshot {
         growth = growth,
         milestones = milestones,
         diapers = diapers,
+        doctorVisits = doctorVisits,
     )
 }
 
