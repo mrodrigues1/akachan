@@ -25,7 +25,7 @@
     <string name="notif_title_feeding_limit">⏱ Limite de mamada atingido</string>
     <string name="notif_title_feeding_paused">Amamentação pausada</string>
     <string name="notif_title_feeding_active">Amamentação ativa</string>
-    <string name="notif_title_sleep_active">🌙 Sono ativo</string>
+    <string name="notif_title_sleep_active">Sono ativo</string>
 
     <!-- Notification body format strings -->
     <string name="notif_body_switch_sides">Seio %1$s &#183; %2$dm &#183; Troque para o %3$s</string>
@@ -140,7 +140,6 @@
     <string name="widget_preview_feed_value">12m</string>
     <string name="widget_preview_sleep_label">Acordado</string>
     <string name="widget_preview_sleep_value">3m</string>
-    <string name="widget_preview_sleep_emoji">🌙</string>
     <string name="milk_stash_widget_description">Estoque de leite — volume e contagem de sacos</string>
 
     <!-- Widget runtime status labels (resolved by WidgetContent helpers) -->
@@ -455,11 +454,13 @@
     <string name="sleep_cd_delete_entry">Excluir registro</string>
     <string name="sleep_delete_entry_title">Excluir registro?</string>
     <string name="sleep_delete_entry_message">%1$s %2$s será removido.</string>
+    <string name="sleep_delete_entry_message_text">%1$s será removido.</string>
     <string name="sleep_empty_title">Nenhum registro de sono ainda</string>
     <string name="sleep_empty_subtitle">Toque abaixo para registrar um sono anterior</string>
     <string name="sleep_start_nap">😴 Iniciar soneca</string>
-    <string name="sleep_start_night">🌙 Iniciar sono noturno</string>
+    <string name="sleep_start_night">Iniciar sono noturno</string>
     <string name="sleep_in_progress_status">%1$s %2$s em andamento</string>
+    <string name="sleep_in_progress_status_text">%1$s em andamento</string>
     <string name="sleep_stop_session">Parar sessão</string>
     <string name="sleep_subtitle_range">%1$s – %2$s</string>
     <string name="sleep_back_to_sleep">Voltar ao sono</string>

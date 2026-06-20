@@ -25,7 +25,7 @@
     <string name="notif_title_feeding_limit">⏱ Feeding limit reached</string>
     <string name="notif_title_feeding_paused">Feeding paused</string>
     <string name="notif_title_feeding_active">Feeding active</string>
-    <string name="notif_title_sleep_active">🌙 Sleep active</string>
+    <string name="notif_title_sleep_active">Sleep active</string>
 
     <!-- Notification body format strings -->
     <!-- Args: 1=side label, 2=elapsed minutes, 3=other side label -->
@@ -143,7 +143,6 @@
     <string name="widget_preview_feed_value">12m</string>
     <string name="widget_preview_sleep_label">Awake</string>
     <string name="widget_preview_sleep_value">3m</string>
-    <string name="widget_preview_sleep_emoji">🌙</string>
     <string name="milk_stash_widget_description">Milk stash — volume and bag count</string>
 
     <!-- Widget runtime status labels (resolved by WidgetContent helpers) -->
@@ -449,11 +448,13 @@
     <string name="sleep_cd_delete_entry">Delete entry</string>
     <string name="sleep_delete_entry_title">Delete entry?</string>
     <string name="sleep_delete_entry_message">%1$s %2$s will be removed.</string>
+    <string name="sleep_delete_entry_message_text">%1$s will be removed.</string>
     <string name="sleep_empty_title">No sleep entries yet</string>
     <string name="sleep_empty_subtitle">Tap below to log a past sleep</string>
     <string name="sleep_start_nap">😴 Start Nap</string>
-    <string name="sleep_start_night">🌙 Start Night Sleep</string>
+    <string name="sleep_start_night">Start Night Sleep</string>
     <string name="sleep_in_progress_status">%1$s %2$s in progress</string>
+    <string name="sleep_in_progress_status_text">%1$s in progress</string>
     <string name="sleep_stop_session">Stop Session</string>
     <string name="sleep_subtitle_range">%1$s – %2$s</string>
     <string name="sleep_back_to_sleep">Back to Sleep</string>

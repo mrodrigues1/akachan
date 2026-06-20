@@ -25,8 +25,8 @@ class ScheduleEntryTest {
             startTime = LocalTime.of(20, 0),
             duration = Duration.ofHours(11),
             napNumber = 0,
-            emoji = "🌙",
+            emoji = "⭐",
         )
-        assertEquals("🌙", entry.emoji)
+        assertEquals("⭐", entry.emoji)
     }
 }

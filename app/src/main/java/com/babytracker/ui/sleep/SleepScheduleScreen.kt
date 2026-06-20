@@ -56,6 +56,7 @@ import com.babytracker.domain.model.RegressionInfo
 import com.babytracker.domain.model.ScheduleEntry
 import com.babytracker.domain.model.ScheduleMode
 import com.babytracker.domain.model.SleepSchedule
+import com.babytracker.ui.component.SleepIcon
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
 import com.babytracker.ui.theme.OnWarningContainerAmberDark
@@ -479,10 +480,14 @@ private fun TimelineTextBlock(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = item.emoji,
-            style = MaterialTheme.typography.titleMedium
-        )
+        if (item.isBedtime) {
+            SleepIcon(modifier = Modifier.size(24.dp))
+        } else {
+            Text(
+                text = item.emoji,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
         Spacer(modifier = Modifier.width(10.dp))
         val label = if (item.isBedtime) {
             stringResource(R.string.sleep_schedule_bedtime)
@@ -671,7 +676,7 @@ internal fun buildSleepTimelineItems(
         startTime = bedtime,
         napNumber = 0,
         trailing = formatLocalTime(bedtime),
-        emoji = "\uD83C\uDF19",
+        emoji = "",
         bedtimeWindow = bedtimeWindow,
         isBedtime = true
     )

@@ -415,6 +415,7 @@ object NotificationHelper {
                         progress = 0,
                         maxProgress = 1,
                         showProgress = false,
+                        titleIconRes = R.drawable.ic_sleep_section,
                     )
                 )
                 .setCustomBigContentView(
@@ -425,6 +426,7 @@ object NotificationHelper {
                         body = body,
                         chronometerBaseElapsedMs = chronometerBase,
                         chronometerRunning = true,
+                        titleIconRes = R.drawable.ic_sleep_section,
                     )
                 )
                 .setStyle(NotificationCompat.DecoratedCustomViewStyle())

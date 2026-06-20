@@ -71,12 +71,12 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
                 android:layout_marginEnd="8dp"
-                android:text="@string/widget_preview_sleep_emoji"
-                android:textSize="14sp" />
+                android:contentDescription="@null"
+                android:src="@drawable/ic_sleep_section" />
 
             <TextView
                 android:layout_width="wrap_content"

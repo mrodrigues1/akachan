@@ -83,6 +83,7 @@ import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.ui.component.CueQuickTapRow
 import com.babytracker.ui.component.HistoryCard
+import com.babytracker.ui.component.SleepIcon
 import com.babytracker.ui.component.TimerDisplay
 import com.babytracker.ui.component.formatElapsedAsClock
 import com.babytracker.util.formatDuration
@@ -487,17 +488,17 @@ internal fun SleepDeleteConfirmationDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
+    val sleepTypeLabel = stringResource(record.sleepType.labelRes())
+    val deleteMessage = if (record.sleepType == SleepType.NIGHT_SLEEP) {
+        stringResource(R.string.sleep_delete_entry_message_text, sleepTypeLabel)
+    } else {
+        stringResource(R.string.sleep_delete_entry_message, record.sleepType.emoji, sleepTypeLabel)
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.sleep_delete_entry_title)) },
         text = {
-            Text(
-                stringResource(
-                    R.string.sleep_delete_entry_message,
-                    record.sleepType.emoji,
-                    stringResource(record.sleepType.labelRes()),
-                ),
-            )
+            Text(deleteMessage)
         },
         confirmButton = {
             Button(
@@ -521,7 +522,7 @@ private fun TodayEmptyState() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(text = "🌙", style = MaterialTheme.typography.headlineLarge)
+        SleepIcon(modifier = Modifier.size(64.dp))
         Text(
             text = stringResource(R.string.sleep_empty_title),
             style = MaterialTheme.typography.bodyMedium,
@@ -572,11 +573,17 @@ private fun SleepQuickStartRow(
                 contentColor = MaterialTheme.colorScheme.onSecondary,
             )
         ) {
-            Text(
-                text = stringResource(R.string.sleep_start_night),
-                style = MaterialTheme.typography.labelLarge,
-                textAlign = TextAlign.Center
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SleepIcon(modifier = Modifier.size(18.dp))
+                Text(
+                    text = stringResource(R.string.sleep_start_night),
+                    style = MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
@@ -597,16 +604,7 @@ private fun ActiveSleepCard(record: SleepRecord, onStop: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = stringResource(
-                    R.string.sleep_in_progress_status,
-                    record.sleepType.emoji,
-                    stringResource(record.sleepType.labelRes()),
-                ),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
-            )
+            SleepInProgressTitle(record.sleepType)
             TimerDisplay(
                 startTimeMillis = record.startTime.toEpochMilli(),
                 isRunning = true,
@@ -632,6 +630,32 @@ private fun ActiveSleepCard(record: SleepRecord, onStop: () -> Unit) {
 }
 
 @Composable
+private fun SleepInProgressTitle(sleepType: SleepType) {
+    val label = stringResource(sleepType.labelRes())
+    if (sleepType == SleepType.NIGHT_SLEEP) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SleepIcon(modifier = Modifier.size(18.dp))
+            Text(
+                text = stringResource(R.string.sleep_in_progress_status_text, label),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
+    } else {
+        Text(
+            text = stringResource(R.string.sleep_in_progress_status, sleepType.emoji, label),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+        )
+    }
+}
+
+@Composable
 internal fun SleepEntryCard(
     record: SleepRecord,
     onEdit: (() -> Unit)? = null,
@@ -652,8 +676,13 @@ internal fun SleepEntryCard(
         trailing = record.endTime?.let { end ->
             Duration.between(record.startTime, end).formatDuration()
         } ?: stringResource(R.string.label_in_progress),
-        badgeEmoji = record.sleepType.emoji,
+        badgeEmoji = if (record.sleepType == SleepType.NIGHT_SLEEP) "" else record.sleepType.emoji,
         badgeColor = MaterialTheme.colorScheme.secondaryContainer,
+        badgeContent = if (record.sleepType == SleepType.NIGHT_SLEEP) {
+            { SleepIcon(modifier = Modifier.size(34.dp)) }
+        } else {
+            null
+        },
         trailingColor = MaterialTheme.colorScheme.secondary,
         trailingContent = if (onEdit != null && onDelete != null) {
             {
@@ -750,7 +779,21 @@ internal fun AddSleepEntrySheetContent(
                 FilterChip(
                     selected = isSelected,
                     onClick = { onTypeChanged(type) },
-                    label = { Text(stringResource(R.string.sleep_type_chip, type.emoji, stringResource(type.labelRes()))) },
+                    label = {
+                        val label = stringResource(type.labelRes())
+                        Text(
+                            text = if (type == SleepType.NIGHT_SLEEP) {
+                                label
+                            } else {
+                                stringResource(R.string.sleep_type_chip, type.emoji, label)
+                            },
+                        )
+                    },
+                    leadingIcon = if (type == SleepType.NIGHT_SLEEP) {
+                        { SleepIcon(modifier = Modifier.size(18.dp)) }
+                    } else {
+                        null
+                    },
                     modifier = Modifier.weight(1f),
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
