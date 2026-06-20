@@ -1189,4 +1189,21 @@
         <item quantity="one">%1$d question to ask</item>
         <item quantity="other">%1$d questions to ask</item>
     </plurals>
+
+    <!-- Doctor Visit — history -->
+    <string name="doctor_visit_history_title">Visit history</string>
+    <string name="doctor_visit_history_upcoming">Upcoming</string>
+    <string name="doctor_visit_history_past">Past</string>
+    <string name="doctor_visit_history_empty">No visits yet</string>
+    <string name="doctor_visit_history_has_snapshot">Snapshot</string>
+    <string name="doctor_visit_history_deleted">Visit deleted</string>
+    <string name="doctor_visit_history_undo">Undo</string>
+    <string name="doctor_visit_history_no_provider">Visit</string>
+    <string name="doctor_visit_view_history">View history</string>
+    <string name="doctor_visit_add">Add visit</string>
+    <string name="doctor_visit_delete">Delete visit</string>
+    <plurals name="doctor_visit_history_question_count">
+        <item quantity="one">%1$d question</item>
+        <item quantity="other">%1$d questions</item>
+    </plurals>
 </resources>

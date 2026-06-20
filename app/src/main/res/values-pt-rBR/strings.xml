@@ -1206,4 +1206,21 @@
         <item quantity="one">%1$d pergunta para fazer</item>
         <item quantity="other">%1$d perguntas para fazer</item>
     </plurals>
+
+    <!-- Doctor Visit — history -->
+    <string name="doctor_visit_history_title">Histórico de consultas</string>
+    <string name="doctor_visit_history_upcoming">Próximas</string>
+    <string name="doctor_visit_history_past">Anteriores</string>
+    <string name="doctor_visit_history_empty">Nenhuma consulta ainda</string>
+    <string name="doctor_visit_history_has_snapshot">Cópia</string>
+    <string name="doctor_visit_history_deleted">Consulta excluída</string>
+    <string name="doctor_visit_history_undo">Desfazer</string>
+    <string name="doctor_visit_history_no_provider">Consulta</string>
+    <string name="doctor_visit_view_history">Ver histórico</string>
+    <string name="doctor_visit_add">Adicionar consulta</string>
+    <string name="doctor_visit_delete">Excluir consulta</string>
+    <plurals name="doctor_visit_history_question_count">
+        <item quantity="one">%1$d pergunta</item>
+        <item quantity="other">%1$d perguntas</item>
+    </plurals>
 </resources>

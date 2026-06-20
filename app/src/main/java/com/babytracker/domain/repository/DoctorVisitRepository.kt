@@ -20,6 +20,7 @@ interface DoctorVisitRepository {
     // Questions
     fun observeInboxQuestions(): Flow<List<VisitQuestion>>
     fun observeQuestionsForVisit(visitId: Long): Flow<List<VisitQuestion>>
+    fun observeAttachedQuestionCounts(): Flow<Map<Long, Int>>
     suspend fun getAllQuestionsOnce(): List<VisitQuestion>
     suspend fun getQuestionById(id: Long): VisitQuestion?
     suspend fun insertQuestion(question: VisitQuestion): Long
