@@ -24,13 +24,6 @@ data class DailySleepDuration(
 /** Mean hours between consecutive same-day feeds; null when fewer than two feeds that day. */
 data class DailyFeedingInterval(val date: LocalDate, val averageHours: Double?)
 
-/** Daily feed count paired with total sleep hours, for the Feeds-vs-Sleep overlay chart. */
-data class DailyFeedVsSleep(
-    val date: LocalDate,
-    val feedCount: Int,
-    val sleepHours: Double,
-)
-
 /**
  * One day's 24h timeline: sleep blocks plus feed marks, as fractions of the day in [0, 1).
  * Breast and bottle feeds are kept apart so the rhythm strip can color them differently.

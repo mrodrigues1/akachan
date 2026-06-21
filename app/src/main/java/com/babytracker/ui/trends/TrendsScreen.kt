@@ -1,18 +1,33 @@
 package com.babytracker.ui.trends
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Card
+import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,19 +42,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
-import com.babytracker.domain.trends.DailyFeedVsSleep
 import com.babytracker.domain.trends.DailyFeedingCount
 import com.babytracker.domain.trends.DailyFeedingInterval
 import com.babytracker.domain.trends.DailySleepDuration
@@ -47,7 +65,6 @@ import com.babytracker.domain.trends.DayRhythm
 import com.babytracker.domain.trends.TrendRange
 import com.babytracker.ui.theme.growthColors
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
-import com.patrykandpatrick.vico.compose.cartesian.axis.Axis
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
@@ -66,6 +83,7 @@ import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberShapeComponent
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 private val RANGE_LABELS = mapOf(
     TrendRange.SEVEN_DAYS to R.string.trends_range_7d,
@@ -74,6 +92,9 @@ private val RANGE_LABELS = mapOf(
 )
 
 private const val COLUMN_THICKNESS_DP = 12
+
+// Supporting charts read as detail under the rhythm hero, so they sit shorter than a hero chart would.
+private val DETAIL_CHART_HEIGHT = 180.dp
 
 private val DATE_AXIS_FORMAT = DateTimeFormatter.ofPattern("dd/MM")
 
@@ -131,22 +152,48 @@ fun TrendsScreen(
             )
         },
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            RangeSelector(
-                selected = uiState.range,
-                onSelected = viewModel::onRangeSelected,
+        // Skeleton only on the first read, while there is genuinely nothing to show yet. Once data
+        // has loaded, a range switch keeps the prior charts on screen (see TrendsViewModel), so we
+        // never flash the skeleton between taps.
+        if (uiState.isLoading && uiState.isEmptyOverall()) {
+            TrendsSkeleton(Modifier.padding(padding).fillMaxSize())
+        } else {
+            TrendsContent(
+                uiState = uiState,
+                onRangeSelected = viewModel::onRangeSelected,
+                modifier = Modifier.padding(padding),
             )
-            RhythmStripCard(uiState.dayRhythm)
-            FeedingFrequencyCard(uiState.feedingFrequency)
-            SleepDurationCard(uiState.sleepDuration)
-            FeedingIntervalCard(uiState.feedingInterval)
-            FeedVsSleepCard(uiState.feedVsSleep)
+        }
+    }
+}
+
+@Composable
+private fun TrendsContent(
+    uiState: TrendsUiState,
+    onRangeSelected: (TrendRange) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+            .animateContentSize(),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+        RangeSelector(selected = uiState.range, onSelected = onRangeSelected)
+
+        if (uiState.isEmptyOverall()) {
+            TrendsEmptyBody()
+        } else {
+            RhythmHero(uiState.dayRhythm)
+            TrendsSection(stringResource(R.string.trends_section_feeding)) {
+                FeedingFrequencyChart(uiState.feedingFrequency)
+                FeedingIntervalChart(uiState.feedingInterval)
+            }
+            TrendsSection(stringResource(R.string.trends_section_sleep)) {
+                SleepDurationChart(uiState.sleepDuration)
+            }
         }
     }
 }
@@ -176,45 +223,220 @@ private fun RangeSelector(
     }
 }
 
+/**
+ * The hero: a full-width, flat 24h-per-day timeline. No card chrome, generous heading. This is the
+ * care story the screen leads with; the charts below are supporting detail.
+ */
 @Composable
-private fun ChartCard(
-    title: String,
-    chartTestTag: String,
-    isEmpty: Boolean,
-    chartContentDescription: String,
-    chartHeight: Dp? = 220.dp,
-    chart: @Composable () -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            if (isEmpty) {
-                Text(
-                    text = stringResource(R.string.trends_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .padding(top = 12.dp)
-                        .testTag("${chartTestTag}_empty"),
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .then(if (chartHeight != null) Modifier.height(chartHeight) else Modifier)
-                        .padding(top = if (chartHeight == null) 12.dp else 0.dp)
-                        .testTag(chartTestTag)
-                        .semantics { contentDescription = chartContentDescription },
-                ) {
-                    chart()
+private fun RhythmHero(data: List<DayRhythm>) {
+    val isEmpty = data.all {
+        it.sleepBlocks.isEmpty() && it.breastFeedMarks.isEmpty() && it.bottleFeedMarks.isEmpty()
+    }
+    val contentDescription = stringResource(R.string.trends_rhythm_cd, data.size)
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.trends_rhythm_title),
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        if (isEmpty) {
+            EmptyHint("trends_rhythm_chart")
+        } else {
+            // Most recent day on top: a tired parent reads last night first. The data arrives
+            // oldest-first (matching the time-series charts' left-to-right axis), so reverse for display.
+            val ordered = remember(data) { data.asReversed() }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("trends_rhythm_chart"),
+            ) {
+                // Collapse the strip's many ruler/date/legend text nodes into one spoken summary, so
+                // TalkBack reads the rhythm as a single meaningful description, not a stream of ticks.
+                Box(Modifier.clearAndSetSemantics { this.contentDescription = contentDescription }) {
+                    RhythmStrip(ordered)
                 }
             }
         }
     }
 }
 
+/** A domain band: an uppercase label header (the system's one sanctioned uppercase use) over its charts. */
 @Composable
-private fun FeedingFrequencyCard(data: List<DailyFeedingCount>) {
+private fun TrendsSection(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(
+            text = title.uppercase(Locale.getDefault()),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        content()
+    }
+}
+
+/**
+ * A single flat chart: a small title over the chart (or an inline hint when that domain has no data
+ * for the range). No card; separation comes from the section grouping and spacing around it.
+ */
+@Composable
+private fun ChartBlock(
+    title: String,
+    chartTestTag: String,
+    isEmpty: Boolean,
+    chartContentDescription: String,
+    chartHeight: Dp = DETAIL_CHART_HEIGHT,
+    chart: @Composable () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        if (isEmpty) {
+            EmptyHint(chartTestTag)
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(chartHeight)
+                    .testTag(chartTestTag)
+                    .semantics { contentDescription = chartContentDescription },
+            ) {
+                chart()
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyHint(chartTestTag: String) {
+    Text(
+        text = stringResource(R.string.trends_empty),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.testTag("${chartTestTag}_empty"),
+    )
+}
+
+/** Brand-new, zero-data state. One warm teaching block under the range selector, never five empty boxes. */
+@Composable
+private fun TrendsEmptyBody() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 48.dp, bottom = 24.dp)
+            .testTag("trends_empty_state"),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Timeline,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(48.dp),
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = stringResource(R.string.trends_empty_title),
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.trends_empty_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(max = 320.dp),
+        )
+    }
+}
+
+/**
+ * Calm first-load placeholder mirroring the rest of the app: silhouettes that breathe softly while
+ * the first read of the local store resolves. A skeleton (not a spinner) keeps the layout stable.
+ */
+@Composable
+private fun TrendsSkeleton(modifier: Modifier = Modifier) {
+    val loadingLabel = stringResource(R.string.loading)
+    val transition = rememberInfiniteTransition(label = "trendsSkeleton")
+    val alpha by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.75f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "trendsSkeletonAlpha",
+    )
+    val block = MaterialTheme.colorScheme.outlineVariant.copy(alpha = alpha)
+
+    Column(
+        modifier = modifier
+            .padding(16.dp)
+            .clearAndSetSemantics { contentDescription = loadingLabel },
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            repeat(SKELETON_RANGE_COUNT) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(block),
+                )
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SkeletonBox(block, width = 140.dp, height = 22.dp)
+            repeat(SKELETON_RHYTHM_ROWS) {
+                SkeletonBox(block, height = 18.dp, radius = 9.dp)
+            }
+        }
+        repeat(SKELETON_DETAIL_BLOCKS) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SkeletonBox(block, width = 120.dp, height = 14.dp)
+                SkeletonBox(block, height = 140.dp, radius = 16.dp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SkeletonBox(
+    color: Color,
+    height: Dp,
+    width: Dp? = null,
+    radius: Dp = 4.dp,
+) {
+    Box(
+        modifier = Modifier
+            .then(if (width != null) Modifier.width(width) else Modifier.fillMaxWidth())
+            .height(height)
+            .clip(RoundedCornerShape(radius))
+            .background(color),
+    )
+}
+
+private const val SKELETON_RANGE_COUNT = 3
+private const val SKELETON_RHYTHM_ROWS = 6
+private const val SKELETON_DETAIL_BLOCKS = 2
+
+@Composable
+private fun FeedingFrequencyChart(data: List<DailyFeedingCount>) {
     val isEmpty = data.all { it.count == 0 }
     val color = MaterialTheme.colorScheme.primary
     val label = rememberChartLabel()
@@ -229,7 +451,7 @@ private fun FeedingFrequencyCard(data: List<DailyFeedingCount>) {
             }
         }
     }
-    ChartCard(
+    ChartBlock(
         title = stringResource(R.string.trends_feeds_per_day_title),
         chartTestTag = "trends_feeding_chart",
         isEmpty = isEmpty,
@@ -262,7 +484,7 @@ private fun FeedingFrequencyCard(data: List<DailyFeedingCount>) {
 }
 
 @Composable
-private fun SleepDurationCard(data: List<DailySleepDuration>) {
+private fun SleepDurationChart(data: List<DailySleepDuration>) {
     val isEmpty = data.all { it.totalHours == 0.0 }
     val nightColor = MaterialTheme.colorScheme.secondary
     val napColor = MaterialTheme.colorScheme.secondaryContainer
@@ -281,7 +503,7 @@ private fun SleepDurationCard(data: List<DailySleepDuration>) {
             }
         }
     }
-    ChartCard(
+    ChartBlock(
         title = stringResource(R.string.trends_sleep_hours_title),
         chartTestTag = "trends_sleep_chart",
         isEmpty = isEmpty,
@@ -316,7 +538,7 @@ private fun SleepDurationCard(data: List<DailySleepDuration>) {
 }
 
 @Composable
-private fun FeedingIntervalCard(data: List<DailyFeedingInterval>) {
+private fun FeedingIntervalChart(data: List<DailyFeedingInterval>) {
     // Split into contiguous runs of non-null days so gap days BREAK the line rather than letting a
     // single series connect across them (which would imply a false trend through missing days).
     val runs = remember(data) { contiguousNonNullRuns(data) }
@@ -335,7 +557,7 @@ private fun FeedingIntervalCard(data: List<DailyFeedingInterval>) {
         }
     }
     val line = lineSpec(color)
-    ChartCard(
+    ChartBlock(
         title = stringResource(R.string.trends_interval_title),
         chartTestTag = "trends_interval_chart",
         isEmpty = isEmpty,
@@ -362,84 +584,6 @@ private fun FeedingIntervalCard(data: List<DailyFeedingInterval>) {
             producer,
             modifier = Modifier.fillMaxSize(),
         )
-    }
-}
-
-@Composable
-private fun FeedVsSleepCard(data: List<DailyFeedVsSleep>) {
-    val isEmpty = data.all { it.feedCount == 0 && it.sleepHours == 0.0 }
-    val feedColor = MaterialTheme.colorScheme.primary
-    val sleepColor = MaterialTheme.colorScheme.secondary
-    val label = rememberChartLabel()
-    val axisTitle = rememberAxisTitle()
-    val feedsTitle = stringResource(R.string.trends_axis_feeds)
-    val sleepHrsTitle = stringResource(R.string.trends_axis_sleep_hrs)
-    val dateTitle = stringResource(R.string.trends_axis_date)
-    val producer = remember { CartesianChartModelProducer() }
-    LaunchedEffect(data) {
-        if (!isEmpty) {
-            producer.runTransaction {
-                columnSeries { series(data.indices.toList(), data.map { it.feedCount }) }
-                lineSeries { series(data.indices.toList(), data.map { it.sleepHours }) }
-            }
-        }
-    }
-    val sleepLine = lineSpec(sleepColor)
-    ChartCard(
-        title = stringResource(R.string.trends_feedvssleep_title),
-        chartTestTag = "trends_feedvssleep_chart",
-        isEmpty = isEmpty,
-        chartContentDescription = stringResource(R.string.trends_feedvssleep_cd, data.size),
-    ) {
-        CartesianChartHost(
-            rememberCartesianChart(
-                rememberColumnCartesianLayer(
-                    ColumnCartesianLayer.ColumnProvider.series(
-                        rememberLineComponent(fill = Fill(feedColor), thickness = COLUMN_THICKNESS_DP.dp),
-                    ),
-                    verticalAxisPosition = Axis.Position.Vertical.Start,
-                ),
-                rememberLineCartesianLayer(
-                    LineCartesianLayer.LineProvider.series(sleepLine),
-                    verticalAxisPosition = Axis.Position.Vertical.End,
-                ),
-                startAxis = VerticalAxis.rememberStart(
-                    label = label,
-                    titleComponent = axisTitle,
-                    title = { feedsTitle },
-                ),
-                endAxis = VerticalAxis.rememberEnd(
-                    label = label,
-                    titleComponent = axisTitle,
-                    title = { sleepHrsTitle },
-                ),
-                bottomAxis = HorizontalAxis.rememberBottom(
-                    label = label,
-                    valueFormatter = dateAxisFormatter(data.map { it.date }),
-                    itemPlacer = dayAxisItemPlacer(data.size),
-                    titleComponent = axisTitle,
-                    title = { dateTitle },
-                ),
-            ),
-            producer,
-            modifier = Modifier.fillMaxSize(),
-        )
-    }
-}
-
-@Composable
-private fun RhythmStripCard(data: List<DayRhythm>) {
-    val isEmpty = data.all {
-        it.sleepBlocks.isEmpty() && it.breastFeedMarks.isEmpty() && it.bottleFeedMarks.isEmpty()
-    }
-    ChartCard(
-        title = stringResource(R.string.trends_rhythm_title),
-        chartTestTag = "trends_rhythm_chart",
-        isEmpty = isEmpty,
-        chartContentDescription = stringResource(R.string.trends_rhythm_cd, data.size),
-        chartHeight = null,
-    ) {
-        RhythmStrip(data)
     }
 }
 

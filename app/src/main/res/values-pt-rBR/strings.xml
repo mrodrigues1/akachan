@@ -538,16 +538,18 @@
     <string name="trends_range_7d">7d</string>
     <string name="trends_range_14d">14d</string>
     <string name="trends_range_30d">30d</string>
-    <string name="trends_empty">Dados insuficientes ainda — continue registrando.</string>
+    <string name="trends_empty">Dados insuficientes ainda. Continue registrando.</string>
     <string name="trends_feeds_per_day_title">Mamadas por dia</string>
     <string name="trends_feeds_per_day_cd">Mamadas por dia. Total de %1$d em %2$d dias.</string>
     <string name="trends_sleep_hours_title">Horas de sono por dia (noturno + soneca)</string>
     <string name="trends_sleep_hours_cd">Horas de sono por dia, noturno e soneca empilhados, em %1$d dias.</string>
     <string name="trends_interval_title">Média de horas entre mamadas</string>
     <string name="trends_interval_cd">Média de horas entre mamadas por dia em %1$d dias.</string>
-    <string name="trends_feedvssleep_title">Mamadas x sono por dia</string>
-    <string name="trends_feedvssleep_cd">Mamadas versus sono por dia em %1$d dias. As colunas são a contagem de mamadas, a linha é o total de horas de sono.</string>
-    <string name="trends_rhythm_title">Ritmo diário (sono + mamadas)</string>
+    <string name="trends_empty_title">Sem ritmo ainda</string>
+    <string name="trends_empty_body">Registre algumas mamadas e sonos, e o ritmo diário do seu bebê vai aparecer aqui.</string>
+    <string name="trends_section_feeding">Mamadas</string>
+    <string name="trends_section_sleep">Sono</string>
+    <string name="trends_rhythm_title">Ritmo diário</string>
     <string name="trends_rhythm_cd">Ritmo diário em %1$d dias, cada linha é um dia da meia-noite à meia-noite. As barras são sono, os pontos são mamadas.</string>
     <string name="trends_legend_night">Noturno</string>
     <string name="trends_legend_nap">Soneca</string>
@@ -1093,7 +1095,6 @@
     <string name="trends_axis_feeds">Mamadas</string>
     <string name="trends_axis_date">Data</string>
     <string name="trends_axis_hours">Horas</string>
-    <string name="trends_axis_sleep_hrs">Horas de sono</string>
 
     <!-- Widget de estoque de leite -->
     <string name="widget_milk_stash_title">Estoque</string>
