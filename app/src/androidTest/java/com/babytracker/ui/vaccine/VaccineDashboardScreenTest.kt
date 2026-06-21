@@ -74,6 +74,7 @@ class VaccineDashboardScreenTest {
                     onAddVaccine = onAddVaccine,
                     onEditRecord = {},
                     onMarkGiven = onMarkGiven,
+                    onDeleteRecord = {},
                     onRetry = {},
                     onNavigateToHistory = onNavigateToHistory,
                     onNavigateToSettings = {},

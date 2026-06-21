@@ -1129,6 +1129,9 @@
     <string name="vaccine_date_scheduled_label">Data agendada</string>
     <string name="vaccine_save">Salvar</string>
     <string name="vaccine_save_error">Não foi possível salvar a vacina</string>
+    <string name="vaccine_name_required">Adicione o nome da vacina para salvar.</string>
+    <string name="vaccine_scheduled_future_error">Vacinas agendadas precisam de uma data futura.</string>
+    <string name="vaccine_administered_past_error">A data de aplicação não pode estar no futuro.</string>
     <string name="vaccine_tile_next">Próxima: %1$s</string>
     <string name="vaccine_tile_today">Hoje</string>
     <string name="vaccine_tile_overdue">Atrasada</string>
@@ -1167,6 +1170,10 @@
     <string name="vaccine_undo">Desfazer</string>
     <string name="vaccine_edit_content_description">Editar %1$s</string>
     <string name="vaccine_delete_content_description">Excluir %1$s</string>
+    <string name="vaccine_delete_title">Excluir esta vacina?</string>
+    <string name="vaccine_delete_message">Isso remove o registro permanentemente. Você pode precisar dele para creche ou escola depois.</string>
+    <string name="vaccine_name_with_dose">%1$s · %2$s</string>
+    <string name="vaccine_overdue_on_date">Atrasada · %1$s</string>
 
     <!-- Vaccine dashboard -->
     <string name="vaccine_next_up">Próxima</string>
@@ -1188,6 +1195,7 @@
         <item quantity="many">+%1$d atrasadas</item>
         <item quantity="other">+%1$d atrasadas</item>
     </plurals>
+    <string name="vaccine_overdue_reassurance">Sem pressa. Marque como aplicada quando acontecer, ou reagende.</string>
     <string name="vaccine_caught_up_title">Tudo em dia</string>
     <string name="vaccine_caught_up_subtitle">Nenhuma vacina agendada no momento.</string>
     <string name="vaccine_empty_title">Acompanhe as vacinas do bebê</string>
@@ -1206,6 +1214,7 @@
     <string name="vaccine_reminder_toggle_title">Lembrar antes das vacinas</string>
     <string name="vaccine_reminder_toggle_subtitle">Receba uma notificação antes de uma vacina agendada</string>
     <string name="vaccine_reminder_lead_label">Com quanta antecedência</string>
+    <string name="vaccine_reminder_lead_hint">Avisaremos com esta antecedência antes de cada vacina agendada.</string>
     <plurals name="vaccine_reminder_lead_option">
         <item quantity="one">%1$d dia antes</item>
         <item quantity="many">%1$d dias antes</item>

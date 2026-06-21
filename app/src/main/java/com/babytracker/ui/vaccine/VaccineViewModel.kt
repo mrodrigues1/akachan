@@ -19,6 +19,9 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
+/** Which field a [VaccineUiState.validationError] belongs to, so the sheet can anchor it inline. */
+enum class VaccineField { NAME, DATE }
+
 data class VaccineUiState(
     val name: String = "",
     val doseLabel: String = "",
@@ -28,6 +31,8 @@ data class VaccineUiState(
     val suggestions: List<String> = emptyList(),
     val isSaving: Boolean = false,
     val validationError: String? = null,
+    /** Null for a generic (non-field) error; otherwise the field the error should render under. */
+    val errorField: VaccineField? = null,
     val editingId: Long? = null,
     val editingCreatedAt: Instant? = null,
     val isEditing: Boolean = false,
@@ -50,10 +55,12 @@ class VaccineViewModel @Inject constructor(
     )
     val uiState: StateFlow<VaccineUiState> = _uiState.asStateFlow()
 
-    fun onNameChange(text: String) = _uiState.update { it.copy(name = text, validationError = null) }
+    fun onNameChange(text: String) =
+        _uiState.update { it.copy(name = text, validationError = null, errorField = null) }
     fun onDoseChange(text: String) = _uiState.update { it.copy(doseLabel = text) }
     fun onNotesChange(text: String) = _uiState.update { it.copy(notes = text) }
-    fun onDateChange(date: Instant) = _uiState.update { it.copy(date = date, validationError = null) }
+    fun onDateChange(date: Instant) =
+        _uiState.update { it.copy(date = date, validationError = null, errorField = null) }
 
     fun onModeChange(status: VaccineStatus) = _uiState.update {
         // Scheduled vaccines must be in the future (AddVaccineRecordUseCase enforces it), so when
@@ -63,7 +70,7 @@ class VaccineViewModel @Inject constructor(
         } else {
             it.date
         }
-        it.copy(status = status, date = nextDate, validationError = null)
+        it.copy(status = status, date = nextDate, validationError = null, errorField = null)
     }
 
     /**
@@ -117,13 +124,21 @@ class VaccineViewModel @Inject constructor(
             }.onSuccess {
                 _uiState.update { it.copy(isSaving = false, saved = true) }
             }.onFailure { error ->
+                // Never surface a raw Throwable.message to the parent: the use cases throw
+                // developer-phrased require() text. Map the known validation failures to curated,
+                // localized copy anchored to the offending field, falling back to a friendly generic.
+                val (res, field) = curatedSaveError(error, state)
                 _uiState.update {
-                    it.copy(
-                        isSaving = false,
-                        validationError = error.message ?: appContext.getString(R.string.vaccine_save_error),
-                    )
+                    it.copy(isSaving = false, validationError = appContext.getString(res), errorField = field)
                 }
             }
         }
+    }
+
+    private fun curatedSaveError(error: Throwable, state: VaccineUiState): Pair<Int, VaccineField?> = when {
+        error !is IllegalArgumentException -> R.string.vaccine_save_error to null
+        state.name.isBlank() -> R.string.vaccine_name_required to VaccineField.NAME
+        state.status == VaccineStatus.SCHEDULED -> R.string.vaccine_scheduled_future_error to VaccineField.DATE
+        else -> R.string.vaccine_administered_past_error to VaccineField.DATE
     }
 }

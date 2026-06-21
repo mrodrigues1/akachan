@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
@@ -28,6 +29,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.babytracker.R
@@ -43,8 +47,9 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * Labelled date + time row used by entry sheets (milk bag, bottle feed).
+ * Labelled date + time row shared by entry sheets (bottle feed, milk bag, vaccine).
  * Two tappable [FieldCell]s open a date and a time picker respectively, both editing the same [Instant].
+ * Pass [errorText] to surface an inline, screen-reader-announced validation message under the row.
  */
 @Composable
 fun DateTimeFieldRow(
@@ -54,6 +59,7 @@ fun DateTimeFieldRow(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     accent: FieldAccent? = null,
+    errorText: String? = null,
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -62,7 +68,12 @@ fun DateTimeFieldRow(
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            color = accent?.accent ?: MaterialTheme.colorScheme.primary,
+            // The label flips to the error role so the field reads as invalid without relying on the
+            // message alone.
+            color = when {
+                errorText != null -> MaterialTheme.colorScheme.error
+                else -> accent?.accent ?: MaterialTheme.colorScheme.primary
+            },
         )
         Spacer(Modifier.height(8.dp))
         Row(
@@ -80,6 +91,17 @@ fun DateTimeFieldRow(
                 onClick = { showTimePicker = true },
                 enabled = enabled,
                 modifier = Modifier.weight(1f),
+            )
+        }
+        if (errorText != null) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = errorText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                // Assertive: a validation failure follows the user's own Save tap, so it should be
+                // spoken immediately rather than waiting for focus to land on it.
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
             )
         }
     }
@@ -120,13 +142,15 @@ private fun FieldCell(
 ) {
     Box(
         modifier = modifier
-            .height(56.dp)
+            // heightIn (not a fixed height) so the cell grows instead of clipping the label at large
+            // system font scales.
+            .heightIn(min = 56.dp)
             .background(
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = MaterialTheme.shapes.medium,
             )
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
         Text(
@@ -196,10 +220,14 @@ private fun EditTimePicker(
 private fun Instant.toDateLabel(): String {
     val date = atZone(ZoneId.systemDefault()).toLocalDate()
     val today = LocalDate.now()
+    // Hoisted above the `when` so remember() is called unconditionally; rebuilds only on a locale
+    // change instead of allocating a formatter on every recomposition.
+    val locale = Locale.getDefault()
+    val formatter = remember(locale) { DateTimeFormatter.ofPattern("EEE, MMM d", locale) }
     return when (date) {
         today -> stringResource(R.string.relative_today)
         today.minusDays(1) -> stringResource(R.string.relative_yesterday)
-        else -> DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()).format(date)
+        else -> formatter.format(date)
     }
 }
 

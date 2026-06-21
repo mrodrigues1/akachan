@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.VaccineStatus
+import com.babytracker.domain.usecase.vaccine.DeleteVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -54,6 +55,8 @@ data class VaccineDashboardUiState(
     val givenCount: Int = 0,
     /** The vaccine inside the mark-given undo window, held so the screen can offer an undo snackbar. */
     val lastMarkedGiven: VaccineRecord? = null,
+    /** The vaccine inside the delete undo window, held so the screen can offer an undo snackbar. */
+    val lastDeleted: VaccineRecord? = null,
     val now: Instant = Instant.EPOCH,
 ) {
     /** True on a clean install: nothing scheduled, nothing recorded. */
@@ -64,6 +67,7 @@ data class VaccineDashboardUiState(
 class VaccineDashboardViewModel @Inject constructor(
     observeRecords: ObserveVaccineRecordsUseCase,
     private val markGivenUseCase: MarkVaccineAdministeredUseCase,
+    private val deleteUseCase: DeleteVaccineRecordUseCase,
     private val zone: ZoneId,
     private val now: () -> Instant,
 ) : ViewModel() {
@@ -74,6 +78,10 @@ class VaccineDashboardViewModel @Inject constructor(
     // snackbar" frame). Held outside the data flow so it survives Room re-emissions.
     private val pendingMarkGiven = MutableStateFlow<VaccineRecord?>(null)
 
+    // The record inside the delete undo window: optimistically hidden, deleted only once the snackbar
+    // is dismissed. Same deferred-commit pattern as the history screen.
+    private val pendingDelete = MutableStateFlow<VaccineRecord?>(null)
+
     // Bumped by onRetry so flatMapLatest rebuilds the combined flow after an upstream failure;
     // a plain .catch would emit the error once and leave the flow terminated with no way back.
     private val retryTrigger = MutableStateFlow(0)
@@ -81,12 +89,14 @@ class VaccineDashboardViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<VaccineDashboardUiState> =
         retryTrigger.flatMapLatest {
-            combine(observeRecords(), pendingMarkGiven) { records, pending ->
+            combine(observeRecords(), pendingMarkGiven, pendingDelete) { records, pendingMark, pendingDel ->
                 val instant = now()
                 val today = instant.atZone(zone).toLocalDate()
+                // Optimistically hide a record inside its delete-undo window before anything else.
+                val visible = records.filterNot { it.id == pendingDel?.id }
 
-                val scheduled = records.filter {
-                    it.status == VaccineStatus.SCHEDULED && it.scheduledDate != null && it.id != pending?.id
+                val scheduled = visible.filter {
+                    it.status == VaccineStatus.SCHEDULED && it.scheduledDate != null && it.id != pendingMark?.id
                 }
                 val overdue = scheduled
                     .filter { it.scheduledDate!!.isBefore(instant) }
@@ -95,10 +105,10 @@ class VaccineDashboardViewModel @Inject constructor(
                     .filter { !it.scheduledDate!!.isBefore(instant) }
                     .sortedBy { it.scheduledDate }
 
-                val administered = records.filter { it.status == VaccineStatus.ADMINISTERED }
+                val administered = visible.filter { it.status == VaccineStatus.ADMINISTERED }
                 // Optimistically fold the pending record in as if given now, so marking it doesn't make
                 // the row vanish for the length of the undo window.
-                val optimisticPending = pending?.copy(
+                val optimisticPending = pendingMark?.copy(
                     status = VaccineStatus.ADMINISTERED,
                     administeredDate = instant,
                 )
@@ -117,7 +127,8 @@ class VaccineDashboardViewModel @Inject constructor(
                     schedule = overdue + future,
                     recentlyGiven = given.take(RECENT_LIMIT),
                     givenCount = given.size,
-                    lastMarkedGiven = pending,
+                    lastMarkedGiven = pendingMark,
+                    lastDeleted = pendingDel,
                     now = instant,
                 )
             }.catch {
@@ -156,6 +167,28 @@ class VaccineDashboardViewModel @Inject constructor(
         val record = pendingMarkGiven.value ?: return
         pendingMarkGiven.value = null
         viewModelScope.launch { runCatching { markGivenUseCase(record.id, now()) } }
+    }
+
+    /** Start the undo window for deleting [record]; finalizes any prior pending delete first. */
+    fun requestDelete(record: VaccineRecord) {
+        flushPendingDelete()
+        pendingDelete.value = record
+    }
+
+    /** Snackbar "Undo": nothing was written yet, so just reveal the record again. */
+    fun undoDelete() {
+        pendingDelete.value = null
+    }
+
+    /** Snackbar dismissed / timed out: finalize the delete. */
+    fun onDeleteConsumed() {
+        flushPendingDelete()
+    }
+
+    private fun flushPendingDelete() {
+        val record = pendingDelete.value ?: return
+        pendingDelete.value = null
+        viewModelScope.launch { runCatching { deleteUseCase(record.id) } }
     }
 
     private companion object {
