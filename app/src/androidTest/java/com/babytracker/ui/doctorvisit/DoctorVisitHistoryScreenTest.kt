@@ -88,6 +88,6 @@ class DoctorVisitHistoryScreenTest {
     @Test
     fun emptyStateShown() {
         setContent(DoctorVisitHistoryUiState())
-        composeRule.onNodeWithText("No visits yet. Log your first one to keep a record.").assertIsDisplayed()
+        composeRule.onNodeWithText("No visits yet. Add your first one to keep a record.").assertIsDisplayed()
     }
 }
