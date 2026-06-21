@@ -79,4 +79,24 @@ class DoctorVisitDaoTest {
         assertEquals(null, dao.getVisitById(visitId)) // visit gone
         assertEquals(1, dao.observeInboxQuestions().first().size) // question back in inbox, not deleted
     }
+
+    @Test
+    fun updateVisitReconcilingAttachmentsDetachesDeselectedQuestionsWithoutDeleting() = runTest {
+        val visitId = dao.insertVisit(DoctorVisitEntity(date = 100, createdAt = 1))
+        val keep = dao.insertQuestion(VisitQuestionEntity(text = "keep", visitId = null, createdAt = 1))
+        val drop = dao.insertQuestion(VisitQuestionEntity(text = "drop", visitId = null, createdAt = 2))
+        dao.attachQuestions(listOf(keep, drop), visitId)
+        assertEquals(0, dao.observeInboxQuestions().first().size) // both attached
+
+        // Edit the visit, re-selecting only "keep" (drops "drop" from the visit).
+        dao.updateVisitReconcilingAttachments(
+            DoctorVisitEntity(id = visitId, date = 200, createdAt = 1),
+            listOf(keep),
+        )
+
+        assertEquals(200L, dao.getVisitById(visitId)?.date) // edit applied
+        assertEquals(listOf("keep"), dao.observeQuestionsForVisit(visitId).first().map { it.text })
+        assertEquals(listOf("drop"), dao.observeInboxQuestions().first().map { it.text }) // detached, not deleted
+        assertEquals(2, dao.getAllQuestionsOnce().size) // nothing deleted
+    }
 }
