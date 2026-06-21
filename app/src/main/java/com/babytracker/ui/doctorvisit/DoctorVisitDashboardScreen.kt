@@ -1,7 +1,9 @@
 package com.babytracker.ui.doctorvisit
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +24,7 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.Button
@@ -31,6 +34,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -39,16 +43,22 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -87,8 +97,26 @@ fun DoctorVisitDashboardScreen(
     viewModel: DoctorVisitDashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val answeredMessage = stringResource(R.string.visit_questions_answered)
+    val undoLabel = stringResource(R.string.visit_questions_undo)
+    LaunchedEffect(state.lastAnswered) {
+        state.lastAnswered ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = answeredMessage,
+            actionLabel = undoLabel,
+            duration = SnackbarDuration.Short,
+        )
+        when (result) {
+            SnackbarResult.ActionPerformed -> viewModel.onUndoAnswered()
+            SnackbarResult.Dismissed -> viewModel.onUndoAnsweredConsumed()
+        }
+    }
+
     DoctorVisitDashboardContent(
         state = state,
+        snackbarHostState = snackbarHostState,
         onDraftChange = viewModel::onDraftChange,
         onAddQuestion = viewModel::onAddQuestion,
         onToggleAnswered = viewModel::onToggleAnswered,
@@ -106,6 +134,7 @@ fun DoctorVisitDashboardScreen(
 @Composable
 fun DoctorVisitDashboardContent(
     state: DoctorVisitDashboardUiState,
+    snackbarHostState: SnackbarHostState,
     onDraftChange: (String) -> Unit,
     onAddQuestion: () -> Unit,
     onToggleAnswered: (Long) -> Unit,
@@ -120,6 +149,7 @@ fun DoctorVisitDashboardContent(
     val colors = doctorVisitColors()
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.doctor_visit_tile_label)) },
@@ -156,6 +186,10 @@ fun DoctorVisitDashboardContent(
             AddVisitBar(colors = colors, onAddVisit = onAddVisit)
         },
     ) { padding ->
+        if (state.isLoading) {
+            DashboardSkeleton(modifier = Modifier.padding(padding))
+            return@Scaffold
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -236,14 +270,26 @@ private fun NextVisitHero(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            SectionLabel(
-                text = stringResource(R.string.doctor_visit_next_visit),
-                color = secondary,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SectionLabel(
+                    text = stringResource(R.string.doctor_visit_next_visit),
+                    color = secondary,
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { heading() },
+                )
+                // The whole card opens edit; this icon is the visible affordance for it.
+                Icon(
+                    Icons.Outlined.Edit,
+                    contentDescription = stringResource(R.string.doctor_visit_edit_title),
+                    tint = secondary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
             Spacer(Modifier.height(8.dp))
             Text(
                 text = countdown,
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = colors.onAccent,
             )
@@ -345,8 +391,12 @@ private fun QuestionsSection(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // Preview is capped, so when more are open than shown, surface the total here
+            // (number only, no new copy) instead of silently truncating the list.
+            val sectionTitle = stringResource(R.string.visit_questions_title)
+            val truncated = openQuestionCount > questions.size
             SectionLabel(
-                text = stringResource(R.string.visit_questions_title),
+                text = if (truncated) "$sectionTitle · $openQuestionCount" else sectionTitle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .weight(1f)
@@ -567,24 +617,63 @@ private fun AddVisitBar(
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.navigationBarsPadding(),
     ) {
-        Button(
-            onClick = onAddVisit,
-            modifier = Modifier
+        Column {
+            // Hairline detaches the persistent CTA from content scrolling underneath it.
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Button(
+                onClick = onAddVisit,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .height(52.dp),
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colors.accent,
+                    contentColor = colors.onAccent,
+                ),
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.size(8.dp))
+                Text(
+                    text = stringResource(R.string.doctor_visit_add),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Calm placeholder shown until the first [combine] emission lands, so a cold start no longer
+ * flashes the "no upcoming visit" / "no questions" empty states for a frame. Static low-emphasis
+ * blocks (no shimmer) keep it quiet, per the "calm over clever" principle.
+ */
+@Composable
+private fun DashboardSkeleton(modifier: Modifier = Modifier) {
+    val block = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+    ) {
+        Spacer(Modifier.height(8.dp))
+        Box(
+            Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-                .height(52.dp),
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = colors.accent,
-                contentColor = colors.onAccent,
-            ),
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.size(8.dp))
-            Text(
-                text = stringResource(R.string.doctor_visit_add),
-                style = MaterialTheme.typography.labelLarge,
+                .height(132.dp)
+                .clip(MaterialTheme.shapes.large)
+                .background(block),
+        )
+        Spacer(Modifier.height(24.dp))
+        repeat(3) { index ->
+            Box(
+                Modifier
+                    .fillMaxWidth(if (index == 0) 0.4f else 1f)
+                    .height(20.dp)
+                    .clip(MaterialTheme.shapes.small)
+                    .background(block),
             )
+            Spacer(Modifier.height(12.dp))
         }
     }
 }

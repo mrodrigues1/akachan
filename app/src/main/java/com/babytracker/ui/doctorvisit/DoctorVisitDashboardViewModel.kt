@@ -34,6 +34,8 @@ data class DoctorVisitDashboardUiState(
     val questions: List<VisitQuestion> = emptyList(),
     val openQuestionCount: Int = 0,
     val draft: String = "",
+    /** The question most recently checked off, held so the screen can offer an undo snackbar. */
+    val lastAnswered: VisitQuestion? = null,
 ) {
     /** True on a clean install: nothing scheduled, nothing recorded, nothing being jotted yet. */
     val isFirstRun: Boolean
@@ -51,12 +53,17 @@ class DoctorVisitDashboardViewModel @Inject constructor(
 
     private val draft = MutableStateFlow("")
 
+    // Held outside the combined data flows so it survives the inbox re-emission that drops the
+    // checked question from the unanswered list; the screen consumes and clears it.
+    private val lastAnswered = MutableStateFlow<VisitQuestion?>(null)
+
     val uiState: StateFlow<DoctorVisitDashboardUiState> =
         combine(
             observeVisits(),
             observeInbox(),
             draft,
-        ) { visits, inbox, draftText ->
+            lastAnswered,
+        ) { visits, inbox, draftText, answered ->
             val instant = now()
             val upcoming = visits.filter { it.isUpcoming(instant) }.minByOrNull { it.date }
             val recent = visits
@@ -71,6 +78,7 @@ class DoctorVisitDashboardViewModel @Inject constructor(
                 questions = unanswered.take(QUESTION_PREVIEW_LIMIT),
                 openQuestionCount = unanswered.size,
                 draft = draftText,
+                lastAnswered = answered,
             )
         }.stateIn(
             scope = viewModelScope,
@@ -92,7 +100,20 @@ class DoctorVisitDashboardViewModel @Inject constructor(
     }
 
     fun onToggleAnswered(id: Long) {
+        // Capture the question before the inbox re-emits without it, so undo has something to flip
+        // back. Rows are only tappable from the visible preview, so it is always present here.
+        lastAnswered.value = uiState.value.questions.firstOrNull { it.id == id }
         viewModelScope.launch { toggleAnswered(id) }
+    }
+
+    fun onUndoAnswered() {
+        val question = lastAnswered.value ?: return
+        lastAnswered.value = null
+        viewModelScope.launch { toggleAnswered(question.id) }
+    }
+
+    fun onUndoAnsweredConsumed() {
+        lastAnswered.value = null
     }
 
     private companion object {
