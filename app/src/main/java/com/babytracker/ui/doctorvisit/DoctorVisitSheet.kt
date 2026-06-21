@@ -47,11 +47,9 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.util.Locale
 
 const val DOCTOR_VISIT_SAVE_TAG = "DoctorVisitSaveButton"
-
-// Localized (locale-aware field order) medium date, e.g. "Jun 20, 2026" / "20 de jun. de 2026".
-private val snapshotDateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -278,8 +276,12 @@ private fun SnapshotSection(
         )
         return
     }
-    val todayLabel = remember {
-        snapshotDateFormatter.format(Instant.now().atZone(ZoneId.systemDefault()).toLocalDate())
+    // Localized (locale-aware field order) medium date, e.g. "Jun 20, 2026" / "20 de jun. de 2026".
+    // Keyed on locale so a runtime language switch rebuilds it instead of freezing the snapshot
+    // label to the load-time locale (a top-level val would never rebuild).
+    val todayLabel = remember(Locale.getDefault()) {
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+            .format(Instant.now().atZone(ZoneId.systemDefault()).toLocalDate())
     }
     val snapshotLabel = stringResource(R.string.doctor_visit_snapshot_label, todayLabel)
     Row(

@@ -57,6 +57,31 @@ class VisitQuestionsViewModelTest {
     }
 
     @Test
+    fun `rapid double add enqueues the question only once`() = runTest {
+        every { observeInbox() } returns flowOf(emptyList())
+        coEvery { add(any(), any()) } returns 1
+        val vm = VisitQuestionsViewModel(observeInbox, add, toggle, delete)
+        vm.onDraftChange("Only once")
+        // Two taps before the suspending write runs: the first must clear the draft synchronously
+        // so the second reads an empty draft and is ignored.
+        vm.onAdd()
+        vm.onAdd()
+        advanceUntilIdle()
+        coVerify(exactly = 1) { add("Only once", any()) }
+    }
+
+    @Test
+    fun `add trims surrounding whitespace`() = runTest {
+        every { observeInbox() } returns flowOf(emptyList())
+        coEvery { add(any(), any()) } returns 1
+        val vm = VisitQuestionsViewModel(observeInbox, add, toggle, delete)
+        vm.onDraftChange("  Spaced out  ")
+        vm.onAdd()
+        advanceUntilIdle()
+        coVerify { add("Spaced out", any()) }
+    }
+
+    @Test
     fun `delete then undo re-adds`() = runTest {
         every { observeInbox() } returns flowOf(emptyList())
         coEvery { add(any(), any()) } returns 1

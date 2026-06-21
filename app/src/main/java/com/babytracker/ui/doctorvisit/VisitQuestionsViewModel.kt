@@ -42,12 +42,12 @@ class VisitQuestionsViewModel @Inject constructor(
     fun onDraftChange(text: String) = localState.update { it.copy(draft = text) }
 
     fun onAdd() {
-        val text = localState.value.draft
-        if (text.isBlank()) return
-        viewModelScope.launch {
-            addQuestion(text)
-            localState.update { it.copy(draft = "") }
-        }
+        val text = localState.value.draft.trim()
+        if (text.isEmpty()) return
+        // Clear synchronously so a rapid double-tap / double-Done can't enqueue the same question
+        // twice before the suspending write completes (mirrors the dashboard capture row).
+        localState.update { it.copy(draft = "") }
+        viewModelScope.launch { addQuestion(text) }
     }
 
     fun onToggleAnswered(id: Long) {

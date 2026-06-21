@@ -604,9 +604,13 @@ private fun RecentVisitRow(
     val dateFormatter = remember(Locale.getDefault()) {
         DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
     }
+    val editLabel = stringResource(R.string.doctor_visit_edit_title)
     Card(
         onClick = onEditVisit,
-        modifier = Modifier.fillMaxWidth(),
+        // Label the card's click action so TalkBack announces "Edit visit", not a bare "activate".
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { onClick(label = editLabel, action = null) },
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
