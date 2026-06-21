@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 /**
@@ -33,6 +35,9 @@ import javax.inject.Inject
 data class DoctorVisitDashboardUiState(
     val isLoading: Boolean = true,
     val nextVisit: DoctorVisit? = null,
+    /** Whole-day countdown to [nextVisit], computed against the injected clock so the hero's
+     *  "Today/Tomorrow" boundary agrees with [isUpcoming] instead of a recomposition-time wall clock. */
+    val nextVisitInDays: Int? = null,
     val recentVisits: List<DoctorVisit> = emptyList(),
     val questions: List<VisitQuestion> = emptyList(),
     val openQuestionCount: Int = 0,
@@ -77,6 +82,11 @@ class DoctorVisitDashboardViewModel @Inject constructor(
             ) { visits, inbox, draftText, answered ->
                 val instant = now()
                 val upcoming = visits.filter { it.isUpcoming(instant) }.minByOrNull { it.date }
+                val zone = ZoneId.systemDefault()
+                val today = instant.atZone(zone).toLocalDate()
+                val daysUntil = upcoming?.let {
+                    ChronoUnit.DAYS.between(today, it.date.atZone(zone).toLocalDate()).toInt()
+                }
                 val recent = visits
                     .filterNot { it.isUpcoming(instant) }
                     .sortedByDescending { it.date }
@@ -85,6 +95,7 @@ class DoctorVisitDashboardViewModel @Inject constructor(
                 DoctorVisitDashboardUiState(
                     isLoading = false,
                     nextVisit = upcoming,
+                    nextVisitInDays = daysUntil,
                     recentVisits = recent,
                     questions = unanswered.take(QUESTION_PREVIEW_LIMIT),
                     openQuestionCount = unanswered.size,
