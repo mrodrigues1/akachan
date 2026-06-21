@@ -1,6 +1,7 @@
 package com.babytracker.ui.diaper
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -35,8 +37,9 @@ import androidx.compose.ui.unit.dp
 import com.babytracker.R
 import com.babytracker.domain.model.DiaperType
 import com.babytracker.ui.common.DateTimeFieldRow
-import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.common.FieldAccent
+import com.babytracker.ui.component.DiaperTypeIcon
+import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.theme.diaperColors
 import java.time.Instant
 
@@ -225,11 +228,18 @@ private fun DiaperTypeSelector(
                     activeContentColor = activeContentColor,
                 ),
                 label = {
-                    Text(
-                        text = "${type.emoji} ${stringResource(type.labelRes())}",
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        DiaperTypeIcon(
+                            type = type,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(type.labelRes()),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 },
             )
         }
