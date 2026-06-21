@@ -17,6 +17,15 @@ fun BreastfeedingIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun BottleFeedIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_bottle_feed_section),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}
+
+@Composable
 fun SleepIcon(modifier: Modifier = Modifier) {
     Image(
         painter = painterResource(R.drawable.ic_sleep_section),
