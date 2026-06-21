@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
+import android.util.LruCache
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,7 +22,21 @@ import java.io.File
 
 private const val PHOTO_DIR = "milestone_photos"
 private const val PHOTO_PREFIX = "moment"
-private const val THUMBNAIL_TARGET_PX = 256
+
+/** Longest-edge decode target for the 72dp timeline thumbnails. */
+const val MILESTONE_THUMBNAIL_TARGET_PX = 256
+
+/** Longest-edge decode target for the full-width detail hero (≈ phone width). */
+const val MILESTONE_HERO_TARGET_PX = 1080
+
+/**
+ * Process-wide cache of decoded moment bitmaps, keyed by `uri@targetPx`. Scrolling the
+ * timeline disposes off-screen items, so without this every re-entry would re-read and
+ * re-decode the file from disk on the next frame. Bounded by entry count: thumbnails are
+ * downsampled to ≤256px (~0.25 MB each), so 32 entries cap the cache near a few MB.
+ */
+private const val BITMAP_CACHE_ENTRIES = 32
+private val bitmapCache = LruCache<String, ImageBitmap>(BITMAP_CACHE_ENTRIES)
 
 /**
  * Copies the picked image into app-internal storage and returns a stable file
@@ -63,25 +78,36 @@ private fun isDecodableImage(file: File): Boolean {
     return bounds.outWidth > 0 && bounds.outHeight > 0
 }
 
-/** Loads a downsampled [ImageBitmap] for [uri] off the main thread, or null. */
+/**
+ * Loads a downsampled [ImageBitmap] for [uri] off the main thread, or null. [targetPx] is the
+ * longest-edge decode target: pass [MILESTONE_THUMBNAIL_TARGET_PX] for list thumbnails and
+ * [MILESTONE_HERO_TARGET_PX] for the full-width detail hero so it isn't over-downsampled.
+ * Decoded results are memoized in [bitmapCache], so a cache hit paints on the first frame.
+ */
 @Composable
-fun rememberMilestoneBitmap(uri: String?): ImageBitmap? {
+fun rememberMilestoneBitmap(uri: String?, targetPx: Int = MILESTONE_THUMBNAIL_TARGET_PX): ImageBitmap? {
     val context = LocalContext.current
-    var bitmap by remember(uri) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(uri) {
-        bitmap = if (uri == null) null else loadDownsampledBitmap(context, uri)
+    val cacheKey = uri?.let { "$it@$targetPx" }
+    var bitmap by remember(cacheKey) { mutableStateOf(cacheKey?.let { bitmapCache.get(it) }) }
+    LaunchedEffect(cacheKey) {
+        if (bitmap == null && uri != null && cacheKey != null) {
+            loadDownsampledBitmap(context, uri, targetPx)?.let {
+                bitmapCache.put(cacheKey, it)
+                bitmap = it
+            }
+        }
     }
     return bitmap
 }
 
-private suspend fun loadDownsampledBitmap(context: Context, uri: String): ImageBitmap? =
+private suspend fun loadDownsampledBitmap(context: Context, uri: String, targetPx: Int): ImageBitmap? =
     withContext(Dispatchers.IO) {
         runCatching {
             val parsed = Uri.parse(uri)
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             context.contentResolver.openInputStream(parsed)?.use { BitmapFactory.decodeStream(it, null, bounds) }
             val options = BitmapFactory.Options().apply {
-                inSampleSize = sampleSizeFor(bounds.outWidth, bounds.outHeight)
+                inSampleSize = sampleSizeFor(bounds.outWidth, bounds.outHeight, targetPx)
             }
             val decoded = context.contentResolver.openInputStream(parsed)?.use { stream ->
                 BitmapFactory.decodeStream(stream, null, options)
@@ -126,10 +152,10 @@ private fun applyExifOrientation(context: Context, uri: Uri, bitmap: Bitmap): Bi
     return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
 }
 
-private fun sampleSizeFor(width: Int, height: Int): Int {
+private fun sampleSizeFor(width: Int, height: Int, targetPx: Int): Int {
     var sample = 1
     var largest = maxOf(width, height)
-    while (largest / 2 >= THUMBNAIL_TARGET_PX) {
+    while (largest / 2 >= targetPx) {
         largest /= 2
         sample *= 2
     }

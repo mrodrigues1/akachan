@@ -11,9 +11,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
@@ -101,10 +104,18 @@ fun MilestoneEditorSheet(
     val thumbnail = rememberMilestoneBitmap(photoUri)
     val canSave = title.isNotBlank() && !isPersistingPhoto
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, modifier = modifier) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = MaterialTheme.shapes.large,
+        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = modifier,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .imePadding()
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -118,6 +129,7 @@ fun MilestoneEditorSheet(
                 value = title,
                 onValueChange = { title = it },
                 label = { Text(stringResource(R.string.milestone_title_label)) },
+                supportingText = { Text(stringResource(R.string.milestone_title_hint)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().testTag("milestone_title"),
             )
@@ -213,7 +225,13 @@ fun MilestoneEditorSheet(
                 ),
                 modifier = Modifier.fillMaxWidth().testTag("milestone_save"),
             ) {
-                Text(if (existing == null) "Save moment" else "Save")
+                Text(
+                    if (existing == null) {
+                        stringResource(R.string.milestone_save_moment)
+                    } else {
+                        stringResource(R.string.save)
+                    },
+                )
             }
         }
     }

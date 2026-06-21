@@ -194,7 +194,7 @@ private fun MomentHero(
     photoUri: String?,
     colors: MilestonePalette,
 ) {
-    val bitmap = rememberMilestoneBitmap(photoUri)
+    val bitmap = rememberMilestoneBitmap(photoUri, MILESTONE_HERO_TARGET_PX)
     if (bitmap != null) {
         Image(
             bitmap = bitmap,

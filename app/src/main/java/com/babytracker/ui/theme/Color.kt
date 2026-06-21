@@ -126,6 +126,11 @@ val MilestonePurpleDark = Color(0xFFCE93D8)
 val MilestoneContainerPurpleDark = Purple900
 val OnMilestoneContainerPurpleDark = Purple200
 
+// On-accent for the dark scheme. The dark accent (#CE93D8) is a LIGHT pastel, so content
+// painted on it (FAB icon, filled Save label) must be DARK: Purple900 ≈ 4.97:1. Reusing the
+// light-scheme on-container value (Purple200) here inverts to ~1.45:1 and fails WCAG.
+val OnMilestonePurpleDark = Purple900
+
 // ─── Bottle-feed dot — extended (non-M3) ─────────────────────
 // Rhythm strip draws breast feeds with M3 primary (Pink700 crimson); bottle feeds need a
 // distinct, redder tone so the two dot kinds read apart at ~5px. True reds (not pink) provide
