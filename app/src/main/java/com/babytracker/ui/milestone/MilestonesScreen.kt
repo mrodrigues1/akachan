@@ -46,7 +46,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
@@ -188,7 +187,11 @@ private fun MilestonesEmptyState(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "🎉", style = MaterialTheme.typography.displayMedium)
+        Text(
+            text = "🎉",
+            style = MaterialTheme.typography.displayMedium,
+            modifier = Modifier.clearAndSetSemantics {},
+        )
         Spacer(Modifier.size(12.dp))
         Text(
             text = stringResource(R.string.milestone_empty_title),
@@ -197,7 +200,7 @@ private fun MilestonesEmptyState(modifier: Modifier = Modifier) {
             color = colors.accent,
             modifier = Modifier.semantics { heading() },
         )
-        Spacer(Modifier.size(6.dp))
+        Spacer(Modifier.size(8.dp))
         Text(
             text = stringResource(R.string.milestone_empty_subtitle),
             style = MaterialTheme.typography.bodyMedium,
@@ -240,7 +243,7 @@ private fun MomentCard(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MomentThumbnail(photoUri = moment.photoUri, accent = colors.accent, onAccent = colors.onAccent)
+            MomentThumbnail(photoUri = moment.photoUri, colors = colors)
             Spacer(Modifier.size(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -275,15 +278,16 @@ private fun MomentCard(
 @Composable
 private fun MomentThumbnail(
     photoUri: String?,
-    accent: Color,
-    onAccent: Color,
+    colors: MilestonePalette,
 ) {
     val bitmap = rememberMilestoneBitmap(photoUri)
     Box(
         modifier = Modifier
             .size(THUMBNAIL_SIZE.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .then(if (bitmap == null) Modifier.background(accent) else Modifier),
+            .clip(RoundedCornerShape(THUMBNAIL_RADIUS.dp))
+            // No photo: a soft container wash with a small accent icon, mirroring the detail
+            // hero. A full-accent fill would stack saturated slabs down the timeline.
+            .then(if (bitmap == null) Modifier.background(colors.container) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
         if (bitmap != null) {
@@ -297,7 +301,7 @@ private fun MomentThumbnail(
             Icon(
                 imageVector = Icons.Default.PhotoCamera,
                 contentDescription = null,
-                tint = onAccent,
+                tint = colors.accent,
                 modifier = Modifier.size(28.dp).clearAndSetSemantics {},
             )
         }
@@ -353,7 +357,7 @@ private fun MilestonesSkeleton(modifier: Modifier = Modifier) {
                     Box(
                         modifier = Modifier
                             .size(THUMBNAIL_SIZE.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(THUMBNAIL_RADIUS.dp))
                             .background(block),
                     )
                     Spacer(Modifier.size(14.dp))
@@ -381,6 +385,7 @@ private fun MilestonesSkeleton(modifier: Modifier = Modifier) {
 }
 
 private const val THUMBNAIL_SIZE = 72
+private const val THUMBNAIL_RADIUS = 8
 private const val SKELETON_CARD_COUNT = 4
 private const val SKELETON_TITLE_FRACTION = 0.6f
 private const val SKELETON_META_FRACTION = 0.4f

@@ -24,7 +24,7 @@ fun milestoneColors(): MilestonePalette =
             accent = MilestonePurpleDark,
             container = MilestoneContainerPurpleDark,
             onContainer = OnMilestoneContainerPurpleDark,
-            onAccent = OnMilestoneContainerPurpleDark,
+            onAccent = OnMilestonePurpleDark,
         )
     } else {
         MilestonePalette(
