@@ -112,6 +112,29 @@ class VaccineViewModelTest {
     }
 
     @Test
+    fun `onStartAdd clears edit handles and the saved flag for a fresh form`() = runTest {
+        val vm = viewModel()
+        vm.loadForEdit(
+            VaccineRecord(
+                id = 9,
+                name = "DTaP",
+                status = VaccineStatus.ADMINISTERED,
+                administeredDate = Instant.ofEpochMilli(20_000),
+                createdAt = Instant.ofEpochMilli(10_000),
+            ),
+        )
+
+        vm.onStartAdd()
+
+        val state = vm.uiState.value
+        assertNull(state.editingId)
+        assertTrue(!state.isEditing)
+        assertTrue(!state.saved)
+        assertEquals("", state.name)
+        assertEquals(fixedNow, state.date)
+    }
+
+    @Test
     fun `second rapid save is ignored while the first is in flight`() = runTest {
         val gate = CompletableDeferred<Long>()
         coEvery { add(any(), any(), any(), any(), any()) } coAnswers { gate.await() }

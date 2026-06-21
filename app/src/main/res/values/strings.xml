@@ -1150,6 +1150,31 @@
     <string name="vaccine_edit_content_description">Edit %1$s</string>
     <string name="vaccine_delete_content_description">Delete %1$s</string>
 
+    <!-- Vaccine dashboard -->
+    <string name="vaccine_next_up">Next up</string>
+    <string name="vaccine_recently_given">Recently given</string>
+    <string name="vaccine_view_all">View all</string>
+    <string name="vaccine_countdown_tomorrow">Tomorrow</string>
+    <plurals name="vaccine_countdown_in_days">
+        <item quantity="one">In %1$d day</item>
+        <item quantity="other">In %1$d days</item>
+    </plurals>
+    <plurals name="vaccine_overdue_days">
+        <item quantity="one">Overdue by %1$d day</item>
+        <item quantity="other">Overdue by %1$d days</item>
+    </plurals>
+    <plurals name="vaccine_more_overdue">
+        <item quantity="one">+%1$d more overdue</item>
+        <item quantity="other">+%1$d more overdue</item>
+    </plurals>
+    <string name="vaccine_caught_up_title">All caught up</string>
+    <string name="vaccine_caught_up_subtitle">No vaccines scheduled right now.</string>
+    <string name="vaccine_empty_title">Track your baby\'s vaccines</string>
+    <string name="vaccine_empty_subtitle">Log a vaccine you\'ve given or schedule the next one. What\'s coming up shows here.</string>
+    <string name="vaccine_marked_given">Marked as given</string>
+    <string name="vaccine_mark_given_content_description">Mark %1$s as given</string>
+    <string name="vaccine_load_error">Couldn\'t load your vaccines.</string>
+
     <!-- Vaccine reminders -->
     <string name="notif_channel_vaccine_reminders_name">Vaccine reminders</string>
     <string name="notif_channel_vaccine_reminders_description">Reminds you before a scheduled vaccine</string>

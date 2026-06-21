@@ -1168,6 +1168,34 @@
     <string name="vaccine_edit_content_description">Editar %1$s</string>
     <string name="vaccine_delete_content_description">Excluir %1$s</string>
 
+    <!-- Vaccine dashboard -->
+    <string name="vaccine_next_up">Próxima</string>
+    <string name="vaccine_recently_given">Aplicadas recentemente</string>
+    <string name="vaccine_view_all">Ver todas</string>
+    <string name="vaccine_countdown_tomorrow">Amanhã</string>
+    <plurals name="vaccine_countdown_in_days">
+        <item quantity="one">Em %1$d dia</item>
+        <item quantity="many">Em %1$d dias</item>
+        <item quantity="other">Em %1$d dias</item>
+    </plurals>
+    <plurals name="vaccine_overdue_days">
+        <item quantity="one">Atrasada há %1$d dia</item>
+        <item quantity="many">Atrasada há %1$d dias</item>
+        <item quantity="other">Atrasada há %1$d dias</item>
+    </plurals>
+    <plurals name="vaccine_more_overdue">
+        <item quantity="one">+%1$d atrasada</item>
+        <item quantity="many">+%1$d atrasadas</item>
+        <item quantity="other">+%1$d atrasadas</item>
+    </plurals>
+    <string name="vaccine_caught_up_title">Tudo em dia</string>
+    <string name="vaccine_caught_up_subtitle">Nenhuma vacina agendada no momento.</string>
+    <string name="vaccine_empty_title">Acompanhe as vacinas do bebê</string>
+    <string name="vaccine_empty_subtitle">Registre uma vacina aplicada ou agende a próxima. O que está chegando aparece aqui.</string>
+    <string name="vaccine_marked_given">Marcada como aplicada</string>
+    <string name="vaccine_mark_given_content_description">Marcar %1$s como aplicada</string>
+    <string name="vaccine_load_error">Não foi possível carregar suas vacinas.</string>
+
     <!-- Vaccine reminders -->
     <string name="notif_channel_vaccine_reminders_name">Lembretes de vacina</string>
     <string name="notif_channel_vaccine_reminders_description">Avisa você antes de uma vacina agendada</string>

@@ -66,6 +66,15 @@ class VaccineViewModel @Inject constructor(
         it.copy(status = status, date = nextDate, validationError = null)
     }
 
+    /**
+     * Resets to a clean "add" form. The dashboard hosts one shared [VaccineViewModel] for both add
+     * and edit, so opening the add sheet after an edit (or a prior save) must clear the editing
+     * handles and the [VaccineUiState.saved] flag that would otherwise instantly re-dismiss the sheet.
+     */
+    fun onStartAdd() = _uiState.update {
+        VaccineUiState(date = now(), suggestions = it.suggestions)
+    }
+
     fun loadForEdit(record: VaccineRecord) = _uiState.update {
         it.copy(
             editingId = record.id,
