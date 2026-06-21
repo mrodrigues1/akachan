@@ -42,3 +42,12 @@ fun PumpingIcon(modifier: Modifier = Modifier) {
         modifier = modifier.clearAndSetSemantics {},
     )
 }
+
+@Composable
+fun InventoryIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_inventory_section),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}

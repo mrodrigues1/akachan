@@ -6,6 +6,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.Image
+import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
 import androidx.glance.action.clickable
 import androidx.glance.background
@@ -16,6 +18,7 @@ import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
 import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
@@ -26,7 +29,6 @@ import com.babytracker.util.mlToOz
 import java.util.Locale
 import kotlin.math.roundToInt
 
-private const val MILK_EMOJI = "🧊"
 private const val ML_PER_L = 1000
 
 /** Numeric ounce value with one decimal, trailing ".0" dropped ("28.4", "10"). */
@@ -57,6 +59,15 @@ private fun MilkStashWidgetData.isEmpty(): Boolean = totalMl == 0 && bagCount ==
 private fun bagCountLabel(context: Context, bagCount: Int): String =
     context.resources.getQuantityString(R.plurals.widget_milk_stash_bag_count, bagCount, bagCount)
 
+@Composable
+private fun MilkStashWidgetIcon(size: androidx.compose.ui.unit.Dp) {
+    Image(
+        provider = ImageProvider(R.drawable.ic_inventory_section),
+        contentDescription = null,
+        modifier = GlanceModifier.size(size),
+    )
+}
+
 /**
  * Neutral state shown when the Inventory feature is turned off. Tapping still opens Inventory so a
  * parent can re-enable it; tracked data is untouched.
@@ -73,10 +84,7 @@ private fun MilkStashOffContent() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = MILK_EMOJI,
-            style = TextStyle(fontSize = 22.sp),
-        )
+        MilkStashWidgetIcon(size = 24.dp)
         Spacer(modifier = GlanceModifier.height(6.dp))
         Text(
             text = context.getString(R.string.widget_milk_stash_off),
@@ -163,10 +171,7 @@ fun MilkStashTallContent(data: MilkStashWidgetData, modifier: GlanceModifier = G
             .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = MILK_EMOJI,
-            style = TextStyle(fontSize = 26.sp),
-        )
+        MilkStashWidgetIcon(size = 28.dp)
         Spacer(modifier = GlanceModifier.height(2.dp))
         Text(
             text = context.getString(R.string.widget_milk_stash_title),
@@ -252,10 +257,7 @@ fun MilkStashWideContent(data: MilkStashWidgetData, modifier: GlanceModifier = G
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = MILK_EMOJI,
-            style = TextStyle(fontSize = 20.sp),
-        )
+        MilkStashWidgetIcon(size = 24.dp)
         Spacer(modifier = GlanceModifier.width(10.dp))
         if (data.isEmpty()) {
             Column(modifier = GlanceModifier.defaultWeight()) {
@@ -323,10 +325,7 @@ private fun MilkStashMediumFilled(data: MilkStashWidgetData) {
             .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = MILK_EMOJI,
-                style = TextStyle(fontSize = 22.sp),
-            )
+            MilkStashWidgetIcon(size = 24.dp)
             Spacer(modifier = GlanceModifier.width(6.dp))
             Text(
                 text = context.getString(R.string.widget_milk_stash_title),
@@ -382,10 +381,7 @@ private fun MilkStashMediumEmpty() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = MILK_EMOJI,
-            style = TextStyle(fontSize = 28.sp),
-        )
+        MilkStashWidgetIcon(size = 32.dp)
         Spacer(modifier = GlanceModifier.height(6.dp))
         Text(
             text = context.getString(R.string.widget_milk_stash_empty),

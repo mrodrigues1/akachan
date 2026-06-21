@@ -83,6 +83,7 @@ import com.babytracker.ui.breastfeeding.contentDescriptionText
 import com.babytracker.ui.breastfeeding.detailText
 import com.babytracker.ui.breastfeeding.primaryText
 import com.babytracker.ui.component.BottleFeedIcon
+import com.babytracker.ui.component.InventoryIcon
 import com.babytracker.ui.component.PumpingIcon
 import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.theme.LocalDarkTheme
@@ -411,11 +412,7 @@ internal fun InventoryHomeCard(
                 .padding(16.dp)
                 .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
         ) {
-            Text(
-                text = "🧊",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.clearAndSetSemantics {},
-            )
+            InventoryIcon(modifier = Modifier.size(40.dp))
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.home_inventory_title),

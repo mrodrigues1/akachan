@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -64,6 +65,7 @@ import com.babytracker.R
 import com.babytracker.domain.model.ExpirationStatus
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.MilkBag
+import com.babytracker.ui.component.InventoryIcon
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
 import com.babytracker.ui.theme.OnWarningContainerAmberDark
@@ -188,7 +190,7 @@ internal fun InventoryContent(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(text = "🧊", style = MaterialTheme.typography.displaySmall)
+                InventoryIcon(modifier = Modifier.size(64.dp))
                 Spacer(Modifier.height(12.dp))
                 Text(
                     text = stringResource(R.string.inventory_empty_title),
