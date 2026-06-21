@@ -52,6 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.DiaperChange
 import com.babytracker.ui.component.DiaperIcon
+import com.babytracker.ui.component.DiaperTypeIcon
 import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.diaperColors
@@ -219,7 +220,10 @@ private fun DiaperHistoryRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(change.type.emoji, style = MaterialTheme.typography.titleLarge)
+            DiaperTypeIcon(
+                type = change.type,
+                modifier = Modifier.size(34.dp),
+            )
             val typeLabel = stringResource(change.type.labelRes())
             Column(modifier = Modifier.weight(1f)) {
                 Text(
