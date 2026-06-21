@@ -31,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -54,6 +55,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
 import com.babytracker.domain.model.Milestone
+import com.babytracker.ui.common.FieldAccent
+import com.babytracker.ui.common.PickerAccentTheme
 import com.babytracker.ui.theme.milestoneColors
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -80,6 +83,21 @@ fun MilestoneEditorSheet(
     val dateFormatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("h:mm a") }
     val colors = milestoneColors()
+    // The whole sheet lives on a Milestones (purple) screen, so every interactive control is
+    // remapped off the global M3 primary (carnation pink) into the section accent: text-field
+    // focus, the secondary buttons, and the date/time picker dialogs.
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = colors.accent,
+        focusedLabelColor = colors.accent,
+        cursorColor = colors.accent,
+    )
+    val buttonColors = ButtonDefaults.outlinedButtonColors(contentColor = colors.accent)
+    val pickerAccent = FieldAccent(
+        accent = colors.accent,
+        onAccent = colors.onAccent,
+        container = colors.container,
+        onContainer = colors.onContainer,
+    )
 
     var title by remember { mutableStateOf(existing?.title ?: "") }
     var date by remember { mutableStateOf(existing?.date ?: LocalDate.now()) }
@@ -148,12 +166,14 @@ fun MilestoneEditorSheet(
                     }
                 },
                 singleLine = true,
+                colors = fieldColors,
                 modifier = Modifier.fillMaxWidth().testTag("milestone_title"),
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     onClick = { showDatePicker = true },
+                    colors = buttonColors,
                     modifier = Modifier.testTag("milestone_date"),
                 ) {
                     Text(date.format(dateFormatter))
@@ -162,6 +182,7 @@ fun MilestoneEditorSheet(
                 if (selectedTime == null) {
                     OutlinedButton(
                         onClick = { showTimePicker = true },
+                        colors = buttonColors,
                         modifier = Modifier.testTag("milestone_add_time"),
                     ) {
                         Text(stringResource(R.string.milestone_add_time))
@@ -169,6 +190,7 @@ fun MilestoneEditorSheet(
                 } else {
                     OutlinedButton(
                         onClick = { showTimePicker = true },
+                        colors = buttonColors,
                         modifier = Modifier.testTag("milestone_time"),
                     ) {
                         Text(selectedTime.format(timeFormatter))
@@ -193,6 +215,7 @@ fun MilestoneEditorSheet(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                         )
                     },
+                    colors = buttonColors,
                     modifier = Modifier.testTag("milestone_add_photo"),
                 ) {
                     Text(if (photoUri == null) stringResource(R.string.milestone_add_photo) else stringResource(R.string.milestone_change_photo))
@@ -209,21 +232,8 @@ fun MilestoneEditorSheet(
                 }
             }
 
-            OutlinedTextField(
-                value = note,
-                onValueChange = { note = it.take(MILESTONE_NOTE_MAX) },
-                label = { Text(stringResource(R.string.milestone_note_label)) },
-                // Bound the height so a long note scrolls inside the field instead of
-                // pushing the Save button off-screen; the counter appears only near the cap.
-                maxLines = MILESTONE_NOTE_MAX_LINES,
-                supportingText = if (note.length >= MILESTONE_NOTE_MAX - COUNTER_REVEAL_AT) {
-                    { Text(stringResource(R.string.milestone_char_count, note.length, MILESTONE_NOTE_MAX)) }
-                } else {
-                    null
-                },
-                modifier = Modifier.fillMaxWidth().testTag("milestone_note"),
-            )
-
+            // Photo status sits with its control, not below the note, so the feedback reads as
+            // a response to the tap the parent just made.
             if (isPersistingPhoto) {
                 Text(
                     text = stringResource(R.string.milestone_saving_photo),
@@ -238,6 +248,23 @@ fun MilestoneEditorSheet(
                     modifier = Modifier.testTag("milestone_photo_error"),
                 )
             }
+
+            OutlinedTextField(
+                value = note,
+                onValueChange = { note = it.take(MILESTONE_NOTE_MAX) },
+                label = { Text(stringResource(R.string.milestone_note_label)) },
+                // Bound the height so a long note scrolls inside the field instead of
+                // pushing the Save button off-screen; the counter appears only near the cap.
+                maxLines = MILESTONE_NOTE_MAX_LINES,
+                supportingText = if (note.length >= MILESTONE_NOTE_MAX - COUNTER_REVEAL_AT) {
+                    { Text(stringResource(R.string.milestone_char_count, note.length, MILESTONE_NOTE_MAX)) }
+                } else {
+                    null
+                },
+                colors = fieldColors,
+                modifier = Modifier.fillMaxWidth().testTag("milestone_note"),
+            )
+
             Spacer(Modifier.height(4.dp))
             Button(
                 onClick = {
@@ -282,19 +309,21 @@ fun MilestoneEditorSheet(
                     utcTimeMillis <= todayMillis
             },
         )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        date = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
-                    }
-                    showDatePicker = false
-                }) { Text(stringResource(R.string.ok)) }
-            },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel)) } },
-        ) {
-            DatePicker(state = datePickerState)
+        PickerAccentTheme(pickerAccent) {
+            DatePickerDialog(
+                onDismissRequest = { showDatePicker = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            date = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
+                        }
+                        showDatePicker = false
+                    }) { Text(stringResource(R.string.ok)) }
+                },
+                dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel)) } },
+            ) {
+                DatePicker(state = datePickerState)
+            }
         }
     }
 
@@ -304,21 +333,23 @@ fun MilestoneEditorSheet(
             initialHour = initial.hour,
             initialMinute = initial.minute,
         )
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    time = LocalTime.of(timePickerState.hour, timePickerState.minute)
-                    showTimePicker = false
-                }) { Text(stringResource(R.string.ok)) }
-            },
-            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.cancel)) } },
-            text = {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    TimePicker(state = timePickerState)
-                }
-            },
-        )
+        PickerAccentTheme(pickerAccent) {
+            AlertDialog(
+                onDismissRequest = { showTimePicker = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        time = LocalTime.of(timePickerState.hour, timePickerState.minute)
+                        showTimePicker = false
+                    }) { Text(stringResource(R.string.ok)) }
+                },
+                dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.cancel)) } },
+                text = {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        TimePicker(state = timePickerState)
+                    }
+                },
+            )
+        }
     }
 }
 

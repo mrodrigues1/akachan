@@ -360,7 +360,7 @@ private fun MilestonesSkeleton(modifier: Modifier = Modifier) {
                             .clip(RoundedCornerShape(THUMBNAIL_RADIUS.dp))
                             .background(block),
                     )
-                    Spacer(Modifier.size(14.dp))
+                    Spacer(Modifier.size(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Box(
                             modifier = Modifier
