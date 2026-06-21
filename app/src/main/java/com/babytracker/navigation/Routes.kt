@@ -33,6 +33,7 @@ object Routes {
     const val MILESTONE_DETAIL_ARG = "milestoneId"
     const val MILESTONE_DETAIL = "milestones/{$MILESTONE_DETAIL_ARG}"
     const val TRENDS = "trends"
+    const val DOCTOR_VISIT_DASHBOARD = "doctor_visit/dashboard"
     const val DOCTOR_VISIT_ARG = "visitId"
     const val DOCTOR_VISIT = "doctor_visit?visitId={$DOCTOR_VISIT_ARG}"
     const val DOCTOR_VISIT_HISTORY = "doctor_visit/history"

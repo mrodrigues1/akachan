@@ -11,6 +11,7 @@ import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.ui.bottlefeed.BottleFeedScreen
 import com.babytracker.ui.diaper.DiaperHistoryScreen
 import com.babytracker.ui.diaper.DiaperScreen
+import com.babytracker.ui.doctorvisit.DoctorVisitDashboardScreen
 import com.babytracker.ui.doctorvisit.DoctorVisitHistoryScreen
 import com.babytracker.ui.doctorvisit.DoctorVisitScreen
 import com.babytracker.ui.doctorvisit.DoctorVisitSettingsScreen
@@ -78,7 +79,7 @@ fun AppNavGraph(
                 onNavigateToBottleFeed = { navController.navigate(Routes.BOTTLE_FEED) },
                 onNavigateToDiaper = { navController.navigate(Routes.DIAPER) },
                 onNavigateToVaccine = { navController.navigate(Routes.VACCINE) },
-                onNavigateToDoctorVisit = { navController.navigate(Routes.doctorVisit()) },
+                onNavigateToDoctorVisit = { navController.navigate(Routes.DOCTOR_VISIT_DASHBOARD) },
                 onNavigateToFeedingHistory = { navController.navigate(Routes.FEEDING_HISTORY) },
                 onNavigateToGrowth = { navController.navigate(Routes.GROWTH) },
                 onNavigateToMilestones = { navController.navigate(Routes.MILESTONES) },
@@ -234,8 +235,22 @@ private fun NavGraphBuilder.pumpingGraph(navController: NavHostController) {
     composable(Routes.VACCINE_SETTINGS) {
         VaccineSettingsScreen(onNavigateBack = { navController.popBackStack() })
     }
+    doctorVisitGraph(navController)
+}
+
+private fun NavGraphBuilder.doctorVisitGraph(navController: NavHostController) {
     composable(Routes.VISIT_QUESTIONS) {
         VisitQuestionsScreen(onNavigateBack = { navController.popBackStack() })
+    }
+    composable(Routes.DOCTOR_VISIT_DASHBOARD) {
+        DoctorVisitDashboardScreen(
+            onAddVisit = { navController.navigate(Routes.doctorVisit()) },
+            onEditVisit = { id -> navController.navigate(Routes.doctorVisit(id)) },
+            onNavigateToHistory = { navController.navigate(Routes.DOCTOR_VISIT_HISTORY) },
+            onManageQuestions = { navController.navigate(Routes.VISIT_QUESTIONS) },
+            onNavigateToSettings = { navController.navigate(Routes.DOCTOR_VISIT_SETTINGS) },
+            onNavigateBack = { navController.popBackStack() },
+        )
     }
     composable(
         route = Routes.DOCTOR_VISIT,

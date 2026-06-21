@@ -1207,6 +1207,20 @@
         <item quantity="other">%1$d questions to ask</item>
     </plurals>
 
+    <!-- Doctor Visit — dashboard (landing screen) -->
+    <string name="doctor_visit_next_visit">Next visit</string>
+    <string name="doctor_visit_countdown_today">Today</string>
+    <string name="doctor_visit_countdown_tomorrow">Tomorrow</string>
+    <plurals name="doctor_visit_countdown_in_days">
+        <item quantity="one">In %1$d day</item>
+        <item quantity="other">In %1$d days</item>
+    </plurals>
+    <string name="doctor_visit_no_upcoming_title">No upcoming visit</string>
+    <string name="doctor_visit_no_upcoming_subtitle">Add your next appointment to see it here.</string>
+    <string name="doctor_visit_manage_all">Manage all</string>
+    <string name="doctor_visit_recent">Recent</string>
+    <string name="doctor_visit_view_all">View all</string>
+
     <!-- Doctor Visit — history -->
     <string name="doctor_visit_history_title">Visit history</string>
     <string name="doctor_visit_history_upcoming">Upcoming</string>
