@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- First-paint loading/preview state for the Milk Stash widget. Shows the surfaceVariant
-     rounded surface with the app icon so the initial frame matches the real Glance widget. -->
+     rounded surface with the inventory icon so the initial frame matches the real Glance widget. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -12,5 +12,5 @@
         android:layout_height="32dp"
         android:layout_gravity="center"
         android:contentDescription="@string/milk_stash_widget_description"
-        android:src="@mipmap/ic_launcher" />
+        android:src="@drawable/ic_inventory_section" />
 </FrameLayout>

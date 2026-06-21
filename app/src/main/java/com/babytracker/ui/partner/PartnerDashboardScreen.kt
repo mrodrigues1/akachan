@@ -82,6 +82,7 @@ import com.babytracker.ui.bottlefeed.BottleFeedSheet
 import com.babytracker.ui.component.BreastfeedingIcon
 import com.babytracker.ui.component.BottleFeedIcon
 import com.babytracker.ui.component.HistoryCard
+import com.babytracker.ui.component.InventoryIcon
 import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
@@ -1209,10 +1210,7 @@ private fun PartnerInventoryCard(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = "🧊",
-                    style = MaterialTheme.typography.titleSmall,
-                )
+                InventoryIcon(modifier = Modifier.size(34.dp))
             }
             Column(
                 modifier = Modifier.weight(1f),
