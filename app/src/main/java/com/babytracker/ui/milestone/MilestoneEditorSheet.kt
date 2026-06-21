@@ -31,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -88,15 +89,23 @@ fun MilestoneEditorSheet(
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var isPersistingPhoto by remember { mutableStateOf(false) }
+    var photoError by remember { mutableStateOf(false) }
 
     val photoPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia(),
     ) { picked ->
         if (picked != null) {
             isPersistingPhoto = true
+            photoError = false
             scope.launch {
-                // Keep the previous photo if the copy fails, rather than dropping to null.
-                persistMilestonePhoto(context, picked)?.let { photoUri = it.toString() }
+                // Keep the previous photo if the copy fails, rather than dropping to null,
+                // and surface a calm note so the silent no-op never reads as success.
+                val persisted = persistMilestonePhoto(context, picked)
+                if (persisted != null) {
+                    photoUri = persisted.toString()
+                } else {
+                    photoError = true
+                }
                 isPersistingPhoto = false
             }
         }
@@ -127,9 +136,17 @@ fun MilestoneEditorSheet(
 
             OutlinedTextField(
                 value = title,
-                onValueChange = { title = it },
+                onValueChange = { title = it.take(MILESTONE_TITLE_MAX) },
                 label = { Text(stringResource(R.string.milestone_title_label)) },
-                supportingText = { Text(stringResource(R.string.milestone_title_hint)) },
+                // The hint guides the resting state; near the cap it gives way to a counter
+                // so the swap never adds or removes a line of height.
+                supportingText = {
+                    if (title.length >= MILESTONE_TITLE_MAX - COUNTER_REVEAL_AT) {
+                        Text(stringResource(R.string.milestone_char_count, title.length, MILESTONE_TITLE_MAX))
+                    } else {
+                        Text(stringResource(R.string.milestone_title_hint))
+                    }
+                },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().testTag("milestone_title"),
             )
@@ -171,6 +188,7 @@ fun MilestoneEditorSheet(
             ) {
                 OutlinedButton(
                     onClick = {
+                        photoError = false
                         photoPicker.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                         )
@@ -193,8 +211,16 @@ fun MilestoneEditorSheet(
 
             OutlinedTextField(
                 value = note,
-                onValueChange = { note = it },
+                onValueChange = { note = it.take(MILESTONE_NOTE_MAX) },
                 label = { Text(stringResource(R.string.milestone_note_label)) },
+                // Bound the height so a long note scrolls inside the field instead of
+                // pushing the Save button off-screen; the counter appears only near the cap.
+                maxLines = MILESTONE_NOTE_MAX_LINES,
+                supportingText = if (note.length >= MILESTONE_NOTE_MAX - COUNTER_REVEAL_AT) {
+                    { Text(stringResource(R.string.milestone_char_count, note.length, MILESTONE_NOTE_MAX)) }
+                } else {
+                    null
+                },
                 modifier = Modifier.fillMaxWidth().testTag("milestone_note"),
             )
 
@@ -203,6 +229,13 @@ fun MilestoneEditorSheet(
                     text = stringResource(R.string.milestone_saving_photo),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else if (photoError) {
+                Text(
+                    text = stringResource(R.string.milestone_photo_error),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("milestone_photo_error"),
                 )
             }
             Spacer(Modifier.height(4.dp))
@@ -237,8 +270,17 @@ fun MilestoneEditorSheet(
     }
 
     if (showDatePicker) {
+        // A moment is something that already happened, and the timeline groups by month with
+        // sticky headers, so a future date would pin an empty future month at the very top.
+        val todayMillis = remember {
+            LocalDate.now().atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
+        }
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = date.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                    utcTimeMillis <= todayMillis
+            },
         )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -279,3 +321,11 @@ fun MilestoneEditorSheet(
         )
     }
 }
+
+// Caps keep a single moment's row bounded in the DB, the partner snapshot, and the timeline
+// card (which clamps the title to one line and the note to two). The counter only reveals as
+// the field nears its cap, keeping the resting editor calm.
+private const val MILESTONE_TITLE_MAX = 80
+private const val MILESTONE_NOTE_MAX = 500
+private const val MILESTONE_NOTE_MAX_LINES = 6
+private const val COUNTER_REVEAL_AT = 24

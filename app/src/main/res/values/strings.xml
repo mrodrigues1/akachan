@@ -648,6 +648,8 @@
     <string name="milestone_change_photo">Change photo</string>
     <string name="milestone_note_label">Note (optional)</string>
     <string name="milestone_saving_photo">Saving photo…</string>
+    <string name="milestone_char_count">%1$d/%2$d</string>
+    <string name="milestone_photo_error">Couldn\'t add that photo. Try another one.</string>
 
     <!-- Shared generic labels (settings/inventory) -->
     <string name="dismiss">Dismiss</string>
