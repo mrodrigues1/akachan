@@ -139,4 +139,53 @@ class DoctorVisitDashboardViewModelTest {
 
         coVerify { toggle(7) }
     }
+
+    @Test
+    fun `onToggleAnswered captures the question and undo flips it back`() = runTest {
+        every { observeVisits() } returns flowOf(emptyList())
+        every { observeInbox() } returns flowOf(listOf(question(10, "Is the rash normal?")))
+        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+
+        vm.uiState.test {
+            var state = awaitItem()
+            if (state.isLoading) state = awaitItem()
+            assertEquals(listOf(10L), state.questions.map { it.id })
+
+            vm.onToggleAnswered(10)
+            state = awaitItem()
+            assertEquals(10L, state.lastAnswered?.id)
+
+            vm.onUndoAnswered()
+            state = awaitItem()
+            assertNull(state.lastAnswered)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        // Once to mark answered, once to flip back on undo.
+        coVerify(exactly = 2) { toggle(10) }
+    }
+
+    @Test
+    fun `consuming the snackbar clears lastAnswered without re-toggling`() = runTest {
+        every { observeVisits() } returns flowOf(emptyList())
+        every { observeInbox() } returns flowOf(listOf(question(10, "Is the rash normal?")))
+        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+
+        vm.uiState.test {
+            var state = awaitItem()
+            if (state.isLoading) state = awaitItem()
+
+            vm.onToggleAnswered(10)
+            state = awaitItem()
+            assertEquals(10L, state.lastAnswered?.id)
+
+            vm.onUndoAnsweredConsumed()
+            state = awaitItem()
+            assertNull(state.lastAnswered)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        // Dismissal must not re-toggle: only the initial mark hits the use case.
+        coVerify(exactly = 1) { toggle(10) }
+    }
 }

@@ -1193,6 +1193,7 @@
     <string name="visit_questions_mark_unanswered">Marcar como não respondida</string>
     <string name="visit_questions_delete">Excluir pergunta</string>
     <string name="visit_questions_deleted">Pergunta excluída</string>
+    <string name="visit_questions_answered">Pergunta respondida</string>
     <string name="visit_questions_undo">Desfazer</string>
     <string name="visit_questions_expand">Expandir pergunta</string>
     <string name="visit_questions_collapse">Recolher pergunta</string>

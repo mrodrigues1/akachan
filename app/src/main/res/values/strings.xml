@@ -1174,6 +1174,7 @@
     <string name="visit_questions_mark_unanswered">Mark unanswered</string>
     <string name="visit_questions_delete">Delete question</string>
     <string name="visit_questions_deleted">Question deleted</string>
+    <string name="visit_questions_answered">Question answered</string>
     <string name="visit_questions_undo">Undo</string>
     <string name="visit_questions_expand">Expand question</string>
     <string name="visit_questions_collapse">Collapse question</string>
