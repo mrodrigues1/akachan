@@ -7,10 +7,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -31,7 +34,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
 import com.babytracker.domain.model.VaccineStatus
@@ -68,6 +76,7 @@ fun VaccineSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
@@ -80,12 +89,19 @@ fun VaccineSheet(
             )
             Spacer(Modifier.height(16.dp))
 
+            val nameErrorMsg = state.validationError?.takeIf { state.errorField == VaccineField.NAME }
             OutlinedTextField(
                 value = state.name,
                 onValueChange = onNameChange,
                 label = { Text(stringResource(R.string.vaccine_name_label)) },
                 singleLine = true,
                 enabled = !state.isSaving,
+                isError = nameErrorMsg != null,
+                supportingText = nameErrorMsg?.let { msg -> { Text(msg) } },
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Words,
+                    imeAction = ImeAction.Next,
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag(VACCINE_NAME_TAG),
@@ -107,6 +123,7 @@ fun VaccineSheet(
                             selectedContainerColor = vaccine.container,
                             selectedLabelColor = vaccine.onContainer,
                         ),
+                        modifier = Modifier.heightIn(min = 48.dp),
                     )
                 }
             }
@@ -118,6 +135,10 @@ fun VaccineSheet(
                 label = { Text(stringResource(R.string.vaccine_dose_label)) },
                 singleLine = true,
                 enabled = !state.isSaving,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Next,
+                ),
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(12.dp))
@@ -138,6 +159,7 @@ fun VaccineSheet(
                             activeContentColor = vaccine.onContainer,
                         ),
                         label = { Text(stringResource(labelRes)) },
+                        modifier = Modifier.heightIn(min = 48.dp),
                     )
                 }
             }
@@ -160,6 +182,9 @@ fun VaccineSheet(
                     container = vaccine.container,
                     onContainer = vaccine.onContainer,
                 ),
+                // The date error now renders inside the row (error-colored label + announced message)
+                // so a screen reader hears the failure instead of it appearing silently.
+                errorText = state.validationError?.takeIf { state.errorField == VaccineField.DATE },
             )
             Spacer(Modifier.height(12.dp))
 
@@ -168,11 +193,22 @@ fun VaccineSheet(
                 onValueChange = onNotesChange,
                 label = { Text(stringResource(R.string.vaccine_notes_label)) },
                 enabled = !state.isSaving,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Default,
+                ),
                 modifier = Modifier.fillMaxWidth(),
             )
-            state.validationError?.let {
+            // Generic (non-field) save errors have nowhere better to live; field errors render inline above.
+            if (state.errorField == null && state.validationError != null) {
                 Spacer(Modifier.height(8.dp))
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    state.validationError,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    // Announce the failure the moment it appears, since it follows the user's Save tap.
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+                )
             }
             Spacer(Modifier.height(20.dp))
 

@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -42,6 +43,7 @@ class VaccineHistoryScreenTest {
     )
 
     private fun state() = VaccineHistoryUiState(
+        isLoading = false,
         upcoming = listOf(overdue),
         administeredByDate = listOf(
             given.administeredDate!!.atZone(zone).toLocalDate() to listOf(given),
@@ -58,6 +60,8 @@ class VaccineHistoryScreenTest {
                     onMarkGiven = onMarkGiven,
                     onEditRecord = {},
                     onDeleteRecord = {},
+                    onRetry = {},
+                    onAddVaccine = {},
                     onNavigateBack = {},
                 )
             }
@@ -65,9 +69,10 @@ class VaccineHistoryScreenTest {
     }
 
     @Test
-    fun showsOverdueBadgeForOverdueScheduled() {
+    fun showsOverdueStatusForOverdueScheduled() {
         setContent()
-        composeRule.onNodeWithText("Overdue").assertIsDisplayed()
+        // The redesigned flat row carries the overdue cue inline: "Overdue · <date>".
+        composeRule.onNodeWithText("Overdue", substring = true).assertIsDisplayed()
         composeRule.onNodeWithText("BCG").assertIsDisplayed()
     }
 
@@ -75,14 +80,16 @@ class VaccineHistoryScreenTest {
     fun markGivenFiresCallbackWithRecordId() {
         var markedId: Long? = null
         setContent(onMarkGiven = { markedId = it })
-        composeRule.onNodeWithText("Mark as given").performClick()
+        // Mark-given is now an icon button labelled for TalkBack rather than a text button.
+        composeRule.onNodeWithContentDescription("Mark BCG as given").performClick()
         composeRule.runOnIdle { assertEquals(1L, markedId) }
     }
 
     @Test
     fun showsAdministeredSectionAndRow() {
         setContent()
-        composeRule.onNodeWithText("Administered").assertIsDisplayed()
+        // Section headers are uppercased in the redesigned list.
+        composeRule.onNodeWithText("ADMINISTERED").assertIsDisplayed()
         composeRule.onNodeWithText("MMR").assertIsDisplayed()
     }
 }

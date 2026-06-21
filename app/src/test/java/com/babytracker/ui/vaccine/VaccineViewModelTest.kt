@@ -5,8 +5,10 @@ import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.domain.usecase.vaccine.AddVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.EditVaccineRecordUseCase
+import com.babytracker.R
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.CompletableDeferred
@@ -102,13 +104,31 @@ class VaccineViewModelTest {
     }
 
     @Test
-    fun `failure surfaces validation error and clears saving`() = runTest {
-        coEvery { add(any(), any(), any(), any(), any()) } throws IllegalArgumentException("future")
+    fun `failure surfaces curated validation error, never the raw exception, and clears saving`() = runTest {
+        // The use case throws developer-phrased require() text; the VM must map it to a curated,
+        // localized resource rather than surfacing the raw message to the parent.
+        every { appContext.getString(R.string.vaccine_administered_past_error) } returns "given date can't be future"
+        coEvery {
+            add(any(), any(), any(), any(), any())
+        } throws IllegalArgumentException("Administered date cannot be in the future")
         val vm = viewModel()
         vm.onNameChange("MMR")
         vm.onSave()
-        assertEquals("future", vm.uiState.value.validationError)
+        assertEquals("given date can't be future", vm.uiState.value.validationError)
         assertTrue(!vm.uiState.value.isSaving)
+    }
+
+    @Test
+    fun `scheduled save failure maps to the future-date message`() = runTest {
+        every { appContext.getString(R.string.vaccine_scheduled_future_error) } returns "needs a future date"
+        coEvery {
+            add(any(), any(), any(), any(), any())
+        } throws IllegalArgumentException("Scheduled date must be in the future")
+        val vm = viewModel()
+        vm.onNameChange("BCG")
+        vm.onModeChange(VaccineStatus.SCHEDULED)
+        vm.onSave()
+        assertEquals("needs a future date", vm.uiState.value.validationError)
     }
 
     @Test

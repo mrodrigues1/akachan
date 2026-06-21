@@ -1,7 +1,9 @@
 package com.babytracker.ui.vaccine
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -9,17 +11,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.outlined.Vaccines
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +31,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -40,9 +42,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -52,17 +61,11 @@ import com.babytracker.domain.model.isOverdue
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
 import com.babytracker.ui.theme.OnWarningContainerAmberDark
-import com.babytracker.ui.theme.WarningContainerAmber
-import com.babytracker.ui.theme.WarningContainerAmberDark
+import com.babytracker.ui.theme.VaccinePalette
 import com.babytracker.ui.theme.vaccineColors
 import com.babytracker.util.toRelativeLabel
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.util.Locale
-
-private val dateFormatter = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault())
 
 @Composable
 fun VaccineHistoryScreen(
@@ -86,7 +89,8 @@ fun VaccineHistoryScreen(
         val result = snackbarHostState.showSnackbar(
             message = deletedMessage,
             actionLabel = undoLabel,
-            duration = SnackbarDuration.Short,
+            // Deleting a medical record is high-stakes; give the undo window the longer duration.
+            duration = SnackbarDuration.Long,
         )
         when (result) {
             SnackbarResult.ActionPerformed -> historyViewModel.undoDelete()
@@ -116,6 +120,11 @@ fun VaccineHistoryScreen(
             showEditSheet = true
         },
         onDeleteRecord = historyViewModel::requestDelete,
+        onRetry = historyViewModel::onRetry,
+        onAddVaccine = {
+            editViewModel.onStartAdd()
+            showEditSheet = true
+        },
         onNavigateBack = onNavigateBack,
         modifier = modifier,
     )
@@ -129,9 +138,17 @@ fun VaccineHistoryContent(
     onMarkGiven: (Long) -> Unit,
     onEditRecord: (VaccineRecord) -> Unit,
     onDeleteRecord: (VaccineRecord) -> Unit,
+    onRetry: () -> Unit,
+    onAddVaccine: () -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val vaccine = vaccineColors()
+    val overdueColor = if (LocalDarkTheme.current) OnWarningContainerAmberDark else OnWarningContainerAmber
+    // Confirm before deleting: a vaccine record is a long-lived document (daycare, school), so it
+    // must not vanish on a single half-asleep tap. The undo snackbar is the second safety net.
+    var confirmDelete by remember { mutableStateOf<VaccineRecord?>(null) }
+
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -151,60 +168,84 @@ fun VaccineHistoryContent(
                 ),
             )
         },
+        // History is where a parent goes to log a forgotten dose; give it the same add affordance as
+        // the dashboard rather than forcing a back-navigation.
+        bottomBar = { AddVaccineBar(colors = vaccine, onAddVaccine = onAddVaccine) },
     ) { padding ->
-        if (state.isEmpty) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 32.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text("💉", style = MaterialTheme.typography.headlineLarge)
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    text = stringResource(R.string.vaccine_history_empty),
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
+        when {
+            state.isLoading -> HistorySkeleton(Modifier.padding(padding))
+            state.isError -> HistoryError(colors = vaccine, onRetry = onRetry, modifier = Modifier.padding(padding))
+            state.isEmpty -> HistoryEmpty(colors = vaccine, modifier = Modifier.padding(padding))
+            else -> HistoryList(
+                state = state,
+                vaccine = vaccine,
+                overdueColor = overdueColor,
+                onMarkGiven = onMarkGiven,
+                onEditRecord = onEditRecord,
+                onRequestDelete = { confirmDelete = it },
+                padding = padding,
+            )
+        }
+    }
+
+    confirmDelete?.let { record ->
+        DeleteConfirmDialog(
+            vaccine = vaccine,
+            onConfirm = {
+                onDeleteRecord(record)
+                confirmDelete = null
+            },
+            onDismiss = { confirmDelete = null },
+        )
+    }
+}
+
+@Composable
+private fun HistoryList(
+    state: VaccineHistoryUiState,
+    vaccine: VaccinePalette,
+    overdueColor: Color,
+    onMarkGiven: (Long) -> Unit,
+    onEditRecord: (VaccineRecord) -> Unit,
+    onRequestDelete: (VaccineRecord) -> Unit,
+    padding: PaddingValues,
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            top = padding.calculateTopPadding() + 8.dp,
+            bottom = padding.calculateBottomPadding() + 8.dp,
+            start = 16.dp,
+            end = 16.dp,
+        ),
+    ) {
+        if (state.upcoming.isNotEmpty()) {
+            item(key = "upcoming_header") { SectionHeader(stringResource(R.string.vaccine_history_upcoming)) }
+            items(state.upcoming, key = { "u_${it.id}" }) { record ->
+                UpcomingRow(
+                    record = record,
+                    overdue = record.isOverdue(state.now),
+                    vaccine = vaccine,
+                    overdueColor = overdueColor,
+                    onMarkGiven = { onMarkGiven(record.id) },
+                    onEdit = { onEditRecord(record) },
+                    onDelete = { onRequestDelete(record) },
                 )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    top = padding.calculateTopPadding() + 8.dp,
-                    bottom = padding.calculateBottomPadding() + 8.dp,
-                    start = 16.dp,
-                    end = 16.dp,
-                ),
-            ) {
-                if (state.upcoming.isNotEmpty()) {
-                    item(key = "upcoming_header") { SectionHeader(stringResource(R.string.vaccine_history_upcoming)) }
-                    items(state.upcoming, key = { "u_${it.id}" }) { record ->
-                        VaccineUpcomingRow(
-                            record = record,
-                            overdue = record.isOverdue(state.now),
-                            onMarkGiven = { onMarkGiven(record.id) },
-                            onEdit = { onEditRecord(record) },
-                            onDelete = { onDeleteRecord(record) },
-                        )
-                    }
-                }
-                if (state.administeredByDate.isNotEmpty()) {
-                    item(key = "administered_header") {
-                        SectionHeader(stringResource(R.string.vaccine_history_administered))
-                    }
-                    state.administeredByDate.forEach { (date, records) ->
-                        item(key = "date_$date") { DateHeader(date) }
-                        items(records, key = { "a_${it.id}" }) { record ->
-                            VaccineAdministeredRow(
-                                record = record,
-                                onEdit = { onEditRecord(record) },
-                                onDelete = { onDeleteRecord(record) },
-                            )
-                        }
-                    }
+        }
+        if (state.administeredByDate.isNotEmpty()) {
+            item(key = "administered_header") {
+                SectionHeader(stringResource(R.string.vaccine_history_administered))
+            }
+            state.administeredByDate.forEach { (date, records) ->
+                item(key = "date_$date") { DateHeader(date) }
+                items(records, key = { "a_${it.id}" }) { record ->
+                    AdministeredRow(
+                        record = record,
+                        vaccine = vaccine,
+                        onEdit = { onEditRecord(record) },
+                        onDelete = { onRequestDelete(record) },
+                    )
                 }
             }
         }
@@ -214,13 +255,13 @@ fun VaccineHistoryContent(
 @Composable
 private fun SectionHeader(text: String) {
     Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = vaccineColors().onContainer,
+        text = text.uppercase(Locale.getDefault()),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp, bottom = 4.dp),
+            .padding(top = 12.dp, bottom = 4.dp)
+            .semantics { heading() },
     )
 }
 
@@ -230,116 +271,61 @@ private fun DateHeader(date: LocalDate) {
         text = date.toRelativeLabel(
             stringResource(R.string.relative_today),
             stringResource(R.string.relative_yesterday),
-        ).uppercase(),
+        ).uppercase(Locale.getDefault()),
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
-            .background(MaterialTheme.colorScheme.background)
             .fillMaxWidth()
             .padding(vertical = 8.dp),
     )
 }
 
+/** Flat scheduled-vaccine row: tap the row to edit, the check to mark given, the trash to delete. */
 @Composable
-private fun VaccineUpcomingRow(
+private fun UpcomingRow(
     record: VaccineRecord,
     overdue: Boolean,
+    vaccine: VaccinePalette,
+    overdueColor: Color,
     onMarkGiven: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val vaccine = vaccineColors()
-    Card(
+    val editLabel = stringResource(R.string.vaccine_edit_content_description, record.name)
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = vaccine.container),
+            .heightIn(min = 56.dp)
+            .clickable(onClickLabel = editLabel, onClick = onEdit),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = record.nameWithDose(),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = vaccine.onContainer,
-                    )
-                    record.scheduledDate?.let {
-                        Text(
-                            text = stringResource(R.string.vaccine_scheduled_for, it.toDateLabel()),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = vaccine.onContainer,
-                        )
-                    }
-                    if (overdue) {
-                        Spacer(Modifier.height(4.dp))
-                        OverdueBadge()
-                    }
-                }
-                RowActions(record, onEdit, onDelete)
-            }
-            Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = onMarkGiven,
-                shape = MaterialTheme.shapes.large,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = vaccine.accent,
-                    contentColor = vaccine.onAccent,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.vaccine_mark_given), style = MaterialTheme.typography.labelLarge)
-            }
+        StatusDot(color = if (overdue) overdueColor else vaccine.accent, filled = false)
+        Spacer(Modifier.size(12.dp))
+        val date = record.scheduledDate?.toVaccineDateLabel().orEmpty()
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = record.nameWithDose(),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = if (overdue) {
+                    stringResource(R.string.vaccine_overdue_on_date, date)
+                } else {
+                    stringResource(R.string.vaccine_scheduled_for, date)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                // Color carries the urgency; the text stays factual.
+                color = if (overdue) overdueColor else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-    }
-}
-
-@Composable
-private fun VaccineAdministeredRow(
-    record: VaccineRecord,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, top = 4.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = record.nameWithDose(),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                record.notes?.takeIf { it.isNotBlank() }?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            RowActions(record, onEdit, onDelete)
-        }
-    }
-}
-
-@Composable
-private fun RowActions(record: VaccineRecord, onEdit: () -> Unit, onDelete: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onEdit) {
+        IconButton(onClick = onMarkGiven) {
             Icon(
-                Icons.Outlined.Edit,
-                contentDescription = stringResource(R.string.vaccine_edit_content_description, record.name),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                Icons.Outlined.CheckCircle,
+                contentDescription = stringResource(R.string.vaccine_mark_given_content_description, record.name),
+                tint = vaccine.accent,
             )
         }
         IconButton(onClick = onDelete) {
@@ -352,25 +338,130 @@ private fun RowActions(record: VaccineRecord, onEdit: () -> Unit, onDelete: () -
     }
 }
 
+/** Flat administered row under a day header: tap to edit, trash to delete. */
 @Composable
-private fun OverdueBadge() {
-    val isDark = LocalDarkTheme.current
-    Text(
-        text = stringResource(R.string.vaccine_overdue_badge),
-        style = MaterialTheme.typography.labelSmall,
-        fontWeight = FontWeight.SemiBold,
-        color = if (isDark) OnWarningContainerAmberDark else OnWarningContainerAmber,
+private fun AdministeredRow(
+    record: VaccineRecord,
+    vaccine: VaccinePalette,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val editLabel = stringResource(R.string.vaccine_edit_content_description, record.name)
+    Row(
         modifier = Modifier
-            .background(
-                color = if (isDark) WarningContainerAmberDark else WarningContainerAmber,
-                shape = MaterialTheme.shapes.small,
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clickable(onClickLabel = editLabel, onClick = onEdit),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StatusDot(color = vaccine.accent, filled = true)
+        Spacer(Modifier.size(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = record.nameWithDose(),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            .padding(horizontal = 8.dp, vertical = 2.dp),
-    )
+            record.notes?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        IconButton(onClick = onDelete) {
+            Icon(
+                Icons.Outlined.Delete,
+                contentDescription = stringResource(R.string.vaccine_delete_content_description, record.name),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
-private fun VaccineRecord.nameWithDose(): String =
-    doseLabel?.takeIf { it.isNotBlank() }?.let { "$name · $it" } ?: name
+@Composable
+private fun HistoryEmpty(colors: VaccinePalette, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            Icons.Outlined.Vaccines,
+            contentDescription = null,
+            tint = colors.accent.copy(alpha = 0.7f),
+            modifier = Modifier.size(48.dp),
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = stringResource(R.string.vaccine_history_empty),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
 
-private fun Instant.toDateLabel(): String =
-    dateFormatter.format(atZone(ZoneId.systemDefault()).toLocalDate())
+@Composable
+private fun HistoryError(colors: VaccinePalette, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    val announce = stringResource(R.string.vaccine_load_error)
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp)
+            // Announce the failure on transition, not only when a screen reader lands on the text.
+            .semantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = announce
+            },
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = stringResource(R.string.vaccine_load_error),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(12.dp))
+        TextButton(onClick = onRetry) {
+            Text(text = stringResource(R.string.try_again), color = colors.accent)
+        }
+    }
+}
+
+/** Quiet placeholder until the first Room emission lands, mirroring the dashboard's calm skeleton. */
+@Composable
+private fun HistorySkeleton(modifier: Modifier = Modifier) {
+    val block = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val loadingLabel = stringResource(R.string.loading)
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+            .semantics {
+                contentDescription = loadingLabel
+                liveRegion = LiveRegionMode.Polite
+            },
+    ) {
+        Spacer(Modifier.height(16.dp))
+        repeat(5) { index ->
+            Box(
+                Modifier
+                    .fillMaxWidth(if (index % 3 == 0) 0.4f else 1f)
+                    .height(20.dp)
+                    .clip(MaterialTheme.shapes.small)
+                    .background(block),
+            )
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+

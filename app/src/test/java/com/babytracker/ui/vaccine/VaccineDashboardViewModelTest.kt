@@ -3,6 +3,7 @@ package com.babytracker.ui.vaccine
 import app.cash.turbine.test
 import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.VaccineStatus
+import com.babytracker.domain.usecase.vaccine.DeleteVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
 import io.mockk.coVerify
@@ -30,6 +31,7 @@ import java.time.ZoneId
 class VaccineDashboardViewModelTest {
     private val observeRecords = mockk<ObserveVaccineRecordsUseCase>()
     private val markGiven = mockk<MarkVaccineAdministeredUseCase>(relaxed = true)
+    private val delete = mockk<DeleteVaccineRecordUseCase>(relaxed = true)
 
     private val zone = ZoneId.of("UTC")
     private val nowInstant = Instant.parse("2026-06-21T12:00:00Z")
@@ -57,7 +59,7 @@ class VaccineDashboardViewModelTest {
         createdAt = Instant.EPOCH,
     )
 
-    private fun viewModel() = VaccineDashboardViewModel(observeRecords, markGiven, zone, now)
+    private fun viewModel() = VaccineDashboardViewModel(observeRecords, markGiven, delete, zone, now)
 
     @Test
     fun `derives overdue hero, schedule order, and recently given`() = runTest {
@@ -164,6 +166,40 @@ class VaccineDashboardViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 1) { markGiven(1L, any()) }
+    }
+
+    @Test
+    fun `requestDelete defers the write and optimistically hides the row`() = runTest {
+        val record = scheduled(1, offsetDays = 7)
+        every { observeRecords() } returns flowOf(listOf(record))
+        val vm = viewModel()
+
+        vm.uiState.test {
+            var state = awaitItem()
+            if (state.isLoading) state = awaitItem()
+            assertEquals(listOf(1L), state.schedule.map { it.id })
+
+            vm.requestDelete(record)
+            state = awaitItem()
+            assertEquals(1L, state.lastDeleted?.id)
+            assertTrue(state.schedule.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        coVerify(exactly = 0) { delete(any()) }
+    }
+
+    @Test
+    fun `onDeleteConsumed commits the delete`() = runTest {
+        val record = scheduled(1, offsetDays = 7)
+        every { observeRecords() } returns flowOf(listOf(record))
+        val vm = viewModel()
+
+        vm.requestDelete(record)
+        vm.onDeleteConsumed()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { delete(1L) }
     }
 
     @Test

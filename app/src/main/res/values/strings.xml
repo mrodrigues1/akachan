@@ -1112,6 +1112,9 @@
     <string name="vaccine_date_scheduled_label">Scheduled date</string>
     <string name="vaccine_save">Save</string>
     <string name="vaccine_save_error">Could not save vaccine</string>
+    <string name="vaccine_name_required">Add a vaccine name to save.</string>
+    <string name="vaccine_scheduled_future_error">Scheduled vaccines need a future date.</string>
+    <string name="vaccine_administered_past_error">A given date can\'t be in the future.</string>
     <string name="vaccine_tile_next">Next: %1$s</string>
     <string name="vaccine_tile_today">Today</string>
     <string name="vaccine_tile_overdue">Overdue</string>
@@ -1149,6 +1152,10 @@
     <string name="vaccine_undo">Undo</string>
     <string name="vaccine_edit_content_description">Edit %1$s</string>
     <string name="vaccine_delete_content_description">Delete %1$s</string>
+    <string name="vaccine_delete_title">Delete this vaccine?</string>
+    <string name="vaccine_delete_message">This permanently removes the record. You might need it for daycare or school later.</string>
+    <string name="vaccine_name_with_dose">%1$s · %2$s</string>
+    <string name="vaccine_overdue_on_date">Overdue · %1$s</string>
 
     <!-- Vaccine dashboard -->
     <string name="vaccine_next_up">Next up</string>
@@ -1167,6 +1174,7 @@
         <item quantity="one">+%1$d more overdue</item>
         <item quantity="other">+%1$d more overdue</item>
     </plurals>
+    <string name="vaccine_overdue_reassurance">No rush. Mark it done when it happens, or reschedule.</string>
     <string name="vaccine_caught_up_title">All caught up</string>
     <string name="vaccine_caught_up_subtitle">No vaccines scheduled right now.</string>
     <string name="vaccine_empty_title">Track your baby\'s vaccines</string>
@@ -1185,6 +1193,7 @@
     <string name="vaccine_reminder_toggle_title">Remind me before vaccines</string>
     <string name="vaccine_reminder_toggle_subtitle">Get a notification before a scheduled vaccine</string>
     <string name="vaccine_reminder_lead_label">How early to remind me</string>
+    <string name="vaccine_reminder_lead_hint">We\'ll notify you this many days before each scheduled vaccine.</string>
     <plurals name="vaccine_reminder_lead_option">
         <item quantity="one">%1$d day before</item>
         <item quantity="other">%1$d days before</item>
