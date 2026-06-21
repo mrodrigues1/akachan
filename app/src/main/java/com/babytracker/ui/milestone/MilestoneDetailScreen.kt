@@ -50,7 +50,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -58,7 +58,8 @@ import com.babytracker.R
 import com.babytracker.domain.model.Milestone
 import com.babytracker.ui.theme.MilestonePalette
 import com.babytracker.ui.theme.milestoneColors
-import java.time.format.DateTimeFormatter
+import com.babytracker.util.formatLongDate
+import com.babytracker.util.formatShortTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +72,9 @@ fun MilestoneDetailScreen(
     val moment = uiState.milestone
     var showEditor by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    // Once delete is committed the moment flow emits null while we navigate away. Hold the
+    // skeleton during that window so the "unavailable" message never flashes on a normal delete.
+    var deleting by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -101,15 +105,11 @@ fun MilestoneDetailScreen(
             )
         },
     ) { padding ->
+        val contentModifier = Modifier.fillMaxSize().padding(padding)
         when {
-            moment != null ->
-                MomentDetailContent(
-                    moment = moment,
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                )
-
-            uiState.isLoading ->
-                MomentDetailSkeleton(modifier = Modifier.fillMaxSize().padding(padding))
+            moment != null -> MomentDetailContent(moment = moment, modifier = contentModifier)
+            uiState.isLoading || deleting -> MomentDetailSkeleton(modifier = contentModifier)
+            else -> MomentUnavailable(onNavigateBack = onNavigateBack, modifier = contentModifier)
         }
     }
 
@@ -133,6 +133,7 @@ fun MilestoneDetailScreen(
                 TextButton(
                     onClick = {
                         showDeleteConfirm = false
+                        deleting = true
                         viewModel.onDelete(onDeleted = onNavigateBack)
                     },
                     modifier = Modifier.testTag("milestone_delete_confirm"),
@@ -151,21 +152,24 @@ private fun MomentDetailContent(
     modifier: Modifier = Modifier,
 ) {
     val colors = milestoneColors()
-    val dateFormatter = remember { DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy") }
-    val timeFormatter = remember { DateTimeFormatter.ofPattern("h:mm a") }
-    val whenLabel = buildString {
-        append(moment.date.format(dateFormatter))
-        moment.time?.let { append(" · ${it.format(timeFormatter)}") }
-    }
+    val dateLabel = moment.date.formatLongDate()
+    // Joined with a localized "at" connector instead of a middot: it reads naturally for
+    // screen readers and lets each locale order date and time its own way.
+    val whenLabel = moment.time
+        ?.let { stringResource(R.string.milestone_when_date_time, dateLabel, it.formatShortTime()) }
+        ?: dateLabel
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
     ) {
-        MomentHero(photoUri = moment.photoUri, colors = colors)
+        MomentHero(
+            photoUri = moment.photoUri,
+            photoDescription = stringResource(R.string.milestone_photo_of, moment.title),
+            colors = colors,
+        )
         Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
             Text(
                 text = moment.title,
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .testTag("milestone_detail_title")
@@ -192,24 +196,25 @@ private fun MomentDetailContent(
 @Composable
 private fun MomentHero(
     photoUri: String?,
+    photoDescription: String,
     colors: MilestonePalette,
 ) {
     val bitmap = rememberMilestoneBitmap(photoUri, MILESTONE_HERO_TARGET_PX)
     if (bitmap != null) {
         Image(
             bitmap = bitmap,
-            contentDescription = stringResource(R.string.milestone_photo_cd),
+            contentDescription = photoDescription,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(DEFAULT_ASPECT_RATIO),
+                .aspectRatio(HERO_ASPECT_RATIO),
         )
     } else {
         // No photo: a soft container wash, not a full-accent slab. Accent stays small.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(WIDE_ASPECT_RATIO)
+                .aspectRatio(HERO_ASPECT_RATIO)
                 .background(colors.container),
             contentAlignment = Alignment.Center,
         ) {
@@ -219,6 +224,34 @@ private fun MomentHero(
                 tint = colors.accent,
                 modifier = Modifier.size(48.dp).clearAndSetSemantics {},
             )
+        }
+    }
+}
+
+/**
+ * Shown when the moment can't be resolved: already deleted, or opened from a stale link or a
+ * partner snapshot that no longer holds it. A calm dead-end with a way back, never a blank void.
+ */
+@Composable
+private fun MomentUnavailable(
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier.padding(horizontal = 32.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = stringResource(R.string.milestone_detail_unavailable),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.size(16.dp))
+            TextButton(onClick = onNavigateBack) {
+                Text(stringResource(R.string.back))
+            }
         }
     }
 }
@@ -249,7 +282,7 @@ private fun MomentDetailSkeleton(modifier: Modifier = Modifier) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(WIDE_ASPECT_RATIO)
+                .aspectRatio(HERO_ASPECT_RATIO)
                 .background(block),
         )
         Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
@@ -279,5 +312,7 @@ private fun SkeletonBar(
     )
 }
 
-private const val DEFAULT_ASPECT_RATIO = 1f
-private const val WIDE_ASPECT_RATIO = 2.4f
+// One photo-friendly hero ratio for photo, placeholder, and skeleton, so the band keeps a stable
+// height as the moment resolves (no skeleton-to-photo jump) and arbitrary photos aren't hard-cropped
+// to a square.
+private const val HERO_ASPECT_RATIO = 4f / 3f

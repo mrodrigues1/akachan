@@ -235,7 +235,7 @@
     <string name="delete">Delete</string>
     <string name="edit">Edit</string>
     <string name="more_options">More options</string>
-    <string name="loading">Loading...</string>
+    <string name="loading">Loading…</string>
     <string name="cancel">Cancel</string>
 
     <!-- Shared generic labels -->
@@ -639,6 +639,9 @@
     <string name="milestone_delete_title">Delete moment?</string>
     <string name="milestone_delete_message">This moment and any photo will be permanently deleted. You can\'t undo this.</string>
     <string name="milestone_photo_cd">Moment photo</string>
+    <string name="milestone_photo_of">Photo of %1$s</string>
+    <string name="milestone_when_date_time">%1$s at %2$s</string>
+    <string name="milestone_detail_unavailable">This moment isn\'t here anymore.</string>
     <string name="milestone_editor_new">New moment</string>
     <string name="milestone_editor_edit">Edit moment</string>
     <string name="milestone_title_label">What happened?</string>

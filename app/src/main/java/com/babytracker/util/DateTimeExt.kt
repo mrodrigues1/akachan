@@ -5,8 +5,10 @@ import com.babytracker.R
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 
 fun Instant.formatTime(): String =
@@ -28,6 +30,20 @@ fun Instant.formatTime12h(): String =
     DateTimeFormatter.ofPattern("hh:mm a")
         .withZone(ZoneId.systemDefault())
         .format(this)
+
+/**
+ * Full, locale-aware date. The locale, not a fixed pattern, decides the word order and
+ * separators: "Saturday, June 20, 2026" (en) vs "sábado, 20 de junho de 2026" (pt-BR).
+ */
+fun LocalDate.formatLongDate(): String =
+    DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).format(this)
+
+/**
+ * Short, locale-aware time honoring the locale's clock convention:
+ * "2:30 PM" (en, 12-hour) vs "14:30" (pt-BR, 24-hour).
+ */
+fun LocalTime.formatShortTime(): String =
+    DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).format(this)
 
 fun Duration.formatDuration(): String {
     val hours = toHours()

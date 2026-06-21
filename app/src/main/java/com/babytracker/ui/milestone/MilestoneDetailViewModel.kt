@@ -66,7 +66,10 @@ class MilestoneDetailViewModel @Inject constructor(
         val photoUri = milestone.value?.photoUri
         viewModelScope.launch {
             deleteMilestone(milestoneId)
-            photoCleaner.delete(photoUri)
+            // Photo cleanup is best-effort: once the moment is gone from the database, a failure
+            // deleting the orphaned file must not block the sync or strand the caller on its
+            // post-delete UI. Always reach onDeleted() so the screen can navigate away.
+            runCatching { photoCleaner.delete(photoUri) }
             syncSharedSnapshot()
             onDeleted()
         }
