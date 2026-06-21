@@ -8,6 +8,7 @@ import com.babytracker.domain.usecase.milestone.GetMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.UpdateMilestoneUseCase
 import com.babytracker.navigation.Routes
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -74,6 +75,19 @@ class MilestoneDetailViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
         coVerify { deleteMilestone(1) }
         coVerify { photoCleaner.delete(photoUri) }
+        assertTrue(deleted)
+    }
+
+    @Test
+    fun `onDelete still syncs and signals completion when photo cleanup fails`() = runTest {
+        coEvery { photoCleaner.delete(photoUri) } throws RuntimeException("disk error")
+        val vm = viewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        var deleted = false
+        vm.onDelete(onDeleted = { deleted = true })
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify { deleteMilestone(1) }
+        coVerify { syncToFirestore() }
         assertTrue(deleted)
     }
 

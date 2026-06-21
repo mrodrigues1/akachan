@@ -3,6 +3,8 @@ package com.babytracker.util
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -10,6 +12,8 @@ import org.robolectric.annotation.Config
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
+import java.util.Locale
 
 @Config(sdk = [34])
 @RunWith(RobolectricTestRunner::class)
@@ -149,5 +153,45 @@ class DateTimeExtTest {
     @Test
     fun formatElapsedCompactMultipleDaysDropsHours() {
         assertEquals("7d", Duration.ofHours(174).plus(Duration.ofMinutes(8)).formatElapsedCompact(context))
+    }
+
+    @Test
+    fun formatLongDateUsesLocaleWordOrder() {
+        val date = LocalDate.of(2026, 6, 20)
+        withLocale(Locale.US) {
+            val result = date.formatLongDate()
+            assertTrue("Expected English month, got: $result", result.contains("June"))
+            assertTrue("Expected year, got: $result", result.contains("2026"))
+        }
+        withLocale(Locale.forLanguageTag("pt-BR")) {
+            val result = date.formatLongDate()
+            assertTrue("Expected Portuguese month, got: $result", result.contains("junho"))
+            assertTrue("Expected pt-BR connector, got: $result", result.contains(" de "))
+        }
+    }
+
+    @Test
+    fun formatShortTimeHonorsLocaleClock() {
+        val afternoon = LocalTime.of(14, 30)
+        withLocale(Locale.US) {
+            val result = afternoon.formatShortTime()
+            assertTrue("Expected 12-hour clock, got: $result", result.contains("2:30"))
+            assertFalse("12-hour clock should not show 24h hour, got: $result", result.contains("14"))
+        }
+        withLocale(Locale.forLanguageTag("pt-BR")) {
+            val result = afternoon.formatShortTime()
+            assertTrue("Expected 24-hour clock, got: $result", result.contains("14:30"))
+            assertFalse("24-hour clock should not show AM/PM, got: $result", result.contains("PM"))
+        }
+    }
+
+    private inline fun withLocale(locale: Locale, block: () -> Unit) {
+        val previous = Locale.getDefault()
+        Locale.setDefault(locale)
+        try {
+            block()
+        } finally {
+            Locale.setDefault(previous)
+        }
     }
 }

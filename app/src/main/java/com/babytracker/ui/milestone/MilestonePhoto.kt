@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.Dispatchers
@@ -32,11 +33,16 @@ const val MILESTONE_HERO_TARGET_PX = 1080
 /**
  * Process-wide cache of decoded moment bitmaps, keyed by `uri@targetPx`. Scrolling the
  * timeline disposes off-screen items, so without this every re-entry would re-read and
- * re-decode the file from disk on the next frame. Bounded by entry count: thumbnails are
- * downsampled to ≤256px (~0.25 MB each), so 32 entries cap the cache near a few MB.
+ * re-decode the file from disk on the next frame.
+ *
+ * Sized by bytes, not entry count: the cache mixes ~256px timeline thumbnails (~0.25 MB) with
+ * ~1080px detail heroes (several MB each), so a fixed entry count could pin tens of MB of large
+ * heroes. The [LruCache.sizeOf] override evicts by real footprint to hold the budget whatever the mix.
  */
-private const val BITMAP_CACHE_ENTRIES = 32
-private val bitmapCache = LruCache<String, ImageBitmap>(BITMAP_CACHE_ENTRIES)
+private const val BITMAP_CACHE_BYTES = 24 * 1024 * 1024 // 24 MB
+private val bitmapCache = object : LruCache<String, ImageBitmap>(BITMAP_CACHE_BYTES) {
+    override fun sizeOf(key: String, value: ImageBitmap): Int = value.asAndroidBitmap().allocationByteCount
+}
 
 /**
  * Copies the picked image into app-internal storage and returns a stable file
