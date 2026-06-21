@@ -111,31 +111,6 @@ fun DateTimeFieldRow(
     }
 }
 
-/**
- * Scopes the picker dialogs to a section [accent]. Remaps `primary` (selected day, clock
- * hand/selector, OK/Cancel), `primaryContainer` (the selected hour/minute field box) and
- * `tertiaryContainer` (the AM/PM period selector) so the whole dialog reads in one palette.
- * No-op when [accent] is null — milk-bag/bottle-feed pickers keep the default M3 colours.
- */
-@Composable
-private fun PickerAccentTheme(accent: FieldAccent?, content: @Composable () -> Unit) {
-    if (accent == null) {
-        content()
-    } else {
-        MaterialTheme(
-            colorScheme = MaterialTheme.colorScheme.copy(
-                primary = accent.accent,
-                onPrimary = accent.onAccent,
-                primaryContainer = accent.container,
-                onPrimaryContainer = accent.onContainer,
-                tertiaryContainer = accent.accent,
-                onTertiaryContainer = accent.onAccent,
-            ),
-            content = content,
-        )
-    }
-}
-
 @Composable
 private fun FieldCell(
     label: String,
