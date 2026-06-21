@@ -1218,6 +1218,7 @@
     </plurals>
     <string name="doctor_visit_no_upcoming_title">No upcoming visit</string>
     <string name="doctor_visit_no_upcoming_subtitle">Add your next appointment to see it here.</string>
+    <string name="doctor_visit_load_error">Couldn\'t load your doctor visits.</string>
     <string name="doctor_visit_manage_all">Manage all</string>
     <string name="doctor_visit_recent">Recent</string>
     <string name="doctor_visit_view_all">View all</string>

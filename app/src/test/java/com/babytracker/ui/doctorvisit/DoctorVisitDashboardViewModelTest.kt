@@ -13,6 +13,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -187,5 +188,42 @@ class DoctorVisitDashboardViewModelTest {
 
         // Dismissal must not re-toggle: only the initial mark hits the use case.
         coVerify(exactly = 1) { toggle(10) }
+    }
+
+    @Test
+    fun `surfaces an error state when a source flow throws`() = runTest {
+        every { observeVisits() } returns flow { throw IllegalStateException("boom") }
+        every { observeInbox() } returns flowOf(emptyList())
+        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+
+        vm.uiState.test {
+            var state = awaitItem()
+            if (state.isLoading) state = awaitItem()
+            assertTrue(state.isError)
+            assertTrue(!state.isLoading)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `onRetry rebuilds the flow and clears the error`() = runTest {
+        every { observeVisits() } returnsMany listOf(
+            flow { throw IllegalStateException("boom") },
+            flowOf(emptyList()),
+        )
+        every { observeInbox() } returns flowOf(emptyList())
+        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+
+        vm.uiState.test {
+            var state = awaitItem()
+            if (state.isLoading) state = awaitItem()
+            assertTrue(state.isError)
+
+            vm.onRetry()
+            state = awaitItem()
+            assertTrue(!state.isError)
+            assertTrue(!state.isLoading)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }
