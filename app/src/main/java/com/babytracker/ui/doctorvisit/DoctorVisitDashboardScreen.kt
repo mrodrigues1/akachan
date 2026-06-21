@@ -37,6 +37,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -417,6 +418,11 @@ private fun QuestionCaptureRow(
             placeholder = { Text(stringResource(R.string.visit_questions_add_hint)) },
             singleLine = true,
             shape = MaterialTheme.shapes.medium,
+            // Keep the focused field in the Slate domain instead of the global pink primary.
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = colors.accent,
+                cursorColor = colors.accent,
+            ),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { submit() }),
         )
