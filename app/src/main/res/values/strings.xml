@@ -530,16 +530,18 @@
     <string name="trends_range_7d">7d</string>
     <string name="trends_range_14d">14d</string>
     <string name="trends_range_30d">30d</string>
-    <string name="trends_empty">Not enough data yet — keep tracking.</string>
+    <string name="trends_empty">Not enough data yet. Keep tracking.</string>
     <string name="trends_feeds_per_day_title">Feeds per day</string>
     <string name="trends_feeds_per_day_cd">Feeds per day. Total %1$d over %2$d days.</string>
     <string name="trends_sleep_hours_title">Sleep hours per day (night + nap)</string>
     <string name="trends_sleep_hours_cd">Sleep hours per day, night and nap stacked, over %1$d days.</string>
     <string name="trends_interval_title">Average hours between feeds</string>
     <string name="trends_interval_cd">Average hours between feeds per day over %1$d days.</string>
-    <string name="trends_feedvssleep_title">Feeds vs sleep per day</string>
-    <string name="trends_feedvssleep_cd">Feeds versus sleep per day over %1$d days. Columns are feed count, line is total sleep hours.</string>
-    <string name="trends_rhythm_title">Daily rhythm (sleep + feeds)</string>
+    <string name="trends_empty_title">No rhythm yet</string>
+    <string name="trends_empty_body">Track a few feeds and sleeps, and your baby\'s daily rhythm will appear here.</string>
+    <string name="trends_section_feeding">Feeding</string>
+    <string name="trends_section_sleep">Sleep</string>
+    <string name="trends_rhythm_title">Daily rhythm</string>
     <string name="trends_rhythm_cd">Daily rhythm over %1$d days, each row a day from midnight to midnight. Bars are sleep, dots are feeds.</string>
     <string name="trends_legend_night">Night</string>
     <string name="trends_legend_nap">Nap</string>
@@ -1077,7 +1079,6 @@
     <string name="trends_axis_feeds">Feeds</string>
     <string name="trends_axis_date">Date</string>
     <string name="trends_axis_hours">Hours</string>
-    <string name="trends_axis_sleep_hrs">Sleep hrs</string>
 
     <!-- Milk stash widget -->
     <string name="widget_milk_stash_title">Inventory</string>
