@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -59,9 +60,7 @@ import com.babytracker.ui.theme.doctorVisitColors
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-
-// Localized full date incl. weekday, locale-aware field order (e.g. "Saturday, June 20, 2026").
-private val visitDateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)
+import java.util.Locale
 
 @Composable
 fun DoctorVisitHistoryScreen(
@@ -200,11 +199,19 @@ private fun VisitRow(
     val container = if (past) MaterialTheme.colorScheme.surfaceVariant else colors.container
     val onContainer = if (past) MaterialTheme.colorScheme.onSurface else colors.onContainer
     val secondary = onContainer.copy(alpha = 0.8f)
+    val editLabel = stringResource(R.string.doctor_visit_edit_title)
+    // Keyed on locale so a runtime language switch rebuilds the formatter instead of leaving the
+    // date frozen to the load-time locale (a top-level val would never rebuild).
+    val dateFormatter = remember(Locale.getDefault()) {
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)
+    }
     Card(
         onClick = { onEdit(visit) },
+        // Label the card's click action so TalkBack announces "Edit visit", not a bare "activate".
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .semantics { onClick(label = editLabel, action = null) },
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = container),
     ) {
@@ -216,7 +223,7 @@ private fun VisitRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = visitDateFormatter.format(visit.date.atZone(ZoneId.systemDefault()).toLocalDate()),
+                    text = dateFormatter.format(visit.date.atZone(ZoneId.systemDefault()).toLocalDate()),
                     style = MaterialTheme.typography.titleSmall,
                     color = onContainer,
                 )
