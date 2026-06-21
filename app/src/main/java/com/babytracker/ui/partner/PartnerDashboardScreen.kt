@@ -80,6 +80,7 @@ import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.ui.bottlefeed.BottleFeedSheet
 import com.babytracker.ui.component.BreastfeedingIcon
+import com.babytracker.ui.component.BottleFeedIcon
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.theme.LocalDarkTheme
@@ -1349,8 +1350,8 @@ private fun BottleHistoryRow(
         title = volumeText,
         subtitle = typeLabel,
         trailing = timeAgo,
-        badgeEmoji = "🍼",
         badgeColor = MaterialTheme.colorScheme.tertiaryContainer,
+        badgeContent = { BottleFeedIcon(modifier = Modifier.size(34.dp)) },
         trailingColor = MaterialTheme.colorScheme.tertiary,
     )
 }

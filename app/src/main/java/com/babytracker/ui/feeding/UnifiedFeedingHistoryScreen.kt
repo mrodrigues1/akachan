@@ -63,6 +63,7 @@ import com.babytracker.ui.breastfeeding.FeedSessionOverflowMenu
 import com.babytracker.ui.bottlefeed.BottleFeedSheet
 import com.babytracker.ui.bottlefeed.BottleFeedViewModel
 import com.babytracker.ui.component.BreastfeedingIcon
+import com.babytracker.ui.component.BottleFeedIcon
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
@@ -298,8 +299,8 @@ internal fun BottleFeedHistoryCard(
             }
         },
         trailing = formatVolume(feed.volumeMl, volumeUnit),
-        badgeEmoji = "🍼",
         badgeColor = MaterialTheme.colorScheme.primaryContainer,
+        badgeContent = { BottleFeedIcon(modifier = Modifier.size(34.dp)) },
         onClick = if (editable) onEdit else null,
         trailingContent = if (editable) {
             { BottleFeedOverflowMenu(onEdit = onEdit, onDelete = onDelete) }
