@@ -77,6 +77,7 @@ class DoctorVisitDashboardViewModelTest {
             var state = awaitItem()
             if (state.isLoading) state = awaitItem()
             assertEquals(1L, state.nextVisit?.id)
+            assertEquals(3, state.nextVisitInDays)
             assertEquals(listOf(2L, 3L), state.recentVisits.map { it.id })
             assertEquals(listOf(10L, 12L), state.questions.map { it.id })
             assertEquals(2, state.openQuestionCount)

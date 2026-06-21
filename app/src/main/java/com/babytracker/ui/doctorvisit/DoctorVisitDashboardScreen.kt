@@ -65,8 +65,12 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -81,11 +85,9 @@ import com.babytracker.domain.model.VisitQuestion
 import com.babytracker.ui.theme.DoctorVisitPalette
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.doctorVisitColors
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 @Composable
@@ -212,6 +214,7 @@ fun DoctorVisitDashboardContent(
             NextVisitHero(
                 visit = state.nextVisit,
                 openQuestionCount = state.openQuestionCount,
+                daysUntil = state.nextVisitInDays ?: 0,
                 colors = colors,
                 onEditVisit = onEditVisit,
             )
@@ -250,6 +253,7 @@ fun DoctorVisitDashboardContent(
 private fun NextVisitHero(
     visit: DoctorVisit?,
     openQuestionCount: Int,
+    daysUntil: Int,
     colors: DoctorVisitPalette,
     onEditVisit: (Long) -> Unit,
 ) {
@@ -266,8 +270,11 @@ private fun NextVisitHero(
     val timeFormatter = remember(locale) { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT) }
     val zone = ZoneId.systemDefault()
     val visitDate = visit.date.atZone(zone)
-    val countdown = countdownLabel(visitDate.toLocalDate())
+    val countdown = countdownLabel(daysUntil)
     val whenLine = "${dateFormatter.format(visitDate)} · ${timeFormatter.format(visitDate)}"
+    // The visible "date · time" uses a middot; give TalkBack a comma so it doesn't read "dot".
+    val whenSpoken = "${dateFormatter.format(visitDate)}, ${timeFormatter.format(visitDate)}"
+    val editLabel = stringResource(R.string.doctor_visit_edit_title)
     // Light mode fills with a dark accent (BlueGrey700), so 0.85-alpha white still clears WCAG AA.
     // Dark mode fills with a light accent (BlueGrey300) where the same dim drops below AA, so the
     // dark scheme keeps full onAccent and leans on weight/size for the secondary hierarchy.
@@ -279,7 +286,10 @@ private fun NextVisitHero(
 
     Card(
         onClick = { onEditVisit(visit.id) },
-        modifier = Modifier.fillMaxWidth(),
+        // Label the card's click action so TalkBack announces "Edit visit", not a bare "activate".
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { onClick(label = editLabel, action = null) },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = colors.accent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -293,10 +303,10 @@ private fun NextVisitHero(
                         .weight(1f)
                         .semantics { heading() },
                 )
-                // The whole card opens edit; this icon is the visible affordance for it.
+                // Visible affordance only; the card's onClick semantics carries the "Edit visit" label.
                 Icon(
                     Icons.Outlined.Edit,
-                    contentDescription = stringResource(R.string.doctor_visit_edit_title),
+                    contentDescription = null,
                     tint = secondary,
                     modifier = Modifier.size(18.dp),
                 )
@@ -313,6 +323,7 @@ private fun NextVisitHero(
                 text = whenLine,
                 style = MaterialTheme.typography.bodyLarge,
                 color = colors.onAccent,
+                modifier = Modifier.semantics { contentDescription = whenSpoken },
             )
             visit.providerName?.takeIf { it.isNotBlank() }?.let { provider ->
                 Spacer(Modifier.height(2.dp))
@@ -410,12 +421,21 @@ private fun QuestionsSection(
             // (number only, no new copy) instead of silently truncating the list.
             val sectionTitle = stringResource(R.string.visit_questions_title)
             val truncated = openQuestionCount > questions.size
+            // The "· N" middot reads as "dot" on TalkBack, so describe the count in words instead.
+            val openQuestionsSpoken = pluralStringResource(
+                R.plurals.doctor_visit_tile_open_questions,
+                openQuestionCount,
+                openQuestionCount,
+            )
             SectionLabel(
                 text = if (truncated) "$sectionTitle · $openQuestionCount" else sectionTitle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .weight(1f)
-                    .semantics { heading() },
+                    .semantics {
+                        heading()
+                        if (truncated) contentDescription = openQuestionsSpoken
+                    },
             )
             if (openQuestionCount > 0) {
                 TextButton(onClick = onManageQuestions) {
@@ -642,7 +662,7 @@ private fun AddVisitBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .height(52.dp),
+                    .heightIn(min = 52.dp),
                 shape = MaterialTheme.shapes.extraLarge,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = colors.accent,
@@ -698,10 +718,16 @@ private fun DashboardError(
 @Composable
 private fun DashboardSkeleton(modifier: Modifier = Modifier) {
     val block = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val loadingLabel = stringResource(R.string.loading)
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
+            // Otherwise the placeholder blocks announce nothing; tell TalkBack the screen is loading.
+            .semantics {
+                contentDescription = loadingLabel
+                liveRegion = LiveRegionMode.Polite
+            },
     ) {
         Spacer(Modifier.height(8.dp))
         Box(
@@ -739,17 +765,11 @@ private fun SectionLabel(
     )
 }
 
-/** Day-granularity countdown to the next appointment: Today / Tomorrow / in N days. */
+/** Day-granularity countdown to the next appointment: Today / Tomorrow / in N days. The day count
+ *  is computed in the ViewModel against the injected clock, so it stays consistent with isUpcoming. */
 @Composable
-private fun countdownLabel(visitDate: LocalDate): String {
-    val days = ChronoUnit.DAYS.between(LocalDate.now(), visitDate)
-    return when {
-        days <= 0L -> stringResource(R.string.doctor_visit_countdown_today)
-        days == 1L -> stringResource(R.string.doctor_visit_countdown_tomorrow)
-        else -> pluralStringResource(
-            R.plurals.doctor_visit_countdown_in_days,
-            days.toInt(),
-            days.toInt(),
-        )
-    }
+private fun countdownLabel(days: Int): String = when {
+    days <= 0 -> stringResource(R.string.doctor_visit_countdown_today)
+    days == 1 -> stringResource(R.string.doctor_visit_countdown_tomorrow)
+    else -> pluralStringResource(R.plurals.doctor_visit_countdown_in_days, days, days)
 }
