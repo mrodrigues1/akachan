@@ -1200,19 +1200,19 @@
 
     <!-- Doctor Visit — visit sheet + home tile -->
     <string name="doctor_visit_tile_label">Consultas médicas</string>
-    <string name="doctor_visit_add_title">Registrar consulta</string>
+    <string name="doctor_visit_add_title">Adicionar consulta</string>
     <string name="doctor_visit_edit_title">Editar consulta</string>
     <string name="doctor_visit_date">Data</string>
     <string name="doctor_visit_provider_hint">Médico ou clínica (opcional)</string>
-    <string name="doctor_visit_notes_hint">Anotações</string>
+    <string name="doctor_visit_notes_hint">Anotações (opcional)</string>
     <string name="doctor_visit_attach_questions">Perguntas para o médico</string>
     <string name="doctor_visit_manage_questions">Gerenciar perguntas</string>
-    <string name="doctor_visit_snapshot_attach">Anexar resumo dos dados</string>
+    <string name="doctor_visit_snapshot_attach">Anexar resumo</string>
     <string name="doctor_visit_snapshot_view">Ver resumo</string>
     <string name="doctor_visit_snapshot_replace">Substituir resumo</string>
     <string name="doctor_visit_snapshot_failed">Não foi possível criar o resumo. Tente novamente.</string>
-    <string name="doctor_visit_snapshot_hint">Salve a consulta primeiro para anexar um resumo dos dados</string>
-    <string name="doctor_visit_snapshot_label">Resumo dos dados · %1$s</string>
+    <string name="doctor_visit_snapshot_hint">Salve a consulta primeiro para anexar um resumo</string>
+    <string name="doctor_visit_snapshot_label">Resumo · %1$s</string>
     <string name="doctor_visit_save">Salvar</string>
     <string name="doctor_visit_saving">Salvando</string>
     <string name="doctor_visit_tile_today">Consulta hoje</string>
@@ -1242,14 +1242,14 @@
     <string name="doctor_visit_no_upcoming_subtitle">Adicione a próxima consulta para vê-la aqui.</string>
     <string name="doctor_visit_load_error">Não foi possível carregar suas consultas.</string>
     <string name="doctor_visit_manage_all">Gerenciar todas</string>
-    <string name="doctor_visit_recent">Recentes</string>
+    <string name="doctor_visit_recent">Consultas recentes</string>
     <string name="doctor_visit_view_all">Ver todas</string>
 
     <!-- Doctor Visit — history -->
     <string name="doctor_visit_history_title">Histórico de consultas</string>
     <string name="doctor_visit_history_upcoming">Próximas</string>
     <string name="doctor_visit_history_past">Anteriores</string>
-    <string name="doctor_visit_history_empty">Nenhuma consulta ainda. Registre a primeira para guardar um histórico.</string>
+    <string name="doctor_visit_history_empty">Nenhuma consulta ainda. Adicione a primeira para guardar um histórico.</string>
     <string name="doctor_visit_history_has_snapshot">Resumo</string>
     <string name="doctor_visit_history_deleted">Consulta excluída</string>
     <string name="doctor_visit_history_undo">Desfazer</string>

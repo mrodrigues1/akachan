@@ -1181,19 +1181,19 @@
 
     <!-- Doctor Visit — visit sheet + home tile -->
     <string name="doctor_visit_tile_label">Doctor visits</string>
-    <string name="doctor_visit_add_title">Log a visit</string>
+    <string name="doctor_visit_add_title">Add visit</string>
     <string name="doctor_visit_edit_title">Edit visit</string>
     <string name="doctor_visit_date">Date</string>
     <string name="doctor_visit_provider_hint">Doctor or clinic (optional)</string>
-    <string name="doctor_visit_notes_hint">Notes</string>
+    <string name="doctor_visit_notes_hint">Notes (optional)</string>
     <string name="doctor_visit_attach_questions">Questions to ask</string>
     <string name="doctor_visit_manage_questions">Manage questions</string>
-    <string name="doctor_visit_snapshot_attach">Attach data summary</string>
+    <string name="doctor_visit_snapshot_attach">Attach summary</string>
     <string name="doctor_visit_snapshot_view">View summary</string>
     <string name="doctor_visit_snapshot_replace">Replace summary</string>
     <string name="doctor_visit_snapshot_failed">Couldn\'t create the summary. Try again.</string>
-    <string name="doctor_visit_snapshot_hint">Save the visit first to attach a data summary</string>
-    <string name="doctor_visit_snapshot_label">Data summary · %1$s</string>
+    <string name="doctor_visit_snapshot_hint">Save the visit first to attach a summary</string>
+    <string name="doctor_visit_snapshot_label">Summary · %1$s</string>
     <string name="doctor_visit_save">Save</string>
     <string name="doctor_visit_saving">Saving</string>
     <string name="doctor_visit_tile_today">Visit today</string>
@@ -1217,17 +1217,17 @@
         <item quantity="other">In %1$d days</item>
     </plurals>
     <string name="doctor_visit_no_upcoming_title">No upcoming visit</string>
-    <string name="doctor_visit_no_upcoming_subtitle">Add your next appointment to see it here.</string>
+    <string name="doctor_visit_no_upcoming_subtitle">Add your next visit to see it here.</string>
     <string name="doctor_visit_load_error">Couldn\'t load your doctor visits.</string>
     <string name="doctor_visit_manage_all">Manage all</string>
-    <string name="doctor_visit_recent">Recent</string>
+    <string name="doctor_visit_recent">Recent visits</string>
     <string name="doctor_visit_view_all">View all</string>
 
     <!-- Doctor Visit — history -->
     <string name="doctor_visit_history_title">Visit history</string>
     <string name="doctor_visit_history_upcoming">Upcoming</string>
     <string name="doctor_visit_history_past">Past</string>
-    <string name="doctor_visit_history_empty">No visits yet. Log your first one to keep a record.</string>
+    <string name="doctor_visit_history_empty">No visits yet. Add your first one to keep a record.</string>
     <string name="doctor_visit_history_has_snapshot">Summary</string>
     <string name="doctor_visit_history_deleted">Visit deleted</string>
     <string name="doctor_visit_history_undo">Undo</string>

@@ -63,7 +63,7 @@ class DoctorVisitSheetTest {
                 )
             }
         }
-        composeRule.onNodeWithText("Log a visit").assertIsDisplayed()
+        composeRule.onNodeWithText("Add visit").assertIsDisplayed()
         composeRule.onNodeWithTag(DOCTOR_VISIT_SAVE_TAG).performClick()
         composeRule.runOnIdle { assertEquals(true, saved) }
     }
