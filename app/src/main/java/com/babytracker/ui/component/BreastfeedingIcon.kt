@@ -51,3 +51,12 @@ fun InventoryIcon(modifier: Modifier = Modifier) {
         modifier = modifier.clearAndSetSemantics {},
     )
 }
+
+@Composable
+fun DiaperIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_diaper_section),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}
