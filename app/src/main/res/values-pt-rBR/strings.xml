@@ -1240,6 +1240,7 @@
     </plurals>
     <string name="doctor_visit_no_upcoming_title">Nenhuma consulta agendada</string>
     <string name="doctor_visit_no_upcoming_subtitle">Adicione a próxima consulta para vê-la aqui.</string>
+    <string name="doctor_visit_load_error">Não foi possível carregar suas consultas.</string>
     <string name="doctor_visit_manage_all">Gerenciar todas</string>
     <string name="doctor_visit_recent">Recentes</string>
     <string name="doctor_visit_view_all">Ver todas</string>

@@ -10,10 +10,13 @@ import com.babytracker.domain.usecase.doctorvisit.ObserveDoctorVisitsUseCase
 import com.babytracker.domain.usecase.doctorvisit.ObserveInboxQuestionsUseCase
 import com.babytracker.domain.usecase.doctorvisit.ToggleVisitQuestionAnsweredUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -36,6 +39,8 @@ data class DoctorVisitDashboardUiState(
     val draft: String = "",
     /** The question most recently checked off, held so the screen can offer an undo snackbar. */
     val lastAnswered: VisitQuestion? = null,
+    /** Set when an upstream flow throws, so the screen can offer a retry instead of a dead spinner. */
+    val isError: Boolean = false,
 ) {
     /** True on a clean install: nothing scheduled, nothing recorded, nothing being jotted yet. */
     val isFirstRun: Boolean
@@ -57,29 +62,38 @@ class DoctorVisitDashboardViewModel @Inject constructor(
     // checked question from the unanswered list; the screen consumes and clears it.
     private val lastAnswered = MutableStateFlow<VisitQuestion?>(null)
 
+    // Bumped by onRetry so flatMapLatest rebuilds the combined flow after an upstream failure;
+    // a plain .catch would emit the error once and leave the flow terminated with no way back.
+    private val retryTrigger = MutableStateFlow(0)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<DoctorVisitDashboardUiState> =
-        combine(
-            observeVisits(),
-            observeInbox(),
-            draft,
-            lastAnswered,
-        ) { visits, inbox, draftText, answered ->
-            val instant = now()
-            val upcoming = visits.filter { it.isUpcoming(instant) }.minByOrNull { it.date }
-            val recent = visits
-                .filterNot { it.isUpcoming(instant) }
-                .sortedByDescending { it.date }
-                .take(RECENT_LIMIT)
-            val unanswered = inbox.filterNot { it.answered }
-            DoctorVisitDashboardUiState(
-                isLoading = false,
-                nextVisit = upcoming,
-                recentVisits = recent,
-                questions = unanswered.take(QUESTION_PREVIEW_LIMIT),
-                openQuestionCount = unanswered.size,
-                draft = draftText,
-                lastAnswered = answered,
-            )
+        retryTrigger.flatMapLatest {
+            combine(
+                observeVisits(),
+                observeInbox(),
+                draft,
+                lastAnswered,
+            ) { visits, inbox, draftText, answered ->
+                val instant = now()
+                val upcoming = visits.filter { it.isUpcoming(instant) }.minByOrNull { it.date }
+                val recent = visits
+                    .filterNot { it.isUpcoming(instant) }
+                    .sortedByDescending { it.date }
+                    .take(RECENT_LIMIT)
+                val unanswered = inbox.filterNot { it.answered }
+                DoctorVisitDashboardUiState(
+                    isLoading = false,
+                    nextVisit = upcoming,
+                    recentVisits = recent,
+                    questions = unanswered.take(QUESTION_PREVIEW_LIMIT),
+                    openQuestionCount = unanswered.size,
+                    draft = draftText,
+                    lastAnswered = answered,
+                )
+            }.catch {
+                emit(DoctorVisitDashboardUiState(isLoading = false, isError = true))
+            }
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
@@ -114,6 +128,10 @@ class DoctorVisitDashboardViewModel @Inject constructor(
 
     fun onUndoAnsweredConsumed() {
         lastAnswered.value = null
+    }
+
+    fun onRetry() {
+        retryTrigger.value++
     }
 
     private companion object {

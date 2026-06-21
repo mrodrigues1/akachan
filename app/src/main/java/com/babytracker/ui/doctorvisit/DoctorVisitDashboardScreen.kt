@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -69,6 +70,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -77,6 +79,7 @@ import com.babytracker.R
 import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.model.VisitQuestion
 import com.babytracker.ui.theme.DoctorVisitPalette
+import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.doctorVisitColors
 import java.time.LocalDate
 import java.time.ZoneId
@@ -106,7 +109,8 @@ fun DoctorVisitDashboardScreen(
         val result = snackbarHostState.showSnackbar(
             message = answeredMessage,
             actionLabel = undoLabel,
-            duration = SnackbarDuration.Short,
+            // The one recoverable mistake on the screen; give a distracted parent longer to catch it.
+            duration = SnackbarDuration.Long,
         )
         when (result) {
             SnackbarResult.ActionPerformed -> viewModel.onUndoAnswered()
@@ -120,6 +124,7 @@ fun DoctorVisitDashboardScreen(
         onDraftChange = viewModel::onDraftChange,
         onAddQuestion = viewModel::onAddQuestion,
         onToggleAnswered = viewModel::onToggleAnswered,
+        onRetry = viewModel::onRetry,
         onAddVisit = onAddVisit,
         onEditVisit = onEditVisit,
         onNavigateToHistory = onNavigateToHistory,
@@ -138,6 +143,7 @@ fun DoctorVisitDashboardContent(
     onDraftChange: (String) -> Unit,
     onAddQuestion: () -> Unit,
     onToggleAnswered: (Long) -> Unit,
+    onRetry: () -> Unit,
     onAddVisit: () -> Unit,
     onEditVisit: (Long) -> Unit,
     onNavigateToHistory: () -> Unit,
@@ -190,6 +196,10 @@ fun DoctorVisitDashboardContent(
             DashboardSkeleton(modifier = Modifier.padding(padding))
             return@Scaffold
         }
+        if (state.isError) {
+            DashboardError(onRetry = onRetry, modifier = Modifier.padding(padding))
+            return@Scaffold
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -204,7 +214,6 @@ fun DoctorVisitDashboardContent(
                 openQuestionCount = state.openQuestionCount,
                 colors = colors,
                 onEditVisit = onEditVisit,
-                onAddVisit = onAddVisit,
             )
 
             Spacer(Modifier.height(24.dp))
@@ -243,10 +252,9 @@ private fun NextVisitHero(
     openQuestionCount: Int,
     colors: DoctorVisitPalette,
     onEditVisit: (Long) -> Unit,
-    onAddVisit: () -> Unit,
 ) {
     if (visit == null) {
-        NoUpcomingVisit(onAddVisit = onAddVisit)
+        NoUpcomingVisit()
         return
     }
 
@@ -260,7 +268,14 @@ private fun NextVisitHero(
     val visitDate = visit.date.atZone(zone)
     val countdown = countdownLabel(visitDate.toLocalDate())
     val whenLine = "${dateFormatter.format(visitDate)} · ${timeFormatter.format(visitDate)}"
-    val secondary = colors.onAccent.copy(alpha = 0.85f)
+    // Light mode fills with a dark accent (BlueGrey700), so 0.85-alpha white still clears WCAG AA.
+    // Dark mode fills with a light accent (BlueGrey300) where the same dim drops below AA, so the
+    // dark scheme keeps full onAccent and leans on weight/size for the secondary hierarchy.
+    val secondary = if (LocalDarkTheme.current) {
+        colors.onAccent
+    } else {
+        colors.onAccent.copy(alpha = 0.85f)
+    }
 
     Card(
         onClick = { onEditVisit(visit.id) },
@@ -336,11 +351,11 @@ private fun NextVisitHero(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun NoUpcomingVisit(onAddVisit: () -> Unit) {
+private fun NoUpcomingVisit() {
+    // Informational, not actionable: the persistent bottom bar is the single Add-visit CTA, so this
+    // card no longer duplicates it (avoids two identical Slate add actions a thumb-width apart).
     OutlinedCard(
-        onClick = onAddVisit,
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
     ) {
@@ -501,6 +516,8 @@ private fun QuestionPreviewRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            // Guarantee the brand's 48dp minimum even when the question is a single short line.
+            .heightIn(min = 48.dp)
             .toggleable(
                 value = question.answered,
                 onValueChange = { onToggleAnswered() },
@@ -639,6 +656,36 @@ private fun AddVisitBar(
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
+        }
+    }
+}
+
+/**
+ * Replaces the body when an upstream flow throws, so a load failure offers a calm retry instead of
+ * a skeleton that never resolves. Copy is reassuring, not alarming, per the product's tone.
+ */
+@Composable
+private fun DashboardError(
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = doctorVisitColors()
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = stringResource(R.string.doctor_visit_load_error),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(12.dp))
+        TextButton(onClick = onRetry) {
+            Text(text = stringResource(R.string.try_again), color = colors.accent)
         }
     }
 }
