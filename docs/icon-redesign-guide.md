@@ -2,6 +2,8 @@
 
 Use this guide when redesigning app section icons for Akachan. It captures the decisions and workflow from the breastfeeding icon replacement session.
 
+Do not start icon redesign work with the Superpowers brainstorming workflow. Start by inspecting the existing app surfaces, then give the user several concrete icon directions to choose from.
+
 ## Goal
 
 Create real raster PNG icons, not vectors or emoji placeholders, that work across:
@@ -61,7 +63,7 @@ This preserved the feeding-domain feel while improving contrast on pink backgrou
 
 ## Prompt Pattern
 
-Use the existing icon for concept/framing and the launcher icon as the primary style reference.
+Use this only after the user picks an icon direction. Use the existing icon for concept/framing and the launcher icon as the primary style reference.
 
 Example prompt for a revised section icon:
 
@@ -82,7 +84,7 @@ Avoid: Low contrast against destination background, tiny details, overly glossy 
 
 ## Transparent PNG Workflow
 
-Use built-in image generation first.
+Use built-in image generation after the user selects one of the proposed icon options.
 
 1. Generate the icon on a flat `#00ff00` chroma-key background.
 2. Remove the chroma key locally with the imagegen helper.
@@ -151,7 +153,19 @@ for folder, size in outputs.items():
 
 ## User Preview Gate
 
-Before replacing resources or wiring the icon into code, show the user a preview and wait for approval unless they explicitly asked to skip review.
+Before generating or replacing resources, give the user different icon options and wait for a direction unless they explicitly asked to skip review. Keep these options concrete and visual enough to choose from quickly.
+
+Include 3-5 options. For each option, provide:
+
+- Subject/concept, for example abstract breast-and-drop, cozy moon cradle, allergy shield, or partner-linked hearts.
+- Silhouette, including what should remain readable at `18dp`.
+- Palette strategy, especially how it contrasts against the actual destination backgrounds.
+- Style notes that keep it aligned with the launcher icon.
+- A short reason to choose it and any readability risk.
+
+Do not present this as an open-ended brainstorm. Present it as a compact option set and ask the user which direction to generate.
+
+After generation and before replacing resources or wiring the icon into code, show the user a preview and wait for approval unless they explicitly asked to skip review.
 
 The preview must include:
 
@@ -375,15 +389,16 @@ Known caveat from this session: full `build` may fail on unrelated sleep predict
 3. Inspect `app/src/main/res/mipmap-xxxhdpi/ic_launcher.png` and the current icon visually.
 4. Use the launcher icon as the primary style reference: opaque, soft rounded, warm, polished, and not glossy.
 5. Pick every actual destination background before choosing a palette.
-6. Generate on chroma key.
-7. Remove chroma key and validate alpha.
-8. Preview at real small sizes on all real backgrounds.
-9. Show the preview to the user and wait for approval before replacing resources or code usage.
-10. Trim source, add modest padding, export densities.
-11. Replace emoji/vector usage only where the domain icon is intended.
-12. Leave bottle-feed or mixed-domain emoji alone unless they are explicitly part of the redesign.
-13. Use a reusable Compose icon wrapper.
-14. Use `ImageView`/`RemoteViews` for notifications, not emoji prefixes.
-15. Update layout-contract tests.
-16. Run targeted tests and `assembleDebug`.
-17. Clean `tmp/imagegen/` before finishing.
+6. Give the user 3-5 concrete icon options and wait for a selected direction.
+7. Generate on chroma key.
+8. Remove chroma key and validate alpha.
+9. Preview at real small sizes on all real backgrounds.
+10. Show the preview to the user and wait for approval before replacing resources or code usage.
+11. Trim source, add modest padding, export densities.
+12. Replace emoji/vector usage only where the domain icon is intended.
+13. Leave bottle-feed or mixed-domain emoji alone unless they are explicitly part of the redesign.
+14. Use a reusable Compose icon wrapper.
+15. Use `ImageView`/`RemoteViews` for notifications, not emoji prefixes.
+16. Update layout-contract tests.
+17. Run targeted tests and `assembleDebug`.
+18. Clean `tmp/imagegen/` before finishing.
