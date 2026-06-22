@@ -124,7 +124,7 @@ class ExportCsvUseCase @Inject constructor(
     }
 
     private fun needsQuoting(s: String): Boolean =
-        s.contains(',') || s.contains('"') || s.contains('\n') || s.contains('\r')
+        s.any { it == ',' || it == '"' || it == '\n' || it == '\r' }
 
     private fun startsWithFormulaTrigger(s: String): Boolean {
         val firstNonSpace = s.firstOrNull { !it.isWhitespace() } ?: return false
