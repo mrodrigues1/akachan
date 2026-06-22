@@ -1,5 +1,6 @@
 package com.babytracker.domain.usecase.trends
 
+import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
@@ -9,7 +10,9 @@ import com.babytracker.domain.trends.RhythmBlock
 import com.babytracker.domain.trends.TrendRange
 import com.babytracker.domain.trends.trendWindowDates
 import com.babytracker.domain.trends.windowStartInstant
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -30,7 +33,7 @@ class GetDayRhythmTrendUseCase @Inject constructor(
     private val bottleFeedRepository: BottleFeedRepository,
     private val clock: Clock,
 ) {
-    suspend operator fun invoke(range: TrendRange): List<DayRhythm> {
+    suspend operator fun invoke(range: TrendRange): List<DayRhythm> = withContext(Dispatchers.Default) {
         val zone = clock.zone
         val today = LocalDate.now(clock)
         val start = windowStartInstant(today, range.days, zone)
@@ -38,6 +41,20 @@ class GetDayRhythmTrendUseCase @Inject constructor(
 
         val sleepRecords = sleepRepository.getCompletedRecordsSince(start)
             .filter { it.endTime != null && !it.startTime.isAfter(now) }
+
+        // Bucket each sleep into every local day its [start, end] span overlaps so the per-day loop
+        // below scans only candidate records. Was O(days x records): every day rescanned the whole
+        // list. The clip guard inside still drops boundary non-overlaps, so output is identical.
+        val sleepByDate = HashMap<LocalDate, MutableList<SleepRecord>>()
+        for (record in sleepRecords) {
+            val recordEnd = record.endTime ?: continue
+            var day = record.startTime.atZone(zone).toLocalDate()
+            val endDay = recordEnd.atZone(zone).toLocalDate()
+            while (!day.isAfter(endDay)) {
+                sleepByDate.getOrPut(day) { mutableListOf() }.add(record)
+                day = day.plusDays(1)
+            }
+        }
 
         val breastByDate = breastfeedingRepository
             .getCompletedSessionsBetween(start, now)
@@ -50,11 +67,11 @@ class GetDayRhythmTrendUseCase @Inject constructor(
             .filter { !it.isAfter(now) }
             .groupBy { it.atZone(zone).toLocalDate() }
 
-        return trendWindowDates(today, range.days).map { date ->
+        trendWindowDates(today, range.days).map { date ->
             val dayStart = date.atStartOfDay(zone).toInstant()
             val dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant()
 
-            val blocks = sleepRecords.mapNotNull { record ->
+            val blocks = sleepByDate[date].orEmpty().mapNotNull { record ->
                 val recordEnd = record.endTime ?: return@mapNotNull null
                 val clipStart = maxOf(record.startTime, dayStart)
                 val clipEnd = minOf(recordEnd, dayEnd)

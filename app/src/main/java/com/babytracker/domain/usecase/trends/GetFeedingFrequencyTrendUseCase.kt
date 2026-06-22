@@ -6,7 +6,9 @@ import com.babytracker.domain.trends.DailyFeedingCount
 import com.babytracker.domain.trends.TrendRange
 import com.babytracker.domain.trends.trendWindowDates
 import com.babytracker.domain.trends.windowStartInstant
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -18,7 +20,7 @@ class GetFeedingFrequencyTrendUseCase @Inject constructor(
     private val bottleFeedRepository: BottleFeedRepository,
     private val clock: Clock,
 ) {
-    suspend operator fun invoke(range: TrendRange): List<DailyFeedingCount> {
+    suspend operator fun invoke(range: TrendRange): List<DailyFeedingCount> = withContext(Dispatchers.Default) {
         val zone = clock.zone
         val today = LocalDate.now(clock)
         val start = windowStartInstant(today, range.days, zone)
@@ -37,7 +39,7 @@ class GetFeedingFrequencyTrendUseCase @Inject constructor(
             .groupingBy { it.atZone(zone).toLocalDate() }
             .eachCount()
 
-        return trendWindowDates(today, range.days).map { date ->
+        trendWindowDates(today, range.days).map { date ->
             DailyFeedingCount(date, countByDate[date] ?: 0)
         }
     }

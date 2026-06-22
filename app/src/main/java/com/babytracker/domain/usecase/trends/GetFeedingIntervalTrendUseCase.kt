@@ -6,7 +6,9 @@ import com.babytracker.domain.trends.DailyFeedingInterval
 import com.babytracker.domain.trends.TrendRange
 import com.babytracker.domain.trends.trendWindowDates
 import com.babytracker.domain.trends.windowStartInstant
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -19,7 +21,7 @@ class GetFeedingIntervalTrendUseCase @Inject constructor(
     private val bottleFeedRepository: BottleFeedRepository,
     private val clock: Clock,
 ) {
-    suspend operator fun invoke(range: TrendRange): List<DailyFeedingInterval> {
+    suspend operator fun invoke(range: TrendRange): List<DailyFeedingInterval> = withContext(Dispatchers.Default) {
         val zone = clock.zone
         val today = LocalDate.now(clock)
         val start = windowStartInstant(today, range.days, zone)
@@ -31,7 +33,7 @@ class GetFeedingIntervalTrendUseCase @Inject constructor(
                     .filter { !it.isAfter(now) } // cap future-dated bottle feeds
         val byDate = feedInstants.groupBy { it.atZone(zone).toLocalDate() }
 
-        return trendWindowDates(today, range.days).map { date ->
+        trendWindowDates(today, range.days).map { date ->
             val sorted = byDate[date].orEmpty().sorted()
             val average = if (sorted.size < 2) {
                 null
