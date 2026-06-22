@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -115,9 +116,16 @@ internal fun ToScheduleRow(
             )
             Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = colors.onContainer)
         }
-        TextButton(
+        // Filled accent button (not a bare TextButton) so the primary "Schedule" action reads as a
+        // tappable button against the tinted row, matching the feature's other accent CTAs.
+        Button(
             onClick = onSchedule,
-            colors = ButtonDefaults.textButtonColors(contentColor = colors.onContainer),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colors.accent,
+                contentColor = colors.onAccent,
+            ),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+            modifier = Modifier.heightIn(min = 40.dp),
         ) { Text(stringResource(R.string.vaccine_action_schedule)) }
         IconButton(onClick = onMarkGiven) {
             Icon(
