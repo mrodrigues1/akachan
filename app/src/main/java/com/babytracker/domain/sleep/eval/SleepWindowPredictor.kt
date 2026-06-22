@@ -7,6 +7,7 @@ import com.babytracker.domain.model.SleepPredictionTuning
 import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.SleepWindow
+import com.babytracker.domain.sleep.median
 import com.babytracker.domain.sleep.feature.BreastfeedInterval
 import com.babytracker.domain.sleep.feature.EvidenceQuality
 import com.babytracker.domain.sleep.feature.SleepFeatures
@@ -304,17 +305,6 @@ object SleepWindowPredictor {
         val windowStartMillis = windowStart.toEpochMilli()
         val windowEndMillis = windowEnd.toEpochMilli()
         return predictedMillis in (windowStartMillis - toleranceMillis)..(windowEndMillis + toleranceMillis)
-    }
-
-    private fun median(values: List<Long>): Long? {
-        if (values.isEmpty()) return null
-        val sorted = values.sorted()
-        val middle = sorted.size / 2
-        return if (sorted.size % 2 == 1) {
-            sorted[middle]
-        } else {
-            (sorted[middle - 1] + sorted[middle]) / 2
-        }
     }
 
     private const val MINUTES_PER_DAY = 1_440

@@ -4,6 +4,7 @@ import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.SleepPredictionTuning
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.sleep.median
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -235,17 +236,6 @@ class SleepFeatureExtractor(
         }.sorted()
 
         return (median(unwrapped.map { it.toLong() })!!.toInt() % MINUTES_PER_DAY)
-    }
-
-    private fun median(values: List<Long>): Long? {
-        if (values.isEmpty()) return null
-        val sorted = values.sorted()
-        val middle = sorted.size / 2
-        return if (sorted.size % 2 == 1) {
-            sorted[middle]
-        } else {
-            (sorted[middle - 1] + sorted[middle]) / 2
-        }
     }
 
     private fun typeAwareWakeIntervals(completed: List<SleepInterval>): Map<SleepType, List<Long>> {
