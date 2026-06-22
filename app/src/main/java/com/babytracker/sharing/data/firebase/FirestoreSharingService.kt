@@ -13,6 +13,8 @@ import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.CollectionReference
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.channels.awaitClose
@@ -29,6 +31,16 @@ class FirestoreSharingService @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth,
 ) {
+    private fun shareDoc(code: String): DocumentReference =
+        firestore.collection(SHARES).document(code)
+
+    private fun partnersCollection(code: String): CollectionReference =
+        shareDoc(code).collection(PARTNERS)
+
+    private suspend fun mergeData(code: String, fields: Map<String, Any?>) {
+        shareDoc(code).set(mapOf("data" to fields), SetOptions.merge()).await()
+    }
+
     suspend fun signInAnonymously(): String {
         val result = auth.signInAnonymously().await()
         return checkNotNull(result.user?.uid) { "Anonymous sign-in returned no user" }
@@ -41,15 +53,14 @@ class FirestoreSharingService @Inject constructor(
                 "createdAt" to Timestamp.now(),
             ),
         )
-        firestore.collection(SHARES).document(code).set(doc).await()
+        shareDoc(code).set(doc).await()
     }
 
     suspend fun isShareCodeValid(code: String): Boolean =
-        firestore.collection(SHARES).document(code).get().await().exists()
+        shareDoc(code).get().await().exists()
 
     suspend fun syncFullSnapshot(code: String, snapshot: ShareSnapshot) {
-        firestore.collection(SHARES).document(code)
-            .set(mapOf("data" to snapshotToMap(snapshot)), SetOptions.merge()).await()
+        mergeData(code, snapshotToMap(snapshot))
     }
 
     suspend fun syncSessions(
@@ -57,14 +68,14 @@ class FirestoreSharingService @Inject constructor(
         sessions: List<SessionSnapshot>,
         prediction: SleepPredictionSnapshot?,
     ) {
-        val data = mapOf(
-            "data" to mapOf(
+        mergeData(
+            code,
+            mapOf(
                 "lastSyncAt" to Timestamp.now(),
                 "sessions" to sessions.map { sessionToMap(it) },
                 "sleepPrediction" to prediction?.let { predictionToMap(it) },
             ),
         )
-        firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()
     }
 
     suspend fun syncSleepRecords(
@@ -72,44 +83,44 @@ class FirestoreSharingService @Inject constructor(
         sleepRecords: List<SleepSnapshot>,
         prediction: SleepPredictionSnapshot?,
     ) {
-        val data = mapOf(
-            "data" to mapOf(
+        mergeData(
+            code,
+            mapOf(
                 "lastSyncAt" to Timestamp.now(),
                 "sleepRecords" to sleepRecords.map { sleepToMap(it) },
                 "sleepPrediction" to prediction?.let { predictionToMap(it) },
             ),
         )
-        firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()
     }
 
     suspend fun syncBottleFeeds(code: String, bottleFeeds: List<BottleFeedSnapshot>) {
-        val data = mapOf(
-            "data" to mapOf(
+        mergeData(
+            code,
+            mapOf(
                 "lastSyncAt" to Timestamp.now(),
                 "bottleFeeds" to bottleFeeds.map { bottleFeedToMap(it) },
             ),
         )
-        firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()
     }
 
     suspend fun syncDiapers(code: String, diapers: List<DiaperSnapshot>) {
-        val data = mapOf(
-            "data" to mapOf(
+        mergeData(
+            code,
+            mapOf(
                 "lastSyncAt" to Timestamp.now(),
                 "diapers" to diapers.map { diaperToMap(it) },
             ),
         )
-        firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()
     }
 
     suspend fun syncBaby(code: String, baby: BabySnapshot) {
-        val data = mapOf(
-            "data" to mapOf(
+        mergeData(
+            code,
+            mapOf(
                 "lastSyncAt" to Timestamp.now(),
                 "baby" to babyToMap(baby),
             ),
         )
-        firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()
     }
 
     suspend fun syncInventory(
@@ -117,8 +128,9 @@ class FirestoreSharingService @Inject constructor(
         fields: InventorySnapshotFields,
         milkBags: List<MilkBagSnapshot>,
     ) {
-        val data = mapOf(
-            "data" to mapOf(
+        mergeData(
+            code,
+            mapOf(
                 "lastSyncAt" to Timestamp.now(),
                 "inventoryTotalMl" to fields.totalMl,
                 "inventoryBagCount" to fields.bagCount,
@@ -126,29 +138,25 @@ class FirestoreSharingService @Inject constructor(
                 "milkBags" to milkBags.map { milkBagToMap(it) },
             ),
         )
-        firestore.collection(SHARES).document(code).set(data, SetOptions.merge()).await()
     }
 
     suspend fun registerPartner(code: String, partnerUid: String) {
-        firestore.collection(SHARES).document(code)
-            .collection(PARTNERS).document(partnerUid)
+        partnersCollection(code).document(partnerUid)
             .set(mapOf("connectedAt" to Timestamp.now())).await()
     }
 
     suspend fun fetchSnapshot(code: String): ShareSnapshot {
-        val doc = firestore.collection(SHARES).document(code).get().await()
+        val doc = shareDoc(code).get().await()
         val data = doc.get("data") as? Map<*, *> ?: error("No data in share document $code")
         return mapToSnapshot(data)
     }
 
     suspend fun isPartnerConnected(code: String, partnerUid: String): Boolean =
-        firestore.collection(SHARES).document(code)
-            .collection(PARTNERS).document(partnerUid)
+        partnersCollection(code).document(partnerUid)
             .get().await().exists()
 
     suspend fun getPartners(code: String): List<PartnerInfo> =
-        firestore.collection(SHARES).document(code)
-            .collection(PARTNERS).get().await()
+        partnersCollection(code).get().await()
             .documents.map { doc ->
                 val ts = doc.get("connectedAt") as? Timestamp
                 val connectedAt = ts?.let { Instant.ofEpochSecond(it.seconds, it.nanoseconds.toLong()) }
@@ -157,17 +165,16 @@ class FirestoreSharingService @Inject constructor(
             }
 
     suspend fun revokePartner(code: String, partnerUid: String) {
-        firestore.collection(SHARES).document(code)
-            .collection(PARTNERS).document(partnerUid)
+        partnersCollection(code).document(partnerUid)
             .delete().await()
     }
 
     suspend fun deleteShareDocument(code: String) {
-        firestore.collection(SHARES).document(code).delete().await()
+        shareDoc(code).delete().await()
     }
 
     fun observeFeedOps(code: String): Flow<List<FeedOp>> = callbackFlow {
-        val registration = firestore.collection(SHARES).document(code)
+        val registration = shareDoc(code)
             .collection(FEED_OPS)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -198,7 +205,7 @@ class FirestoreSharingService @Inject constructor(
         op: FeedOp,
         onFailure: (Throwable) -> Unit = {},
     ) {
-        val writeTask = firestore.collection(SHARES).document(code)
+        val writeTask = shareDoc(code)
             .collection(FEED_OPS).document(op.opId)
             .set(feedOpToMap(op))
             .addOnFailureListener(onFailure)
@@ -208,7 +215,7 @@ class FirestoreSharingService @Inject constructor(
     }
 
     fun observeOwnFeedOps(code: String, uid: String): Flow<List<FeedOp>> = callbackFlow {
-        val registration = firestore.collection(SHARES).document(code)
+        val registration = shareDoc(code)
             .collection(FEED_OPS)
             .whereEqualTo("authorUid", uid)
             .addSnapshotListener { snapshot, error ->
@@ -232,7 +239,7 @@ class FirestoreSharingService @Inject constructor(
             val batch = firestore.batch()
             chunk.forEach { opId ->
                 batch.delete(
-                    firestore.collection(SHARES).document(code).collection(FEED_OPS).document(opId),
+                    shareDoc(code).collection(FEED_OPS).document(opId),
                 )
             }
             batch.commit().await()
