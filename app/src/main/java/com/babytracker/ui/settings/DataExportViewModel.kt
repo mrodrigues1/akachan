@@ -23,7 +23,9 @@ import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -140,7 +142,10 @@ class DataExportViewModel @Inject constructor(
             }
             return@execute
         }
-        val data = validateBackup(reader.read(uri))
+        // reader.read does its own IO; the parse + multi-pass validation is CPU-bound, so keep it
+        // off the main thread to avoid a long frame / ANR on large backups.
+        val raw = reader.read(uri)
+        val data = withContext(Dispatchers.Default) { validateBackup(raw) }
         _uiState.update {
             it.copy(
                 status = DataExportUiState.Status.IDLE,

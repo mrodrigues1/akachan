@@ -2,6 +2,8 @@ package com.babytracker.export.domain.usecase
 
 import com.babytracker.export.domain.BackupSource
 import com.babytracker.export.domain.TrackingSnapshot
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class ExportCsvUseCase @Inject constructor(
@@ -9,7 +11,13 @@ class ExportCsvUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(): Map<String, String> {
         val t = source.readTracking()
-        return mapOf(
+        // Building N CSV tables (string concat + escaping over every row) is CPU-bound; run it off
+        // the main thread. The Room read above already runs off-main via the BackupSource.
+        return withContext(Dispatchers.Default) { buildTables(t) }
+    }
+
+    private fun buildTables(t: TrackingSnapshot): Map<String, String> =
+        mapOf(
             "breastfeeding" to buildCsv(
                 listOf(
                     "id", "start_time", "end_time", "starting_side",
@@ -81,7 +89,6 @@ class ExportCsvUseCase @Inject constructor(
                 },
             ),
         ) + doctorVisitCsvSections(t)
-    }
 
     private fun doctorVisitCsvSections(t: TrackingSnapshot): Map<String, String> = mapOf(
         "doctor_visits" to buildCsv(
