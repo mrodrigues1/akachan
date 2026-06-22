@@ -62,7 +62,7 @@ class VaccineSheetTest {
 
         composeRule.onNodeWithText("To schedule").assertIsDisplayed()
         composeRule.onNodeWithText("Already given").assertIsDisplayed()
-        composeRule.onNodeWithText("Schedule for later").assertIsDisplayed()
+        composeRule.onNodeWithText("Scheduled").assertIsDisplayed()
     }
 
     @Test
@@ -89,7 +89,7 @@ class VaccineSheetTest {
 
         // Administered mode shows the "Date given" label.
         composeRule.onNodeWithText("Date given").assertIsDisplayed()
-        composeRule.onNodeWithText("Schedule for later").performClick()
+        composeRule.onNodeWithText("Scheduled").performClick()
         composeRule.runOnIdle { assertEquals(VaccineStatus.SCHEDULED, mode) }
     }
 

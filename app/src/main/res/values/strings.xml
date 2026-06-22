@@ -1107,7 +1107,7 @@
     <string name="vaccine_dose_label">Dose (optional)</string>
     <string name="vaccine_notes_label">Notes (optional)</string>
     <string name="vaccine_mode_administered">Already given</string>
-    <string name="vaccine_mode_scheduled">Schedule for later</string>
+    <string name="vaccine_mode_scheduled">Scheduled</string>
     <string name="vaccine_mode_to_schedule">To schedule</string>
     <string name="vaccine_date_administered_label">Date given</string>
     <string name="vaccine_date_scheduled_label">Scheduled date</string>

@@ -1124,7 +1124,7 @@
     <string name="vaccine_dose_label">Dose (opcional)</string>
     <string name="vaccine_notes_label">Notas (opcional)</string>
     <string name="vaccine_mode_administered">Já aplicada</string>
-    <string name="vaccine_mode_scheduled">Agendar</string>
+    <string name="vaccine_mode_scheduled">Agendado</string>
     <string name="vaccine_mode_to_schedule">A agendar</string>
     <string name="vaccine_date_administered_label">Data de aplicação</string>
     <string name="vaccine_date_scheduled_label">Data agendada</string>
