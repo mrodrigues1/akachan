@@ -5,6 +5,7 @@ import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.domain.usecase.vaccine.DeleteVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
+import com.babytracker.domain.usecase.vaccine.MarkVaccineScheduledUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
 import com.babytracker.domain.usecase.vaccine.RestoreVaccineRecordUseCase
 import io.mockk.Runs
@@ -34,6 +35,7 @@ class VaccineHistoryViewModelTest {
     private val fixedNow = Instant.ofEpochMilli(100_000)
     private val observe = mockk<ObserveVaccineRecordsUseCase>()
     private val markGiven = mockk<MarkVaccineAdministeredUseCase>()
+    private val markScheduled = mockk<MarkVaccineScheduledUseCase>(relaxed = true)
     private val delete = mockk<DeleteVaccineRecordUseCase>()
     private val restore = mockk<RestoreVaccineRecordUseCase>(relaxed = true)
 
@@ -43,7 +45,7 @@ class VaccineHistoryViewModelTest {
     @AfterEach
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm() = VaccineHistoryViewModel(observe, markGiven, delete, restore, zone) { fixedNow }
+    private fun vm() = VaccineHistoryViewModel(observe, markGiven, markScheduled, delete, restore, zone) { fixedNow }
 
     @Test
     fun `splits upcoming ascending and administered by day descending`() = runTest {
@@ -73,6 +75,26 @@ class VaccineHistoryViewModelTest {
         coEvery { markGiven(9, any()) } just Runs
         vm().markGiven(9)
         coVerify { markGiven(9, fixedNow) }
+    }
+
+    @Test
+    fun `to-schedule records populate the toSchedule list sorted by target date`() = runTest {
+        val later = VaccineRecord(id = 1, name = "B", status = VaccineStatus.TO_SCHEDULE, scheduledDate = Instant.ofEpochMilli(300_000), createdAt = fixedNow)
+        val sooner = VaccineRecord(id = 2, name = "A", status = VaccineStatus.TO_SCHEDULE, scheduledDate = Instant.ofEpochMilli(200_000), createdAt = fixedNow)
+        every { observe() } returns flowOf(listOf(later, sooner))
+        vm().uiState.test {
+            var state = awaitItem()
+            if (state.isEmpty) state = awaitItem()
+            assertEquals(listOf(2L, 1L), state.toSchedule.map { it.id })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `markScheduled delegates to the use case`() = runTest {
+        every { observe() } returns flowOf(emptyList())
+        vm().markScheduled(5)
+        coVerify { markScheduled(5) }
     }
 
     @Test

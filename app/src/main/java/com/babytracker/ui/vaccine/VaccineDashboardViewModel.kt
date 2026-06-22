@@ -7,6 +7,7 @@ import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.domain.model.isOverdue
 import com.babytracker.domain.usecase.vaccine.DeleteVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
+import com.babytracker.domain.usecase.vaccine.MarkVaccineScheduledUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
 import com.babytracker.domain.usecase.vaccine.RestoreVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.UndoMarkVaccineAdministeredUseCase
@@ -65,18 +66,23 @@ data class VaccineDashboardUiState(
     val givenCount: Int = 0,
     /** The vaccine inside the mark-given undo window, held so the screen can offer an undo snackbar. */
     val lastMarkedGiven: VaccineRecord? = null,
+    /** To-schedule doses (known but unbooked), sorted by target date asc then name. Never in the hero. */
+    val toSchedule: List<VaccineRecord> = emptyList(),
+    /** The dose inside the mark-scheduled undo window, held so the screen can offer an undo snackbar. */
+    val lastMarkedScheduled: VaccineRecord? = null,
     /** The vaccine inside the delete undo window, held so the screen can offer an undo snackbar. */
     val lastDeleted: VaccineRecord? = null,
     val now: Instant = Instant.EPOCH,
 ) {
-    /** True on a clean install: nothing scheduled, nothing recorded. */
-    val isFirstRun: Boolean get() = schedule.isEmpty() && givenCount == 0
+    /** True on a clean install: nothing scheduled, nothing to-schedule, nothing recorded. */
+    val isFirstRun: Boolean get() = schedule.isEmpty() && toSchedule.isEmpty() && givenCount == 0
 }
 
 @HiltViewModel
 class VaccineDashboardViewModel @Inject constructor(
     observeRecords: ObserveVaccineRecordsUseCase,
     private val markGivenUseCase: MarkVaccineAdministeredUseCase,
+    private val markScheduledUseCase: MarkVaccineScheduledUseCase,
     private val undoMarkGivenUseCase: UndoMarkVaccineAdministeredUseCase,
     private val deleteUseCase: DeleteVaccineRecordUseCase,
     private val restoreUseCase: RestoreVaccineRecordUseCase,
@@ -96,6 +102,11 @@ class VaccineDashboardViewModel @Inject constructor(
     // while Room re-emits. Undo re-inserts the record verbatim. Same pattern as the history screen.
     private val pendingDelete = MutableStateFlow<VaccineRecord?>(null)
 
+    // The record inside the mark-scheduled undo window. The flip already committed (commits immediately
+    // so it survives the screen leaving composition); this holds the original to-schedule record so the
+    // screen can show the undo snackbar and the lists don't flicker while Room re-emits.
+    private val pendingMarkScheduled = MutableStateFlow<VaccineRecord?>(null)
+
     // Bumped by onRetry so flatMapLatest rebuilds the combined flow after an upstream failure;
     // a plain .catch would emit the error once and leave the flow terminated with no way back.
     private val retryTrigger = MutableStateFlow(0)
@@ -103,15 +114,31 @@ class VaccineDashboardViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<VaccineDashboardUiState> =
         retryTrigger.flatMapLatest {
-            combine(observeRecords(), pendingMarkGiven, pendingDelete) { records, pendingMark, pendingDel ->
+            combine(
+                observeRecords(), pendingMarkGiven, pendingDelete, pendingMarkScheduled,
+            ) { records, pendingMark, pendingDel, pendingSch ->
                 val instant = now()
                 val today = instant.atZone(zone).toLocalDate()
                 // Optimistically hide a record inside its delete-undo window before anything else.
                 val visible = records.filterNot { it.id == pendingDel?.id }
 
-                val scheduled = visible.filter {
+                // To-schedule list: hide the one being scheduled (optimistic) and any being marked given.
+                val toSchedule = visible
+                    .filter {
+                        it.status == VaccineStatus.TO_SCHEDULE && it.scheduledDate != null &&
+                            it.id != pendingSch?.id && it.id != pendingMark?.id
+                    }
+                    .sortedWith(compareBy({ it.scheduledDate }, { it.name }))
+
+                // Scheduled excludes the mark-given one; folds in the just-scheduled one optimistically so
+                // it doesn't vanish for a frame while Room re-emits it as SCHEDULED.
+                val scheduledBase = visible.filter {
                     it.status == VaccineStatus.SCHEDULED && it.scheduledDate != null && it.id != pendingMark?.id
                 }
+                val optimisticScheduled = pendingSch
+                    ?.takeIf { p -> scheduledBase.none { it.id == p.id } }
+                    ?.copy(status = VaccineStatus.SCHEDULED)
+                val scheduled = listOfNotNull(optimisticScheduled) + scheduledBase
                 // Overdue is day-based: a dose due today is "next up" (countdown shows Today), never overdue.
                 val overdue = scheduled
                     .filter { it.isOverdue(instant, zone) }
@@ -149,9 +176,11 @@ class VaccineDashboardViewModel @Inject constructor(
                     mostOverdueDays = mostOverdue?.scheduledDate?.let { -daysBetween(today, it) },
                     overdueCount = overdue.size,
                     schedule = overdue + future,
+                    toSchedule = toSchedule,
                     recentlyGiven = given.take(RECENT_LIMIT),
                     givenCount = given.size,
                     lastMarkedGiven = pendingMark,
+                    lastMarkedScheduled = pendingSch,
                     lastDeleted = pendingDel,
                     now = instant,
                 )
@@ -187,6 +216,28 @@ class VaccineDashboardViewModel @Inject constructor(
     /** Snackbar dismissed / timed out: the write already happened, so just close the undo window. */
     fun onMarkGivenConsumed() {
         pendingMarkGiven.value = null
+    }
+
+    /** Flip [record] to scheduled now (one tap). Commits immediately; opens the undo window. */
+    fun markScheduled(record: VaccineRecord) {
+        pendingMarkScheduled.value = record
+        viewModelScope.launch { runCatching { markScheduledUseCase(record.id) } }
+    }
+
+    /**
+     * Snackbar "Undo": revert the committed flip by writing the original to-schedule record back. Reuses
+     * [undoMarkGivenUseCase] (a generic write-the-record-back-then-reschedule) since restoring a
+     * to-schedule record is the same operation as restoring a scheduled one.
+     */
+    fun undoMarkScheduled() {
+        val record = pendingMarkScheduled.value ?: return
+        pendingMarkScheduled.value = null
+        viewModelScope.launch { runCatching { undoMarkGivenUseCase(record) } }
+    }
+
+    /** Snackbar dismissed / timed out: the flip already happened, so just close the undo window. */
+    fun onMarkScheduledConsumed() {
+        pendingMarkScheduled.value = null
     }
 
     fun onRetry() {

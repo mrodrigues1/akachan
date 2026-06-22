@@ -6,6 +6,7 @@ import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.domain.usecase.vaccine.DeleteVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
+import com.babytracker.domain.usecase.vaccine.MarkVaccineScheduledUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
 import com.babytracker.domain.usecase.vaccine.RestoreVaccineRecordUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,18 +29,20 @@ data class VaccineHistoryUiState(
     val isLoading: Boolean = true,
     /** Set when an upstream flow throws, so the screen can offer a retry instead of a blank list. */
     val isError: Boolean = false,
+    val toSchedule: List<VaccineRecord> = emptyList(),
     val upcoming: List<VaccineRecord> = emptyList(),
     val administeredByDate: List<Pair<LocalDate, List<VaccineRecord>>> = emptyList(),
     val now: Instant = Instant.EPOCH,
 ) {
     /** Only meaningful once loaded without error. */
-    val isEmpty: Boolean get() = upcoming.isEmpty() && administeredByDate.isEmpty()
+    val isEmpty: Boolean get() = toSchedule.isEmpty() && upcoming.isEmpty() && administeredByDate.isEmpty()
 }
 
 @HiltViewModel
 class VaccineHistoryViewModel @Inject constructor(
     observeRecords: ObserveVaccineRecordsUseCase,
     private val markGivenUseCase: MarkVaccineAdministeredUseCase,
+    private val markScheduledUseCase: MarkVaccineScheduledUseCase,
     private val deleteUseCase: DeleteVaccineRecordUseCase,
     private val restoreUseCase: RestoreVaccineRecordUseCase,
     private val zone: ZoneId,
@@ -62,6 +65,9 @@ class VaccineHistoryViewModel @Inject constructor(
         retryTrigger.flatMapLatest {
             combine(observeRecords(), _pendingDelete) { records, pending ->
                 val visible = records.filterNot { it.id == pending?.id }
+                val toSchedule = visible
+                    .filter { it.status == VaccineStatus.TO_SCHEDULE && it.scheduledDate != null }
+                    .sortedWith(compareBy({ it.scheduledDate }, { it.name }))
                 // Upcoming sorted ascending: overdue (earliest dates) naturally float to the top.
                 val upcoming = visible
                     .filter { it.status == VaccineStatus.SCHEDULED }
@@ -75,6 +81,7 @@ class VaccineHistoryViewModel @Inject constructor(
                     }
                 VaccineHistoryUiState(
                     isLoading = false,
+                    toSchedule = toSchedule,
                     upcoming = upcoming,
                     administeredByDate = administeredByDate,
                     now = now(),
@@ -85,6 +92,8 @@ class VaccineHistoryViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), VaccineHistoryUiState())
 
     fun markGiven(id: Long) = viewModelScope.launch { runCatching { markGivenUseCase(id, now()) } }
+
+    fun markScheduled(id: Long) = viewModelScope.launch { runCatching { markScheduledUseCase(id) } }
 
     /** Rebuild the data flow after an error state so the screen can recover. */
     fun onRetry() {

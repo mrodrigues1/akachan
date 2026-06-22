@@ -80,10 +80,19 @@ class VaccineDashboardScreenTest {
         now = now,
     )
 
+    private val toScheduleRecord = VaccineRecord(
+        id = 5,
+        name = "Hep B",
+        status = VaccineStatus.TO_SCHEDULE,
+        scheduledDate = now.plusSeconds(20 * 86_400),
+        createdAt = now,
+    )
+
     private fun setContent(
         state: VaccineDashboardUiState,
         onAddVaccine: () -> Unit = {},
         onMarkGiven: (VaccineRecord) -> Unit = {},
+        onMarkScheduled: (VaccineRecord) -> Unit = {},
         onNavigateToHistory: () -> Unit = {},
     ) {
         composeRule.setContent {
@@ -94,6 +103,7 @@ class VaccineDashboardScreenTest {
                     onAddVaccine = onAddVaccine,
                     onEditRecord = {},
                     onMarkGiven = onMarkGiven,
+                    onMarkScheduled = onMarkScheduled,
                     onDeleteRecord = {},
                     onRetry = {},
                     onNavigateToHistory = onNavigateToHistory,
@@ -141,6 +151,20 @@ class VaccineDashboardScreenTest {
         setContent(sameDayNextState(), onMarkGiven = { marked = it })
         composeRule.onNodeWithContentDescription("Mark Rotavirus as given").performClick()
         composeRule.runOnIdle { assertEquals(4L, marked?.id) }
+    }
+
+    @Test
+    fun toScheduleSectionRendersAndScheduleFiresCallback() {
+        var scheduled: VaccineRecord? = null
+        setContent(
+            VaccineDashboardUiState(isLoading = false, toSchedule = listOf(toScheduleRecord), now = now),
+            onMarkScheduled = { scheduled = it },
+        )
+        // The dashboard section label is uppercased by SectionLabel.
+        composeRule.onNodeWithText("TO SCHEDULE").assertIsDisplayed()
+        composeRule.onNodeWithText("Hep B").assertIsDisplayed()
+        composeRule.onNodeWithText("Schedule").performClick()
+        composeRule.runOnIdle { assertEquals(5L, scheduled?.id) }
     }
 
     @Test
