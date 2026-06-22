@@ -28,6 +28,15 @@ fun BottleFeedIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun FeedingHistoryIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_feeding_history_section),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}
+
+@Composable
 fun SleepIcon(modifier: Modifier = Modifier) {
     Image(
         painter = painterResource(R.drawable.ic_sleep_section),
