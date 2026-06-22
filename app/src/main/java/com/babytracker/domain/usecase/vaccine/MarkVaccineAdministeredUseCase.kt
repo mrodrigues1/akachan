@@ -14,11 +14,11 @@ class MarkVaccineAdministeredUseCase @Inject constructor(
     suspend operator fun invoke(id: Long, administeredDate: Instant = now()) {
         require(!administeredDate.isAfter(now())) { "Administered date cannot be in the future" }
         val existing = repository.getById(id) ?: return
-        // Only the scheduled->administered transition writes: guarding against an already-administered
-        // record keeps this idempotent under double-taps / stale UI and prevents overwriting the
-        // original administeredDate (user data corruption). Editing an administered record's date is
-        // the EditVaccineRecordUseCase's job.
-        if (existing.status == VaccineStatus.SCHEDULED) {
+        // Transition from either pending state (scheduled or to-schedule). Guarding against an
+        // already-administered record keeps this idempotent under double-taps / stale UI and prevents
+        // overwriting the original administeredDate (user data corruption). Editing an administered
+        // record's date is the EditVaccineRecordUseCase's job.
+        if (existing.status == VaccineStatus.SCHEDULED || existing.status == VaccineStatus.TO_SCHEDULE) {
             repository.update(
                 existing.copy(status = VaccineStatus.ADMINISTERED, administeredDate = administeredDate),
             )

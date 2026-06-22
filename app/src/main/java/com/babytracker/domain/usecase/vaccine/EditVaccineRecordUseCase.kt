@@ -20,6 +20,9 @@ class EditVaccineRecordUseCase @Inject constructor(
             VaccineStatus.SCHEDULED -> require(record.scheduledDate != null) {
                 "Scheduled date is required"
             }
+            VaccineStatus.TO_SCHEDULE -> require(record.scheduledDate != null) {
+                "Scheduled date is required"
+            }
         }
         val normalized = record.copy(
             name = record.name.trim(),
