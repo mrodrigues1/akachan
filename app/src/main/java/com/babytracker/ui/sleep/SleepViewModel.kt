@@ -116,6 +116,7 @@ class SleepViewModel @Inject constructor(
                 .sortedByDescending { it.key }
                 .map { (date, recs) -> date to recs }
         }
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val activeSleepSession: StateFlow<SleepRecord?> = history
