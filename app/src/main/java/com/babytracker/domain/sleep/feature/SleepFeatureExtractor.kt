@@ -15,8 +15,11 @@ class SleepFeatureExtractor(
     private val clock: Clock,
     private val zoneId: ZoneId,
 ) {
-    private val nowMillis: Long
-        get() = clock.instant().toEpochMilli()
+    // Snapshot the clock once per extractor instead of re-reading it for every list element in each
+    // isPossibleAt(...) filter. Previously this getter ran clock.instant() hundreds of times per
+    // extraction; reads are now a single field access. The pipeline builds a fresh extractor per
+    // emission, and tests use a fixed Clock, so the snapshot is value-identical to the old getter.
+    private val nowMillis: Long = clock.instant().toEpochMilli()
 
     fun extract(
         sleepRecords: List<SleepRecord>,
