@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.repository.FeatureToggleRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,7 +18,7 @@ class FeatureToggleRepositoryImpl @Inject constructor(
 ) : FeatureToggleRepository {
 
     override fun getEnabledFeatures(): Flow<Set<AppFeature>> =
-        dataStore.data.map { AppFeature.deserialize(it[ENABLED_FEATURES]) }
+        dataStore.data.map { AppFeature.deserialize(it[ENABLED_FEATURES]) }.distinctUntilChanged()
 
     override suspend fun setEnabledFeatures(features: Set<AppFeature>) {
         dataStore.edit { it[ENABLED_FEATURES] = AppFeature.serialize(features) }
