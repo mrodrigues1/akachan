@@ -40,6 +40,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.babytracker.util.durationBetween
 import com.babytracker.util.formatElapsedAgo
 import java.time.Duration
 import java.time.Instant
@@ -375,7 +376,7 @@ class BreastfeedingViewModel @Inject constructor(
             manualEntryEndTime = end,
             manualEntrySide = recommendedSide,
             manualEntryError = null,
-            manualEntryDurationPreview = computeDurationPreview(start, end, LocalDate.now()),
+            manualEntryDurationPreview = durationBetween(start, end, LocalDate.now()),
         )
     }
 
@@ -398,7 +399,7 @@ class BreastfeedingViewModel @Inject constructor(
             manualEntryStartTime = startTime,
             manualEntryEndTime = endTime,
             manualEntryError = null,
-            manualEntryDurationPreview = computeDurationPreview(startTime, endTime, date),
+            manualEntryDurationPreview = durationBetween(startTime, endTime, date),
         )
     }
 
@@ -419,17 +420,6 @@ class BreastfeedingViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(showManualEntrySheet = false, manualEntryError = null)
             runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
         }
-    }
-
-    private fun computeDurationPreview(start: LocalTime, end: LocalTime, date: LocalDate): Duration? {
-        val zone = ZoneId.systemDefault()
-        var startInstant = start.atDate(date).atZone(zone).toInstant()
-        val endInstant = end.atDate(date).atZone(zone).toInstant()
-        if (startInstant > endInstant) {
-            startInstant = start.atDate(date.minusDays(1)).atZone(zone).toInstant()
-        }
-        val d = Duration.between(startInstant, endInstant)
-        return if (d.isNegative || d.isZero) null else d
     }
 
     private fun BreastfeedingSession.currentSide(): BreastSide =

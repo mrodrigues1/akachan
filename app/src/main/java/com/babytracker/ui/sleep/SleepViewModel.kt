@@ -25,6 +25,7 @@ import com.babytracker.manager.SleepNotificationScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.domain.model.BabyEventType
 import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
+import com.babytracker.util.durationBetween
 import com.babytracker.util.formatElapsedShort
 import com.babytracker.util.formatTime12h
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -201,7 +202,7 @@ class SleepViewModel @Inject constructor(
             entryStartTime = start,
             entryEndTime = end,
             entryError = null,
-            entryDurationPreview = computeDurationPreview(start, end)
+            entryDurationPreview = durationBetween(start, end, LocalDate.now())
         )
     }
 
@@ -218,7 +219,7 @@ class SleepViewModel @Inject constructor(
             entryStartTime = startLocal,
             entryEndTime = endLocal,
             entryError = null,
-            entryDurationPreview = computeDurationPreview(startLocal, endLocal)
+            entryDurationPreview = durationBetween(startLocal, endLocal, LocalDate.now())
         )
     }
 
@@ -349,7 +350,7 @@ class SleepViewModel @Inject constructor(
                     activeTimePicker = null
                 )
                 _uiState.value = base.copy(
-                    entryDurationPreview = computeDurationPreview(time, base.entryEndTime)
+                    entryDurationPreview = durationBetween(time, base.entryEndTime, LocalDate.now())
                 )
             }
             SleepTimePickerTarget.ENTRY_END -> {
@@ -359,7 +360,7 @@ class SleepViewModel @Inject constructor(
                     activeTimePicker = null
                 )
                 _uiState.value = base.copy(
-                    entryDurationPreview = computeDurationPreview(base.entryStartTime, time)
+                    entryDurationPreview = durationBetween(base.entryStartTime, time, LocalDate.now())
                 )
             }
             null -> Unit
@@ -376,18 +377,6 @@ class SleepViewModel @Inject constructor(
 
     fun onToggleRegression() {
         _uiState.value = _uiState.value.copy(isRegressionExpanded = !_uiState.value.isRegressionExpanded)
-    }
-
-    private fun computeDurationPreview(start: LocalTime, end: LocalTime): Duration? {
-        val zone = ZoneId.systemDefault()
-        val today = LocalDate.now()
-        var startInstant = start.atDate(today).atZone(zone).toInstant()
-        val endInstant = end.atDate(today).atZone(zone).toInstant()
-        if (startInstant > endInstant) {
-            startInstant = start.atDate(today.minusDays(1)).atZone(zone).toInstant()
-        }
-        val d = Duration.between(startInstant, endInstant)
-        return if (d.isNegative || d.isZero) null else d
     }
 
     private fun loadSchedule() {
