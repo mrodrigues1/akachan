@@ -6,6 +6,8 @@ import com.babytracker.domain.trends.DailySleepDuration
 import com.babytracker.domain.trends.TrendRange
 import com.babytracker.domain.trends.trendWindowDates
 import com.babytracker.domain.trends.windowStartInstant
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -16,7 +18,7 @@ class GetSleepDurationTrendUseCase @Inject constructor(
     private val sleepRepository: SleepRepository,
     private val clock: Clock,
 ) {
-    suspend operator fun invoke(range: TrendRange): List<DailySleepDuration> {
+    suspend operator fun invoke(range: TrendRange): List<DailySleepDuration> = withContext(Dispatchers.Default) {
         val zone = clock.zone
         val today = LocalDate.now(clock)
         val start = windowStartInstant(today, range.days, zone)
@@ -28,7 +30,7 @@ class GetSleepDurationTrendUseCase @Inject constructor(
             .filter { !it.startTime.isAfter(now) }
             .groupBy { it.startTime.atZone(zone).toLocalDate() }
 
-        return trendWindowDates(today, range.days).map { date ->
+        trendWindowDates(today, range.days).map { date ->
             val dayRecords = byDate[date].orEmpty()
             fun hoursOf(type: SleepType) = dayRecords
                 .filter { it.sleepType == type }

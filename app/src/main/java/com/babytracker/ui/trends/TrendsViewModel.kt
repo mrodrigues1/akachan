@@ -12,6 +12,8 @@ import com.babytracker.domain.usecase.trends.GetFeedingFrequencyTrendUseCase
 import com.babytracker.domain.usecase.trends.GetFeedingIntervalTrendUseCase
 import com.babytracker.domain.usecase.trends.GetSleepDurationTrendUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,15 +58,24 @@ class TrendsViewModel @Inject constructor(
                 // animates in place instead of blanking to a skeleton between every tap. The
                 // skeleton then only ever shows on the true first load (when data is still empty).
                 _uiState.update { it.copy(range = range, isLoading = true) }
-                _uiState.update {
-                    it.copy(
-                        range = range,
-                        isLoading = false,
-                        feedingFrequency = getFeedingFrequencyTrend(range),
-                        sleepDuration = getSleepDurationTrend(range),
-                        feedingInterval = getFeedingIntervalTrend(range),
-                        dayRhythm = getDayRhythmTrend(range),
-                    )
+                // Run the four trend computations concurrently instead of serially; each use case
+                // does its own CPU work on Dispatchers.Default. collectLatest cancels these children
+                // if the range changes again. Wall-clock is now the slowest trend, not their sum.
+                coroutineScope {
+                    val frequency = async { getFeedingFrequencyTrend(range) }
+                    val sleep = async { getSleepDurationTrend(range) }
+                    val interval = async { getFeedingIntervalTrend(range) }
+                    val rhythm = async { getDayRhythmTrend(range) }
+                    _uiState.update {
+                        it.copy(
+                            range = range,
+                            isLoading = false,
+                            feedingFrequency = frequency.await(),
+                            sleepDuration = sleep.await(),
+                            feedingInterval = interval.await(),
+                            dayRhythm = rhythm.await(),
+                        )
+                    }
                 }
             }
         }
