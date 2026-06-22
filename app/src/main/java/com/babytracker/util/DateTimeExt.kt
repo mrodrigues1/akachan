@@ -38,6 +38,22 @@ fun Instant.formatClockTime12h(): String =
         .format(this)
 
 /**
+ * Duration between two wall-clock times on [onDate], treating an end-before-start pair as crossing
+ * midnight (the start shifts to the previous day). Returns null when the result is zero or negative.
+ * Used for live entry-duration previews.
+ */
+fun durationBetween(start: LocalTime, end: LocalTime, onDate: LocalDate): Duration? {
+    val zone = ZoneId.systemDefault()
+    var startInstant = start.atDate(onDate).atZone(zone).toInstant()
+    val endInstant = end.atDate(onDate).atZone(zone).toInstant()
+    if (startInstant > endInstant) {
+        startInstant = start.atDate(onDate.minusDays(1)).atZone(zone).toInstant()
+    }
+    val d = Duration.between(startInstant, endInstant)
+    return if (d.isNegative || d.isZero) null else d
+}
+
+/**
  * Full, locale-aware date. The locale, not a fixed pattern, decides the word order and
  * separators: "Saturday, June 20, 2026" (en) vs "sábado, 20 de junho de 2026" (pt-BR).
  */
