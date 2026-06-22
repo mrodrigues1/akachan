@@ -101,4 +101,48 @@ class VaccineSettingsRepositoryImplTest {
         editSlot.captured(prefs)
         assertEquals(3, prefs[intPreferencesKey("vaccine_reminder_lead_days")])
     }
+
+    @Test
+    fun `getToScheduleLeadDays defaults to 14`() = runTest {
+        val prefs = mockk<Preferences>()
+        every { prefs[intPreferencesKey("vaccine_to_schedule_lead_days")] } returns null
+        every { dataStore.data } returns flowOf(prefs)
+        assertEquals(14, repository.getToScheduleLeadDays().first())
+    }
+
+    @Test
+    fun `getToScheduleLeadDays returns default when stored value is disallowed`() = runTest {
+        val prefs = mockk<Preferences>()
+        every { prefs[intPreferencesKey("vaccine_to_schedule_lead_days")] } returns 5
+        every { dataStore.data } returns flowOf(prefs)
+        assertEquals(14, repository.getToScheduleLeadDays().first())
+    }
+
+    @Test
+    fun `getToScheduleLeadDays returns stored allowed value`() = runTest {
+        val prefs = mockk<Preferences>()
+        every { prefs[intPreferencesKey("vaccine_to_schedule_lead_days")] } returns 30
+        every { dataStore.data } returns flowOf(prefs)
+        assertEquals(30, repository.getToScheduleLeadDays().first())
+    }
+
+    @Test
+    fun `setToScheduleLeadDays sanitizes disallowed value to default`() = runTest {
+        val editSlot = slot<suspend (MutablePreferences) -> Unit>()
+        coEvery { dataStore.edit(capture(editSlot)) } returns mockk()
+        repository.setToScheduleLeadDays(5)
+        val prefs = mutablePreferencesOf()
+        editSlot.captured(prefs)
+        assertEquals(14, prefs[intPreferencesKey("vaccine_to_schedule_lead_days")])
+    }
+
+    @Test
+    fun `setToScheduleLeadDays accepts allowed value`() = runTest {
+        val editSlot = slot<suspend (MutablePreferences) -> Unit>()
+        coEvery { dataStore.edit(capture(editSlot)) } returns mockk()
+        repository.setToScheduleLeadDays(30)
+        val prefs = mutablePreferencesOf()
+        editSlot.captured(prefs)
+        assertEquals(30, prefs[intPreferencesKey("vaccine_to_schedule_lead_days")])
+    }
 }

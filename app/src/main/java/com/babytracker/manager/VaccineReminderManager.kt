@@ -30,23 +30,26 @@ class VaccineReminderManager @Inject constructor(
     override suspend fun schedule(record: VaccineRecord) {
         // Always clear any prior alarm for this id (idempotent re-arm).
         cancel(record.id)
-        if (record.status != VaccineStatus.SCHEDULED) return
-        val scheduled = record.scheduledDate ?: return
+        val leadDays = when (record.status) {
+            VaccineStatus.SCHEDULED -> settings.getReminderLeadDays().first()
+            VaccineStatus.TO_SCHEDULE -> settings.getToScheduleLeadDays().first()
+            VaccineStatus.ADMINISTERED -> return // a logged shot never carries a reminder
+        }
+        val target = record.scheduledDate ?: return
         if (!settings.getReminderEnabled().first()) return
-        val leadDays = settings.getReminderLeadDays().first()
         val triggerAtMs = computeTriggerAtMs(
-            scheduledMs = scheduled.toEpochMilli(),
+            scheduledMs = target.toEpochMilli(),
             leadDays = leadDays,
             nowMs = System.currentTimeMillis(),
             zone = ZoneId.systemDefault(),
-        ) ?: return // no sensible reminder window before the shot
+        ) ?: return // no sensible reminder window before the target
 
         alarmManager.setAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
             triggerAtMs,
             buildPendingIntent(record.id),
         )
-        Log.d(TAG, "Scheduled vaccine reminder id=${record.id} at $triggerAtMs")
+        Log.d(TAG, "Scheduled vaccine reminder id=${record.id} status=${record.status} at $triggerAtMs")
     }
 
     /** Delegates to the shared [computeReminderTriggerAtMs]; kept as a seam for unit tests. */
@@ -59,7 +62,8 @@ class VaccineReminderManager @Inject constructor(
 
     override suspend fun rescheduleAll() {
         val enabled = settings.getReminderEnabled().first()
-        val future = repository.getScheduledFutureAfter(System.currentTimeMillis())
+        val nowMs = System.currentTimeMillis()
+        val future = repository.getScheduledFutureAfter(nowMs) + repository.getToScheduleFutureAfter(nowMs)
         future.forEach { record ->
             if (enabled) schedule(record) else cancel(record.id)
         }

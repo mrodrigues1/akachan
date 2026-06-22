@@ -32,7 +32,7 @@ class VaccineReminderReceiverTest {
             settings = this@VaccineReminderReceiverTest.settings
         }
         mockkObject(VaccineNotificationHelper)
-        every { VaccineNotificationHelper.show(any(), any(), any()) } returns Unit
+        every { VaccineNotificationHelper.show(any(), any(), any(), any()) } returns Unit
     }
 
     @AfterEach
@@ -42,7 +42,7 @@ class VaccineReminderReceiverTest {
     fun `does not notify when reminders disabled`() = runTest {
         every { settings.getReminderEnabled() } returns flowOf(false)
         receiver.handle(context, 1)
-        verify(exactly = 0) { VaccineNotificationHelper.show(any(), any(), any()) }
+        verify(exactly = 0) { VaccineNotificationHelper.show(any(), any(), any(), any()) }
     }
 
     @Test
@@ -50,7 +50,7 @@ class VaccineReminderReceiverTest {
         every { settings.getReminderEnabled() } returns flowOf(true)
         coEvery { repository.getById(1) } returns null
         receiver.handle(context, 1)
-        verify(exactly = 0) { VaccineNotificationHelper.show(any(), any(), any()) }
+        verify(exactly = 0) { VaccineNotificationHelper.show(any(), any(), any(), any()) }
     }
 
     @Test
@@ -61,7 +61,7 @@ class VaccineReminderReceiverTest {
             administeredDate = Instant.ofEpochMilli(1), createdAt = Instant.ofEpochMilli(1),
         )
         receiver.handle(context, 1)
-        verify(exactly = 0) { VaccineNotificationHelper.show(any(), any(), any()) }
+        verify(exactly = 0) { VaccineNotificationHelper.show(any(), any(), any(), any()) }
     }
 
     @Test
@@ -73,6 +73,18 @@ class VaccineReminderReceiverTest {
             scheduledDate = scheduled, createdAt = Instant.ofEpochMilli(1),
         )
         receiver.handle(context, 1)
-        verify(exactly = 1) { VaccineNotificationHelper.show(context, "BCG", scheduled) }
+        verify(exactly = 1) { VaccineNotificationHelper.show(context, "BCG", scheduled, false) }
+    }
+
+    @Test
+    fun `notifies for a to-schedule record with the book copy`() = runTest {
+        val target = Instant.ofEpochMilli(50_000)
+        every { settings.getReminderEnabled() } returns flowOf(true)
+        coEvery { repository.getById(1) } returns VaccineRecord(
+            id = 1, name = "MMR", status = VaccineStatus.TO_SCHEDULE,
+            scheduledDate = target, createdAt = Instant.ofEpochMilli(1),
+        )
+        receiver.handle(context, 1)
+        verify(exactly = 1) { VaccineNotificationHelper.show(context, "MMR", target, true) }
     }
 }
