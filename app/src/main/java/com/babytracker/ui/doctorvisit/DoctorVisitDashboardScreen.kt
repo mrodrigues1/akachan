@@ -219,6 +219,14 @@ fun DoctorVisitDashboardContent(
                 onEditVisit = onEditVisit,
             )
 
+            if (state.upcomingVisits.isNotEmpty()) {
+                Spacer(Modifier.height(24.dp))
+                UpcomingSection(
+                    visits = state.upcomingVisits,
+                    onEditVisit = onEditVisit,
+                )
+            }
+
             Spacer(Modifier.height(24.dp))
 
             QuestionsSection(
@@ -589,7 +597,28 @@ private fun RecentSection(
         }
         Spacer(Modifier.height(4.dp))
         visits.forEach { visit ->
-            RecentVisitRow(visit = visit, onEditVisit = { onEditVisit(visit.id) })
+            VisitRow(visit = visit, onEditVisit = { onEditVisit(visit.id) })
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+/** Lists every scheduled visit beyond the hero's nearest one, so a parent with several booked
+ *  appointments sees them all here instead of only in the History screen. */
+@Composable
+private fun UpcomingSection(
+    visits: List<DoctorVisit>,
+    onEditVisit: (Long) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        SectionLabel(
+            text = stringResource(R.string.doctor_visit_history_upcoming),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.semantics { heading() },
+        )
+        Spacer(Modifier.height(4.dp))
+        visits.forEach { visit ->
+            VisitRow(visit = visit, onEditVisit = { onEditVisit(visit.id) })
             Spacer(Modifier.height(8.dp))
         }
     }
@@ -597,7 +626,7 @@ private fun RecentSection(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RecentVisitRow(
+private fun VisitRow(
     visit: DoctorVisit,
     onEditVisit: () -> Unit,
 ) {
