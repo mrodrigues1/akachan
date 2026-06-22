@@ -25,12 +25,15 @@ data class VaccineSettingsUiState(
     val isError: Boolean = false,
     val reminderEnabled: Boolean = false,
     val leadDays: Int = DEFAULT_LEAD_DAYS,
+    val toScheduleLeadDays: Int = DEFAULT_TO_SCHEDULE_LEAD_DAYS,
     /** Reminders are on but the OS has notifications blocked, so the reminder would never fire. */
     val showPermissionWarning: Boolean = false,
 ) {
     companion object {
         const val DEFAULT_LEAD_DAYS = 7
         val LEAD_DAYS_OPTIONS = listOf(1, 3, 7, 14)
+        const val DEFAULT_TO_SCHEDULE_LEAD_DAYS = 14
+        val TO_SCHEDULE_LEAD_DAYS_OPTIONS = listOf(7, 14, 30)
     }
 }
 
@@ -53,12 +56,14 @@ class VaccineSettingsViewModel @Inject constructor(
             combine(
                 settings.getReminderEnabled(),
                 settings.getReminderLeadDays(),
+                settings.getToScheduleLeadDays(),
                 permissionGranted,
-            ) { enabled, leadDays, granted ->
+            ) { enabled, leadDays, toScheduleLeadDays, granted ->
                 VaccineSettingsUiState(
                     isLoading = false,
                     reminderEnabled = enabled,
                     leadDays = leadDays,
+                    toScheduleLeadDays = toScheduleLeadDays,
                     // Only warn when reminders are on: a blocked-but-disabled reminder is not a problem.
                     showPermissionWarning = enabled && !granted,
                 )
@@ -93,6 +98,13 @@ class VaccineSettingsViewModel @Inject constructor(
     fun onLeadDaysChange(days: Int) {
         viewModelScope.launch {
             settings.setReminderLeadDays(days)
+            reminderScheduler.rescheduleAll()
+        }
+    }
+
+    fun onToScheduleLeadDaysChange(days: Int) {
+        viewModelScope.launch {
+            settings.setToScheduleLeadDays(days)
             reminderScheduler.rescheduleAll()
         }
     }

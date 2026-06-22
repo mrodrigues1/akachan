@@ -29,6 +29,7 @@ class VaccineSettingsViewModelTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         every { settings.getReminderEnabled() } returns flowOf(false)
         every { settings.getReminderLeadDays() } returns flowOf(7)
+        every { settings.getToScheduleLeadDays() } returns flowOf(14)
         every { permissionChecker.areNotificationsEnabled() } returns true
     }
 
@@ -48,6 +49,24 @@ class VaccineSettingsViewModelTest {
     fun `lead-days change persists and reschedules`() = runTest {
         vm().onLeadDaysChange(3)
         coVerify { settings.setReminderLeadDays(3) }
+        coVerify { scheduler.rescheduleAll() }
+    }
+
+    @Test
+    fun `exposes the to-schedule lead from settings`() = runTest {
+        every { settings.getToScheduleLeadDays() } returns flowOf(30)
+        vm().uiState.test {
+            var s = awaitItem()
+            if (s.isLoading) s = awaitItem()
+            org.junit.jupiter.api.Assertions.assertEquals(30, s.toScheduleLeadDays)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `to-schedule lead change persists and reschedules`() = runTest {
+        vm().onToScheduleLeadDaysChange(7)
+        coVerify { settings.setToScheduleLeadDays(7) }
         coVerify { scheduler.rescheduleAll() }
     }
 

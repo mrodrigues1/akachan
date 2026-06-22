@@ -72,9 +72,9 @@ class VaccineViewModel @Inject constructor(
         }
 
     fun onModeChange(status: VaccineStatus) = _uiState.update {
-        // Scheduled vaccines must be in the future (AddVaccineRecordUseCase enforces it), so when
-        // switching to "schedule" and the current date is not already future, default to tomorrow.
-        val nextDate = if (status == VaccineStatus.SCHEDULED && !it.date.isAfter(now())) {
+        // Scheduled and to-schedule dates must be in the future (the add use case enforces it), so when
+        // switching to either and the current date is not already future, default to tomorrow.
+        val nextDate = if (status != VaccineStatus.ADMINISTERED && !it.date.isAfter(now())) {
             now().plus(1, ChronoUnit.DAYS)
         } else {
             it.date
@@ -135,7 +135,7 @@ class VaccineViewModel @Inject constructor(
                             name = state.name,
                             doseLabel = state.doseLabel,
                             status = state.status,
-                            scheduledDate = if (state.status == VaccineStatus.SCHEDULED) state.date else null,
+                            scheduledDate = if (state.status != VaccineStatus.ADMINISTERED) state.date else null,
                             administeredDate = if (state.status == VaccineStatus.ADMINISTERED) state.date else null,
                             notes = state.notes,
                             createdAt = state.editingCreatedAt ?: now(),
@@ -159,7 +159,7 @@ class VaccineViewModel @Inject constructor(
     private fun curatedSaveError(error: Throwable, state: VaccineUiState): Pair<Int, VaccineField?> = when {
         error !is IllegalArgumentException -> R.string.vaccine_save_error to null
         state.name.isBlank() -> R.string.vaccine_name_required to VaccineField.NAME
-        state.status == VaccineStatus.SCHEDULED -> R.string.vaccine_scheduled_future_error to VaccineField.DATE
+        state.status != VaccineStatus.ADMINISTERED -> R.string.vaccine_scheduled_future_error to VaccineField.DATE
         else -> R.string.vaccine_administered_past_error to VaccineField.DATE
     }
 }

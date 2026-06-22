@@ -148,8 +148,9 @@ fun VaccineSheet(
 
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 val modes = listOf(
-                    VaccineStatus.ADMINISTERED to R.string.vaccine_mode_administered,
+                    VaccineStatus.TO_SCHEDULE to R.string.vaccine_mode_to_schedule,
                     VaccineStatus.SCHEDULED to R.string.vaccine_mode_scheduled,
+                    VaccineStatus.ADMINISTERED to R.string.vaccine_mode_administered,
                 )
                 modes.forEachIndexed { index, (mode, labelRes) ->
                     SegmentedButton(
@@ -170,10 +171,10 @@ fun VaccineSheet(
 
             DateTimeFieldRow(
                 label = stringResource(
-                    if (state.status == VaccineStatus.SCHEDULED) {
-                        R.string.vaccine_date_scheduled_label
-                    } else {
-                        R.string.vaccine_date_administered_label
+                    when (state.status) {
+                        VaccineStatus.TO_SCHEDULE -> R.string.vaccine_date_to_schedule_label
+                        VaccineStatus.SCHEDULED -> R.string.vaccine_date_scheduled_label
+                        VaccineStatus.ADMINISTERED -> R.string.vaccine_date_administered_label
                     },
                 ),
                 timestamp = state.date,

@@ -63,6 +63,53 @@ class VaccineViewModelTest {
     }
 
     @Test
+    fun `switching to to-schedule saves with to-schedule status and a future target date`() = runTest {
+        val statusSlot = slot<VaccineStatus>()
+        val dateSlot = slot<Instant>()
+        coEvery { add(any(), any(), capture(statusSlot), capture(dateSlot), any()) } returns 3
+        val vm = viewModel()
+        vm.onNameChange("MMR")
+        vm.onModeChange(VaccineStatus.TO_SCHEDULE)
+        vm.onSave()
+        assertEquals(VaccineStatus.TO_SCHEDULE, statusSlot.captured)
+        assertTrue(dateSlot.captured.isAfter(fixedNow)) // defaulted to tomorrow on mode switch
+    }
+
+    @Test
+    fun `to-schedule save failure maps to the future-date message on the date field`() = runTest {
+        every { appContext.getString(R.string.vaccine_scheduled_future_error) } returns "needs a future date"
+        coEvery {
+            add(any(), any(), any(), any(), any())
+        } throws IllegalArgumentException("Scheduled date must be in the future")
+        val vm = viewModel()
+        vm.onNameChange("MMR")
+        vm.onModeChange(VaccineStatus.TO_SCHEDULE)
+        vm.onSave()
+        assertEquals("needs a future date", vm.uiState.value.validationError)
+        assertEquals(VaccineField.DATE, vm.uiState.value.errorField)
+    }
+
+    @Test
+    fun `edit reconstructs to-schedule target date into the scheduled field`() = runTest {
+        val captured = slot<VaccineRecord>()
+        coEvery { edit(capture(captured)) } returns Unit
+        val vm = viewModel()
+        vm.loadForEdit(
+            VaccineRecord(
+                id = 6,
+                name = "MMR",
+                status = VaccineStatus.TO_SCHEDULE,
+                scheduledDate = Instant.ofEpochMilli(99_000),
+                createdAt = Instant.ofEpochMilli(1),
+            ),
+        )
+        vm.onSave()
+        assertEquals(VaccineStatus.TO_SCHEDULE, captured.captured.status)
+        assertEquals(Instant.ofEpochMilli(99_000), captured.captured.scheduledDate)
+        assertNull(captured.captured.administeredDate)
+    }
+
+    @Test
     fun `edit reconstructs administered date field and preserves createdAt`() = runTest {
         val created = Instant.ofEpochMilli(10_000)
         val captured = slot<VaccineRecord>()
