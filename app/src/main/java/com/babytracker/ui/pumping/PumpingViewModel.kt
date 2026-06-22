@@ -16,10 +16,8 @@ import com.babytracker.domain.usecase.pumping.StopPumpingSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 import javax.inject.Inject
@@ -78,9 +76,6 @@ class PumpingViewModel @Inject constructor(
         },
     )
     val uiState: StateFlow<PumpingUiState> = _uiState.asStateFlow()
-
-    val activeSession: StateFlow<PumpingSession?> = pumpingRepository.getActiveSession()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val stoppingSessionIds = mutableSetOf<Long>()
     private val promptedStoppedSessionIds = mutableSetOf<Long>()
