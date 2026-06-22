@@ -47,8 +47,10 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * Labelled date + time row shared by entry sheets (bottle feed, milk bag, vaccine).
- * Two tappable [FieldCell]s open a date and a time picker respectively, both editing the same [Instant].
+ * Labelled date (+ optional time) row shared by entry sheets (bottle feed, milk bag, vaccine).
+ * Tappable [FieldCell]s open a date and a time picker, both editing the same [Instant]. Set
+ * [showTime] = false for day-granular records (vaccines): the time cell and its picker are dropped and
+ * the date cell spans the row, leaving the [Instant]'s time component untouched.
  * Pass [errorText] to surface an inline, screen-reader-announced validation message under the row.
  */
 @Composable
@@ -60,6 +62,7 @@ fun DateTimeFieldRow(
     enabled: Boolean = true,
     accent: FieldAccent? = null,
     errorText: String? = null,
+    showTime: Boolean = true,
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -86,12 +89,14 @@ fun DateTimeFieldRow(
                 enabled = enabled,
                 modifier = Modifier.weight(1f),
             )
-            FieldCell(
-                label = timestamp.formatTime12h(),
-                onClick = { showTimePicker = true },
-                enabled = enabled,
-                modifier = Modifier.weight(1f),
-            )
+            if (showTime) {
+                FieldCell(
+                    label = timestamp.formatTime12h(),
+                    onClick = { showTimePicker = true },
+                    enabled = enabled,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
         if (errorText != null) {
             Spacer(Modifier.height(4.dp))
@@ -119,7 +124,7 @@ fun DateTimeFieldRow(
         }
     }
 
-    if (showTimePicker) {
+    if (showTime && showTimePicker) {
         PickerAccentTheme(accent) {
             EditTimePicker(
                 initial = timestamp,

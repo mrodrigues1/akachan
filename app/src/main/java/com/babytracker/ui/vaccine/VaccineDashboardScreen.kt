@@ -79,6 +79,7 @@ import com.babytracker.ui.theme.VaccinePalette
 import com.babytracker.ui.theme.WarningContainerAmber
 import com.babytracker.ui.theme.WarningContainerAmberDark
 import com.babytracker.ui.theme.vaccineColors
+import java.time.ZoneId
 import java.util.Locale
 
 @Composable
@@ -255,10 +256,15 @@ private fun DashboardBody(
     onViewAll: () -> Unit,
     padding: PaddingValues,
 ) {
-    // The hero owns the single most urgent record; the schedule list shows everything after it,
-    // so a vaccine is never rendered twice.
-    val heroRecord = state.schedule.firstOrNull()
-    val remainingSchedule = state.schedule.drop(1)
+    // The hero owns the most urgent record(s); the schedule list shows everything after them, so a
+    // vaccine is never rendered twice. When nothing is overdue, the hero claims the whole soonest-day
+    // group (often one, sometimes several); an overdue hero claims only the single most-overdue record.
+    val heroRecords = if (state.mostOverdue != null) {
+        listOfNotNull(state.schedule.firstOrNull())
+    } else {
+        state.nextVaccines
+    }
+    val remainingSchedule = state.schedule.drop(heroRecords.size)
     val overdueColor = if (LocalDarkTheme.current) OnWarningContainerAmberDark else OnWarningContainerAmber
 
     // LazyColumn (not a scrolling Column) so a full immunization schedule recycles rows instead of
@@ -273,23 +279,24 @@ private fun DashboardBody(
         ),
     ) {
         item(key = "hero") {
+            val overdueRecord = state.mostOverdue
             when {
-                heroRecord != null && state.mostOverdue != null ->
+                overdueRecord != null ->
                     OverdueHero(
-                        record = heroRecord,
+                        record = overdueRecord,
                         overdueDays = state.mostOverdueDays ?: 0,
                         extraOverdue = state.overdueCount - 1,
-                        onEdit = { onEditRecord(heroRecord) },
-                        onMarkGiven = { onMarkGiven(heroRecord) },
+                        onEdit = { onEditRecord(overdueRecord) },
+                        onMarkGiven = { onMarkGiven(overdueRecord) },
                     )
 
-                heroRecord != null ->
+                state.nextVaccines.isNotEmpty() ->
                     NextUpHero(
-                        record = heroRecord,
+                        records = state.nextVaccines,
                         daysUntil = state.nextInDays ?: 0,
                         colors = colors,
-                        onEdit = { onEditRecord(heroRecord) },
-                        onMarkGiven = { onMarkGiven(heroRecord) },
+                        onEdit = onEditRecord,
+                        onMarkGiven = onMarkGiven,
                     )
 
                 else -> CaughtUpHero()
@@ -310,7 +317,7 @@ private fun DashboardBody(
             items(remainingSchedule, key = { "s_${it.id}" }) { record ->
                 ScheduleRow(
                     record = record,
-                    overdue = record.isOverdue(state.now),
+                    overdue = record.isOverdue(state.now, ZoneId.systemDefault()),
                     colors = colors,
                     overdueColor = overdueColor,
                     onEdit = { onEditRecord(record) },
@@ -343,9 +350,42 @@ private fun DashboardBody(
     }
 }
 
-/** Filled indigo hero for the soonest upcoming vaccine. The ghost button marks it given; pencil edits. */
+/**
+ * Filled indigo hero for the soonest upcoming day. With a single dose it keeps the spacious single-card
+ * layout (big countdown, name, one Mark-given button). When several doses share that day it lists each
+ * with its own check/edit controls under one shared countdown and date, so none is hidden in the list.
+ */
 @Composable
 private fun NextUpHero(
+    records: List<VaccineRecord>,
+    daysUntil: Int,
+    colors: VaccinePalette,
+    onEdit: (VaccineRecord) -> Unit,
+    onMarkGiven: (VaccineRecord) -> Unit,
+) {
+    val single = records.singleOrNull()
+    if (single != null) {
+        NextUpHeroSingle(
+            record = single,
+            daysUntil = daysUntil,
+            colors = colors,
+            onEdit = { onEdit(single) },
+            onMarkGiven = { onMarkGiven(single) },
+        )
+    } else {
+        NextUpHeroGroup(
+            records = records,
+            daysUntil = daysUntil,
+            colors = colors,
+            onEdit = onEdit,
+            onMarkGiven = onMarkGiven,
+        )
+    }
+}
+
+/** The classic single-dose next-up hero: prominent countdown, the dose, one Mark-given button. */
+@Composable
+private fun NextUpHeroSingle(
     record: VaccineRecord,
     daysUntil: Int,
     colors: VaccinePalette,
@@ -387,6 +427,92 @@ private fun NextUpHero(
         }
         Spacer(Modifier.height(16.dp))
         HeroMarkGivenButton(record = record, contentColor = colors.onAccent, onMarkGiven = onMarkGiven)
+    }
+}
+
+/** Multiple doses on the same day: one countdown + date header, then a row per dose with its controls. */
+@Composable
+private fun NextUpHeroGroup(
+    records: List<VaccineRecord>,
+    daysUntil: Int,
+    colors: VaccinePalette,
+    onEdit: (VaccineRecord) -> Unit,
+    onMarkGiven: (VaccineRecord) -> Unit,
+) {
+    val secondary = if (LocalDarkTheme.current) colors.onAccent else colors.onAccent.copy(alpha = 0.85f)
+    HeroCard(containerColor = colors.accent) {
+        // No per-card edit here: editing is per dose, on each row below.
+        Text(
+            text = stringResource(R.string.vaccine_next_up).uppercase(Locale.getDefault()),
+            style = MaterialTheme.typography.labelMedium,
+            color = secondary,
+            modifier = Modifier.semantics { heading() },
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = countdownLabel(daysUntil),
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold,
+            color = colors.onAccent,
+        )
+        // All doses share this day, so the date is stated once for the whole group.
+        records.firstOrNull()?.scheduledDate?.let {
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = stringResource(R.string.vaccine_scheduled_for, it.toVaccineDateLabel()),
+                style = MaterialTheme.typography.bodyMedium,
+                color = secondary,
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        records.forEach { record ->
+            NextUpHeroRow(
+                record = record,
+                contentColor = colors.onAccent,
+                onEdit = { onEdit(record) },
+                onMarkGiven = { onMarkGiven(record) },
+            )
+        }
+    }
+}
+
+/** One dose inside the grouped next-up hero: name, then independent mark-given and edit icon buttons. */
+@Composable
+private fun NextUpHeroRow(
+    record: VaccineRecord,
+    contentColor: Color,
+    onEdit: () -> Unit,
+    onMarkGiven: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = record.nameWithDose(),
+            style = MaterialTheme.typography.bodyLarge,
+            color = contentColor,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(onClick = onMarkGiven) {
+            Icon(
+                Icons.Outlined.CheckCircle,
+                contentDescription = stringResource(R.string.vaccine_mark_given_content_description, record.name),
+                tint = contentColor,
+            )
+        }
+        IconButton(onClick = onEdit) {
+            Icon(
+                Icons.Outlined.Edit,
+                contentDescription = stringResource(R.string.vaccine_edit_content_description, record.name),
+                tint = contentColor,
+                modifier = Modifier.size(18.dp),
+            )
+        }
     }
 }
 

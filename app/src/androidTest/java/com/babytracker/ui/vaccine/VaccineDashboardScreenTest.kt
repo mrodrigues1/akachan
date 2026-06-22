@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -47,9 +48,18 @@ class VaccineDashboardScreenTest {
         createdAt = now,
     )
 
+    private val sameDayDose = VaccineRecord(
+        id = 4,
+        name = "Rotavirus",
+        status = VaccineStatus.SCHEDULED,
+        scheduledDate = now.plusSeconds(7 * 86_400),
+        createdAt = now,
+    )
+
     private fun populatedState() = VaccineDashboardUiState(
         isLoading = false,
         nextVaccine = future,
+        nextVaccines = listOf(future),
         nextInDays = 7,
         mostOverdue = overdue,
         mostOverdueDays = 1,
@@ -57,6 +67,16 @@ class VaccineDashboardScreenTest {
         schedule = listOf(overdue, future),
         recentlyGiven = listOf(given),
         givenCount = 1,
+        now = now,
+    )
+
+    // No overdue, so the next-up hero claims the whole soonest-day group (DTaP + Rotavirus).
+    private fun sameDayNextState() = VaccineDashboardUiState(
+        isLoading = false,
+        nextVaccine = future,
+        nextVaccines = listOf(future, sameDayDose),
+        nextInDays = 7,
+        schedule = listOf(future, sameDayDose),
         now = now,
     )
 
@@ -105,6 +125,22 @@ class VaccineDashboardScreenTest {
         setContent(populatedState(), onMarkGiven = { marked = it })
         composeRule.onNodeWithText("Mark as given").performClick()
         composeRule.runOnIdle { assertEquals(1L, marked?.id) }
+    }
+
+    @Test
+    fun nextUpHeroListsEverySameDayDose() {
+        setContent(sameDayNextState())
+        // Both doses on the soonest day appear in the hero; neither is hidden in the schedule list.
+        composeRule.onNodeWithText("DTaP").assertIsDisplayed()
+        composeRule.onNodeWithText("Rotavirus").assertIsDisplayed()
+    }
+
+    @Test
+    fun groupedHeroMarkGivenFiresWithThatRowsRecord() {
+        var marked: VaccineRecord? = null
+        setContent(sameDayNextState(), onMarkGiven = { marked = it })
+        composeRule.onNodeWithContentDescription("Mark Rotavirus as given").performClick()
+        composeRule.runOnIdle { assertEquals(4L, marked?.id) }
     }
 
     @Test

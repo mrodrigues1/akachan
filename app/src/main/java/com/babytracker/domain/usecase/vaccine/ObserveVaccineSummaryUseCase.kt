@@ -2,13 +2,16 @@ package com.babytracker.domain.usecase.vaccine
 
 import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.domain.model.VaccineSummary
+import com.babytracker.domain.model.isOverdue
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
+import java.time.ZoneId
 import javax.inject.Inject
 
 class ObserveVaccineSummaryUseCase @Inject constructor(
     private val observeVaccineRecords: ObserveVaccineRecordsUseCase,
+    private val zone: ZoneId,
     private val now: () -> Instant,
 ) {
     operator fun invoke(): Flow<VaccineSummary> =
@@ -17,8 +20,9 @@ class ObserveVaccineSummaryUseCase @Inject constructor(
             val scheduled = records.filter {
                 it.status == VaccineStatus.SCHEDULED && it.scheduledDate != null
             }
-            val future = scheduled.filter { !it.scheduledDate!!.isBefore(current) }
-            val overdue = scheduled.filter { it.scheduledDate!!.isBefore(current) }
+            // Day-based overdue: a dose due today counts as upcoming, not overdue, on the home tile too.
+            val overdue = scheduled.filter { it.isOverdue(current, zone) }
+            val future = scheduled.filterNot { it.isOverdue(current, zone) }
             val administered = records.filter { it.status == VaccineStatus.ADMINISTERED }
             VaccineSummary(
                 nextUpcoming = future.minByOrNull { it.scheduledDate!! },
