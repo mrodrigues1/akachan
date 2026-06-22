@@ -134,6 +134,29 @@ class ValidateBackupUseCaseTest {
     }
 
     @Test
+    fun `accepts a to-schedule vaccine that has a target date`() {
+        val data = backup().copy(
+            vaccines = listOf(
+                VaccineBackup(id = 1, name = "MMR", status = "TO_SCHEDULE", scheduledDate = 1_900_000_000_000, createdAt = 1),
+            ),
+        )
+        val result = useCase(json.encodeToString(BackupData.serializer(), data))
+        assertEquals(1, result.vaccines.size)
+    }
+
+    @Test
+    fun `rejects a to-schedule vaccine with no target date`() {
+        val data = backup().copy(
+            vaccines = listOf(
+                VaccineBackup(id = 1, name = "MMR", status = "TO_SCHEDULE", scheduledDate = null, createdAt = 1),
+            ),
+        )
+        assertThrows(InvalidBackupException::class.java) {
+            useCase(json.encodeToString(BackupData.serializer(), data))
+        }
+    }
+
+    @Test
     fun `rejects a blank milestone title`() {
         val data = backup().copy(milestones = listOf(MilestoneBackup(title = "   ", dateEpochDay = 100)))
         assertThrows(InvalidBackupException::class.java) {

@@ -232,8 +232,11 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         val administered = vaccines
             .filter { it.status == VaccineStatus.ADMINISTERED }
             .sortedBy { it.administeredDate ?: it.createdAt }
+        // "Upcoming" is every non-administered dose: scheduled appointments and to-schedule targets
+        // alike (both carry scheduledDate). Folding to-schedule in here keeps the page-count mirror in
+        // [countPages] a single filter and guarantees every vaccine lands in exactly one sublist.
         val upcoming = vaccines
-            .filter { it.status == VaccineStatus.SCHEDULED }
+            .filter { it.status != VaccineStatus.ADMINISTERED }
             .sortedBy { it.scheduledDate ?: it.createdAt }
 
         val headerPos = ensureRoom(doc, start.page, start.y, totalPages)
@@ -426,7 +429,7 @@ class PdfReportGenerator @Inject constructor() : PdfReportRenderer {
         y += SECTION_GAP
 
         // Upcoming subsection (label + column headers + rows)
-        val upcomingCount = data.vaccines.count { it.status == VaccineStatus.SCHEDULED }
+        val upcomingCount = data.vaccines.count { it.status != VaccineStatus.ADMINISTERED }
         y = sim(y, MARGIN + LINE)
         y += LINE * 0.7f + LINE + LINE * 0.5f
         repeat(upcomingCount) {
