@@ -40,19 +40,24 @@ object VaccineNotificationHelper {
         }
     }
 
-    fun show(context: Context, vaccineName: String, scheduledDate: Instant) {
+    fun show(context: Context, vaccineName: String, scheduledDate: Instant, isToSchedule: Boolean = false) {
         val dateLabel = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault())
             .format(scheduledDate.atZone(ZoneId.systemDefault()).toLocalDate())
         val accent = NotificationHelper.resolveAccent(context, VaccineIndigo, VaccineIndigoDark)
+        val titleRes =
+            if (isToSchedule) R.string.vaccine_to_schedule_reminder_title else R.string.vaccine_reminder_title
+        val bodyRes =
+            if (isToSchedule) R.string.vaccine_to_schedule_reminder_body else R.string.vaccine_reminder_body
+        val title = context.getString(titleRes)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notif_limit)
             .setColor(accent)
             .setColorized(false)
             .setOnlyAlertOnce(true)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-            .setContentTitle(context.getString(R.string.vaccine_reminder_title))
-            .setContentText(context.getString(R.string.vaccine_reminder_body, vaccineName, dateLabel))
-            .setTicker(context.getString(R.string.vaccine_reminder_title))
+            .setContentTitle(title)
+            .setContentText(context.getString(bodyRes, vaccineName, dateLabel))
+            .setTicker(title)
             .setAutoCancel(true)
             .setOngoing(false)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -60,7 +65,7 @@ object VaccineNotificationHelper {
             .setContentIntent(tapPendingIntent(context))
             .build()
         context.getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification)
-        Log.d(TAG, "show posted (name=$vaccineName)")
+        Log.d(TAG, "show posted (name=$vaccineName, toSchedule=$isToSchedule)")
     }
 
     private fun tapPendingIntent(context: Context): PendingIntent =

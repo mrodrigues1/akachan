@@ -21,6 +21,9 @@ class VaccineSettingsRepositoryImpl @Inject constructor(
         val REMINDER_LEAD_DAYS = intPreferencesKey("vaccine_reminder_lead_days")
         const val DEFAULT_LEAD_DAYS = 7
         val ALLOWED_LEAD_DAYS = setOf(1, 3, 7, 14)
+        val TO_SCHEDULE_LEAD_DAYS = intPreferencesKey("vaccine_to_schedule_lead_days")
+        const val DEFAULT_TO_SCHEDULE_LEAD_DAYS = 14
+        val ALLOWED_TO_SCHEDULE_LEAD_DAYS = setOf(7, 14, 30)
     }
 
     override fun getReminderEnabled(): Flow<Boolean> =
@@ -39,5 +42,16 @@ class VaccineSettingsRepositoryImpl @Inject constructor(
     override suspend fun setReminderLeadDays(days: Int) {
         val sanitized = if (days in ALLOWED_LEAD_DAYS) days else DEFAULT_LEAD_DAYS
         dataStore.edit { it[REMINDER_LEAD_DAYS] = sanitized }
+    }
+
+    override fun getToScheduleLeadDays(): Flow<Int> =
+        dataStore.data.map { prefs ->
+            val stored = prefs[TO_SCHEDULE_LEAD_DAYS] ?: DEFAULT_TO_SCHEDULE_LEAD_DAYS
+            if (stored in ALLOWED_TO_SCHEDULE_LEAD_DAYS) stored else DEFAULT_TO_SCHEDULE_LEAD_DAYS
+        }
+
+    override suspend fun setToScheduleLeadDays(days: Int) {
+        val sanitized = if (days in ALLOWED_TO_SCHEDULE_LEAD_DAYS) days else DEFAULT_TO_SCHEDULE_LEAD_DAYS
+        dataStore.edit { it[TO_SCHEDULE_LEAD_DAYS] = sanitized }
     }
 }

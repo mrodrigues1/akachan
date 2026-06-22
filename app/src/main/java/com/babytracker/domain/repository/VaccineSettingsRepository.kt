@@ -7,4 +7,6 @@ interface VaccineSettingsRepository {
     suspend fun setReminderEnabled(enabled: Boolean)
     fun getReminderLeadDays(): Flow<Int>
     suspend fun setReminderLeadDays(days: Int)
+    fun getToScheduleLeadDays(): Flow<Int>
+    suspend fun setToScheduleLeadDays(days: Int)
 }

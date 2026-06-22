@@ -31,10 +31,12 @@ class VaccineReminderReceiver : BroadcastReceiver() {
     internal suspend fun handle(context: Context, id: Long) {
         if (!settings.getReminderEnabled().first()) return
         val record = repository.getById(id) ?: return
-        if (record.status != VaccineStatus.SCHEDULED) return
-        val scheduled = record.scheduledDate ?: return
+        if (record.status != VaccineStatus.SCHEDULED && record.status != VaccineStatus.TO_SCHEDULE) return
+        val target = record.scheduledDate ?: return
         runCatching {
-            VaccineNotificationHelper.show(context, record.name, scheduled)
+            VaccineNotificationHelper.show(
+                context, record.name, target, isToSchedule = record.status == VaccineStatus.TO_SCHEDULE,
+            )
         }.onFailure { if (it is SecurityException) Log.w(TAG, "POST_NOTIFICATIONS denied", it) else throw it }
     }
 
