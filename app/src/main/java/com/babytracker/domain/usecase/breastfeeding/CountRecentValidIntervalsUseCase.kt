@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.time.Duration
-import java.time.Instant
 import java.time.ZoneId
 import javax.inject.Inject
 
@@ -41,20 +40,10 @@ class CountRecentValidIntervalsUseCase @Inject constructor(
             }
             .filter { (_, _, minutes) -> minutes <= PredictionTuning.INTERVAL_MAX_MINUTES }
             .filter { (endpointA, endpointB, _) ->
-                !endpointInQuietHours(endpointA, qhStart, qhEnd) &&
-                    !endpointInQuietHours(endpointB, qhStart, qhEnd)
+                !isEndpointInQuietHours(endpointA, zoneId, qhStart, qhEnd) &&
+                    !isEndpointInQuietHours(endpointB, zoneId, qhStart, qhEnd)
             }
 
         return filtered.take(PredictionTuning.SAMPLE_SIZE_TARGET).size
-    }
-
-    private fun endpointInQuietHours(endpoint: Instant, startMinute: Int, endMinute: Int): Boolean {
-        if (startMinute == endMinute) return false
-        val localMinute = endpoint.atZone(zoneId).toLocalTime().toSecondOfDay() / 60
-        return if (startMinute < endMinute) {
-            localMinute in startMinute until endMinute
-        } else {
-            localMinute >= startMinute || localMinute <= endMinute
-        }
     }
 }
