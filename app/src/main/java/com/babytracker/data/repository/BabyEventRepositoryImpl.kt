@@ -18,9 +18,6 @@ class BabyEventRepositoryImpl @Inject constructor(
 
     override suspend fun logEvent(event: BabyEvent) = dao.insertEvent(event.toEntity())
 
-    override fun getAllEvents(): Flow<List<BabyEvent>> =
-        dao.getAllEvents().map { entities -> entities.map { it.toDomain() } }
-
     override fun getEventsSince(cutoff: Instant): Flow<List<BabyEvent>> =
         dao.getEventsSince(cutoff.toEpochMilli()).map { entities -> entities.map { it.toDomain() } }
 }
