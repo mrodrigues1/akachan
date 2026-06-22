@@ -3,6 +3,8 @@ package com.babytracker.export.domain.usecase
 import com.babytracker.export.domain.BackupSource
 import com.babytracker.export.domain.ExportMetadata
 import com.babytracker.export.domain.model.BackupData
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
@@ -36,6 +38,8 @@ class ExportBackupUseCase @Inject constructor(
             visitQuestions = tracking.visitQuestions,
         )
 
-        return json.encodeToString(BackupData.serializer(), backup)
+        // Serializing the whole dataset to a pretty-printed JSON string is CPU-bound; keep it off the
+        // main thread (the Room reads above already run off-main via the BackupSource).
+        return withContext(Dispatchers.Default) { json.encodeToString(BackupData.serializer(), backup) }
     }
 }
