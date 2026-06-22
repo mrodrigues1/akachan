@@ -23,6 +23,12 @@ interface VaccineDao {
     )
     suspend fun getScheduledFutureAfter(nowMs: Long): List<VaccineEntity>
 
+    @Query(
+        "SELECT * FROM vaccines WHERE status = 'TO_SCHEDULE' AND scheduled_date IS NOT NULL " +
+            "AND scheduled_date > :nowMs ORDER BY scheduled_date ASC",
+    )
+    suspend fun getToScheduleFutureAfter(nowMs: Long): List<VaccineEntity>
+
     @Query("SELECT * FROM vaccines ORDER BY created_at ASC")
     suspend fun getAllOnce(): List<VaccineEntity>
 

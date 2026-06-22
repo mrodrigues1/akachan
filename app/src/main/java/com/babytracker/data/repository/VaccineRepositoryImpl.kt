@@ -23,6 +23,9 @@ class VaccineRepositoryImpl @Inject constructor(
     override suspend fun getScheduledFutureAfter(nowMs: Long): List<VaccineRecord> =
         dao.getScheduledFutureAfter(nowMs).map { it.toDomain() }
 
+    override suspend fun getToScheduleFutureAfter(nowMs: Long): List<VaccineRecord> =
+        dao.getToScheduleFutureAfter(nowMs).map { it.toDomain() }
+
     override suspend fun getAllOnce(): List<VaccineRecord> = dao.getAllOnce().map { it.toDomain() }
 
     override suspend fun getById(id: Long): VaccineRecord? = dao.getById(id)?.toDomain()

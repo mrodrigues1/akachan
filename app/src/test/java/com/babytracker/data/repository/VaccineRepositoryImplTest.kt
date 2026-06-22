@@ -62,4 +62,22 @@ class VaccineRepositoryImplTest {
         repository.deleteById(9)
         coVerify { dao.deleteById(9) }
     }
+
+    @Test
+    fun `getToScheduleFutureAfter maps dao rows to domain`() = runTest {
+        val entity = VaccineEntity(
+            id = 7,
+            name = "MMR",
+            status = "TO_SCHEDULE",
+            scheduledDate = 1_900_000_000_000,
+            createdAt = 1_700_000_000_000,
+        )
+        coEvery { dao.getToScheduleFutureAfter(any()) } returns listOf(entity)
+
+        val result = repository.getToScheduleFutureAfter(1_800_000_000_000)
+
+        assertEquals(1, result.size)
+        assertEquals(VaccineStatus.TO_SCHEDULE, result.first().status)
+        coVerify { dao.getToScheduleFutureAfter(1_800_000_000_000) }
+    }
 }

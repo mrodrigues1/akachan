@@ -44,4 +44,27 @@ class VaccineRecordTest {
         assertFalse(tomorrow.isOverdue(now, zone))
         assertFalse(administered.isOverdue(now, zone))
     }
+
+    @Test
+    fun `isPastTarget only when to-schedule and a whole day past`() {
+        val base = VaccineRecord(
+            name = "MMR",
+            status = VaccineStatus.TO_SCHEDULE,
+            scheduledDate = now,
+            createdAt = now,
+        )
+        val yesterday = base.copy(scheduledDate = now.minusSeconds(86_400))
+        val earlierToday = base.copy(scheduledDate = now.minusSeconds(3_600))
+        val tomorrow = base.copy(scheduledDate = now.plusSeconds(86_400))
+        val noDate = base.copy(scheduledDate = null)
+        val scheduledPast = base.copy(
+            status = VaccineStatus.SCHEDULED,
+            scheduledDate = now.minusSeconds(86_400),
+        )
+        assertTrue(yesterday.isPastTarget(now, zone))
+        assertFalse(earlierToday.isPastTarget(now, zone))
+        assertFalse(tomorrow.isPastTarget(now, zone))
+        assertFalse(noDate.isPastTarget(now, zone))
+        assertFalse(scheduledPast.isPastTarget(now, zone))
+    }
 }

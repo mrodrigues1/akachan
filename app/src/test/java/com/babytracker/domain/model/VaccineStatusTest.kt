@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 class VaccineStatusTest {
     @Test
     fun `parses enum names`() {
+        assertEquals(VaccineStatus.TO_SCHEDULE, "TO_SCHEDULE".toVaccineStatusOrNull())
         assertEquals(VaccineStatus.SCHEDULED, "SCHEDULED".toVaccineStatusOrNull())
         assertEquals(VaccineStatus.ADMINISTERED, "ADMINISTERED".toVaccineStatusOrNull())
     }
@@ -19,5 +20,6 @@ class VaccineStatusTest {
     @Test
     fun `safe defaults to ADMINISTERED`() {
         assertEquals(VaccineStatus.ADMINISTERED, "garbage".toVaccineStatusSafe())
+        assertEquals(VaccineStatus.TO_SCHEDULE, "TO_SCHEDULE".toVaccineStatusSafe())
     }
 }
