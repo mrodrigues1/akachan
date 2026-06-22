@@ -56,12 +56,14 @@ class DoctorVisitDashboardViewModelTest {
         VisitQuestion(id = id, text = text, answered = answered, createdAt = Instant.EPOCH)
 
     @Test
-    fun `derives next visit, recent visits, and open questions`() = runTest {
+    fun `derives next visit, remaining upcoming, recent visits, and open questions`() = runTest {
         every { observeVisits() } returns flowOf(
             listOf(
                 visit(1, offsetDays = 3, provider = "Dr. Silva"),
                 visit(2, offsetDays = -2, provider = "Dr. Costa"),
                 visit(3, offsetDays = -10),
+                visit(4, offsetDays = 20, provider = "Dr. Lima"),
+                visit(5, offsetDays = 10, provider = "Dr. Reis"),
             ),
         )
         every { observeInbox() } returns flowOf(
@@ -78,10 +80,27 @@ class DoctorVisitDashboardViewModelTest {
             if (state.isLoading) state = awaitItem()
             assertEquals(1L, state.nextVisit?.id)
             assertEquals(3, state.nextVisitInDays)
+            // Soonest first, hero's nearest visit dropped.
+            assertEquals(listOf(5L, 4L), state.upcomingVisits.map { it.id })
             assertEquals(listOf(2L, 3L), state.recentVisits.map { it.id })
             assertEquals(listOf(10L, 12L), state.questions.map { it.id })
             assertEquals(2, state.openQuestionCount)
             assertTrue(!state.isFirstRun)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `upcoming list is empty when only one visit is scheduled`() = runTest {
+        every { observeVisits() } returns flowOf(listOf(visit(1, offsetDays = 3)))
+        every { observeInbox() } returns flowOf(emptyList())
+        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+
+        vm.uiState.test {
+            var state = awaitItem()
+            if (state.isLoading) state = awaitItem()
+            assertEquals(1L, state.nextVisit?.id)
+            assertTrue(state.upcomingVisits.isEmpty())
             cancelAndIgnoreRemainingEvents()
         }
     }

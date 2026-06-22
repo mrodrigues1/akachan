@@ -38,6 +38,9 @@ data class DoctorVisitDashboardUiState(
     /** Whole-day countdown to [nextVisit], computed against the injected clock so the hero's
      *  "Today/Tomorrow" boundary agrees with [isUpcoming] instead of a recomposition-time wall clock. */
     val nextVisitInDays: Int? = null,
+    /** The remaining scheduled visits after [nextVisit], soonest first, so the dashboard surfaces
+     *  every upcoming appointment instead of hiding all but the nearest behind the History screen. */
+    val upcomingVisits: List<DoctorVisit> = emptyList(),
     val recentVisits: List<DoctorVisit> = emptyList(),
     val questions: List<VisitQuestion> = emptyList(),
     val openQuestionCount: Int = 0,
@@ -81,10 +84,13 @@ class DoctorVisitDashboardViewModel @Inject constructor(
                 lastAnswered,
             ) { visits, inbox, draftText, answered ->
                 val instant = now()
-                val upcoming = visits.filter { it.isUpcoming(instant) }.minByOrNull { it.date }
+                // Soonest first: the head feeds the hero, the tail the "Upcoming" list. Sorting once
+                // keeps the two presentations from drifting out of order.
+                val upcoming = visits.filter { it.isUpcoming(instant) }.sortedBy { it.date }
+                val nextVisit = upcoming.firstOrNull()
                 val zone = ZoneId.systemDefault()
                 val today = instant.atZone(zone).toLocalDate()
-                val daysUntil = upcoming?.let {
+                val daysUntil = nextVisit?.let {
                     ChronoUnit.DAYS.between(today, it.date.atZone(zone).toLocalDate()).toInt()
                 }
                 val recent = visits
@@ -94,8 +100,9 @@ class DoctorVisitDashboardViewModel @Inject constructor(
                 val unanswered = inbox.filterNot { it.answered }
                 DoctorVisitDashboardUiState(
                     isLoading = false,
-                    nextVisit = upcoming,
+                    nextVisit = nextVisit,
                     nextVisitInDays = daysUntil,
+                    upcomingVisits = upcoming.drop(1),
                     recentVisits = recent,
                     questions = unanswered.take(QUESTION_PREVIEW_LIMIT),
                     openQuestionCount = unanswered.size,
