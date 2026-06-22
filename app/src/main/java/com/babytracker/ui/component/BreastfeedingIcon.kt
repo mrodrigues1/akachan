@@ -73,6 +73,24 @@ fun DiaperIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun GrowthIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_growth_section),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}
+
+@Composable
+fun MilestoneIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_milestone_section),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}
+
+@Composable
 fun DiaperTypeIcon(
     type: DiaperType,
     modifier: Modifier = Modifier,
