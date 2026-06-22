@@ -1331,7 +1331,7 @@
     </plurals>
 
     <!-- Doctor Visit — partner dashboard -->
-    <string name="partner_doctor_visits_heading">🩺 Consultas médicas</string>
+    <string name="partner_doctor_visits_heading">Consultas médicas</string>
     <string name="partner_doctor_visits_empty">Nenhuma consulta compartilhada</string>
 
     <!-- Fraldas — painel do parceiro -->

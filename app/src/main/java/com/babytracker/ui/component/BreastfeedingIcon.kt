@@ -109,6 +109,15 @@ fun VaccineIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun DoctorVisitIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_doctor_visit_section),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}
+
+@Composable
 fun DiaperTypeIcon(
     type: DiaperType,
     modifier: Modifier = Modifier,
