@@ -23,7 +23,9 @@ class AddVaccineRecordUseCase @Inject constructor(
         require(trimmedName.isNotBlank()) { "Vaccine name is required" }
         val record = when (status) {
             VaccineStatus.ADMINISTERED -> {
-                require(!date.isAfter(now())) { "Administered date cannot be in the future" }
+                // A future "given" date is allowed (the parent may pre-log an appointment they just
+                // attended whose date is technically ahead of the clock, or a forward-dated entry);
+                // the UI warns about it rather than blocking the save.
                 VaccineRecord(
                     name = trimmedName,
                     doseLabel = doseLabel?.takeIf { it.isNotBlank() },

@@ -24,7 +24,7 @@ class EditVaccineRecordUseCaseTest {
     fun setup() {
         repository = mockk(relaxed = true)
         scheduler = mockk(relaxed = true)
-        useCase = EditVaccineRecordUseCase(repository, scheduler) { fixedNow }
+        useCase = EditVaccineRecordUseCase(repository, scheduler)
     }
 
     @Test
@@ -46,6 +46,25 @@ class EditVaccineRecordUseCaseTest {
         assertEquals(null, captured.captured.doseLabel)
         assertEquals(null, captured.captured.notes)
         coVerify { scheduler.schedule(match { it.id == 2L }) }
+    }
+
+    @Test
+    fun `administered allows a future date`() = runTest {
+        // Future "given" dates are permitted now (the UI warns instead of blocking the save).
+        val captured = slot<VaccineRecord>()
+        val future = Instant.ofEpochMilli(50_000) // after fixedNow (10_000)
+        coEvery { repository.update(capture(captured)) } returns Unit
+        useCase(
+            VaccineRecord(
+                id = 3,
+                name = "MMR",
+                status = VaccineStatus.ADMINISTERED,
+                administeredDate = future,
+                createdAt = fixedNow,
+            ),
+        )
+        assertEquals(future, captured.captured.administeredDate)
+        coVerify { scheduler.schedule(match { it.id == 3L }) }
     }
 
     @Test

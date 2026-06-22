@@ -4,20 +4,19 @@ import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.domain.repository.VaccineRepository
 import com.babytracker.manager.VaccineReminderScheduler
-import java.time.Instant
 import javax.inject.Inject
 
 class EditVaccineRecordUseCase @Inject constructor(
     private val repository: VaccineRepository,
     private val reminderScheduler: VaccineReminderScheduler,
-    private val now: () -> Instant,
 ) {
     suspend operator fun invoke(record: VaccineRecord) {
         require(record.name.isNotBlank()) { "Vaccine name is required" }
         when (record.status) {
-            VaccineStatus.ADMINISTERED -> require(
-                record.administeredDate != null && !record.administeredDate.isAfter(now()),
-            ) { "Administered date is required and cannot be in the future" }
+            // A future "given" date is allowed; the UI warns about it instead of blocking the save.
+            VaccineStatus.ADMINISTERED -> require(record.administeredDate != null) {
+                "Administered date is required"
+            }
             VaccineStatus.SCHEDULED -> require(record.scheduledDate != null) {
                 "Scheduled date is required"
             }

@@ -49,11 +49,15 @@ class AddVaccineRecordUseCaseTest {
     }
 
     @Test
-    fun `administered rejects future date`() = runTest {
-        val error = runCatching {
-            useCase("MMR", null, VaccineStatus.ADMINISTERED, Instant.ofEpochMilli(20_000))
-        }.exceptionOrNull()
-        assertEquals(IllegalArgumentException::class.java, error?.javaClass)
+    fun `administered allows a future date`() = runTest {
+        // Future "given" dates are permitted now (the UI warns instead of blocking the save).
+        val captured = slot<VaccineRecord>()
+        val future = Instant.ofEpochMilli(20_000) // after fixedNow (10_000)
+        coEvery { repository.insert(capture(captured)) } returns 7
+        val id = useCase("MMR", null, VaccineStatus.ADMINISTERED, future)
+        assertEquals(7, id)
+        assertEquals(VaccineStatus.ADMINISTERED, captured.captured.status)
+        assertEquals(future, captured.captured.administeredDate)
     }
 
     @Test
