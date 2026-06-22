@@ -20,7 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Vaccines
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,6 +58,7 @@ import com.babytracker.R
 import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.isOverdue
 import com.babytracker.domain.model.isPastTarget
+import com.babytracker.ui.component.VaccineIcon
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
 import com.babytracker.ui.theme.OnWarningContainerAmberDark
@@ -179,7 +179,7 @@ fun VaccineHistoryContent(
         when {
             state.isLoading -> HistorySkeleton(Modifier.padding(padding))
             state.isError -> HistoryError(colors = vaccine, onRetry = onRetry, modifier = Modifier.padding(padding))
-            state.isEmpty -> HistoryEmpty(colors = vaccine, modifier = Modifier.padding(padding))
+            state.isEmpty -> HistoryEmpty(modifier = Modifier.padding(padding))
             else -> HistoryList(
                 state = state,
                 vaccine = vaccine,
@@ -407,7 +407,7 @@ private fun AdministeredRow(
 }
 
 @Composable
-private fun HistoryEmpty(colors: VaccinePalette, modifier: Modifier = Modifier) {
+private fun HistoryEmpty(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -415,12 +415,7 @@ private fun HistoryEmpty(colors: VaccinePalette, modifier: Modifier = Modifier) 
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            Icons.Outlined.Vaccines,
-            contentDescription = null,
-            tint = colors.accent.copy(alpha = 0.7f),
-            modifier = Modifier.size(48.dp),
-        )
+        VaccineIcon(modifier = Modifier.size(64.dp))
         Spacer(Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.vaccine_history_empty),
@@ -486,4 +481,3 @@ private fun HistorySkeleton(modifier: Modifier = Modifier) {
         }
     }
 }
-
