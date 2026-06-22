@@ -223,6 +223,43 @@ fun VaccineSettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.vaccine_to_schedule_lead_label),
+                style = MaterialTheme.typography.titleSmall,
+                color = if (state.reminderEnabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+            )
+            val toScheduleOptions = VaccineSettingsUiState.TO_SCHEDULE_LEAD_DAYS_OPTIONS
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                toScheduleOptions.forEachIndexed { index, days ->
+                    SegmentedButton(
+                        selected = state.toScheduleLeadDays == days,
+                        onClick = { viewModel.onToScheduleLeadDaysChange(days) },
+                        enabled = state.reminderEnabled,
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = toScheduleOptions.size),
+                        colors = SegmentedButtonDefaults.colors(
+                            activeContainerColor = vaccine.container,
+                            activeContentColor = vaccine.onContainer,
+                        ),
+                        label = {
+                            Text(pluralStringResource(R.plurals.vaccine_reminder_lead_option, days, days))
+                        },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.vaccine_to_schedule_lead_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
         }
     }
 }

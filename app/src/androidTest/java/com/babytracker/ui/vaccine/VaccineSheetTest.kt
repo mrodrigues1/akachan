@@ -57,11 +57,19 @@ class VaccineSheetTest {
     }
 
     @Test
-    fun rendersBothModeSegments() {
+    fun rendersAllThreeModeSegments() {
         setSheet(state())
 
+        composeRule.onNodeWithText("To schedule").assertIsDisplayed()
         composeRule.onNodeWithText("Already given").assertIsDisplayed()
         composeRule.onNodeWithText("Schedule for later").assertIsDisplayed()
+    }
+
+    @Test
+    fun toScheduleStateShowsTargetDateLabel() {
+        setSheet(state(status = VaccineStatus.TO_SCHEDULE))
+
+        composeRule.onNodeWithText("Target date").assertIsDisplayed()
     }
 
     @Test
