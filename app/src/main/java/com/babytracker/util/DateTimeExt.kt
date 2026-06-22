@@ -10,32 +10,39 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
+
+/**
+ * Caches parsed [DateTimeFormatter]s so hot paths (per-row PDF/history formatting) don't re-parse the
+ * same pattern on every call — pattern parsing is the expensive part of `ofPattern`. Keyed by both the
+ * pattern and the current FORMAT locale so a runtime language switch (en ↔ pt-BR) still picks the right
+ * month/AM-PM text instead of freezing it. The zone is applied per call by the callers, matching the
+ * previous `withZone(systemDefault())` behavior exactly.
+ */
+private val patternFormatters = ConcurrentHashMap<String, DateTimeFormatter>()
+
+private fun patternFormatter(pattern: String): DateTimeFormatter {
+    val locale = Locale.getDefault(Locale.Category.FORMAT)
+    return patternFormatters.getOrPut("$pattern|$locale") {
+        DateTimeFormatter.ofPattern(pattern, locale)
+    }
+}
 
 fun Instant.formatTime(): String =
-    DateTimeFormatter.ofPattern("HH:mm")
-        .withZone(ZoneId.systemDefault())
-        .format(this)
+    patternFormatter("HH:mm").format(this.atZone(ZoneId.systemDefault()))
 
 fun Instant.formatDateTime(): String =
-    DateTimeFormatter.ofPattern("MMM dd, HH:mm")
-        .withZone(ZoneId.systemDefault())
-        .format(this)
+    patternFormatter("MMM dd, HH:mm").format(this.atZone(ZoneId.systemDefault()))
 
 fun Instant.formatPdfDateTime(): String =
-    DateTimeFormatter.ofPattern("MMM dd yyyy, HH:mm")
-        .withZone(ZoneId.systemDefault())
-        .format(this)
+    patternFormatter("MMM dd yyyy, HH:mm").format(this.atZone(ZoneId.systemDefault()))
 
 fun Instant.formatTime12h(): String =
-    DateTimeFormatter.ofPattern("hh:mm a")
-        .withZone(ZoneId.systemDefault())
-        .format(this)
+    patternFormatter("hh:mm a").format(this.atZone(ZoneId.systemDefault()))
 
 /** 12-hour clock time without a leading zero on the hour ("9:05 AM"). Used by notification copy. */
 fun Instant.formatClockTime12h(): String =
-    DateTimeFormatter.ofPattern("h:mm a")
-        .withZone(ZoneId.systemDefault())
-        .format(this)
+    patternFormatter("h:mm a").format(this.atZone(ZoneId.systemDefault()))
 
 /**
  * Duration between two wall-clock times on [onDate], treating an end-before-start pair as crossing
@@ -86,7 +93,7 @@ fun LocalDate.toRelativeLabel(today: String, yesterday: String): String {
     return when (this) {
         now -> today
         now.minusDays(1) -> yesterday
-        else -> DateTimeFormatter.ofPattern("MMM d").format(this)
+        else -> patternFormatter("MMM d").format(this)
     }
 }
 
