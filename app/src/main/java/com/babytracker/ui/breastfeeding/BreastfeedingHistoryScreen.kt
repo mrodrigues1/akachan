@@ -65,9 +65,9 @@ fun BreastfeedingHistoryScreen(
 ) {
     val history by viewModel.history.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val grouped = history.groupByLocalDate { it.startTime }
-    val sortedGroups = remember(grouped) {
-        grouped.entries
+    val sortedGroups = remember(history) {
+        history.groupByLocalDate { it.startTime }
+            .entries
             .sortedByDescending { it.key }
             .map { (date, sessions) ->
                 val totalDuration = sessions

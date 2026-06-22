@@ -138,9 +138,9 @@ internal fun PumpingHistoryContent(
             return@Box
         }
 
-        val grouped = state.sessions.groupByLocalDate { it.startTime }
-        val sortedGroups = remember(grouped) {
-            grouped.entries.sortedByDescending { it.key }.map { (date, sessions) -> date to sessions }
+        val sortedGroups = remember(state.sessions) {
+            state.sessions.groupByLocalDate { it.startTime }
+                .entries.sortedByDescending { it.key }.map { (date, sessions) -> date to sessions }
         }
 
         LazyColumn(
