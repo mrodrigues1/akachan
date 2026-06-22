@@ -13,9 +13,6 @@ interface BabyEventDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEvent(event: BabyEventEntity)
 
-    @Query("SELECT * FROM baby_events ORDER BY timestamp DESC")
-    fun getAllEvents(): Flow<List<BabyEventEntity>>
-
     @Query("SELECT * FROM baby_events WHERE timestamp >= :cutoffMs ORDER BY timestamp DESC")
     fun getEventsSince(cutoffMs: Long): Flow<List<BabyEventEntity>>
 }

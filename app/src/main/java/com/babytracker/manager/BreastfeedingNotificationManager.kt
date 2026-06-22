@@ -29,7 +29,6 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
                 sessionId = sessionId,
                 currentSide = currentSide,
                 elapsedMinutes = maxTotalMinutes,
-                maxPerBreastMinutes = maxPerBreastMinutes,
                 maxTotalMinutes = maxTotalMinutes
             )
         )
@@ -51,7 +50,6 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
                 sessionId = sessionId,
                 currentSide = currentSide,
                 elapsedMinutes = maxPerBreastMinutes,
-                maxPerBreastMinutes = maxPerBreastMinutes,
                 maxTotalMinutes = maxTotalMinutes
             )
         )
@@ -72,7 +70,6 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
                 sessionId = sessionId,
                 currentSide = currentSide,
                 elapsedMinutes = maxTotalMinutes,
-                maxPerBreastMinutes = maxPerBreastMinutes,
                 maxTotalMinutes = maxTotalMinutes
             )
         )
@@ -93,7 +90,6 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
                 sessionId = sessionId,
                 currentSide = currentSide,
                 elapsedMinutes = maxPerBreastMinutes,
-                maxPerBreastMinutes = maxPerBreastMinutes,
                 maxTotalMinutes = maxTotalMinutes
             )
         )
@@ -116,7 +112,6 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
             putExtra("session_id", request.sessionId)
             putExtra("current_side", request.currentSide)
             putExtra("elapsed_minutes", request.elapsedMinutes)
-            putExtra("max_per_breast_minutes", request.maxPerBreastMinutes)
             putExtra("max_total_minutes", request.maxTotalMinutes)
         }
         val pendingIntent = PendingIntent.getBroadcast(
@@ -143,7 +138,6 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
         val sessionId: Long,
         val currentSide: String,
         val elapsedMinutes: Int,
-        val maxPerBreastMinutes: Int,
         val maxTotalMinutes: Int
     )
 
