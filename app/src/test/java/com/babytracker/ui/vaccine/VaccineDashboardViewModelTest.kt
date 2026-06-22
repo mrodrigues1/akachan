@@ -6,6 +6,8 @@ import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.domain.usecase.vaccine.DeleteVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
+import com.babytracker.domain.usecase.vaccine.RestoreVaccineRecordUseCase
+import com.babytracker.domain.usecase.vaccine.UndoMarkVaccineAdministeredUseCase
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -31,7 +33,9 @@ import java.time.ZoneId
 class VaccineDashboardViewModelTest {
     private val observeRecords = mockk<ObserveVaccineRecordsUseCase>()
     private val markGiven = mockk<MarkVaccineAdministeredUseCase>(relaxed = true)
+    private val undoMarkGiven = mockk<UndoMarkVaccineAdministeredUseCase>(relaxed = true)
     private val delete = mockk<DeleteVaccineRecordUseCase>(relaxed = true)
+    private val restore = mockk<RestoreVaccineRecordUseCase>(relaxed = true)
 
     private val zone = ZoneId.of("UTC")
     private val nowInstant = Instant.parse("2026-06-21T12:00:00Z")
@@ -59,7 +63,8 @@ class VaccineDashboardViewModelTest {
         createdAt = Instant.EPOCH,
     )
 
-    private fun viewModel() = VaccineDashboardViewModel(observeRecords, markGiven, delete, zone, now)
+    private fun viewModel() =
+        VaccineDashboardViewModel(observeRecords, markGiven, undoMarkGiven, delete, restore, zone, now)
 
     @Test
     fun `derives overdue hero, schedule order, and recently given`() = runTest {
@@ -177,7 +182,7 @@ class VaccineDashboardViewModelTest {
     }
 
     @Test
-    fun `markGiven defers the write, hides the row, and shows it as given optimistically`() = runTest {
+    fun `markGiven commits immediately, hides the row, and shows it as given`() = runTest {
         val record = scheduled(1, offsetDays = 7)
         every { observeRecords() } returns flowOf(listOf(record))
         val vm = viewModel()
@@ -195,12 +200,13 @@ class VaccineDashboardViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
 
-        // Nothing committed during the undo window.
-        coVerify(exactly = 0) { markGiven(any(), any()) }
+        // The write fires the moment the parent taps, so it can't be lost when the screen leaves
+        // composition before the undo snackbar resolves (the original bug).
+        coVerify(exactly = 1) { markGiven(1L, any()) }
     }
 
     @Test
-    fun `undoMarkGiven reveals the row again without writing`() = runTest {
+    fun `undoMarkGiven reverts the committed write and reveals the row`() = runTest {
         val record = scheduled(1, offsetDays = 7)
         every { observeRecords() } returns flowOf(listOf(record))
         val vm = viewModel()
@@ -220,11 +226,13 @@ class VaccineDashboardViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
 
-        coVerify(exactly = 0) { markGiven(any(), any()) }
+        coVerify(exactly = 1) { markGiven(1L, any()) }
+        // Undo writes the original scheduled record straight back.
+        coVerify(exactly = 1) { undoMarkGiven(record) }
     }
 
     @Test
-    fun `onMarkGivenConsumed commits the mark-given write`() = runTest {
+    fun `onMarkGivenConsumed closes the undo window without a second write`() = runTest {
         val record = scheduled(1, offsetDays = 7)
         every { observeRecords() } returns flowOf(listOf(record))
         val vm = viewModel()
@@ -233,11 +241,30 @@ class VaccineDashboardViewModelTest {
         vm.onMarkGivenConsumed()
         advanceUntilIdle()
 
+        // Committed once at mark time; consuming the snackbar must not write again or revert.
         coVerify(exactly = 1) { markGiven(1L, any()) }
+        coVerify(exactly = 0) { undoMarkGiven(any()) }
     }
 
     @Test
-    fun `requestDelete defers the write and optimistically hides the row`() = runTest {
+    fun `marking the second of two same-day doses commits both`() = runTest {
+        // Regression: previously only the first committed (via flush on the next mark) while the
+        // second stayed pending and was lost if the screen closed before the snackbar resolved.
+        val first = scheduled(1, offsetDays = 7)
+        val second = scheduled(2, offsetDays = 7)
+        every { observeRecords() } returns flowOf(listOf(first, second))
+        val vm = viewModel()
+
+        vm.markGiven(first)
+        vm.markGiven(second)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { markGiven(1L, any()) }
+        coVerify(exactly = 1) { markGiven(2L, any()) }
+    }
+
+    @Test
+    fun `requestDelete commits immediately and optimistically hides the row`() = runTest {
         val record = scheduled(1, offsetDays = 7)
         every { observeRecords() } returns flowOf(listOf(record))
         val vm = viewModel()
@@ -254,11 +281,12 @@ class VaccineDashboardViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
 
-        coVerify(exactly = 0) { delete(any()) }
+        // The delete fires immediately so it can't be lost if the screen leaves composition.
+        coVerify(exactly = 1) { delete(1L) }
     }
 
     @Test
-    fun `onDeleteConsumed commits the delete`() = runTest {
+    fun `onDeleteConsumed closes the undo window without a second delete`() = runTest {
         val record = scheduled(1, offsetDays = 7)
         every { observeRecords() } returns flowOf(listOf(record))
         val vm = viewModel()
@@ -268,6 +296,21 @@ class VaccineDashboardViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 1) { delete(1L) }
+        coVerify(exactly = 0) { restore(any()) }
+    }
+
+    @Test
+    fun `undoDelete restores the deleted record`() = runTest {
+        val record = scheduled(1, offsetDays = 7)
+        every { observeRecords() } returns flowOf(listOf(record))
+        val vm = viewModel()
+
+        vm.requestDelete(record)
+        vm.undoDelete()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { delete(1L) }
+        coVerify(exactly = 1) { restore(record) }
     }
 
     @Test

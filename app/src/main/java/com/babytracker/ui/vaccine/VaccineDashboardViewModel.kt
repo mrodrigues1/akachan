@@ -8,6 +8,8 @@ import com.babytracker.domain.model.isOverdue
 import com.babytracker.domain.usecase.vaccine.DeleteVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
+import com.babytracker.domain.usecase.vaccine.RestoreVaccineRecordUseCase
+import com.babytracker.domain.usecase.vaccine.UndoMarkVaccineAdministeredUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,10 +32,12 @@ import javax.inject.Inject
  * existing observe/mutate use cases rather than introducing new persistence; the redesign is
  * presentation-only.
  *
- * "Mark given" is a deferred commit: the record is optimistically moved out of the schedule (and
- * shown as just-given) but the write only fires once the undo snackbar is dismissed. Undo therefore
- * never touches the database, side-stepping the "scheduled date must be in the future" validation
- * that re-marking through an edit/add would hit for an overdue record.
+ * "Mark given" commits immediately: the write fires the moment the parent taps, so it can never be
+ * lost when the screen leaves composition before the undo snackbar resolves (the bug the deferred
+ * commit caused). [pendingMarkGiven] is kept only to drive the undo snackbar and to fold the record
+ * into the just-given list without a one-frame flicker while Room re-emits. Undo writes the original
+ * scheduled record straight back via [UndoMarkVaccineAdministeredUseCase], side-stepping the
+ * "scheduled date must be in the future" validation that re-marking through an edit/add would hit.
  */
 data class VaccineDashboardUiState(
     val isLoading: Boolean = true,
@@ -73,19 +77,23 @@ data class VaccineDashboardUiState(
 class VaccineDashboardViewModel @Inject constructor(
     observeRecords: ObserveVaccineRecordsUseCase,
     private val markGivenUseCase: MarkVaccineAdministeredUseCase,
+    private val undoMarkGivenUseCase: UndoMarkVaccineAdministeredUseCase,
     private val deleteUseCase: DeleteVaccineRecordUseCase,
+    private val restoreUseCase: RestoreVaccineRecordUseCase,
     private val zone: ZoneId,
     private val now: () -> Instant,
 ) : ViewModel() {
 
-    // The record inside the mark-given undo window: optimistically treated as administered until the
-    // snackbar is dismissed, then committed. One flow drives both the optimistic hide and the undo
-    // snackbar, so a single mark-given is one atomic emission (no intermediate "hidden but no
-    // snackbar" frame). Held outside the data flow so it survives Room re-emissions.
+    // The record inside the mark-given undo window. The write to Room already happened (mark-given
+    // commits immediately); this only holds the original scheduled record so the screen can show the
+    // undo snackbar and so the data flow can fold it into the just-given list without a flicker while
+    // Room re-emits. Held outside the data flow so it survives Room re-emissions.
     private val pendingMarkGiven = MutableStateFlow<VaccineRecord?>(null)
 
-    // The record inside the delete undo window: optimistically hidden, deleted only once the snackbar
-    // is dismissed. Same deferred-commit pattern as the history screen.
+    // The record inside the delete undo window. The delete already committed (it commits immediately
+    // so it can't be lost when the screen leaves composition before the snackbar resolves); this only
+    // holds the record so the screen can show the undo snackbar and hide the row without a flicker
+    // while Room re-emits. Undo re-inserts the record verbatim. Same pattern as the history screen.
     private val pendingDelete = MutableStateFlow<VaccineRecord?>(null)
 
     // Bumped by onRetry so flatMapLatest rebuilds the combined flow after an upstream failure;
@@ -114,12 +122,12 @@ class VaccineDashboardViewModel @Inject constructor(
                     .sortedWith(compareBy({ it.scheduledDate }, { it.name }))
 
                 val administered = visible.filter { it.status == VaccineStatus.ADMINISTERED }
-                // Optimistically fold the pending record in as if given now, so marking it doesn't make
-                // the row vanish for the length of the undo window.
-                val optimisticPending = pendingMark?.copy(
-                    status = VaccineStatus.ADMINISTERED,
-                    administeredDate = instant,
-                )
+                // The mark-given write already committed, but Room may not have re-emitted yet. For
+                // that one frame, fold the pending record in as given so the row doesn't vanish; once
+                // Room emits the administered row, drop the optimistic copy to avoid a duplicate.
+                val optimisticPending = pendingMark
+                    ?.takeIf { p -> administered.none { it.id == p.id } }
+                    ?.copy(status = VaccineStatus.ADMINISTERED, administeredDate = instant)
                 val given = (listOfNotNull(optimisticPending) + administered)
                     .sortedByDescending { it.administeredDate ?: it.createdAt }
 
@@ -159,52 +167,51 @@ class VaccineDashboardViewModel @Inject constructor(
     private fun daysBetween(today: LocalDate, date: Instant): Int =
         ChronoUnit.DAYS.between(today, date.atZone(zone).toLocalDate()).toInt()
 
-    /** Start the undo window for marking [record] given. Finalizes any prior pending mark first. */
+    /**
+     * Mark [record] given now. The write commits immediately so it survives the screen leaving
+     * composition; [pendingMarkGiven] only opens the undo window and holds the original record so undo
+     * can restore it.
+     */
     fun markGiven(record: VaccineRecord) {
-        flushPending()
         pendingMarkGiven.value = record
+        viewModelScope.launch { runCatching { markGivenUseCase(record.id, now()) } }
     }
 
-    /** Snackbar "Undo": nothing was written yet, so just reveal the record back in the schedule. */
+    /** Snackbar "Undo": revert the committed mark-given by writing the original scheduled record back. */
     fun undoMarkGiven() {
+        val record = pendingMarkGiven.value ?: return
         pendingMarkGiven.value = null
+        viewModelScope.launch { runCatching { undoMarkGivenUseCase(record) } }
     }
 
-    /** Snackbar dismissed / timed out: finalize the mark-given write. */
+    /** Snackbar dismissed / timed out: the write already happened, so just close the undo window. */
     fun onMarkGivenConsumed() {
-        flushPending()
+        pendingMarkGiven.value = null
     }
 
     fun onRetry() {
         retryTrigger.value++
     }
 
-    private fun flushPending() {
-        val record = pendingMarkGiven.value ?: return
-        pendingMarkGiven.value = null
-        viewModelScope.launch { runCatching { markGivenUseCase(record.id, now()) } }
-    }
-
-    /** Start the undo window for deleting [record]; finalizes any prior pending delete first. */
+    /**
+     * Delete [record] now and open the undo window. The write commits immediately so it survives the
+     * screen leaving composition; [pendingDelete] only hides the row and holds the record for undo.
+     */
     fun requestDelete(record: VaccineRecord) {
-        flushPendingDelete()
         pendingDelete.value = record
+        viewModelScope.launch { runCatching { deleteUseCase(record.id) } }
     }
 
-    /** Snackbar "Undo": nothing was written yet, so just reveal the record again. */
+    /** Snackbar "Undo": revert the committed delete by re-inserting the original record. */
     fun undoDelete() {
-        pendingDelete.value = null
-    }
-
-    /** Snackbar dismissed / timed out: finalize the delete. */
-    fun onDeleteConsumed() {
-        flushPendingDelete()
-    }
-
-    private fun flushPendingDelete() {
         val record = pendingDelete.value ?: return
         pendingDelete.value = null
-        viewModelScope.launch { runCatching { deleteUseCase(record.id) } }
+        viewModelScope.launch { runCatching { restoreUseCase(record) } }
+    }
+
+    /** Snackbar dismissed / timed out: the delete already happened, so just close the undo window. */
+    fun onDeleteConsumed() {
+        pendingDelete.value = null
     }
 
     private companion object {
