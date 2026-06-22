@@ -5,9 +5,11 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import java.time.ZoneId
 
 class VaccineRecordTest {
-    private val now = Instant.ofEpochMilli(10_000)
+    private val zone = ZoneId.of("UTC")
+    private val now = Instant.parse("2026-06-21T12:00:00Z")
 
     @Test
     fun `effectiveDate prefers administered then scheduled then created`() {
@@ -21,17 +23,25 @@ class VaccineRecordTest {
     }
 
     @Test
-    fun `isOverdue only when scheduled and past`() {
-        val past = VaccineRecord(
+    fun `isOverdue only when scheduled and a whole day past`() {
+        val base = VaccineRecord(
             name = "BCG",
             status = VaccineStatus.SCHEDULED,
-            scheduledDate = Instant.ofEpochMilli(5),
+            scheduledDate = now,
             createdAt = now,
         )
-        val future = past.copy(scheduledDate = Instant.ofEpochMilli(20_000))
-        val administered = past.copy(status = VaccineStatus.ADMINISTERED, administeredDate = now)
-        assertTrue(past.isOverdue(now))
-        assertFalse(future.isOverdue(now))
-        assertFalse(administered.isOverdue(now))
+        val yesterday = base.copy(scheduledDate = now.minusSeconds(86_400))
+        // Earlier the same calendar day: the screenshot's "Overdue by 0 days" case — must NOT be overdue.
+        val earlierToday = base.copy(scheduledDate = now.minusSeconds(3_600))
+        val tomorrow = base.copy(scheduledDate = now.plusSeconds(86_400))
+        val administered = base.copy(
+            status = VaccineStatus.ADMINISTERED,
+            administeredDate = now,
+            scheduledDate = null,
+        )
+        assertTrue(yesterday.isOverdue(now, zone))
+        assertFalse(earlierToday.isOverdue(now, zone))
+        assertFalse(tomorrow.isOverdue(now, zone))
+        assertFalse(administered.isOverdue(now, zone))
     }
 }

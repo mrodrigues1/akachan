@@ -94,6 +94,74 @@ class VaccineDashboardViewModelTest {
     }
 
     @Test
+    fun `groups every upcoming vaccine on the soonest day into nextVaccines`() = runTest {
+        every { observeRecords() } returns flowOf(
+            listOf(
+                scheduled(1, offsetDays = 7),
+                scheduled(2, offsetDays = 7),
+                scheduled(3, offsetDays = 14),
+                scheduled(4, offsetDays = -2),
+            ),
+        )
+        val vm = viewModel()
+
+        vm.uiState.test {
+            var state = awaitItem()
+            if (state.isLoading) state = awaitItem()
+
+            // Both day-+7 doses grouped (date then name order); the day-+14 and overdue doses excluded.
+            assertEquals(listOf(1L, 2L), state.nextVaccines.map { it.id })
+            assertEquals(1L, state.nextVaccine?.id)
+            assertEquals(7, state.nextInDays)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `nextVaccines holds a single record when the soonest day has one dose`() = runTest {
+        every { observeRecords() } returns flowOf(
+            listOf(
+                scheduled(1, offsetDays = 3),
+                scheduled(2, offsetDays = 10),
+            ),
+        )
+        val vm = viewModel()
+
+        vm.uiState.test {
+            var state = awaitItem()
+            if (state.isLoading) state = awaitItem()
+
+            assertEquals(listOf(1L), state.nextVaccines.map { it.id })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `dose due today is next up, never overdue`() = runTest {
+        // Scheduled earlier the same calendar day: the screenshot's "Overdue by 0 days" Hib case.
+        val earlierToday = VaccineRecord(
+            id = 1,
+            name = "Hib",
+            status = VaccineStatus.SCHEDULED,
+            scheduledDate = nowInstant.minusSeconds(3_600),
+            createdAt = Instant.EPOCH,
+        )
+        every { observeRecords() } returns flowOf(listOf(earlierToday))
+        val vm = viewModel()
+
+        vm.uiState.test {
+            var state = awaitItem()
+            if (state.isLoading) state = awaitItem()
+
+            assertNull(state.mostOverdue)
+            assertEquals(0, state.overdueCount)
+            assertEquals(listOf(1L), state.nextVaccines.map { it.id })
+            assertEquals(0, state.nextInDays)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `first run flag set when nothing recorded`() = runTest {
         every { observeRecords() } returns flowOf(emptyList())
         val vm = viewModel()

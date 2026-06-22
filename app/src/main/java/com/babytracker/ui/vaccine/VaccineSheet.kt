@@ -185,6 +185,8 @@ fun VaccineSheet(
                 // The date error now renders inside the row (error-colored label + announced message)
                 // so a screen reader hears the failure instead of it appearing silently.
                 errorText = state.validationError?.takeIf { state.errorField == VaccineField.DATE },
+                // Vaccines are tracked at day granularity; the time-of-day cell is noise here.
+                showTime = false,
             )
             Spacer(Modifier.height(12.dp))
 

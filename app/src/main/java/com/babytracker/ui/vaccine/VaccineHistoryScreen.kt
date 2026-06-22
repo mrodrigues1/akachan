@@ -65,6 +65,7 @@ import com.babytracker.ui.theme.VaccinePalette
 import com.babytracker.ui.theme.vaccineColors
 import com.babytracker.util.toRelativeLabel
 import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Locale
 
 @Composable
@@ -224,7 +225,7 @@ private fun HistoryList(
             items(state.upcoming, key = { "u_${it.id}" }) { record ->
                 UpcomingRow(
                     record = record,
-                    overdue = record.isOverdue(state.now),
+                    overdue = record.isOverdue(state.now, ZoneId.systemDefault()),
                     vaccine = vaccine,
                     overdueColor = overdueColor,
                     onMarkGiven = { onMarkGiven(record.id) },

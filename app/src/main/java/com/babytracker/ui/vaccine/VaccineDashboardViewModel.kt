@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.VaccineStatus
+import com.babytracker.domain.model.isOverdue
 import com.babytracker.domain.usecase.vaccine.DeleteVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
@@ -40,6 +41,11 @@ data class VaccineDashboardUiState(
     val isError: Boolean = false,
     /** Soonest scheduled vaccine whose date is today or later. Drives the hero when nothing is overdue. */
     val nextVaccine: VaccineRecord? = null,
+    /**
+     * Every upcoming vaccine sharing the soonest future calendar day, earliest first. Usually one entry;
+     * holds the whole set when multiple doses fall on the same day so the hero can list them all.
+     */
+    val nextVaccines: List<VaccineRecord> = emptyList(),
     /** Whole-day countdown to [nextVaccine], against the injected clock (Today = 0). */
     val nextInDays: Int? = null,
     /** The most overdue scheduled vaccine, if any. Takes hero priority over [nextVaccine]. */
@@ -98,12 +104,14 @@ class VaccineDashboardViewModel @Inject constructor(
                 val scheduled = visible.filter {
                     it.status == VaccineStatus.SCHEDULED && it.scheduledDate != null && it.id != pendingMark?.id
                 }
+                // Overdue is day-based: a dose due today is "next up" (countdown shows Today), never overdue.
                 val overdue = scheduled
-                    .filter { it.scheduledDate!!.isBefore(instant) }
+                    .filter { it.isOverdue(instant, zone) }
                     .sortedBy { it.scheduledDate }
                 val future = scheduled
-                    .filter { !it.scheduledDate!!.isBefore(instant) }
-                    .sortedBy { it.scheduledDate }
+                    .filterNot { it.isOverdue(instant, zone) }
+                    // Stable same-day order: by date, then name, so a tie renders the same way every emission.
+                    .sortedWith(compareBy({ it.scheduledDate }, { it.name }))
 
                 val administered = visible.filter { it.status == VaccineStatus.ADMINISTERED }
                 // Optimistically fold the pending record in as if given now, so marking it doesn't make
@@ -117,9 +125,17 @@ class VaccineDashboardViewModel @Inject constructor(
 
                 val mostOverdue = overdue.firstOrNull()
                 val next = future.firstOrNull()
+                // The hero lists every dose sharing the soonest upcoming day, not just the first.
+                val nextDay = next?.scheduledDate?.atZone(zone)?.toLocalDate()
+                val nextVaccines = if (nextDay == null) {
+                    emptyList()
+                } else {
+                    future.filter { it.scheduledDate!!.atZone(zone).toLocalDate() == nextDay }
+                }
                 VaccineDashboardUiState(
                     isLoading = false,
                     nextVaccine = next,
+                    nextVaccines = nextVaccines,
                     nextInDays = next?.scheduledDate?.let { daysBetween(today, it) },
                     mostOverdue = mostOverdue,
                     mostOverdueDays = mostOverdue?.scheduledDate?.let { -daysBetween(today, it) },

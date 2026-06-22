@@ -1,6 +1,7 @@
 package com.babytracker.domain.model
 
 import java.time.Instant
+import java.time.ZoneId
 
 data class VaccineRecord(
     val id: Long = 0,
@@ -15,5 +16,12 @@ data class VaccineRecord(
 
 fun VaccineRecord.effectiveDate(): Instant = administeredDate ?: scheduledDate ?: createdAt
 
-fun VaccineRecord.isOverdue(now: Instant): Boolean =
-    status == VaccineStatus.SCHEDULED && scheduledDate != null && scheduledDate.isBefore(now)
+/**
+ * Overdue is day-granular, not instant-granular: a dose is overdue only once its scheduled calendar
+ * day is wholly in the past. A dose scheduled for today is never overdue (it reads as "due today"),
+ * which is why a same-day dose shows a countdown instead of "Overdue by 0 days".
+ */
+fun VaccineRecord.isOverdue(now: Instant, zone: ZoneId): Boolean =
+    status == VaccineStatus.SCHEDULED &&
+        scheduledDate != null &&
+        scheduledDate.atZone(zone).toLocalDate().isBefore(now.atZone(zone).toLocalDate())
