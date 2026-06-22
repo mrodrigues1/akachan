@@ -62,6 +62,20 @@ class MarkVaccineAdministeredUseCaseTest {
     }
 
     @Test
+    fun `marks a to-schedule dose given directly`() = runTest {
+        coEvery { repository.getById(9) } returns VaccineRecord(
+            id = 9, name = "MMR", status = VaccineStatus.TO_SCHEDULE,
+            scheduledDate = Instant.ofEpochMilli(5_000), createdAt = Instant.ofEpochMilli(1),
+        )
+        val captured = slot<VaccineRecord>()
+        coEvery { repository.update(capture(captured)) } returns Unit
+        useCase(9, fixedNow)
+        assertEquals(VaccineStatus.ADMINISTERED, captured.captured.status)
+        assertEquals(fixedNow, captured.captured.administeredDate)
+        coVerify { scheduler.cancel(9) }
+    }
+
+    @Test
     fun `future administered date rejected`() = runTest {
         val error = runCatching {
             useCase(3, Instant.ofEpochMilli(20_000))

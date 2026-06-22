@@ -75,4 +75,26 @@ class AddVaccineRecordUseCaseTest {
         }.exceptionOrNull()
         assertEquals(IllegalArgumentException::class.java, error?.javaClass)
     }
+
+    @Test
+    fun `to-schedule persists target date and arms reminder`() = runTest {
+        val captured = slot<VaccineRecord>()
+        val future = Instant.ofEpochMilli(50_000)
+        coEvery { repository.insert(capture(captured)) } returns 42
+        val id = useCase("MMR", null, VaccineStatus.TO_SCHEDULE, future, null)
+        assertEquals(42, id)
+        assertEquals(VaccineStatus.TO_SCHEDULE, captured.captured.status)
+        assertEquals(future, captured.captured.scheduledDate)
+        assertEquals(null, captured.captured.administeredDate)
+        coVerify { scheduler.schedule(match { it.id == 42L && it.status == VaccineStatus.TO_SCHEDULE }) }
+    }
+
+    @Test
+    fun `to-schedule rejects non-future target date`() = runTest {
+        val error = runCatching {
+            useCase("MMR", null, VaccineStatus.TO_SCHEDULE, fixedNow) // date == now, not future
+        }.exceptionOrNull()
+        assertEquals(IllegalArgumentException::class.java, error?.javaClass)
+        coVerify(exactly = 0) { repository.insert(any()) }
+    }
 }

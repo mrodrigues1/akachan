@@ -46,6 +46,20 @@ class AddVaccineRecordUseCase @Inject constructor(
                     createdAt = now(),
                 )
             }
+            VaccineStatus.TO_SCHEDULE -> {
+                // A to-schedule dose has a known target date but no booked appointment yet. The target
+                // is stored in scheduledDate (status distinguishes the two) and, like a scheduled dose,
+                // must be in the future so a reminder window exists.
+                require(date.isAfter(now())) { "Scheduled date must be in the future" }
+                VaccineRecord(
+                    name = trimmedName,
+                    doseLabel = doseLabel?.takeIf { it.isNotBlank() },
+                    status = status,
+                    scheduledDate = date,
+                    notes = notes?.takeIf { it.isNotBlank() },
+                    createdAt = now(),
+                )
+            }
         }
         val id = repository.insert(record)
         // Reminder scheduling is best-effort: a scheduler failure must never fail the local save

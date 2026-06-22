@@ -100,6 +100,40 @@ class EditVaccineRecordUseCaseTest {
     }
 
     @Test
+    fun `to-schedule edit persists and re-arms reminder`() = runTest {
+        val captured = slot<VaccineRecord>()
+        coEvery { repository.update(capture(captured)) } returns Unit
+        useCase(
+            VaccineRecord(
+                id = 4,
+                name = "  MMR ",
+                status = VaccineStatus.TO_SCHEDULE,
+                scheduledDate = Instant.ofEpochMilli(50_000),
+                createdAt = fixedNow,
+            ),
+        )
+        assertEquals("MMR", captured.captured.name)
+        assertEquals(VaccineStatus.TO_SCHEDULE, captured.captured.status)
+        coVerify { scheduler.schedule(match { it.id == 4L }) }
+    }
+
+    @Test
+    fun `to-schedule without date rejected`() = runTest {
+        val error = runCatching {
+            useCase(
+                VaccineRecord(
+                    id = 1,
+                    name = "MMR",
+                    status = VaccineStatus.TO_SCHEDULE,
+                    scheduledDate = null,
+                    createdAt = fixedNow,
+                ),
+            )
+        }.exceptionOrNull()
+        assertEquals(IllegalArgumentException::class.java, error?.javaClass)
+    }
+
+    @Test
     fun `blank name rejected`() = runTest {
         val error = runCatching {
             useCase(
