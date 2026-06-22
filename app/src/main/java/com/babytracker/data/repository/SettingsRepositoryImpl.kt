@@ -17,6 +17,7 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.sharing.domain.model.AppMode
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import java.time.DateTimeException
 import java.time.LocalTime
@@ -76,7 +77,7 @@ class SettingsRepositoryImpl @Inject constructor(
                 Log.w(TAG, "Invalid theme config stored: $themeStr", e)
                 ThemeConfig.SYSTEM
             }
-        }
+        }.distinctUntilChanged()
 
     override suspend fun setThemeConfig(themeConfig: ThemeConfig) {
         dataStore.edit { it[THEME_CONFIG] = themeConfig.name }
@@ -85,7 +86,7 @@ class SettingsRepositoryImpl @Inject constructor(
     override fun getVolumeUnit(): Flow<VolumeUnit> =
         dataStore.data.map { prefs ->
             prefs[VOLUME_UNIT]?.let { runCatching { VolumeUnit.valueOf(it) }.getOrNull() } ?: VolumeUnit.ML
-        }
+        }.distinctUntilChanged()
 
     override suspend fun setVolumeUnit(unit: VolumeUnit) {
         dataStore.edit { it[VOLUME_UNIT] = unit.name }
@@ -95,14 +96,14 @@ class SettingsRepositoryImpl @Inject constructor(
         dataStore.data.map { prefs ->
             prefs[MEASUREMENT_SYSTEM]?.let { runCatching { MeasurementSystem.valueOf(it) }.getOrNull() }
                 ?: MeasurementSystem.METRIC
-        }
+        }.distinctUntilChanged()
 
     override suspend fun setMeasurementSystem(system: MeasurementSystem) {
         dataStore.edit { it[MEASUREMENT_SYSTEM] = system.name }
     }
 
     override fun getHomeTileOrder(): Flow<List<HomeTile>> =
-        dataStore.data.map { HomeTile.deserialize(it[HOME_TILE_ORDER]) }
+        dataStore.data.map { HomeTile.deserialize(it[HOME_TILE_ORDER]) }.distinctUntilChanged()
 
     override suspend fun setHomeTileOrder(order: List<HomeTile>) {
         dataStore.edit { it[HOME_TILE_ORDER] = HomeTile.serialize(order) }
@@ -113,7 +114,7 @@ class SettingsRepositoryImpl @Inject constructor(
     }
 
     override fun isOnboardingComplete(): Flow<Boolean> =
-        dataStore.data.map { it[ONBOARDING_COMPLETE] ?: false }
+        dataStore.data.map { it[ONBOARDING_COMPLETE] ?: false }.distinctUntilChanged()
 
     override suspend fun setOnboardingComplete(complete: Boolean) {
         dataStore.edit { it[ONBOARDING_COMPLETE] = complete }
@@ -129,28 +130,28 @@ class SettingsRepositoryImpl @Inject constructor(
                     null
                 }
             }
-        }
+        }.distinctUntilChanged()
 
     override suspend fun setWakeTime(time: LocalTime) {
         dataStore.edit { it[WAKE_TIME_MINUTES] = time.hour * 60 + time.minute }
     }
 
     override fun getAutoUpdateEnabled(): Flow<Boolean> =
-        dataStore.data.map { it[AUTO_UPDATE_ENABLED] ?: true }
+        dataStore.data.map { it[AUTO_UPDATE_ENABLED] ?: true }.distinctUntilChanged()
 
     override suspend fun setAutoUpdateEnabled(enabled: Boolean) {
         dataStore.edit { it[AUTO_UPDATE_ENABLED] = enabled }
     }
 
     override fun getRichNotificationsEnabled(): Flow<Boolean> =
-        dataStore.data.map { it[RICH_NOTIFICATIONS_ENABLED] ?: true }
+        dataStore.data.map { it[RICH_NOTIFICATIONS_ENABLED] ?: true }.distinctUntilChanged()
 
     override suspend fun setRichNotificationsEnabled(enabled: Boolean) {
         dataStore.edit { it[RICH_NOTIFICATIONS_ENABLED] = enabled }
     }
 
     override fun getPartnerFeedStashNotificationsEnabled(): Flow<Boolean> =
-        dataStore.data.map { it[PARTNER_FEED_STASH_NOTIFICATIONS_ENABLED] ?: true }
+        dataStore.data.map { it[PARTNER_FEED_STASH_NOTIFICATIONS_ENABLED] ?: true }.distinctUntilChanged()
 
     override suspend fun setPartnerFeedStashNotificationsEnabled(enabled: Boolean) {
         dataStore.edit { it[PARTNER_FEED_STASH_NOTIFICATIONS_ENABLED] = enabled }
@@ -165,14 +166,14 @@ class SettingsRepositoryImpl @Inject constructor(
                 Log.w(TAG, "Invalid app mode stored: $modeStr", e)
                 AppMode.NONE
             }
-        }
+        }.distinctUntilChanged()
 
     override suspend fun setAppMode(mode: AppMode) {
         dataStore.edit { it[APP_MODE] = mode.name }
     }
 
     override fun getShareCode(): Flow<String?> =
-        dataStore.data.map { it[SHARE_CODE] }
+        dataStore.data.map { it[SHARE_CODE] }.distinctUntilChanged()
 
     override suspend fun setShareCode(code: String) {
         dataStore.edit { it[SHARE_CODE] = code }
@@ -197,21 +198,21 @@ class SettingsRepositoryImpl @Inject constructor(
     }
 
     override fun getQuietHoursStartMinute(): Flow<Int> =
-        dataStore.data.map { it[QUIET_HOURS_START_MINUTE] ?: 0 }
+        dataStore.data.map { it[QUIET_HOURS_START_MINUTE] ?: 0 }.distinctUntilChanged()
 
     override suspend fun setQuietHoursStartMinute(minuteOfDay: Int) {
         dataStore.edit { it[QUIET_HOURS_START_MINUTE] = minuteOfDay.coerceIn(0, 1439) }
     }
 
     override fun getQuietHoursEndMinute(): Flow<Int> =
-        dataStore.data.map { it[QUIET_HOURS_END_MINUTE] ?: 480 }
+        dataStore.data.map { it[QUIET_HOURS_END_MINUTE] ?: 480 }.distinctUntilChanged()
 
     override suspend fun setQuietHoursEndMinute(minuteOfDay: Int) {
         dataStore.edit { it[QUIET_HOURS_END_MINUTE] = minuteOfDay.coerceIn(0, 1439) }
     }
 
     override fun isImportInProgress(): Flow<Boolean> =
-        dataStore.data.map { it[IMPORT_IN_PROGRESS] ?: false }
+        dataStore.data.map { it[IMPORT_IN_PROGRESS] ?: false }.distinctUntilChanged()
 
     override suspend fun markImportInProgress(startedAt: Long) {
         dataStore.edit {
