@@ -56,6 +56,17 @@ class VaccineDaoTest {
     }
 
     @Test
+    fun getToScheduleFutureAfterReturnsOnlyFutureToScheduleRows() = runTest {
+        dao.insert(VaccineEntity(name = "Future TS", status = "TO_SCHEDULE", scheduledDate = 5_000, createdAt = 1))
+        dao.insert(VaccineEntity(name = "Past TS", status = "TO_SCHEDULE", scheduledDate = 100, createdAt = 1))
+        dao.insert(VaccineEntity(name = "Scheduled", status = "SCHEDULED", scheduledDate = 5_000, createdAt = 1))
+
+        val result = dao.getToScheduleFutureAfter(1_000)
+
+        assertEquals(listOf("Future TS"), result.map { it.name })
+    }
+
+    @Test
     fun markAdministeredAndDelete() = runTest {
         val id = dao.insert(VaccineEntity(name = "BCG", status = "SCHEDULED", scheduledDate = 100, createdAt = 1))
         dao.update(VaccineEntity(id = id, name = "BCG", status = "ADMINISTERED", administeredDate = 150, createdAt = 1))

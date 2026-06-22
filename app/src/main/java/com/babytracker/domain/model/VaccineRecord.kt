@@ -25,3 +25,14 @@ fun VaccineRecord.isOverdue(now: Instant, zone: ZoneId): Boolean =
     status == VaccineStatus.SCHEDULED &&
         scheduledDate != null &&
         scheduledDate.atZone(zone).toLocalDate().isBefore(now.atZone(zone).toLocalDate())
+
+/**
+ * Past-target is the to-schedule analogue of [isOverdue]: a to-schedule dose whose target calendar
+ * day is wholly in the past. Used only for in-section flagging on the lists — to-schedule doses never
+ * drive the dashboard hero, so this is intentionally separate from [isOverdue] (which stays
+ * scheduled-only).
+ */
+fun VaccineRecord.isPastTarget(now: Instant, zone: ZoneId): Boolean =
+    status == VaccineStatus.TO_SCHEDULE &&
+        scheduledDate != null &&
+        scheduledDate.atZone(zone).toLocalDate().isBefore(now.atZone(zone).toLocalDate())

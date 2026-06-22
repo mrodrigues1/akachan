@@ -1,8 +1,9 @@
 package com.babytracker.domain.model
 
-enum class VaccineStatus { SCHEDULED, ADMINISTERED }
+enum class VaccineStatus { TO_SCHEDULE, SCHEDULED, ADMINISTERED }
 
 fun String.toVaccineStatusOrNull(): VaccineStatus? = when (this) {
+    VaccineStatus.TO_SCHEDULE.name -> VaccineStatus.TO_SCHEDULE
     VaccineStatus.SCHEDULED.name -> VaccineStatus.SCHEDULED
     VaccineStatus.ADMINISTERED.name -> VaccineStatus.ADMINISTERED
     else -> null
