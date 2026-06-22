@@ -89,6 +89,7 @@ import com.babytracker.ui.component.GrowthIcon
 import com.babytracker.ui.component.InventoryIcon
 import com.babytracker.ui.component.MilestoneIcon
 import com.babytracker.ui.component.PumpingIcon
+import com.babytracker.ui.component.TrendsIcon
 import com.babytracker.ui.component.VaccineIcon
 import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.theme.LocalDarkTheme
@@ -776,11 +777,7 @@ internal fun TrendsHomeCard(
                 .padding(20.dp)
                 .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
         ) {
-            Text(
-                text = "📊",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.clearAndSetSemantics {},
-            )
+            TrendsIcon(modifier = Modifier.size(40.dp))
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.home_trends_title),

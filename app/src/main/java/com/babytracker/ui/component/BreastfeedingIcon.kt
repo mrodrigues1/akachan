@@ -82,6 +82,15 @@ fun GrowthIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun TrendsIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_trends_section),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}
+
+@Composable
 fun MilestoneIcon(modifier: Modifier = Modifier) {
     Image(
         painter = painterResource(R.drawable.ic_milestone_section),
