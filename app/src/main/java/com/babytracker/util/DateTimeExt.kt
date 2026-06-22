@@ -31,6 +31,12 @@ fun Instant.formatTime12h(): String =
         .withZone(ZoneId.systemDefault())
         .format(this)
 
+/** 12-hour clock time without a leading zero on the hour ("9:05 AM"). Used by notification copy. */
+fun Instant.formatClockTime12h(): String =
+    DateTimeFormatter.ofPattern("h:mm a")
+        .withZone(ZoneId.systemDefault())
+        .format(this)
+
 /**
  * Full, locale-aware date. The locale, not a fixed pattern, decides the word order and
  * separators: "Saturday, June 20, 2026" (en) vs "sábado, 20 de junho de 2026" (pt-BR).
