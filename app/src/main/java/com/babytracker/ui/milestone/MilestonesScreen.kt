@@ -61,6 +61,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.Milestone
+import com.babytracker.ui.component.MilestoneIcon
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.MilestonePalette
 import com.babytracker.ui.theme.milestoneColors
@@ -187,11 +188,7 @@ private fun MilestonesEmptyState(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = "🎉",
-            style = MaterialTheme.typography.displayMedium,
-            modifier = Modifier.clearAndSetSemantics {},
-        )
+        MilestoneIcon(modifier = Modifier.size(64.dp))
         Spacer(Modifier.size(12.dp))
         Text(
             text = stringResource(R.string.milestone_empty_title),

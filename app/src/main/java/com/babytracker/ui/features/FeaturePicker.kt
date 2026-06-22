@@ -34,7 +34,9 @@ import com.babytracker.domain.model.FeatureDomain
 import com.babytracker.ui.component.BreastfeedingIcon
 import com.babytracker.ui.component.BottleFeedIcon
 import com.babytracker.ui.component.DiaperIcon
+import com.babytracker.ui.component.GrowthIcon
 import com.babytracker.ui.component.InventoryIcon
+import com.babytracker.ui.component.MilestoneIcon
 import com.babytracker.ui.component.PumpingIcon
 import com.babytracker.ui.component.SleepIcon
 
@@ -178,7 +180,8 @@ private fun FeatureIcon(feature: AppFeature) {
         AppFeature.INVENTORY -> InventoryIcon(modifier = Modifier.size(24.dp))
         AppFeature.SLEEP -> SleepIcon(modifier = Modifier.size(24.dp))
         AppFeature.DIAPERS -> DiaperIcon(modifier = Modifier.size(24.dp))
-        else -> Text(text = feature.emoji, style = MaterialTheme.typography.titleMedium)
+        AppFeature.GROWTH -> GrowthIcon(modifier = Modifier.size(24.dp))
+        AppFeature.MILESTONES -> MilestoneIcon(modifier = Modifier.size(24.dp))
     }
 }
 
@@ -187,6 +190,7 @@ private fun DomainIcon(domain: FeatureDomain) {
     when (domain) {
         FeatureDomain.SLEEP -> SleepIcon(modifier = Modifier.size(28.dp))
         FeatureDomain.DIAPERS -> DiaperIcon(modifier = Modifier.size(28.dp))
+        FeatureDomain.GROWTH_DEVELOPMENT -> GrowthIcon(modifier = Modifier.size(28.dp))
         else -> Text(text = domain.emoji, style = MaterialTheme.typography.titleLarge)
     }
 }
@@ -201,18 +205,6 @@ private val AppFeature.label: String
         AppFeature.DIAPERS -> "Diapers"
         AppFeature.GROWTH -> "Growth"
         AppFeature.MILESTONES -> "Milestones"
-    }
-
-private val AppFeature.emoji: String
-    get() = when (this) {
-        AppFeature.BREASTFEEDING -> ""
-        AppFeature.BOTTLE_FEED -> "🍼"
-        AppFeature.PUMPING -> ""
-        AppFeature.INVENTORY -> ""
-        AppFeature.SLEEP -> ""
-        AppFeature.DIAPERS -> ""
-        AppFeature.GROWTH -> "📈"
-        AppFeature.MILESTONES -> "🎉"
     }
 
 private val FeatureDomain.emoji: String
