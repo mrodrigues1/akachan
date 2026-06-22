@@ -45,6 +45,9 @@ import com.babytracker.R
 import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.ui.common.DateTimeFieldRow
 import com.babytracker.ui.common.FieldAccent
+import com.babytracker.ui.theme.LocalDarkTheme
+import com.babytracker.ui.theme.WarningAmber
+import com.babytracker.ui.theme.WarningAmberDark
 import com.babytracker.ui.theme.vaccineColors
 import java.time.Instant
 
@@ -188,6 +191,17 @@ fun VaccineSheet(
                 // Vaccines are tracked at day granularity; the time-of-day cell is noise here.
                 showTime = false,
             )
+            // A future "given" date is allowed (so the save isn't blocked); this amber note just lets
+            // the parent know the date is ahead of today in case it was a slip.
+            if (state.isFutureAdministered) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(R.string.vaccine_future_date_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (LocalDarkTheme.current) WarningAmberDark else WarningAmber,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                )
+            }
             Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(

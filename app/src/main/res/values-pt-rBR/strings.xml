@@ -1132,6 +1132,7 @@
     <string name="vaccine_name_required">Adicione o nome da vacina para salvar.</string>
     <string name="vaccine_scheduled_future_error">Vacinas agendadas precisam de uma data futura.</string>
     <string name="vaccine_administered_past_error">A data de aplicação não pode estar no futuro.</string>
+    <string name="vaccine_future_date_note">Atenção: esta data está no futuro.</string>
     <string name="vaccine_tile_next">Próxima: %1$s</string>
     <string name="vaccine_tile_today">Hoje</string>
     <string name="vaccine_tile_overdue">Atrasada</string>

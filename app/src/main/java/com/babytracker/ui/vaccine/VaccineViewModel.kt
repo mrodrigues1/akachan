@@ -30,6 +30,8 @@ data class VaccineUiState(
     val notes: String = "",
     val suggestions: List<String> = emptyList(),
     val isSaving: Boolean = false,
+    /** True when an "already given" date is ahead of the clock: allowed, but the sheet warns about it. */
+    val isFutureAdministered: Boolean = false,
     val validationError: String? = null,
     /** Null for a generic (non-field) error; otherwise the field the error should render under. */
     val errorField: VaccineField? = null,
@@ -60,7 +62,14 @@ class VaccineViewModel @Inject constructor(
     fun onDoseChange(text: String) = _uiState.update { it.copy(doseLabel = text) }
     fun onNotesChange(text: String) = _uiState.update { it.copy(notes = text) }
     fun onDateChange(date: Instant) =
-        _uiState.update { it.copy(date = date, validationError = null, errorField = null) }
+        _uiState.update {
+            it.copy(
+                date = date,
+                isFutureAdministered = isFutureAdministered(it.status, date),
+                validationError = null,
+                errorField = null,
+            )
+        }
 
     fun onModeChange(status: VaccineStatus) = _uiState.update {
         // Scheduled vaccines must be in the future (AddVaccineRecordUseCase enforces it), so when
@@ -70,8 +79,18 @@ class VaccineViewModel @Inject constructor(
         } else {
             it.date
         }
-        it.copy(status = status, date = nextDate, validationError = null, errorField = null)
+        it.copy(
+            status = status,
+            date = nextDate,
+            isFutureAdministered = isFutureAdministered(status, nextDate),
+            validationError = null,
+            errorField = null,
+        )
     }
+
+    /** A given (administered) date ahead of the clock: permitted, but the sheet surfaces a warning. */
+    private fun isFutureAdministered(status: VaccineStatus, date: Instant): Boolean =
+        status == VaccineStatus.ADMINISTERED && date.isAfter(now())
 
     /**
      * Resets to a clean "add" form. The dashboard hosts one shared [VaccineViewModel] for both add
@@ -83,6 +102,7 @@ class VaccineViewModel @Inject constructor(
     }
 
     fun loadForEdit(record: VaccineRecord) = _uiState.update {
+        val date = record.administeredDate ?: record.scheduledDate ?: now()
         it.copy(
             editingId = record.id,
             editingCreatedAt = record.createdAt,
@@ -90,7 +110,8 @@ class VaccineViewModel @Inject constructor(
             name = record.name,
             doseLabel = record.doseLabel.orEmpty(),
             status = record.status,
-            date = record.administeredDate ?: record.scheduledDate ?: now(),
+            date = date,
+            isFutureAdministered = isFutureAdministered(record.status, date),
             notes = record.notes.orEmpty(),
             saved = false,
             validationError = null,

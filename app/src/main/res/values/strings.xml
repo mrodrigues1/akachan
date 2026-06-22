@@ -1115,6 +1115,7 @@
     <string name="vaccine_name_required">Add a vaccine name to save.</string>
     <string name="vaccine_scheduled_future_error">Scheduled vaccines need a future date.</string>
     <string name="vaccine_administered_past_error">A given date can\'t be in the future.</string>
+    <string name="vaccine_future_date_note">Heads up: this date is in the future.</string>
     <string name="vaccine_tile_next">Next: %1$s</string>
     <string name="vaccine_tile_today">Today</string>
     <string name="vaccine_tile_overdue">Overdue</string>

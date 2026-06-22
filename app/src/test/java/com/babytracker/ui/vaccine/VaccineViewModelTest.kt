@@ -155,6 +155,42 @@ class VaccineViewModelTest {
     }
 
     @Test
+    fun `future administered date raises the warning flag but still saves`() = runTest {
+        coEvery { add(any(), any(), any(), any(), any()) } returns 1
+        val vm = viewModel()
+        vm.onNameChange("MMR")
+        vm.onDateChange(fixedNow.plusSeconds(86_400)) // tomorrow, administered mode (the default)
+        assertTrue(vm.uiState.value.isFutureAdministered)
+
+        vm.onSave()
+        assertTrue(vm.uiState.value.saved) // not blocked
+    }
+
+    @Test
+    fun `scheduled future date does not raise the administered warning`() = runTest {
+        val vm = viewModel()
+        // Switching to schedule defaults the date to tomorrow (future), but the warning is
+        // administered-only, so it must stay off.
+        vm.onModeChange(VaccineStatus.SCHEDULED)
+        assertTrue(!vm.uiState.value.isFutureAdministered)
+    }
+
+    @Test
+    fun `editing an administered dose dated ahead of now raises the warning`() = runTest {
+        val vm = viewModel()
+        vm.loadForEdit(
+            VaccineRecord(
+                id = 5,
+                name = "MMR",
+                status = VaccineStatus.ADMINISTERED,
+                administeredDate = fixedNow.plusSeconds(86_400),
+                createdAt = fixedNow,
+            ),
+        )
+        assertTrue(vm.uiState.value.isFutureAdministered)
+    }
+
+    @Test
     fun `second rapid save is ignored while the first is in flight`() = runTest {
         val gate = CompletableDeferred<Long>()
         coEvery { add(any(), any(), any(), any(), any()) } coAnswers { gate.await() }
