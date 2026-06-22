@@ -15,6 +15,7 @@ import com.babytracker.export.domain.BackupTooNewException
 import com.babytracker.export.domain.InvalidBackupException
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.export.domain.model.CURRENT_BACKUP_FORMAT_VERSION
+import com.babytracker.export.domain.model.VaccineBackup
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
@@ -91,19 +92,23 @@ class ValidateBackupUseCase @Inject constructor(
     }
 
     private fun validateVaccineInvariants(data: BackupData) {
-        data.vaccines.forEach { v ->
-            if (v.name.isBlank()) bad("vaccine ${v.id} has a blank name")
-            if (v.createdAt < 0) bad("vaccine ${v.id} has negative created time")
-            if (v.scheduledDate != null && v.scheduledDate < 0) bad("vaccine ${v.id} has negative scheduled date")
-            if (v.administeredDate != null && v.administeredDate < 0) {
-                bad("vaccine ${v.id} has negative administered date")
-            }
-            when (v.status.toVaccineStatusSafe()) {
-                VaccineStatus.SCHEDULED ->
-                    if (v.scheduledDate == null) bad("scheduled vaccine ${v.id} has no scheduled date")
-                VaccineStatus.ADMINISTERED ->
-                    if (v.administeredDate == null) bad("administered vaccine ${v.id} has no administered date")
-            }
+        data.vaccines.forEach { validateVaccine(it) }
+    }
+
+    private fun validateVaccine(v: VaccineBackup) {
+        if (v.name.isBlank()) bad("vaccine ${v.id} has a blank name")
+        if (v.createdAt < 0) bad("vaccine ${v.id} has negative created time")
+        if (v.scheduledDate != null && v.scheduledDate < 0) bad("vaccine ${v.id} has negative scheduled date")
+        if (v.administeredDate != null && v.administeredDate < 0) {
+            bad("vaccine ${v.id} has negative administered date")
+        }
+        when (v.status.toVaccineStatusSafe()) {
+            VaccineStatus.TO_SCHEDULE ->
+                if (v.scheduledDate == null) bad("to-schedule vaccine ${v.id} has no target date")
+            VaccineStatus.SCHEDULED ->
+                if (v.scheduledDate == null) bad("scheduled vaccine ${v.id} has no scheduled date")
+            VaccineStatus.ADMINISTERED ->
+                if (v.administeredDate == null) bad("administered vaccine ${v.id} has no administered date")
         }
     }
 
