@@ -15,11 +15,13 @@ import com.babytracker.domain.sleep.eval.NapBudgetFactor
 import com.babytracker.domain.sleep.eval.SleepDebtFactor
 import com.babytracker.domain.sleep.eval.SleepWindowPredictor
 import com.babytracker.domain.sleep.feature.SleepFeatureExtractor
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -48,7 +50,7 @@ class PredictSleepWindowUseCase @Inject constructor(
                 predict(sleepRecords, feedSessions, baby, recentEvents)
             }
         )
-    }.catch { e ->
+    }.flowOn(Dispatchers.Default).catch { e ->
         emit(SleepPredictionState.Unavailable(e.message ?: "prediction error"))
     }
 
