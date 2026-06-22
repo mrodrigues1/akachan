@@ -265,8 +265,6 @@ private fun NavGraphBuilder.doctorVisitGraph(navController: NavHostController) {
         DoctorVisitScreen(
             editVisitId = visitId.takeIf { it >= 0 },
             onManageQuestions = { navController.navigate(Routes.VISIT_QUESTIONS) },
-            onNavigateToHistory = { navController.navigate(Routes.DOCTOR_VISIT_HISTORY) },
-            onNavigateToSettings = { navController.navigate(Routes.DOCTOR_VISIT_SETTINGS) },
             onDismiss = { navController.popBackStack() },
         )
     }

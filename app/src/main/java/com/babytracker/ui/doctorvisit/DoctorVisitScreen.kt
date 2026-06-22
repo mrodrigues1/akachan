@@ -15,8 +15,6 @@ import com.babytracker.R
 fun DoctorVisitScreen(
     onDismiss: () -> Unit,
     onManageQuestions: () -> Unit,
-    onNavigateToHistory: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {},
     editVisitId: Long? = null,
     viewModel: DoctorVisitViewModel = hiltViewModel(),
 ) {
@@ -61,7 +59,5 @@ fun DoctorVisitScreen(
         onManageQuestions = onManageQuestions,
         onSave = viewModel::onSave,
         onDismiss = onDismiss,
-        onNavigateToHistory = onNavigateToHistory,
-        onNavigateToSettings = onNavigateToSettings,
     )
 }

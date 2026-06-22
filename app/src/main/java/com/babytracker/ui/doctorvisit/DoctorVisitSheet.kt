@@ -65,8 +65,6 @@ fun DoctorVisitSheet(
     onSave: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    onNavigateToHistory: (() -> Unit)? = null,
-    onNavigateToSettings: (() -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val colors = doctorVisitColors()
@@ -168,29 +166,6 @@ fun DoctorVisitSheet(
                 Text(stringResource(R.string.doctor_visit_save), style = MaterialTheme.typography.labelLarge)
             }
             Spacer(Modifier.height(8.dp))
-            if (onNavigateToHistory != null && !state.isEditing) {
-                TextButton(
-                    onClick = onNavigateToHistory,
-                    enabled = !state.isSaving,
-                    colors = ButtonDefaults.textButtonColors(contentColor = colors.accent),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.doctor_visit_view_history), style = MaterialTheme.typography.labelLarge)
-                }
-            }
-            if (onNavigateToSettings != null && !state.isEditing) {
-                TextButton(
-                    onClick = onNavigateToSettings,
-                    enabled = !state.isSaving,
-                    colors = ButtonDefaults.textButtonColors(contentColor = colors.accent),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        stringResource(R.string.doctor_visit_reminder_settings_button),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-            }
             TextButton(
                 onClick = onDismiss,
                 enabled = !state.isSaving,
