@@ -62,8 +62,8 @@ class PredictNextFeedUseCase @Inject constructor(
 
         val filtered = rawIntervals
             .filter { it.minutes <= PredictionTuning.INTERVAL_MAX_MINUTES }
-            .filter { !endpointInQuietHours(it.endpointA, quietStartMinute, quietEndMinute) }
-            .filter { !endpointInQuietHours(it.endpointB, quietStartMinute, quietEndMinute) }
+            .filter { !isEndpointInQuietHours(it.endpointA, zoneId, quietStartMinute, quietEndMinute) }
+            .filter { !isEndpointInQuietHours(it.endpointB, zoneId, quietStartMinute, quietEndMinute) }
 
         val taken = filtered.take(PredictionTuning.SAMPLE_SIZE_TARGET)
         if (taken.size < PredictionTuning.SAMPLE_SIZE_MIN) return null
@@ -89,16 +89,6 @@ class PredictNextFeedUseCase @Inject constructor(
             isOverdue = isOverdue,
             minutesUntil = minutesUntil,
         )
-    }
-
-    private fun endpointInQuietHours(endpoint: Instant, startMinute: Int, endMinute: Int): Boolean {
-        if (startMinute == endMinute) return false
-        val localMinute = endpoint.atZone(zoneId).toLocalTime().toSecondOfDay() / 60
-        return if (startMinute < endMinute) {
-            localMinute in startMinute until endMinute
-        } else {
-            localMinute >= startMinute || localMinute <= endMinute
-        }
     }
 
     private data class IntervalSample(
