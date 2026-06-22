@@ -89,6 +89,7 @@ import com.babytracker.ui.component.GrowthIcon
 import com.babytracker.ui.component.InventoryIcon
 import com.babytracker.ui.component.MilestoneIcon
 import com.babytracker.ui.component.PumpingIcon
+import com.babytracker.ui.component.VaccineIcon
 import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
@@ -605,11 +606,7 @@ internal fun VaccineHomeCard(
                 .padding(16.dp)
                 .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
         ) {
-            Text(
-                text = "💉",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.clearAndSetSemantics {},
-            )
+            VaccineIcon(modifier = Modifier.size(40.dp))
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = title,
