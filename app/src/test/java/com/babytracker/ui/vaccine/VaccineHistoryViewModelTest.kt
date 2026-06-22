@@ -6,6 +6,7 @@ import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.domain.usecase.vaccine.DeleteVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
+import com.babytracker.domain.usecase.vaccine.RestoreVaccineRecordUseCase
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -34,6 +35,7 @@ class VaccineHistoryViewModelTest {
     private val observe = mockk<ObserveVaccineRecordsUseCase>()
     private val markGiven = mockk<MarkVaccineAdministeredUseCase>()
     private val delete = mockk<DeleteVaccineRecordUseCase>()
+    private val restore = mockk<RestoreVaccineRecordUseCase>(relaxed = true)
 
     @BeforeEach
     fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -41,7 +43,7 @@ class VaccineHistoryViewModelTest {
     @AfterEach
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm() = VaccineHistoryViewModel(observe, markGiven, delete, zone) { fixedNow }
+    private fun vm() = VaccineHistoryViewModel(observe, markGiven, delete, restore, zone) { fixedNow }
 
     @Test
     fun `splits upcoming ascending and administered by day descending`() = runTest {
@@ -74,7 +76,7 @@ class VaccineHistoryViewModelTest {
     }
 
     @Test
-    fun `requestDelete optimistically hides the record then commit deletes it`() = runTest {
+    fun `requestDelete commits immediately and optimistically hides the record`() = runTest {
         val record = VaccineRecord(id = 7, name = "BCG", status = VaccineStatus.ADMINISTERED, administeredDate = fixedNow, createdAt = fixedNow)
         every { observe() } returns flowOf(listOf(record))
         coEvery { delete(7) } just Runs
@@ -91,22 +93,24 @@ class VaccineHistoryViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
 
+        // Committed at request time so it survives the screen closing before the snackbar resolves.
+        coVerify { delete(7) }
         viewModel.commitDelete()
         assertNull(viewModel.pendingDelete.value)
-        coVerify { delete(7) }
     }
 
     @Test
-    fun `undoDelete reveals the record and does not delete`() = runTest {
+    fun `undoDelete restores the record after the immediate delete`() = runTest {
+        val record = VaccineRecord(id = 7, name = "BCG", status = VaccineStatus.ADMINISTERED, administeredDate = fixedNow, createdAt = fixedNow)
         every { observe() } returns flowOf(emptyList())
+        coEvery { delete(7) } just Runs
         val viewModel = vm()
-        viewModel.requestDelete(
-            VaccineRecord(id = 7, name = "BCG", status = VaccineStatus.ADMINISTERED, administeredDate = fixedNow, createdAt = fixedNow),
-        )
+        viewModel.requestDelete(record)
         assertEquals(7, viewModel.pendingDelete.value?.id)
 
         viewModel.undoDelete()
         assertNull(viewModel.pendingDelete.value)
-        coVerify(exactly = 0) { delete(any()) }
+        coVerify { delete(7) }
+        coVerify { restore(record) }
     }
 }

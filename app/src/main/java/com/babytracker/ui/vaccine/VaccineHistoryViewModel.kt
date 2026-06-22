@@ -7,6 +7,7 @@ import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.domain.usecase.vaccine.DeleteVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
+import com.babytracker.domain.usecase.vaccine.RestoreVaccineRecordUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,13 +41,15 @@ class VaccineHistoryViewModel @Inject constructor(
     observeRecords: ObserveVaccineRecordsUseCase,
     private val markGivenUseCase: MarkVaccineAdministeredUseCase,
     private val deleteUseCase: DeleteVaccineRecordUseCase,
+    private val restoreUseCase: RestoreVaccineRecordUseCase,
     private val zone: ZoneId,
     private val now: () -> Instant,
 ) : ViewModel() {
 
-    // The record inside the undo window: optimistically hidden from the list, deleted only once
-    // the snackbar is dismissed. This "deferred delete" gives a real undo without re-creating the
-    // row (re-adding via AddVaccineRecordUseCase would reject an overdue scheduled date).
+    // The record inside the delete undo window. The delete already committed (it commits immediately
+    // so it can't be lost when the screen leaves composition before the snackbar resolves); this only
+    // holds the original record so the screen can show the undo snackbar and so the list hides the row
+    // without a flicker while Room re-emits. Undo re-inserts the record verbatim.
     private val _pendingDelete = MutableStateFlow<VaccineRecord?>(null)
     val pendingDelete: StateFlow<VaccineRecord?> = _pendingDelete.asStateFlow()
 
@@ -88,24 +91,25 @@ class VaccineHistoryViewModel @Inject constructor(
         retryTrigger.value++
     }
 
-    /** Start the undo window: [record] is hidden but not yet deleted. Finalizes any prior pending delete. */
+    /**
+     * Delete [record] now and open the undo window. The write commits immediately so it survives the
+     * screen leaving composition; [_pendingDelete] only hides the row and holds the record for undo.
+     */
     fun requestDelete(record: VaccineRecord) {
-        flushPending()
         _pendingDelete.value = record
+        viewModelScope.launch { runCatching { deleteUseCase(record.id) } }
     }
 
-    /** Snackbar "Undo": the record was never actually deleted, so just reveal it again. */
+    /** Snackbar "Undo": revert the committed delete by re-inserting the original record. */
     fun undoDelete() {
-        _pendingDelete.value = null
-    }
-
-    /** Snackbar dismissed / timed out: finalize the deletion. */
-    fun commitDelete() = flushPending()
-
-    private fun flushPending() {
         val record = _pendingDelete.value ?: return
         _pendingDelete.value = null
-        viewModelScope.launch { runCatching { deleteUseCase(record.id) } }
+        viewModelScope.launch { runCatching { restoreUseCase(record) } }
+    }
+
+    /** Snackbar dismissed / timed out: the delete already happened, so just close the undo window. */
+    fun commitDelete() {
+        _pendingDelete.value = null
     }
 
     private companion object {
