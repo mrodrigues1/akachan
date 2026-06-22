@@ -72,6 +72,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.isOverdue
+import com.babytracker.domain.model.isPastTarget
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
 import com.babytracker.ui.theme.OnWarningContainerAmberDark
@@ -116,6 +117,20 @@ fun VaccineDashboardScreen(
         }
     }
 
+    val markedScheduledMessage = stringResource(R.string.vaccine_marked_scheduled)
+    LaunchedEffect(state.lastMarkedScheduled) {
+        state.lastMarkedScheduled ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = markedScheduledMessage,
+            actionLabel = undoLabel,
+            duration = SnackbarDuration.Long,
+        )
+        when (result) {
+            SnackbarResult.ActionPerformed -> dashboardViewModel.undoMarkScheduled()
+            SnackbarResult.Dismissed -> dashboardViewModel.onMarkScheduledConsumed()
+        }
+    }
+
     val deletedMessage = stringResource(R.string.vaccine_deleted)
     LaunchedEffect(state.lastDeleted) {
         state.lastDeleted ?: return@LaunchedEffect
@@ -155,6 +170,7 @@ fun VaccineDashboardScreen(
             showSheet = true
         },
         onMarkGiven = dashboardViewModel::markGiven,
+        onMarkScheduled = dashboardViewModel::markScheduled,
         onDeleteRecord = dashboardViewModel::requestDelete,
         onRetry = dashboardViewModel::onRetry,
         onNavigateToHistory = onNavigateToHistory,
@@ -172,6 +188,7 @@ fun VaccineDashboardContent(
     onAddVaccine: () -> Unit,
     onEditRecord: (VaccineRecord) -> Unit,
     onMarkGiven: (VaccineRecord) -> Unit,
+    onMarkScheduled: (VaccineRecord) -> Unit,
     onDeleteRecord: (VaccineRecord) -> Unit,
     onRetry: () -> Unit,
     onNavigateToHistory: () -> Unit,
@@ -227,6 +244,7 @@ fun VaccineDashboardContent(
                 colors = colors,
                 onEditRecord = onEditRecord,
                 onMarkGiven = onMarkGiven,
+                onMarkScheduled = onMarkScheduled,
                 onRequestDelete = { confirmDelete = it },
                 onViewAll = onNavigateToHistory,
                 padding = padding,
@@ -252,6 +270,7 @@ private fun DashboardBody(
     colors: VaccinePalette,
     onEditRecord: (VaccineRecord) -> Unit,
     onMarkGiven: (VaccineRecord) -> Unit,
+    onMarkScheduled: (VaccineRecord) -> Unit,
     onRequestDelete: (VaccineRecord) -> Unit,
     onViewAll: () -> Unit,
     padding: PaddingValues,
@@ -300,6 +319,30 @@ private fun DashboardBody(
                     )
 
                 else -> CaughtUpHero()
+            }
+        }
+
+        if (state.toSchedule.isNotEmpty()) {
+            item(key = "to_schedule_header") {
+                Spacer(Modifier.height(24.dp))
+                SectionLabel(
+                    text = stringResource(R.string.vaccine_to_schedule_section_title),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .padding(bottom = 4.dp)
+                        .semantics { heading() },
+                )
+            }
+            items(state.toSchedule, key = { "ts_${it.id}" }) { record ->
+                ToScheduleRow(
+                    record = record,
+                    colors = colors,
+                    isPastTarget = record.isPastTarget(state.now, ZoneId.systemDefault()),
+                    onSchedule = { onMarkScheduled(record) },
+                    onMarkGiven = { onMarkGiven(record) },
+                    onDelete = { onRequestDelete(record) },
+                    onEdit = { onEditRecord(record) },
+                )
             }
         }
 

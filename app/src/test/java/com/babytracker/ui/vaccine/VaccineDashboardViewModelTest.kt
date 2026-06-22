@@ -5,6 +5,7 @@ import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.domain.usecase.vaccine.DeleteVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
+import com.babytracker.domain.usecase.vaccine.MarkVaccineScheduledUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
 import com.babytracker.domain.usecase.vaccine.RestoreVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.UndoMarkVaccineAdministeredUseCase
@@ -33,6 +34,7 @@ import java.time.ZoneId
 class VaccineDashboardViewModelTest {
     private val observeRecords = mockk<ObserveVaccineRecordsUseCase>()
     private val markGiven = mockk<MarkVaccineAdministeredUseCase>(relaxed = true)
+    private val markScheduled = mockk<MarkVaccineScheduledUseCase>(relaxed = true)
     private val undoMarkGiven = mockk<UndoMarkVaccineAdministeredUseCase>(relaxed = true)
     private val delete = mockk<DeleteVaccineRecordUseCase>(relaxed = true)
     private val restore = mockk<RestoreVaccineRecordUseCase>(relaxed = true)
@@ -63,8 +65,16 @@ class VaccineDashboardViewModelTest {
         createdAt = Instant.EPOCH,
     )
 
+    private fun toSchedule(id: Long, offsetDays: Long) = VaccineRecord(
+        id = id,
+        name = "Vaccine $id",
+        status = VaccineStatus.TO_SCHEDULE,
+        scheduledDate = nowInstant.plusSeconds(offsetDays * 86_400),
+        createdAt = Instant.EPOCH,
+    )
+
     private fun viewModel() =
-        VaccineDashboardViewModel(observeRecords, markGiven, undoMarkGiven, delete, restore, zone, now)
+        VaccineDashboardViewModel(observeRecords, markGiven, markScheduled, undoMarkGiven, delete, restore, zone, now)
 
     @Test
     fun `derives overdue hero, schedule order, and recently given`() = runTest {
@@ -311,6 +321,64 @@ class VaccineDashboardViewModelTest {
 
         coVerify(exactly = 1) { delete(1L) }
         coVerify(exactly = 1) { restore(record) }
+    }
+
+    @Test
+    fun `to-schedule doses populate the toSchedule section and never the hero`() = runTest {
+        every { observeRecords() } returns flowOf(
+            listOf(
+                toSchedule(1, offsetDays = 20),
+                toSchedule(2, offsetDays = 5),
+            ),
+        )
+        val vm = viewModel()
+
+        vm.uiState.test {
+            var state = awaitItem()
+            if (state.isLoading) state = awaitItem()
+            // Sorted by target date ascending.
+            assertEquals(listOf(2L, 1L), state.toSchedule.map { it.id })
+            assertNull(state.nextVaccine)
+            assertNull(state.mostOverdue)
+            assertTrue(state.schedule.isEmpty())
+            assertTrue(!state.isFirstRun)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `markScheduled commits immediately and opens the undo window`() = runTest {
+        val record = toSchedule(1, offsetDays = 20)
+        every { observeRecords() } returns flowOf(listOf(record))
+        val vm = viewModel()
+
+        vm.uiState.test {
+            var state = awaitItem()
+            if (state.isLoading) state = awaitItem()
+            assertEquals(listOf(1L), state.toSchedule.map { it.id })
+
+            vm.markScheduled(record)
+            state = awaitItem()
+            assertEquals(1L, state.lastMarkedScheduled?.id)
+            assertTrue(state.toSchedule.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        coVerify(exactly = 1) { markScheduled(1L) }
+    }
+
+    @Test
+    fun `undoMarkScheduled writes the original record back`() = runTest {
+        val record = toSchedule(1, offsetDays = 20)
+        every { observeRecords() } returns flowOf(listOf(record))
+        val vm = viewModel()
+
+        vm.markScheduled(record)
+        vm.undoMarkScheduled()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { markScheduled(1L) }
+        coVerify(exactly = 1) { undoMarkGiven(record) }
     }
 
     @Test

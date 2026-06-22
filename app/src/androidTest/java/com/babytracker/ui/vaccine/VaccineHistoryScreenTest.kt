@@ -58,6 +58,7 @@ class VaccineHistoryScreenTest {
                     state = state(),
                     snackbarHostState = SnackbarHostState(),
                     onMarkGiven = onMarkGiven,
+                    onMarkScheduled = {},
                     onEditRecord = {},
                     onDeleteRecord = {},
                     onRetry = {},

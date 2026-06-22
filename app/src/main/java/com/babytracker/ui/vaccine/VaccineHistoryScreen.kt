@@ -58,6 +58,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.isOverdue
+import com.babytracker.domain.model.isPastTarget
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
 import com.babytracker.ui.theme.OnWarningContainerAmberDark
@@ -116,6 +117,7 @@ fun VaccineHistoryScreen(
         state = state,
         snackbarHostState = snackbarHostState,
         onMarkGiven = historyViewModel::markGiven,
+        onMarkScheduled = historyViewModel::markScheduled,
         onEditRecord = { record ->
             editViewModel.loadForEdit(record)
             showEditSheet = true
@@ -137,6 +139,7 @@ fun VaccineHistoryContent(
     state: VaccineHistoryUiState,
     snackbarHostState: SnackbarHostState,
     onMarkGiven: (Long) -> Unit,
+    onMarkScheduled: (Long) -> Unit,
     onEditRecord: (VaccineRecord) -> Unit,
     onDeleteRecord: (VaccineRecord) -> Unit,
     onRetry: () -> Unit,
@@ -182,6 +185,7 @@ fun VaccineHistoryContent(
                 vaccine = vaccine,
                 overdueColor = overdueColor,
                 onMarkGiven = onMarkGiven,
+                onMarkScheduled = onMarkScheduled,
                 onEditRecord = onEditRecord,
                 onRequestDelete = { confirmDelete = it },
                 padding = padding,
@@ -207,6 +211,7 @@ private fun HistoryList(
     vaccine: VaccinePalette,
     overdueColor: Color,
     onMarkGiven: (Long) -> Unit,
+    onMarkScheduled: (Long) -> Unit,
     onEditRecord: (VaccineRecord) -> Unit,
     onRequestDelete: (VaccineRecord) -> Unit,
     padding: PaddingValues,
@@ -220,6 +225,22 @@ private fun HistoryList(
             end = 16.dp,
         ),
     ) {
+        if (state.toSchedule.isNotEmpty()) {
+            item(key = "to_schedule_header") {
+                SectionHeader(stringResource(R.string.vaccine_to_schedule_section_title))
+            }
+            items(state.toSchedule, key = { "ts_${it.id}" }) { record ->
+                ToScheduleRow(
+                    record = record,
+                    colors = vaccine,
+                    isPastTarget = record.isPastTarget(state.now, ZoneId.systemDefault()),
+                    onSchedule = { onMarkScheduled(record.id) },
+                    onMarkGiven = { onMarkGiven(record.id) },
+                    onDelete = { onRequestDelete(record) },
+                    onEdit = { onEditRecord(record) },
+                )
+            }
+        }
         if (state.upcoming.isNotEmpty()) {
             item(key = "upcoming_header") { SectionHeader(stringResource(R.string.vaccine_history_upcoming)) }
             items(state.upcoming, key = { "u_${it.id}" }) { record ->
