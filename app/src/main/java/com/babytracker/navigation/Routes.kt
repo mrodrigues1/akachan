@@ -40,8 +40,7 @@ object Routes {
     const val DOCTOR_VISIT_SETTINGS = "doctor_visit/settings"
     const val VISIT_QUESTIONS = "doctor_visit/questions"
 
-    fun doctorVisit(visitId: Long? = null): String =
-        if (visitId == null) "doctor_visit?visitId=-1" else "doctor_visit?visitId=$visitId"
+    fun doctorVisit(visitId: Long? = null): String = "doctor_visit?visitId=${visitId ?: -1L}"
 
     fun milestoneDetail(id: Long): String = "milestones/$id"
 }

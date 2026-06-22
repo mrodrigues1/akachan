@@ -46,7 +46,7 @@ fun HistoryCard(
     val isDark = LocalDarkTheme.current
     val rowModifier = Modifier
         .fillMaxWidth()
-        .let { if (onClick != null) it.clickable(role = Role.Button, onClick = onClick) else it }
+        .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
         .padding(horizontal = 14.dp, vertical = 12.dp)
         .semantics(mergeDescendants = true) {
             if (onClick != null) role = Role.Button

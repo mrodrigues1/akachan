@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -227,10 +228,9 @@ class SettingsRepositoryImpl @Inject constructor(
                 p[BABY_NAME] = baby.name
                 p[BABY_BIRTH_DATE] = baby.birthDateEpochDay
                 p[ALLERGIES] = baby.allergies.joinToString(",")
-                if (baby.customAllergyNote != null) p[CUSTOM_ALLERGY_NOTE] = baby.customAllergyNote
-                else p.remove(CUSTOM_ALLERGY_NOTE)
+                p.setOrRemove(CUSTOM_ALLERGY_NOTE, baby.customAllergyNote)
                 // v1 backups have no sex -> remove the key so it reads back as UNSPECIFIED.
-                if (baby.sex != null) p[BABY_SEX] = baby.sex else p.remove(BABY_SEX)
+                p.setOrRemove(BABY_SEX, baby.sex)
                 p[ONBOARDING_COMPLETE] = true
             }
 
@@ -255,4 +255,8 @@ class SettingsRepositoryImpl @Inject constructor(
             p[LAST_IMPORT_COMPLETED_AT] = System.currentTimeMillis()
         }
     }
+}
+
+private fun <T> MutablePreferences.setOrRemove(key: Preferences.Key<T>, value: T?) {
+    if (value != null) this[key] = value else remove(key)
 }
