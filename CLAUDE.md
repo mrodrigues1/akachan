@@ -8,25 +8,25 @@ A native Android baby tracking app for parents of infants (0–12 months). Track
 
 | Layer | Technology |
 |-------|-----------|
-| Build | Android Gradle Plugin 9.1.0, Gradle Version Catalog |
+| Build | Android Gradle Plugin 9.1.1, Gradle Version Catalog |
 | Language | Kotlin 2.3.20 |
 | UI | Jetpack Compose BOM 2026.03.00, Material 3 1.3.1, Activity Compose 1.9.3 |
 | AndroidX | Core KTX 1.15.0, Lifecycle 2.10.0 |
-| Navigation | Compose Navigation 2.9.7 |
-| DI | Hilt 2.59, Hilt Navigation Compose 1.2.0, Hilt Work 1.2.0, KSP 2.3.6 |
+| Navigation | Compose Navigation 2.9.8 |
+| DI | Hilt 2.59.2, Hilt Navigation Compose 1.2.0, Hilt Work 1.2.0, KSP 2.3.9 |
 | Async | Kotlin Coroutines 1.9.0 + Flow |
 | Local DB | Room 2.8.4 |
 | Preferences | DataStore 1.1.1 |
 | Sharing | Firebase BOM 33.7.0 (Firestore KTX, Auth KTX) |
 | Widgets | Glance 1.1.1 (appwidget + material3) |
-| Background work | WorkManager 2.10.0 |
+| Background work | WorkManager 2.11.0 |
 | Reorder | sh.calvin.reorderable 3.1.0 (drag-and-drop) |
 | Charting | Vico 3.1.0 (compose-m3, Material 3 themed charts) |
 | Serialization | Kotlinx Serialization JSON 1.8.1 |
-| Quality | ktlint-gradle 12.1.1, ktlint 1.3.1, detekt 1.23.6, Compose detekt rules 0.0.26 |
+| Quality | ktlint-gradle 12.1.1, ktlint 1.3.1, detekt 1.23.8, Compose detekt rules 0.0.26 |
 | Coverage | Kover 0.9.1 |
 | SDK | Min SDK 26, Compile SDK 36, Target SDK 35, JVM 17 |
-| Testing | JUnit 5.10.3, JUnit 4.13.2, Android JUnit5 2.0.1, MockK 1.13.13, Turbine 1.2.0, Robolectric 4.15.1, Konsist 0.16.0, Compose UI Test, Espresso 3.7.0 |
+| Testing | JUnit 5.10.3, JUnit 4.13.2, Android JUnit5 2.0.1, MockK 1.14.11, Turbine 1.2.0, Robolectric 4.15.1, Konsist 0.16.0, Compose UI Test, Espresso 3.7.0 |
 
 > Authoritative versions: `gradle/libs.versions.toml`. Update this table whenever that file changes.
 
