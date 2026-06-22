@@ -60,7 +60,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -84,6 +83,7 @@ import com.babytracker.ui.breastfeeding.detailText
 import com.babytracker.ui.breastfeeding.primaryText
 import com.babytracker.ui.component.BottleFeedIcon
 import com.babytracker.ui.component.DiaperIcon
+import com.babytracker.ui.component.DoctorVisitIcon
 import com.babytracker.ui.component.FeedingHistoryIcon
 import com.babytracker.ui.component.GrowthIcon
 import com.babytracker.ui.component.InventoryIcon
@@ -681,11 +681,7 @@ internal fun DoctorVisitHomeCard(
                 .padding(16.dp)
                 .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
         ) {
-            Text(
-                text = "🩺",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.clearAndSetSemantics {},
-            )
+            DoctorVisitIcon(modifier = Modifier.size(40.dp))
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = title, style = MaterialTheme.typography.titleMedium, color = colors.onContainer)
             Spacer(modifier = Modifier.height(4.dp))

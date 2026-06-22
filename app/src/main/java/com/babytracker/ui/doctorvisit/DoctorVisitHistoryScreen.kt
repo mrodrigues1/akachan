@@ -55,6 +55,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.model.hasSnapshot
+import com.babytracker.ui.component.DoctorVisitIcon
 import com.babytracker.ui.theme.DoctorVisitPalette
 import com.babytracker.ui.theme.doctorVisitColors
 import java.time.ZoneId
@@ -300,7 +301,7 @@ private fun EmptyHistory(padding: PaddingValues) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("🩺", style = MaterialTheme.typography.headlineLarge)
+        DoctorVisitIcon(modifier = Modifier.size(64.dp))
         Spacer(Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.doctor_visit_history_empty),
