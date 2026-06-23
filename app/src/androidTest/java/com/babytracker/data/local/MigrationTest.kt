@@ -390,6 +390,19 @@ class MigrationTest {
             context.deleteDatabase(dbName)
         }
     }
+
+    @Test
+    fun migrate15To16_roomSchemaValidationPasses() {
+        helper.createDatabase(TEST_DB, 15).use { db ->
+            db.execSQL(
+                "INSERT INTO breastfeeding_sessions (start_time, starting_side, paused_duration_ms)" +
+                    " VALUES (1000, 'LEFT', 0)",
+            )
+            db.execSQL("INSERT INTO sleep_records (start_time, sleep_type) VALUES (2000, 'NAP')")
+        }
+        // Throws if the migrated schema (incl. the new start_time indices) differs from entity schema 16.
+        helper.runMigrationsAndValidate(TEST_DB, 16, true, MIGRATION_15_16).close()
+    }
 }
 
 private class V8DatabaseCallback : SupportSQLiteOpenHelper.Callback(8) {
