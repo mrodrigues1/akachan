@@ -9,15 +9,18 @@ import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.MeasurementSystem
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.model.WidgetPreferences
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.sharing.domain.model.AppMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.time.DateTimeException
 import java.time.LocalTime
@@ -45,6 +48,8 @@ class SettingsRepositoryImpl @Inject constructor(
             booleanPreferencesKey("partner_feed_stash_notifications_enabled")
         val APP_MODE = stringPreferencesKey("app_mode")
         val SHARE_CODE = stringPreferencesKey("share_code")
+        // Owned by FeatureToggleRepository; read here only for the single-snapshot widget accessor.
+        val ENABLED_FEATURES = stringPreferencesKey("enabled_features")
         val PREDICTIVE_ENABLED = booleanPreferencesKey("predictive_enabled")
         val PREDICTIVE_LEAD_MINUTES = intPreferencesKey("predictive_lead_minutes")
         val QUIET_HOURS_START_MINUTE = intPreferencesKey("quiet_hours_start_minute")
@@ -84,9 +89,7 @@ class SettingsRepositoryImpl @Inject constructor(
     }
 
     override fun getVolumeUnit(): Flow<VolumeUnit> =
-        dataStore.data.map { prefs ->
-            prefs[VOLUME_UNIT]?.let { runCatching { VolumeUnit.valueOf(it) }.getOrNull() } ?: VolumeUnit.ML
-        }.distinctUntilChanged()
+        dataStore.data.map { parseVolumeUnit(it) }.distinctUntilChanged()
 
     override suspend fun setVolumeUnit(unit: VolumeUnit) {
         dataStore.edit { it[VOLUME_UNIT] = unit.name }
@@ -158,18 +161,34 @@ class SettingsRepositoryImpl @Inject constructor(
     }
 
     override fun getAppMode(): Flow<AppMode> =
-        dataStore.data.map { preferences ->
-            val modeStr = preferences[APP_MODE] ?: AppMode.NONE.name
-            try {
-                AppMode.valueOf(modeStr)
-            } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Invalid app mode stored: $modeStr", e)
-                AppMode.NONE
-            }
-        }.distinctUntilChanged()
+        dataStore.data.map { parseAppMode(it) }.distinctUntilChanged()
 
     override suspend fun setAppMode(mode: AppMode) {
         dataStore.edit { it[APP_MODE] = mode.name }
+    }
+
+    // Shared by getAppMode() and getWidgetPreferences() so both keep identical fallback semantics.
+    private fun parseAppMode(preferences: Preferences): AppMode {
+        val modeStr = preferences[APP_MODE] ?: AppMode.NONE.name
+        return try {
+            AppMode.valueOf(modeStr)
+        } catch (e: IllegalArgumentException) {
+            Log.w(TAG, "Invalid app mode stored: $modeStr", e)
+            AppMode.NONE
+        }
+    }
+
+    private fun parseVolumeUnit(preferences: Preferences): VolumeUnit =
+        preferences[VOLUME_UNIT]?.let { runCatching { VolumeUnit.valueOf(it) }.getOrNull() } ?: VolumeUnit.ML
+
+    override suspend fun getWidgetPreferences(): WidgetPreferences {
+        val prefs = dataStore.data.first()
+        return WidgetPreferences(
+            appMode = parseAppMode(prefs),
+            shareCode = prefs[SHARE_CODE],
+            enabledFeatures = AppFeature.deserialize(prefs[ENABLED_FEATURES]),
+            volumeUnit = parseVolumeUnit(prefs),
+        )
     }
 
     override fun getShareCode(): Flow<String?> =

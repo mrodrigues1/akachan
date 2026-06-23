@@ -138,6 +138,12 @@ class PredictiveSleepReceiverTest {
             override fun isImportInProgress(): Flow<Boolean> = flowOf(false)
             override suspend fun markImportInProgress(startedAt: Long) = Unit
             override suspend fun restoreFromBackup(data: BackupData) = Unit
+            override suspend fun getWidgetPreferences() = com.babytracker.domain.model.WidgetPreferences(
+                appMode = AppMode.NONE,
+                shareCode = null,
+                enabledFeatures = com.babytracker.domain.model.AppFeature.ALL,
+                volumeUnit = VolumeUnit.ML,
+            )
         }
     }
 

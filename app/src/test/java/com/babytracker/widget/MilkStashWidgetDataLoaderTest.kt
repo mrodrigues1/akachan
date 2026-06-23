@@ -3,14 +3,13 @@ package com.babytracker.widget
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.VolumeUnit
-import com.babytracker.domain.repository.FeatureToggleRepository
+import com.babytracker.domain.model.WidgetPreferences
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.sharing.domain.model.AppMode
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -18,12 +17,16 @@ import org.junit.jupiter.api.Test
 
 class MilkStashWidgetDataLoaderTest {
 
-    private fun settingsRepository(unit: VolumeUnit = VolumeUnit.ML): SettingsRepository = mockk {
-        every { getVolumeUnit() } returns flowOf(unit)
-    }
-
-    private fun features(set: Set<AppFeature> = AppFeature.ALL): FeatureToggleRepository = mockk {
-        every { getEnabledFeatures() } returns flowOf(set)
+    private fun settings(
+        unit: VolumeUnit = VolumeUnit.ML,
+        features: Set<AppFeature> = AppFeature.ALL,
+    ): SettingsRepository = mockk {
+        coEvery { getWidgetPreferences() } returns WidgetPreferences(
+            appMode = AppMode.NONE,
+            shareCode = null,
+            enabledFeatures = features,
+            volumeUnit = unit,
+        )
     }
 
     @Test
@@ -32,7 +35,7 @@ class MilkStashWidgetDataLoaderTest {
             coEvery { currentSummary() } returns InventorySummary(totalMl = 840, bagCount = 6, oldestBagDate = null)
         }
 
-        val result = loadMilkStashWidgetData(repository, settingsRepository(), features())
+        val result = loadMilkStashWidgetData(repository, settings())
 
         assertEquals(MilkStashWidgetData(totalMl = 840, bagCount = 6), result)
     }
@@ -43,7 +46,7 @@ class MilkStashWidgetDataLoaderTest {
             coEvery { currentSummary() } returns InventorySummary(totalMl = 840, bagCount = 6, oldestBagDate = null)
         }
 
-        val result = loadMilkStashWidgetData(repository, settingsRepository(VolumeUnit.OZ), features())
+        val result = loadMilkStashWidgetData(repository, settings(VolumeUnit.OZ))
 
         assertEquals(VolumeUnit.OZ, result.volumeUnit)
     }
@@ -52,7 +55,7 @@ class MilkStashWidgetDataLoaderTest {
     fun `returns disabled state when inventory feature is off`() = runTest {
         val repository: InventoryRepository = mockk()
 
-        val result = loadMilkStashWidgetData(repository, settingsRepository(), features(setOf(AppFeature.SLEEP)))
+        val result = loadMilkStashWidgetData(repository, settings(features = setOf(AppFeature.SLEEP)))
 
         assertEquals(MilkStashWidgetData.DISABLED, result)
     }
@@ -63,7 +66,7 @@ class MilkStashWidgetDataLoaderTest {
             coEvery { currentSummary() } throws IllegalStateException("room busted")
         }
 
-        val result = loadMilkStashWidgetData(repository, settingsRepository(), features())
+        val result = loadMilkStashWidgetData(repository, settings())
 
         assertEquals(MilkStashWidgetData.EMPTY, result)
     }
@@ -75,7 +78,7 @@ class MilkStashWidgetDataLoaderTest {
         }
 
         assertThrows(CancellationException::class.java) {
-            kotlinx.coroutines.runBlocking { loadMilkStashWidgetData(repository, settingsRepository(), features()) }
+            kotlinx.coroutines.runBlocking { loadMilkStashWidgetData(repository, settings()) }
         }
     }
 }

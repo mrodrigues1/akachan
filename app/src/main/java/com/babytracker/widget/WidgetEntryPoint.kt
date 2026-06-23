@@ -2,7 +2,6 @@ package com.babytracker.widget
 
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
-import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import dagger.hilt.EntryPoint
@@ -18,5 +17,4 @@ interface WidgetEntryPoint {
     fun settingsRepository(): SettingsRepository
     fun partnerWidgetCache(): PartnerWidgetCache
     fun widgetRefreshScheduler(): WidgetRefreshScheduler
-    fun featureToggleRepository(): FeatureToggleRepository
 }
