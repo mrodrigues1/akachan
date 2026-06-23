@@ -49,6 +49,7 @@ class HomeReorderTest {
         composeRule.onNodeWithText("Pumping").assertIsDisplayed()
         composeRule.onNodeWithText("Inventory").assertIsDisplayed()
         composeRule.onNodeWithText("Bottle feed").assertIsDisplayed()
+        composeRule.onNodeWithTag("home_tiles_grid").performScrollToNode(hasText("Feeding history"))
         composeRule.onNodeWithText("Feeding history").assertIsDisplayed()
     }
 
