@@ -29,7 +29,8 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.itemsIndexed
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.TipsAndUpdates
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -189,9 +190,9 @@ internal fun HomeContent(
                 .fillMaxHeight()
                 .testTag("home_tiles_grid"),
             state = gridState,
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            verticalItemSpacing = 12.dp,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+            verticalItemSpacing = 14.dp,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             itemsIndexed(
                 items = visibleTiles,
@@ -498,15 +499,19 @@ internal fun HomeTipCard(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                text = "✨",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.clearAndSetSemantics {},
+            Icon(
+                imageVector = Icons.Outlined.TipsAndUpdates,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .size(28.dp)
+                    .clearAndSetSemantics {},
             )
-            Column(modifier = Modifier.padding(start = 10.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.home_tip_label),
                     style = MaterialTheme.typography.labelMedium,
@@ -540,16 +545,17 @@ internal fun PartnerViewCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
-                imageVector = Icons.Default.People,
+                imageVector = Icons.Outlined.Groups,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(24.dp),

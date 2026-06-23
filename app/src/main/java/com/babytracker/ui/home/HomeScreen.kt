@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -145,10 +146,11 @@ internal fun HomeTrackerTile(
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = containerColor),
         elevation = CardDefaults.cardElevation(defaultElevation = elevation),
+        border = BorderStroke(1.dp, contentColor.copy(alpha = 0.14f)),
     ) {
         Column(
             modifier = Modifier
-                .padding(18.dp)
+                .padding(16.dp)
                 .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
         ) {
             Row(
@@ -156,7 +158,10 @@ internal fun HomeTrackerTile(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top,
             ) {
-                icon(Modifier.size(iconSize))
+                HomeTileIconBadge(
+                    icon = icon,
+                    modifier = Modifier.size(iconSize),
+                )
                 trailing?.invoke()
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -170,6 +175,19 @@ internal fun HomeTrackerTile(
             Spacer(modifier = Modifier.height(3.dp))
             content()
         }
+    }
+}
+
+@Composable
+private fun HomeTileIconBadge(
+    icon: @Composable (Modifier) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center,
+    ) {
+        icon(Modifier.fillMaxSize())
     }
 }
 
