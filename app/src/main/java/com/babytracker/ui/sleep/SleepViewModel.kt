@@ -154,7 +154,8 @@ class SleepViewModel @Inject constructor(
                     if (records.any { it.isInProgress }) {
                         null
                     } else {
-                        records.filter { it.endTime != null }.maxByOrNull { it.endTime!! }
+                        // Single pass, no intermediate filtered list: latest non-null endTime.
+                        records.maxByOrNull { it.endTime ?: Instant.MIN }?.takeIf { it.endTime != null }
                     }
                 }
                 .distinctUntilChanged()

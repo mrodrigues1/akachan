@@ -178,7 +178,9 @@ class BreastfeedingViewModel @Inject constructor(
             }
             combine(
                 history.map { sessions ->
-                    sessions.filter { it.endTime != null }.maxByOrNull { it.endTime!! }
+                    // Single pass, no intermediate filtered list: pick the latest non-null endTime
+                    // (sessions with a null endTime sort to Instant.MIN and are dropped by takeIf).
+                    sessions.maxByOrNull { it.endTime ?: Instant.MIN }?.takeIf { it.endTime != null }
                 }.distinctUntilChanged(),
                 ticker
             ) { lastSession, _ ->

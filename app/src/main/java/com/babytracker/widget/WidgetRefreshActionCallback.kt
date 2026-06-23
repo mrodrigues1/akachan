@@ -32,24 +32,32 @@ internal class WidgetRefreshActionHandler(
 ) {
     suspend fun refresh(context: Context, glanceId: GlanceId) {
         BabyWidget.refreshingInstances.add(glanceId)
-        runCatching {
-            updateWidget(context, glanceId)
-        }.onFailure { t ->
-            if (t is CancellationException) throw t
+        // finally guarantees the instance is evicted even if the coroutine is cancelled between the
+        // add and the explicit happy-path remove below — otherwise a cancelled refresh would leave a
+        // stale GlanceId pinned in the process-wide set. The happy-path remove stays where it is so
+        // the final updateWidget still renders the cleared (non-refreshing) state; the finally remove
+        // is then an idempotent no-op.
+        try {
+            runCatching {
+                updateWidget(context, glanceId)
+            }.onFailure { t ->
+                if (t is CancellationException) throw t
+                return
+            }
+            delay(REFRESH_FEEDBACK_MS)
+            runCatching {
+                schedulerProvider(context).scheduleImmediateRefresh()
+            }.onFailure { t ->
+                if (t is CancellationException) throw t
+            }
             BabyWidget.refreshingInstances.remove(glanceId)
-            return
-        }
-        delay(REFRESH_FEEDBACK_MS)
-        runCatching {
-            schedulerProvider(context).scheduleImmediateRefresh()
-        }.onFailure { t ->
-            if (t is CancellationException) throw t
-        }
-        BabyWidget.refreshingInstances.remove(glanceId)
-        runCatching {
-            updateWidget(context, glanceId)
-        }.onFailure { t ->
-            if (t is CancellationException) throw t
+            runCatching {
+                updateWidget(context, glanceId)
+            }.onFailure { t ->
+                if (t is CancellationException) throw t
+            }
+        } finally {
+            BabyWidget.refreshingInstances.remove(glanceId)
         }
     }
 }
