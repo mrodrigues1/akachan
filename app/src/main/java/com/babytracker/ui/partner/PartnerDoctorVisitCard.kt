@@ -10,6 +10,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -31,12 +32,16 @@ fun PartnerDoctorVisitCard(
 ) {
     val zone = ZoneId.systemDefault()
     val colors = doctorVisitColors()
-    // Soonest upcoming first, then most recent past — capped so the card stays compact.
-    val ordered = visits.sortedBy { it.date }
-    val now = Instant.now().toEpochMilli()
-    val upcoming = ordered.filter { it.date > now }
-    val past = ordered.filter { it.date <= now }.sortedByDescending { it.date }
-    val shown = (upcoming + past).take(MAX_ROWS)
+    // Soonest upcoming first, then most recent past — capped so the card stays compact. Remembered on
+    // [visits] so the sort/filter passes don't re-allocate on every recomposition (the card
+    // recomposes on each Firestore snapshot emit). Mirrors PartnerDiaperCard.
+    val shown = remember(visits) {
+        val ordered = visits.sortedBy { it.date }
+        val now = Instant.now().toEpochMilli()
+        val upcoming = ordered.filter { it.date > now }
+        val past = ordered.filter { it.date <= now }.sortedByDescending { it.date }
+        (upcoming + past).take(MAX_ROWS)
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),

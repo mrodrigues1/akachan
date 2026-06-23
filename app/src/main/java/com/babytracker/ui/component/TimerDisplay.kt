@@ -6,9 +6,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -119,37 +120,47 @@ fun TimerDisplay(
     ) {
         if (hasRing) {
             val strokeWidthDp = 16.dp
-            Canvas(modifier = Modifier.fillMaxSize().clearAndSetSemantics {}) {
-                val strokePx = strokeWidthDp.toPx()
-                val diameter = size.minDimension - strokePx
-                val topLeft = Offset(
-                    x = (size.width - diameter) / 2,
-                    y = (size.height - diameter) / 2
-                )
-                val arcSize = Size(diameter, diameter)
-                val stroke = Stroke(width = strokePx, cap = StrokeCap.Round)
-
-                drawArc(
-                    color = resolvedTrackColor,
-                    startAngle = -90f,
-                    sweepAngle = 360f,
-                    useCenter = false,
-                    topLeft = topLeft,
-                    size = arcSize,
-                    style = stroke
-                )
-                if (progress > 0f) {
-                    drawArc(
-                        color = progressColor,
-                        startAngle = -90f,
-                        sweepAngle = 360f * progress,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = arcSize,
-                        style = stroke
-                    )
-                }
-            }
+            Spacer(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clearAndSetSemantics {}
+                    .drawWithCache {
+                        // Geometry + Stroke depend only on the layout size, so cache them here and let
+                        // only the two drawArc calls (which read the per-tick progress) re-run. The
+                        // ring redraws once per second, so this avoids reallocating Offset/Size/Stroke
+                        // on every tick.
+                        val strokePx = strokeWidthDp.toPx()
+                        val diameter = size.minDimension - strokePx
+                        val topLeft = Offset(
+                            x = (size.width - diameter) / 2,
+                            y = (size.height - diameter) / 2,
+                        )
+                        val arcSize = Size(diameter, diameter)
+                        val stroke = Stroke(width = strokePx, cap = StrokeCap.Round)
+                        onDrawBehind {
+                            drawArc(
+                                color = resolvedTrackColor,
+                                startAngle = -90f,
+                                sweepAngle = 360f,
+                                useCenter = false,
+                                topLeft = topLeft,
+                                size = arcSize,
+                                style = stroke,
+                            )
+                            if (progress > 0f) {
+                                drawArc(
+                                    color = progressColor,
+                                    startAngle = -90f,
+                                    sweepAngle = 360f * progress,
+                                    useCenter = false,
+                                    topLeft = topLeft,
+                                    size = arcSize,
+                                    style = stroke,
+                                )
+                            }
+                        }
+                    },
+            )
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(

@@ -507,11 +507,15 @@ private fun GrowthChart(
     val curveLine = whoCurveLine(curveColor)
     val medianLine = whoMedianLine(medianColor)
     val measurementLine = measurementLine(pointColor)
-    val lines = buildList {
-        curves.forEach { curve ->
-            add(if (curve.percentile == MEDIAN_PERCENTILE) medianLine else curveLine)
+    // The Line elements are already remembered; remember the assembled list too so it isn't rebuilt
+    // (and fed fresh into the LineProvider) on every recomposition.
+    val lines = remember(curves, plotted, medianLine, curveLine, measurementLine) {
+        buildList {
+            curves.forEach { curve ->
+                add(if (curve.percentile == MEDIAN_PERCENTILE) medianLine else curveLine)
+            }
+            if (plotted.isNotEmpty()) add(measurementLine)
         }
-        if (plotted.isNotEmpty()) add(measurementLine)
     }
 
     // Vico's default axis label color is theme-agnostic black; tie it to the M3 scheme so it stays
