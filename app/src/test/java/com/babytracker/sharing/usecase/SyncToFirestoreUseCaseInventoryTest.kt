@@ -1,5 +1,7 @@
 package com.babytracker.sharing.usecase
 
+import com.babytracker.domain.model.BottleFeed
+import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.repository.BabyRepository
@@ -11,6 +13,7 @@ import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
@@ -182,11 +185,58 @@ class SyncToFirestoreUseCaseInventoryTest {
         )
     }
 
+    @Test
+    fun bottleFeedsAndInventorySyncCallsCombinedRepoMethodOnce() = runTest {
+        coEvery { inventoryRepository.currentSummary() } returns InventorySummary(
+            totalMl = 240,
+            bagCount = 3,
+            oldestBagDate = null,
+        )
+        every { inventoryRepository.getActiveBags() } returns flowOf(listOf(activeBag))
+        coEvery { bottleFeedRepository.getRecent(any()) } returns listOf(bottleFeed)
+        val feedsSlot = slot<List<BottleFeedSnapshot>>()
+        val fieldsSlot = slot<InventorySnapshotFields>()
+        val bagsSlot = slot<List<MilkBagSnapshot>>()
+        coEvery {
+            sharingRepository.syncBottleFeedsAndInventory(
+                any(),
+                capture(feedsSlot),
+                capture(fieldsSlot),
+                capture(bagsSlot),
+            )
+        } just Runs
+
+        useCase(SyncType.BOTTLE_FEEDS_AND_INVENTORY)
+
+        // One combined call; neither single-tracker sync is issued.
+        coVerify(exactly = 1) { sharingRepository.syncBottleFeedsAndInventory(shareCode, any(), any(), any()) }
+        coVerify(exactly = 0) { sharingRepository.syncInventory(any(), any(), any()) }
+        coVerify(exactly = 0) { sharingRepository.syncBottleFeeds(any(), any()) }
+        assertEquals(1, feedsSlot.captured.size)
+        assertEquals(240, fieldsSlot.captured.totalMl)
+        assertEquals(3, fieldsSlot.captured.bagCount)
+        assertEquals(fixedNow.toEpochMilli(), fieldsSlot.captured.updatedAtMs)
+        assertEquals(
+            listOf(MilkBagSnapshot(id = 7, collectionDateMs = 5_000L, volumeMl = 150, notes = "freezer")),
+            bagsSlot.captured,
+        )
+    }
+
     private val activeBag = MilkBag(
         id = 7,
         collectionDate = Instant.ofEpochMilli(5_000L),
         volumeMl = 150,
         notes = "freezer",
         createdAt = Instant.ofEpochMilli(4_000L),
+    )
+
+    private val bottleFeed = BottleFeed(
+        id = 4L,
+        clientId = "client-4",
+        timestamp = Instant.ofEpochMilli(1_000L),
+        volumeMl = 90,
+        type = FeedType.BREAST_MILK,
+        linkedMilkBagId = null,
+        createdAt = Instant.ofEpochMilli(1_000L),
     )
 }

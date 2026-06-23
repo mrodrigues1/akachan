@@ -1,5 +1,6 @@
 package com.babytracker.sharing.data.firebase
 
+import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.google.android.gms.tasks.Task
@@ -13,6 +14,7 @@ import com.google.firebase.firestore.SetOptions
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -74,6 +76,30 @@ class FirestoreSharingServiceInventoryRoundTripTest {
         assertEquals(5_000L, bags.single()["collectionDateMs"])
         assertEquals(150, bags.single()["volumeMl"])
         assertEquals("freezer", bags.single()["notes"])
+    }
+
+    @Test
+    fun coalescedWriteCarriesBottleFeedsAndInventoryInOneMerge() = runTest {
+        val mapSlot = slot<Map<String, Any?>>()
+        every { document.set(capture(mapSlot), any<SetOptions>()) } returns voidTask()
+
+        service.syncBottleFeedsAndInventory(
+            "CODE1234",
+            bottleFeeds = listOf(BottleFeedSnapshot(timestamp = 1_000L, volumeMl = 120, type = "FORMULA")),
+            fields = InventorySnapshotFields(totalMl = 240, bagCount = 1, updatedAtMs = 12_345L),
+            milkBags = listOf(MilkBagSnapshot(id = 7, collectionDateMs = 5_000L, volumeMl = 150, notes = "freezer")),
+        )
+
+        // The whole point of the coalesce: exactly one Firestore write, not two.
+        verify(exactly = 1) { document.set(any(), any<SetOptions>()) }
+        val data = mapSlot.captured["data"] as Map<*, *>
+        val feed = (data["bottleFeeds"] as List<*>).single() as Map<*, *>
+        assertEquals(120, feed["volumeMl"])
+        assertEquals("FORMULA", feed["type"])
+        assertEquals(240, data["inventoryTotalMl"])
+        assertEquals(1, data["inventoryBagCount"])
+        assertEquals(12_345L, data["inventoryUpdatedAt"])
+        assertEquals(1, (data["milkBags"] as List<*>).size)
     }
 
     @Test

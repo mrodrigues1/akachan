@@ -140,6 +140,31 @@ class FirestoreSharingService @Inject constructor(
         )
     }
 
+    /**
+     * Writes the bottle-feed and inventory field groups in a single `mergeData` round-trip. The
+     * field set is exactly the union of [syncBottleFeeds] + [syncInventory], so the resulting
+     * document shape is identical to issuing those two syncs back-to-back — only the round-trip
+     * count drops from two to one.
+     */
+    suspend fun syncBottleFeedsAndInventory(
+        code: String,
+        bottleFeeds: List<BottleFeedSnapshot>,
+        fields: InventorySnapshotFields,
+        milkBags: List<MilkBagSnapshot>,
+    ) {
+        mergeData(
+            code,
+            mapOf(
+                "lastSyncAt" to Timestamp.now(),
+                "bottleFeeds" to bottleFeeds.map { bottleFeedToMap(it) },
+                "inventoryTotalMl" to fields.totalMl,
+                "inventoryBagCount" to fields.bagCount,
+                "inventoryUpdatedAt" to fields.updatedAtMs,
+                "milkBags" to milkBags.map { milkBagToMap(it) },
+            ),
+        )
+    }
+
     suspend fun registerPartner(code: String, partnerUid: String) {
         partnersCollection(code).document(partnerUid)
             .set(mapOf("connectedAt" to Timestamp.now())).await()
@@ -173,22 +198,26 @@ class FirestoreSharingService @Inject constructor(
         shareDoc(code).delete().await()
     }
 
-    fun observeFeedOps(code: String): Flow<List<FeedOp>> = callbackFlow {
-        val registration = shareDoc(code)
-            .collection(FEED_OPS)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-                if (snapshot != null) {
-                    trySend(
-                        snapshot.documents.mapNotNull { doc ->
-                            mapToFeedOp(doc.id, doc.data ?: return@mapNotNull null)
-                        },
-                    )
-                }
+    /**
+     * Observes the feed-ops subcollection. With [authorUid] null, emits every op; with it set,
+     * filters to that author's own ops (`whereEqualTo("authorUid", …)`).
+     */
+    fun observeFeedOps(code: String, authorUid: String? = null): Flow<List<FeedOp>> = callbackFlow {
+        val base = shareDoc(code).collection(FEED_OPS)
+        val query = if (authorUid != null) base.whereEqualTo("authorUid", authorUid) else base
+        val registration = query.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
             }
+            if (snapshot != null) {
+                trySend(
+                    snapshot.documents.mapNotNull { doc ->
+                        mapToFeedOp(doc.id, doc.data ?: return@mapNotNull null)
+                    },
+                )
+            }
+        }
         awaitClose { registration.remove() }
     }
 
@@ -212,26 +241,6 @@ class FirestoreSharingService @Inject constructor(
         withTimeoutOrNull(WRITE_ACK_TIMEOUT_MS) {
             writeTask.await()
         }
-    }
-
-    fun observeOwnFeedOps(code: String, uid: String): Flow<List<FeedOp>> = callbackFlow {
-        val registration = shareDoc(code)
-            .collection(FEED_OPS)
-            .whereEqualTo("authorUid", uid)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-                if (snapshot != null) {
-                    trySend(
-                        snapshot.documents.mapNotNull { doc ->
-                            mapToFeedOp(doc.id, doc.data ?: return@mapNotNull null)
-                        },
-                    )
-                }
-            }
-        awaitClose { registration.remove() }
     }
 
     suspend fun deleteFeedOps(code: String, opIds: List<String>) {

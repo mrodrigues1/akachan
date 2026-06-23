@@ -37,6 +37,14 @@ interface SharingRepository {
         fields: InventorySnapshotFields,
         milkBags: List<MilkBagSnapshot>,
     )
+
+    /** Coalesces a bottle-feed + inventory sync into one merged write (same fields, one round-trip). */
+    suspend fun syncBottleFeedsAndInventory(
+        code: ShareCode,
+        bottleFeeds: List<BottleFeedSnapshot>,
+        fields: InventorySnapshotFields,
+        milkBags: List<MilkBagSnapshot>,
+    )
     suspend fun registerPartner(code: ShareCode, partnerUid: String)
     suspend fun fetchSnapshot(code: ShareCode): ShareSnapshot
     suspend fun isPartnerConnected(code: ShareCode, partnerUid: String): Boolean
