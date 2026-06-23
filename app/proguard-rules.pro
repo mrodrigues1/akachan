@@ -15,9 +15,33 @@
 -keep class * extends androidx.room.Entity
 -keep @androidx.room.Entity class * { *; }
 
-# Keeping all classes that might be used by Hilt for reflection
--keep class com.babytracker.** { *; }
--keep interface com.babytracker.** { *; }
+# First-party reflection/serialization surfaces.
+#
+# The previous blanket `-keep class com.babytracker.** { *; }` (+ interface) froze ALL app code:
+# no renaming, inlining, or dead-code removal, so R8 could never strip unused screens/use
+# cases/receivers. Hilt, Room, Glance, WorkManager and Firebase ship their own consumer rules, so
+# the blanket keep was largely redundant. These targeted keeps preserve only what is actually
+# reached reflectively at runtime, letting R8 shrink and rename everything else.
+
+# Enums are persisted by constant name (DataStore, Room TypeConverters, Firestore maps,
+# kotlinx.serialization backups). Keep their members — chiefly the constant fields and the
+# values()/valueOf() pair — so name()/valueOf() round-trips never break. The enum class itself may
+# still be renamed; only the persisted constant names must survive.
+-keepclassmembers enum com.babytracker.** {
+    *;
+}
+
+# kotlinx.serialization @Serializable models (backup export/import). The plugin emits compile-time
+# serializers (the JSON keys are baked into the serializer as string constants, so renaming model
+# fields is harmless) and kotlinx-serialization ships consumer rules that keep those serializers +
+# Companion accessors. Keeping the annotated classes whole here is belt-and-suspenders: it guarantees
+# the model types and their members are never stripped, independent of the bundled rules.
+-keepattributes RuntimeVisibleAnnotations,AnnotationDefault,InnerClasses
+-keep @kotlinx.serialization.Serializable class com.babytracker.** { *; }
+
+# WorkManager persists a worker's class name and resolves it (via the Hilt WorkerFactory) at runtime,
+# so workers must not be renamed or stripped.
+-keep class * extends androidx.work.ListenableWorker { *; }
 
 # Hilt generates a `BabyTrackerApp_HiltComponents` holder whose nested subcomponent builders
 # (ActivityC$Builder, FragmentC$Builder, ViewModelC$Builder, …) and the `Hilt_BabyTrackerApp`
