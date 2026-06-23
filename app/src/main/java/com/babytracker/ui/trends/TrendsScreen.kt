@@ -451,6 +451,8 @@ private fun FeedingFrequencyChart(data: List<DailyFeedingCount>) {
             }
         }
     }
+    // Hoisted so the date list + formatter lambda aren't reallocated on every recomposition.
+    val dateFormatter = remember(data) { dateAxisFormatter(data.map { it.date }) }
     ChartBlock(
         title = stringResource(R.string.trends_feeds_per_day_title),
         chartTestTag = "trends_feeding_chart",
@@ -471,7 +473,7 @@ private fun FeedingFrequencyChart(data: List<DailyFeedingCount>) {
                 ),
                 bottomAxis = HorizontalAxis.rememberBottom(
                     label = label,
-                    valueFormatter = dateAxisFormatter(data.map { it.date }),
+                    valueFormatter = dateFormatter,
                     itemPlacer = dayAxisItemPlacer(data.size),
                     titleComponent = axisTitle,
                     title = { dateTitle },
@@ -503,6 +505,8 @@ private fun SleepDurationChart(data: List<DailySleepDuration>) {
             }
         }
     }
+    // Hoisted so the date list + formatter lambda aren't reallocated on every recomposition.
+    val dateFormatter = remember(data) { dateAxisFormatter(data.map { it.date }) }
     ChartBlock(
         title = stringResource(R.string.trends_sleep_hours_title),
         chartTestTag = "trends_sleep_chart",
@@ -525,7 +529,7 @@ private fun SleepDurationChart(data: List<DailySleepDuration>) {
                 ),
                 bottomAxis = HorizontalAxis.rememberBottom(
                     label = label,
-                    valueFormatter = dateAxisFormatter(data.map { it.date }),
+                    valueFormatter = dateFormatter,
                     itemPlacer = dayAxisItemPlacer(data.size),
                     titleComponent = axisTitle,
                     title = { dateTitle },
@@ -557,6 +561,10 @@ private fun FeedingIntervalChart(data: List<DailyFeedingInterval>) {
         }
     }
     val line = lineSpec(color)
+    // Hoisted so neither the date list + formatter lambda nor the per-run line list are reallocated
+    // on every recomposition.
+    val dateFormatter = remember(data) { dateAxisFormatter(data.map { it.date }) }
+    val lines = remember(runs.size, line) { List(runs.size) { line } }
     ChartBlock(
         title = stringResource(R.string.trends_interval_title),
         chartTestTag = "trends_interval_chart",
@@ -566,7 +574,7 @@ private fun FeedingIntervalChart(data: List<DailyFeedingInterval>) {
         CartesianChartHost(
             rememberCartesianChart(
                 rememberLineCartesianLayer(
-                    LineCartesianLayer.LineProvider.series(List(runs.size) { line }),
+                    LineCartesianLayer.LineProvider.series(lines),
                 ),
                 startAxis = VerticalAxis.rememberStart(
                     label = label,
@@ -575,7 +583,7 @@ private fun FeedingIntervalChart(data: List<DailyFeedingInterval>) {
                 ),
                 bottomAxis = HorizontalAxis.rememberBottom(
                     label = label,
-                    valueFormatter = dateAxisFormatter(data.map { it.date }),
+                    valueFormatter = dateFormatter,
                     itemPlacer = dayAxisItemPlacer(data.size),
                     titleComponent = axisTitle,
                     title = { dateTitle },
