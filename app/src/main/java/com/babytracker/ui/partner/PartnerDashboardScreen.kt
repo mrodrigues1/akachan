@@ -335,17 +335,23 @@ private fun DashboardContent(
     }
 
     val now = remember(nowMs) { Instant.ofEpochMilli(nowMs) }
-    val activeSession = snapshot.sessions.firstOrNull { it.endTime == null }
-    val activeSleep = snapshot.sleepRecords.firstOrNull { it.endTime == null }
-    val completedSessions = snapshot.sessions.filter { it.endTime != null }.take(3)
-    val lastSleep = snapshot.sleepRecords.firstOrNull()
-    val hasSharedRecords = snapshot.sessions.isNotEmpty() ||
-        snapshot.sleepRecords.isNotEmpty() ||
-        snapshot.bottleFeeds.isNotEmpty() ||
-        snapshot.growth.isNotEmpty() ||
-        snapshot.milestones.isNotEmpty() ||
-        snapshot.diapers.isNotEmpty() ||
-        snapshot.doctorVisits.isNotEmpty()
+    // These derive only from the snapshot, but nowMs ticks every minute and is read here, so without
+    // remember the whole body — and these list scans — re-ran every minute. Key on the snapshot so
+    // they recompute on data change only; let `now` feed just the elapsed-time formatters below.
+    val activeSession = remember(snapshot.sessions) { snapshot.sessions.firstOrNull { it.endTime == null } }
+    val activeSleep = remember(snapshot.sleepRecords) { snapshot.sleepRecords.firstOrNull { it.endTime == null } }
+    val completedSessions =
+        remember(snapshot.sessions) { snapshot.sessions.filter { it.endTime != null }.take(3) }
+    val lastSleep = remember(snapshot.sleepRecords) { snapshot.sleepRecords.firstOrNull() }
+    val hasSharedRecords = remember(snapshot) {
+        snapshot.sessions.isNotEmpty() ||
+            snapshot.sleepRecords.isNotEmpty() ||
+            snapshot.bottleFeeds.isNotEmpty() ||
+            snapshot.growth.isNotEmpty() ||
+            snapshot.milestones.isNotEmpty() ||
+            snapshot.diapers.isNotEmpty() ||
+            snapshot.doctorVisits.isNotEmpty()
+    }
     val context = LocalContext.current
     val lastSharedText = remember(snapshot.lastSyncAt, nowMs, context) {
         Duration.between(snapshot.lastSyncAt, now).coerceAtLeast(Duration.ZERO).formatElapsedAgo(context)

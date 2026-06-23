@@ -146,6 +146,17 @@ fun SleepHistoryScreen(
                 }
             }
         } else {
+            // Per-day totals were folded (filter + mapNotNull + fold, allocating intermediate lists)
+            // inside the LazyColumn DSL body for every group on every recomposition. Precompute once
+            // per data change.
+            val totalsByDate = remember(groupedByDateDesc) {
+                groupedByDateDesc.associate { (date, records) ->
+                    date to records
+                        .filter { it.endTime != null }
+                        .mapNotNull { record -> record.endTime?.let { end -> Duration.between(record.startTime, end) } }
+                        .fold(Duration.ZERO) { acc, d -> acc + d }
+                }
+            }
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
@@ -156,12 +167,7 @@ fun SleepHistoryScreen(
                 )
             ) {
                 groupedByDateDesc.forEach { (date, records) ->
-                    val totalDuration = records
-                        .filter { it.endTime != null }
-                        .mapNotNull { record ->
-                            record.endTime?.let { end -> Duration.between(record.startTime, end) }
-                        }
-                        .fold(Duration.ZERO) { acc, d -> acc + d }
+                    val totalDuration = totalsByDate[date] ?: Duration.ZERO
                     stickyHeader(key = date.toString()) {
                         val header = if (totalDuration.isZero) {
                             pluralStringResource(
