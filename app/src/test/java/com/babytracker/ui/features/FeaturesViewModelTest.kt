@@ -13,6 +13,8 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -41,9 +43,21 @@ class FeaturesViewModelTest {
     @AfterEach
     fun tearDown() = Dispatchers.resetMain()
 
+    // uiState is now WhileSubscribed, so it only collects its upstream while it has a subscriber.
+    // The real screen always subscribes while shown; mirror that with a background collector so the
+    // tests that read uiState.value (rather than collecting via Turbine) observe live state.
+    private fun TestScope.activeViewModel(): FeaturesViewModel {
+        val vm = FeaturesViewModel(getEnabled, setFeature, setDomain)
+        // Collect on an unconfined dispatcher so the subscription is live immediately (backgroundScope's
+        // default StandardTestDispatcher would not start collecting until the scheduler advances, and
+        // these tests assert uiState.value synchronously after a toggle).
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        return vm
+    }
+
     @Test
     fun `uiState reflects the enabled features flow`() = runTest {
-        val vm = FeaturesViewModel(getEnabled, setFeature, setDomain)
+        val vm = activeViewModel()
         vm.uiState.test {
             assertEquals(AppFeature.ALL, expectMostRecentItem().enabledFeatures)
             cancelAndIgnoreRemainingEvents()
@@ -53,7 +67,7 @@ class FeaturesViewModelTest {
     @Test
     fun `applied toggle does not raise the hint`() = runTest {
         coEvery { setFeature(AppFeature.SLEEP, false) } returns true
-        val vm = FeaturesViewModel(getEnabled, setFeature, setDomain)
+        val vm = activeViewModel()
 
         vm.onFeatureToggled(AppFeature.SLEEP, enabled = false)
 
@@ -64,7 +78,7 @@ class FeaturesViewModelTest {
     @Test
     fun `blocked toggle raises the last-feature hint`() = runTest {
         coEvery { setFeature(AppFeature.SLEEP, false) } returns false
-        val vm = FeaturesViewModel(getEnabled, setFeature, setDomain)
+        val vm = activeViewModel()
 
         vm.onFeatureToggled(AppFeature.SLEEP, enabled = false)
 
@@ -75,7 +89,7 @@ class FeaturesViewModelTest {
     @Test
     fun `blocked domain toggle raises the hint`() = runTest {
         coEvery { setDomain(FeatureDomain.FEEDING, false) } returns false
-        val vm = FeaturesViewModel(getEnabled, setFeature, setDomain)
+        val vm = activeViewModel()
 
         vm.onDomainToggled(FeatureDomain.FEEDING, enabled = false)
 
@@ -85,7 +99,7 @@ class FeaturesViewModelTest {
     @Test
     fun `onHintShown clears the hint`() = runTest {
         coEvery { setFeature(AppFeature.SLEEP, false) } returns false
-        val vm = FeaturesViewModel(getEnabled, setFeature, setDomain)
+        val vm = activeViewModel()
         vm.onFeatureToggled(AppFeature.SLEEP, enabled = false)
         assertTrue(vm.uiState.value.showLastFeatureHint)
 
