@@ -16,14 +16,28 @@ import com.babytracker.export.domain.InvalidBackupException
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.export.domain.model.CURRENT_BACKUP_FORMAT_VERSION
 import com.babytracker.export.domain.model.VaccineBackup
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromStream
+import java.io.InputStream
 import javax.inject.Inject
 
 class ValidateBackupUseCase @Inject constructor(
     private val json: Json,
 ) {
-    operator fun invoke(jsonString: String): BackupData {
-        val parsed = json.decodeFromString(BackupData.serializer(), jsonString)
+    operator fun invoke(jsonString: String): BackupData =
+        process(json.decodeFromString(BackupData.serializer(), jsonString))
+
+    /**
+     * Streaming variant: decodes straight from [input] (e.g. a size-capped file stream) so the raw
+     * JSON document is never held as a String before parsing. Runs the same version-gate /
+     * canonicalize / validate pipeline as [invoke].
+     */
+    @OptIn(ExperimentalSerializationApi::class)
+    fun fromStream(input: InputStream): BackupData =
+        process(json.decodeFromStream(BackupData.serializer(), input))
+
+    private fun process(parsed: BackupData): BackupData {
         val migrated = applyVersionGate(parsed)
         val canonical = canonicalizeContent(migrated)
         validateContent(canonical)

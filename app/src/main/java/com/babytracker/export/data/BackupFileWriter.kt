@@ -11,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.OutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,16 +25,21 @@ class BackupFileWriter @Inject constructor(
      * the write targets a freshly created document, never an existing backup. Any
      * failure propagates — do not treat a thrown exception as success.
      */
-    suspend fun writeToUri(uri: Uri, content: String) = withContext(Dispatchers.IO) {
+    suspend fun writeToUri(uri: Uri, write: suspend (OutputStream) -> Unit) = withContext(Dispatchers.IO) {
         // "wt" = write + TRUNCATE. The Uri always comes from ACTION_CREATE_DOCUMENT (a fresh,
         // empty doc), so truncation is harmless there; it also guarantees that if this is ever
         // handed a non-empty document, a shorter backup cannot leave stale trailing bytes that
-        // would corrupt a later JSON import.
+        // would corrupt a later JSON import. The streaming form lets callers emit the whole dataset
+        // incrementally (e.g. Json.encodeToStream) instead of building a full String/ByteArray first.
         context.contentResolver.openOutputStream(uri, "wt")?.use { stream ->
-            stream.write(content.toByteArray(Charsets.UTF_8))
+            write(stream)
             stream.flush()
         } ?: error("Could not open output stream for $uri")
     }
+
+    /** Convenience String overload; delegates to the streaming form above. */
+    suspend fun writeToUri(uri: Uri, content: String) =
+        writeToUri(uri) { stream -> stream.write(content.toByteArray(Charsets.UTF_8)) }
 
     /**
      * Transient path: write to cache off the main thread, return a shareable FileProvider Uri.

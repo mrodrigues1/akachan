@@ -71,6 +71,15 @@ class BackupFileWriterTest {
     }
 
     @Test
+    fun `writeToUri streaming overload writes what the block emits`() = runTest {
+        val target = File(context.cacheDir, "saf-stream.json")
+        writer.writeToUri(android.net.Uri.fromFile(target)) { out ->
+            out.write("streamed".toByteArray(Charsets.UTF_8))
+        }
+        assertEquals("streamed", target.readText())
+    }
+
+    @Test
     fun `writeToUri truncates a longer existing target leaving no stale bytes`() = runTest {
         val target = File(context.cacheDir, "saf-overwrite.json")
         val uri = android.net.Uri.fromFile(target)
