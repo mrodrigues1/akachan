@@ -414,7 +414,7 @@ internal fun PumpingHomeCard(
         modifier = modifier,
         minHeight = if (isPumping) 156.dp else 124.dp,
         elevation = pumpingElevation,
-        iconSize = if (isPumping) 62.dp else 56.dp,
+        iconSize = if (isPumping) 70.dp else 64.dp,
         trailing = {
             AnimatedVisibility(
                 visible = isPumping,
