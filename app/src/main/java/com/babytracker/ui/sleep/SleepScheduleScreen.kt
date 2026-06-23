@@ -37,6 +37,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -143,12 +144,21 @@ private fun ScheduleContent(
     onToggleRegression: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val timelineItems = buildSleepTimelineItems(
-        napTimes = schedule.napTimes,
-        wakeWindows = schedule.wakeWindows,
-        bedtime = schedule.bedtime,
-        bedtimeWindow = schedule.bedtimeWindow
-    )
+    // Recompute the timeline only when the schedule inputs change, not on every recomposition
+    // (e.g. each regression toggle). A fresh list each pass also defeated LazyColumn item reuse.
+    val timelineItems = remember(
+        schedule.napTimes,
+        schedule.wakeWindows,
+        schedule.bedtime,
+        schedule.bedtimeWindow,
+    ) {
+        buildSleepTimelineItems(
+            napTimes = schedule.napTimes,
+            wakeWindows = schedule.wakeWindows,
+            bedtime = schedule.bedtime,
+            bedtimeWindow = schedule.bedtimeWindow
+        )
+    }
 
     LazyColumn(
         modifier = modifier
@@ -180,7 +190,12 @@ private fun ScheduleContent(
             item { RegressionWarningCard(schedule.regressionWarning) }
         }
 
-        itemsIndexed(timelineItems) { index, item ->
+        itemsIndexed(
+            timelineItems,
+            // Stable identity (nap number, or the single bedtime row) so a schedule change moves
+            // unchanged rows instead of re-laying-out the whole timeline.
+            key = { _, item -> if (item.isBedtime) "bedtime" else "nap_${item.napNumber}" },
+        ) { index, item ->
             SleepTimelineRow(
                 item = item,
                 isLast = index == timelineItems.lastIndex
