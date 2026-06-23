@@ -62,6 +62,13 @@ class SharingRepositoryImpl @Inject constructor(
         milkBags: List<MilkBagSnapshot>,
     ) = service.syncInventory(code.value, fields, milkBags)
 
+    override suspend fun syncBottleFeedsAndInventory(
+        code: ShareCode,
+        bottleFeeds: List<BottleFeedSnapshot>,
+        fields: InventorySnapshotFields,
+        milkBags: List<MilkBagSnapshot>,
+    ) = service.syncBottleFeedsAndInventory(code.value, bottleFeeds, fields, milkBags)
+
     override suspend fun registerPartner(code: ShareCode, partnerUid: String) =
         service.registerPartner(code.value, partnerUid)
 
@@ -90,7 +97,7 @@ class SharingRepositoryImpl @Inject constructor(
     ) = service.writeFeedOp(code.value, op, onFailure)
 
     override fun observeOwnFeedOps(code: ShareCode, uid: String): Flow<List<FeedOp>> =
-        service.observeOwnFeedOps(code.value, uid)
+        service.observeFeedOps(code.value, authorUid = uid)
 
     override suspend fun deleteFeedOps(code: ShareCode, opIds: List<String>) =
         service.deleteFeedOps(code.value, opIds)

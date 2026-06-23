@@ -84,8 +84,8 @@ class ProcessFeedOpsUseCase @Inject constructor(
                     result.consumedBagId?.let { consumedBagByEntry[op.entryClientId] = it }
                 }
                 if (syncPending) {
-                    syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS)
-                    syncToFirestore(SyncToFirestoreUseCase.SyncType.INVENTORY)
+                    // One merged write instead of back-to-back BOTTLE_FEEDS + INVENTORY round-trips.
+                    syncToFirestore(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS_AND_INVENTORY)
                     syncPending = false
                 }
                 // Always delete: leaving invalid/duplicate ops in place would re-trigger the batch forever.

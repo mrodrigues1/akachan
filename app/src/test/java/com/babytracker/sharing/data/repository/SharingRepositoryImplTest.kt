@@ -2,8 +2,11 @@ package com.babytracker.sharing.data.repository
 
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.BabySnapshot
+import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.FeedOpAction
+import com.babytracker.sharing.domain.model.InventorySnapshotFields
+import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
@@ -140,6 +143,32 @@ class SharingRepositoryImplTest {
 
         assertEquals("ABCD1234", codeSlot.captured)
         assertEquals(sleepRecords, sleepSlot.captured)
+    }
+
+    @Test
+    fun syncBottleFeedsAndInventoryPassesCodeValueAndAllGroups() = runTest {
+        val feeds = listOf(BottleFeedSnapshot(timestamp = 1_000L, volumeMl = 120, type = "FORMULA"))
+        val fields = InventorySnapshotFields(totalMl = 240, bagCount = 1, updatedAtMs = 12_345L)
+        val bags = listOf(MilkBagSnapshot(id = 7, collectionDateMs = 5_000L, volumeMl = 150, notes = null))
+        val codeSlot = slot<String>()
+        val feedsSlot = slot<List<BottleFeedSnapshot>>()
+        val fieldsSlot = slot<InventorySnapshotFields>()
+        val bagsSlot = slot<List<MilkBagSnapshot>>()
+        coJustRun {
+            service.syncBottleFeedsAndInventory(
+                capture(codeSlot),
+                capture(feedsSlot),
+                capture(fieldsSlot),
+                capture(bagsSlot),
+            )
+        }
+
+        repository.syncBottleFeedsAndInventory(code, feeds, fields, bags)
+
+        assertEquals("ABCD1234", codeSlot.captured)
+        assertEquals(feeds, feedsSlot.captured)
+        assertEquals(fields, fieldsSlot.captured)
+        assertEquals(bags, bagsSlot.captured)
     }
 
     @Test

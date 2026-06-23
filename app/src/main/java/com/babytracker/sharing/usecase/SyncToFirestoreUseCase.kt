@@ -26,7 +26,9 @@ class SyncToFirestoreUseCase @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val now: () -> Instant = Instant::now,
 ) {
-    enum class SyncType { FULL, SESSIONS, SLEEP_RECORDS, BABY, INVENTORY, BOTTLE_FEEDS, DIAPERS }
+    enum class SyncType {
+        FULL, SESSIONS, SLEEP_RECORDS, BABY, INVENTORY, BOTTLE_FEEDS, BOTTLE_FEEDS_AND_INVENTORY, DIAPERS
+    }
 
     suspend operator fun invoke(syncType: SyncType = SyncType.FULL) {
         if (settingsRepository.getAppMode().first() != AppMode.PRIMARY) return
@@ -38,6 +40,7 @@ class SyncToFirestoreUseCase @Inject constructor(
             SyncType.BABY -> syncBaby(code)
             SyncType.INVENTORY -> syncInventory(code)
             SyncType.BOTTLE_FEEDS -> syncBottleFeeds(code)
+            SyncType.BOTTLE_FEEDS_AND_INVENTORY -> syncBottleFeedsAndInventory(code)
             SyncType.DIAPERS -> syncDiapers(code)
         }
     }
@@ -126,6 +129,21 @@ class SyncToFirestoreUseCase @Inject constructor(
     private suspend fun syncBottleFeeds(code: ShareCode) {
         val feeds = sources.bottleFeeds.getRecent(SYNC_LIMIT)
         sharingRepository.syncBottleFeeds(code, feeds.map { it.toSnapshot() })
+    }
+
+    // A bottle-feed edit/delete/op touches both the feed list and inventory (a consumed bag). Pushing
+    // them as one merged write halves the Firestore round-trips versus separate BOTTLE_FEEDS +
+    // INVENTORY syncs; the written fields are identical.
+    private suspend fun syncBottleFeedsAndInventory(code: ShareCode) {
+        val feeds = sources.bottleFeeds.getRecent(SYNC_LIMIT)
+        val summary = sources.inventory.currentSummary()
+        val activeBags = sources.inventory.getActiveBags().first()
+        sharingRepository.syncBottleFeedsAndInventory(
+            code,
+            feeds.map { it.toSnapshot() },
+            summary.toSnapshotFields(updatedAtMs = now().toEpochMilli()),
+            activeBags.map { it.toSnapshot() },
+        )
     }
 
     private suspend fun syncDiapers(code: ShareCode) {
