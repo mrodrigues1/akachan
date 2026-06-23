@@ -52,9 +52,9 @@ class DiaperSheetTest {
     fun rendersThreeTypeSegments() {
         setSheet(state())
 
-        composeRule.onNodeWithText("💧 Wet").assertIsDisplayed()
-        composeRule.onNodeWithText("💩 Dirty").assertIsDisplayed()
-        composeRule.onNodeWithText("🌀 Both").assertIsDisplayed()
+        composeRule.onNodeWithText("Wet").assertIsDisplayed()
+        composeRule.onNodeWithText("Dirty").assertIsDisplayed()
+        composeRule.onNodeWithText("Both").assertIsDisplayed()
     }
 
     @Test
@@ -62,7 +62,7 @@ class DiaperSheetTest {
         var selected: DiaperType? = null
         setSheet(state(), onTypeChange = { selected = it })
 
-        composeRule.onNodeWithText("💩 Dirty").performClick()
+        composeRule.onNodeWithText("Dirty").performClick()
 
         composeRule.runOnIdle { assertEquals(DiaperType.DIRTY, selected) }
     }
