@@ -185,6 +185,10 @@ dependencies {
     // WorkManager
     implementation(libs.work.runtime.ktx)
 
+    // Baseline profiles: installs a shipped profile + registers ProfileInstallReceiver so a
+    // release build can be profiled (full :baselineprofile generation module is follow-up).
+    implementation(libs.androidx.profileinstaller)
+
     // Coroutines
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)

@@ -17,6 +17,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BabyTracker">
 
+        <!-- Lets shell/system tools capture a startup profile from a release build (API 29+). -->
+        <profileable
+            android:shell="true"
+            tools:targetApi="q" />
+
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
             android:enabled="false"
