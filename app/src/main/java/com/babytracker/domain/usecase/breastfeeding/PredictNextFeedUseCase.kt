@@ -8,7 +8,6 @@ import com.babytracker.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -23,9 +22,10 @@ class PredictNextFeedUseCase @Inject constructor(
 ) {
 
     operator fun invoke(): Flow<FeedPrediction?> {
+        // Bounded query instead of getAllSessions().map { take(LIMIT) }: the DESC LIMIT returns the
+        // same newest LOOKBACK_LIMIT rows without loading/mapping the entire table on every emission.
         val recentSessionsFlow: Flow<List<BreastfeedingSession>> =
-            breastfeedingRepository.getAllSessions()
-                .map { it.take(PredictionTuning.LOOKBACK_LIMIT) }
+            breastfeedingRepository.getRecentSessionsFlow(PredictionTuning.LOOKBACK_LIMIT)
 
         return combine(
             recentSessionsFlow,
