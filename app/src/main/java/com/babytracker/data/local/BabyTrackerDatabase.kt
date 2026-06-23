@@ -53,7 +53,7 @@ import com.babytracker.data.local.entity.VisitQuestionEntity
         DoctorVisitEntity::class,
         VisitQuestionEntity::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -475,6 +475,24 @@ val MIGRATION_14_15 = object : Migration(14, 15) {
             """.trimIndent(),
         )
         database.execSQL("CREATE INDEX IF NOT EXISTS index_visit_questions_visit_id ON visit_questions(visit_id)")
+    }
+}
+
+// Adds descending indices on the two highest-traffic tables' start_time columns. Every history,
+// latest/active LIMIT 1, and range query sorts/filters on start_time; without an index SQLite did a
+// full scan + in-memory sort. Index-only change — no data touched, results/order unchanged. The DDL
+// mirrors the entities' @Index(value = ["start_time"], orders = [DESC]) so Room schema validation
+// (16.json) matches, exactly as pumping_sessions does.
+val MIGRATION_15_16 = object : Migration(15, 16) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_breastfeeding_sessions_start_time " +
+                "ON breastfeeding_sessions(start_time DESC)",
+        )
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_sleep_records_start_time " +
+                "ON sleep_records(start_time DESC)",
+        )
     }
 }
 

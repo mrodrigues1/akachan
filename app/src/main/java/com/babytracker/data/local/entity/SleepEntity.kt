@@ -2,12 +2,18 @@ package com.babytracker.data.local.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.toSleepTypeSafe
 import java.time.Instant
 
-@Entity(tableName = "sleep_records")
+@Entity(
+    tableName = "sleep_records",
+    // Every query filters/sorts on start_time (history, latest/active LIMIT 1, range scans). Without
+    // an index these are full table scans + in-memory sorts that grow with a year of sleep records.
+    indices = [Index(value = ["start_time"], orders = [Index.Order.DESC])],
+)
 data class SleepEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(name = "start_time") val startTime: Long,
