@@ -23,6 +23,9 @@ class BottleFeedRepositoryImpl @Inject constructor(
     override fun getSince(start: Instant): Flow<List<BottleFeed>> =
         dao.getSince(start.toEpochMilli()).map { rows -> rows.map { it.toDomain() } }
 
+    override suspend fun getRecent(limit: Int): List<BottleFeed> =
+        dao.getRecent(limit).map { it.toDomain() }
+
     override suspend fun getById(id: Long): BottleFeed? = dao.getById(id)?.toDomain()
 
     override suspend fun getByClientId(clientId: String): BottleFeed? =

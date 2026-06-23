@@ -15,6 +15,9 @@ interface DoctorVisitDao {
     @Query("SELECT * FROM doctor_visits ORDER BY date DESC")
     fun observeAllVisits(): Flow<List<DoctorVisitEntity>>
 
+    @Query("SELECT * FROM doctor_visits ORDER BY date DESC LIMIT :limit")
+    suspend fun getRecentVisits(limit: Int): List<DoctorVisitEntity>
+
     @Query("SELECT * FROM doctor_visits WHERE id = :id LIMIT 1")
     suspend fun getVisitById(id: Long): DoctorVisitEntity?
 

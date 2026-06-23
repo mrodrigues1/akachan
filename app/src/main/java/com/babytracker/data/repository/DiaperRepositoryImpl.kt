@@ -21,6 +21,9 @@ class DiaperRepositoryImpl @Inject constructor(
     override fun observeLatest(): Flow<DiaperChange?> =
         dao.observeLatest().map { it?.toDomain() }
 
+    override suspend fun getRecent(limit: Int): List<DiaperChange> =
+        dao.getRecent(limit).map { it.toDomain() }
+
     override suspend fun getBetween(start: Instant, end: Instant): List<DiaperChange> =
         dao.getBetween(start.toEpochMilli(), end.toEpochMilli()).map { it.toDomain() }
 

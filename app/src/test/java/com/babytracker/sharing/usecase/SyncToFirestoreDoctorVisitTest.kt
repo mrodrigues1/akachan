@@ -47,23 +47,21 @@ class SyncToFirestoreDoctorVisitTest {
         coEvery { inventoryRepo.currentSummary() } returns InventorySummary.Empty
         every { inventoryRepo.getActiveBags() } returns flowOf(emptyList())
         val bottleRepo = mockk<BottleFeedRepository>()
-        every { bottleRepo.getAll() } returns flowOf(emptyList())
+        coEvery { bottleRepo.getRecent(any()) } returns emptyList()
         val diaperRepo = mockk<DiaperRepository>()
-        every { diaperRepo.observeAll() } returns flowOf(emptyList())
+        coEvery { diaperRepo.getRecent(any()) } returns emptyList()
         val growthRepo = mockk<GrowthRepository>()
         every { growthRepo.getAllMeasurements() } returns flowOf(emptyList())
         val milestoneRepo = mockk<MilestoneRepository>()
         every { milestoneRepo.getMilestones() } returns flowOf(emptyList())
         val doctorRepo = mockk<DoctorVisitRepository>()
-        every { doctorRepo.observeAllVisits() } returns flowOf(
-            listOf(
-                DoctorVisit(
-                    id = 1,
-                    date = Instant.ofEpochMilli(5_000),
-                    providerName = "Dr. A",
-                    notes = "n",
-                    createdAt = Instant.ofEpochMilli(1_000),
-                ),
+        coEvery { doctorRepo.getRecentVisits(any()) } returns listOf(
+            DoctorVisit(
+                id = 1,
+                date = Instant.ofEpochMilli(5_000),
+                providerName = "Dr. A",
+                notes = "n",
+                createdAt = Instant.ofEpochMilli(1_000),
             ),
         )
 
