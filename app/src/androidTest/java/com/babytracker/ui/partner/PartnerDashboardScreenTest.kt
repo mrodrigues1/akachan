@@ -614,6 +614,13 @@ class PartnerDashboardScreenTest {
             milkBags: List<MilkBagSnapshot>,
         ) = Unit
 
+        override suspend fun syncBottleFeedsAndInventory(
+            code: ShareCode,
+            bottleFeeds: List<com.babytracker.sharing.domain.model.BottleFeedSnapshot>,
+            fields: InventorySnapshotFields,
+            milkBags: List<MilkBagSnapshot>,
+        ) = Unit
+
         override suspend fun syncBottleFeeds(
             code: ShareCode,
             bottleFeeds: List<com.babytracker.sharing.domain.model.BottleFeedSnapshot>,
