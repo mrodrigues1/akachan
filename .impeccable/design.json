@@ -1,156 +1,211 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-06-19T00:00:00Z",
+  "generatedAt": "2026-06-22T00:00:00Z",
   "title": "Design System: Akachan",
   "extensions": {
     "colorMeta": {
-      "carnation-pink": { "role": "primary", "displayName": "Carnation Pink", "canonical": "#C2185B", "tonalRamp": ["#3E0418", "#5E0A26", "#880E4F", "#A31350", "#C2185B", "#E0467F", "#F08CAE", "#F8BBD0"] },
-      "sleep-blue": { "role": "secondary", "displayName": "Sleep Blue", "canonical": "#1976D2", "tonalRamp": ["#062E5C", "#0D47A1", "#1565C0", "#1976D2", "#2E8BE0", "#5BA8EC", "#89CFF0", "#B3E5FC"] },
-      "threshold-green": { "role": "tertiary", "displayName": "Threshold Green", "canonical": "#388E3C", "tonalRamp": ["#0E3211", "#1B5E20", "#2E7D32", "#388E3C", "#4CAF50", "#7CC47F", "#A5D6A7", "#C8E6C9"] },
-      "milestone-purple": { "role": "accent", "displayName": "Milestone Purple", "canonical": "#7B1FA2", "tonalRamp": ["#2E0A3D", "#4A148C", "#6A1B9A", "#7B1FA2", "#9C27B0", "#BA68C8", "#CE93D8", "#E1BEE7"] },
-      "growth-teal": { "role": "accent", "displayName": "Growth Teal", "canonical": "#00897B", "tonalRamp": ["#00271F", "#004D40", "#00695C", "#00897B", "#26A69A", "#4DB6AC", "#80CBC4", "#B2DFDB"] },
-      "diaper-yellow": { "role": "accent", "displayName": "Diaper Yellow", "canonical": "#F9A825", "tonalRamp": ["#3E2E00", "#5F4B00", "#8A6D00", "#C28A00", "#F9A825", "#FFD54F", "#FFE9A8", "#FFF3C4"] },
-      "bottle-red": { "role": "accent", "displayName": "Bottle Red", "canonical": "#D32F2F", "tonalRamp": ["#4A0E0E", "#7F1414", "#B71C1C", "#D32F2F", "#E57373", "#FF8A80", "#FFAB9C", "#FFCDD2"] },
-      "warning-amber": { "role": "warning", "displayName": "Warning Amber", "canonical": "#E65100", "tonalRamp": ["#3E1600", "#7A3600", "#BF4400", "#E65100", "#F57C00", "#FFA726", "#FFCC80", "#FFE0B2"] },
-      "warm-cream": { "role": "neutral", "displayName": "Warm Cream", "canonical": "#FFFDE7", "tonalRamp": ["#1A1A18", "#3A382C", "#6D6A64", "#9A968B", "#CAC4D0", "#F0EDE0", "#FFFDE7", "#FFFEF5"] },
-      "near-black": { "role": "neutral", "displayName": "Near-Black", "canonical": "#1A1A1A", "tonalRamp": ["#1A1A1A", "#2B2930", "#3A383E", "#6D6A64", "#938F99", "#CAC4D0", "#E6E1E5", "#F5F2F0"] }
+      "carnation-pink":                { "role": "primary",   "displayName": "Carnation Pink",              "canonical": "#C2185B", "tonalRamp": ["#3D0018", "#6B0030", "#880E4F", "#C2185B", "#E91E8C", "#F48FB1", "#F8BBD0", "#FCE4EC"] },
+      "carnation-pink-container":      { "role": "primary",   "displayName": "Carnation Pink Container",    "canonical": "#F8BBD0", "tonalRamp": ["#880E4F", "#C2185B", "#F06292", "#F48FB1", "#F8BBD0", "#FCE4EC", "#FFF0F3", "#FFF8FA"] },
+      "on-carnation-pink-container":   { "role": "primary",   "displayName": "Deep Carnation",              "canonical": "#880E4F", "tonalRamp": ["#1A0010", "#3D0018", "#6B0030", "#880E4F", "#C2185B", "#E91E8C", "#F48FB1", "#F8BBD0"] },
+      "pale-carnation":                { "role": "primary",   "displayName": "Pale Carnation",              "canonical": "#F4C2C2", "tonalRamp": ["#880E4F", "#C2185B", "#E57373", "#F4C2C2", "#FFCDD2", "#FFEBEE", "#FFF5F5", "#FFF9F9"] },
+      "sleep-blue":                    { "role": "secondary", "displayName": "Sleep Blue",                  "canonical": "#1976D2", "tonalRamp": ["#0A2472", "#0D47A1", "#1565C0", "#1976D2", "#2196F3", "#64B5F6", "#B3E5FC", "#E3F2FD"] },
+      "sleep-blue-container":          { "role": "secondary", "displayName": "Sleep Blue Container",        "canonical": "#B3E5FC", "tonalRamp": ["#0D47A1", "#1976D2", "#64B5F6", "#90CAF9", "#B3E5FC", "#E3F2FD", "#F0F9FF", "#F8FCFF"] },
+      "on-sleep-blue-container":       { "role": "secondary", "displayName": "Deep Sleep Blue",             "canonical": "#0D47A1", "tonalRamp": ["#020E30", "#0A2472", "#0D47A1", "#1565C0", "#1976D2", "#2196F3", "#64B5F6", "#B3E5FC"] },
+      "threshold-green":               { "role": "tertiary",  "displayName": "Threshold Green",             "canonical": "#388E3C", "tonalRamp": ["#0A1E0B", "#1B5E20", "#2E7D32", "#388E3C", "#43A047", "#81C784", "#C8E6C9", "#F1F8E9"] },
+      "threshold-green-container":     { "role": "tertiary",  "displayName": "Threshold Green Container",   "canonical": "#C8E6C9", "tonalRamp": ["#1B5E20", "#388E3C", "#81C784", "#A5D6A7", "#C8E6C9", "#E8F5E9", "#F4FBF4", "#FAFDF9"] },
+      "warning-amber":                 { "role": "extended",  "displayName": "Warning Amber",               "canonical": "#E65100", "tonalRamp": ["#3B1100", "#6D2A00", "#BF360C", "#E65100", "#FF6D00", "#FFAB40", "#FFE0B2", "#FFF3E0"] },
+      "warning-amber-container":       { "role": "extended",  "displayName": "Warning Amber Container",     "canonical": "#FFE0B2", "tonalRamp": ["#7A3600", "#BF360C", "#E65100", "#FF8F00", "#FFAB40", "#FFE0B2", "#FFF3E0", "#FFFDE7"] },
+      "milestone-purple":              { "role": "extended",  "displayName": "Milestone Purple",            "canonical": "#7B1FA2", "tonalRamp": ["#1A0033", "#38006B", "#4A148C", "#6A1B9A", "#7B1FA2", "#AB47BC", "#E1BEE7", "#F3E5F5"] },
+      "milestone-purple-container":    { "role": "extended",  "displayName": "Milestone Purple Container",  "canonical": "#E1BEE7", "tonalRamp": ["#4A148C", "#7B1FA2", "#AB47BC", "#CE93D8", "#E1BEE7", "#F3E5F5", "#FAF0FB", "#FDF6FE"] },
+      "on-milestone-purple-container": { "role": "extended",  "displayName": "Deep Milestone Purple",       "canonical": "#4A148C", "tonalRamp": ["#0D001E", "#1A0033", "#38006B", "#4A148C", "#6A1B9A", "#7B1FA2", "#AB47BC", "#E1BEE7"] },
+      "growth-teal":                   { "role": "extended",  "displayName": "Growth Teal",                 "canonical": "#00796B", "tonalRamp": ["#00251A", "#004D40", "#00695C", "#00796B", "#00897B", "#4DB6AC", "#B2DFDB", "#E0F2F1"] },
+      "growth-teal-container":         { "role": "extended",  "displayName": "Growth Teal Container",       "canonical": "#B2DFDB", "tonalRamp": ["#004D40", "#00796B", "#4DB6AC", "#80CBC4", "#B2DFDB", "#E0F2F1", "#F0FBF9", "#F8FEFA"] },
+      "on-growth-teal-container":      { "role": "extended",  "displayName": "Deep Growth Teal",            "canonical": "#004D40", "tonalRamp": ["#00110E", "#00251A", "#003B2E", "#004D40", "#00695C", "#00796B", "#4DB6AC", "#B2DFDB"] },
+      "diaper-yellow":                 { "role": "extended",  "displayName": "Diaper Yellow",               "canonical": "#F9A825", "tonalRamp": ["#3E2000", "#5F3500", "#7A4800", "#CC7A00", "#F9A825", "#FFD54F", "#FFE9A8", "#FFF8E1"] },
+      "diaper-yellow-container":       { "role": "extended",  "displayName": "Diaper Yellow Container",     "canonical": "#FFE9A8", "tonalRamp": ["#5F4B00", "#F9A825", "#FFD54F", "#FFE082", "#FFE9A8", "#FFF3C4", "#FFF8E1", "#FFFEF5"] },
+      "on-diaper-yellow-container":    { "role": "extended",  "displayName": "Deep Diaper Yellow",          "canonical": "#5F4B00", "tonalRamp": ["#1A1100", "#3E2000", "#5F3500", "#5F4B00", "#7A6200", "#A68A00", "#D4B000", "#F9D835"] },
+      "vaccine-indigo":                { "role": "extended",  "displayName": "Vaccine Indigo",              "canonical": "#303F9F", "tonalRamp": ["#0A0F2E", "#1A237E", "#283593", "#303F9F", "#3949AB", "#7986CB", "#9FA8DA", "#C5CAE9"] },
+      "vaccine-indigo-container":      { "role": "extended",  "displayName": "Vaccine Indigo Container",    "canonical": "#C5CAE9", "tonalRamp": ["#1A237E", "#303F9F", "#5C6BC0", "#7986CB", "#9FA8DA", "#C5CAE9", "#E8EAF6", "#F5F6FC"] },
+      "on-vaccine-indigo-container":   { "role": "extended",  "displayName": "Deep Vaccine Indigo",         "canonical": "#1A237E", "tonalRamp": ["#04051F", "#0A0F2E", "#131A5C", "#1A237E", "#283593", "#303F9F", "#7986CB", "#C5CAE9"] },
+      "doctor-slate":                  { "role": "extended",  "displayName": "Doctor Visit Slate",          "canonical": "#455A64", "tonalRamp": ["#0A1014", "#1A2428", "#263238", "#37474F", "#455A64", "#78909C", "#B0BEC5", "#ECEFF1"] },
+      "doctor-slate-container":        { "role": "extended",  "displayName": "Doctor Visit Slate Container","canonical": "#CFD8DC", "tonalRamp": ["#263238", "#455A64", "#78909C", "#90A4AE", "#B0BEC5", "#CFD8DC", "#ECEFF1", "#F8FAFB"] },
+      "on-doctor-slate-container":     { "role": "extended",  "displayName": "Deep Doctor Slate",           "canonical": "#263238", "tonalRamp": ["#040709", "#0A1014", "#1A2428", "#263238", "#37474F", "#455A64", "#78909C", "#CFD8DC"] },
+      "bottle-feed-red":               { "role": "extended",  "displayName": "Bottle-Feed Red",             "canonical": "#D32F2F", "tonalRamp": ["#1A0000", "#410002", "#690005", "#93000A", "#B00020", "#D32F2F", "#EF9A9A", "#FFCDD2"] },
+      "warm-cream":                    { "role": "neutral",   "displayName": "Warm Cream",                  "canonical": "#FFFDE7", "tonalRamp": ["#1A1A16", "#3A3A30", "#6D6A55", "#B0A890", "#D4CDB8", "#EDE8D8", "#F5F0E0", "#FFFDE7"] },
+      "cream-variant":                 { "role": "neutral",   "displayName": "Cream Variant",               "canonical": "#F0EDE0", "tonalRamp": ["#1A1A14", "#38382E", "#6B6A5A", "#A8A695", "#C8C6B5", "#E0DDD0", "#ECEAE0", "#F0EDE0"] },
+      "near-black":                    { "role": "neutral",   "displayName": "Near-Black",                  "canonical": "#1A1A1A", "tonalRamp": ["#1A1A1A", "#2E2E2E", "#424242", "#616161", "#9E9E9E", "#BDBDBD", "#E0E0E0", "#F5F5F5"] },
+      "muted-grey":                    { "role": "neutral",   "displayName": "Muted Grey",                  "canonical": "#6D6A64", "tonalRamp": ["#1A1918", "#353330", "#504E4A", "#6D6A64", "#9C9A94", "#C4C2BC", "#E4E2DC", "#F0EEE8"] },
+      "outline":                       { "role": "neutral",   "displayName": "Outline",                     "canonical": "#79747E", "tonalRamp": ["#1A191C", "#38363D", "#504E55", "#79747E", "#9E99A3", "#C4C0C9", "#E4E0EA", "#F2F0F7"] },
+      "outline-variant":               { "role": "neutral",   "displayName": "Outline Variant",             "canonical": "#CAC4D0", "tonalRamp": ["#38363D", "#504E55", "#79747E", "#9E99A3", "#C4C0C9", "#CAC4D0", "#E4E0EA", "#F2F0F7"] },
+      "error":                         { "role": "error",     "displayName": "Error",                       "canonical": "#B00020", "tonalRamp": ["#410002", "#690005", "#93000A", "#B00020", "#CF3A4A", "#E57373", "#FFCDD2", "#FFEBEE"] },
+      "dark-surface":                  { "role": "neutral",   "displayName": "Dark Surface",                "canonical": "#1C1B1F", "tonalRamp": ["#0D0D10", "#1C1B1F", "#2B2930", "#3B383E", "#4B474E", "#79747E", "#9E99A3", "#CAC4D0"] }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Live timer readout inside TimerDisplay only (36sp ExtraBold)." },
-      "headline": { "displayName": "Headline", "purpose": "Screen-level titles; never inside a card." },
-      "title": { "displayName": "Title", "purpose": "TopAppBar titles and primary list-item text." },
-      "body": { "displayName": "Body", "purpose": "Main body copy and supporting information." },
-      "label": { "displayName": "Label", "purpose": "Buttons, chips, and UPPERCASE day-group section headers." }
+      "display":   { "displayName": "Display",   "purpose": "Live elapsed-time readout inside TimerDisplay only. Never reassigned." },
+      "headline":  { "displayName": "Headline",  "purpose": "Screen-level titles, Domain Hero Card countdowns, SleepPredictionCard primary time value." },
+      "title":     { "displayName": "Title",     "purpose": "TopAppBar titles, section headings, overdue day counts (titleLarge — not headlineLarge — to avoid shouting)." },
+      "body":      { "displayName": "Body",      "purpose": "Main copy, supporting info, card descriptions, hero card secondary lines." },
+      "label":     { "displayName": "Label",     "purpose": "Button labels, UPPERCASE section headers inside cards and history lists, chip text, badge text." }
     },
     "shadows": [
-      { "name": "ambient-card", "value": "0 1px 3px rgba(26,26,26,0.16)", "purpose": "Cards at rest. Invisible in dark mode; swapped for a 1px #CAC4D0 border." },
-      { "name": "active-selection", "value": "0 6px 14px rgba(26,26,26,0.22)", "purpose": "Selected SideSelector tiles and home cards with a running session. The 1dp to 6dp jump is the active-state signal." }
+      { "name": "ambient-card",     "value": "0 1dp elevation (Material3)",  "purpose": "HistoryCard and home summary cards at rest. Swapped for 1dp outlineVariant border in dark mode." },
+      { "name": "active-selection", "value": "0 6dp elevation (Material3)",  "purpose": "SideSelector selected tile and home summary cards with an active session." },
+      { "name": "flat",             "value": "0dp elevation",                "purpose": "Domain Hero Cards, feature dashboard cards, SleepPredictionCard. Color fill communicates importance; elevation would break the home card grammar." }
     ],
     "motion": [
-      { "name": "ease-out-quart", "value": "cubic-bezier(0.25, 1, 0.5, 1)", "purpose": "State-driven color and elevation transitions (220-240ms). The system's motion signature." },
-      { "name": "timer-pulse", "value": "scale 1.0 -> 1.04 -> 1.0 over 2500ms ease-in-out", "purpose": "TimerDisplay ring pulse while a session runs." },
-      { "name": "cue-tap", "value": "scale 0.80 -> 1.25 -> 0.94 -> 1.0 (65/190/110/130ms)", "purpose": "CueChip tap confirmation; the one place spring-like keyframing is allowed." }
-    ]
+      { "name": "ease-out-quart",   "value": "CubicBezierEasing(0.25, 1.0, 0.5, 1.0)", "purpose": "Default easing for all state-driven color, elevation, and content transitions. 200-240ms duration." },
+      { "name": "ease-out-linear",  "value": "LinearOutSlowInEasing",                   "purpose": "animateContentSize fallback for cards with less dramatic state changes." },
+      { "name": "tap-confirm-seq",  "value": "0.80 to 1.25 to 0.94 to 1.0 scale (65+190+110+130ms)", "purpose": "CueChip tap confirmation microinteraction. The only place spring-style motion appears." },
+      { "name": "timer-pulse",      "value": "1.0 to 1.04 to 1.0 scale, 2500ms ease-in-out infinite", "purpose": "TimerDisplay pulse while session is running. Stops on pause." },
+      { "name": "badge-pulse",      "value": "0.82 to 1.18 scale + 0.58 to 1.0 alpha, 900ms EaseOutQuart infinite", "purpose": "ActiveStatusBadge dot pulse while session is live. Stops on pause." }
+    ],
+    "breakpoints": []
   },
   "components": [
     {
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Pill-shaped primary action; the main commit affordance on tracking screens and bottom sheets.",
-      "html": "<button class=\"ds-btn-primary\">Start feeding</button>",
-      "css": ".ds-btn-primary { background: #C2185B; color: #fff; font: 600 14px/20px system-ui, sans-serif; letter-spacing: 0.1px; min-height: 48px; padding: 16px 24px; border: none; border-radius: 50px; cursor: pointer; transition: background 0.22s cubic-bezier(0.25,1,0.5,1), transform 0.22s cubic-bezier(0.25,1,0.5,1); } .ds-btn-primary:hover { background: #A31350; } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 2px solid #880E4F; outline-offset: 2px; }"
+      "description": "Full-width pill button for the primary action on a tracking screen.",
+      "html": "<button class=\"ds-btn-primary\">Start Feeding</button>",
+      "css": ".ds-btn-primary { background: #C2185B; color: #FFFFFF; padding: 16px 24px; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; border: none; border-radius: 50px; min-height: 48px; width: 100%; cursor: pointer; transition: background 0.22s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.22s cubic-bezier(0.25, 1, 0.5, 1); } .ds-btn-primary:hover { background: #A31550; box-shadow: 0 4px 16px rgba(194, 24, 91, 0.28); } .ds-btn-primary:focus-visible { outline: 3px solid #F8BBD0; outline-offset: 2px; } .ds-btn-primary:active { background: #880E4F; transform: scale(0.98); }"
     },
     {
       "name": "Outline Button",
       "kind": "button",
       "refersTo": "button-outline",
-      "description": "Secondary action; 2px border in the active domain accent over a transparent fill.",
-      "html": "<button class=\"ds-btn-outline\">View history</button>",
-      "css": ".ds-btn-outline { background: transparent; color: #1976D2; font: 600 14px/20px system-ui, sans-serif; min-height: 48px; padding: 14px 24px; border: 2px solid #1976D2; border-radius: 50px; cursor: pointer; transition: background 0.22s cubic-bezier(0.25,1,0.5,1); } .ds-btn-outline:hover { background: rgba(25,118,210,0.08); } .ds-btn-outline:focus-visible { outline: 2px solid #0D47A1; outline-offset: 2px; }"
+      "description": "Secondary action button with transparent fill and domain-colored border.",
+      "html": "<button class=\"ds-btn-outline\">View History</button>",
+      "css": ".ds-btn-outline { background: transparent; color: #1976D2; padding: 14px 24px; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; border: 2px solid #1976D2; border-radius: 50px; min-height: 48px; cursor: pointer; transition: background 0.2s cubic-bezier(0.25, 1, 0.5, 1); } .ds-btn-outline:hover { background: rgba(25, 118, 210, 0.08); } .ds-btn-outline:focus-visible { outline: 3px solid #B3E5FC; outline-offset: 2px; } .ds-btn-outline:active { background: rgba(25, 118, 210, 0.14); }"
     },
     {
-      "name": "SideSelector Tile",
-      "kind": "custom",
+      "name": "Domain Hero Card — Normal",
+      "kind": "card",
+      "refersTo": "domain-hero-card",
+      "description": "Filled-accent hero card at the top of feature dashboards. Vaccine Indigo shown; swap accent color per domain.",
+      "html": "<div class=\"ds-hero\"><div class=\"ds-hero-label-row\"><span class=\"ds-hero-label\">NEXT UP</span><button class=\"ds-hero-edit\" aria-label=\"Edit\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"white\"><path d=\"M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z\"/></svg></button></div><p class=\"ds-hero-countdown\">Tomorrow</p><p class=\"ds-hero-name\">MMR · Dose 2</p><p class=\"ds-hero-date\">Scheduled for Thu, Jun 25</p><button class=\"ds-hero-action\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" style=\"margin-right:8px\"><path d=\"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z\"/></svg>Mark as given</button></div>",
+      "css": ".ds-hero { background: #303F9F; border-radius: 24px; padding: 20px; width: 100%; box-sizing: border-box; } .ds-hero-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; } .ds-hero-label { font-family: system-ui; font-size: 12px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: rgba(255,255,255,0.85); } .ds-hero-edit { background: transparent; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; } .ds-hero-countdown { font-family: system-ui; font-size: 32px; font-weight: 700; color: #FFFFFF; margin: 0 0 4px; line-height: 1.1; } .ds-hero-name { font-family: system-ui; font-size: 16px; font-weight: 400; color: #FFFFFF; margin: 0 0 2px; letter-spacing: 0.5px; } .ds-hero-date { font-family: system-ui; font-size: 14px; font-weight: 400; color: rgba(255,255,255,0.85); margin: 0 0 16px; letter-spacing: 0.25px; } .ds-hero-action { display: flex; align-items: center; justify-content: center; background: transparent; color: #FFFFFF; border: 1px solid rgba(255,255,255,0.5); border-radius: 50px; padding: 12px 20px; font-family: system-ui; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; min-height: 48px; transition: background 0.2s; } .ds-hero-action:hover { background: rgba(255,255,255,0.12); } .ds-hero-action:focus-visible { outline: 3px solid rgba(255,255,255,0.5); outline-offset: 2px; }"
+    },
+    {
+      "name": "Domain Hero Card — Overdue",
+      "kind": "card",
+      "refersTo": "domain-hero-card-overdue",
+      "description": "Overdue variant: Warning Amber container, calmer overdue-days type size, reassurance copy.",
+      "html": "<div class=\"ds-hero-overdue\"><div class=\"ds-overdue-label-row\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"#7A3600\"><path d=\"M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z\"/></svg><span class=\"ds-overdue-label\">OVERDUE</span><button class=\"ds-overdue-edit\" aria-label=\"Edit\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"#7A3600\"><path d=\"M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z\"/></svg></button></div><p class=\"ds-overdue-days\">12 days overdue</p><p class=\"ds-overdue-name\">DTaP · Dose 4</p><p class=\"ds-overdue-reassurance\">It's not too late — schedule it when you're ready.</p><button class=\"ds-overdue-action\">Mark as given</button></div>",
+      "css": ".ds-hero-overdue { background: #FFE0B2; border-radius: 24px; padding: 20px; width: 100%; box-sizing: border-box; } .ds-overdue-label-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; } .ds-overdue-label { font-family: system-ui; font-size: 12px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #7A3600; flex: 1; } .ds-overdue-edit { background: transparent; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; } .ds-overdue-days { font-family: system-ui; font-size: 22px; font-weight: 700; color: #7A3600; margin: 0 0 4px; } .ds-overdue-name { font-family: system-ui; font-size: 16px; font-weight: 400; color: #7A3600; margin: 0 0 8px; } .ds-overdue-reassurance { font-family: system-ui; font-size: 14px; font-weight: 400; color: #7A3600; margin: 0 0 16px; letter-spacing: 0.25px; } .ds-overdue-action { display: flex; align-items: center; justify-content: center; background: transparent; color: #7A3600; border: 1px solid rgba(122,54,0,0.5); border-radius: 50px; padding: 12px 20px; font-family: system-ui; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; min-height: 48px; transition: background 0.2s; } .ds-overdue-action:hover { background: rgba(122,54,0,0.08); }"
+    },
+    {
+      "name": "Persistent Bottom Bar",
+      "kind": "nav",
+      "refersTo": "persistent-bottom-bar",
+      "description": "Full-width pinned CTA bar for feature dashboards. Hairline divider + domain-accent pill button.",
+      "html": "<div class=\"ds-bottom-bar\"><div class=\"ds-bottom-divider\"></div><button class=\"ds-bottom-btn\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"white\" style=\"margin-right:8px\"><path d=\"M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z\"/></svg>Add vaccine</button></div>",
+      "css": ".ds-bottom-bar { background: #FFFDE7; padding-bottom: env(safe-area-inset-bottom, 0px); } .ds-bottom-divider { height: 1px; background: #CAC4D0; } .ds-bottom-btn { display: flex; align-items: center; justify-content: center; background: #303F9F; color: #FFFFFF; border: none; border-radius: 50px; padding: 14px 24px; font-family: system-ui; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; cursor: pointer; width: calc(100% - 32px); min-height: 52px; margin: 12px 16px; box-sizing: border-box; transition: background 0.22s cubic-bezier(0.25, 1, 0.5, 1); } .ds-bottom-btn:hover { background: #1A237E; } .ds-bottom-btn:focus-visible { outline: 3px solid #C5CAE9; outline-offset: 2px; } .ds-bottom-btn:active { background: #0D1757; transform: scale(0.98); }"
+    },
+    {
+      "name": "SideSelector Selected",
+      "kind": "button",
       "refersTo": "side-selector-selected",
-      "description": "The left/right breast chooser. Selected tile fills with the feeding accent and lifts to 6dp; the elevation jump is the state signal.",
-      "html": "<div class=\"ds-side-row\"><button class=\"ds-side ds-side--selected\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z\"/></svg><span>Left</span></button><button class=\"ds-side\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M8.59 16.59 10 18l6-6-6-6-1.41 1.41L13.17 12z\"/></svg><span>Right</span></button></div>",
-      "css": ".ds-side-row { display: flex; gap: 12px; } .ds-side { flex: 1; height: 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #FFFDE7; color: rgba(26,26,26,0.4); border: 2px solid #F8BBD0; border-radius: 16px; font: 600 14px/20px system-ui, sans-serif; cursor: pointer; transition: box-shadow 0.24s cubic-bezier(0.25,1,0.5,1), background 0.24s cubic-bezier(0.25,1,0.5,1); } .ds-side--selected { background: #C2185B; color: #fff; border-color: #C2185B; box-shadow: 0 6px 14px rgba(26,26,26,0.22); } .ds-side:focus-visible { outline: 2px solid #880E4F; outline-offset: 2px; }"
+      "description": "Selected breast-side chooser tile. Carnation Pink fill with elevation jump.",
+      "html": "<button class=\"ds-side-selected\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"white\"><path d=\"M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z\"/></svg><span>LEFT</span></button>",
+      "css": ".ds-side-selected { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: #C2185B; color: #FFFFFF; border: none; border-radius: 16px; height: 88px; flex: 1; cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,0.22); font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; }"
     },
     {
-      "name": "Home Summary Card (active)",
-      "kind": "card",
-      "refersTo": "card-summary-active",
-      "description": "Domain tile on the home grid with a running session. Fills with the full role color and lifts to 6dp; a Live badge sits top-right.",
-      "html": "<div class=\"ds-home-card ds-home-card--active\"><span class=\"ds-home-badge\"><i class=\"ds-dot\"></i>Live</span><div class=\"ds-home-emoji\">🍼</div><div class=\"ds-home-name\">Breastfeeding</div><div class=\"ds-home-ctx\">12:04</div></div>",
-      "css": ".ds-home-card { position: relative; min-height: 120px; padding: 20px; border-radius: 24px; background: #F8BBD0; color: #880E4F; box-shadow: 0 1px 3px rgba(26,26,26,0.16); transition: background 0.24s cubic-bezier(0.25,1,0.5,1), box-shadow 0.24s cubic-bezier(0.25,1,0.5,1); } .ds-home-card--active { background: #C2185B; color: #fff; box-shadow: 0 6px 14px rgba(26,26,26,0.22); } .ds-home-emoji { font-size: 28px; line-height: 1; } .ds-home-name { font: 600 18px/24px system-ui, sans-serif; letter-spacing: 0.15px; margin-top: 12px; } .ds-home-ctx { font: 600 18px/24px system-ui, sans-serif; margin-top: 4px; } .ds-home-badge { position: absolute; top: 12px; right: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 50px; background: rgba(255,255,255,0.22); font: 500 11px/16px system-ui, sans-serif; letter-spacing: 0.5px; } .ds-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: ds-pulse 900ms cubic-bezier(0.25,1,0.5,1) infinite alternate; } @keyframes ds-pulse { from { transform: scale(0.82); } to { transform: scale(1.18); } }"
+      "name": "SideSelector Unselected",
+      "kind": "button",
+      "refersTo": "side-selector-unselected",
+      "description": "Unselected breast-side tile. Warm cream fill with faint pink border.",
+      "html": "<button class=\"ds-side-unselected\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"rgba(194,24,91,0.4)\"><path d=\"M4 11h12.17l-5.59-5.59L12 4l8 8-8 8-1.41-1.41L16.17 13H4v-2z\"/></svg><span>RIGHT</span></button>",
+      "css": ".ds-side-unselected { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: #FFFDE7; color: #1A1A1A; border: 2px solid #F8BBD0; border-radius: 16px; height: 88px; flex: 1; cursor: pointer; font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.1px; }"
     },
     {
-      "name": "Diaper Home Card (idle)",
-      "kind": "card",
-      "refersTo": "card-diaper-idle",
-      "description": "Extended-domain home tile. Diaper Yellow container with dark on-accent text; stateless, so it stays at idle elevation.",
-      "html": "<div class=\"ds-diaper-card\"><div class=\"ds-home-emoji\">🧷</div><div class=\"ds-diaper-name\">Diaper</div><div class=\"ds-diaper-ctx\">3 wet · 1 dirty today</div></div>",
-      "css": ".ds-diaper-card { min-height: 120px; padding: 20px; border-radius: 24px; background: #FFE9A8; color: #5F4B00; box-shadow: 0 1px 3px rgba(26,26,26,0.16); } .ds-diaper-name { font: 600 18px/24px system-ui, sans-serif; letter-spacing: 0.15px; margin-top: 12px; } .ds-diaper-ctx { font: 400 14px/20px system-ui, sans-serif; margin-top: 4px; }"
-    },
-    {
-      "name": "SleepPredictionCard",
-      "kind": "card",
-      "refersTo": "sleep-prediction-card",
-      "description": "Flat sleep-domain card surfacing the next-sleep window, with an UPPERCASE section label and trailing confidence dots.",
-      "html": "<div class=\"ds-pred\"><div class=\"ds-pred-head\"><span class=\"ds-pred-label\">🛏 Sleep prediction</span><span class=\"ds-pred-dots\"><i></i><i></i><i class=\"ds-pred-dots--off\"></i></span></div><div class=\"ds-pred-time\">2:30 PM</div><div class=\"ds-pred-range\">between 2:10 and 2:55</div></div>",
-      "css": ".ds-pred { padding: 16px; border-radius: 24px; background: #B3E5FC; color: #0D47A1; } .ds-pred-head { display: flex; align-items: center; justify-content: space-between; } .ds-pred-label { font: 700 12px/16px system-ui, sans-serif; letter-spacing: 0.8px; text-transform: uppercase; } .ds-pred-dots { display: inline-flex; gap: 4px; } .ds-pred-dots i { width: 8px; height: 8px; border-radius: 50%; background: #1976D2; display: inline-block; } .ds-pred-dots .ds-pred-dots--off { background: rgba(25,118,210,0.22); } .ds-pred-time { font: 700 32px/40px system-ui, sans-serif; margin-top: 8px; } .ds-pred-range { font: 400 14px/20px system-ui, sans-serif; opacity: 0.55; margin-top: 2px; }"
-    },
-    {
-      "name": "Allergy Chip",
-      "kind": "chip",
-      "refersTo": "chip-allergy",
-      "description": "Non-interactive display tag in the Settings baby profile.",
-      "html": "<span class=\"ds-chip\">Peanuts</span>",
-      "css": ".ds-chip { display: inline-block; padding: 4px 12px; border-radius: 8px; background: #F8BBD0; color: #880E4F; font: 500 11px/16px system-ui, sans-serif; letter-spacing: 0.5px; }"
-    },
-    {
-      "name": "Tip Card",
+      "name": "History Card",
       "kind": "card",
       "refersTo": "card-history",
-      "description": "Informational inline card: surface fill with a 1px outline border instead of a domain container, so it reads as non-interactive.",
-      "html": "<div class=\"ds-tip\">Next, try the right side</div>",
-      "css": ".ds-tip { padding: 16px; border-radius: 24px; background: #FFFDE7; color: #1A1A1A; border: 1px solid #CAC4D0; font: 400 16px/24px system-ui, sans-serif; letter-spacing: 0.5px; }"
+      "description": "Row-layout list item for session history. Badge + text column + trailing duration.",
+      "html": "<div class=\"ds-history-card\"><div class=\"ds-history-badge\">🍼</div><div class=\"ds-history-text\"><span class=\"ds-history-title\">Left breast</span><span class=\"ds-history-sub\">10:32 AM</span></div><span class=\"ds-history-trail\">14m</span></div>",
+      "css": ".ds-history-card { display: flex; align-items: center; gap: 12px; background: #FFFDE7; border-radius: 16px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.10); margin-bottom: 4px; } .ds-history-badge { width: 44px; height: 44px; border-radius: 8px; background: #F8BBD0; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; } .ds-history-text { display: flex; flex-direction: column; flex: 1; gap: 2px; } .ds-history-title { font-family: system-ui; font-size: 14px; font-weight: 600; color: #1A1A1A; letter-spacing: 0.1px; } .ds-history-sub { font-family: system-ui; font-size: 12px; font-weight: 400; color: #6D6A64; letter-spacing: 0.4px; } .ds-history-trail { font-family: system-ui; font-size: 14px; font-weight: 400; color: #C2185B; white-space: nowrap; }"
+    },
+    {
+      "name": "Home Summary Card — Idle",
+      "kind": "card",
+      "refersTo": "card-summary-idle",
+      "description": "Idle home screen domain card. Container color fill, 1dp elevation, emoji + label.",
+      "html": "<div class=\"ds-summary-idle\"><div class=\"ds-summary-row\"><span class=\"ds-summary-emoji\">🍼</span></div><span class=\"ds-summary-label\">Breastfeeding</span><span class=\"ds-summary-sub\">42 min ago</span></div>",
+      "css": ".ds-summary-idle { background: #F8BBD0; border-radius: 24px; padding: 20px; min-height: 140px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.10); cursor: pointer; transition: background 0.22s cubic-bezier(0.25,1,0.5,1), box-shadow 0.24s cubic-bezier(0.25,1,0.5,1); } .ds-summary-row { display: flex; justify-content: space-between; align-items: flex-start; } .ds-summary-emoji { font-size: 28px; line-height: 1; } .ds-summary-label { font-family: system-ui; font-size: 18px; font-weight: 600; color: #880E4F; letter-spacing: 0.15px; } .ds-summary-sub { font-family: system-ui; font-size: 14px; font-weight: 400; color: #880E4F; letter-spacing: 0.25px; }"
+    },
+    {
+      "name": "Sleep Prediction Card",
+      "kind": "card",
+      "refersTo": "sleep-prediction-card",
+      "description": "Sleep window card on HomeScreen. Flat secondaryContainer background, confidence dots, multiple state variants.",
+      "html": "<div class=\"ds-sleep-pred\"><div class=\"ds-pred-header\"><div class=\"ds-pred-title-row\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"#1976D2\"><path d=\"M12 3a9 9 0 0 0 9 9 9 9 0 0 1-9 9 9 9 0 0 1-9-9 9 9 0 0 0 9-9z\"/></svg><span class=\"ds-pred-label\">SLEEP PREDICTION</span></div><div class=\"ds-conf-dots\"><span class=\"ds-dot-filled\"></span><span class=\"ds-dot-filled\"></span><span class=\"ds-dot-empty\"></span></div></div><p class=\"ds-pred-time\">~9:45 PM</p><p class=\"ds-pred-range\">9:20 PM–10:10 PM</p></div>",
+      "css": ".ds-sleep-pred { background: #B3E5FC; border-radius: 24px; padding: 16px; width: 100%; } .ds-pred-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; } .ds-pred-title-row { display: flex; align-items: center; gap: 6px; } .ds-pred-label { font-family: system-ui; font-size: 12px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #1976D2; } .ds-conf-dots { display: flex; gap: 4px; align-items: center; } .ds-dot-filled { width: 8px; height: 8px; border-radius: 50%; background: #1976D2; } .ds-dot-empty { width: 8px; height: 8px; border-radius: 50%; background: rgba(25, 118, 210, 0.22); } .ds-pred-time { font-family: system-ui; font-size: 32px; font-weight: 700; color: #0D47A1; line-height: 1.1; margin: 0 0 2px; } .ds-pred-range { font-family: system-ui; font-size: 14px; font-weight: 400; color: rgba(13, 71, 161, 0.55); margin: 0; letter-spacing: 0.25px; }"
+    },
+    {
+      "name": "Cue Chip",
+      "kind": "chip",
+      "refersTo": "cue-chip",
+      "description": "One-tap baby event chip in the CueQuickTapRow. Tap triggers a scale bounce and auto-deselects after 1.5s.",
+      "html": "<button class=\"ds-cue-chip\">😪 Sleepy</button>",
+      "css": ".ds-cue-chip { display: inline-flex; align-items: center; gap: 4px; background: transparent; color: #1A1A1A; font-family: system-ui; font-size: 12px; font-weight: 700; letter-spacing: 0.8px; border: 1px solid #CAC4D0; border-radius: 50px; padding: 8px 16px; cursor: pointer; white-space: nowrap; transition: background 0.16s ease, border-color 0.16s ease; } .ds-cue-chip:hover { background: rgba(194, 24, 91, 0.06); border-color: #C2185B; } .ds-cue-chip.selected { background: #F8BBD0; color: #880E4F; border-color: #F8BBD0; } .ds-cue-chip:focus-visible { outline: 3px solid #F8BBD0; outline-offset: 2px; }"
     }
   ],
   "narrative": {
-    "northStar": "The Shared Daybook",
-    "overview": "Akachan is a warm record both parents keep across the day, not a dashboard that scores them on it. The visual system is warm and legible first; it carries personality through restraint, not decoration. The cream surface is the page. Each care domain is a colored tab in the same familiar book: Pink feeding, Blue sleep, Yellow diaper, Teal growth, Purple milestones, Green pumping. Households turn tabs on and off through feature selection, and every word reads equally well in English and Brazilian Portuguese. The system rejects clinical white-and-teal intake-form apps, loud cartoon baby brands, and fitness-tracker performance dashboards. Akachan does not count reps. It records moments.",
+    "northStar": "The Midnight Companion",
+    "overview": "Akachan is a tool for care, not performance. Its design language answers one question: what does a parent need when one arm is occupied and exhaustion has blurred the edges of thought? Everything else is secondary. The visual system is warm and legible first; it carries personality through restraint, not decoration.\n\nThe palette anchors on a soft cream surface (#FFFDE7) that reads like a familiar page, not a product interface. Carnation Pink identifies feeding. Sleep Blue identifies rest. These are deliberate semantic assignments, not aesthetic preferences. The system's warmth lives in the surface and the containment colors; the action colors are decisive, dark enough to read instantly against any background the eye lands on.\n\nAs the app has grown to cover Vaccines, Doctor Visits, Diapers, Milestones, and Growth, a second tier of extended palette families has been introduced — one distinct hue per domain, each isolated from the M3 color scheme and accessed only through a scheme-resolved helper function. These domain colors are semantic instruments, not decoration.\n\nThe system explicitly rejects the aesthetics it competes against: clinical white-and-teal apps that feel like patient intake forms, loud baby-brand UIs saturated with primary colors and bubble fonts, and fitness-tracker dashboards that treat care as a performance metric. Akachan does not count reps. It records moments.",
     "keyCharacteristics": [
-      "Warm cream (#FFFDE7) as the single app surface, never pure white",
-      "Semantic color tabs by domain: Pink feeding, Blue sleep, Yellow diaper, Teal growth, Purple milestones, Green pumping/threshold",
-      "Only feeding/sleep/pumping have M3 colorScheme slots; other domains are extended palettes via *Colors() helpers",
-      "Generous touch targets: 88dp selector tiles, 48dp buttons",
-      "System font across all weights; hierarchy through weight contrast",
-      "Elevation signals state, not hierarchy; flat at rest",
-      "Dark mode is a first-class citizen tuned for 3am legibility",
-      "Feature-selectable home grid; active sessions animate color and elevation",
-      "Fully bilingual (en + pt-BR); layouts absorb length variance"
+      "Warm cream (#FFFDE7) as the single app surface — no alternating backgrounds",
+      "Semantic color assignment: Pink = Feeding, Blue = Sleep, Green = over-limit threshold and Pumping; one distinct accent per every other domain",
+      "Generous touch targets (88dp interactive height for primary selectors; 48dp for buttons)",
+      "System font (Roboto on Android) set across all weights; personality through weight contrast",
+      "Elevation communicates state, not hierarchy; surfaces are flat at rest",
+      "Dark mode is a first-class citizen, tuned for 3am low-light legibility",
+      "Home screen uses a 2x2 summary card grid where active sessions animate color and elevation in real time",
+      "Feature domains with dedicated dashboards (Vaccine, Doctor Visit) use a Domain Hero Card pattern: a filled-accent card owning the most urgent item, a persistent pill CTA bar pinned at the bottom"
     ],
     "rules": [
-      { "name": "The Semantic Tab Rule", "body": "Each domain owns exactly one hue family: Pink feeding, Blue sleep, Green pumping/over-limit, Yellow diaper, Teal growth, Purple milestones. They never appear as decorative interchangeables. When a screen surfaces more than one domain, the active domain's hue dominates.", "section": "colors" },
-      { "name": "The No Pure White Rule", "body": "The app surface is always Warm Cream (#FFFDE7). Pure white appears only as text on filled Pink, Blue, Teal, or Purple accents; never on Diaper Yellow, and never as a background.", "section": "colors" },
-      { "name": "The Extended-Palette Rule", "body": "Diaper, Growth, Milestone, Warning, and Bottle tokens live outside M3 and must be reached through their *Colors() helper or imported by name from Color.kt. Never route them through MaterialTheme.colorScheme.", "section": "colors" },
-      { "name": "The ExtraBold Timer Rule", "body": "displaySmall (36sp ExtraBold) is used exclusively for the live elapsed-time readout in TimerDisplay. Reusing it elsewhere collapses the hierarchy.", "section": "typography" },
-      { "name": "The UPPERCASE Header Rule", "body": "Day-group history headers and the SleepPredictionCard section label use labelMedium uppercase. This is the only context where uppercase text appears.", "section": "typography" },
-      { "name": "The Translation Slack Rule", "body": "All user-facing text comes from string resources (en + pt-BR); pt-BR often runs longer. Never size a label or container to a single language. Let text wrap or the container grow; never truncate a primary label.", "section": "typography" },
-      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. Shadows appear only in response to user-initiated state change.", "section": "elevation" },
-      { "name": "The Dark Mode Swap Rule", "body": "Ambient 1dp shadows are invisible on dark surfaces; swap them for a 1dp outlineVariant (#CAC4D0) border via LocalDarkTheme.current rather than deepening the shadow.", "section": "elevation" },
-      { "name": "The Two-Step Vocabulary Rule", "body": "Exactly two active elevation steps: 1dp ambient and 6dp selected. A third step breaks the grammar.", "section": "elevation" }
+      { "name": "The Semantic Assignment Rule",    "body": "Carnation Pink is the feeding color. Sleep Blue is the sleep color. Threshold Green is the over-limit and pumping color. Domain palette colors are further isolated per section. They never appear as decorative interchangeables.", "section": "colors" },
+      { "name": "The No Pure White Rule",           "body": "The app surface is always Warm Cream (#FFFDE7). Pure white (#FFFFFF) appears only as text on filled dark-accent buttons; it is not a background value.", "section": "colors" },
+      { "name": "The Direct Import Rule",           "body": "Warning tokens (WarningAmber, WarningContainerAmber, OnWarningContainerAmber and their dark variants) must be imported by name from Color.kt. Never access them through MaterialTheme.colorScheme.", "section": "colors" },
+      { "name": "The Domain Palette Helper Rule",   "body": "Extended domain colors must be accessed through their scheme-resolved helper function (vaccineColors(), growthColors(), etc.). Never import *Dark token variants directly at call sites. The helper is the single branching point for light/dark.", "section": "colors" },
+      { "name": "The ExtraBold Timer Rule",         "body": "displaySmall (36sp ExtraBold) is used exclusively for the live elapsed-time readout inside TimerDisplay. Assigning it to any other text element collapses the hierarchy.", "section": "typography" },
+      { "name": "The UPPERCASE Header Rule",        "body": "Day-group headers in history lists and section labels inside cards use labelMedium with uppercase text. This is the only context where uppercase text appears in the system.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule",         "body": "Surfaces are flat at rest. Shadows appear only in response to user-initiated state change. Domain Hero Cards are always 0 elevation — color fill communicates importance.", "section": "elevation" },
+      { "name": "The Dark Mode Swap Rule",          "body": "Ambient shadows (1dp) are not visible on dark surfaces. Swap them explicitly for an outlineVariant border stroke (1dp) in dark mode.", "section": "elevation" },
+      { "name": "The Two-Step Vocabulary Rule",     "body": "The system has exactly two active elevation steps: 1dp ambient and 6dp selected. A third step breaks the grammar.", "section": "elevation" },
+      { "name": "The Outline-Border Pattern",       "body": "When a card is informational (not actionable, not domain-colored), use a 1dp outlineVariant border on the surface color instead of a container fill.", "section": "components" }
     ],
     "dos": [
-      "Do use Warm Cream (#FFFDE7) for all app backgrounds; pure white removes the warmth that distinguishes Akachan from a clinical interface.",
-      "Do assign color by domain tab: Pink feeding, Blue sleep, Green pumping/over-limit, Yellow diaper, Teal growth, Purple milestones.",
-      "Do reach extended-domain colors through their *Colors() helper or by name from Color.kt; only feeding/sleep/pumping live in MaterialTheme.colorScheme.",
-      "Do pair Diaper Yellow with dark on-accent text (#3E2E00) in both schemes; white never reaches 4.5:1 on a vivid yellow.",
-      "Do use the pill shape (50dp) for primary buttons, large radius (24dp) for home cards, medium (16dp) for history cards and selector tiles.",
-      "Do give primary interactive elements a minimum 48dp tap height; SideSelector tiles 88dp.",
-      "Do replace ambient shadows with a 1dp #CAC4D0 border in dark mode via LocalDarkTheme.current.",
-      "Do source every user-facing string from resources (en + pt-BR) and let containers grow for the longer language using animateContentSize.",
-      "Do use LabelMedium uppercase only for day-group history headers and in-card section labels.",
-      "Do communicate an active session at the screen level via a banner, ActiveStatusBadge, or TimerDisplay.",
-      "Do treat dark mode as first-class; every new component and domain palette needs explicit dark assignments.",
-      "Do prefer a bottom sheet over a dialog for editing; reuse onboarding step composables in Settings sheets.",
-      "Do use tween(200-240ms, EaseOutQuart) for state-driven color and elevation transitions."
+      "Do use Warm Cream (#FFFDE7) for all app backgrounds.",
+      "Do assign color by domain: Carnation Pink for feeding, Sleep Blue for sleep, Threshold Green for pumping and limit-exceeded. For all other domains, use the scheme-resolved helper function and keep assignment isolated.",
+      "Do access extended domain palettes through their scheme-resolved helper function. Never import *Dark variants at call sites.",
+      "Do use pill shape (50dp) for primary buttons and large radius (24dp) for home summary cards and domain hero cards; medium radius (16dp) for history cards and selector tiles.",
+      "Do give all primary interactive elements a minimum 48dp tap height. SideSelector-style tiles: 88dp.",
+      "Do replace ambient card shadows with outlineVariant border strokes (1dp, #CAC4D0) in dark mode.",
+      "Do use LabelMedium (12sp Bold, 0.8sp tracking, uppercase) for day-group headers and section labels inside cards.",
+      "Do communicate an active session visually at screen level via ActiveStatusBadge, a banner, or TimerDisplay.",
+      "Do access Warning tokens by importing directly from Color.kt.",
+      "Do treat dark mode as a first-class requirement with explicit color assignments.",
+      "Do use tween(200-240ms, EaseOutQuart) for all state-driven color and elevation transitions.",
+      "Do use 0 elevation for Domain Hero Cards. Importance comes from color fill, not shadow.",
+      "Do pin a Persistent Bottom Bar (hairline divider + full-width pill button) as the primary CTA on any dedicated feature dashboard.",
+      "Do follow the OverdueHero copy pattern: titleLarge (not headlineLarge) for overdue day counts, always followed by reassurance copy in bodyMedium."
     ],
     "donts": [
-      "Don't build clinical white or sterile layouts; Akachan is a family tool, not a hospital intake form.",
+      "Don't build clinical white or sterile layouts.",
       "Don't use oversaturated cartoon palettes, bubble fonts, or primary-color noise.",
-      "Don't treat tracking as a performance metric: no stat rings, goal dashboards, or SaaS hero metrics. Growth charts plot WHO reference curves, not scores.",
-      "Don't route extended-domain or warning tokens through MaterialTheme.colorScheme; it does not carry them.",
-      "Don't reuse one domain's hue for another or mix two accents on the same surface as a stylistic choice.",
-      "Don't hardcode user-facing strings or size a control to fit only English; truncation in pt-BR is a bug.",
-      "Don't use gradient text or background-clip: text effects; all text is a single solid color.",
-      "Don't use side-stripe borders wider than 1dp as a colored accent on cards or list items.",
-      "Don't reach for a modal dialog as the first editing solution; Settings and logging use bottom sheets.",
+      "Don't treat tracking as a performance metric — no concentric stat rings, no dashboard hero metrics.",
+      "Don't use gradient text or background-clip: text decorative effects.",
+      "Don't use side-stripe borders wider than 1dp as colored card accents.",
+      "Don't reach for a modal dialog as the first editing solution.",
       "Don't introduce shadows deeper than 6dp or multi-layer shadow compositions.",
-      "Don't use FontFamily.Default at displaySmall (36sp ExtraBold) for anything other than the live timer readout.",
-      "Don't animate layout properties or use bounce/elastic easing; spring keyframing is reserved for tap microinteractions."
+      "Don't use Carnation Pink and Sleep Blue interchangeably or on the same surface as stylistic choices.",
+      "Don't mix domain accent colors across feature sections.",
+      "Don't use FontFamily.Default at displaySmall for anything other than the live timer readout.",
+      "Don't animate layout properties or use bounce/elastic easing for transitions.",
+      "Don't add shimmer animations to loading skeletons — static low-alpha surfaceVariant blocks are the pattern.",
+      "Don't elevate Domain Hero Cards — elevation would break the home card grammar."
     ]
   }
 }
