@@ -89,6 +89,7 @@ import com.babytracker.ui.component.DiaperIcon
 import com.babytracker.ui.component.DoctorVisitIcon
 import com.babytracker.ui.component.FeedingHistoryIcon
 import com.babytracker.ui.component.GrowthIcon
+import com.babytracker.ui.component.HomeGreetingHandIcon
 import com.babytracker.ui.component.InventoryIcon
 import com.babytracker.ui.component.MilestoneIcon
 import com.babytracker.ui.component.PumpingIcon
@@ -246,11 +247,25 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(
-                            text = uiState.baby?.let { stringResource(R.string.home_greeting, it.name) }
-                                ?: stringResource(R.string.app_name),
-                            style = MaterialTheme.typography.titleLarge
-                        )
+                        val babyName = uiState.baby?.name
+                        if (babyName != null) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = stringResource(R.string.home_greeting, babyName),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(weight = 1f, fill = false),
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                HomeGreetingHandIcon(Modifier.size(28.dp))
+                            }
+                        } else {
+                            Text(
+                                text = stringResource(R.string.app_name),
+                                style = MaterialTheme.typography.titleLarge,
+                            )
+                        }
                         Text(
                             text = todayLabel,
                             style = MaterialTheme.typography.bodySmall,

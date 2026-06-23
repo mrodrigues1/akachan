@@ -118,6 +118,15 @@ fun DoctorVisitIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun HomeGreetingHandIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_home_greeting_hand),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}
+
+@Composable
 fun DiaperTypeIcon(
     type: DiaperType,
     modifier: Modifier = Modifier,
