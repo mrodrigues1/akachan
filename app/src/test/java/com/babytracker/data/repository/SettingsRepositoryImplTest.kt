@@ -8,7 +8,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.sharing.domain.model.AppMode
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -145,5 +147,40 @@ class SettingsRepositoryImplTest {
         val prefs = mutablePreferencesOf()
         editSlot.captured(prefs)
         assertEquals("OZ", prefs[stringPreferencesKey("volume_unit")])
+    }
+
+    @Test
+    fun `getWidgetPreferences returns defaults from a single snapshot when keys are absent`() = runTest {
+        val prefs = mockk<Preferences>()
+        every { prefs[stringPreferencesKey("app_mode")] } returns null
+        every { prefs[stringPreferencesKey("share_code")] } returns null
+        every { prefs[stringPreferencesKey("enabled_features")] } returns null
+        every { prefs[stringPreferencesKey("volume_unit")] } returns null
+        every { dataStore.data } returns flowOf(prefs)
+
+        val result = repository.getWidgetPreferences()
+
+        assertEquals(AppMode.NONE, result.appMode)
+        assertEquals(null, result.shareCode)
+        // Blank/absent enabled_features falls back to ALL (matches FeatureToggleRepository).
+        assertEquals(AppFeature.ALL, result.enabledFeatures)
+        assertEquals(VolumeUnit.ML, result.volumeUnit)
+    }
+
+    @Test
+    fun `getWidgetPreferences parses stored values`() = runTest {
+        val prefs = mockk<Preferences>()
+        every { prefs[stringPreferencesKey("app_mode")] } returns AppMode.PARTNER.name
+        every { prefs[stringPreferencesKey("share_code")] } returns "CODE"
+        every { prefs[stringPreferencesKey("enabled_features")] } returns "SLEEP,DIAPERS"
+        every { prefs[stringPreferencesKey("volume_unit")] } returns "OZ"
+        every { dataStore.data } returns flowOf(prefs)
+
+        val result = repository.getWidgetPreferences()
+
+        assertEquals(AppMode.PARTNER, result.appMode)
+        assertEquals("CODE", result.shareCode)
+        assertEquals(setOf(AppFeature.SLEEP, AppFeature.DIAPERS), result.enabledFeatures)
+        assertEquals(VolumeUnit.OZ, result.volumeUnit)
     }
 }

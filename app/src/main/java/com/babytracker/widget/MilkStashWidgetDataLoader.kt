@@ -4,12 +4,10 @@ import android.content.Context
 import android.util.Log
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.VolumeUnit
-import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.first
 
 private const val TAG = "MilkStashWidget"
 
@@ -35,21 +33,20 @@ suspend fun loadMilkStashWidgetData(context: Context): MilkStashWidgetData {
     return loadMilkStashWidgetData(
         entryPoint.inventoryRepository(),
         entryPoint.settingsRepository(),
-        entryPoint.featureToggleRepository(),
     )
 }
 
 internal suspend fun loadMilkStashWidgetData(
     inventoryRepository: InventoryRepository,
     settingsRepository: SettingsRepository,
-    featureToggle: FeatureToggleRepository,
 ): MilkStashWidgetData = runCatching {
-    if (AppFeature.INVENTORY !in featureToggle.getEnabledFeatures().first()) {
+    // One Preferences read covers both the inventory toggle and the volume unit for this render.
+    val prefs = settingsRepository.getWidgetPreferences()
+    if (AppFeature.INVENTORY !in prefs.enabledFeatures) {
         return@runCatching MilkStashWidgetData.DISABLED
     }
     val summary = inventoryRepository.currentSummary()
-    val unit = settingsRepository.getVolumeUnit().first()
-    MilkStashWidgetData(totalMl = summary.totalMl, bagCount = summary.bagCount, volumeUnit = unit)
+    MilkStashWidgetData(totalMl = summary.totalMl, bagCount = summary.bagCount, volumeUnit = prefs.volumeUnit)
 }.getOrElse { error ->
     if (error is CancellationException) throw error
     Log.w(TAG, "Milk stash widget data load failed; rendering EMPTY", error)

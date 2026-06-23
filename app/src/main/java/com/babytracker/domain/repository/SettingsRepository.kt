@@ -4,6 +4,7 @@ import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.MeasurementSystem
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.model.WidgetPreferences
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.sharing.domain.model.AppMode
 import kotlinx.coroutines.flow.Flow
@@ -34,6 +35,13 @@ interface SettingsRepository {
     fun getShareCode(): Flow<String?>
     suspend fun setShareCode(code: String)
     suspend fun clearShareCode()
+
+    /**
+     * Reads [WidgetPreferences] from a single DataStore snapshot. Widget renders previously did one
+     * full Preferences read per value (app mode, share code, enabled features, volume unit); this
+     * collapses them into one read with identical fallback semantics.
+     */
+    suspend fun getWidgetPreferences(): WidgetPreferences
 
     /**
      * Atomically clears partner state (removes the share code and sets [AppMode.NONE]) only if the

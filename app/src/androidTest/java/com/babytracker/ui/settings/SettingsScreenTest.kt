@@ -231,5 +231,12 @@ class SettingsScreenTest {
         override suspend fun markImportInProgress(startedAt: Long) = Unit
 
         override suspend fun restoreFromBackup(data: BackupData) = Unit
+
+        override suspend fun getWidgetPreferences() = com.babytracker.domain.model.WidgetPreferences(
+            appMode = com.babytracker.sharing.domain.model.AppMode.PARTNER,
+            shareCode = "ABC12345",
+            enabledFeatures = com.babytracker.domain.model.AppFeature.ALL,
+            volumeUnit = volumeUnitState.value,
+        )
     }
 }

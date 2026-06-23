@@ -4,9 +4,10 @@ import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.model.WidgetPreferences
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
-import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.sharing.domain.model.AppMode
@@ -35,12 +36,17 @@ class WidgetDataLoaderTest {
         startingSide = BreastSide.LEFT,
     )
 
-    private fun noneSettings(): SettingsRepository = mockk {
-        every { getAppMode() } returns flowOf(AppMode.NONE)
-    }
-
-    private fun features(set: Set<AppFeature> = AppFeature.ALL): FeatureToggleRepository = mockk {
-        every { getEnabledFeatures() } returns flowOf(set)
+    private fun settings(
+        appMode: AppMode = AppMode.NONE,
+        shareCode: String? = null,
+        features: Set<AppFeature> = AppFeature.ALL,
+    ): SettingsRepository = mockk {
+        coEvery { getWidgetPreferences() } returns WidgetPreferences(
+            appMode = appMode,
+            shareCode = shareCode,
+            enabledFeatures = features,
+            volumeUnit = VolumeUnit.ML,
+        )
     }
 
     @Test
@@ -51,13 +57,12 @@ class WidgetDataLoaderTest {
         val scheduler: WidgetRefreshScheduler = mockk(relaxUnitFun = true)
 
         val result = loadWidgetData(
-            settings = noneSettings(),
+            settings = settings(),
             partnerCache = mockk(),
             scheduler = scheduler,
             baby = baby,
             feed = feed,
             sleep = sleep,
-            featureToggle = features(),
         )
 
         assertEquals("Akira", result.babyName)
@@ -73,13 +78,12 @@ class WidgetDataLoaderTest {
         val sleep: SleepRepository = mockk { coEvery { getLatestRecord() } returns null }
 
         val result = loadWidgetData(
-            settings = noneSettings(),
+            settings = settings(features = setOf(AppFeature.DIAPERS)),
             partnerCache = mockk(),
             scheduler = mockk(relaxUnitFun = true),
             baby = baby,
             feed = feed,
             sleep = sleep,
-            featureToggle = features(setOf(AppFeature.DIAPERS)),
         )
 
         assertEquals(false, result.feedEnabled)
@@ -95,13 +99,12 @@ class WidgetDataLoaderTest {
         val sleep: SleepRepository = mockk()
 
         val result = loadWidgetData(
-            settings = noneSettings(),
+            settings = settings(),
             partnerCache = mockk(),
             scheduler = mockk(relaxUnitFun = true),
             baby = baby,
             feed = feed,
             sleep = sleep,
-            featureToggle = features(),
         )
 
         assertEquals(WidgetData.EMPTY, result)
@@ -116,13 +119,12 @@ class WidgetDataLoaderTest {
         val sleep: SleepRepository = mockk()
 
         val result = loadWidgetData(
-            settings = noneSettings(),
+            settings = settings(),
             partnerCache = mockk(),
             scheduler = mockk(relaxUnitFun = true),
             baby = baby,
             feed = feed,
             sleep = sleep,
-            featureToggle = features(),
         )
 
         assertEquals(WidgetData.EMPTY, result)
@@ -137,13 +139,12 @@ class WidgetDataLoaderTest {
         }
 
         val result = loadWidgetData(
-            settings = noneSettings(),
+            settings = settings(),
             partnerCache = mockk(),
             scheduler = mockk(relaxUnitFun = true),
             baby = baby,
             feed = feed,
             sleep = sleep,
-            featureToggle = features(),
         )
 
         assertEquals(WidgetData.EMPTY, result)
@@ -159,21 +160,16 @@ class WidgetDataLoaderTest {
             sleepState = SleepState.SLEEPING,
             sleepSince = Instant.parse("2026-05-27T11:00:00Z"),
         )
-        val settings: SettingsRepository = mockk {
-            every { getAppMode() } returns flowOf(AppMode.PARTNER)
-            every { getShareCode() } returns flowOf("CODE")
-        }
         val cache: PartnerWidgetCache = mockk { coEvery { read("CODE") } returns cached }
         val scheduler: WidgetRefreshScheduler = mockk(relaxUnitFun = true)
 
         val result = loadWidgetData(
-            settings = settings,
+            settings = settings(appMode = AppMode.PARTNER, shareCode = "CODE"),
             partnerCache = cache,
             scheduler = scheduler,
             baby = mockk(),
             feed = mockk(),
             sleep = mockk(),
-            featureToggle = features(),
         )
 
         assertEquals(cached, result)
@@ -182,21 +178,16 @@ class WidgetDataLoaderTest {
 
     @Test
     fun `partner mode cache-miss returns EMPTY and schedules an immediate refresh`() = runTest {
-        val settings: SettingsRepository = mockk {
-            every { getAppMode() } returns flowOf(AppMode.PARTNER)
-            every { getShareCode() } returns flowOf("CODE")
-        }
         val cache: PartnerWidgetCache = mockk { coEvery { read("CODE") } returns null }
         val scheduler: WidgetRefreshScheduler = mockk(relaxUnitFun = true)
 
         val result = loadWidgetData(
-            settings = settings,
+            settings = settings(appMode = AppMode.PARTNER, shareCode = "CODE"),
             partnerCache = cache,
             scheduler = scheduler,
             baby = mockk(),
             feed = mockk(),
             sleep = mockk(),
-            featureToggle = features(),
         )
 
         assertEquals(WidgetData.EMPTY, result)
@@ -205,21 +196,16 @@ class WidgetDataLoaderTest {
 
     @Test
     fun `partner mode with null share code returns EMPTY without reading cache or scheduling`() = runTest {
-        val settings: SettingsRepository = mockk {
-            every { getAppMode() } returns flowOf(AppMode.PARTNER)
-            every { getShareCode() } returns flowOf(null)
-        }
         val cache: PartnerWidgetCache = mockk()
         val scheduler: WidgetRefreshScheduler = mockk(relaxUnitFun = true)
 
         val result = loadWidgetData(
-            settings = settings,
+            settings = settings(appMode = AppMode.PARTNER, shareCode = null),
             partnerCache = cache,
             scheduler = scheduler,
             baby = mockk(),
             feed = mockk(),
             sleep = mockk(),
-            featureToggle = features(),
         )
 
         assertEquals(WidgetData.EMPTY, result)

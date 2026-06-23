@@ -718,5 +718,12 @@ class PartnerDashboardScreenTest {
         override suspend fun markImportInProgress(startedAt: Long) = Unit
 
         override suspend fun restoreFromBackup(data: BackupData) = Unit
+
+        override suspend fun getWidgetPreferences() = com.babytracker.domain.model.WidgetPreferences(
+            appMode = AppMode.PARTNER,
+            shareCode = "ABC12345",
+            enabledFeatures = com.babytracker.domain.model.AppFeature.ALL,
+            volumeUnit = VolumeUnit.ML,
+        )
     }
 }

@@ -5,7 +5,6 @@ import android.util.Log
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
-import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.sharing.domain.model.AppMode
@@ -29,7 +28,6 @@ suspend fun loadWidgetData(context: Context): WidgetData {
         baby = entryPoint.babyRepository(),
         feed = entryPoint.breastfeedingRepository(),
         sleep = entryPoint.sleepRepository(),
-        featureToggle = entryPoint.featureToggleRepository(),
     )
 }
 
@@ -40,18 +38,19 @@ internal suspend fun loadWidgetData(
     baby: BabyRepository,
     feed: BreastfeedingRepository,
     sleep: SleepRepository,
-    featureToggle: FeatureToggleRepository,
 ): WidgetData = runCatching {
-    if (settings.getAppMode().first() == AppMode.PARTNER) {
+    // One Preferences read covers app mode, share code, and enabled features for this render.
+    val prefs = settings.getWidgetPreferences()
+    if (prefs.appMode == AppMode.PARTNER) {
         // PARTNER: never touch local repos or the network. Read the worker-populated cache; on a
         // miss, kick off a one-time refresh (no network on this thread) and render EMPTY for now.
-        val shareCode = settings.getShareCode().first() ?: return@runCatching WidgetData.EMPTY
+        val shareCode = prefs.shareCode ?: return@runCatching WidgetData.EMPTY
         partnerCache.read(shareCode) ?: run {
             scheduler.scheduleImmediateRefresh()
             WidgetData.EMPTY
         }
     } else {
-        val features = featureToggle.getEnabledFeatures().first()
+        val features = prefs.enabledFeatures
         val babyProfile = baby.getBabyProfile().first()
         val lastFeed = feed.getLastSession()
         val latestSleep = sleep.getLatestRecord()
