@@ -30,6 +30,9 @@ abstract class BreastfeedingDao {
     @Query("SELECT * FROM breastfeeding_sessions ORDER BY start_time DESC LIMIT :limit")
     abstract suspend fun getRecentSessions(limit: Int): List<BreastfeedingEntity>
 
+    @Query("SELECT * FROM breastfeeding_sessions ORDER BY start_time DESC LIMIT :limit")
+    abstract fun getRecentSessionsFlow(limit: Int): Flow<List<BreastfeedingEntity>>
+
     @Query("SELECT * FROM breastfeeding_sessions ORDER BY start_time ASC")
     abstract suspend fun getAllSessionsOnce(): List<BreastfeedingEntity>
 

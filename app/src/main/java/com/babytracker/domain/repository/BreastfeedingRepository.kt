@@ -6,6 +6,9 @@ import java.time.Instant
 
 interface BreastfeedingRepository {
     fun getAllSessions(): Flow<List<BreastfeedingSession>>
+
+    /** Observes the [limit] most recent sessions, newest first. Bounded alternative to [getAllSessions]. */
+    fun getRecentSessionsFlow(limit: Int): Flow<List<BreastfeedingSession>>
     fun observeLatestSession(): Flow<BreastfeedingSession?>
     fun getActiveSession(): Flow<BreastfeedingSession?>
     suspend fun getLastSession(): BreastfeedingSession?

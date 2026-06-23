@@ -69,7 +69,7 @@ class PredictNextFeedUseCaseTest {
     @Test
     fun `returns null when an active session is in progress`() = runTest {
         val sessions = listOf(session(now.minusSeconds(60), end = null))
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(sessions)
         useCase().test {
             assertNull(awaitItem())
             cancelAndIgnoreRemainingEvents()
@@ -79,7 +79,7 @@ class PredictNextFeedUseCaseTest {
     @Test
     fun `returns null when fewer than 3 valid intervals remain after filtering`() = runTest {
         val sessions = buildEvenlySpacedSessions(count = 3, intervalMinutes = 180)
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(sessions)
         useCase().test {
             assertNull(awaitItem())
             cancelAndIgnoreRemainingEvents()
@@ -93,7 +93,7 @@ class PredictNextFeedUseCaseTest {
         repeat(5) { starts += starts.last().minusSeconds(120 * 60) }
         starts += starts.last().minusSeconds(240 * 60)
         val sessions = starts.map { session(start = it, end = it.plusSeconds(10 * 60)) }
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(sessions)
 
         useCase().test {
             val p = awaitItem()
@@ -118,7 +118,7 @@ class PredictNextFeedUseCaseTest {
         val sessions = listOf(s1, s2, s3, s4, s5).map {
             session(start = it, end = it.plusSeconds(10 * 60))
         }
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(sessions)
 
         useCase().test {
             val p = awaitItem()
@@ -137,7 +137,7 @@ class PredictNextFeedUseCaseTest {
         val mostRecentLocal = Instant.parse("2026-05-19T14:30:00Z")
         val starts = (0 until 9).map { mostRecentLocal.minusSeconds(it.toLong() * 120 * 60) }
         val sessions = starts.map { session(start = it, end = it.plusSeconds(10 * 60)) }
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(sessions)
 
         useCase().test {
             val p = awaitItem()
@@ -155,7 +155,7 @@ class PredictNextFeedUseCaseTest {
         val anchor = Instant.parse("2026-05-19T17:00:00Z")
         val starts = (0 until 6).map { anchor.minusSeconds(it.toLong() * 120 * 60) }
         val sessions = starts.map { session(start = it, end = it.plusSeconds(10 * 60)) }
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(sessions)
 
         useCase().test {
             val p = awaitItem()
@@ -171,7 +171,7 @@ class PredictNextFeedUseCaseTest {
         every { settingsRepository.getQuietHoursStartMinute() } returns flowOf(0)
         every { settingsRepository.getQuietHoursEndMinute() } returns flowOf(0)
         val sessions = buildEvenlySpacedSessions(count = 6, intervalMinutes = 120)
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(sessions)
 
         useCase().test {
             val p = awaitItem()
@@ -189,7 +189,7 @@ class PredictNextFeedUseCaseTest {
             intervalMinutes = 180,
             anchor = now.minusSeconds(13L * 3600 - 30 * 60),
         )
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(sessions)
         useCase().test {
             assertNull(awaitItem())
             cancelAndIgnoreRemainingEvents()
@@ -201,7 +201,7 @@ class PredictNextFeedUseCaseTest {
         val mostRecent = now.minusSeconds(220 * 60)
         val starts = (0 until 6).map { mostRecent.minusSeconds(it.toLong() * 120 * 60) }
         val sessions = starts.map { session(start = it, end = it.plusSeconds(10 * 60)) }
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(sessions)
 
         useCase().test {
             assertNull(awaitItem())
@@ -225,7 +225,7 @@ class PredictNextFeedUseCaseTest {
             Instant.parse("2026-05-18T19:00:00Z").minusSeconds(it.toLong() * 24 * 3600)
         }
         val sessions = (overnight + daytime).map { session(start = it, end = it.plusSeconds(10 * 60)) }
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(sessions)
 
         useCase().test {
             val p = awaitItem()
@@ -239,7 +239,7 @@ class PredictNextFeedUseCaseTest {
         val mostRecent = now.minusSeconds(150 * 60)
         val starts = (0 until 6).map { mostRecent.minusSeconds(it.toLong() * 120 * 60) }
         val sessions = starts.map { session(start = it, end = it.plusSeconds(10 * 60)) }
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(sessions)
 
         useCase().test {
             val p = awaitItem()
@@ -255,7 +255,7 @@ class PredictNextFeedUseCaseTest {
         val mostRecent = now.minusSeconds(30 * 60)
         val starts = (0 until 6).map { mostRecent.minusSeconds(it.toLong() * 120 * 60) }
         val sessions = starts.map { session(start = it, end = it.plusSeconds(10 * 60)) }
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(sessions)
 
         useCase().test {
             val p = awaitItem()
@@ -276,7 +276,7 @@ class PredictNextFeedUseCaseTest {
         val mostRecent = Instant.parse("2026-03-08T12:00:00Z")
         val starts = (0 until 6).map { mostRecent.minusSeconds(it.toLong() * 120 * 60) }
         val sessions = starts.map { session(start = it, end = it.plusSeconds(10 * 60)) }
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(sessions)
 
         useCase().test {
             val p = awaitItem()
@@ -296,7 +296,7 @@ class PredictNextFeedUseCaseTest {
         val mostRecent = Instant.parse("2026-11-01T12:00:00Z")
         val starts = (0 until 6).map { mostRecent.minusSeconds(it.toLong() * 120 * 60) }
         val sessions = starts.map { session(start = it, end = it.plusSeconds(10 * 60)) }
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(sessions)
 
         useCase().test {
             val p = awaitItem()
@@ -309,7 +309,7 @@ class PredictNextFeedUseCaseTest {
     @Test
     fun `re-emits an updated prediction when session history changes`() = runTest {
         val sessionsFlow = MutableSharedFlow<List<BreastfeedingSession>>(replay = 1)
-        every { breastfeedingRepository.getAllSessions() } returns sessionsFlow
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns sessionsFlow
 
         val initial = buildEvenlySpacedSessions(count = 6, intervalMinutes = 120)
         val newer = session(start = now.minusSeconds(5 * 60), end = now)
