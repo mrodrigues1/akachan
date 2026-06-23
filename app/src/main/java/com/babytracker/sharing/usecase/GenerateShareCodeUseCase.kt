@@ -53,10 +53,10 @@ class GenerateShareCodeUseCase @Inject constructor(
         val sleepRecords = sources.sleep.getRecentRecords(SYNC_LIMIT)
         val summary = sources.inventory.currentSummary()
         val activeBags = sources.inventory.getActiveBags().first()
-        val bottleFeeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
+        val bottleFeeds = sources.bottleFeeds.getRecent(SYNC_LIMIT)
         val growth = sources.growth.getAllMeasurements().first().latestPerType()
         val milestones = sources.milestones.getMilestones().first()
-        val doctorVisits = sources.doctorVisit.observeAllVisits().first().take(SYNC_LIMIT)
+        val doctorVisits = sources.doctorVisit.getRecentVisits(SYNC_LIMIT)
         val timestamp = now()
         val prediction = buildPrediction(timestamp.toEpochMilli())
         return ShareSnapshot(

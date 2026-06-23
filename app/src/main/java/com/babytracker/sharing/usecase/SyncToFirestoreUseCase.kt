@@ -48,11 +48,11 @@ class SyncToFirestoreUseCase @Inject constructor(
         val sleepRecords = sources.sleep.getRecentRecords(SYNC_LIMIT)
         val summary = sources.inventory.currentSummary()
         val activeBags = sources.inventory.getActiveBags().first()
-        val bottleFeeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
-        val diapers = sources.diaper.observeAll().first().take(SYNC_LIMIT)
+        val bottleFeeds = sources.bottleFeeds.getRecent(SYNC_LIMIT)
+        val diapers = sources.diaper.getRecent(SYNC_LIMIT)
         val growth = sources.growth.getAllMeasurements().first().latestPerType()
         val milestones = sources.milestones.getMilestones().first()
-        val doctorVisits = sources.doctorVisit.observeAllVisits().first().take(SYNC_LIMIT)
+        val doctorVisits = sources.doctorVisit.getRecentVisits(SYNC_LIMIT)
         val updatedAtMs = now().toEpochMilli()
         val prediction = currentPrediction(updatedAtMs)
         sharingRepository.syncFullSnapshot(
@@ -124,12 +124,12 @@ class SyncToFirestoreUseCase @Inject constructor(
     }
 
     private suspend fun syncBottleFeeds(code: ShareCode) {
-        val feeds = sources.bottleFeeds.getAll().first().take(SYNC_LIMIT)
+        val feeds = sources.bottleFeeds.getRecent(SYNC_LIMIT)
         sharingRepository.syncBottleFeeds(code, feeds.map { it.toSnapshot() })
     }
 
     private suspend fun syncDiapers(code: ShareCode) {
-        val diapers = sources.diaper.observeAll().first().take(SYNC_LIMIT)
+        val diapers = sources.diaper.getRecent(SYNC_LIMIT)
         sharingRepository.syncDiapers(code, diapers.map { it.toSnapshot() })
     }
 

@@ -58,11 +58,11 @@ class SyncToFirestoreUseCaseInventoryTest {
                 sleepRepository,
                 inventoryRepository,
                 bottleFeedRepository,
-                mockk { every { observeAll() } returns flowOf(emptyList()) },
+                mockk { coEvery { getRecent(any()) } returns emptyList() },
                 predictSleepWindow,
                 mockk { every { getAllMeasurements() } returns flowOf(emptyList()) },
                 mockk { every { getMilestones() } returns flowOf(emptyList()) },
-                mockk { every { observeAllVisits() } returns flowOf(emptyList()) },
+                mockk { coEvery { getRecentVisits(any()) } returns emptyList() },
             ),
             appContext = mockk(relaxed = true),
         ) { fixedNow }
@@ -75,7 +75,7 @@ class SyncToFirestoreUseCaseInventoryTest {
         coEvery { breastfeedingRepository.getRecentSessions(any()) } returns emptyList()
         coEvery { sleepRepository.getRecentRecords(any()) } returns emptyList()
         every { inventoryRepository.getActiveBags() } returns flowOf(emptyList())
-        every { bottleFeedRepository.getAll() } returns flowOf(emptyList())
+        coEvery { bottleFeedRepository.getRecent(any()) } returns emptyList()
     }
 
     @Test

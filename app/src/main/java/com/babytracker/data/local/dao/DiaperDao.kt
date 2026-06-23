@@ -15,6 +15,9 @@ interface DiaperDao {
     @Query("SELECT * FROM diaper_changes ORDER BY timestamp DESC LIMIT 1")
     fun observeLatest(): Flow<DiaperEntity?>
 
+    @Query("SELECT * FROM diaper_changes ORDER BY timestamp DESC LIMIT :limit")
+    suspend fun getRecent(limit: Int): List<DiaperEntity>
+
     @Query(
         "SELECT * FROM diaper_changes WHERE timestamp BETWEEN :startMs AND :endMs ORDER BY timestamp DESC",
     )

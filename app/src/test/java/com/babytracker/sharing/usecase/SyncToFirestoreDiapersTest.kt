@@ -26,14 +26,12 @@ class SyncToFirestoreDiapersTest {
         val diaperRepo = mockk<DiaperRepository>()
         val sources = mockk<SnapshotSources>()
         every { sources.diaper } returns diaperRepo
-        every { diaperRepo.observeAll() } returns flowOf(
-            listOf(
-                DiaperChange(
-                    id = 1,
-                    timestamp = Instant.ofEpochMilli(10),
-                    type = DiaperType.WET,
-                    createdAt = Instant.ofEpochMilli(10),
-                ),
+        coEvery { diaperRepo.getRecent(any()) } returns listOf(
+            DiaperChange(
+                id = 1,
+                timestamp = Instant.ofEpochMilli(10),
+                type = DiaperType.WET,
+                createdAt = Instant.ofEpochMilli(10),
             ),
         )
         val settings = mockk<SettingsRepository>(relaxed = true)

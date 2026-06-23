@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.Flow
 interface DoctorVisitRepository {
     // Visits
     fun observeAllVisits(): Flow<List<DoctorVisit>>
+
+    /** The [limit] most recent visits, newest first. Bounded one-shot read for sync. */
+    suspend fun getRecentVisits(limit: Int): List<DoctorVisit>
     suspend fun getVisitById(id: Long): DoctorVisit?
     suspend fun getAllVisitsOnce(): List<DoctorVisit>
     suspend fun getUpcomingVisitsAfter(nowMs: Long): List<DoctorVisit>

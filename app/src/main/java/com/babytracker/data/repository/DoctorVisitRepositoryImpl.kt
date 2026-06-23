@@ -18,6 +18,9 @@ class DoctorVisitRepositoryImpl @Inject constructor(
     override fun observeAllVisits(): Flow<List<DoctorVisit>> =
         dao.observeAllVisits().map { rows -> rows.map { it.toDomain() } }
 
+    override suspend fun getRecentVisits(limit: Int): List<DoctorVisit> =
+        dao.getRecentVisits(limit).map { it.toDomain() }
+
     override suspend fun getVisitById(id: Long): DoctorVisit? = dao.getVisitById(id)?.toDomain()
 
     override suspend fun getAllVisitsOnce(): List<DoctorVisit> = dao.getAllVisitsOnce().map { it.toDomain() }

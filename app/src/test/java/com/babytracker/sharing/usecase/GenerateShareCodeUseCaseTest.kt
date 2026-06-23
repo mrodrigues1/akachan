@@ -63,11 +63,11 @@ class GenerateShareCodeUseCaseTest {
                 sleepRepository,
                 inventoryRepository,
                 bottleFeedRepository,
-                mockk { every { observeAll() } returns flowOf(emptyList()) },
+                mockk { coEvery { getRecent(any()) } returns emptyList() },
                 predictSleepWindow,
                 mockk { every { getAllMeasurements() } returns flowOf(emptyList()) },
                 mockk { every { getMilestones() } returns flowOf(emptyList()) },
-                mockk { every { observeAllVisits() } returns flowOf(emptyList()) },
+                mockk { coEvery { getRecentVisits(any()) } returns emptyList() },
             ),
             appContext = mockk(relaxed = true),
         ) { fixedNow }
@@ -76,7 +76,7 @@ class GenerateShareCodeUseCaseTest {
         coEvery { sleepRepository.getRecentRecords(any()) } returns emptyList()
         coEvery { inventoryRepository.currentSummary() } returns InventorySummary.Empty
         every { inventoryRepository.getActiveBags() } returns flowOf(emptyList())
-        every { bottleFeedRepository.getAll() } returns flowOf(emptyList())
+        coEvery { bottleFeedRepository.getRecent(any()) } returns emptyList()
         coEvery { sharingRepository.signInAnonymously() } returns "uid123"
         coEvery { sharingRepository.isShareCodeValid(any()) } returns false
         coEvery { sharingRepository.createShareDocument(any(), any()) } just Runs
@@ -153,16 +153,14 @@ class GenerateShareCodeUseCaseTest {
     @Test
     fun initialSnapshotCarriesExistingBottleFeeds() = runTest {
         val snapshotSlot = slot<ShareSnapshot>()
-        every { bottleFeedRepository.getAll() } returns flowOf(
-            listOf(
-                BottleFeed(
-                    id = 1L,
-                    clientId = "client-1",
-                    timestamp = Instant.parse("2026-05-16T09:00:00Z"),
-                    volumeMl = 120,
-                    type = FeedType.FORMULA,
-                    createdAt = Instant.parse("2026-05-16T09:00:00Z"),
-                ),
+        coEvery { bottleFeedRepository.getRecent(any()) } returns listOf(
+            BottleFeed(
+                id = 1L,
+                clientId = "client-1",
+                timestamp = Instant.parse("2026-05-16T09:00:00Z"),
+                volumeMl = 120,
+                type = FeedType.FORMULA,
+                createdAt = Instant.parse("2026-05-16T09:00:00Z"),
             ),
         )
         coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
