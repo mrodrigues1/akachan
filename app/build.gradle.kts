@@ -69,6 +69,10 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            // Pairs with code shrinking (already on): strips unused resources pulled in transitively
+            // by Firebase/Glance/AppCompat/material-icons/Vico, shrinking resources.arsc and install
+            // size. Safe here — all resources are referenced statically (no getIdentifier reflection).
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
