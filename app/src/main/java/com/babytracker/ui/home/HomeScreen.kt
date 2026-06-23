@@ -57,7 +57,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -116,6 +118,77 @@ import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.delay
 
 internal val EaseOutQuart = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun HomeTrackerTile(
+    title: String,
+    contentDescription: String,
+    containerColor: Color,
+    contentColor: Color,
+    onClick: () -> Unit,
+    icon: @Composable (Modifier) -> Unit,
+    modifier: Modifier = Modifier,
+    minHeight: Dp = 124.dp,
+    elevation: Dp = 1.dp,
+    iconSize: Dp = 56.dp,
+    titleStyle: TextStyle = MaterialTheme.typography.titleMedium,
+    trailing: @Composable (() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = minHeight)
+            .semantics { this.contentDescription = contentDescription },
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(18.dp)
+                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
+                icon(Modifier.size(iconSize))
+                trailing?.invoke()
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = title,
+                style = titleStyle,
+                color = contentColor,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(modifier = Modifier.height(3.dp))
+            content()
+        }
+    }
+}
+
+@Composable
+internal fun HomeTileStatusText(
+    text: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+    maxLines: Int = 2,
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = color,
+        maxLines = maxLines,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier,
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -309,12 +382,20 @@ internal fun PumpingHomeCard(
         stringResource(R.string.home_pumping_content_description)
     }
     val containerColor by animateColorAsState(
-        targetValue = if (isPumping) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer,
+        targetValue = if (isPumping) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.primaryContainer
+        },
         animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
         label = "pumpingContainerColor",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (isPumping) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer,
+        targetValue = if (isPumping) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        },
         animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
         label = "pumpingContentColor",
     )
@@ -323,59 +404,39 @@ internal fun PumpingHomeCard(
         animationSpec = tween(durationMillis = 240, easing = EaseOutQuart),
         label = "pumpingElevation",
     )
-    Card(
+    HomeTrackerTile(
+        title = stringResource(R.string.home_pumping_title),
+        contentDescription = pumpingDescription,
+        containerColor = containerColor,
+        contentColor = contentColor,
         onClick = onClick,
-        modifier = modifier
-            .heightIn(min = 96.dp)
-            .semantics {
-                contentDescription = pumpingDescription
-        },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = pumpingElevation),
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
+        icon = { PumpingIcon(modifier = it) },
+        modifier = modifier,
+        minHeight = if (isPumping) 156.dp else 124.dp,
+        elevation = pumpingElevation,
+        iconSize = if (isPumping) 62.dp else 56.dp,
+        trailing = {
+            AnimatedVisibility(
+                visible = isPumping,
+                enter = fadeIn(tween(180, easing = EaseOutQuart)) +
+                    scaleIn(initialScale = 0.82f, animationSpec = tween(180, easing = EaseOutQuart)),
+                exit = fadeOut(tween(120)) + scaleOut(targetScale = 0.82f, animationSpec = tween(120)),
             ) {
-                PumpingIcon(modifier = Modifier.size(40.dp))
-                AnimatedVisibility(
-                    visible = isPumping,
-                    enter = fadeIn(tween(180, easing = EaseOutQuart)) +
-                        scaleIn(initialScale = 0.82f, animationSpec = tween(180, easing = EaseOutQuart)),
-                    exit = fadeOut(tween(120)) + scaleOut(targetScale = 0.82f, animationSpec = tween(120)),
-                ) {
-                    ActiveStatusBadge(
-                        paused = active?.isPaused == true,
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.home_pumping_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = contentColor,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            if (active != null) {
-                ActivePumpingTimer(session = active, color = contentColor)
-            } else {
-                Text(
-                    text = stringResource(R.string.home_tap_to_log),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = contentColor,
+                ActiveStatusBadge(
+                    paused = active?.isPaused == true,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }
+        },
+    ) {
+        if (active != null) {
+            ActivePumpingTimer(session = active, color = contentColor)
+        } else {
+            HomeTileStatusText(
+                text = stringResource(R.string.home_tap_to_log),
+                color = contentColor,
+            )
         }
     }
 }
@@ -399,48 +460,28 @@ internal fun InventoryHomeCard(
     } else {
         stringResource(R.string.home_inventory_empty_content_description)
     }
-    Card(
+    HomeTrackerTile(
+        title = stringResource(R.string.home_inventory_title),
+        contentDescription = inventoryDescription,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 96.dp)
-            .semantics {
-                contentDescription = inventoryDescription
-            },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        icon = { InventoryIcon(modifier = it) },
+        modifier = modifier,
     ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
-        ) {
-            InventoryIcon(modifier = Modifier.size(40.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.home_inventory_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = if (hasBags) {
-                    pluralStringResource(
-                        R.plurals.home_inventory_summary,
-                        summary.bagCount,
-                        volumeText,
-                        summary.bagCount,
-                    )
-                } else {
-                    stringResource(R.string.home_inventory_empty)
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        HomeTileStatusText(
+            text = if (hasBags) {
+                pluralStringResource(
+                    R.plurals.home_inventory_summary,
+                    summary.bagCount,
+                    volumeText,
+                    summary.bagCount,
+                )
+            } else {
+                stringResource(R.string.home_inventory_empty)
+            },
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -450,37 +491,19 @@ internal fun BottleFeedHomeCard(
     modifier: Modifier = Modifier,
 ) {
     val bottleFeedDescription = stringResource(R.string.home_bottle_feed_content_description)
-    Card(
+    HomeTrackerTile(
+        title = stringResource(R.string.bottle_feed_quick_action),
+        contentDescription = bottleFeedDescription,
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 96.dp)
-            .semantics { contentDescription = bottleFeedDescription },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        icon = { BottleFeedIcon(modifier = it) },
+        modifier = modifier,
     ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
-        ) {
-            BottleFeedIcon(modifier = Modifier.size(40.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.bottle_feed_quick_action),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.home_tap_to_log),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-        }
+        HomeTileStatusText(
+            text = stringResource(R.string.home_tap_to_log),
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
     }
 }
 
@@ -497,45 +520,23 @@ internal fun DiaperHomeCard(
     } else {
         stringResource(R.string.home_diaper_cd_empty)
     }
-    Card(
+    HomeTrackerTile(
+        title = stringResource(R.string.home_diaper_title),
+        contentDescription = diaperCd,
+        containerColor = diaper.container,
+        contentColor = diaper.onContainer,
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 96.dp)
-            .semantics {
-                contentDescription = diaperCd
-            },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = diaper.container),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        icon = { DiaperIcon(modifier = it) },
+        modifier = modifier,
     ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
-        ) {
-            DiaperIcon(modifier = Modifier.size(40.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.home_diaper_title),
-                style = MaterialTheme.typography.titleMedium,
+        if (summary.hasAny || summary.lastChangeAt != null) {
+            HomeTileStatusText(text = countText, color = diaper.onContainer)
+            summary.lastChangeAt?.let { LastDiaperAgoText(it) }
+        } else {
+            HomeTileStatusText(
+                text = stringResource(R.string.home_tap_to_log),
                 color = diaper.onContainer,
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            if (summary.hasAny || summary.lastChangeAt != null) {
-                Text(
-                    text = countText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = diaper.onContainer,
-                )
-                summary.lastChangeAt?.let { LastDiaperAgoText(it) }
-            } else {
-                Text(
-                    text = stringResource(R.string.home_tap_to_log),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = diaper.onContainer,
-                )
-            }
         }
     }
 }
@@ -592,41 +593,24 @@ internal fun VaccineHomeCard(
     val countdown = next?.scheduledDate?.takeIf { !overdue }?.let { daysUntilLabel(it) }
     val cardCd = listOfNotNull(title, subtitle, countdown).joinToString(", ")
 
-    Card(
+    HomeTrackerTile(
+        title = title,
+        contentDescription = cardCd,
+        containerColor = containerColor,
+        contentColor = contentColor,
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 96.dp)
-            .semantics { contentDescription = cardCd },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        icon = { VaccineIcon(modifier = it) },
+        modifier = modifier,
     ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
-        ) {
-            VaccineIcon(modifier = Modifier.size(40.dp))
-            Spacer(modifier = Modifier.height(8.dp))
+        HomeTileStatusText(text = subtitle, color = contentColor)
+        countdown?.let {
             Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
                 color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = contentColor,
-            )
-            countdown?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = contentColor,
-                )
-            }
         }
     }
 }
@@ -666,32 +650,33 @@ internal fun DoctorVisitHomeCard(
     }
     val cardCd = listOfNotNull(title, subtitle, provider, questionsLine).joinToString(", ")
 
-    Card(
+    HomeTrackerTile(
+        title = title,
+        contentDescription = cardCd,
+        containerColor = colors.container,
+        contentColor = colors.onContainer,
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 96.dp)
-            .semantics { contentDescription = cardCd },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = colors.container),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        icon = { DoctorVisitIcon(modifier = it) },
+        modifier = modifier,
     ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
-        ) {
-            DoctorVisitIcon(modifier = Modifier.size(40.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = title, style = MaterialTheme.typography.titleMedium, color = colors.onContainer)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = subtitle, style = MaterialTheme.typography.bodyMedium, color = colors.onContainer)
-            provider?.let {
-                Text(text = it, style = MaterialTheme.typography.bodySmall, color = colors.onContainer)
-            }
-            questionsLine?.let {
-                Text(text = it, style = MaterialTheme.typography.bodySmall, color = colors.onContainer)
-            }
+        HomeTileStatusText(text = subtitle, color = colors.onContainer)
+        provider?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onContainer,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        questionsLine?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onContainer,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -714,37 +699,20 @@ internal fun GrowthHomeCard(
 ) {
     val growth = growthColors()
     val growthDescription = stringResource(R.string.home_growth_content_description)
-    Card(
+    HomeTrackerTile(
+        title = stringResource(R.string.home_growth_title),
+        contentDescription = growthDescription,
+        containerColor = growth.container,
+        contentColor = growth.onContainer,
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 120.dp)
-            .semantics { contentDescription = growthDescription },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = growth.container,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        icon = { GrowthIcon(modifier = it) },
+        modifier = modifier,
+        minHeight = 136.dp,
     ) {
-        Column(
-            modifier = Modifier
-                .padding(20.dp)
-                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
-        ) {
-            GrowthIcon(modifier = Modifier.size(40.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.home_growth_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = growth.onContainer,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.home_growth_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = growth.onContainer,
-            )
-        }
+        HomeTileStatusText(
+            text = stringResource(R.string.home_growth_subtitle),
+            color = growth.onContainer,
+        )
     }
 }
 
@@ -756,37 +724,20 @@ internal fun TrendsHomeCard(
 ) {
     val growth = growthColors()
     val trendsDescription = stringResource(R.string.home_trends_content_description)
-    Card(
+    HomeTrackerTile(
+        title = stringResource(R.string.home_trends_title),
+        contentDescription = trendsDescription,
+        containerColor = growth.container,
+        contentColor = growth.onContainer,
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 120.dp)
-            .semantics { contentDescription = trendsDescription },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = growth.container,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        icon = { TrendsIcon(modifier = it) },
+        modifier = modifier,
+        minHeight = 136.dp,
     ) {
-        Column(
-            modifier = Modifier
-                .padding(20.dp)
-                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
-        ) {
-            TrendsIcon(modifier = Modifier.size(40.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.home_trends_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = growth.onContainer,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.home_trends_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = growth.onContainer,
-            )
-        }
+        HomeTileStatusText(
+            text = stringResource(R.string.home_trends_subtitle),
+            color = growth.onContainer,
+        )
     }
 }
 
@@ -797,38 +748,20 @@ internal fun MilestonesHomeCard(
 ) {
     val colors = milestoneColors()
     val milestonesDescription = stringResource(R.string.home_milestones_content_description)
-    Card(
+    HomeTrackerTile(
+        title = stringResource(R.string.home_milestones_title),
+        contentDescription = milestonesDescription,
+        containerColor = colors.container,
+        contentColor = colors.onContainer,
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 120.dp)
-            .semantics { contentDescription = milestonesDescription },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = colors.container,
-            contentColor = colors.onContainer,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        icon = { MilestoneIcon(modifier = it) },
+        modifier = modifier,
+        minHeight = 136.dp,
     ) {
-        Column(
-            modifier = Modifier
-                .padding(20.dp)
-                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
-        ) {
-            MilestoneIcon(modifier = Modifier.size(40.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.home_milestones_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = colors.onContainer,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.home_milestones_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.onContainer,
-            )
-        }
+        HomeTileStatusText(
+            text = stringResource(R.string.home_milestones_subtitle),
+            color = colors.onContainer,
+        )
     }
 }
 
@@ -857,39 +790,19 @@ internal fun FeedingHistoryHomeCard(
     }
     val feedingHistoryDescription =
         stringResource(R.string.home_feeding_history_content_description, summaryText)
-    Card(
+    HomeTrackerTile(
+        title = stringResource(R.string.feeding_history_title),
+        contentDescription = feedingHistoryDescription,
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 96.dp)
-            .semantics {
-                contentDescription = feedingHistoryDescription
-            },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        icon = { FeedingHistoryIcon(modifier = it) },
+        modifier = modifier,
     ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
-        ) {
-            FeedingHistoryIcon(modifier = Modifier.size(40.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.feeding_history_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = summaryText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-        }
+        HomeTileStatusText(
+            text = summaryText,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
     }
 }
 

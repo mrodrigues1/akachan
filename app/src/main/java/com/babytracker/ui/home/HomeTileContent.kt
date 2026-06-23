@@ -86,6 +86,7 @@ internal fun HomeTile.isFullWidth(): Boolean = when (this) {
  */
 internal fun HomeTile.minTileHeightDp(): Dp = when {
     isFullWidth() -> 0.dp
+    this == HomeTile.BREASTFEEDING || this == HomeTile.SLEEP -> 168.dp
     this == HomeTile.PUMPING || this == HomeTile.INVENTORY ||
         this == HomeTile.BOTTLE_FEED || this == HomeTile.DIAPER ||
         this == HomeTile.VACCINE || this == HomeTile.DOCTOR_VISIT ||
@@ -353,58 +354,50 @@ internal fun BreastfeedingHomeCard(
         animationSpec = tween(durationMillis = 240, easing = EaseOutQuart),
         label = "feedingElevation",
     )
-    Card(
+    HomeTrackerTile(
+        title = stringResource(R.string.home_breastfeeding_title),
+        contentDescription = breastfeedingDescription,
+        containerColor = feedingContainerColor,
+        contentColor = feedingContentColor,
         onClick = onClick,
-        modifier = modifier
-            .semantics {
-                contentDescription = breastfeedingDescription
-            },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = feedingContainerColor,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = feedingElevation),
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(20.dp)
-                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
+        icon = { BreastfeedingIcon(modifier = it) },
+        modifier = modifier,
+        minHeight = if (isActiveFeeding) 188.dp else 168.dp,
+        elevation = feedingElevation,
+        iconSize = if (isActiveFeeding) 68.dp else 60.dp,
+        titleStyle = if (isActiveFeeding) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+        trailing = {
+            AnimatedVisibility(
+                visible = activeSession != null,
+                enter = fadeIn(tween(180, easing = EaseOutQuart)) +
+                    scaleIn(initialScale = 0.82f, animationSpec = tween(180, easing = EaseOutQuart)),
+                exit = fadeOut(tween(120)) + scaleOut(targetScale = 0.82f, animationSpec = tween(120)),
             ) {
-                BreastfeedingIcon(modifier = Modifier.size(40.dp))
-                AnimatedVisibility(
-                    visible = activeSession != null,
-                    enter = fadeIn(tween(180, easing = EaseOutQuart)) +
-                        scaleIn(initialScale = 0.82f, animationSpec = tween(180, easing = EaseOutQuart)),
-                    exit = fadeOut(tween(120)) + scaleOut(targetScale = 0.82f, animationSpec = tween(120)),
-                ) {
-                    ActiveStatusBadge(
-                        paused = activeSession?.isPaused == true,
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                }
+                ActiveStatusBadge(
+                    paused = activeSession?.isPaused == true,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.home_breastfeeding_title),
-                style = MaterialTheme.typography.titleMedium,
+        },
+    ) {
+        if (activeSession != null) {
+            ActiveFeedingTimer(session = activeSession, color = feedingContentColor)
+            HomeTileStatusText(
+                text = stringResource(activeSession.startingSide.labelRes()),
                 color = feedingContentColor,
             )
-            if (activeSession != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                ActiveFeedingTimer(session = activeSession, color = feedingContentColor)
+        } else {
+            if (lastSessionStartTime != null) {
+                LastFeedingAgoText(lastStart = lastSessionStartTime)
             } else {
-                if (lastSessionStartTime != null) {
-                    LastFeedingAgoText(lastStart = lastSessionStartTime)
-                }
-                nextFeedPrediction?.let { prediction ->
-                    FeedingPredictionSubtitle(prediction = prediction)
-                }
+                HomeTileStatusText(
+                    text = stringResource(R.string.home_tap_to_log),
+                    color = feedingContentColor,
+                )
+            }
+            nextFeedPrediction?.let { prediction ->
+                FeedingPredictionSubtitle(prediction = prediction)
             }
         }
     }
@@ -447,61 +440,43 @@ internal fun SleepHomeCard(
         animationSpec = tween(durationMillis = 240, easing = EaseOutQuart),
         label = "sleepElevation",
     )
-    Card(
+    HomeTrackerTile(
+        title = stringResource(R.string.home_sleep_title),
+        contentDescription = sleepDescription,
+        containerColor = sleepContainerColor,
+        contentColor = sleepContentColor,
         onClick = onClick,
-        modifier = modifier
-            .semantics {
-                contentDescription = sleepDescription
-            },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = sleepContainerColor,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = sleepElevation),
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(20.dp)
-                .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
+        icon = { SleepIcon(modifier = it) },
+        modifier = modifier,
+        minHeight = if (isActiveSleep) 188.dp else 168.dp,
+        elevation = sleepElevation,
+        iconSize = if (isActiveSleep) 68.dp else 60.dp,
+        titleStyle = if (isActiveSleep) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+        trailing = {
+            AnimatedVisibility(
+                visible = isActiveSleep,
+                enter = fadeIn(tween(180, easing = EaseOutQuart)) +
+                    scaleIn(initialScale = 0.82f, animationSpec = tween(180, easing = EaseOutQuart)),
+                exit = fadeOut(tween(120)) + scaleOut(targetScale = 0.82f, animationSpec = tween(120)),
             ) {
-                SleepIcon(modifier = Modifier.size(40.dp))
-                AnimatedVisibility(
-                    visible = isActiveSleep,
-                    enter = fadeIn(tween(180, easing = EaseOutQuart)) +
-                        scaleIn(initialScale = 0.82f, animationSpec = tween(180, easing = EaseOutQuart)),
-                    exit = fadeOut(tween(120)) + scaleOut(targetScale = 0.82f, animationSpec = tween(120)),
-                ) {
-                    ActiveStatusBadge(
-                        paused = false,
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                }
+                ActiveStatusBadge(
+                    paused = false,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.home_sleep_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = sleepContentColor,
-            )
-            if (activeSleepRecord != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                ActiveSleepTimer(record = activeSleepRecord, color = sleepContentColor)
+        },
+    ) {
+        if (activeSleepRecord != null) {
+            ActiveSleepTimer(record = activeSleepRecord, color = sleepContentColor)
+        } else {
+            if (lastSleepEndTime != null) {
+                LastSleepAgoText(endTime = lastSleepEndTime)
             } else {
-                if (lastSleepEndTime != null) {
-                    LastSleepAgoText(endTime = lastSleepEndTime)
-                } else {
-                    Text(
-                        text = stringResource(R.string.home_sleep_ready),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                }
+                HomeTileStatusText(
+                    text = stringResource(R.string.home_sleep_ready),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
             }
         }
     }
