@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.Dispatchers
@@ -178,7 +179,7 @@ class BreastfeedingViewModel @Inject constructor(
             combine(
                 history.map { sessions ->
                     sessions.filter { it.endTime != null }.maxByOrNull { it.endTime!! }
-                },
+                }.distinctUntilChanged(),
                 ticker
             ) { lastSession, _ ->
                 buildLastFeedingSummary(lastSession)

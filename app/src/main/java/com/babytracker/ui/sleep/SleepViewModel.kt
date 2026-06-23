@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
@@ -146,8 +147,19 @@ class SleepViewModel @Inject constructor(
                     }.flowOn(Dispatchers.Default)
                 )
             }
-            combine(history, ticker) { records, _ ->
-                buildLastSleepSummary(records)
+            // Select the latest completed record only when history changes; the per-minute tick then
+            // just reformats its elapsed-awake label instead of rescanning the whole history list.
+            val latestCompleted = history
+                .map { records ->
+                    if (records.any { it.isInProgress }) {
+                        null
+                    } else {
+                        records.filter { it.endTime != null }.maxByOrNull { it.endTime!! }
+                    }
+                }
+                .distinctUntilChanged()
+            combine(latestCompleted, ticker) { record, _ ->
+                buildLastSleepSummary(record)
             }.collect { summary ->
                 _uiState.value = _uiState.value.copy(lastSleepSummary = summary)
             }
@@ -393,18 +405,13 @@ class SleepViewModel @Inject constructor(
         }
     }
 
-    private fun buildLastSleepSummary(records: List<SleepRecord>): LastSleepSummaryState {
-        if (records.any { it.isInProgress }) return LastSleepSummaryState.Empty
-
-        val latestCompleted = records
-            .filter { it.endTime != null }
-            .maxByOrNull { it.endTime!! }
-            ?: return LastSleepSummaryState.Empty
-        val endTime = latestCompleted.endTime ?: return LastSleepSummaryState.Empty
+    private fun buildLastSleepSummary(latestCompleted: SleepRecord?): LastSleepSummaryState {
+        val record = latestCompleted ?: return LastSleepSummaryState.Empty
+        val endTime = record.endTime ?: return LastSleepSummaryState.Empty
         val awakeDuration = Duration.between(endTime, Instant.now()).coerceAtLeast(Duration.ZERO)
 
         return LastSleepSummaryState.Populated(
-            record = latestCompleted,
+            record = record,
             awakeForLabel = appContext.getString(R.string.sleep_awake_for, awakeDuration.formatElapsedShort()),
             endedAtLabel = appContext.getString(R.string.sleep_ended_at, endTime.formatTime12h()),
         )
