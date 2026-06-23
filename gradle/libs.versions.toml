@@ -37,6 +37,7 @@ kover = "0.9.1"
 twitterComposeRules = "0.0.26"
 reorderable = "3.1.0"
 vico = "3.1.0"
+profileinstaller = "1.4.1"
 
 [libraries]
 # Compose BOM
@@ -83,6 +84,9 @@ glance-appwidget-testing = { group = "androidx.glance", name = "glance-appwidget
 # WorkManager
 work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
 work-testing = { group = "androidx.work", name = "work-testing", version.ref = "work" }
+
+# Baseline profile installer (honors a shipped profile; adds ProfileInstallReceiver)
+androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
 
 # Hilt-Work
 hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
