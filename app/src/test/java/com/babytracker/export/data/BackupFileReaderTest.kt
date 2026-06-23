@@ -24,6 +24,15 @@ class BackupFileReaderTest {
     }
 
     @Test
+    fun `readStreamed hands a readable stream to the parser`() = runTest {
+        val file = File(context.cacheDir, "in-stream.json").apply { writeText("hello-world") }
+        val text = reader.readStreamed(android.net.Uri.fromFile(file)) {
+            it.readBytes().toString(Charsets.UTF_8)
+        }
+        assertEquals("hello-world", text)
+    }
+
+    @Test
     fun `ensureWithinLimit rejects oversized declared size`() {
         assertThrows(InvalidBackupException::class.java) {
             reader.ensureWithinLimit(BackupFileReader.MAX_BACKUP_BYTES + 1)

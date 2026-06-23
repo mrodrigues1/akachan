@@ -40,6 +40,9 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.io.ByteArrayInputStream
+import java.io.InputStream
+import java.io.OutputStream
 import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -75,6 +78,14 @@ class DataExportViewModelTest {
         milkBags = emptyList(),
     )
 
+    // The VM imports via reader.readStreamed { validateBackup.fromStream(it) }; make the mocked
+    // reader actually invoke the parse block (with a dummy stream) so the validateBackup stub runs.
+    private fun stubReaderInvokesParse() {
+        coEvery { reader.readStreamed(eq(uri), any<(InputStream) -> BackupData>()) } coAnswers {
+            secondArg<(InputStream) -> BackupData>().invoke(ByteArrayInputStream(ByteArray(0)))
+        }
+    }
+
     @BeforeEach
     fun setup() {
         Dispatchers.setMain(StandardTestDispatcher())
@@ -95,13 +106,12 @@ class DataExportViewModelTest {
 
     @Test
     fun `exportJsonTo writes durable backup and reports success`() = runTest {
-        coEvery { exportBackup() } returns "{\"x\":1}"
-        coEvery { writer.writeToUri(uri, "{\"x\":1}") } just Runs
+        coEvery { writer.writeToUri(eq(uri), any<suspend (OutputStream) -> Unit>()) } just Runs
 
         vm.exportJsonTo(uri)
         advanceUntilIdle()
 
-        coVerify { writer.writeToUri(uri, "{\"x\":1}") }
+        coVerify { writer.writeToUri(eq(uri), any<suspend (OutputStream) -> Unit>()) }
         assertEquals(DataExportUiState.Status.SUCCESS, vm.uiState.value.status)
     }
 
@@ -110,8 +120,8 @@ class DataExportViewModelTest {
         val data = backup().copy(
             sleep = listOf(SleepBackup(1L, 1L, 2L, "NAP", null)),
         )
-        coEvery { reader.read(uri) } returns "json"
-        every { validateBackup("json") } returns data
+        stubReaderInvokesParse()
+        every { validateBackup.fromStream(any()) } returns data
 
         vm.prepareImport(uri)
         advanceUntilIdle()
@@ -123,8 +133,8 @@ class DataExportViewModelTest {
 
     @Test
     fun `prepareImport maps validation failure to error`() = runTest {
-        coEvery { reader.read(uri) } returns "json"
-        every { validateBackup("json") } throws InvalidBackupException("bad")
+        stubReaderInvokesParse()
+        every { validateBackup.fromStream(any()) } throws InvalidBackupException("bad")
 
         vm.prepareImport(uri)
         advanceUntilIdle()
@@ -136,8 +146,8 @@ class DataExportViewModelTest {
     @Test
     fun `confirmImport runs import and clears preview`() = runTest {
         val data = backup()
-        coEvery { reader.read(uri) } returns "json"
-        every { validateBackup("json") } returns data
+        stubReaderInvokesParse()
+        every { validateBackup.fromStream(any()) } returns data
         coEvery { importBackup(data) } returns ImportCounts(0, 0, 0, 0, 0)
 
         vm.prepareImport(uri)
@@ -215,8 +225,8 @@ class DataExportViewModelTest {
     @Test
     fun `confirmImport triggers firestore sync`() = runTest {
         val data = backup()
-        coEvery { reader.read(uri) } returns "json"
-        every { validateBackup("json") } returns data
+        stubReaderInvokesParse()
+        every { validateBackup.fromStream(any()) } returns data
         coEvery { importBackup(data) } returns ImportCounts(0, 0, 0, 0, 0)
 
         vm.prepareImport(uri)

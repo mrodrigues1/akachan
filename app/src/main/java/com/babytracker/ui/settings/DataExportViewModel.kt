@@ -92,7 +92,9 @@ class DataExportViewModel @Inject constructor(
     }
 
     fun exportJsonTo(uri: Uri) = execute(appContext.getString(R.string.msg_backup_saved)) {
-        writer.writeToUri(uri, exportBackup())
+        // Stream the JSON straight into the SAF document so the whole dataset is never held in memory
+        // as a String + ByteArray at once.
+        writer.writeToUri(uri) { out -> exportBackup.encodeTo(out) }
     }
 
     fun exportCsv() = execute {
@@ -140,7 +142,9 @@ class DataExportViewModel @Inject constructor(
             }
             return@execute
         }
-        val data = validateBackup(reader.read(uri))
+        // Decode directly off the size-capped file stream — the raw JSON is never materialized as a
+        // String before parsing.
+        val data = reader.readStreamed(uri) { validateBackup.fromStream(it) }
         _uiState.update {
             it.copy(
                 status = DataExportUiState.Status.IDLE,

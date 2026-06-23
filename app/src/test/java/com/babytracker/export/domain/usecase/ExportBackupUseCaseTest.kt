@@ -16,6 +16,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import java.io.ByteArrayOutputStream
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -116,5 +117,17 @@ class ExportBackupUseCaseTest {
         assertNull(pump.endTime, "active pumping endTime must remain null")
         assertEquals(60L, pump.pausedAt, "pumping pausedAt must be preserved")
         assertEquals(7L, pump.pausedDurationMs, "pumping pausedDurationMs must not be mutated")
+    }
+
+    @Test
+    fun `encodeTo streams parseable backup json`() = runTest {
+        val out = ByteArrayOutputStream()
+        useCase.encodeTo(out)
+
+        val parsed = json.decodeFromString(BackupData.serializer(), out.toString("UTF-8"))
+        assertEquals(CURRENT_BACKUP_FORMAT_VERSION, parsed.backupFormatVersion)
+        assertEquals(1, parsed.breastfeeding.size)
+        assertEquals("Mia", parsed.baby?.name)
+        assertEquals(420, parsed.settings.wakeTimeMinuteOfDay)
     }
 }

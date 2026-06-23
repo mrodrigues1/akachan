@@ -5,7 +5,10 @@ import com.babytracker.export.domain.ExportMetadata
 import com.babytracker.export.domain.model.BackupData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToStream
+import java.io.OutputStream
 import javax.inject.Inject
 
 class ExportBackupUseCase @Inject constructor(
@@ -13,11 +16,31 @@ class ExportBackupUseCase @Inject constructor(
     private val json: Json,
     private val metadata: ExportMetadata,
 ) {
+    /**
+     * Streams the backup straight to [out] so the whole dataset is never materialized as one giant
+     * in-memory String *and* ByteArray (the [invoke] path holds both). The caller (BackupFileWriter)
+     * runs this on Dispatchers.IO, where serialization is interleaved with the stream writes — peak
+     * heap is the [BackupData] graph plus a small streaming buffer instead of ~2× the dataset.
+     */
+    @OptIn(ExperimentalSerializationApi::class)
+    suspend fun encodeTo(out: OutputStream) {
+        json.encodeToStream(BackupData.serializer(), buildBackup(), out)
+    }
+
+    /**
+     * String variant retained for tests and any caller that needs the full JSON in memory. Prefer
+     * [encodeTo] for the on-device backup path. Serializing is CPU-bound, so it runs off the main
+     * thread (the Room reads in [buildBackup] already run off-main via the BackupSource).
+     */
     suspend operator fun invoke(): String {
+        val backup = buildBackup()
+        return withContext(Dispatchers.Default) { json.encodeToString(BackupData.serializer(), backup) }
+    }
+
+    private suspend fun buildBackup(): BackupData {
         val tracking = source.readTracking()
         val prefs = source.readPreferences()
-
-        val backup = BackupData(
+        return BackupData(
             roomSchemaVersion = metadata.roomSchemaVersion,
             appVersion = metadata.appVersion,
             exportedAt = System.currentTimeMillis(),
@@ -37,9 +60,5 @@ class ExportBackupUseCase @Inject constructor(
             doctorVisits = tracking.doctorVisits,
             visitQuestions = tracking.visitQuestions,
         )
-
-        // Serializing the whole dataset to a pretty-printed JSON string is CPU-bound; keep it off the
-        // main thread (the Room reads above already run off-main via the BackupSource).
-        return withContext(Dispatchers.Default) { json.encodeToString(BackupData.serializer(), backup) }
     }
 }
