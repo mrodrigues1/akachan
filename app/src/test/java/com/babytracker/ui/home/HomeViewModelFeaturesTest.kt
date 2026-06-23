@@ -29,9 +29,12 @@ import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coJustRun
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -62,9 +65,14 @@ class HomeViewModelFeaturesTest {
     private lateinit var logBabyEvent: LogBabyEventUseCase
     private val testDispatcher = StandardTestDispatcher()
 
+    // uiState is a WhileSubscribed StateFlow; subscribe on this testDispatcher-backed scope so
+    // advanceUntilIdle() populates uiState.value (previously guaranteed by SharingStarted.Eagerly).
+    private lateinit var collectorScope: CoroutineScope
+
     @BeforeEach
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        collectorScope = CoroutineScope(testDispatcher)
         getBabyProfile = mockk()
         getBreastfeedingHistory = mockk()
         getSleepHistory = mockk()
@@ -101,26 +109,31 @@ class HomeViewModelFeaturesTest {
 
     @AfterEach
     fun tearDown() {
+        collectorScope.cancel()
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel() = HomeViewModel(
-        getBabyProfile,
-        getBreastfeedingHistory,
-        getSleepHistory,
-        syncToFirestore,
-        settingsRepository,
-        pumpingRepository,
-        inventoryRepository,
-        predictNextFeed,
-        predictSleepWindow,
-        observeTodayFeedingSummary,
-        observeTodayDiaperSummary,
-        getEnabledFeatures,
-        observeVaccineSummary,
-        observeDoctorVisitSummary,
-        logBabyEvent,
-    )
+    private fun createViewModel(): HomeViewModel {
+        val vm = HomeViewModel(
+            getBabyProfile,
+            getBreastfeedingHistory,
+            getSleepHistory,
+            syncToFirestore,
+            settingsRepository,
+            pumpingRepository,
+            inventoryRepository,
+            predictNextFeed,
+            predictSleepWindow,
+            observeTodayFeedingSummary,
+            observeTodayDiaperSummary,
+            getEnabledFeatures,
+            observeVaccineSummary,
+            observeDoctorVisitSummary,
+            logBabyEvent,
+        )
+        collectorScope.launch { vm.uiState.collect {} }
+        return vm
+    }
 
     @Test
     fun uiState_reflectsEnabledFeaturesFromUseCase() = runTest {

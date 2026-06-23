@@ -38,9 +38,12 @@ import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -75,6 +78,11 @@ class HomeViewModelTest {
     private lateinit var viewModel: HomeViewModel
     private val testDispatcher = StandardTestDispatcher()
 
+    // uiState is a WhileSubscribed StateFlow, so it only runs while collected. Tests subscribe on
+    // this scope (backed by testDispatcher) so advanceUntilIdle() drives the pipeline and
+    // uiState.value is populated — previously guaranteed by SharingStarted.Eagerly.
+    private lateinit var collectorScope: CoroutineScope
+
     private val testBaby = Baby(name = "Emma", birthDate = LocalDate.of(2026, 3, 15))
     private val inProgressSession = BreastfeedingSession(
         id = 1L,
@@ -92,6 +100,7 @@ class HomeViewModelTest {
     @BeforeEach
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        collectorScope = CoroutineScope(testDispatcher)
         getBabyProfile = mockk()
         getBreastfeedingHistory = mockk()
         getSleepHistory = mockk()
@@ -129,26 +138,31 @@ class HomeViewModelTest {
 
     @AfterEach
     fun tearDown() {
+        collectorScope.cancel()
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel() = HomeViewModel(
-        getBabyProfile,
-        getBreastfeedingHistory,
-        getSleepHistory,
-        syncToFirestore,
-        settingsRepository,
-        pumpingRepository,
-        inventoryRepository,
-        predictNextFeed,
-        predictSleepWindow,
-        observeTodayFeedingSummary,
-        observeTodayDiaperSummary,
-        getEnabledFeatures,
-        observeVaccineSummary,
-        observeDoctorVisitSummary,
-        logBabyEvent,
-    )
+    private fun createViewModel(): HomeViewModel {
+        val vm = HomeViewModel(
+            getBabyProfile,
+            getBreastfeedingHistory,
+            getSleepHistory,
+            syncToFirestore,
+            settingsRepository,
+            pumpingRepository,
+            inventoryRepository,
+            predictNextFeed,
+            predictSleepWindow,
+            observeTodayFeedingSummary,
+            observeTodayDiaperSummary,
+            getEnabledFeatures,
+            observeVaccineSummary,
+            observeDoctorVisitSummary,
+            logBabyEvent,
+        )
+        collectorScope.launch { vm.uiState.collect {} }
+        return vm
+    }
 
     @Test
     fun activeSession_isNull_whenNoInProgressFeeding() = runTest {

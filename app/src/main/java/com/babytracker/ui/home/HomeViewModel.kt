@@ -39,6 +39,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -172,11 +173,17 @@ class HomeViewModel @Inject constructor(
             vaccineSummary = vaccineSummary,
             doctorVisitSummary = doctorVisitSummary,
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly,
-        initialValue = HomeUiState(),
-    )
+    }.distinctUntilChanged()
+        .stateIn(
+            scope = viewModelScope,
+            // Was Eagerly, which kept the ~14-flow combine hot for the ViewModel's whole life even
+            // when Home is off-screen — including predictSleepWindow() (already moved off the main
+            // thread inside PredictSleepWindowUseCase). WhileSubscribed matches every other VM here
+            // and stops the graph 5s after the UI stops collecting. distinctUntilChanged drops
+            // duplicate UiState emissions so equal recomputations don't trigger recomposition.
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = HomeUiState(),
+        )
 
     fun onCueTapped(type: BabyEventType) {
         viewModelScope.launch { runCatching { logBabyEvent(type) } }
