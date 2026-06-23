@@ -255,7 +255,7 @@
     <string name="duration_minutes">%1$dm</string>
 
     <!-- Home -->
-    <string name="home_greeting">Oi, %1$s 👋</string>
+    <string name="home_greeting">Oi, %1$s</string>
     <string name="home_settings_content_description">Configurações</string>
     <string name="home_reset_layout">Redefinir layout</string>
     <string name="home_move_earlier">Mover para cima</string>
