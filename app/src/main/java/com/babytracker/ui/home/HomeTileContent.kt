@@ -26,7 +26,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
-import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.itemsIndexed
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.People
@@ -59,8 +59,12 @@ import androidx.compose.ui.unit.dp
 import com.babytracker.R
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.BreastSide
+import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.SleepPredictionState
+import com.babytracker.domain.model.SleepRecord
+import java.time.Instant
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.sleep.SleepPredictionCard
@@ -186,36 +190,41 @@ internal fun HomeContent(
             verticalItemSpacing = 12.dp,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items(
+            itemsIndexed(
                 items = visibleTiles,
-                key = { it.name },
-                span = { tile ->
+                key = { _, tile -> tile.name },
+                span = { _, tile ->
                     if (tile.isFullWidth()) StaggeredGridItemSpan.FullLine else StaggeredGridItemSpan.SingleLane
                 },
-            ) { tile ->
-                val index = visibleTiles.indexOf(tile)
+            ) { index, tile ->
                 val moveEarlierLabel = stringResource(R.string.home_move_earlier)
                 val moveLaterLabel = stringResource(R.string.home_move_later)
-                val moveActions = buildList {
-                    if (index > 0) {
-                        add(
-                            CustomAccessibilityAction(moveEarlierLabel) {
-                                val moved = reorderByKey(orderState, visibleTiles, tile, visibleTiles[index - 1])
-                                orderState = moved
-                                onReorder(moved)
-                                true
-                            },
-                        )
-                    }
-                    if (index < visibleTiles.lastIndex) {
-                        add(
-                            CustomAccessibilityAction(moveLaterLabel) {
-                                val moved = reorderByKey(orderState, visibleTiles, tile, visibleTiles[index + 1])
-                                orderState = moved
-                                onReorder(moved)
-                                true
-                            },
-                        )
+                // itemsIndexed gives `index` for free (was an O(n) visibleTiles.indexOf(tile) per item,
+                // O(n^2) over the grid). Remember the action list so the CustomAccessibilityAction
+                // objects aren't reallocated on every recomposition (e.g. each drag frame); the lambdas
+                // read the latest orderState at fire time, so they don't need it as a key.
+                val moveActions = remember(index, visibleTiles, moveEarlierLabel, moveLaterLabel) {
+                    buildList {
+                        if (index > 0) {
+                            add(
+                                CustomAccessibilityAction(moveEarlierLabel) {
+                                    val moved = reorderByKey(orderState, visibleTiles, tile, visibleTiles[index - 1])
+                                    orderState = moved
+                                    onReorder(moved)
+                                    true
+                                },
+                            )
+                        }
+                        if (index < visibleTiles.lastIndex) {
+                            add(
+                                CustomAccessibilityAction(moveLaterLabel) {
+                                    val moved = reorderByKey(orderState, visibleTiles, tile, visibleTiles[index + 1])
+                                    orderState = moved
+                                    onReorder(moved)
+                                    true
+                                },
+                            )
+                        }
                     }
                 }
                 ReorderableItem(reorderableState, key = tile.name) { isDragging ->
@@ -255,8 +264,19 @@ internal fun HomeTileContent(
     modifier: Modifier = Modifier,
 ) {
     when (tile) {
-        HomeTile.BREASTFEEDING -> BreastfeedingHomeCard(uiState, callbacks.onBreastfeeding, modifier)
-        HomeTile.SLEEP -> SleepHomeCard(uiState, callbacks.onSleep, modifier)
+        HomeTile.BREASTFEEDING -> BreastfeedingHomeCard(
+            activeSession = uiState.activeSession,
+            lastSessionStartTime = uiState.lastSessionStartTime,
+            nextFeedPrediction = uiState.nextFeedPrediction,
+            onClick = callbacks.onBreastfeeding,
+            modifier = modifier,
+        )
+        HomeTile.SLEEP -> SleepHomeCard(
+            activeSleepRecord = uiState.activeSleepRecord,
+            lastSleepEndTime = uiState.lastSleepEndTime,
+            onClick = callbacks.onSleep,
+            modifier = modifier,
+        )
         HomeTile.PUMPING -> PumpingHomeCard(uiState.pumpingActive, callbacks.onPumping, modifier)
         HomeTile.INVENTORY ->
             InventoryHomeCard(uiState.inventorySummary, uiState.volumeUnit, callbacks.onInventory, modifier)
@@ -296,11 +316,12 @@ internal data class HomeTileCallbacks(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun BreastfeedingHomeCard(
-    uiState: HomeUiState,
+    activeSession: BreastfeedingSession?,
+    lastSessionStartTime: Instant?,
+    nextFeedPrediction: FeedPrediction?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val activeSession = uiState.activeSession
     val isActiveFeeding = activeSession != null
     val breastfeedingDescription = if (isActiveFeeding) {
         stringResource(R.string.home_breastfeeding_active_content_description)
@@ -381,11 +402,10 @@ internal fun BreastfeedingHomeCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 ActiveFeedingTimer(session = activeSession, color = feedingContentColor)
             } else {
-                val lastStart = uiState.lastSessionStartTime
-                if (lastStart != null) {
-                    LastFeedingAgoText(lastStart = lastStart)
+                if (lastSessionStartTime != null) {
+                    LastFeedingAgoText(lastStart = lastSessionStartTime)
                 }
-                uiState.nextFeedPrediction?.let { prediction ->
+                nextFeedPrediction?.let { prediction ->
                     FeedingPredictionSubtitle(prediction = prediction)
                 }
             }
@@ -396,11 +416,11 @@ internal fun BreastfeedingHomeCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SleepHomeCard(
-    uiState: HomeUiState,
+    activeSleepRecord: SleepRecord?,
+    lastSleepEndTime: Instant?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val activeSleepRecord = uiState.activeSleepRecord
     val isActiveSleep = activeSleepRecord != null
     val sleepDescription = if (isActiveSleep) {
         stringResource(R.string.home_sleep_active_content_description)
@@ -481,9 +501,8 @@ internal fun SleepHomeCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 ActiveSleepTimer(record = activeSleepRecord, color = sleepContentColor)
             } else {
-                val lastEnd = uiState.lastSleepEndTime
-                if (lastEnd != null) {
-                    LastSleepAgoText(endTime = lastEnd)
+                if (lastSleepEndTime != null) {
+                    LastSleepAgoText(endTime = lastSleepEndTime)
                 } else {
                     Text(
                         text = stringResource(R.string.home_sleep_ready),
