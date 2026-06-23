@@ -1,5 +1,6 @@
 package com.babytracker.ui.milestone
 
+import android.content.ComponentCallbacks2
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -39,9 +40,33 @@ const val MILESTONE_HERO_TARGET_PX = 1080
  * ~1080px detail heroes (several MB each), so a fixed entry count could pin tens of MB of large
  * heroes. The [LruCache.sizeOf] override evicts by real footprint to hold the budget whatever the mix.
  */
-private const val BITMAP_CACHE_BYTES = 24 * 1024 * 1024 // 24 MB
+// 24 MB budget, but never more than 1/8 of the runtime heap, so a low-RAM device (small heap) doesn't
+// pin a large fixed slice for one feature. This only ever shrinks the cap below 24 MB — never grows it.
+private val BITMAP_CACHE_BYTES: Int =
+    minOf(24L * 1024 * 1024, Runtime.getRuntime().maxMemory() / 8).toInt()
 private val bitmapCache = object : LruCache<String, ImageBitmap>(BITMAP_CACHE_BYTES) {
     override fun sizeOf(key: String, value: ImageBitmap): Int = value.asAndroidBitmap().allocationByteCount
+}
+
+/**
+ * Releases the process-wide milestone bitmap cache when the system signals memory pressure. Wired up
+ * from `BabyTrackerApp.onTrimMemory`. Behavior-preserving: the cache is transparent, so evicted
+ * entries simply re-decode on next display (the same thing a normal LRU eviction already does).
+ */
+internal fun trimMilestoneBitmapCache(level: Int) {
+    when {
+        // UI no longer visible (UI_HIDDEN) or the process is a background/cached kill candidate:
+        // drop everything — nothing on screen needs these bitmaps right now.
+        level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN -> bitmapCache.evictAll()
+        // Still foreground but the system is low on memory: give back half.
+        level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ->
+            bitmapCache.trimToSize(bitmapCache.maxSize() / 2)
+    }
+}
+
+/** Fully clears the milestone bitmap cache (e.g. from `Application.onLowMemory`). */
+internal fun evictMilestoneBitmapCache() {
+    bitmapCache.evictAll()
 }
 
 /**

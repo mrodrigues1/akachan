@@ -17,6 +17,8 @@ import com.babytracker.manager.PredictiveFeedNotificationCoordinator
 import com.babytracker.manager.PredictiveSleepNotificationCoordinator
 import com.babytracker.manager.StashExpirationScheduler
 import com.babytracker.manager.VaccineReminderScheduler
+import com.babytracker.ui.milestone.evictMilestoneBitmapCache
+import com.babytracker.ui.milestone.trimMilestoneBitmapCache
 import com.babytracker.util.DoctorVisitNotificationHelper
 import com.babytracker.util.NotificationHelper
 import com.babytracker.util.VaccineNotificationHelper
@@ -84,6 +86,19 @@ class BabyTrackerApp : Application(), Configuration.Provider {
         if (BuildConfig.DEBUG) {
             appScope.launch { debugDataSeeder.get().seedIfEmpty() }
         }
+    }
+
+    // The milestone photo cache is the only large process-lifetime allocation in the app and there
+    // was previously no trim-memory handling at all. Hooking these lets the system reclaim up to its
+    // full budget on demand instead of killing the process; the cache transparently re-decodes later.
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        trimMilestoneBitmapCache(level)
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        evictMilestoneBitmapCache()
     }
 
     private fun createNotificationChannels() {
