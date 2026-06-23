@@ -190,9 +190,9 @@ internal fun HomeContent(
                 .fillMaxHeight()
                 .testTag("home_tiles_grid"),
             state = gridState,
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-            verticalItemSpacing = 14.dp,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+            verticalItemSpacing = 12.dp,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             itemsIndexed(
                 items = visibleTiles,
@@ -233,7 +233,7 @@ internal fun HomeContent(
                 }
                 ReorderableItem(reorderableState, key = tile.name) { isDragging ->
                     val elevation by animateDpAsState(
-                        targetValue = if (isDragging) 8.dp else 0.dp,
+                        targetValue = if (isDragging) 6.dp else 0.dp,
                         label = "tileDragElevation",
                     )
                     HomeTileContent(

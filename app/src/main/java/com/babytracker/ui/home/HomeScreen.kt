@@ -146,11 +146,15 @@ internal fun HomeTrackerTile(
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = containerColor),
         elevation = CardDefaults.cardElevation(defaultElevation = elevation),
-        border = BorderStroke(1.dp, contentColor.copy(alpha = 0.14f)),
+        border = if (LocalDarkTheme.current) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        } else {
+            null
+        },
     ) {
         Column(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(20.dp)
                 .animateContentSize(animationSpec = tween(200, easing = EaseOutQuart)),
         ) {
             Row(
