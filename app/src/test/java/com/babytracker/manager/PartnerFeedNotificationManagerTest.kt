@@ -1,7 +1,6 @@
 package com.babytracker.manager
 
 import android.content.Context
-import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.util.NotificationHelper
@@ -16,7 +15,6 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.time.Instant
 
 class PartnerFeedNotificationManagerTest {
 
@@ -42,8 +40,7 @@ class PartnerFeedNotificationManagerTest {
     @Test
     fun `posts coalesced notification with bag count and summed volume`() = runTest {
         every { settingsRepository.getPartnerFeedStashNotificationsEnabled() } returns flowOf(true)
-        coEvery { inventoryRepository.getById(11L) } returns bag(11L, 150)
-        coEvery { inventoryRepository.getById(22L) } returns bag(22L, 300)
+        coEvery { inventoryRepository.sumVolumeForIds(listOf(11L, 22L)) } returns 450
 
         manager.notifyStashConsumed(listOf(11L, 22L))
 
@@ -56,7 +53,7 @@ class PartnerFeedNotificationManagerTest {
 
         manager.notifyStashConsumed(listOf(11L))
 
-        coVerify(exactly = 0) { inventoryRepository.getById(any()) }
+        coVerify(exactly = 0) { inventoryRepository.sumVolumeForIds(any()) }
         coVerify(exactly = 0) { NotificationHelper.showPartnerStashConsumed(any(), any(), any()) }
     }
 
@@ -71,17 +68,10 @@ class PartnerFeedNotificationManagerTest {
     @Test
     fun `does not post when consumed bags resolve to zero volume`() = runTest {
         every { settingsRepository.getPartnerFeedStashNotificationsEnabled() } returns flowOf(true)
-        coEvery { inventoryRepository.getById(any()) } returns null
+        coEvery { inventoryRepository.sumVolumeForIds(any()) } returns 0
 
         manager.notifyStashConsumed(listOf(11L))
 
         coVerify(exactly = 0) { NotificationHelper.showPartnerStashConsumed(any(), any(), any()) }
     }
-
-    private fun bag(id: Long, volumeMl: Int) = MilkBag(
-        id = id,
-        collectionDate = Instant.parse("2026-06-01T08:00:00Z"),
-        volumeMl = volumeMl,
-        createdAt = Instant.parse("2026-06-01T08:00:00Z"),
-    )
 }

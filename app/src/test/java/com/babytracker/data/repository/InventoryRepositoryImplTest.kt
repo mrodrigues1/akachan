@@ -105,6 +105,14 @@ class InventoryRepositoryImplTest {
     }
 
     @Test
+    fun `sumVolumeForIds delegates to dao`() = runTest {
+        coEvery { dao.sumVolumeForIds(listOf(1L, 2L)) } returns 250
+
+        assertEquals(250, repository.sumVolumeForIds(listOf(1L, 2L)))
+        coVerify(exactly = 1) { dao.sumVolumeForIds(listOf(1L, 2L)) }
+    }
+
+    @Test
     fun `getById maps row to domain`() = runTest {
         coEvery { dao.getById(4L) } returns MilkBagEntity(
             id = 4L,
