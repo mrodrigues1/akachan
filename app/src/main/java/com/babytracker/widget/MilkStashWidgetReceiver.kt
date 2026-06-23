@@ -18,8 +18,10 @@ class MilkStashWidgetReceiver : GlanceAppWidgetReceiver() {
     }
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        // The periodic refresh is scheduled in onEnabled (kept via ExistingPeriodicWorkPolicy.KEEP),
+        // so re-enqueuing here — onUpdate fires on every host refresh/resize — only wastes a
+        // PeriodicWorkRequest build + WorkManager IPC on the main thread.
         super.onUpdate(context, appWidgetManager, appWidgetIds)
-        enqueueRefreshWorker(context)
     }
 
     override fun onDisabled(context: Context) {

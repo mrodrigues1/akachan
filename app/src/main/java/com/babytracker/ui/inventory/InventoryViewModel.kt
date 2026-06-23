@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -76,7 +77,7 @@ class InventoryViewModel @Inject constructor(
                 settingsRepository.getVolumeUnit(),
             ) { bags, summary, unit ->
                 Triple(bags, summary, unit)
-            }.collect { (bags, summary, unit) ->
+            }.distinctUntilChanged().collect { (bags, summary, unit) ->
                 _uiState.value = _uiState.value.copy(bags = bags, summary = summary, volumeUnit = unit)
             }
         }
