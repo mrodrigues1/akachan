@@ -19,9 +19,10 @@ class PartnerFeedNotificationManager @Inject constructor(
     override suspend fun notifyStashConsumed(consumedBagIds: List<Long>) {
         if (consumedBagIds.isEmpty()) return
         if (!settingsRepository.getPartnerFeedStashNotificationsEnabled().first()) return
-        // The consumed bags were just marked used, not deleted, so getById still resolves them.
-        // A null (e.g. bag deleted between apply and lookup) contributes 0 mL.
-        val totalMl = consumedBagIds.sumOf { id -> inventoryRepository.getById(id)?.volumeMl ?: 0 }
+        // The consumed bags were just marked used, not deleted, so they still resolve. A single
+        // aggregate sum avoids loading a MilkBag object per id; ids missing from the table (e.g. a
+        // bag deleted between apply and lookup) contribute 0 mL, as before. Non-empty by the guard above.
+        val totalMl = inventoryRepository.sumVolumeForIds(consumedBagIds)
         if (totalMl <= 0) return
         NotificationHelper.showPartnerStashConsumed(
             context = context,

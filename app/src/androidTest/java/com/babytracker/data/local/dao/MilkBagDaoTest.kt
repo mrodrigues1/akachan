@@ -70,6 +70,20 @@ class MilkBagDaoTest {
     }
 
     @Test
+    fun sumVolumeForIdsSumsRequestedBagsIgnoringUsedStateAndMissingIds() = runTest {
+        val a = bagDao.insert(MilkBagEntity(collectionDate = 100L, volumeMl = 60, createdAt = 100L))
+        val b = bagDao.insert(
+            MilkBagEntity(collectionDate = 200L, volumeMl = 150, createdAt = 200L, usedAt = 300L)
+        )
+        bagDao.insert(MilkBagEntity(collectionDate = 300L, volumeMl = 999, createdAt = 300L))
+
+        // Sums the requested ids regardless of used state; the third (unreferenced) bag is excluded.
+        assertEquals(210, bagDao.sumVolumeForIds(listOf(a, b)))
+        // A missing id contributes 0 (matches the caller's previous per-id `?: 0` fallback).
+        assertEquals(60, bagDao.sumVolumeForIds(listOf(a, 99_999L)))
+    }
+
+    @Test
     fun foreignKeySetNullOnSessionDelete() = runTest {
         val sessionId = pumpingDao.insert(
             PumpingEntity(startTime = 1_000L, breast = "LEFT")

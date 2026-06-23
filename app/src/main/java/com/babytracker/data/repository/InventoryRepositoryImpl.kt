@@ -37,6 +37,8 @@ class InventoryRepositoryImpl @Inject constructor(
 
     override suspend fun getById(id: Long): MilkBag? = dao.getById(id)?.toDomain()
 
+    override suspend fun sumVolumeForIds(ids: List<Long>): Int = dao.sumVolumeForIds(ids)
+
     override suspend fun insert(bag: MilkBag): Long = dao.insert(bag.toEntity())
 
     override suspend fun update(bag: MilkBag) = dao.update(bag.toEntity())

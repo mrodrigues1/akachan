@@ -11,6 +11,9 @@ interface InventoryRepository {
     fun getSummary(): Flow<InventorySummary>
     suspend fun currentSummary(): InventorySummary
     suspend fun getById(id: Long): MilkBag?
+
+    /** Sums `volumeMl` across [ids] in one query. Missing ids contribute 0. [ids] must be non-empty. */
+    suspend fun sumVolumeForIds(ids: List<Long>): Int
     suspend fun insert(bag: MilkBag): Long
     suspend fun update(bag: MilkBag)
     suspend fun updateDetails(
