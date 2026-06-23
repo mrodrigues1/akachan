@@ -121,6 +121,13 @@ android {
     }
 }
 
+composeCompiler {
+    // Treat immutable java.time value types as stable so composables (and domain data classes built
+    // from them) can skip recomposition when inputs are unchanged. java.time.Instant in particular is
+    // used pervasively and is unstable by inference otherwise. Compile-time only; no runtime change.
+    stabilityConfigurationFiles.add(layout.projectDirectory.file("compose-stability.conf"))
+}
+
 dependencies {
     // Compose BOM
     val composeBom = platform(libs.compose.bom)
