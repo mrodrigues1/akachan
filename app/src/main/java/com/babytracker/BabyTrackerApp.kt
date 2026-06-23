@@ -24,6 +24,7 @@ import com.babytracker.util.createPredictiveFeedNotificationChannel
 import com.babytracker.util.createPredictiveSleepNotificationChannel
 import com.babytracker.widget.MilkStashWidgetSyncManager
 import com.babytracker.widget.WidgetSyncManager
+import dagger.Lazy
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,21 +36,25 @@ import javax.inject.Inject
 @HiltAndroidApp
 class BabyTrackerApp : Application(), Configuration.Provider {
 
-    @Inject lateinit var predictiveCoordinator: PredictiveFeedNotificationCoordinator
-    @Inject lateinit var predictiveSleepCoordinator: PredictiveSleepNotificationCoordinator
-    @Inject lateinit var featureSuppressionCoordinator: FeatureSuppressionCoordinator
-    @Inject lateinit var debugDataSeeder: DebugDataSeeder
-    @Inject lateinit var widgetSyncManager: WidgetSyncManager
-    @Inject lateinit var milkStashWidgetSyncManager: MilkStashWidgetSyncManager
+    // workerFactory must resolve synchronously: workManagerConfiguration is read by WorkManager
+    // during early init. Everything else below is start-only and wrapped in Lazy so the Hilt graph
+    // (Room DB builder + 14 migrations, DataStore, repositories, the predictive use cases) is not
+    // constructed on the main thread during onCreate — it is resolved on the IO appScope instead.
     @Inject lateinit var workerFactory: HiltWorkerFactory
-    @Inject lateinit var inventorySettings: InventorySettingsRepository
-    @Inject lateinit var stashExpirationScheduler: StashExpirationScheduler
-    @Inject lateinit var featureToggleRepository: FeatureToggleRepository
-    @Inject lateinit var bootstrapBabyProfile: BootstrapBabyProfileUseCase
-    @Inject lateinit var vaccineReminderScheduler: VaccineReminderScheduler
-    @Inject lateinit var vaccineSettings: VaccineSettingsRepository
-    @Inject lateinit var doctorVisitReminderScheduler: DoctorVisitReminderScheduler
-    @Inject lateinit var doctorVisitSettings: DoctorVisitSettingsRepository
+    @Inject lateinit var predictiveCoordinator: Lazy<PredictiveFeedNotificationCoordinator>
+    @Inject lateinit var predictiveSleepCoordinator: Lazy<PredictiveSleepNotificationCoordinator>
+    @Inject lateinit var featureSuppressionCoordinator: Lazy<FeatureSuppressionCoordinator>
+    @Inject lateinit var debugDataSeeder: Lazy<DebugDataSeeder>
+    @Inject lateinit var widgetSyncManager: Lazy<WidgetSyncManager>
+    @Inject lateinit var milkStashWidgetSyncManager: Lazy<MilkStashWidgetSyncManager>
+    @Inject lateinit var inventorySettings: Lazy<InventorySettingsRepository>
+    @Inject lateinit var stashExpirationScheduler: Lazy<StashExpirationScheduler>
+    @Inject lateinit var featureToggleRepository: Lazy<FeatureToggleRepository>
+    @Inject lateinit var bootstrapBabyProfile: Lazy<BootstrapBabyProfileUseCase>
+    @Inject lateinit var vaccineReminderScheduler: Lazy<VaccineReminderScheduler>
+    @Inject lateinit var vaccineSettings: Lazy<VaccineSettingsRepository>
+    @Inject lateinit var doctorVisitReminderScheduler: Lazy<DoctorVisitReminderScheduler>
+    @Inject lateinit var doctorVisitSettings: Lazy<DoctorVisitSettingsRepository>
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -61,6 +66,27 @@ class BabyTrackerApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        // Channel creation (8 cross-process binder calls) and coordinator startup don't need the main
+        // thread and only have to complete before the first notification — run them on the IO scope so
+        // they're off the cold-start critical path. Channels are created before any coordinator starts.
+        appScope.launch {
+            createNotificationChannels()
+            predictiveCoordinator.get().start()
+            predictiveSleepCoordinator.get().start()
+            featureSuppressionCoordinator.get().start()
+            widgetSyncManager.get().start()
+            milkStashWidgetSyncManager.get().start()
+        }
+        reconcileStashExpirationAlarm()
+        reconcileVaccineReminders()
+        reconcileDoctorVisitReminders()
+        appScope.launch { runCatching { bootstrapBabyProfile.get().invoke() } }
+        if (BuildConfig.DEBUG) {
+            appScope.launch { debugDataSeeder.get().seedIfEmpty() }
+        }
+    }
+
+    private fun createNotificationChannels() {
         NotificationHelper.createBreastfeedingNotificationChannel(this)
         NotificationHelper.createSleepNotificationChannel(this)
         NotificationHelper.createStashExpirationNotificationChannel(this)
@@ -68,33 +94,21 @@ class BabyTrackerApp : Application(), Configuration.Provider {
         VaccineNotificationHelper.createChannel(this)
         DoctorVisitNotificationHelper.createChannel(this)
         createPredictiveFeedNotificationChannel(this)
-        predictiveCoordinator.start()
         createPredictiveSleepNotificationChannel(this)
-        predictiveSleepCoordinator.start()
-        featureSuppressionCoordinator.start()
-        widgetSyncManager.start()
-        milkStashWidgetSyncManager.start()
-        reconcileStashExpirationAlarm()
-        reconcileVaccineReminders()
-        reconcileDoctorVisitReminders()
-        appScope.launch { runCatching { bootstrapBabyProfile() } }
-        if (BuildConfig.DEBUG) {
-            appScope.launch { debugDataSeeder.seedIfEmpty() }
-        }
     }
 
     private fun reconcileStashExpirationAlarm() {
         appScope.launch {
             runCatching {
                 val inventoryEnabled =
-                    AppFeature.INVENTORY in featureToggleRepository.getEnabledFeatures().first()
+                    AppFeature.INVENTORY in featureToggleRepository.get().getEnabledFeatures().first()
                 if (
                     inventoryEnabled &&
-                    inventorySettings.getExpirationEnabled().first() &&
-                    inventorySettings.getExpirationNotifEnabled().first()
+                    inventorySettings.get().getExpirationEnabled().first() &&
+                    inventorySettings.get().getExpirationNotifEnabled().first()
                 ) {
-                    stashExpirationScheduler.scheduleDaily(
-                        inventorySettings.getExpirationNotifTimeMinutes().first(),
+                    stashExpirationScheduler.get().scheduleDaily(
+                        inventorySettings.get().getExpirationNotifTimeMinutes().first(),
                     )
                 }
             }
@@ -106,8 +120,8 @@ class BabyTrackerApp : Application(), Configuration.Provider {
     private fun reconcileVaccineReminders() {
         appScope.launch {
             runCatching {
-                if (vaccineSettings.getReminderEnabled().first()) {
-                    vaccineReminderScheduler.rescheduleAll()
+                if (vaccineSettings.get().getReminderEnabled().first()) {
+                    vaccineReminderScheduler.get().rescheduleAll()
                 }
             }
         }
@@ -117,8 +131,8 @@ class BabyTrackerApp : Application(), Configuration.Provider {
     private fun reconcileDoctorVisitReminders() {
         appScope.launch {
             runCatching {
-                if (doctorVisitSettings.getReminderEnabled().first()) {
-                    doctorVisitReminderScheduler.rescheduleAll()
+                if (doctorVisitSettings.get().getReminderEnabled().first()) {
+                    doctorVisitReminderScheduler.get().rescheduleAll()
                 }
             }
         }
