@@ -11,6 +11,7 @@ import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -23,7 +24,7 @@ data class MilestonesUiState(
 
 @HiltViewModel
 class MilestonesViewModel @Inject constructor(
-    getMilestones: GetMilestonesUseCase,
+    private val getMilestones: GetMilestonesUseCase,
     private val addMilestone: AddMilestoneUseCase,
     private val updateMilestone: UpdateMilestoneUseCase,
     private val deleteMilestone: DeleteMilestoneUseCase,
@@ -31,17 +32,8 @@ class MilestonesViewModel @Inject constructor(
     private val syncToFirestore: SyncToFirestoreUseCase,
 ) : ViewModel() {
 
-    // Eagerly collected so photo-cleanup lookups have the current moments even when no
-    // UI is subscribed to [uiState].
-    private val moments: StateFlow<List<Milestone>> =
-        getMilestones().stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = emptyList(),
-        )
-
     val uiState: StateFlow<MilestonesUiState> =
-        moments
+        getMilestones()
             .map { MilestonesUiState(moments = it, isLoading = false) }
             .stateIn(
                 scope = viewModelScope,
@@ -49,13 +41,16 @@ class MilestonesViewModel @Inject constructor(
                 initialValue = MilestonesUiState(),
             )
 
-    private fun existingPhotoUri(id: Long): String? =
-        moments.value.firstOrNull { it.id == id }?.photoUri
+    // No resident cache: photo-cleanup lookups happen only on save/delete (user actions already on
+    // a coroutine), so read the currently persisted list once at action time instead of pinning the
+    // entire milestone list in memory for the ViewModel's whole lifetime.
+    private suspend fun existingPhotoUri(id: Long): String? =
+        getMilestones().first().firstOrNull { it.id == id }?.photoUri
 
     /** Adds a new moment ([Milestone.id] == 0) or updates an existing one. */
     fun onSave(milestone: Milestone) {
-        val previousPhoto = if (milestone.id == 0L) null else existingPhotoUri(milestone.id)
         viewModelScope.launch {
+            val previousPhoto = if (milestone.id == 0L) null else existingPhotoUri(milestone.id)
             if (milestone.id == 0L) {
                 addMilestone(milestone)
             } else {
@@ -70,8 +65,8 @@ class MilestonesViewModel @Inject constructor(
     }
 
     fun onDelete(id: Long) {
-        val photoUri = existingPhotoUri(id)
         viewModelScope.launch {
+            val photoUri = existingPhotoUri(id)
             deleteMilestone(id)
             photoCleaner.delete(photoUri)
             syncSharedSnapshot()
