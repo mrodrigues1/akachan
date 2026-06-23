@@ -37,7 +37,10 @@ class FeaturesViewModel @Inject constructor(
         FeaturesUiState(enabledFeatures = features, showLastFeatureHint = showHint)
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.Eagerly,
+        // WhileSubscribed releases the combine upstream + DataStore collector 5s after the
+        // Features screen leaves; the screen always subscribes while shown, so behavior is
+        // unchanged. Matches every other ViewModel in the app.
+        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
         initialValue = FeaturesUiState(),
     )
 
@@ -57,5 +60,9 @@ class FeaturesViewModel @Inject constructor(
 
     fun onHintShown() {
         hint.value = false
+    }
+
+    private companion object {
+        const val STOP_TIMEOUT_MS = 5_000L
     }
 }
