@@ -188,10 +188,10 @@ private fun FeatureIcon(feature: AppFeature) {
 @Composable
 private fun DomainIcon(domain: FeatureDomain) {
     when (domain) {
+        FeatureDomain.FEEDING -> BottleFeedIcon(modifier = Modifier.size(28.dp))
         FeatureDomain.SLEEP -> SleepIcon(modifier = Modifier.size(28.dp))
         FeatureDomain.DIAPERS -> DiaperIcon(modifier = Modifier.size(28.dp))
         FeatureDomain.GROWTH_DEVELOPMENT -> GrowthIcon(modifier = Modifier.size(28.dp))
-        else -> Text(text = domain.emoji, style = MaterialTheme.typography.titleLarge)
     }
 }
 
@@ -205,12 +205,4 @@ private val AppFeature.label: String
         AppFeature.DIAPERS -> "Diapers"
         AppFeature.GROWTH -> "Growth"
         AppFeature.MILESTONES -> "Milestones"
-    }
-
-private val FeatureDomain.emoji: String
-    get() = when (this) {
-        FeatureDomain.FEEDING -> "🍼"
-        FeatureDomain.SLEEP -> ""
-        FeatureDomain.DIAPERS -> ""
-        FeatureDomain.GROWTH_DEVELOPMENT -> "📈"
     }
