@@ -363,6 +363,8 @@
     <string name="breastfeeding_start_session">Iniciar sessão</string>
     <string name="breastfeeding_log_past_feed">Registrar mamada anterior</string>
     <string name="breastfeeding_last_feeding">ÚLTIMA MAMADA</string>
+    <string name="breastfeeding_side_duration_current_cd">%1$s, lado atual, %2$s</string>
+    <string name="breastfeeding_side_duration_cd">%1$s, %2$s</string>
     <string name="breastfeeding_breast_label">Seio %1$s</string>
     <string name="breastfeeding_first_side">Primeiro lado &#183; %1$s</string>
     <string name="breastfeeding_second_side">Segundo lado</string>

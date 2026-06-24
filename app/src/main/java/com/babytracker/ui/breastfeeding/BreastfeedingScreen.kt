@@ -8,7 +8,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -29,6 +31,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -53,8 +57,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -99,7 +102,6 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.ui.component.BreastfeedingIcon
-import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.SideSelector
 import com.babytracker.ui.component.TimerDisplay
 import com.babytracker.ui.component.labelRes
@@ -119,6 +121,8 @@ import java.time.LocalTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
+
+private val EaseOutQuart = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -198,6 +202,17 @@ fun BreastfeedingScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            if (activeSession != null) {
+                ActiveSessionBottomBar(
+                    session = activeSession,
+                    onPause = viewModel::onPauseSession,
+                    onResume = viewModel::onResumeSession,
+                    onStop = { showStopConfirmation = true },
+                )
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
     ) { padding ->
         Column(
             modifier = Modifier
@@ -227,7 +242,6 @@ fun BreastfeedingScreen(
                         session = session,
                         uiState = uiState,
                         viewModel = viewModel,
-                        onShowStopConfirmation = { showStopConfirmation = true },
                     )
                 } else {
                     IdleSessionContent(
@@ -350,38 +364,7 @@ private fun ActiveSessionContent(
     session: BreastfeedingSession,
     uiState: BreastfeedingUiState,
     viewModel: BreastfeedingViewModel,
-    onShowStopConfirmation: () -> Unit,
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "status_pulse")
-    val dotAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 850),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "status_dot_alpha",
-    )
-
-    val statusCardColor by animateColorAsState(
-        targetValue = if (session.isPaused) {
-            MaterialTheme.colorScheme.surfaceVariant
-        } else {
-            MaterialTheme.colorScheme.primaryContainer
-        },
-        animationSpec = tween(durationMillis = 300),
-        label = "status_card_color",
-    )
-    val statusTextColor by animateColorAsState(
-        targetValue = if (session.isPaused) {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        } else {
-            MaterialTheme.colorScheme.onPrimaryContainer
-        },
-        animationSpec = tween(durationMillis = 300),
-        label = "status_text_color",
-    )
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -390,53 +373,63 @@ private fun ActiveSessionContent(
     ) {
         Spacer(modifier = Modifier.height(4.dp))
 
-        val statusText = if (session.isPaused) {
-            stringResource(R.string.breastfeeding_status_paused)
-        } else {
-            stringResource(R.string.breastfeeding_status_in_progress)
+        FeedingSessionHero(
+            session = session,
+            uiState = uiState,
+            onSwitchSide = viewModel::onSwitchSide,
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun FeedingSessionHero(
+    session: BreastfeedingSession,
+    uiState: BreastfeedingUiState,
+    onSwitchSide: () -> Unit,
+) {
+    var sideDurations by remember(
+        session.id,
+        session.startTime,
+        session.switchTime,
+        session.pausedAt,
+        session.pausedDurationMs,
+    ) {
+        mutableStateOf(
+            session.sideDurationsUntil(session.pausedAt ?: Instant.now()),
+        )
+    }
+
+    LaunchedEffect(
+        session.id,
+        session.startTime,
+        session.switchTime,
+        session.pausedAt,
+        session.pausedDurationMs,
+    ) {
+        while (true) {
+            val now = session.pausedAt ?: Instant.now()
+            sideDurations = session.sideDurationsUntil(now)
+            if (session.isPaused) break
+            delay(1_000L)
         }
-        Card(
-            shape = MaterialTheme.shapes.large,
-            colors = CardDefaults.cardColors(containerColor = statusCardColor),
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                if (session.isPaused) {
-                    Icon(
-                        imageVector = Icons.Default.Pause,
-                        contentDescription = null,
-                        tint = statusTextColor,
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .background(
-                                color = statusTextColor.copy(alpha = dotAlpha),
-                                shape = CircleShape,
-                            ),
-                    )
-                }
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = statusTextColor,
-                )
-            }
-        }
+    }
+
+    val frozenElapsedSeconds: Long? = if (session.isPaused) {
+        val pausedAt = session.pausedAt!!
+        (pausedAt.toEpochMilli() - session.startTime.toEpochMilli() - session.pausedDurationMs) / 1000L
+    } else {
+        null
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        ActiveStatusPill(isPaused = session.isPaused)
 
         Spacer(modifier = Modifier.height(20.dp))
-
-        val frozenElapsedSeconds: Long? = if (session.isPaused) {
-            val pausedAt = session.pausedAt!!
-            (pausedAt.toEpochMilli() - session.startTime.toEpochMilli() - session.pausedDurationMs) / 1000L
-        } else {
-            null
-        }
 
         TimerDisplay(
             startTimeMillis = session.startTime.toEpochMilli() + session.pausedDurationMs,
@@ -451,33 +444,6 @@ private fun ActiveSessionContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        var sideDurations by remember(
-            session.id,
-            session.startTime,
-            session.switchTime,
-            session.pausedAt,
-            session.pausedDurationMs,
-        ) {
-            mutableStateOf(
-                session.sideDurationsUntil(session.pausedAt ?: Instant.now()),
-            )
-        }
-
-        LaunchedEffect(
-            session.id,
-            session.startTime,
-            session.switchTime,
-            session.pausedAt,
-            session.pausedDurationMs,
-        ) {
-            while (true) {
-                val now = session.pausedAt ?: Instant.now()
-                sideDurations = session.sideDurationsUntil(now)
-                if (session.isPaused) break
-                delay(1_000L)
-            }
-        }
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -490,48 +456,12 @@ private fun ActiveSessionContent(
                     sideDurations.second ?: Duration.ZERO
                 }
 
-                val cardContainerColor by animateColorAsState(
-                    targetValue = if (isCurrentSide) {
-                        MaterialTheme.colorScheme.primaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant
-                    },
-                    animationSpec = tween(durationMillis = 350),
-                    label = "side_card_color_${side.name}",
-                )
-                val cardTextColor by animateColorAsState(
-                    targetValue = if (isCurrentSide) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    animationSpec = tween(durationMillis = 350),
-                    label = "side_text_color_${side.name}",
-                )
-
-                Card(
+                FeedingSideDurationCard(
+                    side = side,
+                    duration = duration,
+                    isCurrentSide = isCurrentSide,
                     modifier = Modifier.weight(1f),
-                    shape = MaterialTheme.shapes.medium,
-                    colors = CardDefaults.cardColors(containerColor = cardContainerColor),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = stringResource(side.labelRes()),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = cardTextColor,
-                        )
-                        Text(
-                            text = duration.formatDuration(),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = cardTextColor,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                }
+                )
             }
         }
 
@@ -540,7 +470,7 @@ private fun ActiveSessionContent(
         if (session.switchTime == null && !session.isPaused) {
             val nextSide = if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
             OutlinedButton(
-                onClick = viewModel::onSwitchSide,
+                onClick = onSwitchSide,
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.extraLarge,
             ) {
@@ -557,62 +487,234 @@ private fun ActiveSessionContent(
             }
             Spacer(modifier = Modifier.height(12.dp))
         }
+    }
+}
 
-        Button(
-            onClick = if (session.isPaused) viewModel::onResumeSession else viewModel::onPauseSession,
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge,
+@Composable
+private fun ActiveStatusPill(isPaused: Boolean) {
+    val infiniteTransition = rememberInfiniteTransition(label = "status_pulse")
+    val dotAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 850, easing = EaseOutQuart),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "status_dot_alpha",
+    )
+    val statusText = if (isPaused) {
+        stringResource(R.string.breastfeeding_status_paused)
+    } else {
+        stringResource(R.string.breastfeeding_status_in_progress)
+    }
+    val statusCardColor by animateColorAsState(
+        targetValue = if (isPaused) {
+            MaterialTheme.colorScheme.surfaceVariant
+        } else {
+            MaterialTheme.colorScheme.primary
+        },
+        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+        label = "status_card_color",
+    )
+    val statusTextColor by animateColorAsState(
+        targetValue = if (isPaused) {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        } else {
+            MaterialTheme.colorScheme.onPrimary
+        },
+        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+        label = "status_text_color",
+    )
+
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = statusCardColor,
+        contentColor = statusTextColor,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
         ) {
-            AnimatedContent(
-                targetState = session.isPaused,
-                transitionSpec = {
-                    fadeIn(tween(150)) togetherWith fadeOut(tween(100))
-                },
-                label = "pause_resume_content",
-            ) { isPaused ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (isPaused) {
-                            stringResource(R.string.breastfeeding_resume)
-                        } else {
-                            stringResource(R.string.breastfeeding_pause)
-                        },
-                        style = MaterialTheme.typography.labelLarge,
-                    )
+            if (isPaused) {
+                Icon(
+                    imageVector = Icons.Default.Pause,
+                    contentDescription = null,
+                    tint = statusTextColor,
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(
+                            color = statusTextColor.copy(alpha = dotAlpha),
+                            shape = CircleShape,
+                        ),
+                )
+            }
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = statusText,
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FeedingSideDurationCard(
+    side: BreastSide,
+    duration: Duration,
+    isCurrentSide: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val sideLabel = stringResource(side.labelRes())
+    val durationLabel = duration.formatDuration()
+    val cardDescription = if (isCurrentSide) {
+        stringResource(R.string.breastfeeding_side_duration_current_cd, sideLabel, durationLabel)
+    } else {
+        stringResource(R.string.breastfeeding_side_duration_cd, sideLabel, durationLabel)
+    }
+    val cardContainerColor by animateColorAsState(
+        targetValue = if (isCurrentSide) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
+        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+        label = "side_card_color_${side.name}",
+    )
+    val cardTextColor by animateColorAsState(
+        targetValue = if (isCurrentSide) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+        label = "side_text_color_${side.name}",
+    )
+    val cardElevation by animateDpAsState(
+        targetValue = if (isCurrentSide) 6.dp else 0.dp,
+        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+        label = "side_card_elevation_${side.name}",
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (isCurrentSide) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.primaryContainer
+        },
+        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+        label = "side_card_border_${side.name}",
+    )
+
+    Card(
+        modifier = modifier
+            .heightIn(min = 82.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = cardDescription
+            },
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = cardContainerColor),
+        border = BorderStroke(1.dp, borderColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = cardElevation),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 82.dp)
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = sideLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = cardTextColor,
+            )
+            Text(
+                text = durationLabel,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = cardTextColor,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActiveSessionBottomBar(
+    session: BreastfeedingSession,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onStop: () -> Unit,
+) {
+    Surface(color = MaterialTheme.colorScheme.surface) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Button(
+                onClick = if (session.isPaused) onResume else onPause,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 52.dp),
+                shape = MaterialTheme.shapes.extraLarge,
+            ) {
+                AnimatedContent(
+                    targetState = session.isPaused,
+                    transitionSpec = {
+                        fadeIn(tween(150)) togetherWith fadeOut(tween(100))
+                    },
+                    label = "pause_resume_content",
+                ) { isPaused ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isPaused) {
+                                stringResource(R.string.breastfeeding_resume)
+                            } else {
+                                stringResource(R.string.breastfeeding_pause)
+                            },
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
                 }
             }
+
+            OutlinedButton(
+                onClick = onStop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp),
+                shape = MaterialTheme.shapes.extraLarge,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                ),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Stop,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.breastfeeding_stop_session),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedButton(
-            onClick = onShowStopConfirmation,
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.error,
-            ),
-        ) {
-            Icon(
-                imageVector = Icons.Default.Stop,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = stringResource(R.string.breastfeeding_stop_session),
-                style = MaterialTheme.typography.labelLarge,
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -623,6 +725,12 @@ private fun IdleSessionContent(
     onStartSession: () -> Unit,
 ) {
     val summary = uiState.lastFeedingSummary
+    LaunchedEffect(summary, uiState.selectedSide) {
+        if (summary is LastFeedingSummaryState.Populated && uiState.selectedSide == null) {
+            viewModel.onSideSelected(summary.nextRecommendedSide)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -638,25 +746,6 @@ private fun IdleSessionContent(
         )
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        if (summary is LastFeedingSummaryState.Populated) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.primaryContainer,
-            ) {
-                Text(
-                    text = stringResource(
-                        R.string.breastfeeding_start_recommended,
-                        stringResource(summary.nextRecommendedSide.labelRes()),
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-        }
 
         SideSelector(
             selectedSide = uiState.selectedSide,
@@ -697,6 +786,12 @@ private fun IdleSessionContent(
                 contentColor = MaterialTheme.colorScheme.primary,
             ),
         ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Text(stringResource(R.string.breastfeeding_log_past_feed), style = MaterialTheme.typography.titleSmall)
         }
 
@@ -741,7 +836,7 @@ private fun LikelyHungryRow(
         modifier = modifier
             .fillMaxWidth()
             .padding(top = 8.dp)
-            .clip(MaterialTheme.shapes.small)
+            .clip(MaterialTheme.shapes.large)
             .background(containerColor)
             .padding(horizontal = 12.dp, vertical = 10.dp)
             .semantics(mergeDescendants = true) {
@@ -786,54 +881,111 @@ private fun LastFeedingSummaryCard(
     val session = summary.lastSession
     val secondSide = if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = stringResource(R.string.breastfeeding_last_feeding),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = summary.elapsedLabel,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        if (prediction != null) {
-            LikelyHungryRow(prediction = prediction)
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        HistoryCard(
-            title = stringResource(R.string.breastfeeding_breast_label, stringResource(session.startingSide.labelRes())),
-            subtitle = stringResource(R.string.breastfeeding_first_side, session.startTime.formatTime12h()),
-            trailing = summary.firstSideDuration.formatDuration(),
-            badgeColor = MaterialTheme.colorScheme.primaryContainer,
-            badgeContent = { BreastfeedingIcon(modifier = Modifier.size(34.dp)) },
-            onClick = { onEditSession(session) },
-            trailingContent = {
+    OutlinedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.breastfeeding_last_feeding),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = summary.elapsedLabel,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.breastfeeding_start_recommended,
+                            stringResource(summary.nextRecommendedSide.labelRes()),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 FeedSessionOverflowMenu(
                     onEdit = { onEditSession(session) },
                     onDelete = { onDeleteSession(session) },
                 )
-            },
-        )
+            }
 
-        if (summary.secondSideDuration != null) {
-            HistoryCard(
-                title = stringResource(R.string.breastfeeding_breast_label, stringResource(secondSide.labelRes())),
-                subtitle = stringResource(R.string.breastfeeding_second_side),
-                trailing = summary.secondSideDuration.formatDuration(),
-                badgeColor = MaterialTheme.colorScheme.primaryContainer,
-                badgeContent = { BreastfeedingIcon(modifier = Modifier.size(34.dp)) },
+            if (prediction != null) {
+                LikelyHungryRow(prediction = prediction)
+            }
+
+            LastFeedSideRow(
+                title = stringResource(R.string.breastfeeding_breast_label, stringResource(session.startingSide.labelRes())),
+                subtitle = stringResource(R.string.breastfeeding_first_side, session.startTime.formatTime12h()),
+                duration = summary.firstSideDuration.formatDuration(),
                 onClick = { onEditSession(session) },
-                trailingContent = {
-                    FeedSessionOverflowMenu(
-                        onEdit = { onEditSession(session) },
-                        onDelete = { onDeleteSession(session) },
-                    )
-                },
+            )
+
+            if (summary.secondSideDuration != null) {
+                LastFeedSideRow(
+                    title = stringResource(R.string.breastfeeding_breast_label, stringResource(secondSide.labelRes())),
+                    subtitle = stringResource(R.string.breastfeeding_second_side),
+                    duration = summary.secondSideDuration.formatDuration(),
+                    onClick = { onEditSession(session) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LastFeedSideRow(
+    title: String,
+    subtitle: String,
+    duration: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BreastfeedingIcon(modifier = Modifier.size(32.dp))
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = duration,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
             )
         }
     }
@@ -895,13 +1047,16 @@ internal fun AddFeedEntrySheetContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .imePadding()
             .padding(horizontal = 16.dp)
+            .padding(top = 8.dp)
             .padding(bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
             text = stringResource(R.string.breastfeeding_add_title),
             style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.semantics { heading() },
         )
 
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -936,24 +1091,11 @@ internal fun AddFeedEntrySheetContent(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                listOf(BreastSide.LEFT, BreastSide.RIGHT).forEach { side ->
-                    FilterChip(
-                        selected = selectedSide == side,
-                        onClick = { selectedSide = side },
-                        label = { Text(stringResource(R.string.breastfeeding_side_chip, stringResource(side.labelRes()))) },
-                        leadingIcon = { BreastfeedingIcon(modifier = Modifier.size(18.dp)) },
-                        modifier = Modifier.weight(1f),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        ),
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.height(8.dp))
+            SideSelector(
+                selectedSide = selectedSide,
+                onSideSelected = { selectedSide = it },
+            )
         }
 
         Row(
@@ -1017,7 +1159,7 @@ internal fun AddFeedEntrySheetContent(
         when {
             uiState.manualEntryError != null -> {
                 Card(
-                    shape = MaterialTheme.shapes.small,
+                    shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer,
                     ),
@@ -1029,13 +1171,13 @@ internal fun AddFeedEntrySheetContent(
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
+                            .padding(12.dp),
                     )
                 }
             }
             uiState.manualEntryDurationPreview == null -> {
                 Card(
-                    shape = MaterialTheme.shapes.small,
+                    shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
                     ),
@@ -1047,13 +1189,13 @@ internal fun AddFeedEntrySheetContent(
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
+                            .padding(12.dp),
                     )
                 }
             }
             else -> {
                 Card(
-                    shape = MaterialTheme.shapes.small,
+                    shape = MaterialTheme.shapes.large,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                     ),
@@ -1069,7 +1211,7 @@ internal fun AddFeedEntrySheetContent(
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
+                            .padding(12.dp),
                     )
                 }
             }
@@ -1080,7 +1222,7 @@ internal fun AddFeedEntrySheetContent(
             enabled = canSave,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 48.dp),
+                .heightIn(min = 52.dp),
             shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,

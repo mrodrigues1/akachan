@@ -360,6 +360,8 @@
     <string name="breastfeeding_start_session">Start Session</string>
     <string name="breastfeeding_log_past_feed">Log Past Feed</string>
     <string name="breastfeeding_last_feeding">LAST FEEDING</string>
+    <string name="breastfeeding_side_duration_current_cd">%1$s, current side, %2$s</string>
+    <string name="breastfeeding_side_duration_cd">%1$s, %2$s</string>
     <string name="breastfeeding_breast_label">%1$s breast</string>
     <string name="breastfeeding_first_side">First side &#183; %1$s</string>
     <string name="breastfeeding_second_side">Second side</string>
