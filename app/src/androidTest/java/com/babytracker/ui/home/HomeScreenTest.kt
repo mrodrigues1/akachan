@@ -186,7 +186,7 @@ class HomeScreenTest {
         composeRule.onNodeWithText("Hungry").assertIsDisplayed()
         composeRule.onNodeWithText("Fussy").assertIsDisplayed()
         composeRule.onNodeWithText("Sick").assertIsDisplayed()
-        composeRule.onNodeWithText("Teething").assertIsDisplayed()
+        composeRule.onNodeWithText("Teething").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Travel").performScrollTo().assertIsDisplayed()
     }
 
