@@ -160,12 +160,12 @@ class SleepTrackingScreenTest {
                 CueQuickTapRow(onCueTapped = {})
             }
         }
-        composeRule.onNodeWithText("😪 Sleepy").assertIsDisplayed()
-        composeRule.onNodeWithText("😋 Hungry").assertIsDisplayed()
-        composeRule.onNodeWithText("😣 Fussy").assertIsDisplayed()
-        composeRule.onNodeWithText("🤒 Sick").assertIsDisplayed()
-        composeRule.onNodeWithText("🦷 Teething").assertIsDisplayed()
-        composeRule.onNodeWithText("✈️ Travel").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Sleepy").assertIsDisplayed()
+        composeRule.onNodeWithText("Hungry").assertIsDisplayed()
+        composeRule.onNodeWithText("Fussy").assertIsDisplayed()
+        composeRule.onNodeWithText("Sick").assertIsDisplayed()
+        composeRule.onNodeWithText("Teething").assertIsDisplayed()
+        composeRule.onNodeWithText("Travel").performScrollTo().assertIsDisplayed()
     }
 
     private fun sheetState(sleepType: SleepType) = SleepUiState(
