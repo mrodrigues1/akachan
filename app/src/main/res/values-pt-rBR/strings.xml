@@ -457,7 +457,7 @@
     <string name="sleep_delete_entry_message_text">%1$s será removido.</string>
     <string name="sleep_empty_title">Nenhum registro de sono ainda</string>
     <string name="sleep_empty_subtitle">Toque abaixo para registrar um sono anterior</string>
-    <string name="sleep_start_nap">😴 Iniciar soneca</string>
+    <string name="sleep_start_nap">Iniciar soneca</string>
     <string name="sleep_start_night">Iniciar sono noturno</string>
     <string name="sleep_in_progress_status">%1$s %2$s em andamento</string>
     <string name="sleep_in_progress_status_text">%1$s em andamento</string>

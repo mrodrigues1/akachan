@@ -451,7 +451,7 @@
     <string name="sleep_delete_entry_message_text">%1$s will be removed.</string>
     <string name="sleep_empty_title">No sleep entries yet</string>
     <string name="sleep_empty_subtitle">Tap below to log a past sleep</string>
-    <string name="sleep_start_nap">😴 Start Nap</string>
+    <string name="sleep_start_nap">Start Nap</string>
     <string name="sleep_start_night">Start Night Sleep</string>
     <string name="sleep_in_progress_status">%1$s %2$s in progress</string>
     <string name="sleep_in_progress_status_text">%1$s in progress</string>
