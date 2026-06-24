@@ -3,7 +3,6 @@ package com.babytracker.ui.sleep
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -30,7 +30,6 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -48,6 +47,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -210,8 +210,8 @@ fun SleepTrackingScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = 16.dp, top = 8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(bottom = 20.dp, top = 8.dp)
         ) {
             item {
                 if (activeSleepSession != null) {
@@ -293,6 +293,7 @@ private fun TodayContextCard(
     onWakeTimeClick: () -> Unit,
 ) {
     val formatter = remember { DateTimeFormatter.ofPattern("h:mm a").withLocale(java.util.Locale.getDefault()) }
+    val wakeTimeLabel = wakeTime?.format(formatter) ?: stringResource(R.string.sleep_wake_label)
     val semanticDescription = when (summary) {
         LastSleepSummaryState.Empty -> stringResource(R.string.sleep_last_sleep_cd_empty)
         is LastSleepSummaryState.Populated ->
@@ -302,27 +303,39 @@ private fun TodayContextCard(
         modifier = Modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) { contentDescription = semanticDescription },
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.large,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Column {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Bedtime,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.size(20.dp),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f),
+                            shape = MaterialTheme.shapes.small,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Bedtime,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -351,54 +364,52 @@ private fun TodayContextCard(
                         }
                     }
                 }
+                Surface(
+                    onClick = onWakeTimeClick,
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier
+                        .heightIn(min = 44.dp)
+                        .widthIn(max = 132.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = if (wakeTime != null) Icons.Default.Edit else Icons.Default.Add,
+                            contentDescription = if (wakeTime != null) {
+                                stringResource(R.string.sleep_wake_edit_cd)
+                            } else {
+                                stringResource(R.string.sleep_wake_set_cd)
+                            },
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = wakeTimeLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onWakeTimeClick)
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    text = if (wakeTime != null) {
-                        stringResource(R.string.sleep_wake_woke, wakeTime.format(formatter))
-                    } else {
-                        stringResource(R.string.sleep_wake_set)
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (wakeTime != null) FontWeight.Medium else FontWeight.Normal,
-                )
-                Icon(
-                    imageVector = if (wakeTime != null) Icons.Default.Edit else Icons.Default.Add,
-                    contentDescription = if (wakeTime != null) {
-                        stringResource(R.string.sleep_wake_edit_cd)
-                    } else {
-                        stringResource(R.string.sleep_wake_set_cd)
-                    },
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.secondary,
-                )
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-            ) {
-                TodayStatItem(
+                TodayStatPill(
                     label = stringResource(R.string.sleep_stat_today),
                     value = if (totalSleep.isZero) "—" else totalSleep.formatDuration(),
                     modifier = Modifier.weight(1f),
                 )
-                TodayStatItem(
+                TodayStatPill(
                     label = stringResource(R.string.sleep_stat_naps),
                     value = if (napCount == 0) "—" else napCount.toString(),
                     modifier = Modifier.weight(1f),
                 )
-                TodayStatItem(
+                TodayStatPill(
                     label = stringResource(R.string.sleep_stat_night),
                     value = if (nightSleep.isZero) "—" else nightSleep.formatDuration(),
                     modifier = Modifier.weight(1f),
@@ -409,13 +420,19 @@ private fun TodayContextCard(
 }
 
 @Composable
-private fun TodayStatItem(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+private fun TodayStatPill(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .padding(horizontal = 8.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Text(
             text = value,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
         Text(
@@ -546,21 +563,22 @@ private fun SleepQuickStartRow(
             onClick = onStartNap,
             modifier = Modifier
                 .weight(1f)
-                .heightIn(min = 88.dp),
-            shape = MaterialTheme.shapes.extraLarge,
+                .heightIn(min = 64.dp),
+            shape = MaterialTheme.shapes.large,
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary,
-                contentColor = MaterialTheme.colorScheme.onSecondary,
-            )
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ),
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                NapIcon(modifier = Modifier.size(18.dp))
+                NapIcon(modifier = Modifier.size(40.dp))
                 Text(
-                    text = stringResource(R.string.sleep_start_nap),
-                    style = MaterialTheme.typography.labelLarge,
+                    text = stringResource(R.string.sleep_start_nap).replaceFirst(" ", "\n"),
+                    style = MaterialTheme.typography.labelMedium,
                     textAlign = TextAlign.Center
                 )
             }
@@ -569,21 +587,22 @@ private fun SleepQuickStartRow(
             onClick = onStartNightSleep,
             modifier = Modifier
                 .weight(1f)
-                .heightIn(min = 88.dp),
-            shape = MaterialTheme.shapes.extraLarge,
+                .heightIn(min = 64.dp),
+            shape = MaterialTheme.shapes.large,
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary,
-                contentColor = MaterialTheme.colorScheme.onSecondary,
-            )
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ),
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                SleepIcon(modifier = Modifier.size(18.dp))
+                SleepIcon(modifier = Modifier.size(40.dp))
                 Text(
-                    text = stringResource(R.string.sleep_start_night),
-                    style = MaterialTheme.typography.labelLarge,
+                    text = stringResource(R.string.sleep_start_night).replaceFirst(" ", "\n"),
+                    style = MaterialTheme.typography.labelMedium,
                     textAlign = TextAlign.Center
                 )
             }
@@ -595,9 +614,11 @@ private fun SleepQuickStartRow(
 private fun ActiveSleepCard(record: SleepRecord, onStop: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.large,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
+            containerColor = MaterialTheme.colorScheme.secondary,
+            contentColor = MaterialTheme.colorScheme.onSecondary,
         )
     ) {
         Column(
@@ -622,8 +643,8 @@ private fun ActiveSleepCard(record: SleepRecord, onStop: () -> Unit) {
                     .heightIn(min = 48.dp),
                 shape = MaterialTheme.shapes.extraLarge,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
             ) {
                 Text(stringResource(R.string.sleep_stop_session), style = MaterialTheme.typography.labelLarge)
@@ -648,7 +669,7 @@ private fun SleepInProgressTitle(sleepType: SleepType) {
             text = stringResource(R.string.sleep_in_progress_status_text, label),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            color = MaterialTheme.colorScheme.onSecondary,
         )
     }
 }

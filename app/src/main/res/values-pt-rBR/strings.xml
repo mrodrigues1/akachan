@@ -446,6 +446,7 @@
     <string name="sleep_last_sleep_cd">Último sono. %1$s. %2$s.</string>
     <string name="sleep_wake_set">🌅 Definir horário de acordar de hoje</string>
     <string name="sleep_wake_woke">🌅 Acordou às %1$s</string>
+    <string name="sleep_wake_label">Definir despertar</string>
     <string name="sleep_wake_edit_cd">Editar horário de acordar</string>
     <string name="sleep_wake_set_cd">Definir horário de acordar</string>
     <string name="sleep_stat_today">Sono hoje</string>
