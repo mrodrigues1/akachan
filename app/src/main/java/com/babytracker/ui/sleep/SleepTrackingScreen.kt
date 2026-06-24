@@ -83,6 +83,7 @@ import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.ui.component.CueQuickTapRow
 import com.babytracker.ui.component.HistoryCard
+import com.babytracker.ui.component.NapIcon
 import com.babytracker.ui.component.SleepIcon
 import com.babytracker.ui.component.TimerDisplay
 import com.babytracker.ui.component.formatElapsedAsClock
@@ -489,11 +490,7 @@ internal fun SleepDeleteConfirmationDialog(
     onConfirm: () -> Unit,
 ) {
     val sleepTypeLabel = stringResource(record.sleepType.labelRes())
-    val deleteMessage = if (record.sleepType == SleepType.NIGHT_SLEEP) {
-        stringResource(R.string.sleep_delete_entry_message_text, sleepTypeLabel)
-    } else {
-        stringResource(R.string.sleep_delete_entry_message, record.sleepType.emoji, sleepTypeLabel)
-    }
+    val deleteMessage = stringResource(R.string.sleep_delete_entry_message_text, sleepTypeLabel)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.sleep_delete_entry_title)) },
@@ -556,11 +553,17 @@ private fun SleepQuickStartRow(
                 contentColor = MaterialTheme.colorScheme.onSecondary,
             )
         ) {
-            Text(
-                text = stringResource(R.string.sleep_start_nap),
-                style = MaterialTheme.typography.labelLarge,
-                textAlign = TextAlign.Center
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                NapIcon(modifier = Modifier.size(18.dp))
+                Text(
+                    text = stringResource(R.string.sleep_start_nap),
+                    style = MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
         Button(
             onClick = onStartNightSleep,
@@ -632,22 +635,17 @@ private fun ActiveSleepCard(record: SleepRecord, onStop: () -> Unit) {
 @Composable
 private fun SleepInProgressTitle(sleepType: SleepType) {
     val label = stringResource(sleepType.labelRes())
-    if (sleepType == SleepType.NIGHT_SLEEP) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (sleepType == SleepType.NIGHT_SLEEP) {
             SleepIcon(modifier = Modifier.size(18.dp))
-            Text(
-                text = stringResource(R.string.sleep_in_progress_status_text, label),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
+        } else {
+            NapIcon(modifier = Modifier.size(18.dp))
         }
-    } else {
         Text(
-            text = stringResource(R.string.sleep_in_progress_status, sleepType.emoji, label),
+            text = stringResource(R.string.sleep_in_progress_status_text, label),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -676,12 +674,14 @@ internal fun SleepEntryCard(
         trailing = record.endTime?.let { end ->
             Duration.between(record.startTime, end).formatDuration()
         } ?: stringResource(R.string.label_in_progress),
-        badgeEmoji = if (record.sleepType == SleepType.NIGHT_SLEEP) "" else record.sleepType.emoji,
+        badgeEmoji = "",
         badgeColor = MaterialTheme.colorScheme.secondaryContainer,
-        badgeContent = if (record.sleepType == SleepType.NIGHT_SLEEP) {
-            { SleepIcon(modifier = Modifier.size(34.dp)) }
-        } else {
-            null
+        badgeContent = {
+            if (record.sleepType == SleepType.NIGHT_SLEEP) {
+                SleepIcon(modifier = Modifier.size(34.dp))
+            } else {
+                NapIcon(modifier = Modifier.size(34.dp))
+            }
         },
         trailingColor = MaterialTheme.colorScheme.secondary,
         trailingContent = if (onEdit != null && onDelete != null) {
@@ -781,18 +781,14 @@ internal fun AddSleepEntrySheetContent(
                     onClick = { onTypeChanged(type) },
                     label = {
                         val label = stringResource(type.labelRes())
-                        Text(
-                            text = if (type == SleepType.NIGHT_SLEEP) {
-                                label
-                            } else {
-                                stringResource(R.string.sleep_type_chip, type.emoji, label)
-                            },
-                        )
+                        Text(text = label)
                     },
-                    leadingIcon = if (type == SleepType.NIGHT_SLEEP) {
-                        { SleepIcon(modifier = Modifier.size(18.dp)) }
-                    } else {
-                        null
+                    leadingIcon = {
+                        if (type == SleepType.NIGHT_SLEEP) {
+                            SleepIcon(modifier = Modifier.size(18.dp))
+                        } else {
+                            NapIcon(modifier = Modifier.size(18.dp))
+                        }
                     },
                     modifier = Modifier.weight(1f),
                     colors = FilterChipDefaults.filterChipColors(

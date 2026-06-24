@@ -46,6 +46,15 @@ fun SleepIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun NapIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_nap_section),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}
+
+@Composable
 fun PumpingIcon(modifier: Modifier = Modifier) {
     Image(
         painter = painterResource(R.drawable.ic_pumping_section),
