@@ -1,5 +1,7 @@
 package com.babytracker.ui.component
 
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
@@ -8,6 +10,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -32,13 +36,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.annotation.StringRes
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
 import com.babytracker.domain.model.BabyEventType
@@ -48,14 +54,15 @@ import kotlinx.coroutines.launch
 
 private val EaseOutQuart = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
 
-private val BabyEventType.emoji: String
+@get:DrawableRes
+private val BabyEventType.iconRes: Int
 	get() = when (this) {
-		BabyEventType.SLEEPY_CUE -> "😪"
-		BabyEventType.HUNGER_CUE -> "😋"
-		BabyEventType.FUSSY -> "😣"
-		BabyEventType.SICK -> "🤒"
-		BabyEventType.TEETHING -> "🦷"
-		BabyEventType.TRAVEL -> "✈️"
+		BabyEventType.SLEEPY_CUE -> R.drawable.ic_cue_sleepy
+		BabyEventType.HUNGER_CUE -> R.drawable.ic_cue_hungry
+		BabyEventType.FUSSY -> R.drawable.ic_cue_fussy
+		BabyEventType.SICK -> R.drawable.ic_cue_sick
+		BabyEventType.TEETHING -> R.drawable.ic_cue_teething
+		BabyEventType.TRAVEL -> R.drawable.ic_cue_travel
 	}
 
 @get:StringRes
@@ -191,12 +198,25 @@ private fun CueChip(
 			null
 		},
 		label = {
-			Text(
-				text = stringResource(R.string.cue_chip_label, type.emoji, label),
-				style = MaterialTheme.typography.labelMedium,
-			)
+			Row(
+				horizontalArrangement = Arrangement.spacedBy(6.dp),
+				verticalAlignment = Alignment.CenterVertically,
+			) {
+				Image(
+					painter = painterResource(type.iconRes),
+					contentDescription = null,
+					modifier = Modifier
+						.size(30.dp)
+						.clearAndSetSemantics {},
+				)
+				Text(
+					text = label,
+					style = MaterialTheme.typography.labelMedium,
+				)
+			}
 		},
 		modifier = Modifier
+			.heightIn(min = 44.dp)
 			.scale(scaleAnim.value)
 			.animateContentSize(tween(durationMillis = 180, easing = EaseOutQuart)),
 	)

@@ -182,12 +182,12 @@ class HomeScreenTest {
                 CueQuickTapRow(onCueTapped = {})
             }
         }
-        composeRule.onNodeWithText("😪 Sleepy").assertIsDisplayed()
-        composeRule.onNodeWithText("😋 Hungry").assertIsDisplayed()
-        composeRule.onNodeWithText("😣 Fussy").assertIsDisplayed()
-        composeRule.onNodeWithText("🤒 Sick").assertIsDisplayed()
-        composeRule.onNodeWithText("🦷 Teething").assertIsDisplayed()
-        composeRule.onNodeWithText("✈️ Travel").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Sleepy").assertIsDisplayed()
+        composeRule.onNodeWithText("Hungry").assertIsDisplayed()
+        composeRule.onNodeWithText("Fussy").assertIsDisplayed()
+        composeRule.onNodeWithText("Sick").assertIsDisplayed()
+        composeRule.onNodeWithText("Teething").assertIsDisplayed()
+        composeRule.onNodeWithText("Travel").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -198,7 +198,7 @@ class HomeScreenTest {
                 CueQuickTapRow(onCueTapped = { tappedType = it })
             }
         }
-        composeRule.onNodeWithText("😪 Sleepy").performClick()
+        composeRule.onNodeWithText("Sleepy").performClick()
         assertTrue(tappedType == BabyEventType.SLEEPY_CUE)
     }
 
@@ -210,14 +210,14 @@ class HomeScreenTest {
                 CueQuickTapRow(onCueTapped = {})
             }
         }
-        composeRule.onNodeWithText("😪 Sleepy").performClick()
+        composeRule.onNodeWithText("Sleepy").performClick()
         composeRule.mainClock.advanceTimeBy(100L)
         // Chip must be selected immediately after tap
-        composeRule.onNodeWithText("😪 Sleepy").assertIsSelected()
+        composeRule.onNodeWithText("Sleepy").assertIsSelected()
         // Advance past the 1 500 ms deselection delay
         composeRule.mainClock.advanceTimeBy(1_600L)
         // Chip must return to unselected
-        composeRule.onNodeWithText("😪 Sleepy").assertIsNotSelected()
+        composeRule.onNodeWithText("Sleepy").assertIsNotSelected()
         composeRule.mainClock.autoAdvance = true
     }
 
@@ -230,17 +230,17 @@ class HomeScreenTest {
             }
         }
         // First tap
-        composeRule.onNodeWithText("😪 Sleepy").performClick()
+        composeRule.onNodeWithText("Sleepy").performClick()
         composeRule.mainClock.advanceTimeBy(800L)
         // Second tap at 800 ms — resets the 1 500 ms deselection timer
-        composeRule.onNodeWithText("😪 Sleepy").performClick()
+        composeRule.onNodeWithText("Sleepy").performClick()
         // Advance to 1 900 ms total (past first tap's 1 500 ms, but only 1 100 ms past second tap)
         composeRule.mainClock.advanceTimeBy(1_100L)
         // First removal job should have been cancelled — chip still selected
-        composeRule.onNodeWithText("😪 Sleepy").assertIsSelected()
+        composeRule.onNodeWithText("Sleepy").assertIsSelected()
         // Advance 500 ms more (2 400 ms total; 1 600 ms past second tap — past the 1 500 ms window)
         composeRule.mainClock.advanceTimeBy(500L)
-        composeRule.onNodeWithText("😪 Sleepy").assertIsNotSelected()
+        composeRule.onNodeWithText("Sleepy").assertIsNotSelected()
         composeRule.mainClock.autoAdvance = true
     }
 }
