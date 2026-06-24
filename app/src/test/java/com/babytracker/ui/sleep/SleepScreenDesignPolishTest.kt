@@ -7,7 +7,7 @@ import java.io.File
 class SleepScreenDesignPolishTest {
 
     @Test
-    fun `quick start actions follow selector touch target height`() {
+    fun `quick start actions stay compact with prominent icons`() {
         val source = sourceFile("SleepTrackingScreen.kt").readText()
         val quickStartRow = Regex("private fun SleepQuickStartRow[\\s\\S]*?private fun ActiveSleepCard")
             .find(source)
@@ -15,8 +15,12 @@ class SleepScreenDesignPolishTest {
             .orEmpty()
 
         assertTrue(
-            quickStartRow.contains("heightIn(min = 88.dp)"),
-            "sleep quick-start actions must use the 88dp selector height from the design system"
+            quickStartRow.contains("heightIn(min = 64.dp)"),
+            "sleep quick-start actions should be compact start buttons, not selector-sized tiles"
+        )
+        assertTrue(
+            quickStartRow.contains(".size(40.dp)") && quickStartRow.contains("""replaceFirst(" ", "\n")"""),
+            "sleep quick-start actions should make the icons visually prominent without nested badges"
         )
     }
 

@@ -440,6 +440,7 @@
     <string name="sleep_last_sleep_cd">Last sleep. %1$s. %2$s.</string>
     <string name="sleep_wake_set">🌅 Set today\'s wake time</string>
     <string name="sleep_wake_woke">🌅 Woke at %1$s</string>
+    <string name="sleep_wake_label">Set wake time</string>
     <string name="sleep_wake_edit_cd">Edit wake time</string>
     <string name="sleep_wake_set_cd">Set wake time</string>
     <string name="sleep_stat_today">Sleep today</string>

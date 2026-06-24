@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -59,6 +60,7 @@ import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepWindow
+import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.util.formatTime
 import com.babytracker.util.resolve
 
@@ -80,12 +82,25 @@ internal fun SleepRecommendationSection(
         exit = fadeOut(tween(150, easing = EaseOutQuart)),
         modifier = modifier,
     ) {
+        val isDark = LocalDarkTheme.current
+        val containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(
+            alpha = if (isDark) 0.32f else 0.64f,
+        )
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                containerColor = containerColor,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             ),
             shape = MaterialTheme.shapes.large,
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = BorderStroke(
+                width = 1.dp,
+                color = if (isDark) {
+                    MaterialTheme.colorScheme.outlineVariant
+                } else {
+                    MaterialTheme.colorScheme.secondaryContainer
+                },
+            ),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
