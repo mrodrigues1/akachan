@@ -14,7 +14,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,14 +28,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -43,6 +52,9 @@ import com.babytracker.R
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.PumpingIcon
+import com.babytracker.ui.theme.LocalDarkTheme
+import com.babytracker.ui.theme.Pink200
+import com.babytracker.ui.theme.Pink900
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatVolume
 import com.babytracker.util.formatTime12h
@@ -85,12 +97,20 @@ fun PumpingHistoryScreen(
         PumpingHistoryContent(
             state = state,
             onEditClicked = viewModel::onEditClicked,
+            onDeleteClicked = viewModel::onPendingDeleteSessionChanged,
             contentPadding = PaddingValues(
                 top = padding.calculateTopPadding() + 8.dp,
                 bottom = padding.calculateBottomPadding() + 8.dp,
                 start = 16.dp,
                 end = 16.dp,
             ),
+        )
+    }
+
+    if (state.pendingDeleteSession != null) {
+        PumpingDeleteConfirmationDialog(
+            onConfirm = viewModel::onConfirmDeleteSession,
+            onDismiss = { viewModel.onPendingDeleteSessionChanged(null) },
         )
     }
 
@@ -112,8 +132,14 @@ internal fun PumpingHistoryContent(
     state: PumpingHistoryUiState,
     onEditClicked: (PumpingSession) -> Unit,
     modifier: Modifier = Modifier,
+    onDeleteClicked: (PumpingSession) -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
 ) {
+    // Mirror the breastfeeding history: a soft, desaturated pink row tint with the text in the section
+    // accent — deep pink in light, light pink in dark — for contrast.
+    val isDark = LocalDarkTheme.current
+    val rowText = if (isDark) Pink200 else Pink900
+    val rowContainer = if (isDark) Color(0xFF4A2A38) else Color(0xFFFCE4EC)
     Box(modifier = modifier.fillMaxSize()) {
         if (state.sessions.isEmpty()) {
             Column(
@@ -177,13 +203,78 @@ internal fun PumpingHistoryContent(
                         trailing = session.activeDuration?.formatDuration() ?: stringResource(R.string.label_in_progress),
                         badgeColor = MaterialTheme.colorScheme.primaryContainer,
                         badgeContent = { PumpingIcon(modifier = Modifier.size(34.dp)) },
-                        trailingColor = MaterialTheme.colorScheme.primary,
+                        containerColor = rowContainer,
+                        titleColor = rowText,
+                        subtitleColor = rowText.copy(alpha = 0.7f),
+                        trailingColor = rowText,
                         onClick = { onEditClicked(session) },
-                        trailingIcon = Icons.Default.Edit,
-                        trailingIconDescription = stringResource(R.string.pumping_edit_session_cd),
+                        trailingContent = {
+                            PumpingSessionOverflowMenu(
+                                onEdit = { onEditClicked(session) },
+                                onDelete = { onDeleteClicked(session) },
+                            )
+                        },
                     )
                 }
             }
         }
     }
+}
+
+/** Three-dots overflow menu (Edit / Delete) on a pumping history row, mirroring the feed history menu. */
+@Composable
+private fun PumpingSessionOverflowMenu(
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { menuExpanded = true }) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = stringResource(R.string.more_options),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        DropdownMenu(
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.edit)) },
+                onClick = {
+                    menuExpanded = false
+                    onEdit()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.delete)) },
+                onClick = {
+                    menuExpanded = false
+                    onDelete()
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun PumpingDeleteConfirmationDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.breastfeeding_delete_title)) },
+        text = { Text(stringResource(R.string.breastfeeding_delete_message)) },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+            ) { Text(stringResource(R.string.delete)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        },
+    )
 }
