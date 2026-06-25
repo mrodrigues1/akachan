@@ -36,8 +36,11 @@ fun HistoryCard(
     trailing: String,
     badgeColor: Color,
     modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
     badgeEmoji: String = "",
     trailingColor: Color = MaterialTheme.colorScheme.primary,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     trailingIcon: ImageVector? = null,
     trailingIconDescription: String? = null,
     badgeContent: (@Composable () -> Unit)? = null,
@@ -59,7 +62,7 @@ fun HistoryCard(
             .padding(horizontal = 0.dp, vertical = 4.dp),
         shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
         border = if (isDark) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
     ) {
         Row(
@@ -88,12 +91,12 @@ fun HistoryCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = titleColor,
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = subtitleColor,
                 )
             }
 

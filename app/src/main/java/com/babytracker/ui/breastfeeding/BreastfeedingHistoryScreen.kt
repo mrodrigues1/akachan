@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -52,6 +53,9 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.ui.component.BreastfeedingIcon
 import com.babytracker.ui.component.HistoryCard
+import com.babytracker.ui.theme.LocalDarkTheme
+import com.babytracker.ui.theme.Pink200
+import com.babytracker.ui.theme.Pink900
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
 import com.babytracker.util.groupByLocalDate
@@ -212,6 +216,11 @@ internal fun FeedHistoryCard(
     onDelete: () -> Unit,
 ) {
     val isLeft = session.startingSide == BreastSide.LEFT
+    // Mirror the diaper history row: a soft, desaturated pink tint rather than the vivid primaryContainer
+    // fill, with the text in the section accent — deep pink in light, light pink in dark — for contrast.
+    val isDark = LocalDarkTheme.current
+    val rowContainer = if (isDark) Color(0xFF4A2A38) else Color(0xFFFCE4EC)
+    val rowText = if (isDark) Pink200 else Pink900
     HistoryCard(
         title = if (isLeft) {
             stringResource(R.string.breastfeeding_side_left)
@@ -222,6 +231,10 @@ internal fun FeedHistoryCard(
         trailing = session.activeDuration?.formatDuration()
             ?: stringResource(R.string.breastfeeding_in_progress),
         badgeColor = MaterialTheme.colorScheme.primaryContainer,
+        containerColor = rowContainer,
+        titleColor = rowText,
+        subtitleColor = rowText.copy(alpha = 0.7f),
+        trailingColor = rowText,
         badgeContent = { BreastfeedingIcon(modifier = Modifier.size(34.dp)) },
         onClick = onEdit,
         trailingContent = { FeedSessionOverflowMenu(onEdit = onEdit, onDelete = onDelete) },
