@@ -52,6 +52,7 @@ data class EditPumpingSheetState(
 data class PumpingHistoryUiState(
     val sessions: List<PumpingSession> = emptyList(),
     val editSheet: EditPumpingSheetState? = null,
+    val pendingDeleteSession: PumpingSession? = null,
     val error: String? = null,
     val volumeUnit: VolumeUnit = VolumeUnit.ML,
 )
@@ -157,6 +158,24 @@ class PumpingHistoryViewModel @Inject constructor(
                 .onFailure {
                     _uiState.value = _uiState.value.copy(
                         editSheet = sheet.copy(isDeleting = false, deleteConfirm = false),
+                        error = appContext.getString(R.string.error_pumping_delete),
+                    )
+                }
+        }
+    }
+
+    /** Row-level delete (from the 3-dot menu), gated by a confirmation dialog — mirrors breastfeeding history. */
+    fun onPendingDeleteSessionChanged(session: PumpingSession?) {
+        _uiState.value = _uiState.value.copy(pendingDeleteSession = session)
+    }
+
+    fun onConfirmDeleteSession() {
+        val session = _uiState.value.pendingDeleteSession ?: return
+        _uiState.value = _uiState.value.copy(pendingDeleteSession = null)
+        viewModelScope.launch {
+            runCatching { deleteSession(session) }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(
                         error = appContext.getString(R.string.error_pumping_delete),
                     )
                 }
