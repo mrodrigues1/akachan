@@ -2,6 +2,7 @@ package com.babytracker.ui.doctorvisit
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -56,7 +57,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,7 +69,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -477,6 +479,7 @@ private fun QuestionsSection(
                 questions.forEach { question ->
                     QuestionPreviewRow(
                         question = question,
+                        colors = colors,
                         onToggleAnswered = { onToggleAnswered(question.id) },
                     )
                 }
@@ -539,22 +542,23 @@ private fun QuestionCaptureRow(
 @Composable
 private fun QuestionPreviewRow(
     question: VisitQuestion,
+    colors: DoctorVisitPalette,
     onToggleAnswered: () -> Unit,
 ) {
+    // The 2-line preview ellipsizes long questions, so tapping the text opens the full text.
+    var showFull by remember { mutableStateOf(false) }
+    val viewLabel = stringResource(R.string.visit_questions_expand)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             // Guarantee the brand's 48dp minimum even when the question is a single short line.
-            .heightIn(min = 48.dp)
-            .toggleable(
-                value = question.answered,
-                onValueChange = { onToggleAnswered() },
-                role = Role.Checkbox,
-            ),
+            .heightIn(min = 48.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // The whole row carries the toggle semantics; the checkbox is visual only.
-        Checkbox(checked = question.answered, onCheckedChange = null)
+        Checkbox(
+            checked = question.answered,
+            onCheckedChange = { onToggleAnswered() },
+        )
         Text(
             text = question.text,
             style = MaterialTheme.typography.bodyLarge,
@@ -563,9 +567,43 @@ private fun QuestionPreviewRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .weight(1f)
+                .clickable(onClickLabel = viewLabel) { showFull = true }
                 .padding(vertical = 12.dp),
         )
     }
+    if (showFull) {
+        QuestionDetailDialog(
+            question = question,
+            colors = colors,
+            onDismiss = { showFull = false },
+        )
+    }
+}
+
+@Composable
+private fun QuestionDetailDialog(
+    question: VisitQuestion,
+    colors: DoctorVisitPalette,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                // Keep the action in the Slate domain instead of the global pink primary.
+                Text(stringResource(R.string.close), color = colors.accent)
+            }
+        },
+        title = { Text(stringResource(R.string.visit_questions_title)) },
+        text = {
+            Text(
+                text = question.text,
+                style = MaterialTheme.typography.bodyLarge,
+                // Long questions can exceed the dialog height; let them scroll.
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+            )
+        },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
