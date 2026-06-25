@@ -404,6 +404,21 @@ class PumpingViewModelTest {
     }
 
     @Test
+    fun `active session forces TIMER mode so a resumed session is reachable`() = runTest {
+        // Fresh VM defaults to MANUAL; resuming into a live session must switch to Timer.
+        assertEquals(PumpingMode.MANUAL, viewModel.uiState.value.mode)
+
+        activeSessionFlow.value = PumpingSession(
+            id = 1L,
+            startTime = fixedNow.minusSeconds(300),
+            breast = PumpingBreast.BOTH,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(PumpingMode.TIMER, viewModel.uiState.value.mode)
+    }
+
+    @Test
     fun `onStartTimer is idempotent when already starting`() = runTest {
         coJustRun { startUseCase(PumpingBreast.BOTH) }
 

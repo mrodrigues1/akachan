@@ -83,7 +83,13 @@ class PumpingViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             pumpingRepository.getActiveSession().collect { session ->
-                _uiState.value = _uiState.value.copy(activeSession = session)
+                // A live session is only reachable on the Timer tab, and the tab switch is
+                // locked while one is running — so force Timer when we resume into one.
+                _uiState.value = if (session != null) {
+                    _uiState.value.copy(activeSession = session, mode = PumpingMode.TIMER)
+                } else {
+                    _uiState.value.copy(activeSession = session)
+                }
             }
         }
     }
