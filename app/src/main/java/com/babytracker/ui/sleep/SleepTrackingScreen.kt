@@ -87,6 +87,9 @@ import com.babytracker.ui.component.NapIcon
 import com.babytracker.ui.component.SleepIcon
 import com.babytracker.ui.component.TimerDisplay
 import com.babytracker.ui.component.formatElapsedAsClock
+import com.babytracker.ui.theme.Blue200
+import com.babytracker.ui.theme.Blue900
+import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
 import java.time.Duration
@@ -450,6 +453,7 @@ internal fun SwipeableSleepEntry(
     record: SleepRecord,
     onDeleteRequest: (SleepRecord) -> Unit,
     onEditRecord: (SleepRecord) -> Unit,
+    tinted: Boolean = false,
 ) {
     val dismissState = rememberSwipeToDismissBoxState()
 
@@ -469,6 +473,7 @@ internal fun SwipeableSleepEntry(
             record = record,
             onEdit = { onEditRecord(record) },
             onDelete = { onDeleteRequest(record) },
+            tinted = tinted,
         )
     }
 }
@@ -679,8 +684,18 @@ internal fun SleepEntryCard(
     record: SleepRecord,
     onEdit: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
+    tinted: Boolean = false,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    // Mirror the breastfeeding history: a soft, desaturated sleep-blue row tint with the text in the
+    // section accent — deep blue in light, light blue in dark. Tracking-screen cards stay neutral.
+    val isDark = LocalDarkTheme.current
+    val rowText = if (isDark) Blue200 else Blue900
+    val rowContainer = when {
+        !tinted -> MaterialTheme.colorScheme.surface
+        isDark -> Color(0xFF1E2A3A)
+        else -> Color(0xFFE3F2FD)
+    }
     HistoryCard(
         title = stringResource(record.sleepType.labelRes()),
         subtitle = if (record.endTime != null) {
@@ -704,7 +719,10 @@ internal fun SleepEntryCard(
                 NapIcon(modifier = Modifier.size(34.dp))
             }
         },
-        trailingColor = MaterialTheme.colorScheme.secondary,
+        containerColor = rowContainer,
+        titleColor = if (tinted) rowText else MaterialTheme.colorScheme.onSurface,
+        subtitleColor = if (tinted) rowText.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant,
+        trailingColor = if (tinted) rowText else MaterialTheme.colorScheme.secondary,
         trailingContent = if (onEdit != null && onDelete != null) {
             {
                 Box {

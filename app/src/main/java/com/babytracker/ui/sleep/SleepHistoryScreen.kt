@@ -210,10 +210,11 @@ fun SleepHistoryScreen(
                             SwipeableSleepEntry(
                                 record = record,
                                 onDeleteRequest = viewModel::onDeleteRequest,
-                                onEditRecord = viewModel::onEditRecord
+                                onEditRecord = viewModel::onEditRecord,
+                                tinted = true,
                             )
                         } else {
-                            SleepEntryCard(record = record)
+                            SleepEntryCard(record = record, tinted = true)
                         }
                     }
                 }

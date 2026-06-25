@@ -3,6 +3,7 @@ package com.babytracker.ui.diaper
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -221,10 +222,18 @@ private fun DiaperHistoryRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            DiaperTypeIcon(
-                type = change.type,
-                modifier = Modifier.size(34.dp),
-            )
+            // Section-colored square tile behind the icon, mirroring the breastfeeding history badge.
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(diaper.onContainer, MaterialTheme.shapes.small),
+                contentAlignment = Alignment.Center,
+            ) {
+                DiaperTypeIcon(
+                    type = change.type,
+                    modifier = Modifier.size(34.dp),
+                )
+            }
             val typeLabel = stringResource(change.type.labelRes())
             Column(modifier = Modifier.weight(1f)) {
                 Text(
