@@ -191,47 +191,58 @@ private fun AttachQuestionsSection(
         state.attachedQuestions + state.inboxQuestions.filterNot { it.id in attachedIds }
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            text = stringResource(R.string.doctor_visit_attach_questions),
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
-        TextButton(
-            onClick = onManageQuestions,
-            colors = ButtonDefaults.textButtonColors(contentColor = colors.accent),
-        ) {
-            Text(stringResource(R.string.doctor_visit_manage_questions))
-        }
-    }
-    questions.forEach { question ->
-        val checked = question.id in state.selectedQuestionIds
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(R.string.doctor_visit_attach_questions),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            TextButton(
+                onClick = onManageQuestions,
+                colors = ButtonDefaults.textButtonColors(contentColor = colors.accent),
+            ) {
+                Text(stringResource(R.string.doctor_visit_manage_questions))
+            }
+        }
+        // Cap the list height so a long question backlog scrolls here instead of pushing the Save
+        // button far down the sheet.
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .toggleable(
-                    value = checked,
-                    role = Role.Checkbox,
-                    onValueChange = { onToggleQuestion(question.id) },
-                ),
-            verticalAlignment = Alignment.CenterVertically,
+                .heightIn(max = 180.dp)
+                .verticalScroll(rememberScrollState()),
         ) {
-            Checkbox(
-                checked = checked,
-                onCheckedChange = null,
-                colors = CheckboxDefaults.colors(checkedColor = colors.accent),
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = question.text,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-            )
+            questions.forEach { question ->
+                val checked = question.id in state.selectedQuestionIds
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .toggleable(
+                            value = checked,
+                            role = Role.Checkbox,
+                            onValueChange = { onToggleQuestion(question.id) },
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(
+                        checked = checked,
+                        onCheckedChange = null,
+                        colors = CheckboxDefaults.colors(checkedColor = colors.accent),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = question.text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
         }
     }
 }
