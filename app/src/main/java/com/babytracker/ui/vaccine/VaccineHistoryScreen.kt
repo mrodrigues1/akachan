@@ -1,7 +1,6 @@
 package com.babytracker.ui.vaccine
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,10 +15,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -302,7 +303,7 @@ private fun DateHeader(date: LocalDate) {
     )
 }
 
-/** Flat scheduled-vaccine row: tap the row to edit, the check to mark given, the trash to delete. */
+/** Scheduled-vaccine row on the section's tinted background: pencil to edit, check to mark given, trash to delete. */
 @Composable
 private fun UpcomingRow(
     record: VaccineRecord,
@@ -313,12 +314,14 @@ private fun UpcomingRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val editLabel = stringResource(R.string.vaccine_edit_content_description, record.name)
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(vaccine.container)
             .heightIn(min = 56.dp)
-            .clickable(onClickLabel = editLabel, onClick = onEdit),
+            .padding(start = 12.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         StatusDot(color = if (overdue) overdueColor else vaccine.accent, filled = false)
@@ -328,7 +331,7 @@ private fun UpcomingRow(
             Text(
                 text = record.nameWithDose(),
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = vaccine.onContainer,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -340,27 +343,34 @@ private fun UpcomingRow(
                 },
                 style = MaterialTheme.typography.bodySmall,
                 // Color carries the urgency; the text stays factual.
-                color = if (overdue) overdueColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (overdue) overdueColor else vaccine.onContainer,
             )
         }
         IconButton(onClick = onMarkGiven) {
             Icon(
                 Icons.Outlined.CheckCircle,
                 contentDescription = stringResource(R.string.vaccine_mark_given_content_description, record.name),
-                tint = vaccine.accent,
+                tint = vaccine.onContainer,
+            )
+        }
+        IconButton(onClick = onEdit) {
+            Icon(
+                Icons.Outlined.Edit,
+                contentDescription = stringResource(R.string.vaccine_edit_content_description, record.name),
+                tint = vaccine.onContainer,
             )
         }
         IconButton(onClick = onDelete) {
             Icon(
                 Icons.Outlined.Delete,
                 contentDescription = stringResource(R.string.vaccine_delete_content_description, record.name),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = vaccine.onContainer,
             )
         }
     }
 }
 
-/** Flat administered row under a day header: tap to edit, trash to delete. */
+/** Administered row under a day header on the tinted background: pencil to edit, trash to delete. */
 @Composable
 private fun AdministeredRow(
     record: VaccineRecord,
@@ -368,12 +378,14 @@ private fun AdministeredRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val editLabel = stringResource(R.string.vaccine_edit_content_description, record.name)
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(vaccine.container)
             .heightIn(min = 56.dp)
-            .clickable(onClickLabel = editLabel, onClick = onEdit),
+            .padding(start = 12.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         StatusDot(color = vaccine.accent, filled = true)
@@ -382,7 +394,7 @@ private fun AdministeredRow(
             Text(
                 text = record.nameWithDose(),
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = vaccine.onContainer,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -390,17 +402,24 @@ private fun AdministeredRow(
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = vaccine.onContainer.copy(alpha = 0.7f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
         }
+        IconButton(onClick = onEdit) {
+            Icon(
+                Icons.Outlined.Edit,
+                contentDescription = stringResource(R.string.vaccine_edit_content_description, record.name),
+                tint = vaccine.onContainer,
+            )
+        }
         IconButton(onClick = onDelete) {
             Icon(
                 Icons.Outlined.Delete,
                 contentDescription = stringResource(R.string.vaccine_delete_content_description, record.name),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = vaccine.onContainer,
             )
         }
     }

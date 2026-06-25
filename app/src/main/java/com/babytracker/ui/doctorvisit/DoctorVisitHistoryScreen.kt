@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,7 +45,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -187,7 +187,6 @@ private fun SectionHeader(text: String, color: Color) {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VisitRow(
     visit: DoctorVisit,
@@ -197,8 +196,11 @@ private fun VisitRow(
     onDelete: (DoctorVisit) -> Unit,
     past: Boolean = false,
 ) {
-    val container = if (past) MaterialTheme.colorScheme.surfaceVariant else colors.container
-    val onContainer = if (past) MaterialTheme.colorScheme.onSurface else colors.onContainer
+    // Both rows stay in the slate palette; past visits read as a faded version so upcoming vs past is
+    // a one-glance difference without leaving the section's colors. Fading the container toward the
+    // screen background keeps the onContainer text contrast intact in both light and dark schemes.
+    val container = if (past) colors.container.copy(alpha = 0.45f) else colors.container
+    val onContainer = colors.onContainer
     val secondary = onContainer.copy(alpha = 0.8f)
     val editLabel = stringResource(R.string.doctor_visit_edit_title)
     // Keyed on locale so a runtime language switch rebuilds the formatter instead of leaving the
@@ -207,19 +209,16 @@ private fun VisitRow(
         DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)
     }
     Card(
-        onClick = { onEdit(visit) },
-        // Label the card's click action so TalkBack announces "Edit visit", not a bare "activate".
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .semantics { onClick(label = editLabel, action = null) },
+            .padding(vertical = 4.dp),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = container),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp),
+                .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -268,6 +267,13 @@ private fun VisitRow(
                         }
                     }
                 }
+            }
+            IconButton(onClick = { onEdit(visit) }) {
+                Icon(
+                    Icons.Outlined.Edit,
+                    contentDescription = editLabel,
+                    tint = onContainer,
+                )
             }
             IconButton(onClick = { onDelete(visit) }) {
                 Icon(

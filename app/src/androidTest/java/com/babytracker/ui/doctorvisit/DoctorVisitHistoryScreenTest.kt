@@ -70,10 +70,10 @@ class DoctorVisitHistoryScreenTest {
     }
 
     @Test
-    fun tappingRowInvokesEdit() {
+    fun tappingEditIconInvokesEdit() {
         var edited: DoctorVisit? = null
         setContent(DoctorVisitHistoryUiState(upcoming = listOf(upcoming)), onEdit = { edited = it })
-        composeRule.onNodeWithText("Dr. Tanaka").performClick()
+        composeRule.onNodeWithContentDescription("Edit visit").performClick()
         composeRule.runOnIdle { assertEquals(upcoming, edited) }
     }
 

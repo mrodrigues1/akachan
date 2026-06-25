@@ -794,12 +794,11 @@ private fun GivenRow(
     colors: VaccinePalette,
     onEdit: () -> Unit,
 ) {
-    val editLabel = stringResource(R.string.vaccine_edit_content_description, record.name)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .clickable(onClickLabel = editLabel, onClick = onEdit),
+            .padding(end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         StatusDot(color = colors.accent, filled = true)
@@ -820,14 +819,14 @@ private fun GivenRow(
                 )
             }
         }
-        // These rows carry no check/delete controls, so a trailing edit glyph signals the row is still
-        // tappable to fix a detail. Decorative: the row's click label already announces "Edit".
-        Icon(
-            Icons.Outlined.Edit,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(18.dp),
-        )
+        // Trailing edit control, sized and right-aligned like the trash/check buttons on the other rows.
+        IconButton(onClick = onEdit) {
+            Icon(
+                Icons.Outlined.Edit,
+                contentDescription = stringResource(R.string.vaccine_edit_content_description, record.name),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
