@@ -203,15 +203,16 @@ private fun DiaperHistoryRow(
 ) {
     val time = timeFormatter.format(change.timestamp.atZone(ZoneId.systemDefault()).toLocalTime())
     val isDark = LocalDarkTheme.current
+    val diaper = diaperColors()
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        // HistoryCard rule: 1dp ambient lift in light; swap to an outlineVariant stroke in dark.
+        colors = CardDefaults.cardColors(containerColor = diaper.container),
+        // HistoryCard rule: 1dp ambient lift in light; swap to an onContainer stroke in dark.
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 1.dp),
-        border = if (isDark) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+        border = if (isDark) BorderStroke(1.dp, diaper.onContainer.copy(alpha = 0.2f)) else null,
     ) {
         Row(
             modifier = Modifier
@@ -229,13 +230,13 @@ private fun DiaperHistoryRow(
                 Text(
                     text = stringResource(R.string.diaper_row_summary, typeLabel, time),
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = diaper.onContainer,
                 )
                 change.notes?.takeIf { it.isNotBlank() }?.let {
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = diaper.onContainer.copy(alpha = 0.7f),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -245,14 +246,14 @@ private fun DiaperHistoryRow(
                 Icon(
                     Icons.Outlined.Edit,
                     contentDescription = stringResource(R.string.diaper_edit_content_description, typeLabel, time),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = diaper.onContainer,
                 )
             }
             IconButton(onClick = onDelete) {
                 Icon(
                     Icons.Outlined.Delete,
                     contentDescription = stringResource(R.string.diaper_delete_content_description, typeLabel, time),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = diaper.onContainer,
                 )
             }
         }

@@ -667,7 +667,6 @@ private fun UpcomingSection(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VisitRow(
     visit: DoctorVisit,
@@ -678,11 +677,7 @@ private fun VisitRow(
     }
     val editLabel = stringResource(R.string.doctor_visit_edit_title)
     Card(
-        onClick = onEditVisit,
-        // Label the card's click action so TalkBack announces "Edit visit", not a bare "activate".
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics { onClick(label = editLabel, action = null) },
+        modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -692,7 +687,7 @@ private fun VisitRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -715,6 +710,13 @@ private fun VisitRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                )
+            }
+            IconButton(onClick = onEditVisit) {
+                Icon(
+                    Icons.Outlined.Edit,
+                    contentDescription = editLabel,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
