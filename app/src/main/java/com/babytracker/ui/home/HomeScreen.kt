@@ -17,6 +17,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -66,6 +67,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
@@ -121,6 +123,14 @@ import kotlinx.coroutines.delay
 
 internal val EaseOutQuart = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
 
+private fun TextStyle.fitHomeTileTitle(width: Dp): TextStyle = when {
+    fontSize <= 18.sp -> this
+    width < 96.dp -> copy(fontSize = 15.sp, lineHeight = 19.sp)
+    width < 116.dp -> copy(fontSize = 16.sp, lineHeight = 20.sp)
+    width < 140.dp -> copy(fontSize = 18.sp, lineHeight = 23.sp)
+    else -> this
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun HomeTrackerTile(
@@ -170,13 +180,15 @@ internal fun HomeTrackerTile(
                 trailing?.invoke()
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = title,
-                style = titleStyle,
-                color = contentColor,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            BoxWithConstraints {
+                Text(
+                    text = title,
+                    style = titleStyle.fitHomeTileTitle(maxWidth),
+                    color = contentColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Spacer(modifier = Modifier.height(3.dp))
             content()
         }
@@ -894,6 +906,8 @@ internal fun ActiveStatusBadge(
                 text = if (paused) stringResource(R.string.status_paused) else stringResource(R.string.status_live),
                 style = MaterialTheme.typography.labelSmall,
                 color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
