@@ -1,6 +1,5 @@
 package com.babytracker.ui.doctorvisit
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -475,7 +474,13 @@ private fun QuestionsSection(
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
             )
         } else {
-            Column(modifier = Modifier.animateContentSize()) {
+            // Cap the list height so a long question backlog scrolls within the section instead of
+            // pushing the rest of the dashboard (and the add-question field) off screen.
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 300.dp)
+                    .verticalScroll(rememberScrollState()),
+            ) {
                 questions.forEach { question ->
                     QuestionPreviewRow(
                         question = question,

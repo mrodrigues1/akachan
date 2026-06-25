@@ -91,6 +91,23 @@ class DoctorVisitDashboardViewModelTest {
     }
 
     @Test
+    fun `exposes every open question without capping the preview`() = runTest {
+        every { observeVisits() } returns flowOf(emptyList())
+        every { observeInbox() } returns flowOf(
+            (1L..8L).map { question(it, "Question $it") },
+        )
+        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+
+        vm.uiState.test {
+            var state = awaitItem()
+            if (state.isLoading) state = awaitItem()
+            assertEquals((1L..8L).toList(), state.questions.map { it.id })
+            assertEquals(8, state.openQuestionCount)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `upcoming list is empty when only one visit is scheduled`() = runTest {
         every { observeVisits() } returns flowOf(listOf(visit(1, offsetDays = 3)))
         every { observeInbox() } returns flowOf(emptyList())

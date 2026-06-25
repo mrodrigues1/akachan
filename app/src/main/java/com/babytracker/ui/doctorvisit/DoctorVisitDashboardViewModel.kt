@@ -104,7 +104,7 @@ class DoctorVisitDashboardViewModel @Inject constructor(
                     nextVisitInDays = daysUntil,
                     upcomingVisits = upcoming.drop(1),
                     recentVisits = recent,
-                    questions = unanswered.take(QUESTION_PREVIEW_LIMIT),
+                    questions = unanswered,
                     openQuestionCount = unanswered.size,
                     draft = draftText,
                     lastAnswered = answered,
@@ -154,7 +154,6 @@ class DoctorVisitDashboardViewModel @Inject constructor(
 
     private companion object {
         const val RECENT_LIMIT = 3
-        const val QUESTION_PREVIEW_LIMIT = 4
         const val STOP_TIMEOUT_MS = 5_000L
     }
 }
