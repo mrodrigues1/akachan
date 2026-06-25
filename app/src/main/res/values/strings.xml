@@ -618,6 +618,8 @@
     <string name="growth_who_subtitle">WHO growth curves are sex-specific. Set your baby\'s sex to compare against them.</string>
     <string name="growth_set_sex">Set sex</string>
     <string name="growth_delete_row_cd">Delete measurement from %1$s</string>
+    <string name="growth_edit_row_cd">Edit measurement from %1$s</string>
+    <string name="growth_edit_title">Edit %1$s</string>
     <string name="growth_tab_weight">Weight</string>
     <string name="growth_tab_length">Length</string>
     <string name="growth_tab_head">Head</string>

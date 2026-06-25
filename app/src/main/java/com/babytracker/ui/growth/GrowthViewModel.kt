@@ -10,6 +10,7 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.growth.AddGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.DeleteGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.GetGrowthChartDataUseCase
+import com.babytracker.domain.usecase.growth.UpdateGrowthMeasurementUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,6 +36,7 @@ data class GrowthUiState(
 class GrowthViewModel @Inject constructor(
     private val getGrowthChartData: GetGrowthChartDataUseCase,
     private val addGrowthMeasurement: AddGrowthMeasurementUseCase,
+    private val updateGrowthMeasurement: UpdateGrowthMeasurementUseCase,
     private val deleteGrowthMeasurement: DeleteGrowthMeasurementUseCase,
     private val settingsRepository: SettingsRepository,
     private val syncToFirestore: SyncToFirestoreUseCase,
@@ -68,6 +70,21 @@ class GrowthViewModel @Inject constructor(
         viewModelScope.launch {
             addGrowthMeasurement(
                 GrowthMeasurement(
+                    takenAt = takenAt,
+                    type = type,
+                    valueCanonical = valueCanonical,
+                    notes = notes?.takeIf { it.isNotBlank() },
+                ),
+            )
+            syncSharedSnapshot()
+        }
+    }
+
+    fun onUpdateMeasurement(id: Long, type: GrowthType, valueCanonical: Long, takenAt: Instant, notes: String?) {
+        viewModelScope.launch {
+            updateGrowthMeasurement(
+                GrowthMeasurement(
+                    id = id,
                     takenAt = takenAt,
                     type = type,
                     valueCanonical = valueCanonical,

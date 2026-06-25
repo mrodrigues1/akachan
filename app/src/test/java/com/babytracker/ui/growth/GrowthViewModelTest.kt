@@ -8,6 +8,7 @@ import com.babytracker.domain.model.MeasurementSystem
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.growth.AddGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.DeleteGrowthMeasurementUseCase
+import com.babytracker.domain.usecase.growth.UpdateGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.GetGrowthChartDataUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import io.mockk.coVerify
@@ -31,6 +32,7 @@ class GrowthViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var getGrowthChartData: GetGrowthChartDataUseCase
     private lateinit var addGrowthMeasurement: AddGrowthMeasurementUseCase
+    private lateinit var updateGrowthMeasurement: UpdateGrowthMeasurementUseCase
     private lateinit var deleteGrowthMeasurement: DeleteGrowthMeasurementUseCase
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
@@ -51,6 +53,7 @@ class GrowthViewModelTest {
         Dispatchers.setMain(testDispatcher)
         getGrowthChartData = mockk()
         addGrowthMeasurement = mockk(relaxed = true)
+        updateGrowthMeasurement = mockk(relaxed = true)
         deleteGrowthMeasurement = mockk(relaxed = true)
         settingsRepository = mockk()
         syncToFirestore = mockk(relaxed = true)
@@ -66,6 +69,7 @@ class GrowthViewModelTest {
     private fun viewModel() = GrowthViewModel(
         getGrowthChartData,
         addGrowthMeasurement,
+        updateGrowthMeasurement,
         deleteGrowthMeasurement,
         settingsRepository,
         syncToFirestore,
@@ -111,6 +115,20 @@ class GrowthViewModelTest {
             )
         }
         coVerify { syncToFirestore() } // partner snapshot is refreshed after the edit
+    }
+
+    @Test
+    fun `onUpdateMeasurement delegates to the use case preserving the id`() = runTest {
+        val vm = viewModel()
+        val takenAt = Instant.ofEpochMilli(3000)
+        vm.onUpdateMeasurement(id = 9, type = GrowthType.LENGTH, valueCanonical = 640, takenAt = takenAt, notes = "  ")
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify {
+            updateGrowthMeasurement(
+                match { it.id == 9L && it.type == GrowthType.LENGTH && it.valueCanonical == 640L && it.notes == null },
+            )
+        }
+        coVerify { syncToFirestore() }
     }
 
     @Test
