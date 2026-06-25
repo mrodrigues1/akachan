@@ -40,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -65,6 +66,9 @@ import com.babytracker.ui.bottlefeed.BottleFeedViewModel
 import com.babytracker.ui.component.BreastfeedingIcon
 import com.babytracker.ui.component.BottleFeedIcon
 import com.babytracker.ui.component.HistoryCard
+import com.babytracker.ui.theme.LocalDarkTheme
+import com.babytracker.ui.theme.Pink200
+import com.babytracker.ui.theme.Pink900
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
 import com.babytracker.util.formatVolume
@@ -289,6 +293,10 @@ internal fun BottleFeedHistoryCard(
     onDelete: () -> Unit,
     editable: Boolean = true,
 ) {
+    // Soft pink feeding-section tint (deep pink text in light, light pink in dark) on the editable
+    // feeding history; the read-only partner view keeps the neutral surface look.
+    val isDark = LocalDarkTheme.current
+    val rowText = if (isDark) Pink200 else Pink900
     HistoryCard(
         title = feed.type.historyLabel(),
         subtitle = buildString {
@@ -301,6 +309,14 @@ internal fun BottleFeedHistoryCard(
         trailing = formatVolume(feed.volumeMl, volumeUnit),
         badgeColor = MaterialTheme.colorScheme.primaryContainer,
         badgeContent = { BottleFeedIcon(modifier = Modifier.size(34.dp)) },
+        containerColor = if (editable) {
+            if (isDark) Color(0xFF4A2A38) else Color(0xFFFCE4EC)
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
+        titleColor = if (editable) rowText else MaterialTheme.colorScheme.onSurface,
+        subtitleColor = if (editable) rowText.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant,
+        trailingColor = if (editable) rowText else MaterialTheme.colorScheme.primary,
         onClick = if (editable) onEdit else null,
         trailingContent = if (editable) {
             { BottleFeedOverflowMenu(onEdit = onEdit, onDelete = onDelete) }
@@ -323,12 +339,18 @@ internal fun BreastfeedingFeedHistoryCard(
             R.string.breastfeeding_side_right
         },
     )
+    val isDark = LocalDarkTheme.current
+    val rowText = if (isDark) Pink200 else Pink900
     HistoryCard(
         title = sideLabel,
         subtitle = session.startTime.formatTime12h(),
         trailing = session.activeDuration?.formatDuration() ?: stringResource(R.string.label_in_progress),
         badgeColor = MaterialTheme.colorScheme.primaryContainer,
         badgeContent = { BreastfeedingIcon(modifier = Modifier.size(34.dp)) },
+        containerColor = if (isDark) Color(0xFF4A2A38) else Color(0xFFFCE4EC),
+        titleColor = rowText,
+        subtitleColor = rowText.copy(alpha = 0.7f),
+        trailingColor = rowText,
         onClick = onEdit,
         trailingContent = { FeedSessionOverflowMenu(onEdit = onEdit, onDelete = onDelete) },
     )
