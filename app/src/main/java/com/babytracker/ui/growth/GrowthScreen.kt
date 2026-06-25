@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -101,6 +102,7 @@ fun GrowthScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddSheet by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<GrowthMeasurement?>(null) }
+    var editing by remember { mutableStateOf<GrowthMeasurement?>(null) }
 
     GrowthTealTheme {
         Scaffold(
@@ -130,6 +132,7 @@ fun GrowthScreen(
                 uiState = uiState,
                 onTypeSelected = viewModel::onTypeSelected,
                 onRequestDelete = { pendingDelete = it },
+                onRequestEdit = { editing = it },
                 onSetSex = onNavigateToSettings,
                 onAddFirst = { showAddSheet = true },
                 modifier = Modifier.padding(padding),
@@ -173,6 +176,19 @@ fun GrowthScreen(
                 },
             )
         }
+
+        editing?.let { measurement ->
+            AddMeasurementSheet(
+                type = measurement.type,
+                system = uiState.measurementSystem,
+                initial = measurement,
+                onDismiss = { editing = null },
+                onSave = { valueCanonical, takenAt, notes ->
+                    viewModel.onUpdateMeasurement(measurement.id, measurement.type, valueCanonical, takenAt, notes)
+                    editing = null
+                },
+            )
+        }
     }
 }
 
@@ -203,6 +219,7 @@ private fun GrowthContent(
     uiState: GrowthUiState,
     onTypeSelected: (GrowthType) -> Unit,
     onRequestDelete: (GrowthMeasurement) -> Unit,
+    onRequestEdit: (GrowthMeasurement) -> Unit,
     onSetSex: () -> Unit,
     onAddFirst: () -> Unit,
     modifier: Modifier = Modifier,
@@ -274,6 +291,7 @@ private fun GrowthContent(
                     measurement = measurement,
                     type = uiState.selectedType,
                     system = uiState.measurementSystem,
+                    onEdit = { onRequestEdit(measurement) },
                     onDelete = { onRequestDelete(measurement) },
                 )
             }
@@ -636,10 +654,12 @@ private fun GrowthHistoryRow(
     measurement: GrowthMeasurement,
     type: GrowthType,
     system: MeasurementSystem,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val growth = growthColors()
     val isDark = LocalDarkTheme.current
+    val secondary = growth.onContainer.copy(alpha = 0.7f)
     val formatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
     val date = remember(measurement.takenAt) {
         measurement.takenAt.atZone(ZoneId.systemDefault()).toLocalDate().format(formatter)
@@ -649,9 +669,10 @@ private fun GrowthHistoryRow(
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        // Section-tinted row mirroring the other history screens: Teal container with onContainer text.
+        colors = CardDefaults.cardColors(containerColor = growth.container),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDark) 0.dp else 1.dp),
-        border = if (isDark) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+        border = if (isDark) BorderStroke(1.dp, growth.onContainer.copy(alpha = 0.2f)) else null,
     ) {
         Row(
             modifier = Modifier
@@ -662,7 +683,7 @@ private fun GrowthHistoryRow(
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .background(color = growth.container, shape = MaterialTheme.shapes.small),
+                    .background(color = growth.onContainer, shape = MaterialTheme.shapes.small),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(type.badgeEmoji(), style = MaterialTheme.typography.bodyLarge.copy(fontSize = 20.sp))
@@ -674,22 +695,34 @@ private fun GrowthHistoryRow(
                 Text(
                     text = formatValue(type, measurement.valueCanonical, system),
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = growth.onContainer,
                 )
                 Text(
                     text = date,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = secondary,
                 )
                 measurement.notes?.takeIf { it.isNotBlank() }?.let {
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = secondary,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+            }
+
+            val editRowDescription = stringResource(R.string.growth_edit_row_cd, date)
+            IconButton(
+                onClick = onEdit,
+                modifier = Modifier.semantics { contentDescription = editRowDescription },
+            ) {
+                Icon(
+                    Icons.Outlined.Edit,
+                    contentDescription = null,
+                    tint = growth.onContainer,
+                )
             }
 
             val deleteRowDescription = stringResource(R.string.growth_delete_row_cd, date)
@@ -700,7 +733,7 @@ private fun GrowthHistoryRow(
                 Icon(
                     Icons.Outlined.Delete,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = growth.onContainer,
                 )
             }
         }

@@ -626,6 +626,8 @@
     <string name="growth_who_subtitle">As curvas de crescimento da OMS são específicas por sexo. Defina o sexo do seu bebê para comparar com elas.</string>
     <string name="growth_set_sex">Definir sexo</string>
     <string name="growth_delete_row_cd">Excluir medição de %1$s</string>
+    <string name="growth_edit_row_cd">Editar medição de %1$s</string>
+    <string name="growth_edit_title">Editar %1$s</string>
     <string name="growth_tab_weight">Peso</string>
     <string name="growth_tab_length">Comprimento</string>
     <string name="growth_tab_head">Cabeça</string>

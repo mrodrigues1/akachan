@@ -20,6 +20,7 @@ import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.GrowthRepository
 import com.babytracker.domain.usecase.growth.AddGrowthMeasurementUseCase
+import com.babytracker.domain.usecase.growth.UpdateGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.DeleteGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.GetGrowthChartDataUseCase
 import com.babytracker.ui.theme.BabyTrackerTheme
@@ -78,6 +79,7 @@ class GrowthScreenTest {
     private fun viewModel() = GrowthViewModel(
         GetGrowthChartDataUseCase(growthRepository, babyRepository, whoReferenceData),
         AddGrowthMeasurementUseCase(growthRepository),
+        UpdateGrowthMeasurementUseCase(growthRepository),
         DeleteGrowthMeasurementUseCase(growthRepository),
         settingsRepository,
         mockk(relaxed = true),

@@ -42,18 +42,24 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
+import com.babytracker.domain.model.GrowthMeasurement
 import com.babytracker.domain.model.GrowthType
 import com.babytracker.domain.model.MeasurementSystem
 import com.babytracker.util.centimetresToMillimetres
+import com.babytracker.util.gramsToKilograms
+import com.babytracker.util.gramsToPoundsOunces
 import com.babytracker.util.inchesToMillimetres
 import com.babytracker.util.kilogramsToGrams
 import com.babytracker.util.lengthUnitLabel
+import com.babytracker.util.millimetresToCentimetres
+import com.babytracker.util.millimetresToInches
 import com.babytracker.util.poundsOuncesToGrams
 import com.babytracker.util.weightUnitLabel
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,12 +69,17 @@ fun AddMeasurementSheet(
     onDismiss: () -> Unit,
     onSave: (valueCanonical: Long, takenAt: Instant, notes: String?) -> Unit,
     modifier: Modifier = Modifier,
+    initial: GrowthMeasurement? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var primaryValue by remember(type, system) { mutableStateOf("") }
-    var ouncesValue by remember(type, system) { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
+    var primaryValue by remember(type, system, initial) { mutableStateOf(initialPrimary(type, system, initial)) }
+    var ouncesValue by remember(type, system, initial) { mutableStateOf(initialOunces(type, system, initial)) }
+    var notes by remember(initial) { mutableStateOf(initial?.notes.orEmpty()) }
+    var selectedDate by remember(initial) {
+        mutableStateOf(
+            initial?.takenAt?.atZone(ZoneId.systemDefault())?.toLocalDate() ?: LocalDate.now(),
+        )
+    }
     var showDatePicker by remember { mutableStateOf(false) }
 
     val imperialWeight = type == GrowthType.WEIGHT && system == MeasurementSystem.IMPERIAL
@@ -93,7 +104,10 @@ fun AddMeasurementSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = stringResource(R.string.growth_add_title, stringResource(type.tabLabelRes()).lowercase()),
+                text = stringResource(
+                    if (initial != null) R.string.growth_edit_title else R.string.growth_add_title,
+                    stringResource(type.tabLabelRes()).lowercase(),
+                ),
                 style = MaterialTheme.typography.titleLarge,
             )
 
@@ -207,6 +221,32 @@ fun AddMeasurementSheet(
         }
     }
 }
+
+/** Pre-fills the main value field from an existing measurement, converted back into the display unit. */
+private fun initialPrimary(type: GrowthType, system: MeasurementSystem, initial: GrowthMeasurement?): String {
+    val canonical = initial?.valueCanonical ?: return ""
+    return when {
+        type == GrowthType.WEIGHT && system == MeasurementSystem.IMPERIAL ->
+            gramsToPoundsOunces(canonical).first.toString()
+        type == GrowthType.WEIGHT -> trimNumber(gramsToKilograms(canonical))
+        system == MeasurementSystem.IMPERIAL -> trimNumber(millimetresToInches(canonical))
+        else -> trimNumber(millimetresToCentimetres(canonical))
+    }
+}
+
+/** Pre-fills the ounces field for imperial weight; empty for every other metric/system. */
+private fun initialOunces(type: GrowthType, system: MeasurementSystem, initial: GrowthMeasurement?): String {
+    val canonical = initial?.valueCanonical ?: return ""
+    return if (type == GrowthType.WEIGHT && system == MeasurementSystem.IMPERIAL) {
+        gramsToPoundsOunces(canonical).second.toString()
+    } else {
+        ""
+    }
+}
+
+/** Up to two decimals, trailing zeros and a dangling point stripped (e.g. 6.90 -> "6.9", 64.0 -> "64"). */
+private fun trimNumber(value: Double): String =
+    String.format(Locale.US, "%.2f", value).trimEnd('0').trimEnd('.')
 
 private fun parseCanonical(
     type: GrowthType,
