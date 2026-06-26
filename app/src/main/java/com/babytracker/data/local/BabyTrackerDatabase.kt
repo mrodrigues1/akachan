@@ -53,7 +53,7 @@ import com.babytracker.data.local.entity.VisitQuestionEntity
         DoctorVisitEntity::class,
         VisitQuestionEntity::class,
     ],
-    version = 16,
+    version = 17,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -492,6 +492,27 @@ val MIGRATION_15_16 = object : Migration(15, 16) {
         database.execSQL(
             "CREATE INDEX IF NOT EXISTS index_sleep_records_start_time " +
                 "ON sleep_records(start_time DESC)",
+        )
+    }
+}
+
+// Adds partner-sharing identity to sleep records (SPEC-008 Plan 01): a stable cross-device
+// client_id (unique) so a partner-started session upserts idempotently, and started_by for
+// attribution + edit-own gating. Mirrors the bottle-feed MIGRATION_8_9. Existing rows are
+// backfilled with a random client_id and default to OWNER — zero behavior change.
+val MIGRATION_16_17 = object : Migration(16, 17) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            "ALTER TABLE sleep_records ADD COLUMN client_id TEXT NOT NULL DEFAULT ''",
+        )
+        database.execSQL(
+            "ALTER TABLE sleep_records ADD COLUMN started_by TEXT NOT NULL DEFAULT 'OWNER'",
+        )
+        database.execSQL(
+            "UPDATE sleep_records SET client_id = lower(hex(randomblob(16))) WHERE client_id = ''",
+        )
+        database.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS index_sleep_records_client_id ON sleep_records(client_id)",
         )
     }
 }

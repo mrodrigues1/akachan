@@ -26,6 +26,12 @@ abstract class SleepDao {
     @Query("SELECT * FROM sleep_records ORDER BY start_time DESC, id DESC LIMIT 1")
     abstract suspend fun getLatestRecord(): SleepEntity?
 
+    @Query("SELECT * FROM sleep_records WHERE id = :id LIMIT 1")
+    abstract suspend fun getById(id: Long): SleepEntity?
+
+    @Query("SELECT * FROM sleep_records WHERE client_id = :clientId LIMIT 1")
+    abstract suspend fun getByClientId(clientId: String): SleepEntity?
+
     @Query("SELECT * FROM sleep_records WHERE end_time IS NULL LIMIT 1")
     abstract suspend fun getActiveRecord(): SleepEntity?
 

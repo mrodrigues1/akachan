@@ -32,7 +32,8 @@ class SleepRepositoryImplTest {
         id = 1L,
         startTime = startEpoch,
         endTime = endEpoch,
-        sleepType = "NAP"
+        sleepType = "NAP",
+        clientId = "cid-1",
     )
 
     @BeforeEach
@@ -141,6 +142,32 @@ class SleepRepositoryImplTest {
     }
 
     @Test
+    fun insertRecordMintsClientIdWhenBlank() = runTest {
+        val record = SleepRecord(startTime = Instant.now(), sleepType = SleepType.NAP)
+        val slot = slot<SleepEntity>()
+        coEvery { dao.insertRecord(capture(slot)) } returns 1L
+
+        repository.insertRecord(record)
+
+        assertEquals(true, slot.captured.clientId.isNotBlank())
+    }
+
+    @Test
+    fun insertRecordKeepsProvidedClientId() = runTest {
+        val record = SleepRecord(
+            startTime = Instant.now(),
+            sleepType = SleepType.NAP,
+            clientId = "explicit-cid",
+        )
+        val slot = slot<SleepEntity>()
+        coEvery { dao.insertRecord(capture(slot)) } returns 1L
+
+        repository.insertRecord(record)
+
+        assertEquals("explicit-cid", slot.captured.clientId)
+    }
+
+    @Test
     fun updateRecordConvertsToEntityBeforeUpdate() = runTest {
         val record = SleepRecord(
             id = 1L,
@@ -149,12 +176,51 @@ class SleepRepositoryImplTest {
             sleepType = SleepType.NAP
         )
         val slot = slot<SleepEntity>()
+        coEvery { dao.getById(1L) } returns entity
         coJustRun { dao.updateRecord(capture(slot)) }
 
         repository.updateRecord(record)
 
         assertEquals(endEpoch, slot.captured.endTime)
         assertEquals(1L, slot.captured.id)
+    }
+
+    @Test
+    fun updateRecordPreservesClientIdAndStartedByFromExistingRow() = runTest {
+        // The edit carries no identity (blank clientId, default OWNER); the persisted row must keep the
+        // existing PARTNER attribution and client_id, otherwise the unique index and ownership break.
+        val existing = entity.copy(clientId = "partner-cid", startedBy = "PARTNER")
+        val edit = SleepRecord(
+            id = 1L,
+            startTime = Instant.ofEpochMilli(startEpoch),
+            endTime = Instant.ofEpochMilli(endEpoch),
+            sleepType = SleepType.NAP,
+        )
+        val slot = slot<SleepEntity>()
+        coEvery { dao.getById(1L) } returns existing
+        coJustRun { dao.updateRecord(capture(slot)) }
+
+        repository.updateRecord(edit)
+
+        assertEquals("partner-cid", slot.captured.clientId)
+        assertEquals("PARTNER", slot.captured.startedBy)
+    }
+
+    @Test
+    fun updateRecordMintsClientIdWhenRowMissing() = runTest {
+        val edit = SleepRecord(
+            id = 1L,
+            startTime = Instant.ofEpochMilli(startEpoch),
+            endTime = Instant.ofEpochMilli(endEpoch),
+            sleepType = SleepType.NAP,
+        )
+        val slot = slot<SleepEntity>()
+        coEvery { dao.getById(1L) } returns null
+        coJustRun { dao.updateRecord(capture(slot)) }
+
+        repository.updateRecord(edit)
+
+        assertEquals(true, slot.captured.clientId.isNotBlank())
     }
 
     @Test

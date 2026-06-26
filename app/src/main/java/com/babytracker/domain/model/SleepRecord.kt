@@ -9,7 +9,11 @@ data class SleepRecord(
     val endTime: Instant? = null,
     val sleepType: SleepType,
     val notes: String? = null,
-    val timezoneId: String? = null
+    val timezoneId: String? = null,
+    // Stable cross-device identity (UUID). Minted on insert; preserved across edits. Default blank
+    // so edit/preview call sites compile — the repository mints a real UUID for blank inserts.
+    val clientId: String = "",
+    val startedBy: SleepAuthor = SleepAuthor.OWNER,
 ) {
     val duration: Duration?
         get() = endTime?.let { Duration.between(startTime, it) }
