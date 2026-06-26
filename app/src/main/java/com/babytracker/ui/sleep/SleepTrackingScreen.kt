@@ -79,6 +79,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
+import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.ui.component.CueQuickTapRow
@@ -696,17 +697,24 @@ internal fun SleepEntryCard(
         isDark -> Color(0xFF1E2A3A)
         else -> Color(0xFFE3F2FD)
     }
+    val timeSubtitle = if (record.endTime != null) {
+        stringResource(
+            R.string.sleep_subtitle_range,
+            record.startTime.formatTime12h(),
+            record.endTime.formatTime12h(),
+        )
+    } else {
+        record.startTime.formatTime12h()
+    }
+    // Mirror SPEC-007's feed badge: attribute partner-started sessions on the primary app too.
+    val subtitle = if (record.startedBy == SleepAuthor.PARTNER) {
+        "$timeSubtitle · ${stringResource(R.string.sleep_author_partner_badge)}"
+    } else {
+        timeSubtitle
+    }
     HistoryCard(
         title = stringResource(record.sleepType.labelRes()),
-        subtitle = if (record.endTime != null) {
-            stringResource(
-                R.string.sleep_subtitle_range,
-                record.startTime.formatTime12h(),
-                record.endTime.formatTime12h(),
-            )
-        } else {
-            record.startTime.formatTime12h()
-        },
+        subtitle = subtitle,
         trailing = record.endTime?.let { end ->
             Duration.between(record.startTime, end).formatDuration()
         } ?: stringResource(R.string.label_in_progress),

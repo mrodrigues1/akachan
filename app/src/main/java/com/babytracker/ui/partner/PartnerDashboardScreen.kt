@@ -124,9 +124,11 @@ fun PartnerDashboardScreen(
     nowProvider: () -> Long = System::currentTimeMillis,
     viewModel: PartnerDashboardViewModel = hiltViewModel(),
     bottleFeedViewModel: PartnerBottleFeedViewModel = hiltViewModel(),
+    sleepViewModel: PartnerSleepViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val bottleFeedState by bottleFeedViewModel.uiState.collectAsStateWithLifecycle()
+    val sleepState by sleepViewModel.uiState.collectAsStateWithLifecycle()
     var showBottleFeedSheet by remember { mutableStateOf(false) }
 
     if (uiState.isDisconnected) {
@@ -144,9 +146,19 @@ fun PartnerDashboardScreen(
     LaunchedEffect(snapshot?.milkBags) {
         snapshot?.let { bottleFeedViewModel.onBagsAvailable(it.milkBags) }
     }
+    LaunchedEffect(snapshot?.sleepRecords) {
+        sleepViewModel.onSleepRecordsAvailable(snapshot?.sleepRecords ?: emptyList())
+    }
     LaunchedEffect(bottleFeedState.saved) {
         if (bottleFeedState.saved) {
             showBottleFeedSheet = false
+            viewModel.refresh()
+        }
+    }
+    // A revoked partner is detected globally by the dashboard refresh, which shows the "ended" dialog.
+    LaunchedEffect(sleepState.accessRevoked) {
+        if (sleepState.accessRevoked) {
+            sleepViewModel.onAccessRevokedHandled()
             viewModel.refresh()
         }
     }
@@ -252,6 +264,15 @@ fun PartnerDashboardScreen(
                             onNavigateToFeedHistory = onNavigateToFeedHistory,
                             nowProvider = nowProvider,
                             volumeUnit = uiState.volumeUnit,
+                            sleepControls = {
+                                PartnerSleepControls(
+                                    state = sleepState,
+                                    onStartNap = sleepViewModel::onStartNap,
+                                    onStartNightSleep = sleepViewModel::onStartNightSleep,
+                                    onStop = sleepViewModel::onStop,
+                                    onEdit = sleepViewModel::onEditActive,
+                                )
+                            },
                         )
                     }
                     uiState.error != null -> {
@@ -281,6 +302,18 @@ fun PartnerDashboardScreen(
             onNotesChange = bottleFeedViewModel::onNotesChange,
             onConfirm = bottleFeedViewModel::onConfirm,
             onDismiss = { if (!bottleFeedState.isSaving) showBottleFeedSheet = false },
+        )
+    }
+
+    sleepState.editor?.let { editor ->
+        PartnerSleepEditorSheet(
+            editor = editor,
+            onTypeChange = sleepViewModel::onEditorTypeChange,
+            onStartChange = sleepViewModel::onEditorStartChange,
+            onEndChange = sleepViewModel::onEditorEndChange,
+            onNotesChange = sleepViewModel::onEditorNotesChange,
+            onConfirm = sleepViewModel::onConfirmEdit,
+            onDismiss = sleepViewModel::onDismissEditor,
         )
     }
 }
@@ -328,6 +361,7 @@ private fun DashboardContent(
     onNavigateToFeedHistory: () -> Unit,
     nowProvider: () -> Long,
     volumeUnit: VolumeUnit,
+    sleepControls: @Composable () -> Unit,
 ) {
     var nowMs by remember(snapshot.lastSyncAt) { mutableLongStateOf(nowProvider()) }
     LaunchedEffect(snapshot.lastSyncAt) {
@@ -410,6 +444,7 @@ private fun DashboardContent(
                     onNavigateToFeedHistory = onNavigateToFeedHistory,
                     now = now,
                     volumeUnit = volumeUnit,
+                    sleepControls = sleepControls,
                 )
             } else {
                 CompactDashboardContent(
@@ -437,6 +472,7 @@ private fun DashboardContent(
                     onNavigateToFeedHistory = onNavigateToFeedHistory,
                     now = now,
                     volumeUnit = volumeUnit,
+                    sleepControls = sleepControls,
                 )
             }
         }
@@ -463,6 +499,7 @@ private fun CompactDashboardContent(
     onNavigateToFeedHistory: () -> Unit,
     now: Instant,
     volumeUnit: VolumeUnit,
+    sleepControls: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -481,6 +518,9 @@ private fun CompactDashboardContent(
             lastSyncAt = snapshot.lastSyncAt,
             now = now,
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+        sleepControls()
 
         Spacer(modifier = Modifier.height(16.dp))
         PartnerBottleActions(
@@ -578,6 +618,7 @@ private fun WideDashboardContent(
     onNavigateToFeedHistory: () -> Unit,
     now: Instant,
     volumeUnit: VolumeUnit,
+    sleepControls: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -600,6 +641,7 @@ private fun WideDashboardContent(
                 lastSyncAt = snapshot.lastSyncAt,
                 now = now,
             )
+            sleepControls()
             PartnerBottleActions(
                 onLogBottle = onLogBottle,
                 onNavigateToFeedHistory = onNavigateToFeedHistory,
