@@ -31,6 +31,29 @@ service cloud.firestore {
         && (!('consumedBagId' in op) || op.consumedBagId is int);
     }
 
+    // Validates shape + author identity only. Control/ownership semantics (start/stop are shared;
+    // edit only the partner's OWN sessions via startedBy == PARTNER) are enforced on the primary in
+    // Room, since rules cannot see Room state. A partner CAN write a syntactically valid update op
+    // for any entryClientId; the primary drops it on apply if the target startedBy != PARTNER.
+    function isValidSleepOp(op) {
+      return op.keys().hasOnly(['action', 'entryClientId', 'authorUid', 'createdAtMs',
+                                'startTimeMs', 'endTimeMs', 'sleepType', 'notes'])
+        && op.keys().hasAll(['action', 'entryClientId', 'authorUid', 'createdAtMs'])
+        && op.action in ['start', 'stop', 'update']
+        && op.entryClientId is string
+        && op.entryClientId.size() > 0 && op.entryClientId.size() <= 64
+        && op.authorUid is string
+        && op.createdAtMs is int
+        && (!('startTimeMs' in op) || op.startTimeMs is int)
+        && (!('endTimeMs' in op) || op.endTimeMs is int)
+        && (!('sleepType' in op) || op.sleepType in ['nap', 'night_sleep'])
+        && (!('notes' in op) || op.notes is string)
+        // per-action required fields
+        && (op.action != 'start' || (('startTimeMs' in op) && ('sleepType' in op)))
+        && (op.action != 'stop' || ('endTimeMs' in op))
+        && (op.action != 'update' || (('startTimeMs' in op) && ('sleepType' in op)));
+    }
+
     match /shares/{shareCode} {
       // read stays open to any authed user: partners validate codes and fetch
       // snapshots before/after registration (the share code is the capability)
@@ -63,6 +86,18 @@ service cloud.firestore {
                       && resource.data.authorUid == request.auth.uid
                       && request.resource.data.authorUid == resource.data.authorUid
                       && isValidFeedOp(request.resource.data);
+        allow delete: if isOwner(shareCode)
+                      || (isConnectedPartner(shareCode) && request.auth.uid == resource.data.authorUid);
+      }
+
+      // Sleep ops are write-once: an edit is a new 'update' op doc, not a mutation of a prior op.
+      // Hence no allow update — one op doc per action (start/stop/update).
+      match /sleepOps/{opId} {
+        allow read: if isOwner(shareCode)
+                    || (isConnectedPartner(shareCode) && request.auth.uid == resource.data.authorUid);
+        allow create: if isConnectedPartner(shareCode)
+                      && request.resource.data.authorUid == request.auth.uid
+                      && isValidSleepOp(request.resource.data);
         allow delete: if isOwner(shareCode)
                       || (isConnectedPartner(shareCode) && request.auth.uid == resource.data.authorUid);
       }
