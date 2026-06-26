@@ -59,6 +59,7 @@ fun PartnerSleepControls(
     onStartNightSleep: () -> Unit,
     onStop: () -> Unit,
     onEdit: () -> Unit,
+    onViewHistory: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val active = state.active
@@ -80,6 +81,9 @@ fun PartnerSleepControls(
             }
         } else {
             ActiveSleepControls(state = state, active = active, onStop = onStop, onEdit = onEdit)
+        }
+        TextButton(onClick = onViewHistory, modifier = Modifier.heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.partner_sleep_history_title))
         }
     }
 }

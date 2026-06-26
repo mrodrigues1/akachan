@@ -129,4 +129,33 @@ class MergePartnerSleepTest {
         )
         assertEquals(session, edited)
     }
+
+    // --- mergeSleepHistory ---
+
+    @Test
+    fun `history is sorted newest first and overlays pending edits`() {
+        val older = activeSnap("a").copy(id = 1, startTime = 10_000L, endTime = 11_000L)
+        val newer = activeSnap("b").copy(id = 2, startTime = 50_000L, endTime = 51_000L, sleepType = "NAP")
+
+        val merged = mergeSleepHistory(
+            snapshotRecords = listOf(older, newer),
+            pendingOps = listOf(op(SleepOpAction.UPDATE, "b", startTimeMs = 52_000L, endTimeMs = 53_000L, sleepType = "NIGHT_SLEEP")),
+            nowMs = now,
+        )
+
+        assertEquals(listOf("b", "a"), merged.entries.map { it.clientId })
+        // The pending edit is overlaid on the matching row.
+        assertEquals("NIGHT_SLEEP", merged.entries.first().sleepType)
+        assertEquals(52_000L, merged.entries.first().startTime)
+    }
+
+    @Test
+    fun `history exposes pending op ids for consumed-op detection`() {
+        val merged = mergeSleepHistory(
+            snapshotRecords = listOf(activeSnap("a").copy(endTime = 1L)),
+            pendingOps = listOf(op(SleepOpAction.UPDATE, "a", createdAtMs = now, startTimeMs = 1L, sleepType = "NAP")),
+            nowMs = now,
+        )
+        assertEquals(setOf("op-a-UPDATE"), merged.pendingOpIds)
+    }
 }
