@@ -6,6 +6,8 @@ import com.babytracker.sharing.domain.model.GrowthSnapshot
 import com.babytracker.sharing.domain.model.MilestoneSnapshot
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
+import com.babytracker.sharing.domain.model.SleepOp
+import com.babytracker.sharing.domain.model.SleepOpAction
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -98,6 +100,47 @@ class FirestoreSnapshotMappingTest {
 
         assertEquals(null, parsed)
     }
+
+    @Test
+    fun `sleep op round-trips with lowercase action and sleepType on the wire`() {
+        val op = SleepOp(
+            opId = "s-1",
+            action = SleepOpAction.START,
+            entryClientId = "client-1",
+            authorUid = "partner-uid",
+            createdAtMs = 1000L,
+            startTimeMs = 2000L,
+            sleepType = "NIGHT_SLEEP",
+            notes = "down",
+        )
+
+        val map = sleepOpToMap(op)
+        assertEquals("start", map["action"])
+        assertEquals("night_sleep", map["sleepType"])
+
+        val parsed = mapToSleepOp("s-1", map)
+        assertEquals(op, parsed)
+    }
+
+    @Test
+    fun `sleep op map with unknown action is rejected`() {
+        val parsed = mapToSleepOp("s-1", sleepOpMap() + ("action" to "drop"))
+        assertEquals(null, parsed)
+    }
+
+    @Test
+    fun `sleep op map without createdAtMs is rejected`() {
+        val parsed = mapToSleepOp("s-1", sleepOpMap() - "createdAtMs")
+        assertEquals(null, parsed)
+    }
+
+    private fun sleepOpMap(): Map<String, Any?> = mapOf(
+        "action" to "stop",
+        "entryClientId" to "client-1",
+        "authorUid" to "partner-uid",
+        "createdAtMs" to 1000L,
+        "endTimeMs" to 2000L,
+    )
 
     private fun feedOpMap(): Map<String, Any?> = mapOf(
         "action" to "delete",

@@ -37,6 +37,7 @@ import com.babytracker.navigation.AppNavGraph
 import com.babytracker.navigation.Routes
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.ProcessFeedOpsUseCase
+import com.babytracker.sharing.usecase.ProcessSleepOpsUseCase
 import com.babytracker.tile.FeedTileService
 import com.babytracker.tile.SleepTileService
 import com.babytracker.ui.theme.BabyTrackerTheme
@@ -98,17 +99,26 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var processFeedOps: ProcessFeedOpsUseCase
 
+    @Inject
+    lateinit var processSleepOps: ProcessSleepOpsUseCase
+
     private val pendingNavRoute = mutableStateOf<String?>(null)
+
+    // Foreground-only partner op inboxes (primary device). Each runs while the activity is STARTED.
+    private fun startPartnerOpProcessors() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) { processFeedOps() }
+        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) { processSleepOps() }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         pendingNavRoute.value = navRouteFromIntent(intent)
         enableEdgeToEdge()
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                processFeedOps()
-            }
-        }
+        startPartnerOpProcessors()
         setContent {
             val isOnboardingComplete by babyRepository
                 .isOnboardingComplete()

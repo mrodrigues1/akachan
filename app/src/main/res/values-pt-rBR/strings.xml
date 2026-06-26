@@ -133,6 +133,15 @@
     <string name="notif_body_partner_stash_single">Parceiro usou %1$d mL do estoque</string>
     <string name="notif_body_partner_stash_multi">Usou %1$d mL do estoque</string>
 
+    <!-- Partner sleep notification -->
+    <string name="notif_channel_partner_sleep_name">Atualizações de sono do parceiro</string>
+    <string name="notif_channel_partner_sleep_description">Quando seu parceiro inicia, encerra ou edita um registro de sono</string>
+    <string name="notif_partner_sleep_started_nap">Parceiro iniciou uma soneca</string>
+    <string name="notif_partner_sleep_started_night">Parceiro iniciou o sono noturno</string>
+    <string name="notif_partner_sleep_ended_nap">Parceiro encerrou a soneca</string>
+    <string name="notif_partner_sleep_ended_night">Parceiro encerrou o sono noturno</string>
+    <string name="notif_partner_sleep_edited">Parceiro editou um registro de sono</string>
+
     <!-- Widget -->
     <string name="widget_description">Lado da mamada, tempo decorrido e status atual de sono</string>
     <string name="widget_loading">Só um momento…</string>

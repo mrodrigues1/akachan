@@ -10,6 +10,7 @@ import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
+import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import kotlinx.coroutines.flow.Flow
@@ -59,4 +60,12 @@ interface SharingRepository {
     )
     fun observeOwnFeedOps(code: ShareCode, uid: String): Flow<List<FeedOp>>
     suspend fun deleteFeedOps(code: ShareCode, opIds: List<String>)
+    fun observeSleepOps(code: ShareCode): Flow<List<SleepOp>>
+    suspend fun writeSleepOp(
+        code: ShareCode,
+        op: SleepOp,
+        onFailure: (Throwable) -> Unit = {},
+    )
+    fun observeOwnSleepOps(code: ShareCode, uid: String): Flow<List<SleepOp>>
+    suspend fun deleteSleepOps(code: ShareCode, opIds: List<String>)
 }
