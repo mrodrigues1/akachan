@@ -6,6 +6,7 @@ import com.babytracker.sharing.domain.model.GrowthSnapshot
 import com.babytracker.sharing.domain.model.MilestoneSnapshot
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
+import com.babytracker.sharing.domain.model.SleepSnapshot
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -36,6 +37,40 @@ class FirestoreSnapshotMappingTest {
 
         assertEquals(snapshot.bottleFeeds, roundTripped.bottleFeeds)
         assertEquals(snapshot.milkBags, roundTripped.milkBags)
+    }
+
+    @Test
+    fun `snapshot with new sleep fields round-trips clientId and startedBy through map`() {
+        val snapshot = ShareSnapshot(
+            lastSyncAt = Instant.ofEpochSecond(100),
+            baby = BabySnapshot("Aiko", 1000L, listOf("dairy")),
+            sessions = emptyList(),
+            sleepRecords = listOf(
+                SleepSnapshot(
+                    id = 9,
+                    startTime = 3000L,
+                    endTime = null,
+                    sleepType = "NIGHT_SLEEP",
+                    notes = "down for the night",
+                    clientId = "sleep-client-1",
+                    startedBy = "PARTNER",
+                ),
+            ),
+        )
+
+        val roundTripped = mapToSnapshot(snapshotToMap(snapshot))
+
+        assertEquals(snapshot.sleepRecords, roundTripped.sleepRecords)
+    }
+
+    @Test
+    fun `legacy sleep map without new keys parses with safe defaults`() {
+        val legacy = mapOf("id" to 1L, "startTime" to 2000L, "sleepType" to "NAP")
+
+        val parsed = mapToSleep(legacy)
+
+        assertEquals("", parsed.clientId)
+        assertEquals("OWNER", parsed.startedBy)
     }
 
     @Test

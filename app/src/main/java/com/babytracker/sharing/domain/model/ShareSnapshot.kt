@@ -41,6 +41,10 @@ data class SleepSnapshot(
     val endTime: Long?,
     val sleepType: String,
     val notes: String?,
+    // Defaults keep snapshot documents written before SPEC-008 parsing (clientId lets the partner's
+    // optimistic merge match a pending start; startedBy drives attribution + start-button gating).
+    val clientId: String = "",
+    val startedBy: String = "OWNER",
 )
 
 data class BottleFeedSnapshot(

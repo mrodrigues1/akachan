@@ -106,6 +106,8 @@ internal fun sleepToMap(sleep: SleepSnapshot): Map<String, Any?> = mapOf(
     "endTime" to sleep.endTime,
     "sleepType" to sleep.sleepType,
     "notes" to sleep.notes,
+    "clientId" to sleep.clientId,
+    "startedBy" to sleep.startedBy,
 )
 
 internal fun bottleFeedToMap(feed: BottleFeedSnapshot): Map<String, Any?> = mapOf(
@@ -204,6 +206,8 @@ internal fun mapToSleep(map: Map<*, *>): SleepSnapshot = SleepSnapshot(
     endTime = map["endTime"] as? Long,
     sleepType = map["sleepType"] as? String ?: "NAP",
     notes = map["notes"] as? String,
+    clientId = map["clientId"] as? String ?: "",
+    startedBy = map["startedBy"] as? String ?: "OWNER",
 )
 
 internal fun mapToBottleFeed(map: Map<*, *>): BottleFeedSnapshot = BottleFeedSnapshot(
