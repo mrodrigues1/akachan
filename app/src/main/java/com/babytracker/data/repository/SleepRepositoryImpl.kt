@@ -35,6 +35,14 @@ class SleepRepositoryImpl @Inject constructor(
     override suspend fun getLatestRecord(): SleepRecord? =
         dao.getLatestRecord()?.toDomain()
 
+    override suspend fun getByClientId(clientId: String): SleepRecord? =
+        dao.getByClientId(clientId)?.toDomain()
+
+    // The single active (in-progress) session, newest first — used by partner START to converge
+    // instead of inserting a second active record.
+    override suspend fun getActiveRecord(): SleepRecord? =
+        dao.getActiveRecordOnce()?.toDomain()
+
     override suspend fun insertRecord(record: SleepRecord): Long =
         try {
             dao.insertRecord(record.withClientId().toEntity())

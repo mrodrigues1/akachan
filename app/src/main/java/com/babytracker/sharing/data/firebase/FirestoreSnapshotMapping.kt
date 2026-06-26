@@ -11,6 +11,8 @@ import com.babytracker.sharing.domain.model.MilestoneSnapshot
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
+import com.babytracker.sharing.domain.model.SleepOp
+import com.babytracker.sharing.domain.model.SleepOpAction
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.google.firebase.Timestamp
@@ -255,4 +257,34 @@ internal fun feedOpToMap(op: FeedOp): Map<String, Any?> = buildMap {
     op.type?.let { put("type", it) }
     op.notes?.let { put("notes", it) }
     op.consumedBagId?.let { put("consumedBagId", it) }
+}
+
+// Unknown action or missing required envelope fields -> null -> op skipped, never crash the listener.
+// Wire casing is lowercase (matches firestore.rules); sleepType is uppercased back to SleepType.name.
+internal fun mapToSleepOp(opId: String, map: Map<*, *>): SleepOp? {
+    val action = (map["action"] as? String)?.let { raw ->
+        SleepOpAction.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
+    } ?: return null
+    return SleepOp(
+        opId = opId,
+        action = action,
+        entryClientId = map["entryClientId"] as? String ?: return null,
+        authorUid = map["authorUid"] as? String ?: return null,
+        createdAtMs = (map["createdAtMs"] as? Number)?.toLong() ?: return null,
+        startTimeMs = (map["startTimeMs"] as? Number)?.toLong(),
+        endTimeMs = (map["endTimeMs"] as? Number)?.toLong(),
+        sleepType = (map["sleepType"] as? String)?.uppercase(),
+        notes = map["notes"] as? String,
+    )
+}
+
+internal fun sleepOpToMap(op: SleepOp): Map<String, Any?> = buildMap {
+    put("action", op.action.name.lowercase())
+    put("entryClientId", op.entryClientId)
+    put("authorUid", op.authorUid)
+    put("createdAtMs", op.createdAtMs)
+    op.startTimeMs?.let { put("startTimeMs", it) }
+    op.endTimeMs?.let { put("endTimeMs", it) }
+    op.sleepType?.let { put("sleepType", it.lowercase()) }
+    op.notes?.let { put("notes", it) }
 }

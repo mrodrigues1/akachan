@@ -52,6 +52,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import com.babytracker.sharing.domain.model.FeedOp
+import com.babytracker.sharing.domain.model.SleepOp
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
@@ -659,6 +660,19 @@ class PartnerDashboardScreenTest {
             emptyFlow()
 
         override suspend fun deleteFeedOps(code: ShareCode, opIds: List<String>) = Unit
+
+        override fun observeSleepOps(code: ShareCode): Flow<List<SleepOp>> = emptyFlow()
+
+        override suspend fun writeSleepOp(
+            code: ShareCode,
+            op: SleepOp,
+            onFailure: (Throwable) -> Unit,
+        ) = Unit
+
+        override fun observeOwnSleepOps(code: ShareCode, uid: String): Flow<List<SleepOp>> =
+            emptyFlow()
+
+        override suspend fun deleteSleepOps(code: ShareCode, opIds: List<String>) = Unit
     }
 
     private class FakePartnerSettingsRepository : SettingsRepository {

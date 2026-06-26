@@ -4,6 +4,7 @@ import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.DiaperSnapshot
 import com.babytracker.sharing.domain.model.FeedOp
+import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.PartnerInfo
@@ -28,7 +29,9 @@ import javax.inject.Singleton
 
 @Singleton
 class FirestoreSharingService @Inject constructor(
-    private val firestore: FirebaseFirestore,
+    // internal (not private) so the sleep-op extension functions below can reuse them without
+    // inflating this class's member-function count.
+    internal val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth,
 ) {
     private fun shareDoc(code: String): DocumentReference =
@@ -256,10 +259,63 @@ class FirestoreSharingService @Inject constructor(
     }
 
     companion object {
-        private const val SHARES = "shares"
+        internal const val SHARES = "shares"
         private const val PARTNERS = "partners"
         private const val FEED_OPS = "feedOps"
-        private const val BATCH_LIMIT = 450
-        private const val WRITE_ACK_TIMEOUT_MS = 1_000L
+        internal const val SLEEP_OPS = "sleepOps"
+        internal const val BATCH_LIMIT = 450
+        internal const val WRITE_ACK_TIMEOUT_MS = 1_000L
+    }
+}
+
+// Sleep-op subcollection operations, kept as extension functions so they don't inflate the service's
+// member-function count (detekt TooManyFunctions). They mirror the feed-op methods above and reach
+// the subcollection via the public `firestore` property (no private member access).
+private fun FirestoreSharingService.sleepOps(code: String) =
+    firestore.collection(FirestoreSharingService.SHARES).document(code)
+        .collection(FirestoreSharingService.SLEEP_OPS)
+
+/** Observes the sleep-ops subcollection. [authorUid] null = every op; set = that author's own. */
+fun FirestoreSharingService.observeSleepOps(code: String, authorUid: String? = null): Flow<List<SleepOp>> =
+    callbackFlow {
+        val base = sleepOps(code)
+        val query = if (authorUid != null) base.whereEqualTo("authorUid", authorUid) else base
+        val registration = query.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+            if (snapshot != null) {
+                trySend(
+                    snapshot.documents.mapNotNull { doc ->
+                        mapToSleepOp(doc.id, doc.data ?: return@mapNotNull null)
+                    },
+                )
+            }
+        }
+        awaitClose { registration.remove() }
+    }
+
+/** Offline-first like writeFeedOp: queues the write, server ack is not awaited beyond the timeout. */
+suspend fun FirestoreSharingService.writeSleepOp(
+    code: String,
+    op: SleepOp,
+    onFailure: (Throwable) -> Unit = {},
+) {
+    val writeTask = sleepOps(code).document(op.opId)
+        .set(sleepOpToMap(op))
+        .addOnFailureListener(onFailure)
+    withTimeoutOrNull(FirestoreSharingService.WRITE_ACK_TIMEOUT_MS) {
+        writeTask.await()
+    }
+}
+
+suspend fun FirestoreSharingService.deleteSleepOps(code: String, opIds: List<String>) {
+    opIds.chunked(FirestoreSharingService.BATCH_LIMIT).forEach { chunk ->
+        val batch = firestore.batch()
+        chunk.forEach { opId ->
+            batch.delete(sleepOps(code).document(opId))
+        }
+        batch.commit().await()
     }
 }

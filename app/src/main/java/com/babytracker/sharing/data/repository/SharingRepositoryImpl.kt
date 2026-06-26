@@ -1,6 +1,9 @@
 package com.babytracker.sharing.data.repository
 
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
+import com.babytracker.sharing.data.firebase.deleteSleepOps
+import com.babytracker.sharing.data.firebase.observeSleepOps
+import com.babytracker.sharing.data.firebase.writeSleepOp
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.DiaperSnapshot
@@ -10,6 +13,7 @@ import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
+import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
@@ -101,4 +105,19 @@ class SharingRepositoryImpl @Inject constructor(
 
     override suspend fun deleteFeedOps(code: ShareCode, opIds: List<String>) =
         service.deleteFeedOps(code.value, opIds)
+
+    override fun observeSleepOps(code: ShareCode): Flow<List<SleepOp>> =
+        service.observeSleepOps(code.value)
+
+    override suspend fun writeSleepOp(
+        code: ShareCode,
+        op: SleepOp,
+        onFailure: (Throwable) -> Unit,
+    ) = service.writeSleepOp(code.value, op, onFailure)
+
+    override fun observeOwnSleepOps(code: ShareCode, uid: String): Flow<List<SleepOp>> =
+        service.observeSleepOps(code.value, authorUid = uid)
+
+    override suspend fun deleteSleepOps(code: ShareCode, opIds: List<String>) =
+        service.deleteSleepOps(code.value, opIds)
 }
