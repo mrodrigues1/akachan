@@ -37,7 +37,7 @@ class FetchPartnerDataUseCaseTest {
 
     @BeforeEach
     fun setUp() {
-        useCase = FetchPartnerDataUseCase(sharingRepository, settingsRepository)
+        useCase = FetchPartnerDataUseCase(sharingRepository, settingsRepository, mockk(relaxed = true))
         every { settingsRepository.getShareCode() } returns flowOf(shareCode.value)
         coEvery { sharingRepository.signInAnonymously() } returns "uid123"
     }

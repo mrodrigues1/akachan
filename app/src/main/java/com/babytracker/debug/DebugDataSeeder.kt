@@ -20,6 +20,8 @@ import com.babytracker.domain.model.FeedAuthor
 import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.GrowthType
 import com.babytracker.domain.repository.BabyRepository
+import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.sharing.domain.model.AppMode
 import kotlinx.coroutines.flow.first
 import java.time.Instant
 import java.time.LocalDate
@@ -40,12 +42,16 @@ class DebugDataSeeder @Inject constructor(
     private val bottleFeedDao: BottleFeedDao,
     private val growthMeasurementDao: GrowthMeasurementDao,
     private val diaperDao: DiaperDao,
+    private val settingsRepository: SettingsRepository,
 ) {
     private val zone = ZoneId.systemDefault()
     private val today: LocalDate get() = LocalDate.now()
     private val rng = Random(42)
 
     suspend fun seedIfEmpty() {
+        // Runs every debug launch (not gated by the empty check) so an already-seeded install still
+        // gets the partner flip; persisted, so it routes to the partner dashboard on the next launch.
+        enterPartnerModeIfConfigured()
         if (babyRepository.isOnboardingComplete().first()) return
         // 5 months old so 4 months of history is plausible
         babyRepository.saveBabyProfile(Baby(name = "Sofia", birthDate = today.minusDays(150)))
@@ -56,6 +62,19 @@ class DebugDataSeeder @Inject constructor(
         seedBottleFeeds(activeBagIds)
         seedGrowthMeasurements()
         seedDiaperChanges()
+    }
+
+    /**
+     * Flips local app mode to PARTNER with a placeholder share code — no Firebase connect — so the
+     * partner UI/routing can be exercised offline (the dashboard stays empty until a real primary
+     * publishes under this code). The start destination is resolved once per launch, so this takes
+     * effect on the NEXT app launch after it's written. Set [ENTER_PARTNER_MODE] false to seed as a
+     * normal primary instead.
+     */
+    private suspend fun enterPartnerModeIfConfigured() {
+        if (!DebugSeedConfig.ENTER_PARTNER_MODE) return
+        settingsRepository.setShareCode(DebugSeedConfig.PARTNER_SHARE_CODE)
+        settingsRepository.setAppMode(AppMode.PARTNER)
     }
 
     private fun ms(daysAgo: Int, hour: Int, minute: Int): Long =
