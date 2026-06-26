@@ -121,6 +121,7 @@ fun PartnerDashboardScreen(
     onDisconnected: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToFeedHistory: () -> Unit = {},
+    onNavigateToSleepHistory: () -> Unit = {},
     nowProvider: () -> Long = System::currentTimeMillis,
     viewModel: PartnerDashboardViewModel = hiltViewModel(),
     bottleFeedViewModel: PartnerBottleFeedViewModel = hiltViewModel(),
@@ -271,6 +272,7 @@ fun PartnerDashboardScreen(
                                     onStartNightSleep = sleepViewModel::onStartNightSleep,
                                     onStop = sleepViewModel::onStop,
                                     onEdit = sleepViewModel::onEditActive,
+                                    onViewHistory = onNavigateToSleepHistory,
                                 )
                             },
                         )

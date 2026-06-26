@@ -149,6 +149,8 @@
     <string name="partner_edit_sleep_cd">Editar registro de sono</string>
     <string name="partner_sleep_notes_label">Notas (opcional)</string>
     <string name="sleep_author_partner_badge">Parceiro</string>
+    <string name="partner_sleep_history_title">Histórico de sono</string>
+    <string name="partner_sleep_history_empty_subtitle">Os registros de sono que você e seu parceiro adicionarem aparecerão aqui.</string>
 
     <!-- Widget -->
     <string name="widget_description">Lado da mamada, tempo decorrido e status atual de sono</string>

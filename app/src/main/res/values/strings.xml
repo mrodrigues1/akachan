@@ -152,6 +152,8 @@
     <string name="partner_edit_sleep_cd">Edit sleep session</string>
     <string name="partner_sleep_notes_label">Notes (optional)</string>
     <string name="sleep_author_partner_badge">Partner</string>
+    <string name="partner_sleep_history_title">Sleep history</string>
+    <string name="partner_sleep_history_empty_subtitle">Sleep sessions you and your partner log will appear here.</string>
 
     <!-- Widget -->
     <string name="widget_description">Feeding side, elapsed feed time, and current sleep status</string>

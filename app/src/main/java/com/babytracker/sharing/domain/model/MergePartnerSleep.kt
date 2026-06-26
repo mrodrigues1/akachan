@@ -58,6 +58,28 @@ private fun SleepOp.toOptimisticActive(): SleepSnapshot = SleepSnapshot(
  * display. Reverts automatically once the op is gone (applied / dropped / deleted) or past the TTL —
  * a dropped edit (e.g. it targeted an OWNER session) is deleted by Plan 04, so the snapshot wins.
  */
+data class MergedSleepHistory(
+    val entries: List<SleepSnapshot>,
+    val pendingOpIds: Set<String>,
+)
+
+/**
+ * The partner's sleep history: snapshot records overlaid with the partner's own fresh pending edits
+ * (optimistic). Op existence (within the TTL) is the pending boundary — once Plan 04 applies/drops
+ * and deletes an edit op, the snapshot wins again. Newest first.
+ */
+fun mergeSleepHistory(
+    snapshotRecords: List<SleepSnapshot>,
+    pendingOps: List<SleepOp>,
+    nowMs: Long,
+    ttlMs: Long = PENDING_SLEEP_OP_TTL_MS,
+): MergedSleepHistory = MergedSleepHistory(
+    entries = snapshotRecords
+        .map { mergeSleepEdit(it, pendingOps, nowMs, ttlMs) }
+        .sortedByDescending { it.startTime },
+    pendingOpIds = pendingOps.mapTo(mutableSetOf()) { it.opId },
+)
+
 fun mergeSleepEdit(
     session: SleepSnapshot,
     pendingOps: List<SleepOp>,

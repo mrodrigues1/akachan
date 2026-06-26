@@ -17,6 +17,7 @@ object Routes {
     const val CONNECT_PARTNER = "connect_partner"
     const val PARTNER_DASHBOARD = "partner_dashboard"
     const val PARTNER_FEED_HISTORY = "partner_feed_history"
+    const val PARTNER_SLEEP_HISTORY = "partner_sleep_history"
     const val MANAGE_SHARING = "manage_sharing"
     const val PUMPING = "pumping"
     const val PUMPING_HISTORY = "pumping/history"

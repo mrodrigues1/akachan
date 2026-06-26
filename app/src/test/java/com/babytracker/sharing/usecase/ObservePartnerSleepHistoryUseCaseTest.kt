@@ -1,0 +1,49 @@
+package com.babytracker.sharing.usecase
+
+import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.sharing.domain.model.ShareCode
+import com.babytracker.sharing.domain.model.SleepOp
+import com.babytracker.sharing.domain.model.SleepOpAction
+import com.babytracker.sharing.domain.model.SleepSnapshot
+import com.babytracker.sharing.domain.repository.SharingRepository
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import java.time.Instant
+
+class ObservePartnerSleepHistoryUseCaseTest {
+    private val sharingRepository: SharingRepository = mockk()
+    private val settingsRepository: SettingsRepository = mockk()
+    private val now = Instant.ofEpochMilli(100_000)
+    private lateinit var useCase: ObservePartnerSleepHistoryUseCase
+
+    @BeforeEach
+    fun setUp() {
+        useCase = ObservePartnerSleepHistoryUseCase(sharingRepository, settingsRepository) { now }
+        every { settingsRepository.getShareCode() } returns flowOf("CODE1234")
+        coEvery { sharingRepository.signInAnonymously() } returns "uid"
+    }
+
+    @Test
+    fun `maps snapshot records overlaid with the partner's pending edits`() = runTest {
+        val record = SleepSnapshot(
+            id = 1, startTime = 90_000L, endTime = 95_000L, sleepType = "NAP", notes = null,
+            clientId = "cid", startedBy = "PARTNER",
+        )
+        val edit = SleepOp("op-1", SleepOpAction.UPDATE, "cid", "uid", now.toEpochMilli(), 91_000L, 94_000L, "NIGHT_SLEEP", "x")
+        coEvery { sharingRepository.observeOwnSleepOps(ShareCode("CODE1234"), "uid") } returns flowOf(listOf(edit))
+
+        val merged = useCase(listOf(record)).first()
+
+        assertEquals(1, merged.entries.size)
+        assertEquals("NIGHT_SLEEP", merged.entries.first().sleepType)
+        assertEquals(94_000L, merged.entries.first().endTime)
+        assertEquals(setOf("op-1"), merged.pendingOpIds)
+    }
+}

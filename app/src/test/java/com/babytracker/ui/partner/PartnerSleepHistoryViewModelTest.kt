@@ -1,0 +1,83 @@
+package com.babytracker.ui.partner
+
+import android.content.Context
+import com.babytracker.domain.model.SleepAuthor
+import com.babytracker.sharing.domain.model.BabySnapshot
+import com.babytracker.sharing.domain.model.MergedSleepHistory
+import com.babytracker.sharing.domain.model.ShareSnapshot
+import com.babytracker.sharing.domain.model.SleepSnapshot
+import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
+import com.babytracker.sharing.usecase.ObservePartnerSleepHistoryUseCase
+import com.babytracker.widget.WidgetUpdater
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import java.time.Instant
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class PartnerSleepHistoryViewModelTest {
+    private val fetchPartnerData: FetchPartnerDataUseCase = mockk()
+    private val observeHistory: ObservePartnerSleepHistoryUseCase = mockk()
+    private val widgetUpdater: WidgetUpdater = mockk(relaxed = true)
+    private val appContext: Context = mockk()
+    private val testDispatcher = StandardTestDispatcher()
+
+    private fun row(clientId: String, author: SleepAuthor) = SleepSnapshot(
+        id = 0, startTime = 1_000L, endTime = 2_000L, sleepType = "NAP", notes = null,
+        clientId = clientId, startedBy = author.name,
+    )
+
+    @BeforeEach
+    fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+        every { appContext.getString(any()) } returns "error"
+        coEvery { fetchPartnerData() } returns ShareSnapshot(
+            lastSyncAt = Instant.EPOCH,
+            baby = BabySnapshot("Mia", 0L, emptyList()),
+            sessions = emptyList(),
+            sleepRecords = emptyList(),
+        )
+    }
+
+    @AfterEach
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `refresh populates entries from the merged history`() = runTest {
+        val rows = listOf(row("p", SleepAuthor.PARTNER), row("o", SleepAuthor.OWNER))
+        coEvery { observeHistory(any()) } returns flowOf(MergedSleepHistory(rows, emptySet()))
+
+        val vm = PartnerSleepHistoryViewModel(fetchPartnerData, observeHistory, widgetUpdater, appContext)
+        advanceUntilIdle()
+
+        assertEquals(rows, vm.uiState.value.entries)
+        assertFalse(vm.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `isEditable is true only for a partner-started row with a clientId`() = runTest {
+        coEvery { observeHistory(any()) } returns flowOf(MergedSleepHistory(emptyList(), emptySet()))
+        val vm = PartnerSleepHistoryViewModel(fetchPartnerData, observeHistory, widgetUpdater, appContext)
+        advanceUntilIdle()
+
+        assertTrue(vm.isEditable(row("p", SleepAuthor.PARTNER)))
+        assertFalse(vm.isEditable(row("o", SleepAuthor.OWNER)))
+        assertFalse(vm.isEditable(row("", SleepAuthor.PARTNER)))
+    }
+}
