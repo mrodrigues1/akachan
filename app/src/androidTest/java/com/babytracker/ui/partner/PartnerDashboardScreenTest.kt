@@ -213,7 +213,7 @@ class PartnerDashboardScreenTest {
         composeRule.onNode(
             hasText("RECENT FEEDINGS")
                 .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)),
-        ).assertIsDisplayed()
+        ).performScrollTo().assertIsDisplayed()
         composeRule.onNode(
             hasText("LAST SLEEP")
                 .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)),
@@ -235,7 +235,7 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithText(
             "No active feeding or sleep was shared. Nothing needs attention.",
         ).assertIsDisplayed()
-        composeRule.onNodeWithText("No feeding history shared").assertIsDisplayed()
+        composeRule.onNodeWithText("No feeding history shared").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("No sleep record shared").performScrollTo().assertIsDisplayed()
         composeRule.onAllNodesWithText("No allergies shared").assertCountEquals(2)
     }
@@ -274,8 +274,8 @@ class PartnerDashboardScreenTest {
             )
         }
 
-        composeRule.onNodeWithText("RECENT FEEDINGS").assertIsDisplayed()
-        composeRule.onNodeWithText("LAST SLEEP").assertIsDisplayed()
+        composeRule.onNodeWithText("RECENT FEEDINGS").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("LAST SLEEP").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("ALLERGIES").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Latest care").assertIsDisplayed()
         composeRule.onNodeWithText("Fed 25m ago").assertIsDisplayed()
