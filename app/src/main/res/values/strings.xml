@@ -145,6 +145,14 @@
     <string name="notif_partner_sleep_ended_night">Partner ended the night sleep</string>
     <string name="notif_partner_sleep_edited">Partner edited a sleep session</string>
 
+    <!-- Partner sleep controls -->
+    <string name="partner_sleep_started_by_you">Started by you</string>
+    <string name="partner_sleep_started_by_partner">Started by partner</string>
+    <string name="partner_sleep_stopping">Stopping…</string>
+    <string name="partner_edit_sleep_cd">Edit sleep session</string>
+    <string name="partner_sleep_notes_label">Notes (optional)</string>
+    <string name="sleep_author_partner_badge">Partner</string>
+
     <!-- Widget -->
     <string name="widget_description">Feeding side, elapsed feed time, and current sleep status</string>
     <string name="widget_loading">Just a moment…</string>

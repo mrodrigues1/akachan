@@ -142,6 +142,14 @@
     <string name="notif_partner_sleep_ended_night">Parceiro encerrou o sono noturno</string>
     <string name="notif_partner_sleep_edited">Parceiro editou um registro de sono</string>
 
+    <!-- Partner sleep controls -->
+    <string name="partner_sleep_started_by_you">Iniciado por você</string>
+    <string name="partner_sleep_started_by_partner">Iniciado pelo parceiro</string>
+    <string name="partner_sleep_stopping">Encerrando…</string>
+    <string name="partner_edit_sleep_cd">Editar registro de sono</string>
+    <string name="partner_sleep_notes_label">Notas (opcional)</string>
+    <string name="sleep_author_partner_badge">Parceiro</string>
+
     <!-- Widget -->
     <string name="widget_description">Lado da mamada, tempo decorrido e status atual de sono</string>
     <string name="widget_loading">Só um momento…</string>

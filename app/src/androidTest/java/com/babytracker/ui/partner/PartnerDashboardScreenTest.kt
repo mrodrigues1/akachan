@@ -45,7 +45,11 @@ import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.EditPartnerFeedUseCase
 import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
 import com.babytracker.sharing.usecase.LogPartnerFeedUseCase
+import com.babytracker.sharing.usecase.StartPartnerSleepUseCase
+import com.babytracker.sharing.usecase.StopPartnerSleepUseCase
 import com.babytracker.sharing.usecase.SubmitFeedOpUseCase
+import com.babytracker.sharing.usecase.SubmitSleepOpUseCase
+import com.babytracker.sharing.usecase.UpdatePartnerSleepUseCase
 import com.babytracker.ui.theme.BabyTrackerTheme
 import com.babytracker.widget.WidgetUpdater
 import kotlinx.coroutines.CompletableDeferred
@@ -106,6 +110,20 @@ class PartnerDashboardScreenTest {
         )
     }
 
+    private fun buildSleepViewModel(): PartnerSleepViewModel {
+        val scope = CoroutineScope(SupervisorJob())
+        val submitSleepOp = SubmitSleepOpUseCase(FakeSharingRepository(null), FakePartnerSettingsRepository(), scope)
+        return PartnerSleepViewModel(
+            startSleep = StartPartnerSleepUseCase(submitSleepOp),
+            stopSleep = StopPartnerSleepUseCase(submitSleepOp),
+            updateSleep = UpdatePartnerSleepUseCase(submitSleepOp),
+            sharingRepository = FakeSharingRepository(null),
+            settingsRepository = FakePartnerSettingsRepository(),
+            appContext = appContext,
+            now = Instant::now,
+        )
+    }
+
     private fun makeSnapshot(
         lastSyncAt: Instant = fixedNow,
         babyName: String = "Mia",
@@ -133,6 +151,7 @@ class PartnerDashboardScreenTest {
                 nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(),
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
         composeRule.onNodeWithContentDescription("Settings").assertIsDisplayed()
@@ -147,6 +166,7 @@ class PartnerDashboardScreenTest {
                 nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(),
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
         composeRule.onNodeWithContentDescription("Settings").performClick()
@@ -160,6 +180,7 @@ class PartnerDashboardScreenTest {
                 nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(makeSnapshot()),
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
 
@@ -179,6 +200,7 @@ class PartnerDashboardScreenTest {
                 nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(makeSnapshot()),
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
 
@@ -203,6 +225,7 @@ class PartnerDashboardScreenTest {
                 nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(makeSnapshot()),
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
 
@@ -245,6 +268,7 @@ class PartnerDashboardScreenTest {
                     ),
                 ),
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
 
@@ -259,6 +283,65 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithText("2h 0m").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Cow's Milk Protein").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("No shared records yet").assertDoesNotExist()
+    }
+
+    @Test
+    fun idleSleepShowsStartButtons() {
+        composeRule.setContent {
+            PartnerDashboardScreen(
+                nowProvider = fixedNowProvider,
+                viewModel = buildViewModel(makeSnapshot(sleepRecords = emptyList())),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
+            )
+        }
+        composeRule.onNodeWithText("Start Nap").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Start Night Sleep").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun activeOwnerSleepShowsStopButButNoEditAffordance() {
+        val ownerActive = SleepSnapshot(
+            id = 4L,
+            startTime = fixedNow.minus(Duration.ofHours(1)).toEpochMilli(),
+            endTime = null,
+            sleepType = "NAP",
+            notes = null,
+            clientId = "owner-cid",
+            startedBy = "OWNER",
+        )
+        composeRule.setContent {
+            PartnerDashboardScreen(
+                nowProvider = fixedNowProvider,
+                viewModel = buildViewModel(makeSnapshot(sleepRecords = listOf(ownerActive))),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
+            )
+        }
+        composeRule.onNodeWithText("Stop Session").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Edit sleep session").assertDoesNotExist()
+    }
+
+    @Test
+    fun activePartnerSleepShowsEditAffordance() {
+        val partnerActive = SleepSnapshot(
+            id = 5L,
+            startTime = fixedNow.minus(Duration.ofHours(1)).toEpochMilli(),
+            endTime = null,
+            sleepType = "NAP",
+            notes = null,
+            clientId = "partner-cid",
+            startedBy = "PARTNER",
+        )
+        composeRule.setContent {
+            PartnerDashboardScreen(
+                nowProvider = fixedNowProvider,
+                viewModel = buildViewModel(makeSnapshot(sleepRecords = listOf(partnerActive))),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
+            )
+        }
+        composeRule.onNodeWithContentDescription("Edit sleep session").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -278,6 +361,7 @@ class PartnerDashboardScreenTest {
                     makeSnapshot(sleepRecords = listOf(activeSleep)),
                 ),
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
 
@@ -312,6 +396,7 @@ class PartnerDashboardScreenTest {
                     ),
                 ),
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
 
@@ -335,6 +420,7 @@ class PartnerDashboardScreenTest {
                 nowProvider = fixedNowProvider,
                 viewModel = buildViewModel(makeSnapshot()),
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
 
@@ -360,6 +446,7 @@ class PartnerDashboardScreenTest {
                 nowProvider = fixedNowProvider,
                 viewModel = viewModel,
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
         composeRule.waitForIdle()
@@ -389,6 +476,7 @@ class PartnerDashboardScreenTest {
                 nowProvider = fixedNowProvider,
                 viewModel = viewModel,
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
         composeRule.waitUntil { viewModel.uiState.value.snapshot != null }
@@ -418,6 +506,7 @@ class PartnerDashboardScreenTest {
                     makeSnapshot(lastSyncAt = initialNow.minus(Duration.ofMinutes(29))),
                 ),
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
 
@@ -441,6 +530,7 @@ class PartnerDashboardScreenTest {
                     makeSnapshot(allergies = listOf("CMPA")),
                 ),
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
 
@@ -477,6 +567,7 @@ class PartnerDashboardScreenTest {
                         ),
                     ),
                     bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
                 )
             }
         }
@@ -514,6 +605,7 @@ class PartnerDashboardScreenTest {
                         ),
                     ),
                     bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
                 )
             }
         }
@@ -536,6 +628,7 @@ class PartnerDashboardScreenTest {
                     ),
                 ),
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
 
@@ -554,6 +647,7 @@ class PartnerDashboardScreenTest {
                     ),
                 ),
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
 
@@ -574,6 +668,7 @@ class PartnerDashboardScreenTest {
                     ),
                 ),
                 bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
             )
         }
 
