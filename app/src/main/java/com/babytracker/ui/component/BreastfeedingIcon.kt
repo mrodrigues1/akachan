@@ -91,6 +91,33 @@ fun GrowthIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun WeightIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_weight_section),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}
+
+@Composable
+fun LengthIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_length_section),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}
+
+@Composable
+fun HeadIcon(modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.ic_head_section),
+        contentDescription = null,
+        modifier = modifier.clearAndSetSemantics {},
+    )
+}
+
+@Composable
 fun TrendsIcon(modifier: Modifier = Modifier) {
     Image(
         painter = painterResource(R.drawable.ic_trends_section),
