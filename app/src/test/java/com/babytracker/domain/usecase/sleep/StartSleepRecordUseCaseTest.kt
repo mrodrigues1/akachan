@@ -1,5 +1,6 @@
 package com.babytracker.domain.usecase.sleep
 
+import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SleepRepository
@@ -11,6 +12,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -70,6 +72,17 @@ class StartSleepRecordUseCaseTest {
         val result = useCase(SleepType.NAP)
 
         assertNull(result.endTime)
+    }
+
+    @Test
+    fun invokeSetsNonBlankClientIdAndOwnerAuthor() = runTest {
+        val slot = slot<SleepRecord>()
+        coEvery { repository.insertRecord(capture(slot)) } returns 1L
+
+        useCase(SleepType.NAP)
+
+        assertTrue(slot.captured.clientId.isNotBlank())
+        assertEquals(SleepAuthor.OWNER, slot.captured.startedBy)
     }
 
     @Test

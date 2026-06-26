@@ -115,6 +115,7 @@ fun SleepEntity.toBackup() = SleepBackup(
     timezoneId = timezoneId,
 )
 
+// Backups predate clientId/startedBy; SleepEntity's constructor mints a fresh id and defaults OWNER.
 fun SleepBackup.toEntity() = SleepEntity(
     id = id, startTime = startTime, endTime = endTime, sleepType = sleepType, notes = notes,
     timezoneId = timezoneId,

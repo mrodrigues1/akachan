@@ -1,10 +1,12 @@
 package com.babytracker.domain.usecase.sleep
 
+import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SleepRepository
 import java.time.Instant
 import java.time.ZoneId
+import java.util.UUID
 import javax.inject.Inject
 
 class StartSleepRecordUseCase @Inject constructor(
@@ -14,7 +16,9 @@ class StartSleepRecordUseCase @Inject constructor(
         val record = SleepRecord(
             startTime = Instant.now(),
             sleepType = sleepType,
-            timezoneId = ZoneId.systemDefault().id
+            timezoneId = ZoneId.systemDefault().id,
+            clientId = UUID.randomUUID().toString(),
+            startedBy = SleepAuthor.OWNER,
         )
         val id = repository.insertRecord(record)
         return record.copy(id = id)

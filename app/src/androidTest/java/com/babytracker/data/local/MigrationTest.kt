@@ -392,6 +392,39 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate16To17_backfillsUniqueClientId_defaultsStartedByOwner_andSchemaValidates() {
+        helper.createDatabase(TEST_DB, 16).use { db ->
+            db.execSQL("INSERT INTO sleep_records (start_time, sleep_type) VALUES (1000, 'NAP')")
+            db.execSQL("INSERT INTO sleep_records (start_time, end_time, sleep_type) VALUES (2000, 9000, 'NIGHT_SLEEP')")
+        }
+        // Throws if the migrated schema (client_id/started_by columns + unique index) differs from entity schema 17.
+        val db = helper.runMigrationsAndValidate(TEST_DB, 17, true, MIGRATION_16_17)
+
+        // Every pre-existing row backfilled with a non-empty, unique client_id; started_by defaults to OWNER.
+        val cursor: Cursor = db.query("SELECT client_id, started_by FROM sleep_records ORDER BY start_time ASC")
+        val seen = mutableSetOf<String>()
+        while (cursor.moveToNext()) {
+            val clientId = cursor.getString(0)
+            assertTrue(clientId.isNotEmpty())
+            assertTrue(seen.add(clientId))
+            assertEquals("OWNER", cursor.getString(1))
+        }
+        cursor.close()
+        assertEquals(2, seen.size)
+
+        // Unique index rejects a duplicate client_id.
+        db.execSQL(
+            "INSERT INTO sleep_records (start_time, sleep_type, client_id, started_by) VALUES (3000, 'NAP', 'dup', 'PARTNER')",
+        )
+        assertThrows(SQLiteConstraintException::class.java) {
+            db.execSQL(
+                "INSERT INTO sleep_records (start_time, sleep_type, client_id, started_by) VALUES (4000, 'NAP', 'dup', 'OWNER')",
+            )
+        }
+        db.close()
+    }
+
+    @Test
     fun migrate15To16_roomSchemaValidationPasses() {
         helper.createDatabase(TEST_DB, 15).use { db ->
             db.execSQL(

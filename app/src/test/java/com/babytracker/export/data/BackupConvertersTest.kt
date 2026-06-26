@@ -22,7 +22,7 @@ class BackupConvertersTest {
     }
 
     @Test
-    fun `sleep entity round-trips through backup dto`() {
+    fun `sleep entity round-trips through backup dto with fresh clientId`() {
         val entity = SleepEntity(
             id = 3,
             startTime = 100,
@@ -30,8 +30,18 @@ class BackupConvertersTest {
             sleepType = "NAP",
             notes = null,
             timezoneId = "America/New_York",
+            clientId = "client-3",
+            startedBy = "PARTNER",
         )
-        assertEquals(entity, entity.toBackup().toEntity())
+
+        val restored = entity.toBackup().toEntity()
+
+        // The backup format carries neither clientId nor startedBy, so import mints a fresh id and
+        // resets attribution to OWNER (a restored backup is the owner's own data).
+        assertTrue(restored.clientId.isNotEmpty())
+        assertNotEquals(entity.clientId, restored.clientId)
+        assertEquals("OWNER", restored.startedBy)
+        assertEquals(entity.copy(clientId = restored.clientId, startedBy = "OWNER"), restored)
     }
 
     @Test
