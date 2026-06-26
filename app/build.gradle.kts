@@ -15,6 +15,7 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.kover)
     alias(libs.plugins.android.junit5)
+    alias(libs.plugins.screenshot)
 }
 
 abstract class NormalizeAndroidTestConfigPaths : DefaultTask() {
@@ -92,6 +93,9 @@ android {
         compose = true
         buildConfig = true
     }
+
+    // Compose Preview Screenshot Testing: opt the screenshotTest source set in.
+    experimentalProperties["android.experimental.enableScreenshotTest"] = true
 
     testOptions {
         unitTests {
@@ -209,6 +213,10 @@ dependencies {
     testImplementation(libs.glance.appwidget.testing)
     testRuntimeOnly(libs.junit.vintage.engine)
     detektPlugins(libs.detekt.compose.rules)
+
+    // Compose Preview Screenshot Testing (host-side, @PreviewTest in src/screenshotTest)
+    screenshotTestImplementation(libs.screenshot.validation.api)
+    screenshotTestImplementation(libs.compose.ui.tooling)
 
     // Android Testing
     androidTestImplementation(libs.runner)
