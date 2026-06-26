@@ -95,6 +95,8 @@ class PartnerDashboardScreenTest {
         return FetchPartnerDataUseCase(
             sharingRepository = sharingRepository,
             settingsRepository = FakePartnerSettingsRepository(),
+            // Debug builder only fires for the placeholder code; this fake uses a real code.
+            debugSnapshotBuilder = dagger.Lazy { error("debug snapshot builder should not be used") },
         )
     }
 

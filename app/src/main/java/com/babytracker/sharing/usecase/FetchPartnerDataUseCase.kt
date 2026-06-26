@@ -1,10 +1,14 @@
 package com.babytracker.sharing.usecase
 
+import com.babytracker.BuildConfig
+import com.babytracker.debug.DebugPartnerSnapshotBuilder
+import com.babytracker.debug.DebugSeedConfig
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
 import com.google.firebase.FirebaseException
+import dagger.Lazy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -12,6 +16,8 @@ import javax.inject.Inject
 class FetchPartnerDataUseCase @Inject constructor(
     private val sharingRepository: SharingRepository,
     private val settingsRepository: SettingsRepository,
+    // Lazy: only resolved on the debug placeholder-code path, never in release fetches.
+    private val debugSnapshotBuilder: Lazy<DebugPartnerSnapshotBuilder>,
 ) {
     /** Fetches the snapshot for the currently stored share code (used by the dashboard). */
     suspend operator fun invoke(): ShareSnapshot {
@@ -26,6 +32,10 @@ class FetchPartnerDataUseCase @Inject constructor(
      * the caller's code diverge and end up cached under another primary's key.
      */
     suspend operator fun invoke(code: ShareCode): ShareSnapshot {
+        // Debug offline partner mode: serve a snapshot of the locally-seeded data instead of Firebase.
+        if (BuildConfig.DEBUG && code.value == DebugSeedConfig.PARTNER_SHARE_CODE) {
+            return debugSnapshotBuilder.get().build()
+        }
         try {
             return fetchConnectedSnapshot(code)
         } catch (e: CancellationException) {
