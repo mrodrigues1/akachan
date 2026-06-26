@@ -50,7 +50,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -67,6 +66,9 @@ import com.babytracker.domain.growth.GrowthChartData
 import com.babytracker.domain.model.GrowthMeasurement
 import com.babytracker.domain.model.GrowthType
 import com.babytracker.domain.model.MeasurementSystem
+import com.babytracker.ui.component.HeadIcon
+import com.babytracker.ui.component.LengthIcon
+import com.babytracker.ui.component.WeightIcon
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.growthColors
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
@@ -308,13 +310,7 @@ private fun GrowthEmptyState(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Decorative glyph: hidden from TalkBack so the heading is the first thing announced.
-        // headlineLarge, not displaySmall — displaySmall is reserved for the live timer readout.
-        Text(
-            "📏",
-            style = MaterialTheme.typography.headlineLarge,
-            modifier = Modifier.clearAndSetSemantics {},
-        )
+        LengthIcon(Modifier.size(64.dp))
         Spacer(Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.growth_empty_title),
@@ -686,7 +682,11 @@ private fun GrowthHistoryRow(
                     .background(color = growth.onContainer, shape = MaterialTheme.shapes.small),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(type.badgeEmoji(), style = MaterialTheme.typography.bodyLarge.copy(fontSize = 20.sp))
+                when (type) {
+                    GrowthType.WEIGHT -> WeightIcon(Modifier.size(34.dp))
+                    GrowthType.LENGTH -> LengthIcon(Modifier.size(34.dp))
+                    GrowthType.HEAD_CIRC -> HeadIcon(Modifier.size(34.dp))
+                }
             }
 
             Spacer(Modifier.width(12.dp))
@@ -748,13 +748,6 @@ internal fun GrowthType.tabLabel(): String = when (this) {
     GrowthType.WEIGHT -> "Weight"
     GrowthType.LENGTH -> "Length"
     GrowthType.HEAD_CIRC -> "Head"
-}
-
-/** The glyph shown in a history row's badge, one per metric so the list stays scannable. */
-private fun GrowthType.badgeEmoji(): String = when (this) {
-    GrowthType.WEIGHT -> "⚖️"
-    GrowthType.LENGTH -> "📏"
-    GrowthType.HEAD_CIRC -> "🧢"
 }
 
 @androidx.annotation.StringRes
