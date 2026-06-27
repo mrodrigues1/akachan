@@ -1,5 +1,7 @@
 package com.babytracker.ui.pumping
 
+import com.babytracker.ui.component.EmptyState
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -142,26 +144,12 @@ internal fun PumpingHistoryContent(
     val rowContainer = if (isDark) Color(0xFF4A2A38) else Color(0xFFFCE4EC)
     Box(modifier = modifier.fillMaxSize()) {
         if (state.sessions.isEmpty()) {
-            Column(
+            EmptyState(
+                title = stringResource(R.string.pumping_history_empty_title),
+                subtitle = stringResource(R.string.breastfeeding_history_empty_subtitle),
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 PumpingIcon(modifier = Modifier.size(64.dp))
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = stringResource(R.string.pumping_history_empty_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Text(
-                    text = stringResource(R.string.breastfeeding_history_empty_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 32.dp, vertical = 4.dp),
-                )
             }
             return@Box
         }

@@ -1,5 +1,7 @@
 package com.babytracker.ui.vaccine
 
+import com.babytracker.ui.component.EmptyState
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -832,28 +834,12 @@ private fun GivenRow(
 
 @Composable
 private fun VaccineEmpty(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+    EmptyState(
+        title = stringResource(R.string.vaccine_empty_title),
+        subtitle = stringResource(R.string.vaccine_empty_subtitle),
+        modifier = modifier.fillMaxSize(),
     ) {
         VaccineIcon(modifier = Modifier.size(64.dp))
-        Spacer(Modifier.height(12.dp))
-        Text(
-            text = stringResource(R.string.vaccine_empty_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = stringResource(R.string.vaccine_empty_subtitle),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
     }
 }
 

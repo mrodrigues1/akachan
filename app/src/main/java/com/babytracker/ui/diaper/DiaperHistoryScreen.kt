@@ -1,5 +1,7 @@
 package com.babytracker.ui.diaper
 
+import com.babytracker.ui.component.EmptyState
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -119,30 +121,14 @@ fun DiaperHistoryScreen(
         },
     ) { padding ->
         if (grouped.isEmpty()) {
-            Column(
+            EmptyState(
+                title = stringResource(R.string.diaper_history_empty),
+                subtitle = stringResource(R.string.diaper_history_empty_supporting),
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 32.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    .padding(padding),
             ) {
                 DiaperIcon(modifier = Modifier.size(64.dp))
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    text = stringResource(R.string.diaper_history_empty),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.diaper_history_empty_supporting),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
             }
         } else {
             LazyColumn(

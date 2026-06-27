@@ -1,5 +1,7 @@
 package com.babytracker.ui.doctorvisit
 
+import com.babytracker.ui.component.EmptyState
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -299,20 +301,12 @@ private fun VisitMeta(icon: ImageVector, text: String, color: Color) {
 
 @Composable
 private fun EmptyHistory(padding: PaddingValues) {
-    Column(
+    EmptyState(
+        title = stringResource(R.string.doctor_visit_history_empty),
         modifier = Modifier
             .fillMaxSize()
-            .padding(padding)
-            .padding(horizontal = 32.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .padding(padding),
     ) {
         DoctorVisitIcon(modifier = Modifier.size(64.dp))
-        Spacer(Modifier.height(12.dp))
-        Text(
-            text = stringResource(R.string.doctor_visit_history_empty),
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center,
-        )
     }
 }
