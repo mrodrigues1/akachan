@@ -111,7 +111,10 @@ private fun EditSheetBody(
         }
 
         Spacer(Modifier.height(16.dp))
-        SectionLabel(stringResource(R.string.breastfeeding_edit_started))
+        SectionLabel(
+            text = stringResource(R.string.breastfeeding_edit_started),
+            color = MaterialTheme.colorScheme.primary,
+        )
         Spacer(Modifier.height(8.dp))
         EditDateTimeRow(
             dateLabel = state.editedStart.toEditDateLabel(),
@@ -121,7 +124,10 @@ private fun EditSheetBody(
         )
 
         Spacer(Modifier.height(20.dp))
-        SectionLabel(stringResource(R.string.breastfeeding_edit_ended))
+        SectionLabel(
+            text = stringResource(R.string.breastfeeding_edit_ended),
+            color = MaterialTheme.colorScheme.primary,
+        )
         Spacer(Modifier.height(8.dp))
         EditDateTimeRow(
             dateLabel = state.editedEnd?.toEditDateLabel() ?: stringResource(R.string.breastfeeding_edit_set_date),
@@ -169,14 +175,6 @@ private fun EditSheetBody(
             onDismiss = { timePickerFor = null },
         )
     }
-}
-
-@Composable
-private fun SectionLabel(text: String) {
-    SectionLabel(
-        text = text,
-        color = MaterialTheme.colorScheme.primary,
-    )
 }
 
 @Composable
