@@ -1,5 +1,7 @@
 package com.babytracker.manager
 
+import com.babytracker.util.PENDING_INTENT_IMMUTABLE_UPDATE
+
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
@@ -116,7 +118,7 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context, request.requestCode, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PENDING_INTENT_IMMUTABLE_UPDATE
         )
         alarmManager.cancel(pendingIntent)
         val canScheduleExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -147,7 +149,7 @@ class BreastfeedingNotificationManager(private val context: Context) : Notificat
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context, requestCode, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PENDING_INTENT_IMMUTABLE_UPDATE
         )
         alarmManager.cancel(pendingIntent)
     }

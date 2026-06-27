@@ -89,7 +89,7 @@ object StashNotificationHelper {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 putExtra(NotificationHelper.EXTRA_NAV_ROUTE, Routes.INVENTORY)
             },
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            PENDING_INTENT_IMMUTABLE_UPDATE,
         )
 
     fun showPartnerStashConsumed(context: Context, feedCount: Int, totalMl: Int) {
@@ -126,7 +126,7 @@ object StashNotificationHelper {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 putExtra(NotificationHelper.EXTRA_NAV_ROUTE, Routes.INVENTORY)
             },
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            PENDING_INTENT_IMMUTABLE_UPDATE,
         )
 
     private fun resolveAccent(context: Context, light: Color, dark: Color): Int {

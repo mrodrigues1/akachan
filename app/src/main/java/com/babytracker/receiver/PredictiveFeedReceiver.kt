@@ -1,5 +1,7 @@
 package com.babytracker.receiver
 
+import com.babytracker.util.PENDING_INTENT_IMMUTABLE_UPDATE
+
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -67,7 +69,7 @@ class PredictiveFeedReceiver : BroadcastReceiver() {
         }
         return PendingIntent.getBroadcast(
             context, REQUEST_CODE_SNOOZE, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            PENDING_INTENT_IMMUTABLE_UPDATE,
         )
     }
 
