@@ -1,5 +1,7 @@
 package com.babytracker.manager
 
+import com.babytracker.util.PENDING_INTENT_IMMUTABLE_UPDATE
+
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
@@ -54,7 +56,7 @@ class StashExpirationNotificationManager @Inject constructor(
             context,
             RC_STASH_EXPIRATION,
             intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            PENDING_INTENT_IMMUTABLE_UPDATE,
         )
     }
 

@@ -1,5 +1,7 @@
 package com.babytracker.tile
 
+import com.babytracker.util.PENDING_INTENT_IMMUTABLE_UPDATE
+
 import android.annotation.SuppressLint
 import android.app.KeyguardManager
 import android.app.PendingIntent
@@ -102,7 +104,7 @@ abstract class BaseBabyTileService : TileService() {
                 this,
                 activityRequestCode,
                 intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                PENDING_INTENT_IMMUTABLE_UPDATE,
             )
             startActivityAndCollapse(pendingIntent)
         } else {

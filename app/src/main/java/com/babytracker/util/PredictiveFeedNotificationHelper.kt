@@ -46,7 +46,7 @@ fun showPredictiveReminder(
     }
     val startPi = PendingIntent.getActivity(
         context, RC_PREDICTIVE_START, startIntent,
-        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        PENDING_INTENT_IMMUTABLE_UPDATE,
     )
 
     val builder = NotificationCompat.Builder(context, NotificationHelper.PREDICTIVE_FEED_CHANNEL_ID)

@@ -47,7 +47,7 @@ fun showPredictiveSleepReminder(
         context,
         RC_PREDICTIVE_SLEEP_START,
         startIntent,
-        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        PENDING_INTENT_IMMUTABLE_UPDATE,
     )
 
     val builder = NotificationCompat.Builder(context, NotificationHelper.PREDICTIVE_SLEEP_CHANNEL_ID)

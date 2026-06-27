@@ -493,7 +493,7 @@ object NotificationHelper {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 putExtra(EXTRA_NAV_ROUTE, Routes.SLEEP_TRACKING)
             },
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            PENDING_INTENT_IMMUTABLE_UPDATE,
         )
 
     private fun mainActivityPendingIntent(context: Context): PendingIntent =
@@ -502,7 +502,7 @@ object NotificationHelper {
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             },
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            PENDING_INTENT_IMMUTABLE_UPDATE
         )
 
     private fun breastfeedingActionPi(
@@ -514,7 +514,7 @@ object NotificationHelper {
             putExtra(BreastfeedingActionReceiver.EXTRA_SESSION_ID, sessionId)
             putExtra(BreastfeedingActionReceiver.EXTRA_ACTION, action)
         },
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        PENDING_INTENT_IMMUTABLE_UPDATE
     )
 
     private fun scheduleBreastfeedingActiveRefresh(context: Context, sessionId: Long) {
@@ -527,7 +527,7 @@ object NotificationHelper {
                 putExtra(BreastfeedingActionReceiver.EXTRA_SESSION_ID, sessionId)
                 putExtra(BreastfeedingActionReceiver.EXTRA_ACTION, BreastfeedingActionReceiver.ACTION_REFRESH_ACTIVE)
             },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PENDING_INTENT_IMMUTABLE_UPDATE
         )
         val canScheduleExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             alarmManager.canScheduleExactAlarms()
@@ -558,7 +558,7 @@ object NotificationHelper {
             putExtra(SleepActionReceiver.EXTRA_SESSION_ID, sessionId)
             putExtra(SleepActionReceiver.EXTRA_ACTION, action)
         },
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        PENDING_INTENT_IMMUTABLE_UPDATE
     )
 
     const val PREDICTIVE_FEED_CHANNEL_ID = "predictive_feed_notifications"
