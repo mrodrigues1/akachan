@@ -1,5 +1,6 @@
 package com.babytracker.sharing.usecase
 
+import com.babytracker.debug.DebugSeedConfig
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.SleepOp
@@ -7,6 +8,7 @@ import com.babytracker.sharing.domain.model.SleepOpAction
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
@@ -45,5 +47,21 @@ class ObservePartnerSleepHistoryUseCaseTest {
         assertEquals("NIGHT_SLEEP", merged.entries.first().sleepType)
         assertEquals(94_000L, merged.entries.first().endTime)
         assertEquals(setOf("op-1"), merged.pendingOpIds)
+    }
+
+    @Test
+    fun `debug placeholder code serves seeded records without hitting Firebase`() = runTest {
+        every { settingsRepository.getShareCode() } returns flowOf(DebugSeedConfig.PARTNER_SHARE_CODE)
+        val record = SleepSnapshot(
+            id = 1, startTime = 90_000L, endTime = 95_000L, sleepType = "NAP", notes = null,
+            clientId = "cid", startedBy = "OWNER",
+        )
+
+        val merged = useCase(listOf(record)).first()
+
+        assertEquals(1, merged.entries.size)
+        assertEquals("NAP", merged.entries.first().sleepType)
+        assertEquals(emptySet<String>(), merged.pendingOpIds)
+        coVerify(exactly = 0) { sharingRepository.signInAnonymously() }
     }
 }
