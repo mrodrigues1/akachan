@@ -82,6 +82,28 @@ class PartnerDashboardTimeTest {
     }
 
     @Test
+    fun `diaper count rolls over at local midnight`() {
+        val zone = java.time.ZoneId.of("America/Sao_Paulo")
+        val today = java.time.LocalDate.of(2026, 5, 12)
+        val yesterday = today.minusDays(1)
+        fun changeAt(date: java.time.LocalDate, hour: Int) = com.babytracker.sharing.domain.model.DiaperSnapshot(
+            timestamp = date.atTime(hour, 0).atZone(zone).toInstant().toEpochMilli(),
+            type = "WET",
+        )
+        val diapers = listOf(
+            changeAt(yesterday, 22),
+            changeAt(today, 1),
+            changeAt(today, 9),
+            changeAt(today, 15),
+        )
+
+        assertEquals(3, diaperCountForDay(diapers, today, zone))
+        // Same data, after the day rolls to "tomorrow", shows none for the new day.
+        assertEquals(0, diaperCountForDay(diapers, today.plusDays(1), zone))
+        assertEquals(1, diaperCountForDay(diapers, yesterday, zone))
+    }
+
+    @Test
     fun `sleep type label maps nap and night sleep`() {
         assertEquals("Nap", sleepTypeLabel("NAP", context))
         assertEquals("Night Sleep", sleepTypeLabel("NIGHT_SLEEP", context))

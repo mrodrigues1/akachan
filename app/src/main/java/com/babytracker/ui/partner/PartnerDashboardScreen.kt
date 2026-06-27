@@ -1,15 +1,21 @@
 package com.babytracker.ui.partner
 
 import android.content.Context
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,10 +29,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.CloudDone
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -36,7 +41,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -63,6 +68,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -79,11 +85,20 @@ import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.ui.bottlefeed.BottleFeedSheet
-import com.babytracker.ui.component.BreastfeedingIcon
 import com.babytracker.ui.component.BottleFeedIcon
+import com.babytracker.ui.component.BreastfeedingIcon
+import com.babytracker.ui.component.DiaperIcon
+import com.babytracker.ui.component.DoctorVisitIcon
+import com.babytracker.ui.component.GrowthIcon
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.InventoryIcon
+import com.babytracker.ui.component.MilestoneIcon
+import com.babytracker.ui.component.SleepIcon
 import com.babytracker.ui.component.labelRes
+import com.babytracker.ui.home.ActiveStatusBadge
+import com.babytracker.ui.home.EaseOutQuart
+import com.babytracker.ui.home.HomeTileStatusText
+import com.babytracker.ui.home.HomeTrackerTile
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
 import com.babytracker.ui.theme.OnWarningContainerAmberDark
@@ -91,6 +106,10 @@ import com.babytracker.ui.theme.WarningAmber
 import com.babytracker.ui.theme.WarningAmberDark
 import com.babytracker.ui.theme.WarningContainerAmber
 import com.babytracker.ui.theme.WarningContainerAmberDark
+import com.babytracker.ui.theme.diaperColors
+import com.babytracker.ui.theme.doctorVisitColors
+import com.babytracker.ui.theme.growthColors
+import com.babytracker.ui.theme.milestoneColors
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatLength
@@ -100,12 +119,13 @@ import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 private const val STALE_SYNC_THRESHOLD_MINUTES = 30L
 private const val ONE_MINUTE_MS = 60_000L
-private const val MINUTES_PER_HOUR = 60
+private const val MAX_CONTENT_WIDTH_DP = 600
 
 internal data class PartnerWarningColors(
     val accent: Color,
@@ -131,6 +151,7 @@ fun PartnerDashboardScreen(
     val bottleFeedState by bottleFeedViewModel.uiState.collectAsStateWithLifecycle()
     val sleepState by sleepViewModel.uiState.collectAsStateWithLifecycle()
     var showBottleFeedSheet by remember { mutableStateOf(false) }
+    var showSleepSheet by remember { mutableStateOf(false) }
 
     if (uiState.isDisconnected) {
         AlertDialog(
@@ -262,19 +283,10 @@ fun PartnerDashboardScreen(
                                 bottleFeedViewModel.startLogging()
                                 showBottleFeedSheet = true
                             },
+                            onOpenSleepSheet = { showSleepSheet = true },
                             onNavigateToFeedHistory = onNavigateToFeedHistory,
                             nowProvider = nowProvider,
                             volumeUnit = uiState.volumeUnit,
-                            sleepControls = {
-                                PartnerSleepControls(
-                                    state = sleepState,
-                                    onStartNap = sleepViewModel::onStartNap,
-                                    onStartNightSleep = sleepViewModel::onStartNightSleep,
-                                    onStop = sleepViewModel::onStop,
-                                    onEdit = sleepViewModel::onEditActive,
-                                    onViewHistory = onNavigateToSleepHistory,
-                                )
-                            },
                         )
                     }
                     uiState.error != null -> {
@@ -304,6 +316,24 @@ fun PartnerDashboardScreen(
             onNotesChange = bottleFeedViewModel::onNotesChange,
             onConfirm = bottleFeedViewModel::onConfirm,
             onDismiss = { if (!bottleFeedState.isSaving) showBottleFeedSheet = false },
+        )
+    }
+
+    if (showSleepSheet) {
+        PartnerSleepSheet(
+            state = sleepState,
+            onStartNap = sleepViewModel::onStartNap,
+            onStartNightSleep = sleepViewModel::onStartNightSleep,
+            onStop = sleepViewModel::onStop,
+            onEdit = {
+                showSleepSheet = false
+                sleepViewModel.onEditActive()
+            },
+            onViewHistory = {
+                showSleepSheet = false
+                onNavigateToSleepHistory()
+            },
+            onDismiss = { showSleepSheet = false },
         )
     }
 
@@ -360,10 +390,10 @@ private fun DashboardContent(
     isLoading: Boolean,
     onRefresh: () -> Unit,
     onLogBottle: () -> Unit,
+    onOpenSleepSheet: () -> Unit,
     onNavigateToFeedHistory: () -> Unit,
     nowProvider: () -> Long,
     volumeUnit: VolumeUnit,
-    sleepControls: @Composable () -> Unit,
 ) {
     var nowMs by remember(snapshot.lastSyncAt) { mutableLongStateOf(nowProvider()) }
     LaunchedEffect(snapshot.lastSyncAt) {
@@ -379,9 +409,14 @@ private fun DashboardContent(
     // they recompute on data change only; let `now` feed just the elapsed-time formatters below.
     val activeSession = remember(snapshot.sessions) { snapshot.sessions.firstOrNull { it.endTime == null } }
     val activeSleep = remember(snapshot.sleepRecords) { snapshot.sleepRecords.firstOrNull { it.endTime == null } }
+    val lastFeeding = remember(snapshot.sessions) { snapshot.sessions.firstOrNull { it.endTime != null } }
     val completedSessions =
         remember(snapshot.sessions) { snapshot.sessions.filter { it.endTime != null }.take(3) }
     val lastSleep = remember(snapshot.sleepRecords) { snapshot.sleepRecords.firstOrNull() }
+    val lastCompletedSleep = remember(snapshot.sleepRecords) {
+        snapshot.sleepRecords.firstOrNull { it.endTime != null }
+    }
+    val lastBottle = remember(snapshot.bottleFeeds) { snapshot.bottleFeeds.maxByOrNull { it.timestamp } }
     val hasSharedRecords = remember(snapshot) {
         snapshot.sessions.isNotEmpty() ||
             snapshot.sleepRecords.isNotEmpty() ||
@@ -408,231 +443,19 @@ private fun DashboardContent(
         Duration.between(snapshot.lastSyncAt, now).toMinutes() >= STALE_SYNC_THRESHOLD_MINUTES
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val isWideLayout = maxWidth >= 720.dp
-        val horizontalPadding = if (isWideLayout) 24.dp else 16.dp
-        val topPadding = if (isWideLayout) 12.dp else 8.dp
-        val bottomPadding = if (isWideLayout) 32.dp else 24.dp
-
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            if (isWideLayout) {
-                WideDashboardContent(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .widthIn(max = 1120.dp)
-                        .verticalScroll(rememberScrollState())
-                        .padding(
-                            horizontal = horizontalPadding,
-                            vertical = 0.dp,
-                        )
-                        .padding(top = topPadding, bottom = bottomPadding),
-                    activeSession = activeSession,
-                    activeSleep = activeSleep,
-                    completedSessions = completedSessions,
-                    lastSleep = lastSleep,
-                    hasSharedRecords = hasSharedRecords,
-                    snapshot = snapshot,
-                    lastSharedText = lastSharedText,
-                    lastCheckedText = lastCheckedText,
-                    isShareStale = isShareStale,
-                    error = error,
-                    onClearError = onClearError,
-                    isLoading = isLoading,
-                    onRefresh = onRefresh,
-                    onLogBottle = onLogBottle,
-                    onNavigateToFeedHistory = onNavigateToFeedHistory,
-                    now = now,
-                    volumeUnit = volumeUnit,
-                    sleepControls = sleepControls,
-                )
-            } else {
-                CompactDashboardContent(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = horizontalPadding,
-                        top = topPadding,
-                        end = horizontalPadding,
-                        bottom = bottomPadding,
-                    ),
-                    activeSession = activeSession,
-                    activeSleep = activeSleep,
-                    completedSessions = completedSessions,
-                    lastSleep = lastSleep,
-                    hasSharedRecords = hasSharedRecords,
-                    snapshot = snapshot,
-                    lastSharedText = lastSharedText,
-                    lastCheckedText = lastCheckedText,
-                    isShareStale = isShareStale,
-                    error = error,
-                    onClearError = onClearError,
-                    isLoading = isLoading,
-                    onRefresh = onRefresh,
-                    onLogBottle = onLogBottle,
-                    onNavigateToFeedHistory = onNavigateToFeedHistory,
-                    now = now,
-                    volumeUnit = volumeUnit,
-                    sleepControls = sleepControls,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun CompactDashboardContent(
-    contentPadding: PaddingValues,
-    activeSession: SessionSnapshot?,
-    activeSleep: SleepSnapshot?,
-    completedSessions: List<SessionSnapshot>,
-    lastSleep: SleepSnapshot?,
-    hasSharedRecords: Boolean,
-    snapshot: ShareSnapshot,
-    lastSharedText: String,
-    lastCheckedText: String?,
-    isShareStale: Boolean,
-    error: String?,
-    onClearError: () -> Unit,
-    isLoading: Boolean,
-    onRefresh: () -> Unit,
-    onLogBottle: () -> Unit,
-    onNavigateToFeedHistory: () -> Unit,
-    now: Instant,
-    volumeUnit: VolumeUnit,
-    sleepControls: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .verticalScroll(rememberScrollState())
-            .padding(contentPadding),
-    ) {
-        PartnerStatusPanel(
-            activeSession = activeSession,
-            activeSleep = activeSleep,
-            lastSharedText = lastSharedText,
-            lastCheckedText = lastCheckedText,
-            isShareStale = isShareStale,
-            error = error,
-            onClearError = onClearError,
-            lastSyncAt = snapshot.lastSyncAt,
-            now = now,
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-        sleepControls()
-
-        Spacer(modifier = Modifier.height(16.dp))
-        PartnerBottleActions(
-            onLogBottle = onLogBottle,
-            onNavigateToFeedHistory = onNavigateToFeedHistory,
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-        CareSummaryPanel(
-            lastFeeding = snapshot.sessions.firstOrNull { it.endTime != null },
-            lastSleep = lastSleep,
-            allergyCount = snapshot.baby.allergies.size,
-            now = now,
-        )
-
-        snapshot.sleepPrediction?.let { prediction ->
-            Spacer(modifier = Modifier.height(16.dp))
-            PartnerSleepPredictionCard(
-                prediction = prediction,
-                now = now,
-                activeSleepType = activeSleep?.sleepType,
-                hasActiveSleep = snapshot.sleepRecords.any { it.endTime == null },
-                hasActiveFeeding = activeSession != null,
-            )
-        }
-
-        val inventoryTotalMl = snapshot.inventoryTotalMl
-        val inventoryBagCount = snapshot.inventoryBagCount
-        if (inventoryTotalMl != null && inventoryBagCount != null && inventoryBagCount > 0) {
-            Spacer(modifier = Modifier.height(16.dp))
-            PartnerInventoryCard(
-                totalMl = inventoryTotalMl,
-                bagCount = inventoryBagCount,
-                updatedAtMs = snapshot.inventoryUpdatedAt,
-                now = now,
-                volumeUnit = volumeUnit,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-
-        if (snapshot.growth.isNotEmpty() || snapshot.milestones.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(16.dp))
-            PartnerGrowthMilestonesCard(snapshot = snapshot, modifier = Modifier.fillMaxWidth())
-        }
-
-        if (snapshot.diapers.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(16.dp))
-            PartnerDiaperCard(diapers = snapshot.diapers, modifier = Modifier.fillMaxWidth())
-        }
-
-        if (snapshot.doctorVisits.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(16.dp))
-            PartnerDoctorVisitCard(visits = snapshot.doctorVisits, modifier = Modifier.fillMaxWidth())
-        }
-
-        if (!hasSharedRecords) {
-            Spacer(modifier = Modifier.height(18.dp))
-            SharedRecordsEmptyState(babyName = snapshot.baby.name.takeIf { it.isNotBlank() })
-        }
-
-        Spacer(modifier = Modifier.height(28.dp))
-        DashboardTimelineSections(
-            completedSessions = completedSessions,
-            lastSleep = lastSleep,
-            bottleFeeds = snapshot.bottleFeeds,
-            baby = snapshot.baby,
-            now = now,
-            volumeUnit = volumeUnit,
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-        RefreshSharedUpdatesButton(
-            isLoading = isLoading,
-            onRefresh = onRefresh,
-        )
-    }
-}
-
-@Composable
-private fun WideDashboardContent(
-    activeSession: SessionSnapshot?,
-    activeSleep: SleepSnapshot?,
-    completedSessions: List<SessionSnapshot>,
-    lastSleep: SleepSnapshot?,
-    hasSharedRecords: Boolean,
-    snapshot: ShareSnapshot,
-    lastSharedText: String,
-    lastCheckedText: String?,
-    isShareStale: Boolean,
-    error: String?,
-    onClearError: () -> Unit,
-    isLoading: Boolean,
-    onRefresh: () -> Unit,
-    onLogBottle: () -> Unit,
-    onNavigateToFeedHistory: () -> Unit,
-    now: Instant,
-    volumeUnit: VolumeUnit,
-    sleepControls: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(24.dp),
-        verticalAlignment = Alignment.Top,
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter,
     ) {
         Column(
-            modifier = Modifier.weight(0.9f),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .widthIn(max = MAX_CONTENT_WIDTH_DP.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            PartnerStatusPanel(
+            PartnerSyncStrip(
                 activeSession = activeSession,
                 activeSleep = activeSleep,
                 lastSharedText = lastSharedText,
@@ -640,20 +463,22 @@ private fun WideDashboardContent(
                 isShareStale = isShareStale,
                 error = error,
                 onClearError = onClearError,
-                lastSyncAt = snapshot.lastSyncAt,
-                now = now,
             )
-            sleepControls()
-            PartnerBottleActions(
+
+            PartnerTileGrid(
+                snapshot = snapshot,
+                activeSession = activeSession,
+                activeSleep = activeSleep,
+                lastFeeding = lastFeeding,
+                lastCompletedSleep = lastCompletedSleep,
+                lastBottle = lastBottle,
+                now = now,
+                volumeUnit = volumeUnit,
+                onOpenSleepSheet = onOpenSleepSheet,
                 onLogBottle = onLogBottle,
                 onNavigateToFeedHistory = onNavigateToFeedHistory,
             )
-            CareSummaryPanel(
-                lastFeeding = snapshot.sessions.firstOrNull { it.endTime != null },
-                lastSleep = lastSleep,
-                allergyCount = snapshot.baby.allergies.size,
-                now = now,
-            )
+
             snapshot.sleepPrediction?.let { prediction ->
                 PartnerSleepPredictionCard(
                     prediction = prediction,
@@ -663,44 +488,715 @@ private fun WideDashboardContent(
                     hasActiveFeeding = activeSession != null,
                 )
             }
-            val inventoryTotalMl = snapshot.inventoryTotalMl
-            val inventoryBagCount = snapshot.inventoryBagCount
-            if (inventoryTotalMl != null && inventoryBagCount != null && inventoryBagCount > 0) {
-                PartnerInventoryCard(
-                    totalMl = inventoryTotalMl,
-                    bagCount = inventoryBagCount,
-                    updatedAtMs = snapshot.inventoryUpdatedAt,
-                    now = now,
-                    volumeUnit = volumeUnit,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            if (snapshot.growth.isNotEmpty() || snapshot.milestones.isNotEmpty()) {
-                PartnerGrowthMilestonesCard(snapshot = snapshot, modifier = Modifier.fillMaxWidth())
-            }
-            if (snapshot.doctorVisits.isNotEmpty()) {
-                PartnerDoctorVisitCard(visits = snapshot.doctorVisits, modifier = Modifier.fillMaxWidth())
-            }
+
             if (!hasSharedRecords) {
                 SharedRecordsEmptyState(babyName = snapshot.baby.name.takeIf { it.isNotBlank() })
             }
+
+            Spacer(modifier = Modifier.height(4.dp))
+            DashboardTimelineSections(
+                completedSessions = completedSessions,
+                lastSleep = lastSleep,
+                bottleFeeds = snapshot.bottleFeeds,
+                baby = snapshot.baby,
+                now = now,
+                volumeUnit = volumeUnit,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
             RefreshSharedUpdatesButton(
                 isLoading = isLoading,
                 onRefresh = onRefresh,
             )
         }
+    }
+}
 
-        DashboardTimelineSections(
-            modifier = Modifier.weight(1.1f),
-            completedSessions = completedSessions,
-            lastSleep = lastSleep,
-            bottleFeeds = snapshot.bottleFeeds,
-            baby = snapshot.baby,
-            now = now,
-            volumeUnit = volumeUnit,
+// --- Tile grid (mirrors the parent Home screen) -----------------------------------------------
+
+@Composable
+private fun PartnerTileGrid(
+    snapshot: ShareSnapshot,
+    activeSession: SessionSnapshot?,
+    activeSleep: SleepSnapshot?,
+    lastFeeding: SessionSnapshot?,
+    lastCompletedSleep: SleepSnapshot?,
+    lastBottle: BottleFeedSnapshot?,
+    now: Instant,
+    volumeUnit: VolumeUnit,
+    onOpenSleepSheet: () -> Unit,
+    onLogBottle: () -> Unit,
+    onNavigateToFeedHistory: () -> Unit,
+) {
+    val inventoryTotalMl = snapshot.inventoryTotalMl
+    val inventoryBagCount = snapshot.inventoryBagCount
+    val showInventory = inventoryTotalMl != null && inventoryBagCount != null && inventoryBagCount > 0
+
+    val tiles = buildList<@Composable (Modifier) -> Unit> {
+        add { tileModifier ->
+            PartnerSleepTile(
+                activeSleep = activeSleep,
+                lastCompletedSleep = lastCompletedSleep,
+                lastSyncAt = snapshot.lastSyncAt,
+                now = now,
+                onClick = onOpenSleepSheet,
+                modifier = tileModifier,
+            )
+        }
+        add { tileModifier ->
+            PartnerBreastfeedingTile(
+                activeSession = activeSession,
+                lastFeeding = lastFeeding,
+                lastSyncAt = snapshot.lastSyncAt,
+                now = now,
+                onClick = onNavigateToFeedHistory,
+                modifier = tileModifier,
+            )
+        }
+        add { tileModifier ->
+            PartnerBottleTile(
+                lastBottle = lastBottle,
+                now = now,
+                volumeUnit = volumeUnit,
+                onClick = onLogBottle,
+                modifier = tileModifier,
+            )
+        }
+        if (showInventory) {
+            add { tileModifier ->
+                PartnerInventoryTile(
+                    totalMl = inventoryTotalMl,
+                    bagCount = inventoryBagCount,
+                    updatedAtMs = snapshot.inventoryUpdatedAt,
+                    now = now,
+                    volumeUnit = volumeUnit,
+                    modifier = tileModifier,
+                )
+            }
+        }
+        if (snapshot.diapers.isNotEmpty()) {
+            add { tileModifier -> PartnerDiaperTile(diapers = snapshot.diapers, now = now, modifier = tileModifier) }
+        }
+        if (snapshot.growth.isNotEmpty()) {
+            add { tileModifier -> PartnerGrowthTile(growth = snapshot.growth, modifier = tileModifier) }
+        }
+        if (snapshot.milestones.isNotEmpty()) {
+            add { tileModifier -> PartnerMilestoneTile(milestones = snapshot.milestones, modifier = tileModifier) }
+        }
+        if (snapshot.doctorVisits.isNotEmpty()) {
+            add { tileModifier -> PartnerDoctorVisitTile(visits = snapshot.doctorVisits, modifier = tileModifier) }
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        tiles.chunked(2).forEach { rowTiles ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                rowTiles.forEach { tile ->
+                    Box(modifier = Modifier.weight(1f)) { tile(Modifier.fillMaxWidth()) }
+                }
+                if (rowTiles.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PartnerSleepTile(
+    activeSleep: SleepSnapshot?,
+    lastCompletedSleep: SleepSnapshot?,
+    lastSyncAt: Instant,
+    now: Instant,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isActive = activeSleep != null
+    val containerColor by animateColorAsState(
+        targetValue = if (isActive) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.secondaryContainer,
+        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+        label = "partnerSleepContainer",
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isActive) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSecondaryContainer,
+        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+        label = "partnerSleepContent",
+    )
+    val elevation by animateDpAsState(
+        targetValue = if (isActive) 6.dp else 1.dp,
+        animationSpec = tween(durationMillis = 240, easing = EaseOutQuart),
+        label = "partnerSleepElevation",
+    )
+    val context = LocalContext.current
+    HomeTrackerTile(
+        title = stringResource(R.string.home_sleep_title),
+        contentDescription = stringResource(R.string.home_sleep_content_description),
+        containerColor = containerColor,
+        contentColor = contentColor,
+        onClick = onClick,
+        icon = { SleepIcon(modifier = it) },
+        modifier = modifier,
+        minHeight = if (isActive) 188.dp else 168.dp,
+        elevation = elevation,
+        iconSize = if (isActive) 68.dp else 60.dp,
+        titleStyle = if (isActive) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+        trailing = {
+            AnimatedVisibility(
+                visible = isActive,
+                enter = fadeIn(tween(180, easing = EaseOutQuart)) +
+                    scaleIn(initialScale = 0.82f, animationSpec = tween(180, easing = EaseOutQuart)),
+                exit = fadeOut(tween(120)) + scaleOut(targetScale = 0.82f, animationSpec = tween(120)),
+            ) {
+                ActiveStatusBadge(
+                    paused = false,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
+        },
+    ) {
+        if (activeSleep != null) {
+            val elapsed = remember(activeSleep.startTime, lastSyncAt, now) {
+                activeSleepElapsedDuration(sleep = activeSleep, lastSyncAt = lastSyncAt, now = now)
+            }
+            Text(
+                text = stringResource(R.string.partner_sleeping_when_shared),
+                style = MaterialTheme.typography.labelMedium,
+                color = contentColor,
+            )
+            Text(
+                text = elapsed.formatDuration(),
+                style = MaterialTheme.typography.titleLarge,
+                color = contentColor,
+            )
+            Text(
+                text = stringResource(R.string.partner_estimate),
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor,
+            )
+        } else if (lastCompletedSleep != null) {
+            HomeTileStatusText(
+                text = "${lastCompletedSleep.sleepVerb(context)} ${lastCompletedSleep.sleepAgoText(now, context)}",
+                color = contentColor,
+            )
+        } else {
+            HomeTileStatusText(
+                text = stringResource(R.string.home_sleep_ready),
+                color = contentColor,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PartnerBreastfeedingTile(
+    activeSession: SessionSnapshot?,
+    lastFeeding: SessionSnapshot?,
+    lastSyncAt: Instant,
+    now: Instant,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isActive = activeSession != null
+    val containerColor by animateColorAsState(
+        targetValue = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer,
+        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+        label = "partnerFeedContainer",
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isActive) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer,
+        animationSpec = tween(durationMillis = 220, easing = EaseOutQuart),
+        label = "partnerFeedContent",
+    )
+    val elevation by animateDpAsState(
+        targetValue = if (isActive) 6.dp else 1.dp,
+        animationSpec = tween(durationMillis = 240, easing = EaseOutQuart),
+        label = "partnerFeedElevation",
+    )
+    val context = LocalContext.current
+    HomeTrackerTile(
+        title = stringResource(R.string.home_breastfeeding_title),
+        contentDescription = stringResource(R.string.home_breastfeeding_content_description),
+        containerColor = containerColor,
+        contentColor = contentColor,
+        onClick = onClick,
+        icon = { BreastfeedingIcon(modifier = it) },
+        modifier = modifier,
+        minHeight = if (isActive) 188.dp else 168.dp,
+        elevation = elevation,
+        iconSize = if (isActive) 68.dp else 60.dp,
+        titleStyle = if (isActive) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+        trailing = {
+            AnimatedVisibility(
+                visible = isActive,
+                enter = fadeIn(tween(180, easing = EaseOutQuart)) +
+                    scaleIn(initialScale = 0.82f, animationSpec = tween(180, easing = EaseOutQuart)),
+                exit = fadeOut(tween(120)) + scaleOut(targetScale = 0.82f, animationSpec = tween(120)),
+            ) {
+                ActiveStatusBadge(
+                    paused = false,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        },
+    ) {
+        if (activeSession != null) {
+            val elapsed = remember(activeSession.startTime, activeSession.pausedDurationMs, lastSyncAt, now) {
+                activeSessionElapsedDuration(session = activeSession, lastSyncAt = lastSyncAt, now = now)
+            }
+            Text(
+                text = stringResource(R.string.partner_feeding_when_shared),
+                style = MaterialTheme.typography.labelMedium,
+                color = contentColor,
+            )
+            Text(
+                text = elapsed.formatDuration(),
+                style = MaterialTheme.typography.titleLarge,
+                color = contentColor,
+            )
+            Text(
+                text = feedingSideLabel(activeSession, context),
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = stringResource(R.string.partner_estimate),
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor,
+            )
+        } else if (lastFeeding != null) {
+            HomeTileStatusText(
+                text = stringResource(R.string.partner_fed, lastFeeding.feedingAgoText(now, context)),
+                color = contentColor,
+            )
+        } else {
+            HomeTileStatusText(
+                text = stringResource(R.string.partner_no_feeding_yet),
+                color = contentColor,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PartnerBottleTile(
+    lastBottle: BottleFeedSnapshot?,
+    now: Instant,
+    volumeUnit: VolumeUnit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    HomeTrackerTile(
+        title = stringResource(R.string.partner_log_bottle),
+        contentDescription = stringResource(R.string.home_bottle_feed_content_description),
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        onClick = onClick,
+        icon = { BottleFeedIcon(modifier = it) },
+        modifier = modifier,
+        minHeight = 140.dp,
+    ) {
+        if (lastBottle != null) {
+            val ago = remember(lastBottle.timestamp, now, context) {
+                Duration.between(Instant.ofEpochMilli(lastBottle.timestamp), now)
+                    .coerceAtLeast(Duration.ZERO)
+                    .formatElapsedAgo(context)
+            }
+            HomeTileStatusText(
+                text = "${formatVolume(lastBottle.volumeMl, volumeUnit)} · ${ago.lowercaseFirstChar()}",
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        } else {
+            HomeTileStatusText(
+                text = stringResource(R.string.home_tap_to_log),
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PartnerInventoryTile(
+    totalMl: Int,
+    bagCount: Int,
+    updatedAtMs: Long?,
+    now: Instant,
+    volumeUnit: VolumeUnit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val volumeText = formatVolume(totalMl, volumeUnit)
+    val updatedText = remember(updatedAtMs, now, context) {
+        updatedAtMs?.let {
+            Duration.between(Instant.ofEpochMilli(it), now)
+                .coerceAtLeast(Duration.ZERO)
+                .formatElapsedAgo(context)
+        }
+    }
+    val stashSummary = pluralStringResource(R.plurals.partner_stash_cd, bagCount, volumeText, bagCount)
+    val updatedSuffix = updatedText?.let { stringResource(R.string.partner_stash_cd_updated, it) }.orEmpty()
+
+    HomeTrackerTile(
+        title = stringResource(R.string.partner_milk_stash),
+        contentDescription = stashSummary + updatedSuffix,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        onClick = null,
+        icon = { InventoryIcon(modifier = it) },
+        modifier = modifier,
+        minHeight = 140.dp,
+    ) {
+        HomeTileStatusText(
+            text = pluralStringResource(R.plurals.partner_stash_summary, bagCount, volumeText, bagCount),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (updatedText != null) {
+            Text(
+                text = stringResource(R.string.partner_updated, updatedText),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PartnerDiaperTile(
+    diapers: List<com.babytracker.sharing.domain.model.DiaperSnapshot>,
+    now: Instant,
+    modifier: Modifier = Modifier,
+) {
+    val diaper = diaperColors()
+    val zone = remember { ZoneId.systemDefault() }
+    // Drive "today" from the dashboard's ticking `now`; keying on the resolved local date keeps the
+    // count from recomputing every minute, but rolls it over when the screen stays open past midnight.
+    val today = remember(now, zone) { now.atZone(zone).toLocalDate() }
+    val todayCount = remember(diapers, today, zone) { diaperCountForDay(diapers, today, zone) }
+    val countText = pluralStringResource(R.plurals.partner_diaper_count_today, todayCount, todayCount)
+    HomeTrackerTile(
+        title = stringResource(R.string.home_diaper_title),
+        contentDescription = "${stringResource(R.string.home_diaper_title)}, $countText",
+        containerColor = diaper.container,
+        contentColor = diaper.onContainer,
+        onClick = null,
+        icon = { DiaperIcon(modifier = it) },
+        modifier = modifier,
+        minHeight = 140.dp,
+    ) {
+        HomeTileStatusText(text = countText, color = diaper.onContainer)
+    }
+}
+
+@Composable
+private fun PartnerGrowthTile(
+    growth: List<com.babytracker.sharing.domain.model.GrowthSnapshot>,
+    modifier: Modifier = Modifier,
+) {
+    val colors = growthColors()
+    val context = LocalContext.current
+    // Latest value for every measurement category, matching what the old summary card surfaced — the
+    // tile is read-only, so dropping categories would hide data the partner can no longer reach.
+    val lines = remember(growth, context) {
+        GrowthType.entries.mapNotNull { type ->
+            val latest = growth.filter { it.type == type.name }.maxByOrNull { it.takenAtMs }
+            latest?.let {
+                context.getString(
+                    R.string.partner_growth_label,
+                    type.partnerLabel(context),
+                    formatGrowthValue(type, it.valueCanonical),
+                )
+            }
+        }
+    }
+    HomeTrackerTile(
+        title = stringResource(R.string.partner_growth),
+        contentDescription = (listOf(stringResource(R.string.partner_growth)) + lines).joinToString(", "),
+        containerColor = colors.container,
+        contentColor = colors.onContainer,
+        onClick = null,
+        icon = { GrowthIcon(modifier = it) },
+        modifier = modifier,
+        minHeight = 140.dp,
+    ) {
+        lines.forEach { HomeTileStatusText(text = it, color = colors.onContainer, maxLines = 1) }
+    }
+}
+
+@Composable
+private fun PartnerMilestoneTile(
+    milestones: List<com.babytracker.sharing.domain.model.MilestoneSnapshot>,
+    modifier: Modifier = Modifier,
+) {
+    val colors = milestoneColors()
+    val latest = remember(milestones) { milestones.maxByOrNull { it.dateEpochDay } }
+    HomeTrackerTile(
+        title = stringResource(R.string.partner_milestones),
+        contentDescription = listOfNotNull(stringResource(R.string.partner_milestones), latest?.title).joinToString(", "),
+        containerColor = colors.container,
+        contentColor = colors.onContainer,
+        onClick = null,
+        icon = { MilestoneIcon(modifier = it) },
+        modifier = modifier,
+        minHeight = 140.dp,
+    ) {
+        latest?.let {
+            HomeTileStatusText(text = it.title, color = colors.onContainer)
+        }
+    }
+}
+
+private val tileVisitDateFormatter = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault())
+
+@Composable
+private fun PartnerDoctorVisitTile(
+    visits: List<com.babytracker.sharing.domain.model.DoctorVisitSnapshot>,
+    modifier: Modifier = Modifier,
+) {
+    val colors = doctorVisitColors()
+    val zone = remember { ZoneId.systemDefault() }
+    val shown = remember(visits) {
+        val nowMs = Instant.now().toEpochMilli()
+        visits.filter { it.date > nowMs }.minByOrNull { it.date }
+            ?: visits.maxByOrNull { it.date }
+    }
+    val line = shown?.let { visit ->
+        val dateLabel = tileVisitDateFormatter.format(Instant.ofEpochMilli(visit.date).atZone(zone).toLocalDate())
+        visit.providerName?.takeIf { it.isNotBlank() }?.let { "$dateLabel · $it" } ?: dateLabel
+    }
+    HomeTrackerTile(
+        title = stringResource(R.string.doctor_visit_tile_label),
+        contentDescription = listOfNotNull(stringResource(R.string.doctor_visit_tile_label), line).joinToString(", "),
+        containerColor = colors.container,
+        contentColor = colors.onContainer,
+        onClick = null,
+        icon = { DoctorVisitIcon(modifier = it) },
+        modifier = modifier,
+        minHeight = 140.dp,
+    ) {
+        if (line != null) {
+            HomeTileStatusText(text = line, color = colors.onContainer)
+        } else {
+            HomeTileStatusText(
+                text = stringResource(R.string.partner_doctor_visits_empty),
+                color = colors.onContainer,
+            )
+        }
+    }
+}
+
+// --- Sleep action sheet -----------------------------------------------------------------------
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PartnerSleepSheet(
+    state: PartnerSleepUiState,
+    onStartNap: () -> Unit,
+    onStartNightSleep: () -> Unit,
+    onStop: () -> Unit,
+    onEdit: () -> Unit,
+    onViewHistory: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 24.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.home_sleep_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            PartnerSleepControls(
+                state = state,
+                onStartNap = onStartNap,
+                onStartNightSleep = onStartNightSleep,
+                onStop = onStop,
+                onEdit = onEdit,
+                onViewHistory = onViewHistory,
+            )
+        }
+    }
+}
+
+// --- Sync status strip ------------------------------------------------------------------------
+
+@Composable
+private fun PartnerSyncStrip(
+    activeSession: SessionSnapshot?,
+    activeSleep: SleepSnapshot?,
+    lastSharedText: String,
+    lastCheckedText: String?,
+    isShareStale: Boolean,
+    error: String?,
+    onClearError: () -> Unit,
+) {
+    val context = LocalContext.current
+    val activeStateText = when {
+        activeSession != null -> stringResource(R.string.partner_status_feeding)
+        activeSleep != null -> stringResource(
+            R.string.partner_status_in_progress,
+            sleepTypeLabel(activeSleep.sleepType, context),
+        )
+        else -> stringResource(R.string.partner_status_quiet)
+    }
+    val stateText = if (isShareStale) {
+        stringResource(R.string.partner_share_behind)
+    } else {
+        stringResource(R.string.partner_share_current)
+    }
+    val statusDescription = if (lastCheckedText != null) {
+        stringResource(
+            R.string.partner_status_cd_checked,
+            activeStateText,
+            stateText,
+            lastSharedText.lowercaseFirstChar(),
+            lastCheckedText.lowercaseFirstChar(),
+        )
+    } else {
+        stringResource(
+            R.string.partner_status_cd,
+            activeStateText,
+            stateText,
+            lastSharedText.lowercaseFirstChar(),
+        )
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = statusDescription
+                stateDescription = stateText
+                liveRegion = LiveRegionMode.Polite
+            },
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = dashboardPanelElevation()),
+        border = dashboardPanelBorder(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CloudDone,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clearAndSetSemantics {},
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.partner_shared_ago, lastSharedText.lowercaseFirstChar()),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (lastCheckedText != null) {
+                        Text(
+                            text = stringResource(R.string.partner_checked_ago, lastCheckedText.lowercaseFirstChar()),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
+            if (isShareStale) {
+                SyncWarning()
+            }
+
+            if (error != null) {
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.semantics {
+                        liveRegion = LiveRegionMode.Assertive
+                    },
+                )
+                TextButton(onClick = onClearError) { Text(stringResource(R.string.dismiss)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SyncWarning() {
+    val warningColors = warningColors()
+    val syncWarningDescription = stringResource(R.string.partner_sync_warning_cd)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = syncWarningDescription
+            }
+            .background(
+                color = warningColors.container,
+                shape = MaterialTheme.shapes.small,
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.partner_stale),
+            style = MaterialTheme.typography.bodyMedium,
+            color = warningColors.onContainer,
         )
     }
 }
+
+@Composable
+private fun SharedRecordsEmptyState(babyName: String?) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = dashboardPanelElevation()),
+        border = dashboardPanelBorder(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 18.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.partner_no_shared_records),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = if (babyName != null) {
+                    stringResource(R.string.partner_empty_records_named, babyName)
+                } else {
+                    stringResource(R.string.partner_empty_records)
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+// --- Timeline sections ------------------------------------------------------------------------
 
 @Composable
 private fun DashboardTimelineSections(
@@ -763,396 +1259,6 @@ private fun DashboardTimelineSections(
 }
 
 @Composable
-private fun PartnerBottleActions(
-    onLogBottle: () -> Unit,
-    onNavigateToFeedHistory: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Button(
-            onClick = onLogBottle,
-            modifier = Modifier
-                .weight(1f)
-                .heightIn(min = 48.dp),
-        ) {
-            Icon(Icons.Default.Add, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = stringResource(R.string.partner_log_bottle),
-                maxLines = 2,
-                textAlign = TextAlign.Center,
-            )
-        }
-        OutlinedButton(
-            onClick = onNavigateToFeedHistory,
-            modifier = Modifier
-                .weight(1f)
-                .heightIn(min = 48.dp),
-        ) {
-            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = stringResource(R.string.partner_feeding_history),
-                maxLines = 2,
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
-}
-
-@Composable
-private fun PartnerStatusPanel(
-    activeSession: SessionSnapshot?,
-    activeSleep: SleepSnapshot?,
-    lastSharedText: String,
-    lastCheckedText: String?,
-    isShareStale: Boolean,
-    error: String?,
-    onClearError: () -> Unit,
-    lastSyncAt: Instant,
-    now: Instant,
-) {
-    val containerColor = when {
-        activeSession != null -> MaterialTheme.colorScheme.primaryContainer
-        activeSleep != null -> MaterialTheme.colorScheme.secondaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant
-    }
-    val labelColor = when {
-        activeSession != null -> MaterialTheme.colorScheme.onPrimaryContainer
-        activeSleep != null -> MaterialTheme.colorScheme.onSecondaryContainer
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    val context = LocalContext.current
-    val activeStateText = when {
-        activeSession != null -> stringResource(R.string.partner_status_feeding)
-        activeSleep != null -> stringResource(
-            R.string.partner_status_in_progress,
-            sleepTypeLabel(activeSleep.sleepType, context),
-        )
-        else -> stringResource(R.string.partner_status_quiet)
-    }
-    val stateText = if (isShareStale) {
-        stringResource(R.string.partner_share_behind)
-    } else {
-        stringResource(R.string.partner_share_current)
-    }
-    val statusDescription = if (lastCheckedText != null) {
-        stringResource(
-            R.string.partner_status_cd_checked,
-            activeStateText,
-            stateText,
-            lastSharedText.lowercaseFirstChar(),
-            lastCheckedText.lowercaseFirstChar(),
-        )
-    } else {
-        stringResource(
-            R.string.partner_status_cd,
-            activeStateText,
-            stateText,
-            lastSharedText.lowercaseFirstChar(),
-        )
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics {
-                contentDescription = statusDescription
-                stateDescription = stateText
-                liveRegion = LiveRegionMode.Polite
-        },
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = dashboardPanelElevation()),
-        border = dashboardPanelBorder(),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-        ) {
-            if (activeSession == null && activeSleep == null) {
-                NoActiveSessionStatus()
-            } else {
-                activeSession?.let {
-                    ActiveSessionSummary(
-                        session = it,
-                        lastSyncAt = lastSyncAt,
-                        now = now,
-                    )
-                }
-                if (activeSession != null && activeSleep != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-                activeSleep?.let {
-                    ActiveSleepSummary(
-                        sleep = it,
-                        lastSyncAt = lastSyncAt,
-                        now = now,
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(14.dp))
-            SharedUpdateMeta(
-                lastSharedText = lastSharedText,
-                lastCheckedText = lastCheckedText,
-                color = labelColor,
-            )
-
-            if (isShareStale) {
-                Spacer(modifier = Modifier.height(14.dp))
-                SyncWarning()
-            }
-
-            if (error != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.semantics {
-                        liveRegion = LiveRegionMode.Assertive
-                    },
-                )
-                TextButton(onClick = onClearError) { Text(stringResource(R.string.dismiss)) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun NoActiveSessionStatus() {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = stringResource(R.string.partner_quiet),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = stringResource(R.string.partner_quiet_desc),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun SharedUpdateMeta(
-    lastSharedText: String,
-    lastCheckedText: String?,
-    color: Color,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
-            text = stringResource(R.string.partner_shared_ago, lastSharedText.lowercaseFirstChar()),
-            style = MaterialTheme.typography.bodySmall,
-            color = color,
-        )
-        if (lastCheckedText != null) {
-            Text(
-                text = stringResource(R.string.partner_checked_ago, lastCheckedText.lowercaseFirstChar()),
-                style = MaterialTheme.typography.bodySmall,
-                color = color,
-            )
-        }
-    }
-}
-
-@Composable
-private fun ActiveSessionSummary(
-    session: SessionSnapshot,
-    lastSyncAt: Instant,
-    now: Instant,
-) {
-    val elapsed = remember(session.startTime, session.pausedDurationMs, lastSyncAt, now) {
-        activeSessionElapsedDuration(
-            session = session,
-            lastSyncAt = lastSyncAt,
-            now = now,
-        )
-    }
-    val started = stringResource(
-        if (session.startingSide == "LEFT") R.string.side_left else R.string.side_right,
-    )
-    val sideLabel = if (session.switchTime != null) {
-        val current = stringResource(
-            if (session.startingSide == "LEFT") R.string.side_right else R.string.side_left,
-        )
-        stringResource(R.string.partner_side_switch, started, current)
-    } else {
-        stringResource(R.string.partner_side_single, started)
-    }
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clearAndSetSemantics {}
-                    .background(
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = MaterialTheme.shapes.medium,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                BreastfeedingIcon(modifier = Modifier.size(42.dp))
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.partner_feeding_when_shared),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-                Text(
-                    text = sideLabel,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = elapsed.formatDuration(),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = stringResource(R.string.partner_estimate),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-        )
-    }
-}
-
-@Composable
-private fun ActiveSleepSummary(
-    sleep: SleepSnapshot,
-    lastSyncAt: Instant,
-    now: Instant,
-) {
-    val elapsed = remember(sleep.startTime, lastSyncAt, now) {
-        activeSleepElapsedDuration(
-            sleep = sleep,
-            lastSyncAt = lastSyncAt,
-            now = now,
-        )
-    }
-    val context = LocalContext.current
-    val typeLabel = remember(sleep.sleepType, context) { sleepTypeLabel(sleep.sleepType, context) }
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clearAndSetSemantics {}
-                    .background(
-                        color = MaterialTheme.colorScheme.secondary,
-                        shape = MaterialTheme.shapes.medium,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(text = "💤", style = MaterialTheme.typography.headlineSmall)
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.partner_sleeping_when_shared),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
-                Text(
-                    text = typeLabel,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = elapsed.formatDuration(),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = stringResource(R.string.partner_estimate),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-        )
-    }
-}
-
-@Composable
-private fun SyncWarning() {
-    val warningColors = warningColors()
-    val syncWarningDescription = stringResource(R.string.partner_sync_warning_cd)
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics {
-                contentDescription = syncWarningDescription
-            }
-            .background(
-                color = warningColors.container,
-                shape = MaterialTheme.shapes.small,
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-    ) {
-        Text(
-text = stringResource(R.string.partner_stale),
-            style = MaterialTheme.typography.bodyMedium,
-            color = warningColors.onContainer,
-        )
-    }
-}
-
-@Composable
-private fun SharedRecordsEmptyState(babyName: String?) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = dashboardPanelElevation()),
-        border = dashboardPanelBorder(),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 18.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.partner_no_shared_records),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = if (babyName != null) {
-                    stringResource(R.string.partner_empty_records_named, babyName)
-                } else {
-                    stringResource(R.string.partner_empty_records)
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
 private fun DashboardSection(
     title: String,
     color: Color = MaterialTheme.colorScheme.primary,
@@ -1161,151 +1267,6 @@ private fun DashboardSection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SectionHeader(text = title, color = color)
         content()
-    }
-}
-
-@Composable
-private fun CareSummaryPanel(
-    lastFeeding: SessionSnapshot?,
-    lastSleep: SleepSnapshot?,
-    allergyCount: Int,
-    now: Instant,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = MaterialTheme.shapes.medium,
-            )
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        val context = LocalContext.current
-        Text(
-            text = stringResource(R.string.partner_latest_care),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        SummaryLine(
-            label = lastFeeding?.let { stringResource(R.string.partner_fed, it.feedingAgoText(now, context)) } ?: stringResource(R.string.partner_no_feeding_yet),
-            color = MaterialTheme.colorScheme.primary,
-        )
-        SummaryLine(
-            label = lastSleep?.let { "${it.sleepVerb(context)} ${it.sleepAgoText(now, context)}" }
-                ?: stringResource(R.string.partner_no_sleep_shared),
-            color = MaterialTheme.colorScheme.secondary,
-        )
-        SummaryLine(
-            label = allergySummaryText(allergyCount, context),
-            color = warningColors().accent,
-        )
-    }
-}
-
-@Composable
-private fun PartnerInventoryCard(
-    totalMl: Int,
-    bagCount: Int,
-    updatedAtMs: Long?,
-    now: Instant,
-    volumeUnit: VolumeUnit,
-    modifier: Modifier = Modifier,
-) {
-    val context = LocalContext.current
-    val volumeText = formatVolume(totalMl, volumeUnit)
-    val updatedText = remember(updatedAtMs, now, context) {
-        updatedAtMs?.let {
-            Duration.between(Instant.ofEpochMilli(it), now)
-                .coerceAtLeast(Duration.ZERO)
-                .formatElapsedAgo(context)
-        }
-    }
-    val stashSummary = pluralStringResource(R.plurals.partner_stash_cd, bagCount, volumeText, bagCount)
-    val updatedSuffix = updatedText?.let { stringResource(R.string.partner_stash_cd_updated, it) }.orEmpty()
-    val cardDescription = stashSummary + updatedSuffix
-
-    Card(
-        modifier = modifier
-            .semantics(mergeDescendants = true) {
-                contentDescription = cardDescription
-            },
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = dashboardPanelElevation()),
-        border = dashboardPanelBorder(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clearAndSetSemantics {}
-                    .background(
-                        color = MaterialTheme.colorScheme.tertiaryContainer,
-                        shape = MaterialTheme.shapes.small,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                InventoryIcon(modifier = Modifier.size(34.dp))
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.partner_milk_stash),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.clearAndSetSemantics {},
-                )
-                Text(
-                    text = pluralStringResource(R.plurals.partner_stash_summary, bagCount, volumeText, bagCount),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                if (updatedText != null) {
-                    Text(
-                        text = stringResource(R.string.partner_updated, updatedText),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SummaryLine(
-    label: String,
-    color: Color,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .background(color = color, shape = MaterialTheme.shapes.extraSmall),
-        )
-        Text(
-            text = label,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 
@@ -1415,81 +1376,13 @@ private fun SleepHistoryRow(sleep: SleepSnapshot, now: Instant) {
         title = duration?.formatDuration() ?: stringResource(R.string.label_in_progress),
         subtitle = typeLabel,
         trailing = timeAgo ?: "",
-        badgeEmoji = "\uD83D\uDCA4",
+        badgeEmoji = "💤",
         badgeColor = MaterialTheme.colorScheme.secondaryContainer,
         trailingColor = MaterialTheme.colorScheme.secondary,
     )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun PartnerGrowthMilestonesCard(
-    snapshot: ShareSnapshot,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = dashboardPanelElevation()),
-        border = dashboardPanelBorder(),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            if (snapshot.growth.isNotEmpty()) {
-                Text(
-                    text = stringResource(R.string.partner_growth),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                GrowthType.entries.forEach { type ->
-                    val latest = snapshot.growth.filter { it.type == type.name }.maxByOrNull { it.takenAtMs }
-                    if (latest != null) {
-                        SummaryLine(
-                            label = stringResource(R.string.partner_growth_label, type.partnerLabel(LocalContext.current), formatGrowthValue(type, latest.valueCanonical)),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-            }
-            if (snapshot.milestones.isNotEmpty()) {
-                Text(
-                    text = stringResource(R.string.partner_milestones),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                val formatter = remember { DateTimeFormatter.ofPattern("MMM d, yyyy") }
-                val timeFormatter = remember { DateTimeFormatter.ofPattern("h:mm a") }
-                snapshot.milestones.forEach { snap ->
-                    val whenLabel = buildString {
-                        append(LocalDate.ofEpochDay(snap.dateEpochDay).format(formatter))
-                        snap.timeMinuteOfDay?.let {
-                            append(" · ${LocalTime.of(it / MINUTES_PER_HOUR, it % MINUTES_PER_HOUR).format(timeFormatter)}")
-                        }
-                    }
-                    SummaryLine(
-                        label = stringResource(R.string.partner_milestone_label, snap.title, whenLabel),
-                        color = MaterialTheme.colorScheme.secondary,
-                    )
-                }
-            }
-        }
-    }
-}
-
-private fun GrowthType.partnerLabel(context: Context): String = when (this) {
-    GrowthType.WEIGHT -> context.getString(R.string.growth_tab_weight)
-    GrowthType.LENGTH -> context.getString(R.string.growth_tab_length)
-    GrowthType.HEAD_CIRC -> context.getString(R.string.growth_tab_head)
-}
-
-private fun formatGrowthValue(type: GrowthType, valueCanonical: Long): String = when (type) {
-    GrowthType.WEIGHT -> formatWeight(valueCanonical, MeasurementSystem.METRIC)
-    GrowthType.LENGTH, GrowthType.HEAD_CIRC -> formatLength(valueCanonical, MeasurementSystem.METRIC)
-}
-
 @Composable
 private fun AllergySection(baby: BabySnapshot) {
     val warningColors = warningColors()
@@ -1575,43 +1468,18 @@ private fun RefreshSharedUpdatesButton(
     }
 }
 
-private fun SessionSnapshot.feedingAgoText(now: Instant, context: Context): String =
-    Duration.between(Instant.ofEpochMilli(startTime), now)
-        .coerceAtLeast(Duration.ZERO)
-        .formatElapsedAgo(context)
-        .lowercaseFirstChar()
-
-private fun SleepSnapshot.sleepAgoText(now: Instant, context: Context): String {
-    val time = endTime ?: startTime
-    return Duration.between(Instant.ofEpochMilli(time), now)
-        .coerceAtLeast(Duration.ZERO)
-        .formatElapsedAgo(context)
-        .lowercaseFirstChar()
+@Composable
+private fun SectionHeader(
+    text: String,
+    color: Color = MaterialTheme.colorScheme.primary,
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = color,
+        modifier = Modifier.semantics { heading() },
+    )
 }
-
-private fun SleepSnapshot.sleepVerb(context: Context): String =
-    if (sleepType == "NAP") {
-        context.getString(R.string.partner_slept_nap)
-    } else {
-        context.getString(R.string.partner_slept_night)
-    }
-
-internal fun sleepTypeLabel(sleepType: String, context: Context): String =
-    if (sleepType == "NAP") {
-        context.getString(R.string.sleep_type_nap)
-    } else {
-        context.getString(R.string.sleep_type_night)
-    }
-
-private fun allergySummaryText(count: Int, context: Context): String =
-    if (count == 0) {
-        context.getString(R.string.partner_no_allergies_shared)
-    } else {
-        context.resources.getQuantityString(R.plurals.partner_allergies_shared, count, count)
-    }
-
-private fun String.lowercaseFirstChar(): String =
-    replaceFirstChar { it.lowercase() }
 
 @Composable
 private fun EmptyState(
@@ -1626,7 +1494,7 @@ private fun EmptyState(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = "\uD83D\uDC76",
+            text = "👶",
             style = MaterialTheme.typography.headlineLarge,
             modifier = Modifier.clearAndSetSemantics {},
         )
@@ -1695,18 +1563,63 @@ private fun ErrorState(
     }
 }
 
-@Composable
-private fun SectionHeader(
-    text: String,
-    color: Color = MaterialTheme.colorScheme.primary,
-) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        color = color,
-        modifier = Modifier.semantics { heading() },
+// --- shared helpers (kept stable for unit tests) ----------------------------------------------
+
+private fun feedingSideLabel(session: SessionSnapshot, context: Context): String {
+    val started = context.getString(
+        if (session.startingSide == "LEFT") R.string.side_left else R.string.side_right,
     )
+    return if (session.switchTime != null) {
+        val current = context.getString(
+            if (session.startingSide == "LEFT") R.string.side_right else R.string.side_left,
+        )
+        context.getString(R.string.partner_side_switch, started, current)
+    } else {
+        context.getString(R.string.partner_side_single, started)
+    }
 }
+
+private fun GrowthType.partnerLabel(context: Context): String = when (this) {
+    GrowthType.WEIGHT -> context.getString(R.string.growth_tab_weight)
+    GrowthType.LENGTH -> context.getString(R.string.growth_tab_length)
+    GrowthType.HEAD_CIRC -> context.getString(R.string.growth_tab_head)
+}
+
+private fun formatGrowthValue(type: GrowthType, valueCanonical: Long): String = when (type) {
+    GrowthType.WEIGHT -> formatWeight(valueCanonical, MeasurementSystem.METRIC)
+    GrowthType.LENGTH, GrowthType.HEAD_CIRC -> formatLength(valueCanonical, MeasurementSystem.METRIC)
+}
+
+private fun SessionSnapshot.feedingAgoText(now: Instant, context: Context): String =
+    Duration.between(Instant.ofEpochMilli(startTime), now)
+        .coerceAtLeast(Duration.ZERO)
+        .formatElapsedAgo(context)
+        .lowercaseFirstChar()
+
+private fun SleepSnapshot.sleepAgoText(now: Instant, context: Context): String {
+    val time = endTime ?: startTime
+    return Duration.between(Instant.ofEpochMilli(time), now)
+        .coerceAtLeast(Duration.ZERO)
+        .formatElapsedAgo(context)
+        .lowercaseFirstChar()
+}
+
+private fun SleepSnapshot.sleepVerb(context: Context): String =
+    if (sleepType == "NAP") {
+        context.getString(R.string.partner_slept_nap)
+    } else {
+        context.getString(R.string.partner_slept_night)
+    }
+
+internal fun sleepTypeLabel(sleepType: String, context: Context): String =
+    if (sleepType == "NAP") {
+        context.getString(R.string.sleep_type_nap)
+    } else {
+        context.getString(R.string.sleep_type_night)
+    }
+
+private fun String.lowercaseFirstChar(): String =
+    replaceFirstChar { it.lowercase() }
 
 @Composable
 private fun warningColors(): PartnerWarningColors {
@@ -1740,6 +1653,13 @@ internal fun partnerWarningColors(isDark: Boolean): PartnerWarningColors =
             onSurfaceAccent = OnWarningContainerAmber,
         )
     }
+
+internal fun diaperCountForDay(
+    diapers: List<com.babytracker.sharing.domain.model.DiaperSnapshot>,
+    day: LocalDate,
+    zone: ZoneId,
+): Int =
+    diapers.count { Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate() == day }
 
 internal fun babyAgeWeeks(
     birthDateMs: Long,
