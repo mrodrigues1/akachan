@@ -920,11 +920,10 @@ private fun SectionLabel(
     color: Color,
     modifier: Modifier = Modifier,
 ) {
-    Text(
+    com.babytracker.ui.component.SectionLabel(
         text = text.uppercase(Locale.getDefault()),
-        style = MaterialTheme.typography.labelMedium,
-        color = color,
         modifier = modifier,
+        color = color,
     )
 }
 

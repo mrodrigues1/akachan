@@ -15,9 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,6 +59,7 @@ import com.babytracker.ui.bottlefeed.BottleFeedViewModel
 import com.babytracker.ui.component.BreastfeedingIcon
 import com.babytracker.ui.component.BottleFeedIcon
 import com.babytracker.ui.component.DeleteConfirmationDialog
+import com.babytracker.ui.component.EditDeleteOverflowMenu
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.HistoryDayHeader
 import com.babytracker.ui.theme.LocalDarkTheme
@@ -354,35 +352,7 @@ private fun RowScope.BottleFeedOverflowMenu(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { menuExpanded = true }) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = stringResource(R.string.more_options),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        DropdownMenu(
-            expanded = menuExpanded,
-            onDismissRequest = { menuExpanded = false },
-        ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.edit)) },
-                onClick = {
-                    menuExpanded = false
-                    onEdit()
-                },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.delete)) },
-                onClick = {
-                    menuExpanded = false
-                    onDelete()
-                },
-            )
-        }
-    }
+    EditDeleteOverflowMenu(onEdit = onEdit, onDelete = onDelete)
 }
 
 @Composable

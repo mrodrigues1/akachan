@@ -40,6 +40,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.babytracker.R
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.usecase.breastfeeding.foldPause
+import com.babytracker.ui.component.SectionLabel
 import com.babytracker.ui.component.SheetSaveButton
 import com.babytracker.util.formatTime12h
 import com.babytracker.util.toRelativeLabel
@@ -184,9 +185,8 @@ private fun EditSheetBody(
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(
+    SectionLabel(
         text = text,
-        style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.primary,
     )
 }
