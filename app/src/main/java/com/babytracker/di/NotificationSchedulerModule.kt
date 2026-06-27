@@ -10,10 +10,6 @@ import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.NotificationPermissionChecker
 import com.babytracker.manager.NotificationPermissionCheckerImpl
 import com.babytracker.manager.NotificationScheduler
-import com.babytracker.manager.PartnerFeedNotificationManager
-import com.babytracker.manager.PartnerFeedNotifier
-import com.babytracker.manager.PartnerSleepNotificationManager
-import com.babytracker.manager.PartnerSleepNotifier
 import com.babytracker.manager.PredictiveFeedScheduler
 import com.babytracker.manager.PredictiveFeedSchedulerImpl
 import com.babytracker.manager.PredictiveSleepScheduler
@@ -78,19 +74,6 @@ abstract class NapReminderModule {
     @Binds
     @Singleton
     abstract fun bindNapReminderScheduler(impl: NapReminderManager): NapReminderScheduler
-}
-
-@Module
-@InstallIn(SingletonComponent::class)
-abstract class PartnerFeedNotifierModule {
-
-    @Binds
-    @Singleton
-    abstract fun bindPartnerFeedNotifier(impl: PartnerFeedNotificationManager): PartnerFeedNotifier
-
-    @Binds
-    @Singleton
-    abstract fun bindPartnerSleepNotifier(impl: PartnerSleepNotificationManager): PartnerSleepNotifier
 }
 
 @Module

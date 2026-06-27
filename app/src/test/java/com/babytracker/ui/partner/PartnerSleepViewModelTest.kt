@@ -4,11 +4,11 @@ import android.content.Context
 import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.sharing.domain.model.ShareCode
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
+import com.babytracker.sharing.data.firebase.observeSleepOps
 import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.SleepOpAction
 import com.babytracker.sharing.domain.model.SleepSnapshot
-import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.PartnerAccessRevokedException
 import com.babytracker.sharing.usecase.StartPartnerSleepUseCase
 import com.babytracker.sharing.usecase.StopPartnerSleepUseCase
@@ -17,6 +17,8 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flow
@@ -42,19 +44,21 @@ class PartnerSleepViewModelTest {
     private val startSleep: StartPartnerSleepUseCase = mockk()
     private val stopSleep: StopPartnerSleepUseCase = mockk()
     private val updateSleep: UpdatePartnerSleepUseCase = mockk()
-    private val sharingRepository: SharingRepository = mockk(relaxed = true)
+    private val service: FirestoreSharingService = mockk(relaxed = true)
     private val settingsRepository: SettingsRepository = mockk()
     private val appContext: Context = mockk()
     private val now = Instant.parse("2026-06-01T12:00:00Z")
     private val testDispatcher = StandardTestDispatcher()
 
     private fun buildViewModel() = PartnerSleepViewModel(
-        startSleep, stopSleep, updateSleep, sharingRepository, settingsRepository, appContext, { now },
+        startSleep, stopSleep, updateSleep, service, settingsRepository, appContext, { now },
     )
 
     @BeforeEach
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        // observeSleepOps is a top-level extension function on the service.
+        mockkStatic("com.babytracker.sharing.data.firebase.FirestoreSharingServiceKt")
         // No share code -> the observe loop returns early; pending ops stay empty in these tests.
         every { settingsRepository.getShareCode() } returns flowOf(null)
         every { appContext.getString(any()) } returns "error"
@@ -66,6 +70,7 @@ class PartnerSleepViewModelTest {
     @AfterEach
     fun tearDown() {
         Dispatchers.resetMain()
+        unmockkAll()
     }
 
     private fun partnerActive(clientId: String = "p-cid") = SleepSnapshot(
@@ -169,8 +174,8 @@ class PartnerSleepViewModelTest {
             authorUid = "uid", createdAtMs = now.toEpochMilli(), endTimeMs = now.toEpochMilli(),
         )
         every { settingsRepository.getShareCode() } returns flowOf("CODE")
-        coEvery { sharingRepository.signInAnonymously() } returns "uid"
-        every { sharingRepository.observeOwnSleepOps(ShareCode("CODE"), "uid") } returns
+        coEvery { service.signInAnonymously() } returns "uid"
+        every { service.observeSleepOps("CODE", "uid") } returns
             flowOf(listOf(op), emptyList())
 
         val vm = buildViewModel()
@@ -187,9 +192,9 @@ class PartnerSleepViewModelTest {
         )
         var attempts = 0
         every { settingsRepository.getShareCode() } returns flowOf("CODE")
-        coEvery { sharingRepository.signInAnonymously() } returns "uid"
+        coEvery { service.signInAnonymously() } returns "uid"
         // First subscription blows up; retryWhen must re-subscribe and pick up the applied op.
-        every { sharingRepository.observeOwnSleepOps(ShareCode("CODE"), "uid") } returns flow {
+        every { service.observeSleepOps("CODE", "uid") } returns flow {
             attempts++
             if (attempts == 1) throw IOException("listener boom")
             emit(listOf(op))

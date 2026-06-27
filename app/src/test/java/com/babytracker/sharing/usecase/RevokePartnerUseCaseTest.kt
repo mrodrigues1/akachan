@@ -1,8 +1,8 @@
 package com.babytracker.sharing.usecase
 
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.ShareCode
-import com.babytracker.sharing.domain.repository.SharingRepository
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test
 
 class RevokePartnerUseCaseTest {
 
-    private val sharingRepository: SharingRepository = mockk()
+    private val service: FirestoreSharingService = mockk()
     private val settingsRepository: SettingsRepository = mockk()
 
     private lateinit var useCase: RevokePartnerUseCase
@@ -25,17 +25,17 @@ class RevokePartnerUseCaseTest {
 
     @BeforeEach
     fun setUp() {
-        useCase = RevokePartnerUseCase(sharingRepository, settingsRepository)
+        useCase = RevokePartnerUseCase(service, settingsRepository)
     }
 
     @Test
     fun deletesCorrectPartnerUid() = runTest {
         every { settingsRepository.getShareCode() } returns flowOf(shareCode.value)
-        coEvery { sharingRepository.revokePartner(shareCode, "uid-to-remove") } just Runs
+        coEvery { service.revokePartner(shareCode.value, "uid-to-remove") } just Runs
 
         useCase("uid-to-remove")
 
-        coVerify { sharingRepository.revokePartner(shareCode, "uid-to-remove") }
+        coVerify { service.revokePartner(shareCode.value, "uid-to-remove") }
     }
 
     @Test
@@ -44,16 +44,16 @@ class RevokePartnerUseCaseTest {
 
         useCase("uid-to-remove")
 
-        coVerify(exactly = 0) { sharingRepository.revokePartner(any(), any()) }
+        coVerify(exactly = 0) { service.revokePartner(any(), any()) }
     }
 
     @Test
     fun unknownUidRevokeSucceedsIdempotently() = runTest {
         every { settingsRepository.getShareCode() } returns flowOf(shareCode.value)
-        coEvery { sharingRepository.revokePartner(shareCode, "nonexistent-uid") } just Runs
+        coEvery { service.revokePartner(shareCode.value, "nonexistent-uid") } just Runs
 
         useCase("nonexistent-uid")
 
-        coVerify { sharingRepository.revokePartner(shareCode, "nonexistent-uid") }
+        coVerify { service.revokePartner(shareCode.value, "nonexistent-uid") }
     }
 }

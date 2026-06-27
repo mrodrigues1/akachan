@@ -5,10 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
 import android.os.Build
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
 import com.babytracker.MainActivity
 import com.babytracker.R
@@ -42,7 +39,7 @@ object PartnerSleepNotificationHelper {
 
     fun showPartnerSleepChange(context: Context, notification: PartnerSleepNotification) {
         val title = context.getString(messageRes(notification))
-        val accent = resolveAccent(context, Purple700, Purple200)
+        val accent = context.resolveNotificationAccent(Purple700, Purple200)
         val built = NotificationCompat.Builder(context, PARTNER_SLEEP_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notif_sleep)
             .setColor(accent)
@@ -82,9 +79,4 @@ object PartnerSleepNotificationHelper {
             PENDING_INTENT_IMMUTABLE_UPDATE,
         )
 
-    private fun resolveAccent(context: Context, light: Color, dark: Color): Int {
-        val nightMask = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        val isDark = nightMask == Configuration.UI_MODE_NIGHT_YES
-        return (if (isDark) dark else light).toArgb()
-    }
 }

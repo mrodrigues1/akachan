@@ -15,6 +15,6 @@ interface WidgetEntryPoint {
     fun breastfeedingRepository(): BreastfeedingRepository
     fun sleepRepository(): SleepRepository
     fun settingsRepository(): SettingsRepository
-    fun partnerWidgetCache(): PartnerWidgetCache
+    fun partnerWidgetCache(): PartnerWidgetCacheImpl
     fun widgetRefreshScheduler(): WidgetRefreshScheduler
 }

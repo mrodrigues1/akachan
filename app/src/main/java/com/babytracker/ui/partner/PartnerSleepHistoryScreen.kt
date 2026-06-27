@@ -220,7 +220,6 @@ private fun PartnerSleepHistoryCard(
         subtitle = subtitle,
         trailing = end?.let { Duration.between(start, it).formatDuration() }
             ?: stringResource(R.string.label_in_progress),
-        badgeEmoji = "",
         badgeColor = MaterialTheme.colorScheme.secondaryContainer,
         badgeContent = {
             if (type == SleepType.NIGHT_SLEEP) {

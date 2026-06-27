@@ -33,7 +33,7 @@ suspend fun loadWidgetData(context: Context): WidgetData {
 
 internal suspend fun loadWidgetData(
     settings: SettingsRepository,
-    partnerCache: PartnerWidgetCache,
+    partnerCache: PartnerWidgetCacheImpl,
     scheduler: WidgetRefreshScheduler,
     baby: BabyRepository,
     feed: BreastfeedingRepository,

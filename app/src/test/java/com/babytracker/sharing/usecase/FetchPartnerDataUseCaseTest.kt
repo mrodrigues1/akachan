@@ -1,10 +1,10 @@
 package com.babytracker.sharing.usecase
 
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
-import com.babytracker.sharing.domain.repository.SharingRepository
 import com.google.firebase.FirebaseException
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -22,7 +22,7 @@ import java.time.Instant
 
 class FetchPartnerDataUseCaseTest {
 
-    private val sharingRepository: SharingRepository = mockk()
+    private val service: FirestoreSharingService = mockk()
     private val settingsRepository: SettingsRepository = mockk()
 
     private lateinit var useCase: FetchPartnerDataUseCase
@@ -37,15 +37,15 @@ class FetchPartnerDataUseCaseTest {
 
     @BeforeEach
     fun setUp() {
-        useCase = FetchPartnerDataUseCase(sharingRepository, settingsRepository, mockk(relaxed = true))
+        useCase = FetchPartnerDataUseCase(service, settingsRepository, mockk(relaxed = true))
         every { settingsRepository.getShareCode() } returns flowOf(shareCode.value)
-        coEvery { sharingRepository.signInAnonymously() } returns "uid123"
+        coEvery { service.signInAnonymously() } returns "uid123"
     }
 
     @Test
     fun returnsSnapshotWhenPartnerIsConnected() = runTest {
-        coEvery { sharingRepository.isPartnerConnected(shareCode, "uid123") } returns true
-        coEvery { sharingRepository.fetchSnapshot(shareCode) } returns snapshot
+        coEvery { service.isPartnerConnected(shareCode.value, "uid123") } returns true
+        coEvery { service.fetchSnapshot(shareCode.value) } returns snapshot
 
         val result = useCase()
 
@@ -54,7 +54,7 @@ class FetchPartnerDataUseCaseTest {
 
     @Test
     fun throwsPartnerAccessRevokedWhenPartnerIsDisconnected() = runTest {
-        coEvery { sharingRepository.isPartnerConnected(shareCode, "uid123") } returns false
+        coEvery { service.isPartnerConnected(shareCode.value, "uid123") } returns false
         coEvery { settingsRepository.clearPartnerStateIfShareCodeMatches(shareCode.value) } returns true
 
         var caught: IllegalStateException? = null
@@ -90,8 +90,8 @@ class FetchPartnerDataUseCaseTest {
         // TOCTOU: isPartnerConnected passes, then primary deletes the share document before
         // fetchSnapshot returns → fetchSnapshot throws ISE("No data in share document …").
         // The use case must classify this as a confirmed revoke, not a transient error.
-        coEvery { sharingRepository.isPartnerConnected(shareCode, "uid123") } returns true
-        coEvery { sharingRepository.fetchSnapshot(shareCode) } throws
+        coEvery { service.isPartnerConnected(shareCode.value, "uid123") } returns true
+        coEvery { service.fetchSnapshot(shareCode.value) } throws
             IllegalStateException("No data in share document ${shareCode.value}")
         coEvery { settingsRepository.clearPartnerStateIfShareCodeMatches(shareCode.value) } returns true
 
@@ -109,8 +109,8 @@ class FetchPartnerDataUseCaseTest {
 
     @Test
     fun wrapsFirebaseFetchFailureAsPartnerDataFetchException() = runTest {
-        coEvery { sharingRepository.isPartnerConnected(shareCode, "uid123") } returns true
-        coEvery { sharingRepository.fetchSnapshot(shareCode) } throws FirebaseException("offline")
+        coEvery { service.isPartnerConnected(shareCode.value, "uid123") } returns true
+        coEvery { service.fetchSnapshot(shareCode.value) } throws FirebaseException("offline")
 
         var caught: RuntimeException? = null
         try {
@@ -128,12 +128,12 @@ class FetchPartnerDataUseCaseTest {
         // The explicit overload must use the passed code, never re-reading settings — this is what
         // lets the worker cache a snapshot under exactly the code it requested.
         val explicit = ShareCode("ZZ999999")
-        coEvery { sharingRepository.isPartnerConnected(explicit, "uid123") } returns true
-        coEvery { sharingRepository.fetchSnapshot(explicit) } returns snapshot
+        coEvery { service.isPartnerConnected(explicit.value, "uid123") } returns true
+        coEvery { service.fetchSnapshot(explicit.value) } returns snapshot
 
         val result = useCase(explicit)
 
         assertEquals(snapshot, result)
-        coVerify { sharingRepository.fetchSnapshot(explicit) }
+        coVerify { service.fetchSnapshot(explicit.value) }
     }
 }

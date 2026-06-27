@@ -14,9 +14,9 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.ShareSnapshot
-import com.babytracker.sharing.domain.repository.SharingRepository
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -30,7 +30,7 @@ import java.time.Instant
 class SyncToFirestoreDoctorVisitTest {
     @Test
     fun `FULL sync includes mapped doctor visits`() = runTest {
-        val sharingRepository = mockk<SharingRepository>(relaxed = true)
+        val service = mockk<FirestoreSharingService>(relaxed = true)
         val settings = mockk<SettingsRepository>(relaxed = true)
         every { settings.getAppMode() } returns flowOf(AppMode.PRIMARY)
         every { settings.getShareCode() } returns flowOf("ABCD")
@@ -70,11 +70,11 @@ class SyncToFirestoreDoctorVisitTest {
             mockk<PredictSleepWindowUseCase>(), growthRepo, milestoneRepo, doctorRepo,
         )
         val useCase = SyncToFirestoreUseCase(
-            sharingRepository, settings, sleepSettings, sources, appContext = mockk(relaxed = true),
+            service, settings, sleepSettings, sources, appContext = mockk(relaxed = true),
         ) { Instant.ofEpochMilli(99) }
 
         val captured = slot<ShareSnapshot>()
-        coEvery { sharingRepository.syncFullSnapshot(any(), capture(captured)) } returns Unit
+        coEvery { service.syncFullSnapshot(any(), capture(captured)) } returns Unit
 
         useCase(SyncToFirestoreUseCase.SyncType.FULL)
 

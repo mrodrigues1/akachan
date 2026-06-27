@@ -14,12 +14,18 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Caches the projected [WidgetData] for a partner-mode widget, tagged with the share code it was
+ * fetched under. [read] returns data only when the requested code matches the cached one, and
+ * [clear] removes the cache only when the supplied code matches — so a partner who reconnects to a
+ * different primary never sees, nor has wiped, the other primary's data.
+ */
 @Singleton
 class PartnerWidgetCacheImpl @Inject constructor(
     private val dataStore: DataStore<Preferences>,
-) : PartnerWidgetCache {
+) {
 
-    override suspend fun read(shareCode: String): WidgetData? {
+    suspend fun read(shareCode: String): WidgetData? {
         val prefs = dataStore.data.first()
         if (prefs[SHARE_CODE] != shareCode) return null
         val feedStateName = prefs[FEED_STATE] ?: return null
@@ -34,7 +40,7 @@ class PartnerWidgetCacheImpl @Inject constructor(
         )
     }
 
-    override suspend fun save(shareCode: String, data: WidgetData) {
+    suspend fun save(shareCode: String, data: WidgetData) {
         dataStore.edit { prefs ->
             prefs[SHARE_CODE] = shareCode
             prefs[BABY_NAME] = data.babyName
@@ -46,7 +52,7 @@ class PartnerWidgetCacheImpl @Inject constructor(
         }
     }
 
-    override suspend fun clear(shareCode: String) {
+    suspend fun clear(shareCode: String) {
         dataStore.edit { prefs ->
             // Code-scoped clear: a concurrent reconnect that already cached a different primary's
             // data keeps it. And because this is the shared "baby_tracker_prefs" store, we remove

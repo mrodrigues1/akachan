@@ -8,12 +8,9 @@ import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
 import com.babytracker.sharing.usecase.ObservePartnerSleepHistoryUseCase
-import com.babytracker.sharing.usecase.PartnerAccessRevokedException
-import com.babytracker.sharing.usecase.PartnerDataFetchException
 import com.babytracker.widget.WidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
@@ -65,32 +62,36 @@ class PartnerSleepHistoryViewModel @Inject constructor(
     fun refresh() {
         historyJob?.cancel()
         historyJob = viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, accessRevoked = false, error = null) }
-            try {
-                val snapshot = fetchPartnerData()
-                observePartnerSleepHistory(snapshot.sleepRecords).collect { merged ->
+            refreshPartnerHistory(
+                fetchPartnerData = fetchPartnerData,
+                widgetUpdater = widgetUpdater,
+                observe = { observePartnerSleepHistory(it.sleepRecords) },
+                onLoadingStart = {
+                    _uiState.update { it.copy(isLoading = true, accessRevoked = false, error = null) }
+                },
+                onSnapshotLoaded = { },
+                onMerged = { merged ->
                     _uiState.update { it.copy(entries = merged.entries, isLoading = false) }
                     if (hasConsumedPendingOps(lastPendingOpIds, merged.pendingOpIds)) {
                         refreshTrigger.tryEmit(Unit)
                     }
                     lastPendingOpIds = merged.pendingOpIds
-                }
-            } catch (error: CancellationException) {
-                throw error
-            } catch (_: PartnerAccessRevokedException) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        accessRevoked = true,
-                        error = appContext.getString(R.string.error_partner_access_revoked),
-                    )
-                }
-                widgetUpdater.updateAll()
-            } catch (_: PartnerDataFetchException) {
-                _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_partner_load_failed)) }
-            } catch (_: IllegalStateException) {
-                _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_partner_load_failed)) }
-            }
+                },
+                onAccessRevoked = {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            accessRevoked = true,
+                            error = appContext.getString(R.string.error_partner_access_revoked),
+                        )
+                    }
+                },
+                onLoadFailed = {
+                    _uiState.update {
+                        it.copy(isLoading = false, error = appContext.getString(R.string.error_partner_load_failed))
+                    }
+                },
+            )
         }
     }
 

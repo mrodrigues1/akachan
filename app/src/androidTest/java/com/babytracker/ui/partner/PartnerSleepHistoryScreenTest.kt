@@ -66,7 +66,7 @@ class PartnerSleepHistoryScreenTest {
             startSleep = mockk<StartPartnerSleepUseCase>(),
             stopSleep = mockk<StopPartnerSleepUseCase>(),
             updateSleep = mockk<UpdatePartnerSleepUseCase>(),
-            sharingRepository = mockk(relaxed = true),
+            service = mockk(relaxed = true),
             settingsRepository = settings,
             appContext = appContext,
             now = Instant::now,

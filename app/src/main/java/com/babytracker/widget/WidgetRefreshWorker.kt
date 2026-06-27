@@ -25,7 +25,7 @@ class WidgetRefreshWorker @AssistedInject constructor(
     private val updater: WidgetUpdater,
     private val settings: SettingsRepository,
     private val fetchPartnerData: FetchPartnerDataUseCase,
-    private val partnerCache: PartnerWidgetCache,
+    private val partnerCache: PartnerWidgetCacheImpl,
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result =

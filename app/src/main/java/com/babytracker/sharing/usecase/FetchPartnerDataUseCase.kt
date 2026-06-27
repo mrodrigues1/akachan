@@ -4,9 +4,9 @@ import com.babytracker.BuildConfig
 import com.babytracker.debug.DebugPartnerSnapshotBuilder
 import com.babytracker.debug.DebugSeedConfig
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
-import com.babytracker.sharing.domain.repository.SharingRepository
 import com.google.firebase.FirebaseException
 import dagger.Lazy
 import kotlinx.coroutines.CancellationException
@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 class FetchPartnerDataUseCase @Inject constructor(
-    private val sharingRepository: SharingRepository,
+    private val service: FirestoreSharingService,
     private val settingsRepository: SettingsRepository,
     // Lazy: only resolved on the debug placeholder-code path, never in release fetches.
     private val debugSnapshotBuilder: Lazy<DebugPartnerSnapshotBuilder>,
@@ -48,8 +48,8 @@ class FetchPartnerDataUseCase @Inject constructor(
     }
 
     private suspend fun fetchConnectedSnapshot(code: ShareCode): ShareSnapshot {
-        val uid = sharingRepository.signInAnonymously()
-        if (!sharingRepository.isPartnerConnected(code, uid)) {
+        val uid = service.signInAnonymously()
+        if (!service.isPartnerConnected(code.value, uid)) {
             // Conditional clear: if the user already reconnected to a different primary, the stored
             // code no longer matches and this is a no-op; the newer connection is preserved.
             settingsRepository.clearPartnerStateIfShareCodeMatches(code.value)
@@ -64,7 +64,7 @@ class FetchPartnerDataUseCase @Inject constructor(
         // throws IllegalStateException("No data in share document ..."). Treat that as a confirmed
         // revoke so the worker clears the cache instead of keeping stale data and retrying.
         return try {
-            sharingRepository.fetchSnapshot(code)
+            service.fetchSnapshot(code.value)
         } catch (e: CancellationException) {
             throw e
         } catch (e: IllegalStateException) {

@@ -17,7 +17,6 @@ import com.babytracker.sharing.usecase.PartnerDataFetchException
 import com.babytracker.widget.WidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
@@ -80,40 +79,38 @@ class PartnerFeedHistoryViewModel @Inject constructor(
     fun refresh() {
         historyJob?.cancel()
         historyJob = viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, accessRevoked = false, error = null) }
-            try {
-                val snapshot = fetchPartnerData()
-                _uiState.update {
-                    it.copy(
-                        milkBags = snapshot.milkBags,
-                        isLoading = false,
-                    )
-                }
-                observePartnerFeedHistory(snapshot.bottleFeeds).collect { merged ->
-                    _uiState.update {
-                        it.copy(entries = merged.entries, isLoading = false)
-                    }
+            refreshPartnerHistory(
+                fetchPartnerData = fetchPartnerData,
+                widgetUpdater = widgetUpdater,
+                observe = { observePartnerFeedHistory(it.bottleFeeds) },
+                onLoadingStart = {
+                    _uiState.update { it.copy(isLoading = true, accessRevoked = false, error = null) }
+                },
+                onSnapshotLoaded = { snapshot ->
+                    _uiState.update { it.copy(milkBags = snapshot.milkBags, isLoading = false) }
+                },
+                onMerged = { merged ->
+                    _uiState.update { it.copy(entries = merged.entries, isLoading = false) }
                     if (hasConsumedPendingOps(lastPendingOpIds, merged.pendingOpIds)) {
                         refreshTrigger.tryEmit(Unit)
                     }
                     lastPendingOpIds = merged.pendingOpIds
-                }
-            } catch (error: CancellationException) {
-                throw error
-            } catch (_: PartnerAccessRevokedException) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        accessRevoked = true,
-                        error = appContext.getString(R.string.error_partner_access_revoked),
-                    )
-                }
-                widgetUpdater.updateAll()
-            } catch (_: PartnerDataFetchException) {
-                _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_partner_load_failed)) }
-            } catch (_: IllegalStateException) {
-                _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_partner_load_failed)) }
-            }
+                },
+                onAccessRevoked = {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            accessRevoked = true,
+                            error = appContext.getString(R.string.error_partner_access_revoked),
+                        )
+                    }
+                },
+                onLoadFailed = {
+                    _uiState.update {
+                        it.copy(isLoading = false, error = appContext.getString(R.string.error_partner_load_failed))
+                    }
+                },
+            )
         }
     }
 
@@ -146,12 +143,3 @@ class PartnerFeedHistoryViewModel @Inject constructor(
         const val REFRESH_DEBOUNCE_MS = 300L
     }
 }
-
-/**
- * True when an op that was pending in [previous] is no longer in [current] — the primary consumed
- * it and pushed an updated snapshot, so the stale one-shot snapshot must be re-fetched.
- */
-internal fun hasConsumedPendingOps(
-    previous: Set<String>,
-    current: Set<String>,
-): Boolean = previous.any { it !in current }

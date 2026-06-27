@@ -2,7 +2,6 @@ package com.babytracker.ui.partner
 
 import android.content.Context
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +33,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
+import com.babytracker.ui.home.EaseOutQuart
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatTime
 import java.time.Duration
@@ -41,7 +41,6 @@ import java.time.Instant
 
 private const val OVERDUE_GRACE_MINUTES = 45L
 private const val MAX_REASONS = 2
-private val EaseOutQuart = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
 
 private enum class PredictionVariant { WINDOW, OVERDUE, CURRENTLY_SLEEPING, AFTER_ACTIVE_FEED, NEED_MORE_DATA, CUE_LED }
 
@@ -71,7 +70,7 @@ internal fun PartnerSleepPredictionCard(
     val estimatedAgo = Duration.between(Instant.ofEpochMilli(prediction.generatedAt), now)
         .coerceAtLeast(Duration.ZERO)
         .formatElapsedAgo(context)
-        .replaceFirstChar { it.lowercase() }
+        .lowercaseFirstChar()
     val estimatedLine = stringResource(R.string.partner_prediction_estimated, estimatedAgo)
 
     Card(

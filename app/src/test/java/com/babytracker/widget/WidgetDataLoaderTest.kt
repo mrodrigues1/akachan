@@ -160,7 +160,7 @@ class WidgetDataLoaderTest {
             sleepState = SleepState.SLEEPING,
             sleepSince = Instant.parse("2026-05-27T11:00:00Z"),
         )
-        val cache: PartnerWidgetCache = mockk { coEvery { read("CODE") } returns cached }
+        val cache: PartnerWidgetCacheImpl = mockk { coEvery { read("CODE") } returns cached }
         val scheduler: WidgetRefreshScheduler = mockk(relaxUnitFun = true)
 
         val result = loadWidgetData(
@@ -178,7 +178,7 @@ class WidgetDataLoaderTest {
 
     @Test
     fun `partner mode cache-miss returns EMPTY and schedules an immediate refresh`() = runTest {
-        val cache: PartnerWidgetCache = mockk { coEvery { read("CODE") } returns null }
+        val cache: PartnerWidgetCacheImpl = mockk { coEvery { read("CODE") } returns null }
         val scheduler: WidgetRefreshScheduler = mockk(relaxUnitFun = true)
 
         val result = loadWidgetData(
@@ -196,7 +196,7 @@ class WidgetDataLoaderTest {
 
     @Test
     fun `partner mode with null share code returns EMPTY without reading cache or scheduling`() = runTest {
-        val cache: PartnerWidgetCache = mockk()
+        val cache: PartnerWidgetCacheImpl = mockk()
         val scheduler: WidgetRefreshScheduler = mockk(relaxUnitFun = true)
 
         val result = loadWidgetData(
@@ -213,7 +213,7 @@ class WidgetDataLoaderTest {
         verify(exactly = 0) { scheduler.scheduleImmediateRefresh() }
     }
 
-    private fun coVerifyCacheNeverRead(cache: PartnerWidgetCache) {
+    private fun coVerifyCacheNeverRead(cache: PartnerWidgetCacheImpl) {
         io.mockk.coVerify(exactly = 0) { cache.read(any()) }
     }
 }

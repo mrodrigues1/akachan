@@ -6,8 +6,7 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.FeedOpAction
-import com.babytracker.sharing.domain.model.ShareCode
-import com.babytracker.sharing.domain.repository.SharingRepository
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -27,7 +26,7 @@ import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 
 class EditPartnerFeedUseCaseTest {
-    private val sharingRepository: SharingRepository = mockk()
+    private val service: FirestoreSharingService = mockk()
     private val settingsRepository: SettingsRepository = mockk()
     private val applicationScope = CoroutineScope(Dispatchers.Unconfined)
     private val fixedNow = Instant.parse("2026-06-01T10:00:00Z")
@@ -36,17 +35,17 @@ class EditPartnerFeedUseCaseTest {
     @BeforeEach
     fun setUp() {
         useCase = EditPartnerFeedUseCase(
-            SubmitFeedOpUseCase(sharingRepository, settingsRepository, applicationScope),
+            SubmitFeedOpUseCase(service, settingsRepository, applicationScope),
         ) { fixedNow }
         every { settingsRepository.getShareCode() } returns flowOf("CODE1234")
-        coEvery { sharingRepository.signInAnonymously() } returns "partner-uid"
-        coEvery { sharingRepository.writeFeedOp(any(), any(), any()) } just Runs
+        coEvery { service.signInAnonymously() } returns "partner-uid"
+        coEvery { service.writeFeedOp(any(), any(), any()) } just Runs
     }
 
     @Test
     fun `edit writes update op targeting partner entry without consumed bag`() = runTest {
         val op = slot<FeedOp>()
-        coEvery { sharingRepository.writeFeedOp(ShareCode("CODE1234"), capture(op), any()) } just Runs
+        coEvery { service.writeFeedOp("CODE1234", capture(op), any()) } just Runs
 
         useCase(
             entry = partnerEntry(clientId = "entry-1"),
@@ -75,8 +74,8 @@ class EditPartnerFeedUseCaseTest {
             }
         }
 
-        coVerify(exactly = 0) { sharingRepository.signInAnonymously() }
-        coVerify(exactly = 0) { sharingRepository.writeFeedOp(any(), any(), any()) }
+        coVerify(exactly = 0) { service.signInAnonymously() }
+        coVerify(exactly = 0) { service.writeFeedOp(any(), any(), any()) }
     }
 
     @Test
@@ -87,8 +86,8 @@ class EditPartnerFeedUseCaseTest {
             }
         }
 
-        coVerify(exactly = 0) { sharingRepository.signInAnonymously() }
-        coVerify(exactly = 0) { sharingRepository.writeFeedOp(any(), any(), any()) }
+        coVerify(exactly = 0) { service.signInAnonymously() }
+        coVerify(exactly = 0) { service.writeFeedOp(any(), any(), any()) }
     }
 
     @Test
@@ -104,7 +103,7 @@ class EditPartnerFeedUseCaseTest {
             }
         }
 
-        coVerify(exactly = 0) { sharingRepository.signInAnonymously() }
+        coVerify(exactly = 0) { service.signInAnonymously() }
     }
 
     private fun partnerEntry(

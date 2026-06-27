@@ -85,9 +85,9 @@ fun SleepRecord.toSnapshot(): SleepSnapshot = SleepSnapshot(
 )
 
 fun SleepPredictionState.toSnapshot(
-    generatedAt: Long = System.currentTimeMillis(),
-    resolveReason: (SleepReason) -> String = { it.toString() },
-    feedPromptText: String = "",
+    generatedAt: Long,
+    resolveReason: (SleepReason) -> String,
+    feedPromptText: String,
 ): SleepPredictionSnapshot? =
     when (this) {
         is SleepPredictionState.Window -> SleepPredictionSnapshot(

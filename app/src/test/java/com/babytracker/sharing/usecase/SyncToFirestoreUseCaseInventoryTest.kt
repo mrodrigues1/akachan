@@ -12,12 +12,12 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
-import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -35,7 +35,7 @@ import java.time.Instant
 
 class SyncToFirestoreUseCaseInventoryTest {
 
-    private val sharingRepository: SharingRepository = mockk()
+    private val service: FirestoreSharingService = mockk()
     private val settingsRepository: SettingsRepository = mockk()
     private val sleepSettingsRepository: SleepSettingsRepository = mockk()
     private val babyRepository: BabyRepository = mockk()
@@ -52,7 +52,7 @@ class SyncToFirestoreUseCaseInventoryTest {
     @BeforeEach
     fun setUp() {
         useCase = SyncToFirestoreUseCase(
-            sharingRepository,
+            service,
             settingsRepository,
             sleepSettingsRepository,
             SnapshotSources(
@@ -72,8 +72,8 @@ class SyncToFirestoreUseCaseInventoryTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
         every { settingsRepository.getShareCode() } returns flowOf(shareCode.value)
         every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
-        coEvery { sharingRepository.syncInventory(any(), any(), any()) } just Runs
-        coEvery { sharingRepository.syncFullSnapshot(any(), any()) } just Runs
+        coEvery { service.syncInventory(any(), any(), any()) } just Runs
+        coEvery { service.syncFullSnapshot(any(), any()) } just Runs
         every { babyRepository.getBabyProfile() } returns flowOf(null)
         coEvery { breastfeedingRepository.getRecentSessions(any()) } returns emptyList()
         coEvery { sleepRepository.getRecentRecords(any()) } returns emptyList()
@@ -91,8 +91,8 @@ class SyncToFirestoreUseCaseInventoryTest {
 
         useCase(SyncType.INVENTORY)
 
-        coVerify(exactly = 1) { sharingRepository.syncInventory(shareCode, any(), any()) }
-        coVerify(exactly = 0) { sharingRepository.syncFullSnapshot(any(), any()) }
+        coVerify(exactly = 1) { service.syncInventory(shareCode.value, any(), any()) }
+        coVerify(exactly = 0) { service.syncFullSnapshot(any(), any()) }
     }
 
     @Test
@@ -103,7 +103,7 @@ class SyncToFirestoreUseCaseInventoryTest {
             bagCount = 3,
             oldestBagDate = null,
         )
-        coEvery { sharingRepository.syncInventory(any(), capture(fieldsSlot), any()) } just Runs
+        coEvery { service.syncInventory(any(), capture(fieldsSlot), any()) } just Runs
 
         useCase(SyncType.INVENTORY)
 
@@ -118,7 +118,7 @@ class SyncToFirestoreUseCaseInventoryTest {
 
         useCase(SyncType.INVENTORY)
 
-        coVerify(exactly = 0) { sharingRepository.syncInventory(any(), any(), any()) }
+        coVerify(exactly = 0) { service.syncInventory(any(), any(), any()) }
     }
 
     @Test
@@ -127,7 +127,7 @@ class SyncToFirestoreUseCaseInventoryTest {
 
         useCase(SyncType.INVENTORY)
 
-        coVerify(exactly = 0) { sharingRepository.syncInventory(any(), any(), any()) }
+        coVerify(exactly = 0) { service.syncInventory(any(), any(), any()) }
     }
 
     @Test
@@ -138,7 +138,7 @@ class SyncToFirestoreUseCaseInventoryTest {
             bagCount = 5,
             oldestBagDate = null,
         )
-        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
+        coEvery { service.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
 
         useCase(SyncType.FULL)
 
@@ -156,7 +156,7 @@ class SyncToFirestoreUseCaseInventoryTest {
             oldestBagDate = null,
         )
         every { inventoryRepository.getActiveBags() } returns flowOf(listOf(activeBag))
-        coEvery { sharingRepository.syncInventory(any(), any(), capture(bagsSlot)) } just Runs
+        coEvery { service.syncInventory(any(), any(), capture(bagsSlot)) } just Runs
 
         useCase(SyncType.INVENTORY)
 
@@ -175,7 +175,7 @@ class SyncToFirestoreUseCaseInventoryTest {
             oldestBagDate = null,
         )
         every { inventoryRepository.getActiveBags() } returns flowOf(listOf(activeBag))
-        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
+        coEvery { service.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
 
         useCase(SyncType.FULL)
 
@@ -198,7 +198,7 @@ class SyncToFirestoreUseCaseInventoryTest {
         val fieldsSlot = slot<InventorySnapshotFields>()
         val bagsSlot = slot<List<MilkBagSnapshot>>()
         coEvery {
-            sharingRepository.syncBottleFeedsAndInventory(
+            service.syncBottleFeedsAndInventory(
                 any(),
                 capture(feedsSlot),
                 capture(fieldsSlot),
@@ -209,9 +209,9 @@ class SyncToFirestoreUseCaseInventoryTest {
         useCase(SyncType.BOTTLE_FEEDS_AND_INVENTORY)
 
         // One combined call; neither single-tracker sync is issued.
-        coVerify(exactly = 1) { sharingRepository.syncBottleFeedsAndInventory(shareCode, any(), any(), any()) }
-        coVerify(exactly = 0) { sharingRepository.syncInventory(any(), any(), any()) }
-        coVerify(exactly = 0) { sharingRepository.syncBottleFeeds(any(), any()) }
+        coVerify(exactly = 1) { service.syncBottleFeedsAndInventory(shareCode.value, any(), any(), any()) }
+        coVerify(exactly = 0) { service.syncInventory(any(), any(), any()) }
+        coVerify(exactly = 0) { service.syncBottleFeeds(any(), any()) }
         assertEquals(1, feedsSlot.captured.size)
         assertEquals(240, fieldsSlot.captured.totalMl)
         assertEquals(3, fieldsSlot.captured.bagCount)

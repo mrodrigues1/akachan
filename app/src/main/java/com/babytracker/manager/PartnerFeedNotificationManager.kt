@@ -9,14 +9,24 @@ import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Posts the "main partner" notification when partner-authored bottle feeds consume stash milk.
+ *
+ * Called on the primary device after a batch of partner feed ops applies. Gates on the user setting,
+ * resolves the consumed bag volumes, and posts a single coalesced notification.
+ */
 @Singleton
 class PartnerFeedNotificationManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val inventoryRepository: InventoryRepository,
     private val settingsRepository: SettingsRepository,
-) : PartnerFeedNotifier {
+) {
 
-    override suspend fun notifyStashConsumed(consumedBagIds: List<Long>) {
+    /**
+     * @param consumedBagIds bag ids freshly consumed by partner feeds in the just-applied batch.
+     *   Empty list is a no-op. Each id corresponds to one partner bottle feed.
+     */
+    suspend fun notifyStashConsumed(consumedBagIds: List<Long>) {
         if (consumedBagIds.isEmpty()) return
         if (!settingsRepository.getPartnerFeedStashNotificationsEnabled().first()) return
         // The consumed bags were just marked used, not deleted, so they still resolve. A single
