@@ -11,14 +11,18 @@ import android.os.Build
 import android.util.Log
 import com.babytracker.receiver.PredictiveSleepReceiver
 import com.babytracker.util.NotificationHelper
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
+import javax.inject.Inject
 
 interface PredictiveSleepScheduler {
     fun schedulePredictiveReminderAt(triggerTime: Instant, bestEstimate: Instant, recommendationId: Long)
     fun cancelPredictiveReminder()
 }
 
-class PredictiveSleepSchedulerImpl(private val context: Context) : PredictiveSleepScheduler {
+class PredictiveSleepSchedulerImpl @Inject constructor(
+    @ApplicationContext private val context: Context
+) : PredictiveSleepScheduler {
 
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
 

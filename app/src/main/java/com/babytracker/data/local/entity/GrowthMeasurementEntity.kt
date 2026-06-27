@@ -27,7 +27,7 @@ data class GrowthMeasurementEntity(
 fun GrowthMeasurementEntity.toDomain(): GrowthMeasurement = GrowthMeasurement(
     id = id,
     takenAt = Instant.ofEpochMilli(takenAt),
-    type = GrowthType.entries.firstOrNull { it.name == type } ?: GrowthType.WEIGHT,
+    type = GrowthType.entries.find { it.name == type } ?: GrowthType.WEIGHT,
     valueCanonical = valueCanonical,
     notes = notes,
 )

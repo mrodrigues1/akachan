@@ -8,6 +8,7 @@ import com.babytracker.domain.usecase.milestone.DeleteMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.GetMilestonesUseCase
 import com.babytracker.domain.usecase.milestone.UpdateMilestoneUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.syncSharedSnapshot
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -60,7 +61,7 @@ class MilestonesViewModel @Inject constructor(
             if (previousPhoto != null && previousPhoto != milestone.photoUri) {
                 photoCleaner.delete(previousPhoto)
             }
-            syncSharedSnapshot()
+            syncToFirestore.syncSharedSnapshot()
         }
     }
 
@@ -69,14 +70,8 @@ class MilestonesViewModel @Inject constructor(
             val photoUri = existingPhotoUri(id)
             deleteMilestone(id)
             photoCleaner.delete(photoUri)
-            syncSharedSnapshot()
+            syncToFirestore.syncSharedSnapshot()
         }
-    }
-
-    // Milestone edits are infrequent, so a full resync (a no-op unless sharing is the
-    // PRIMARY device) keeps the partner snapshot current without partial-sync plumbing.
-    private suspend fun syncSharedSnapshot() {
-        runCatching { syncToFirestore() }
     }
 
     private companion object {

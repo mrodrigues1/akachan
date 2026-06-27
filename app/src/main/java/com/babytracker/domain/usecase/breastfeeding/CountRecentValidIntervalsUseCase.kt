@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
-import java.time.Duration
 import java.time.ZoneId
 import javax.inject.Inject
 
@@ -30,20 +29,10 @@ class CountRecentValidIntervalsUseCase @Inject constructor(
         sessions: List<BreastfeedingSession>,
         qhStart: Int,
         qhEnd: Int,
-    ): Int {
-        val sortedDesc = sessions.filter { it.endTime != null }.sortedByDescending { it.startTime }
-
-        val filtered = sortedDesc
-            .zipWithNext { newer, older ->
-                val minutes = Duration.between(older.startTime, newer.startTime).toMinutes().toInt()
-                Triple(older.startTime, newer.startTime, minutes)
-            }
-            .filter { (_, _, minutes) -> minutes <= PredictionTuning.INTERVAL_MAX_MINUTES }
-            .filter { (endpointA, endpointB, _) ->
-                !isEndpointInQuietHours(endpointA, zoneId, qhStart, qhEnd) &&
-                    !isEndpointInQuietHours(endpointB, zoneId, qhStart, qhEnd)
-            }
-
-        return filtered.take(PredictionTuning.SAMPLE_SIZE_TARGET).size
-    }
+    ): Int = validFeedIntervals(
+        sessions = sessions.filter { it.endTime != null },
+        zoneId = zoneId,
+        quietStartMinute = qhStart,
+        quietEndMinute = qhEnd,
+    ).size
 }

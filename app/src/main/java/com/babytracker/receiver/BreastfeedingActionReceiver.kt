@@ -17,14 +17,9 @@ import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseC
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.util.NotificationHelper
+import com.babytracker.util.goAsyncWithTimeout
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import java.time.Instant
 import javax.inject.Inject
 
@@ -55,18 +50,7 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        val result = goAsync()
-        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
-            try {
-                withTimeout(10_000L) {
-                    handle(context, intent)
-                }
-            } catch (e: TimeoutCancellationException) {
-                Log.e(TAG, "onReceive timed out", e)
-            } finally {
-                result.finish()
-            }
-        }
+        goAsyncWithTimeout(TAG) { handle(context, intent) }
     }
 
     internal suspend fun handle(context: Context, intent: Intent) {

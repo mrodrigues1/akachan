@@ -9,9 +9,13 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import com.babytracker.receiver.BreastfeedingNotificationReceiver
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
+import javax.inject.Inject
 
-class BreastfeedingNotificationManager(private val context: Context) : NotificationScheduler {
+class BreastfeedingNotificationManager @Inject constructor(
+    @ApplicationContext private val context: Context
+) : NotificationScheduler {
 
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
 

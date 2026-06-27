@@ -9,14 +9,18 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import com.babytracker.receiver.PredictiveFeedReceiver
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
+import javax.inject.Inject
 
 interface PredictiveFeedScheduler {
     fun schedulePredictiveReminderAt(triggerTime: Instant, predictedAt: Instant)
     fun cancelPredictiveReminder()
 }
 
-class PredictiveFeedSchedulerImpl(private val context: Context) : PredictiveFeedScheduler {
+class PredictiveFeedSchedulerImpl @Inject constructor(
+    @ApplicationContext private val context: Context
+) : PredictiveFeedScheduler {
 
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
 
