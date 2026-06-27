@@ -231,13 +231,11 @@ class PartnerDashboardScreenTest {
             )
         }
 
-        composeRule.onNodeWithText("Quiet right now").assertIsDisplayed()
-        composeRule.onNodeWithText(
-            "No active feeding or sleep was shared. Nothing needs attention.",
-        ).assertIsDisplayed()
         composeRule.onNodeWithText("No feeding history shared").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("No sleep record shared").performScrollTo().assertIsDisplayed()
-        composeRule.onAllNodesWithText("No allergies shared").assertCountEquals(2)
+        // The "Latest care" summary panel was removed in the tile redesign, so the only remaining
+        // "No allergies shared" copy is the ALLERGIES section empty state.
+        composeRule.onAllNodesWithText("No allergies shared").assertCountEquals(1)
     }
 
     @Test
@@ -277,10 +275,9 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithText("RECENT FEEDINGS").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("LAST SLEEP").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("ALLERGIES").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Latest care").assertIsDisplayed()
-        composeRule.onNodeWithText("Fed 25m ago").assertIsDisplayed()
+        // "Fed 25m ago" / "Napped 1h 0m ago" now surface as idle status inside the feeding/sleep tiles.
+        composeRule.onNodeWithText("Fed 25m ago").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Napped 1h 0m ago").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("1 allergy shared").assertIsDisplayed()
         composeRule.onNodeWithText("15m 0s").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("2h 0m").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Cow's Milk Protein").performScrollTo().assertIsDisplayed()
@@ -297,8 +294,10 @@ class PartnerDashboardScreenTest {
                 sleepViewModel = buildSleepViewModel(),
             )
         }
-        composeRule.onNodeWithText("Start Nap").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Start Night Sleep").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Sleep. Open sleep screen.").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Start Nap").assertIsDisplayed()
+        composeRule.onNodeWithText("Start Night Sleep").assertIsDisplayed()
     }
 
     @Test
@@ -320,7 +319,9 @@ class PartnerDashboardScreenTest {
                 sleepViewModel = buildSleepViewModel(),
             )
         }
-        composeRule.onNodeWithText("Stop Session").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Sleep. Open sleep screen.").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Stop Session").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Edit sleep session").assertDoesNotExist()
     }
 
@@ -343,7 +344,9 @@ class PartnerDashboardScreenTest {
                 sleepViewModel = buildSleepViewModel(),
             )
         }
-        composeRule.onNodeWithContentDescription("Edit sleep session").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Sleep. Open sleep screen.").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Edit sleep session").assertIsDisplayed()
     }
 
     @Test
@@ -575,7 +578,6 @@ class PartnerDashboardScreenTest {
         }
 
         composeRule.onNodeWithText(longName).assertIsDisplayed()
-        composeRule.onNodeWithText("Latest care").assertIsDisplayed()
         composeRule.onNodeWithText("Left to Right").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Allergy: $longAllergy")
             .performScrollTo()
@@ -653,7 +655,7 @@ class PartnerDashboardScreenTest {
             )
         }
 
-        composeRule.onNodeWithText("240 ml · 3 bags").assertIsDisplayed()
+        composeRule.onNodeWithText("240 ml · 3 bags").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -674,7 +676,7 @@ class PartnerDashboardScreenTest {
             )
         }
 
-        composeRule.onNodeWithText("Updated 2h 0m ago").assertIsDisplayed()
+        composeRule.onNodeWithText("Updated 2h 0m ago").performScrollTo().assertIsDisplayed()
     }
 
     private class FakeSharingRepository(

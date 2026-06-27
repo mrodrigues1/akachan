@@ -138,7 +138,9 @@ internal fun HomeTrackerTile(
     contentDescription: String,
     containerColor: Color,
     contentColor: Color,
-    onClick: () -> Unit,
+    // Null renders a non-interactive card (no ripple, no button role) — used by read-only tiles
+    // such as the partner dashboard's shared-data summaries.
+    onClick: (() -> Unit)?,
     icon: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier,
     minHeight: Dp = 124.dp,
@@ -148,21 +150,19 @@ internal fun HomeTrackerTile(
     trailing: @Composable (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    Card(
-        onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = minHeight)
-            .semantics { this.contentDescription = contentDescription },
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
-        border = if (LocalDarkTheme.current) {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-        } else {
-            null
-        },
-    ) {
+    val cardModifier = modifier
+        .fillMaxWidth()
+        .heightIn(min = minHeight)
+        .semantics { this.contentDescription = contentDescription }
+    val shape = MaterialTheme.shapes.large
+    val colors = CardDefaults.cardColors(containerColor = containerColor)
+    val cardElevation = CardDefaults.cardElevation(defaultElevation = elevation)
+    val border = if (LocalDarkTheme.current) {
+        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    } else {
+        null
+    }
+    val body: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .padding(20.dp)
@@ -192,6 +192,24 @@ internal fun HomeTrackerTile(
             Spacer(modifier = Modifier.height(3.dp))
             content()
         }
+    }
+    if (onClick != null) {
+        Card(
+            onClick = onClick,
+            modifier = cardModifier,
+            shape = shape,
+            colors = colors,
+            elevation = cardElevation,
+            border = border,
+        ) { body() }
+    } else {
+        Card(
+            modifier = cardModifier,
+            shape = shape,
+            colors = colors,
+            elevation = cardElevation,
+            border = border,
+        ) { body() }
     }
 }
 
