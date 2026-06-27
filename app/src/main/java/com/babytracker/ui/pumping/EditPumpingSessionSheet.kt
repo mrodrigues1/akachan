@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -53,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.babytracker.R
 import com.babytracker.domain.model.PumpingBreast
+import com.babytracker.ui.component.SheetSaveButton
 import com.babytracker.util.formatTime12h
 import com.babytracker.util.toRelativeLabel
 import java.time.Duration
@@ -203,22 +203,13 @@ private fun EditPumpingSheetBody(
                 onConfirm = onDeleteConfirmed,
             )
         } else {
-            Button(
+            SheetSaveButton(
+                label = stringResource(R.string.save_changes),
                 onClick = onSave,
                 enabled = state.canSave,
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.extraLarge,
-            ) {
-                if (state.isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                } else {
-                    Text(stringResource(R.string.save_changes), style = MaterialTheme.typography.labelLarge)
-                }
-            }
+                loading = state.isSaving,
+                keepLabelWhileLoading = false,
+            )
             Spacer(Modifier.height(8.dp))
             TextButton(
                 onClick = onDeleteRequested,

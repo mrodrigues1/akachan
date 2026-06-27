@@ -10,13 +10,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,6 +40,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.babytracker.R
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.usecase.breastfeeding.foldPause
+import com.babytracker.ui.component.SheetSaveButton
 import com.babytracker.util.formatTime12h
 import com.babytracker.util.toRelativeLabel
 import java.time.Duration
@@ -149,22 +146,13 @@ private fun EditSheetBody(
         DurationOrError(state = state)
 
         Spacer(Modifier.height(24.dp))
-        Button(
+        SheetSaveButton(
+            label = stringResource(R.string.save_changes),
             onClick = onSave,
             enabled = state.canSave,
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge,
-        ) {
-            if (state.isSaving) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            } else {
-                Text(stringResource(R.string.save_changes), style = MaterialTheme.typography.labelLarge)
-            }
-        }
+            loading = state.isSaving,
+            keepLabelWhileLoading = false,
+        )
     }
 
     datePickerFor?.let { field ->
