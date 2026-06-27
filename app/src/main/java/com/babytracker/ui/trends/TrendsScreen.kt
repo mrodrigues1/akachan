@@ -67,6 +67,7 @@ import com.babytracker.ui.theme.growthColors
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisGuidelineComponent
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
@@ -77,10 +78,19 @@ import com.patrykandpatrick.vico.compose.cartesian.layer.LineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarker
+import com.patrykandpatrick.vico.compose.cartesian.marker.DefaultCartesianMarker
+import com.patrykandpatrick.vico.compose.cartesian.marker.rememberDefaultCartesianMarker
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.common.Fill
+import com.patrykandpatrick.vico.compose.common.Insets
+import com.patrykandpatrick.vico.compose.common.LayeredComponent
+import com.patrykandpatrick.vico.compose.common.MarkerCornerBasedShape
+import com.patrykandpatrick.vico.compose.common.component.ShapeComponent
+import com.patrykandpatrick.vico.compose.common.component.TextComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberShapeComponent
+import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -129,6 +139,49 @@ private fun rememberAxisTitle() = rememberAxisLabelComponent(
         fontWeight = FontWeight.Medium,
     ),
 )
+
+// Tap or drag a data point to surface its value. Vico shows this on touch when passed to
+// rememberCartesianChart(marker = ...); the value label, dot indicator, and guideline come for free.
+// Colors pinned to the M3 scheme for the same reason axis labels are (see rememberChartLabel): the
+// app stays on its light "Baby" palette even on a dark system.
+@Composable
+private fun rememberValueMarker(): CartesianMarker {
+    val labelBackground = rememberShapeComponent(
+        fill = Fill(MaterialTheme.colorScheme.surfaceContainerHighest),
+        shape = MarkerCornerBasedShape(CircleShape),
+        strokeFill = Fill(MaterialTheme.colorScheme.outline),
+        strokeThickness = 1.dp,
+    )
+    val label = rememberTextComponent(
+        style = MaterialTheme.typography.labelMedium.copy(
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        ),
+        padding = Insets(MARKER_LABEL_PADDING_H_DP.dp, MARKER_LABEL_PADDING_V_DP.dp),
+        background = labelBackground,
+        minWidth = TextComponent.MinWidth.fixed(MARKER_LABEL_MIN_WIDTH_DP.dp),
+    )
+    return rememberDefaultCartesianMarker(
+        label = label,
+        valueFormatter = DefaultCartesianMarker.ValueFormatter.default(),
+        indicator = { color ->
+            LayeredComponent(
+                back = ShapeComponent(Fill(color.copy(alpha = MARKER_HALO_ALPHA)), CircleShape),
+                front = ShapeComponent(Fill(color), CircleShape),
+                padding = Insets(MARKER_INDICATOR_PADDING_DP.dp),
+            )
+        },
+        indicatorSize = MARKER_INDICATOR_SIZE_DP.dp,
+        guideline = rememberAxisGuidelineComponent(),
+    )
+}
+
+private const val MARKER_LABEL_PADDING_H_DP = 8
+private const val MARKER_LABEL_PADDING_V_DP = 4
+private const val MARKER_LABEL_MIN_WIDTH_DP = 40
+private const val MARKER_INDICATOR_SIZE_DP = 24
+private const val MARKER_INDICATOR_PADDING_DP = 6
+private const val MARKER_HALO_ALPHA = 0.15f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -478,6 +531,7 @@ private fun FeedingFrequencyChart(data: List<DailyFeedingCount>) {
                     titleComponent = axisTitle,
                     title = { dateTitle },
                 ),
+                marker = rememberValueMarker(),
             ),
             producer,
             modifier = Modifier.fillMaxSize(),
@@ -534,6 +588,7 @@ private fun SleepDurationChart(data: List<DailySleepDuration>) {
                     titleComponent = axisTitle,
                     title = { dateTitle },
                 ),
+                marker = rememberValueMarker(),
             ),
             producer,
             modifier = Modifier.fillMaxSize(),
@@ -588,6 +643,7 @@ private fun FeedingIntervalChart(data: List<DailyFeedingInterval>) {
                     titleComponent = axisTitle,
                     title = { dateTitle },
                 ),
+                marker = rememberValueMarker(),
             ),
             producer,
             modifier = Modifier.fillMaxSize(),
