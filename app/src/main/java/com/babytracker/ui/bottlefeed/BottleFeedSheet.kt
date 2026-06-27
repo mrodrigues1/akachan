@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -20,8 +19,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +43,7 @@ import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.ui.common.DateTimeFieldRow
+import com.babytracker.ui.component.SheetSaveButton
 import com.babytracker.util.formatVolume
 import java.time.Instant
 import java.time.ZoneId
@@ -140,22 +138,12 @@ fun BottleFeedSheet(
             )
             Spacer(Modifier.height(20.dp))
 
-            Button(
+            SheetSaveButton(
+                label = stringResource(R.string.bottle_feed_save),
                 onClick = onConfirm,
                 enabled = !state.isSaving,
-                shape = MaterialTheme.shapes.extraLarge,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (state.isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                }
-                Text(stringResource(R.string.bottle_feed_save), style = MaterialTheme.typography.labelLarge)
-            }
+                loading = state.isSaving,
+            )
             Spacer(Modifier.height(8.dp))
             TextButton(
                 onClick = onDismiss,
