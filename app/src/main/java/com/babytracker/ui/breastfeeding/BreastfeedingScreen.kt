@@ -102,6 +102,7 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.ui.component.BreastfeedingIcon
+import com.babytracker.ui.component.EditDeleteOverflowMenu
 import com.babytracker.ui.component.SideSelector
 import com.babytracker.ui.component.TimerDisplay
 import com.babytracker.ui.component.labelRes
@@ -917,7 +918,7 @@ private fun LastFeedingSummaryCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                FeedSessionOverflowMenu(
+                EditDeleteOverflowMenu(
                     onEdit = { onEditSession(session) },
                     onDelete = { onDeleteSession(session) },
                 )

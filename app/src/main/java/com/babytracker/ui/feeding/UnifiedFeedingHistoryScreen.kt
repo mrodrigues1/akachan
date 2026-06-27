@@ -53,7 +53,6 @@ import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.ui.breastfeeding.BreastfeedingDeleteConfirmationDialog
 import com.babytracker.ui.breastfeeding.BreastfeedingViewModel
 import com.babytracker.ui.breastfeeding.EditBreastfeedingSessionSheet
-import com.babytracker.ui.breastfeeding.FeedSessionOverflowMenu
 import com.babytracker.ui.bottlefeed.BottleFeedSheet
 import com.babytracker.ui.bottlefeed.BottleFeedViewModel
 import com.babytracker.ui.component.BreastfeedingIcon
@@ -343,7 +342,7 @@ internal fun BreastfeedingFeedHistoryCard(
         subtitleColor = rowText.copy(alpha = 0.7f),
         trailingColor = rowText,
         onClick = onEdit,
-        trailingContent = { FeedSessionOverflowMenu(onEdit = onEdit, onDelete = onDelete) },
+        trailingContent = { EditDeleteOverflowMenu(onEdit = onEdit, onDelete = onDelete) },
     )
 }
 

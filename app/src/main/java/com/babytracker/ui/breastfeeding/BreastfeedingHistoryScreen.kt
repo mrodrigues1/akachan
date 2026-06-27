@@ -210,20 +210,8 @@ internal fun FeedHistoryCard(
         trailingColor = rowText,
         badgeContent = { BreastfeedingIcon(modifier = Modifier.size(34.dp)) },
         onClick = onEdit,
-        trailingContent = { FeedSessionOverflowMenu(onEdit = onEdit, onDelete = onDelete) },
+        trailingContent = { EditDeleteOverflowMenu(onEdit = onEdit, onDelete = onDelete) },
     )
-}
-
-/**
- * Three-dots overflow menu (Edit / Delete) shared by the feed history cards and the
- * last-feeding card on the main screen, mirroring the sleep card menu.
- */
-@Composable
-internal fun FeedSessionOverflowMenu(
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    EditDeleteOverflowMenu(onEdit = onEdit, onDelete = onDelete)
 }
 
 @Composable
