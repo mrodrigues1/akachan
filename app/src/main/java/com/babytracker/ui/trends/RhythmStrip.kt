@@ -27,8 +27,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
 import com.babytracker.domain.trends.DayRhythm
-import com.babytracker.ui.theme.BottleFeedRed
-import com.babytracker.ui.theme.BottleFeedRedDark
+import com.babytracker.ui.theme.BottleFeedGreen
+import com.babytracker.ui.theme.BottleFeedGreenDark
 import com.babytracker.ui.theme.LocalDarkTheme
 import java.time.format.DateTimeFormatter
 
@@ -55,7 +55,7 @@ fun RhythmStrip(
     val nightColor = MaterialTheme.colorScheme.secondary
     val napColor = MaterialTheme.colorScheme.secondaryContainer
     val breastColor = MaterialTheme.colorScheme.primary
-    val bottleColor = if (LocalDarkTheme.current) BottleFeedRedDark else BottleFeedRed
+    val bottleColor = if (LocalDarkTheme.current) BottleFeedGreenDark else BottleFeedGreen
     val feedRing = MaterialTheme.colorScheme.surface
     val labelStyle = MaterialTheme.typography.labelSmall
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
