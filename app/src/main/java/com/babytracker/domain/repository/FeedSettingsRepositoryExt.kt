@@ -1,7 +1,6 @@
 package com.babytracker.domain.repository
 
 import com.babytracker.domain.model.BreastfeedingActiveNotificationSettings
-import com.babytracker.domain.model.BreastfeedingNotificationScheduleSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
@@ -19,16 +18,5 @@ fun FeedSettingsRepository.getBreastfeedingActiveNotificationSettings(
         BreastfeedingActiveNotificationSettings(
             maxTotalFeedMinutes = maxTotalFeedMinutes,
             richNotificationsEnabled = richNotificationsEnabled,
-        )
-    }
-
-fun FeedSettingsRepository.getBreastfeedingNotificationScheduleSettings(): Flow<BreastfeedingNotificationScheduleSettings> =
-    combine(
-        getMaxPerBreastMinutes(),
-        getMaxTotalFeedMinutes(),
-    ) { maxPerBreastMinutes, maxTotalFeedMinutes ->
-        BreastfeedingNotificationScheduleSettings(
-            maxPerBreastMinutes = maxPerBreastMinutes,
-            maxTotalFeedMinutes = maxTotalFeedMinutes,
         )
     }
