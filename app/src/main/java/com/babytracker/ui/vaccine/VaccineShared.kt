@@ -19,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -28,7 +27,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
 import com.babytracker.domain.model.VaccineRecord
+import com.babytracker.ui.component.DeleteConfirmationDialog
 import com.babytracker.ui.theme.VaccinePalette
 import java.time.Instant
 import java.time.ZoneId
@@ -183,26 +182,16 @@ internal fun AddVaccineBar(
  */
 @Composable
 internal fun DeleteConfirmDialog(vaccine: VaccinePalette, onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.vaccine_delete_title)) },
-        text = { Text(stringResource(R.string.vaccine_delete_message)) },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                // Destructive action carries the error role, not the friendly domain accent.
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                ),
-            ) { Text(stringResource(R.string.delete)) }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(contentColor = vaccine.onContainer),
-            ) { Text(stringResource(R.string.cancel)) }
-        },
+    DeleteConfirmationDialog(
+        title = stringResource(R.string.vaccine_delete_title),
+        message = stringResource(R.string.vaccine_delete_message),
+        confirmText = stringResource(R.string.delete),
+        dismissText = stringResource(R.string.cancel),
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+        // Destructive action carries the error role, not the friendly domain accent.
+        confirmContentColor = MaterialTheme.colorScheme.onError,
+        dismissContentColor = vaccine.onContainer,
     )
 }
 

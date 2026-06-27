@@ -21,9 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,7 +29,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -54,6 +50,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.DiaperChange
+import com.babytracker.ui.component.DeleteConfirmationDialog
 import com.babytracker.ui.component.DiaperIcon
 import com.babytracker.ui.component.DiaperTypeIcon
 import com.babytracker.ui.component.HistoryDayHeader
@@ -258,25 +255,15 @@ private fun DiaperDeleteConfirmationDialog(
     onDismiss: () -> Unit,
 ) {
     val diaper = diaperColors()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.diaper_delete_title)) },
-        text = { Text(stringResource(R.string.diaper_delete_message)) },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                // Destructive action carries the error role, not the friendly domain accent.
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                ),
-            ) { Text(stringResource(R.string.delete)) }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(contentColor = diaper.onContainer),
-            ) { Text(stringResource(R.string.cancel)) }
-        },
+    DeleteConfirmationDialog(
+        title = stringResource(R.string.diaper_delete_title),
+        message = stringResource(R.string.diaper_delete_message),
+        confirmText = stringResource(R.string.delete),
+        dismissText = stringResource(R.string.cancel),
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+        // Destructive action carries the error role, not the friendly domain accent.
+        confirmContentColor = MaterialTheme.colorScheme.onError,
+        dismissContentColor = diaper.onContainer,
     )
 }
