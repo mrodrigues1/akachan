@@ -57,12 +57,19 @@ fun TimerDisplay(
     frozenElapsedSeconds: Long? = null,
     elapsedFormatter: (Long) -> String = ::formatElapsedAsMinutesSeconds,
 ) {
-    var elapsedSeconds by remember { mutableLongStateOf(frozenElapsedSeconds ?: 0L) }
+    // Seed from a live computation, not 0L: LaunchedEffect runs after composition, so a hardcoded 0L
+    // renders as 00:00 on the first frame (and on any recomposition that beats the coroutine's first
+    // tick) even when the session is already running. Key on the inputs so a new session recomputes.
+    var elapsedSeconds by remember(startTimeMillis, frozenElapsedSeconds) {
+        mutableLongStateOf(
+            frozenElapsedSeconds ?: ((System.currentTimeMillis() - startTimeMillis) / 1000).coerceAtLeast(0L),
+        )
+    }
 
     LaunchedEffect(isRunning, startTimeMillis, frozenElapsedSeconds) {
         if (isRunning) {
             while (true) {
-                elapsedSeconds = (System.currentTimeMillis() - startTimeMillis) / 1000
+                elapsedSeconds = ((System.currentTimeMillis() - startTimeMillis) / 1000).coerceAtLeast(0L)
                 delay(1000L)
             }
         } else if (frozenElapsedSeconds != null) {
