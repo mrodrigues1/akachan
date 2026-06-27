@@ -2,10 +2,8 @@ package com.babytracker.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.babytracker.data.local.converter.Converters
 import com.babytracker.data.local.dao.BabyEventDao
 import com.babytracker.data.local.dao.BabyProfileDao
 import com.babytracker.data.local.dao.BottleFeedDao
@@ -56,7 +54,6 @@ import com.babytracker.data.local.entity.VisitQuestionEntity
     version = 17,
     exportSchema = true,
 )
-@TypeConverters(Converters::class)
 abstract class BabyTrackerDatabase : RoomDatabase() {
     abstract fun breastfeedingDao(): BreastfeedingDao
     abstract fun sleepDao(): SleepDao

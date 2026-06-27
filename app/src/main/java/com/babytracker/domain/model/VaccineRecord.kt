@@ -14,8 +14,6 @@ data class VaccineRecord(
     val createdAt: Instant,
 )
 
-fun VaccineRecord.effectiveDate(): Instant = administeredDate ?: scheduledDate ?: createdAt
-
 /**
  * Overdue is day-granular, not instant-granular: a dose is overdue only once its scheduled calendar
  * day is wholly in the past. A dose scheduled for today is never overdue (it reads as "due today"),
