@@ -19,6 +19,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.io.IOException
 import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -174,6 +176,30 @@ class PartnerSleepViewModelTest {
         val vm = buildViewModel()
         advanceUntilIdle()
 
+        assertEquals(1, vm.uiState.value.snapshotRefreshTick)
+    }
+
+    @Test
+    fun `op listener resubscribes after a transient error`() = runTest {
+        val op = SleepOp(
+            opId = "op-1", action = SleepOpAction.STOP, entryClientId = "active-cid",
+            authorUid = "uid", createdAtMs = now.toEpochMilli(), endTimeMs = now.toEpochMilli(),
+        )
+        var attempts = 0
+        every { settingsRepository.getShareCode() } returns flowOf("CODE")
+        coEvery { sharingRepository.signInAnonymously() } returns "uid"
+        // First subscription blows up; retryWhen must re-subscribe and pick up the applied op.
+        every { sharingRepository.observeOwnSleepOps(ShareCode("CODE"), "uid") } returns flow {
+            attempts++
+            if (attempts == 1) throw IOException("listener boom")
+            emit(listOf(op))
+            emit(emptyList())
+        }
+
+        val vm = buildViewModel()
+        advanceUntilIdle()
+
+        assertTrue(attempts >= 2)
         assertEquals(1, vm.uiState.value.snapshotRefreshTick)
     }
 
