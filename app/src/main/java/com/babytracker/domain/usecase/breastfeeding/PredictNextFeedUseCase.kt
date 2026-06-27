@@ -45,27 +45,13 @@ class PredictNextFeedUseCase @Inject constructor(
     ): FeedPrediction? {
         if (sessions.any { it.endTime == null }) return null
         val now = Instant.now(clock)
-        val sortedDesc = sessions.sortedByDescending { it.startTime }
-        val mostRecent = sortedDesc.firstOrNull() ?: return null
+        val mostRecent = sessions.maxByOrNull { it.startTime } ?: return null
 
         if (Duration.between(mostRecent.startTime, now).toHours()
             >= PredictionTuning.FRESHNESS_HORIZON_HOURS
         ) return null
 
-        val rawIntervals = sortedDesc.zipWithNext { newer, older ->
-            IntervalSample(
-                endpointA = older.startTime,
-                endpointB = newer.startTime,
-                minutes = Duration.between(older.startTime, newer.startTime).toMinutes().toInt(),
-            )
-        }
-
-        val filtered = rawIntervals
-            .filter { it.minutes <= PredictionTuning.INTERVAL_MAX_MINUTES }
-            .filter { !isEndpointInQuietHours(it.endpointA, zoneId, quietStartMinute, quietEndMinute) }
-            .filter { !isEndpointInQuietHours(it.endpointB, zoneId, quietStartMinute, quietEndMinute) }
-
-        val taken = filtered.take(PredictionTuning.SAMPLE_SIZE_TARGET)
+        val taken = recentValidIntervals(sessions, zoneId, quietStartMinute, quietEndMinute)
         if (taken.size < PredictionTuning.SAMPLE_SIZE_MIN) return null
 
         return buildPrediction(mostRecent.startTime, taken, now)
@@ -73,7 +59,7 @@ class PredictNextFeedUseCase @Inject constructor(
 
     private fun buildPrediction(
         mostRecentStart: Instant,
-        taken: List<IntervalSample>,
+        taken: List<RecentFeedInterval>,
         now: Instant,
     ): FeedPrediction? {
         val avg = taken.map { it.minutes }.average().toInt()
@@ -90,10 +76,4 @@ class PredictNextFeedUseCase @Inject constructor(
             minutesUntil = minutesUntil,
         )
     }
-
-    private data class IntervalSample(
-        val endpointA: Instant,
-        val endpointB: Instant,
-        val minutes: Int,
-    )
 }
