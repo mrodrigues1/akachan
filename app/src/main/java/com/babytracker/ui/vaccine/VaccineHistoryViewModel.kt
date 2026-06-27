@@ -9,6 +9,7 @@ import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineScheduledUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
 import com.babytracker.domain.usecase.vaccine.RestoreVaccineRecordUseCase
+import com.babytracker.util.groupByDateDescending
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,11 +75,7 @@ class VaccineHistoryViewModel @Inject constructor(
                     .sortedBy { it.scheduledDate ?: it.createdAt }
                 val administeredByDate = visible
                     .filter { it.status == VaccineStatus.ADMINISTERED }
-                    .groupBy { (it.administeredDate ?: it.createdAt).atZone(zone).toLocalDate() }
-                    .toSortedMap(reverseOrder())
-                    .map { (date, list) ->
-                        date to list.sortedByDescending { it.administeredDate ?: it.createdAt }
-                    }
+                    .groupByDateDescending(zone) { it.administeredDate ?: it.createdAt }
                 VaccineHistoryUiState(
                     isLoading = false,
                     toSchedule = toSchedule,

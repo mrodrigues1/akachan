@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.usecase.diaper.DeleteDiaperChangeUseCase
 import com.babytracker.domain.usecase.diaper.ObserveDiaperChangesUseCase
+import com.babytracker.util.groupByDateDescending
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,10 +28,7 @@ class DiaperHistoryViewModel @Inject constructor(
     val historyByDateDesc: StateFlow<List<Pair<LocalDate, List<DiaperChange>>>> =
         observeDiaperChanges()
             .map { changes ->
-                changes
-                    .groupBy { it.timestamp.atZone(zone).toLocalDate() }
-                    .toSortedMap(reverseOrder())
-                    .map { (date, list) -> date to list.sortedByDescending { it.timestamp } }
+                changes.groupByDateDescending(zone) { it.timestamp }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
 
