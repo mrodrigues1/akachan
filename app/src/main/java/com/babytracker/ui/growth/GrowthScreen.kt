@@ -69,6 +69,7 @@ import com.babytracker.domain.model.MeasurementSystem
 import com.babytracker.ui.component.HeadIcon
 import com.babytracker.ui.component.LengthIcon
 import com.babytracker.ui.component.WeightIcon
+import com.babytracker.ui.component.rememberValueMarker
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.growthColors
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
@@ -571,6 +572,7 @@ private fun GrowthChart(
                     // months; without a fixed step Vico derives one from the GCD of those deltas,
                     // which collapses to a near-zero step and renders an unreadable axis.
                     getXStep = { 1.0 },
+                    marker = rememberValueMarker(),
                 ),
                 producer,
                 // Height comes from the Box this chart fills (set by the caller); no second literal.
