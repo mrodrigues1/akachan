@@ -22,7 +22,7 @@ data class VaccineRecord(
 fun VaccineRecord.isOverdue(now: Instant, zone: ZoneId): Boolean =
     status == VaccineStatus.SCHEDULED &&
         scheduledDate != null &&
-        scheduledDate.atZone(zone).toLocalDate().isBefore(now.atZone(zone).toLocalDate())
+        scheduledDate.isDayBefore(now, zone)
 
 /**
  * Past-target is the to-schedule analogue of [isOverdue]: a to-schedule dose whose target calendar
@@ -33,4 +33,8 @@ fun VaccineRecord.isOverdue(now: Instant, zone: ZoneId): Boolean =
 fun VaccineRecord.isPastTarget(now: Instant, zone: ZoneId): Boolean =
     status == VaccineStatus.TO_SCHEDULE &&
         scheduledDate != null &&
-        scheduledDate.atZone(zone).toLocalDate().isBefore(now.atZone(zone).toLocalDate())
+        scheduledDate.isDayBefore(now, zone)
+
+/** True when this instant's calendar day in [zone] is wholly before [now]'s — the day-granular past check. */
+private fun Instant.isDayBefore(now: Instant, zone: ZoneId): Boolean =
+    atZone(zone).toLocalDate().isBefore(now.atZone(zone).toLocalDate())

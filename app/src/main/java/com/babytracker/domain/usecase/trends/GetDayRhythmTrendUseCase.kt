@@ -8,10 +8,10 @@ import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.trends.DayRhythm
 import com.babytracker.domain.trends.RhythmBlock
 import com.babytracker.domain.trends.TrendRange
+import com.babytracker.domain.trends.feedInstantsSince
 import com.babytracker.domain.trends.trendWindowDates
 import com.babytracker.domain.trends.windowStartInstant
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.time.Clock
 import java.time.Duration
@@ -56,15 +56,9 @@ class GetDayRhythmTrendUseCase @Inject constructor(
             }
         }
 
-        val breastByDate = breastfeedingRepository
-            .getCompletedSessionsBetween(start, now)
-            .map { it.startTime }
+        val breastByDate = breastfeedingRepository.feedInstantsSince(start, now)
             .groupBy { it.atZone(zone).toLocalDate() }
-        val bottleByDate = bottleFeedRepository
-            .getSince(start)
-            .first()
-            .map { it.timestamp }
-            .filter { !it.isAfter(now) }
+        val bottleByDate = bottleFeedRepository.feedInstantsSince(start, now)
             .groupBy { it.atZone(zone).toLocalDate() }
 
         trendWindowDates(today, range.days).map { date ->

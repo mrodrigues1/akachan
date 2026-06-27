@@ -4,10 +4,10 @@ import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.trends.DailyFeedingInterval
 import com.babytracker.domain.trends.TrendRange
+import com.babytracker.domain.trends.feedInstantsSince
 import com.babytracker.domain.trends.trendWindowDates
 import com.babytracker.domain.trends.windowStartInstant
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.time.Clock
 import java.time.Duration
@@ -27,10 +27,8 @@ class GetFeedingIntervalTrendUseCase @Inject constructor(
         val start = windowStartInstant(today, range.days, zone)
         val now = Instant.now(clock)
 
-        val feedInstants =
-            breastfeedingRepository.getCompletedSessionsBetween(start, now).map { it.startTime } +
-                bottleFeedRepository.getSince(start).first().map { it.timestamp }
-                    .filter { !it.isAfter(now) } // cap future-dated bottle feeds
+        val feedInstants = breastfeedingRepository.feedInstantsSince(start, now) +
+            bottleFeedRepository.feedInstantsSince(start, now)
         val byDate = feedInstants.groupBy { it.atZone(zone).toLocalDate() }
 
         trendWindowDates(today, range.days).map { date ->

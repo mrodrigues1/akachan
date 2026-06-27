@@ -45,11 +45,11 @@ fun BottleFeedEntity.toDomain(): BottleFeed = BottleFeed(
     clientId = clientId,
     timestamp = Instant.ofEpochMilli(timestamp),
     volumeMl = volumeMl,
-    type = FeedType.entries.firstOrNull { it.name == type } ?: FeedType.FORMULA,
+    type = FeedType.entries.find { it.name == type } ?: FeedType.FORMULA,
     linkedMilkBagId = linkedMilkBagId,
     notes = notes,
     createdAt = Instant.ofEpochMilli(createdAt),
-    author = FeedAuthor.entries.firstOrNull { it.name == author } ?: FeedAuthor.OWNER,
+    author = FeedAuthor.entries.find { it.name == author } ?: FeedAuthor.OWNER,
 )
 
 fun BottleFeed.toEntity(): BottleFeedEntity = BottleFeedEntity(

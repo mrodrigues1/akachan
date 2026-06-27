@@ -27,7 +27,7 @@ data class BabyEventEntity(
 fun BabyEventEntity.toDomain(): BabyEvent = BabyEvent(
     id = id,
     timestamp = Instant.ofEpochMilli(timestamp),
-    type = BabyEventType.entries.firstOrNull { it.name == eventType } ?: BabyEventType.FUSSY,
+    type = BabyEventType.entries.find { it.name == eventType } ?: BabyEventType.FUSSY,
     intensity = intensity,
     notes = notes,
     createdAt = Instant.ofEpochMilli(createdAt),
