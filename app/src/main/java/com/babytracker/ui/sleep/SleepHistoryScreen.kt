@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -40,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
+import com.babytracker.ui.component.HistoryDayHeader
 import com.babytracker.ui.component.SleepIcon
 import com.babytracker.util.formatDuration
 import com.babytracker.util.toRelativeLabel
@@ -194,14 +194,10 @@ fun SleepHistoryScreen(
                                 totalDuration.formatDuration(),
                             )
                         }
-                        Text(
-                            text = header.uppercase(),
-                            style = MaterialTheme.typography.labelMedium,
+                        HistoryDayHeader(
+                            label = header,
+                            modifier = Modifier.background(MaterialTheme.colorScheme.background),
                             color = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier
-                                .background(MaterialTheme.colorScheme.background)
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
                         )
                     }
 

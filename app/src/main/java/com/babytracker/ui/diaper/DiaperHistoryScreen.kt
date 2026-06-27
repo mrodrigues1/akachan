@@ -56,6 +56,7 @@ import com.babytracker.R
 import com.babytracker.domain.model.DiaperChange
 import com.babytracker.ui.component.DiaperIcon
 import com.babytracker.ui.component.DiaperTypeIcon
+import com.babytracker.ui.component.HistoryDayHeader
 import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.diaperColors
@@ -142,8 +143,8 @@ fun DiaperHistoryScreen(
             ) {
                 grouped.forEach { (date, changes) ->
                     stickyHeader(key = date.toString()) {
-                        Text(
-                            text = pluralStringResource(
+                        HistoryDayHeader(
+                            label = pluralStringResource(
                                 R.plurals.diaper_history_day_header,
                                 changes.size,
                                 date.toRelativeLabel(
@@ -151,13 +152,9 @@ fun DiaperHistoryScreen(
                                     stringResource(R.string.relative_yesterday),
                                 ),
                                 changes.size,
-                            ).uppercase(),
-                            style = MaterialTheme.typography.labelMedium,
+                            ),
+                            modifier = Modifier.background(MaterialTheme.colorScheme.background),
                             color = diaperColors().onContainer,
-                            modifier = Modifier
-                                .background(MaterialTheme.colorScheme.background)
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
                         )
                     }
                     items(changes, key = { it.id }) { change ->

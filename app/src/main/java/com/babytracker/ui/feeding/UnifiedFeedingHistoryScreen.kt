@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -68,6 +66,7 @@ import com.babytracker.ui.bottlefeed.BottleFeedViewModel
 import com.babytracker.ui.component.BreastfeedingIcon
 import com.babytracker.ui.component.BottleFeedIcon
 import com.babytracker.ui.component.HistoryCard
+import com.babytracker.ui.component.HistoryDayHeader
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.Pink200
 import com.babytracker.ui.theme.Pink900
@@ -273,17 +272,12 @@ private fun DayHeader(
         stringResource(R.string.relative_today),
         stringResource(R.string.relative_yesterday),
     )
-    Text(
-        text = stringResource(
+    HistoryDayHeader(
+        label = stringResource(
             R.string.feeding_history_day_totals,
             "$relativeDay · $totalVolume",
             day.totals.totalFeedCount,
-        ).uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
+        ),
     )
 }
 

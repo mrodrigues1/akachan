@@ -59,6 +59,7 @@ import com.babytracker.R
 import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.isOverdue
 import com.babytracker.domain.model.isPastTarget
+import com.babytracker.ui.component.HistoryDayHeader
 import com.babytracker.ui.component.VaccineIcon
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
@@ -290,16 +291,12 @@ private fun SectionHeader(text: String) {
 
 @Composable
 private fun DateHeader(date: LocalDate) {
-    Text(
-        text = date.toRelativeLabel(
+    HistoryDayHeader(
+        label = date.toRelativeLabel(
             stringResource(R.string.relative_today),
             stringResource(R.string.relative_yesterday),
         ).uppercase(Locale.getDefault()),
-        style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
     )
 }
 

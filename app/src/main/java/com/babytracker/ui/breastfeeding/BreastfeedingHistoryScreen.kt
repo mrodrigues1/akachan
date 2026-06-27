@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -55,6 +54,7 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.ui.component.BreastfeedingIcon
 import com.babytracker.ui.component.HistoryCard
+import com.babytracker.ui.component.HistoryDayHeader
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.Pink200
 import com.babytracker.ui.theme.Pink900
@@ -156,14 +156,7 @@ fun BreastfeedingHistoryScreen(
                                 totalDuration.formatDuration(),
                             )
                         }
-                        Text(
-                            text = header.uppercase(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                        )
+                        HistoryDayHeader(label = header)
                     }
 
                     items(sessions, key = { it.id }) { session ->
