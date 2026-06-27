@@ -1,10 +1,9 @@
 package com.babytracker.sharing.usecase
 
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.FeedOpAction
-import com.babytracker.sharing.domain.model.ShareCode
-import com.babytracker.sharing.domain.repository.SharingRepository
 import com.google.firebase.firestore.FirebaseFirestoreException
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -25,23 +24,23 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
 class SubmitFeedOpUseCaseTest {
-    private val sharingRepository: SharingRepository = mockk()
+    private val service: FirestoreSharingService = mockk()
     private val settingsRepository: SettingsRepository = mockk()
     private val applicationScope = CoroutineScope(Dispatchers.Unconfined)
     private lateinit var useCase: SubmitFeedOpUseCase
 
     @BeforeEach
     fun setUp() {
-        useCase = SubmitFeedOpUseCase(sharingRepository, settingsRepository, applicationScope)
+        useCase = SubmitFeedOpUseCase(service, settingsRepository, applicationScope)
         every { settingsRepository.getShareCode() } returns flowOf("CODE1234")
-        coEvery { sharingRepository.signInAnonymously() } returns "partner-uid"
-        coEvery { sharingRepository.writeFeedOp(any(), any(), any()) } just Runs
+        coEvery { service.signInAnonymously() } returns "partner-uid"
+        coEvery { service.writeFeedOp(any(), any(), any()) } just Runs
     }
 
     @Test
     fun `submit builds op with resolved uid and writes to share code`() = runTest {
         val op = slot<FeedOp>()
-        coEvery { sharingRepository.writeFeedOp(ShareCode("CODE1234"), capture(op), any()) } just Runs
+        coEvery { service.writeFeedOp("CODE1234", capture(op), any()) } just Runs
 
         useCase { authorUid -> feedOp(authorUid) }
 
@@ -57,13 +56,13 @@ class SubmitFeedOpUseCaseTest {
             runBlocking { useCase { authorUid -> feedOp(authorUid) } }
         }
 
-        coVerify(exactly = 0) { sharingRepository.signInAnonymously() }
+        coVerify(exactly = 0) { service.signInAnonymously() }
     }
 
     @Test
     fun `permission denied write clears partner state and throws revoked`() = runTest {
         val denied = FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
-        coEvery { sharingRepository.writeFeedOp(any(), any(), any()) } throws denied
+        coEvery { service.writeFeedOp(any(), any(), any()) } throws denied
         coEvery { settingsRepository.clearPartnerStateIfShareCodeMatches("CODE1234") } returns true
 
         assertThrows<PartnerAccessRevokedException> {
@@ -76,7 +75,7 @@ class SubmitFeedOpUseCaseTest {
     @Test
     fun `non permission firestore failure maps to data fetch exception`() = runTest {
         val unavailable = FirebaseFirestoreException("down", FirebaseFirestoreException.Code.UNAVAILABLE)
-        coEvery { sharingRepository.writeFeedOp(any(), any(), any()) } throws unavailable
+        coEvery { service.writeFeedOp(any(), any(), any()) } throws unavailable
 
         assertThrows<PartnerDataFetchException> {
             runBlocking { useCase { authorUid -> feedOp(authorUid) } }
@@ -89,7 +88,7 @@ class SubmitFeedOpUseCaseTest {
     fun `late permission denied failure clears partner state`() = runTest {
         val failureHandler = slot<(Throwable) -> Unit>()
         val denied = FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
-        coJustRun { sharingRepository.writeFeedOp(any(), any(), capture(failureHandler)) }
+        coJustRun { service.writeFeedOp(any(), any(), capture(failureHandler)) }
         coEvery { settingsRepository.clearPartnerStateIfShareCodeMatches("CODE1234") } returns true
 
         useCase { authorUid -> feedOp(authorUid) }

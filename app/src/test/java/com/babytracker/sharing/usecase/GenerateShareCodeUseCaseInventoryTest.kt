@@ -12,10 +12,10 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
-import com.babytracker.sharing.domain.repository.SharingRepository
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.every
@@ -32,7 +32,7 @@ import java.time.LocalDate
 
 class GenerateShareCodeUseCaseInventoryTest {
 
-    private val sharingRepository: SharingRepository = mockk()
+    private val service: FirestoreSharingService = mockk()
     private val settingsRepository: SettingsRepository = mockk()
     private val sleepSettingsRepository: SleepSettingsRepository = mockk()
     private val babyRepository: BabyRepository = mockk()
@@ -48,7 +48,7 @@ class GenerateShareCodeUseCaseInventoryTest {
     @BeforeEach
     fun setUp() {
         useCase = GenerateShareCodeUseCase(
-            sharingRepository,
+            service,
             settingsRepository,
             sleepSettingsRepository,
             SnapshotSources(
@@ -70,10 +70,10 @@ class GenerateShareCodeUseCaseInventoryTest {
         coEvery { sleepRepository.getRecentRecords(any()) } returns emptyList()
         every { inventoryRepository.getActiveBags() } returns flowOf(emptyList())
         coEvery { bottleFeedRepository.getRecent(any()) } returns emptyList()
-        coEvery { sharingRepository.signInAnonymously() } returns "uid123"
-        coEvery { sharingRepository.isShareCodeValid(any()) } returns false
-        coEvery { sharingRepository.createShareDocument(any(), any()) } just Runs
-        coEvery { sharingRepository.syncFullSnapshot(any(), any()) } just Runs
+        coEvery { service.signInAnonymously() } returns "uid123"
+        coEvery { service.isShareCodeValid(any()) } returns false
+        coEvery { service.createShareDocument(any(), any()) } just Runs
+        coEvery { service.syncFullSnapshot(any(), any()) } just Runs
         coEvery { settingsRepository.setShareCode(any()) } just Runs
         coEvery { settingsRepository.setAppMode(any()) } just Runs
         every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
@@ -88,7 +88,7 @@ class GenerateShareCodeUseCaseInventoryTest {
             bagCount = 4,
             oldestBagDate = Instant.parse("2026-05-15T10:00:00Z"),
         )
-        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
+        coEvery { service.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
 
         useCase()
 
@@ -101,7 +101,7 @@ class GenerateShareCodeUseCaseInventoryTest {
     fun initialSnapshotWithEmptyInventoryHasZeroFields() = runTest {
         val snapshotSlot = slot<ShareSnapshot>()
         coEvery { inventoryRepository.currentSummary() } returns InventorySummary.Empty
-        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
+        coEvery { service.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
 
         useCase()
 
@@ -129,7 +129,7 @@ class GenerateShareCodeUseCaseInventoryTest {
                 ),
             ),
         )
-        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
+        coEvery { service.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
 
         useCase()
 

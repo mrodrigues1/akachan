@@ -39,7 +39,7 @@ class WidgetRefreshWorkerTest {
         updater: WidgetUpdater,
         settings: SettingsRepository,
         fetchPartnerData: FetchPartnerDataUseCase,
-        partnerCache: PartnerWidgetCache,
+        partnerCache: PartnerWidgetCacheImpl,
     ): WidgetRefreshWorker {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         return TestListenableWorkerBuilder<WidgetRefreshWorker>(context)
@@ -67,7 +67,7 @@ class WidgetRefreshWorkerTest {
         val updater: WidgetUpdater = mockk { coEvery { updateAll() } returns Unit }
         val settings: SettingsRepository = mockk { coEvery { getAppMode() } returns flowOf(AppMode.NONE) }
         val fetch: FetchPartnerDataUseCase = mockk()
-        val cache: PartnerWidgetCache = mockk()
+        val cache: PartnerWidgetCacheImpl = mockk()
 
         val result = buildWorker(updater, settings, fetch, cache).doWork()
 
@@ -81,7 +81,7 @@ class WidgetRefreshWorkerTest {
         val updater: WidgetUpdater = mockk { coEvery { updateAll() } throws IllegalStateException("transient") }
         val settings: SettingsRepository = mockk { coEvery { getAppMode() } returns flowOf(AppMode.NONE) }
         val fetch: FetchPartnerDataUseCase = mockk()
-        val cache: PartnerWidgetCache = mockk()
+        val cache: PartnerWidgetCacheImpl = mockk()
 
         val result = buildWorker(updater, settings, fetch, cache).doWork()
 
@@ -97,7 +97,7 @@ class WidgetRefreshWorkerTest {
         }
         val fetch: FetchPartnerDataUseCase = mockk()
         coEvery { fetch(ShareCode("CODE")) } returns snapshot
-        val cache: PartnerWidgetCache = mockk { coEvery { save(any(), any()) } just Runs }
+        val cache: PartnerWidgetCacheImpl = mockk { coEvery { save(any(), any()) } just Runs }
 
         val result = buildWorker(updater, settings, fetch, cache).doWork()
 
@@ -115,7 +115,7 @@ class WidgetRefreshWorkerTest {
             coEvery { getShareCode() } returns flowOf(null)
         }
         val fetch: FetchPartnerDataUseCase = mockk()
-        val cache: PartnerWidgetCache = mockk()
+        val cache: PartnerWidgetCacheImpl = mockk()
 
         val result = buildWorker(updater, settings, fetch, cache).doWork()
 
@@ -133,7 +133,7 @@ class WidgetRefreshWorkerTest {
         }
         val fetch: FetchPartnerDataUseCase = mockk()
         coEvery { fetch(ShareCode("CODE")) } throws PartnerAccessRevokedException("Partner access revoked")
-        val cache: PartnerWidgetCache = mockk {
+        val cache: PartnerWidgetCacheImpl = mockk {
             coEvery { clear(any()) } just Runs
             coEvery { save(any(), any()) } just Runs
         }
@@ -155,7 +155,7 @@ class WidgetRefreshWorkerTest {
         }
         val fetch: FetchPartnerDataUseCase = mockk()
         coEvery { fetch(ShareCode("CODE")) } throws IllegalStateException("boom")
-        val cache: PartnerWidgetCache = mockk()
+        val cache: PartnerWidgetCacheImpl = mockk()
 
         val result = buildWorker(updater, settings, fetch, cache).doWork()
 
@@ -174,7 +174,7 @@ class WidgetRefreshWorkerTest {
         }
         val fetch: FetchPartnerDataUseCase = mockk()
         coEvery { fetch(ShareCode("CODE")) } throws RuntimeException("network down")
-        val cache: PartnerWidgetCache = mockk()
+        val cache: PartnerWidgetCacheImpl = mockk()
 
         val result = buildWorker(updater, settings, fetch, cache).doWork()
 
@@ -197,7 +197,7 @@ class WidgetRefreshWorkerTest {
         }
         val fetch: FetchPartnerDataUseCase = mockk()
         coEvery { fetch(ShareCode("CODE_A")) } returns snapshot
-        val cache: PartnerWidgetCache = mockk()
+        val cache: PartnerWidgetCacheImpl = mockk()
 
         val result = buildWorker(updater, settings, fetch, cache).doWork()
 

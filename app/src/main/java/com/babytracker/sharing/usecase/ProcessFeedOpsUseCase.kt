@@ -2,11 +2,11 @@ package com.babytracker.sharing.usecase
 
 import android.util.Log
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.manager.PartnerFeedNotifier
+import com.babytracker.manager.PartnerFeedNotificationManager
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.ShareCode
-import com.babytracker.sharing.domain.repository.SharingRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
@@ -23,10 +23,10 @@ import javax.inject.Singleton
 @Singleton
 class ProcessFeedOpsUseCase @Inject constructor(
     private val settingsRepository: SettingsRepository,
-    private val sharingRepository: SharingRepository,
+    private val service: FirestoreSharingService,
     private val applyFeedOp: ApplyFeedOpUseCase,
     private val syncToFirestore: SyncToFirestoreUseCase,
-    private val partnerFeedNotifier: PartnerFeedNotifier,
+    private val partnerFeedNotifier: PartnerFeedNotificationManager,
 ) {
     /**
      * True when Room changed but the follow-up snapshot push has not succeeded yet.
@@ -50,7 +50,7 @@ class ProcessFeedOpsUseCase @Inject constructor(
                 if (code == null) {
                     flowOf(null)
                 } else {
-                    sharingRepository.observeFeedOps(code)
+                    service.observeFeedOps(code.value)
                         .retryWhen { cause, attempt ->
                             Log.w(TAG, "feed op listener error (attempt $attempt); retrying", cause)
                             delay(min(RETRY_BASE_MS * (attempt + 1), RETRY_MAX_MS))
@@ -89,7 +89,7 @@ class ProcessFeedOpsUseCase @Inject constructor(
                     syncPending = false
                 }
                 // Always delete: leaving invalid/duplicate ops in place would re-trigger the batch forever.
-                sharingRepository.deleteFeedOps(code, ops.map { it.opId })
+                service.deleteFeedOps(code.value, ops.map { it.opId })
                 // Coalesced, after the batch fully succeeds. Wrapped so a notifier failure never
                 // re-triggers the (already deleted) batch.
                 if (consumedBagByEntry.isNotEmpty()) {

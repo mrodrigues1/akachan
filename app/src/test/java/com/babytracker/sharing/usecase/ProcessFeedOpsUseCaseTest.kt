@@ -2,12 +2,11 @@ package com.babytracker.sharing.usecase
 
 import android.util.Log
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.manager.PartnerFeedNotifier
+import com.babytracker.manager.PartnerFeedNotificationManager
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.FeedOpAction
-import com.babytracker.sharing.domain.model.ShareCode
-import com.babytracker.sharing.domain.repository.SharingRepository
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -39,11 +38,11 @@ import java.time.Instant
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProcessFeedOpsUseCaseTest {
     private val settingsRepository: SettingsRepository = mockk()
-    private val sharingRepository: SharingRepository = mockk()
+    private val service: FirestoreSharingService = mockk()
     private val applyFeedOp: ApplyFeedOpUseCase = mockk()
     private val syncToFirestore: SyncToFirestoreUseCase = mockk()
-    private val partnerFeedNotifier: PartnerFeedNotifier = mockk()
-    private val shareCode = ShareCode("ABCD1234")
+    private val partnerFeedNotifier: PartnerFeedNotificationManager = mockk()
+    private val shareCode = "ABCD1234"
     private val coalescedSync = SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS_AND_INVENTORY
     private lateinit var useCase: ProcessFeedOpsUseCase
 
@@ -53,14 +52,14 @@ class ProcessFeedOpsUseCaseTest {
         every { Log.w(any(), any<String>(), any<Throwable>()) } returns 0
         useCase = ProcessFeedOpsUseCase(
             settingsRepository,
-            sharingRepository,
+            service,
             applyFeedOp,
             syncToFirestore,
             partnerFeedNotifier,
         )
         coEvery { applyFeedOp(any()) } returns FeedOpApplyResult(roomChanged = true)
         coEvery { syncToFirestore(any()) } just Runs
-        coEvery { sharingRepository.deleteFeedOps(any(), any()) } just Runs
+        coEvery { service.deleteFeedOps(any(), any()) } just Runs
         coEvery { partnerFeedNotifier.notifyStashConsumed(any()) } just Runs
     }
 
@@ -73,7 +72,7 @@ class ProcessFeedOpsUseCaseTest {
     fun `ops are applied in created order`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
-        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        every { service.observeFeedOps(shareCode) } returns opsFlow
         val order = mutableListOf<String>()
         coEvery { applyFeedOp(any()) } coAnswers {
             order += firstArg<FeedOp>().opId
@@ -92,7 +91,7 @@ class ProcessFeedOpsUseCaseTest {
     fun `snapshot push happens before op delete`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
-        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        every { service.observeFeedOps(shareCode) } returns opsFlow
 
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
         advanceUntilIdle()
@@ -101,7 +100,7 @@ class ProcessFeedOpsUseCaseTest {
 
         coVerifyOrder {
             syncToFirestore(coalescedSync)
-            sharingRepository.deleteFeedOps(shareCode, listOf("op-1"))
+            service.deleteFeedOps(shareCode, listOf("op-1"))
         }
     }
 
@@ -109,7 +108,7 @@ class ProcessFeedOpsUseCaseTest {
     fun `feed-and-inventory changes push one coalesced write, not two`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
-        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        every { service.observeFeedOps(shareCode) } returns opsFlow
 
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
         advanceUntilIdle()
@@ -125,7 +124,7 @@ class ProcessFeedOpsUseCaseTest {
     fun `all-dropped batch skips sync but still deletes ops`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
-        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        every { service.observeFeedOps(shareCode) } returns opsFlow
         coEvery { applyFeedOp(any()) } returns FeedOpApplyResult(roomChanged = false)
 
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
@@ -134,14 +133,14 @@ class ProcessFeedOpsUseCaseTest {
         advanceUntilIdle()
 
         coVerify(exactly = 0) { syncToFirestore(any()) }
-        coVerify { sharingRepository.deleteFeedOps(shareCode, listOf("op-1")) }
+        coVerify { service.deleteFeedOps(shareCode, listOf("op-1")) }
     }
 
     @Test
     fun `mixed batch applies every op and pushes snapshot once`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
-        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        every { service.observeFeedOps(shareCode) } returns opsFlow
         val applied = mutableListOf<String>()
         coEvery { applyFeedOp(any()) } coAnswers {
             val id = firstArg<FeedOp>().opId
@@ -156,19 +155,19 @@ class ProcessFeedOpsUseCaseTest {
 
         assertEquals(listOf("op-changed", "op-dropped"), applied)
         coVerify(exactly = 1) { syncToFirestore(coalescedSync) }
-        coVerify { sharingRepository.deleteFeedOps(shareCode, listOf("op-changed", "op-dropped")) }
+        coVerify { service.deleteFeedOps(shareCode, listOf("op-changed", "op-dropped")) }
     }
 
     @Test
     fun `partner mode never observes feed ops`() = runTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PARTNER)
-        every { settingsRepository.getShareCode() } returns flowOf(shareCode.value)
+        every { settingsRepository.getShareCode() } returns flowOf(shareCode)
 
         useCase()
 
         coVerify(exactly = 0) { applyFeedOp(any()) }
-        coVerify(exactly = 0) { sharingRepository.deleteFeedOps(any(), any()) }
-        io.mockk.verify(exactly = 0) { sharingRepository.observeFeedOps(any()) }
+        coVerify(exactly = 0) { service.deleteFeedOps(any(), any()) }
+        io.mockk.verify(exactly = 0) { service.observeFeedOps(any()) }
     }
 
     @Test
@@ -178,14 +177,14 @@ class ProcessFeedOpsUseCaseTest {
 
         useCase()
 
-        io.mockk.verify(exactly = 0) { sharingRepository.observeFeedOps(any()) }
+        io.mockk.verify(exactly = 0) { service.observeFeedOps(any()) }
     }
 
     @Test
     fun `failed batch retries in place and succeeds without new emission`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
-        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        every { service.observeFeedOps(shareCode) } returns opsFlow
         var syncCalls = 0
         coEvery { syncToFirestore(coalescedSync) } coAnswers {
             syncCalls += 1
@@ -201,14 +200,14 @@ class ProcessFeedOpsUseCaseTest {
         runCurrent()
 
         assertEquals(2, syncCalls)
-        coVerify { sharingRepository.deleteFeedOps(shareCode, listOf("op-1")) }
+        coVerify { service.deleteFeedOps(shareCode, listOf("op-1")) }
     }
 
     @Test
     fun `retry still pushes snapshot when reapply is an idempotent no-op`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
-        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        every { service.observeFeedOps(shareCode) } returns opsFlow
         var applyCalls = 0
         coEvery { applyFeedOp(any()) } coAnswers {
             applyCalls += 1
@@ -231,14 +230,14 @@ class ProcessFeedOpsUseCaseTest {
 
         // syncPending survives the no-op reapply, so the coalesced push is retried until it succeeds.
         assertEquals(2, syncCalls)
-        coVerify(exactly = 1) { sharingRepository.deleteFeedOps(shareCode, listOf("op-1")) }
+        coVerify(exactly = 1) { service.deleteFeedOps(shareCode, listOf("op-1")) }
     }
 
     @Test
     fun `batch gives up after max attempts and later emission is processed`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
-        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        every { service.observeFeedOps(shareCode) } returns opsFlow
         var syncCalls = 0
         var failSync = true
         coEvery { syncToFirestore(coalescedSync) } coAnswers {
@@ -257,20 +256,20 @@ class ProcessFeedOpsUseCaseTest {
         runCurrent()
 
         assertEquals(3, syncCalls)
-        coVerify(exactly = 0) { sharingRepository.deleteFeedOps(any(), any()) }
+        coVerify(exactly = 0) { service.deleteFeedOps(any(), any()) }
 
         failSync = false
         opsFlow.emit(listOf(op("op-2", 200)))
         advanceUntilIdle()
 
-        coVerify { sharingRepository.deleteFeedOps(shareCode, listOf("op-2")) }
+        coVerify { service.deleteFeedOps(shareCode, listOf("op-2")) }
     }
 
     @Test
     fun `sync owed after give-up survives to a later idempotent re-emission`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
-        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        every { service.observeFeedOps(shareCode) } returns opsFlow
         var applyCalls = 0
         coEvery { applyFeedOp(any()) } coAnswers {
             applyCalls += 1
@@ -296,21 +295,21 @@ class ProcessFeedOpsUseCaseTest {
 
         // All attempts exhausted; op must not be deleted while the snapshot push is still owed.
         assertEquals(3, syncCalls)
-        coVerify(exactly = 0) { sharingRepository.deleteFeedOps(any(), any()) }
+        coVerify(exactly = 0) { service.deleteFeedOps(any(), any()) }
 
         failSync = false
         opsFlow.emit(listOf(op("op-1", 100)))
         advanceUntilIdle()
 
         assertEquals(4, syncCalls)
-        coVerify(exactly = 1) { sharingRepository.deleteFeedOps(shareCode, listOf("op-1")) }
+        coVerify(exactly = 1) { service.deleteFeedOps(shareCode, listOf("op-1")) }
     }
 
     @Test
     fun `listener error retries and recovers`() = runTest {
         var collectionAttempts = 0
         everyPrimaryWithCode()
-        every { sharingRepository.observeFeedOps(shareCode) } returns flow {
+        every { service.observeFeedOps(shareCode) } returns flow {
             collectionAttempts += 1
             if (collectionAttempts == 1) error("offline")
             emit(listOf(op("op-1", 100)))
@@ -323,14 +322,14 @@ class ProcessFeedOpsUseCaseTest {
         advanceUntilIdle()
 
         coVerify { applyFeedOp(match { it.opId == "op-1" }) }
-        coVerify { sharingRepository.deleteFeedOps(shareCode, listOf("op-1")) }
+        coVerify { service.deleteFeedOps(shareCode, listOf("op-1")) }
     }
 
     @Test
     fun `new emission does not cancel in flight batch`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(extraBufferCapacity = 1)
         everyPrimaryWithCode()
-        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        every { service.observeFeedOps(shareCode) } returns opsFlow
         val started = CompletableDeferred<Unit>()
         val release = CompletableDeferred<Unit>()
         val order = mutableListOf<String>()
@@ -354,15 +353,15 @@ class ProcessFeedOpsUseCaseTest {
         advanceUntilIdle()
 
         assertEquals(listOf("start-op-1", "end-op-1", "start-op-2", "end-op-2"), order)
-        coVerify { sharingRepository.deleteFeedOps(shareCode, listOf("op-1")) }
-        coVerify { sharingRepository.deleteFeedOps(shareCode, listOf("op-2")) }
+        coVerify { service.deleteFeedOps(shareCode, listOf("op-1")) }
+        coVerify { service.deleteFeedOps(shareCode, listOf("op-2")) }
     }
 
     @Test
     fun `consuming feeds trigger a single coalesced stash notification`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
-        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        every { service.observeFeedOps(shareCode) } returns opsFlow
         coEvery { applyFeedOp(any()) } coAnswers {
             val bagId = if (firstArg<FeedOp>().opId == "op-1") 11L else 22L
             FeedOpApplyResult(roomChanged = true, consumedBagId = bagId)
@@ -383,7 +382,7 @@ class ProcessFeedOpsUseCaseTest {
     fun `batch without consumed bags does not notify`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
-        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        every { service.observeFeedOps(shareCode) } returns opsFlow
 
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase() }
         advanceUntilIdle()
@@ -397,7 +396,7 @@ class ProcessFeedOpsUseCaseTest {
     fun `replayed consuming op notifies only once across retry`() = runTest {
         val opsFlow = MutableSharedFlow<List<FeedOp>>(replay = 1)
         everyPrimaryWithCode()
-        every { sharingRepository.observeFeedOps(shareCode) } returns opsFlow
+        every { service.observeFeedOps(shareCode) } returns opsFlow
         var applyCalls = 0
         coEvery { applyFeedOp(any()) } coAnswers {
             applyCalls += 1
@@ -429,7 +428,7 @@ class ProcessFeedOpsUseCaseTest {
 
     private fun everyPrimaryWithCode() {
         every { settingsRepository.getAppMode() } returns MutableStateFlow(AppMode.PRIMARY)
-        every { settingsRepository.getShareCode() } returns MutableStateFlow(shareCode.value)
+        every { settingsRepository.getShareCode() } returns MutableStateFlow(shareCode)
     }
 
     private fun op(opId: String, createdAtMs: Long) = FeedOp(

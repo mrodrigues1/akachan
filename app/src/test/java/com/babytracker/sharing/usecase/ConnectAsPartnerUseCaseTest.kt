@@ -1,9 +1,9 @@
 package com.babytracker.sharing.usecase
 
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.ShareCode
-import com.babytracker.sharing.domain.repository.SharingRepository
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -16,14 +16,14 @@ import org.junit.jupiter.api.Test
 
 class ConnectAsPartnerUseCaseTest {
 
-    private val sharingRepository: SharingRepository = mockk()
+    private val service: FirestoreSharingService = mockk()
     private val settingsRepository: SettingsRepository = mockk()
 
     private lateinit var useCase: ConnectAsPartnerUseCase
 
     @BeforeEach
     fun setUp() {
-        useCase = ConnectAsPartnerUseCase(sharingRepository, settingsRepository)
+        useCase = ConnectAsPartnerUseCase(service, settingsRepository)
     }
 
     @Test
@@ -39,8 +39,8 @@ class ConnectAsPartnerUseCaseTest {
 
     @Test
     fun unknownCodeThrowsIllegalStateException() = runTest {
-        coEvery { sharingRepository.signInAnonymously() } returns "uid123"
-        coEvery { sharingRepository.isShareCodeValid(ShareCode("ABCD1234")) } returns false
+        coEvery { service.signInAnonymously() } returns "uid123"
+        coEvery { service.isShareCodeValid("ABCD1234") } returns false
 
         var caught: IllegalStateException? = null
         try {
@@ -54,15 +54,15 @@ class ConnectAsPartnerUseCaseTest {
     @Test
     fun validCodeRegistersPartnerAndSetsPartnerMode() = runTest {
         val code = ShareCode("ABCD1234")
-        coEvery { sharingRepository.signInAnonymously() } returns "uid123"
-        coEvery { sharingRepository.isShareCodeValid(code) } returns true
-        coEvery { sharingRepository.registerPartner(code, "uid123") } just Runs
+        coEvery { service.signInAnonymously() } returns "uid123"
+        coEvery { service.isShareCodeValid(code.value) } returns true
+        coEvery { service.registerPartner(code.value, "uid123") } just Runs
         coEvery { settingsRepository.setShareCode("ABCD1234") } just Runs
         coEvery { settingsRepository.setAppMode(AppMode.PARTNER) } just Runs
 
         useCase(code)
 
-        coVerify { sharingRepository.registerPartner(code, "uid123") }
+        coVerify { service.registerPartner(code.value, "uid123") }
         coVerify { settingsRepository.setShareCode("ABCD1234") }
         coVerify { settingsRepository.setAppMode(AppMode.PARTNER) }
     }

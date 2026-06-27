@@ -13,10 +13,9 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.AppMode
-import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
-import com.babytracker.sharing.domain.repository.SharingRepository
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -38,7 +37,7 @@ import java.time.LocalDate
 
 class GenerateShareCodeUseCaseTest {
 
-    private val sharingRepository: SharingRepository = mockk()
+    private val service: FirestoreSharingService = mockk()
     private val settingsRepository: SettingsRepository = mockk()
     private val sleepSettingsRepository: SleepSettingsRepository = mockk()
     private val babyRepository: BabyRepository = mockk()
@@ -54,7 +53,7 @@ class GenerateShareCodeUseCaseTest {
     @BeforeEach
     fun setUp() {
         useCase = GenerateShareCodeUseCase(
-            sharingRepository,
+            service,
             settingsRepository,
             sleepSettingsRepository,
             SnapshotSources(
@@ -77,10 +76,10 @@ class GenerateShareCodeUseCaseTest {
         coEvery { inventoryRepository.currentSummary() } returns InventorySummary.Empty
         every { inventoryRepository.getActiveBags() } returns flowOf(emptyList())
         coEvery { bottleFeedRepository.getRecent(any()) } returns emptyList()
-        coEvery { sharingRepository.signInAnonymously() } returns "uid123"
-        coEvery { sharingRepository.isShareCodeValid(any()) } returns false
-        coEvery { sharingRepository.createShareDocument(any(), any()) } just Runs
-        coEvery { sharingRepository.syncFullSnapshot(any(), any()) } just Runs
+        coEvery { service.signInAnonymously() } returns "uid123"
+        coEvery { service.isShareCodeValid(any()) } returns false
+        coEvery { service.createShareDocument(any(), any()) } just Runs
+        coEvery { service.syncFullSnapshot(any(), any()) } just Runs
         coEvery { settingsRepository.setShareCode(any()) } just Runs
         coEvery { settingsRepository.setAppMode(any()) } just Runs
         every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
@@ -89,34 +88,34 @@ class GenerateShareCodeUseCaseTest {
 
     @Test
     fun generatedCodeIsEightUppercaseAlphanumericCharacters() = runTest {
-        val codeSlot = slot<ShareCode>()
-        coEvery { sharingRepository.createShareDocument(capture(codeSlot), any()) } just Runs
+        val codeSlot = slot<String>()
+        coEvery { service.createShareDocument(capture(codeSlot), any()) } just Runs
 
         useCase()
 
-        val code = codeSlot.captured.value
+        val code = codeSlot.captured
         assertEquals(8, code.length)
         assertTrue(code.all { it.isUpperCase() || it.isDigit() })
     }
 
     @Test
     fun consecutiveCallsGenerateDifferentCodes() = runTest {
-        val capturedCodes = mutableListOf<ShareCode>()
-        coEvery { sharingRepository.createShareDocument(capture(capturedCodes), any()) } just Runs
+        val capturedCodes = mutableListOf<String>()
+        coEvery { service.createShareDocument(capture(capturedCodes), any()) } just Runs
 
         repeat(2) { useCase() }
 
         assertEquals(2, capturedCodes.size)
-        assertNotEquals(capturedCodes[0].value, capturedCodes[1].value)
+        assertNotEquals(capturedCodes[0], capturedCodes[1])
     }
 
     @Test
     fun collidingCodeIsRegeneratedSilently() = runTest {
-        coEvery { sharingRepository.isShareCodeValid(any()) } returnsMany listOf(true, true, false)
+        coEvery { service.isShareCodeValid(any()) } returnsMany listOf(true, true, false)
 
         useCase()
 
-        coVerify(exactly = 3) { sharingRepository.isShareCodeValid(any()) }
+        coVerify(exactly = 3) { service.isShareCodeValid(any()) }
     }
 
     @Test
@@ -131,7 +130,7 @@ class GenerateShareCodeUseCaseTest {
     fun initialSnapshotHasNoPredictionWhenPredictiveSleepDisabled() = runTest {
         val snapshotSlot = slot<ShareSnapshot>()
         every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
-        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
+        coEvery { service.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
 
         useCase()
 
@@ -143,7 +142,7 @@ class GenerateShareCodeUseCaseTest {
         val snapshotSlot = slot<ShareSnapshot>()
         every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.CurrentlySleeping)
-        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
+        coEvery { service.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
 
         useCase()
 
@@ -163,7 +162,7 @@ class GenerateShareCodeUseCaseTest {
                 createdAt = Instant.parse("2026-05-16T09:00:00Z"),
             ),
         )
-        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
+        coEvery { service.syncFullSnapshot(any(), capture(snapshotSlot)) } just Runs
 
         useCase()
 

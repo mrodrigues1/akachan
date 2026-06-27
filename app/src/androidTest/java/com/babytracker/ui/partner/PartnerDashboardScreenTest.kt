@@ -31,17 +31,15 @@ import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.export.domain.model.BackupData
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
+import com.babytracker.sharing.data.firebase.deleteSleepOps
+import com.babytracker.sharing.data.firebase.observeSleepOps
+import com.babytracker.sharing.data.firebase.writeSleepOp
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.BabySnapshot
-import com.babytracker.sharing.domain.model.InventorySnapshotFields
-import com.babytracker.sharing.domain.model.MilkBagSnapshot
-import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.domain.model.SessionSnapshot
-import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
-import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
-import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.EditPartnerFeedUseCase
 import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
 import com.babytracker.sharing.usecase.LogPartnerFeedUseCase
@@ -52,15 +50,22 @@ import com.babytracker.sharing.usecase.SubmitSleepOpUseCase
 import com.babytracker.sharing.usecase.UpdatePartnerSleepUseCase
 import com.babytracker.ui.theme.BabyTrackerTheme
 import com.babytracker.widget.WidgetUpdater
+import io.mockk.Runs
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkAll
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import com.babytracker.sharing.domain.model.FeedOp
-import com.babytracker.sharing.domain.model.SleepOp
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
+import org.junit.After
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -73,6 +78,16 @@ class PartnerDashboardScreenTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+    @Before
+    fun setUpMocks() {
+        mockkStatic("com.babytracker.sharing.data.firebase.FirestoreSharingServiceKt")
+    }
+
+    @After
+    fun tearDownMocks() {
+        unmockkAll()
+    }
 
     private val fixedNow = Instant.parse("2026-05-12T06:00:00Z")
     private val fixedNowProvider = { fixedNow.toEpochMilli() }
@@ -90,10 +105,10 @@ class PartnerDashboardScreenTest {
 
     private fun buildFetchUseCase(
         snapshot: ShareSnapshot?,
-        sharingRepository: FakeSharingRepository = FakeSharingRepository(snapshot),
+        sharingRepository: FakeService = fakeSharing(snapshot),
     ): FetchPartnerDataUseCase {
         return FetchPartnerDataUseCase(
-            sharingRepository = sharingRepository,
+            service = sharingRepository.service,
             settingsRepository = FakePartnerSettingsRepository(),
             // Debug builder only fires for the placeholder code; this fake uses a real code.
             debugSnapshotBuilder = dagger.Lazy { error("debug snapshot builder should not be used") },
@@ -102,7 +117,7 @@ class PartnerDashboardScreenTest {
 
     private fun buildBottleFeedViewModel(): PartnerBottleFeedViewModel {
         val scope = CoroutineScope(SupervisorJob())
-        val submitFeedOp = SubmitFeedOpUseCase(FakeSharingRepository(null), FakePartnerSettingsRepository(), scope)
+        val submitFeedOp = SubmitFeedOpUseCase(fakeSharing(null).service, FakePartnerSettingsRepository(), scope)
         return PartnerBottleFeedViewModel(
             logPartnerFeed = LogPartnerFeedUseCase(submitFeedOp),
             editPartnerFeed = EditPartnerFeedUseCase(submitFeedOp),
@@ -114,12 +129,12 @@ class PartnerDashboardScreenTest {
 
     private fun buildSleepViewModel(): PartnerSleepViewModel {
         val scope = CoroutineScope(SupervisorJob())
-        val submitSleepOp = SubmitSleepOpUseCase(FakeSharingRepository(null), FakePartnerSettingsRepository(), scope)
+        val submitSleepOp = SubmitSleepOpUseCase(fakeSharing(null).service, FakePartnerSettingsRepository(), scope)
         return PartnerSleepViewModel(
             startSleep = StartPartnerSleepUseCase(submitSleepOp),
             stopSleep = StopPartnerSleepUseCase(submitSleepOp),
             updateSleep = UpdatePartnerSleepUseCase(submitSleepOp),
-            sharingRepository = FakeSharingRepository(null),
+            service = fakeSharing(null).service,
             settingsRepository = FakePartnerSettingsRepository(),
             appContext = appContext,
             now = Instant::now,
@@ -442,7 +457,7 @@ class PartnerDashboardScreenTest {
 
     @Test
     fun pullDownRefreshChecksForSharedUpdates() {
-        val sharingRepository = FakeSharingRepository(makeSnapshot())
+        val sharingRepository = fakeSharing(makeSnapshot())
         val fetchUseCase = buildFetchUseCase(makeSnapshot(), sharingRepository)
         val viewModel = PartnerDashboardViewModel(fetchUseCase, noOpWidgetUpdater, FakePartnerSettingsRepository(), appContext)
 
@@ -466,7 +481,7 @@ class PartnerDashboardScreenTest {
     @Test
     fun refreshingExistingDashboardShowsOneProgressSignal() {
         val releaseRefresh = CompletableDeferred<Unit>()
-        val sharingRepository = FakeSharingRepository(
+        val sharingRepository = fakeSharing(
             snapshot = makeSnapshot(),
             beforeFetchReturns = { fetchCount ->
                 if (fetchCount == 2) {
@@ -679,99 +694,37 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithText("Updated 2h 0m ago").performScrollTo().assertIsDisplayed()
     }
 
-    private class FakeSharingRepository(
-        private val snapshot: ShareSnapshot?,
-        private val beforeFetchReturns: suspend (Int) -> Unit = {},
-    ) : SharingRepository {
-        var fetchCount = 0
-            private set
+    private class FakeService(
+        val service: FirestoreSharingService,
+        private val counter: java.util.concurrent.atomic.AtomicInteger,
+    ) {
+        val fetchCount: Int get() = counter.get()
+    }
 
-        override suspend fun signInAnonymously(): String = "partner-uid"
-
-        override suspend fun createShareDocument(code: ShareCode, ownerUid: String) = Unit
-
-        override suspend fun isShareCodeValid(code: ShareCode): Boolean = true
-
-        override suspend fun syncFullSnapshot(code: ShareCode, snapshot: ShareSnapshot) = Unit
-
-        override suspend fun syncSessions(
-            code: ShareCode,
-            sessions: List<SessionSnapshot>,
-            prediction: SleepPredictionSnapshot?,
-        ) = Unit
-
-        override suspend fun syncSleepRecords(
-            code: ShareCode,
-            sleepRecords: List<SleepSnapshot>,
-            prediction: SleepPredictionSnapshot?,
-        ) = Unit
-
-        override suspend fun syncBaby(code: ShareCode, baby: BabySnapshot) = Unit
-
-        override suspend fun syncInventory(
-            code: ShareCode,
-            fields: InventorySnapshotFields,
-            milkBags: List<MilkBagSnapshot>,
-        ) = Unit
-
-        override suspend fun syncBottleFeedsAndInventory(
-            code: ShareCode,
-            bottleFeeds: List<com.babytracker.sharing.domain.model.BottleFeedSnapshot>,
-            fields: InventorySnapshotFields,
-            milkBags: List<MilkBagSnapshot>,
-        ) = Unit
-
-        override suspend fun syncBottleFeeds(
-            code: ShareCode,
-            bottleFeeds: List<com.babytracker.sharing.domain.model.BottleFeedSnapshot>,
-        ) = Unit
-
-        override suspend fun syncDiapers(
-            code: ShareCode,
-            diapers: List<com.babytracker.sharing.domain.model.DiaperSnapshot>,
-        ) = Unit
-
-        override suspend fun registerPartner(code: ShareCode, partnerUid: String) = Unit
-
-        override suspend fun fetchSnapshot(code: ShareCode): ShareSnapshot {
-            fetchCount += 1
-            beforeFetchReturns(fetchCount)
-            return snapshot ?: throw RuntimeException("offline")
+    private fun fakeSharing(
+        snapshot: ShareSnapshot?,
+        beforeFetchReturns: suspend (Int) -> Unit = {},
+    ): FakeService {
+        val service = mockk<FirestoreSharingService>(relaxed = true)
+        val counter = java.util.concurrent.atomic.AtomicInteger(0)
+        coEvery { service.signInAnonymously() } returns "partner-uid"
+        coEvery { service.isPartnerConnected(any(), any()) } returns true
+        coEvery { service.isShareCodeValid(any()) } returns true
+        coEvery { service.getPartners(any()) } returns emptyList()
+        coEvery { service.fetchSnapshot(any()) } coAnswers {
+            val c = counter.incrementAndGet()
+            beforeFetchReturns(c)
+            snapshot ?: throw RuntimeException("offline")
         }
-
-        override suspend fun isPartnerConnected(code: ShareCode, partnerUid: String): Boolean = true
-
-        override suspend fun getPartners(code: ShareCode): List<PartnerInfo> = emptyList()
-
-        override suspend fun revokePartner(code: ShareCode, partnerUid: String) = Unit
-
-        override suspend fun deleteShareDocument(code: ShareCode) = Unit
-
-        override fun observeFeedOps(code: ShareCode): Flow<List<FeedOp>> = emptyFlow()
-
-        override suspend fun writeFeedOp(
-            code: ShareCode,
-            op: FeedOp,
-            onFailure: (Throwable) -> Unit,
-        ) = Unit
-
-        override fun observeOwnFeedOps(code: ShareCode, uid: String): Flow<List<FeedOp>> =
-            emptyFlow()
-
-        override suspend fun deleteFeedOps(code: ShareCode, opIds: List<String>) = Unit
-
-        override fun observeSleepOps(code: ShareCode): Flow<List<SleepOp>> = emptyFlow()
-
-        override suspend fun writeSleepOp(
-            code: ShareCode,
-            op: SleepOp,
-            onFailure: (Throwable) -> Unit,
-        ) = Unit
-
-        override fun observeOwnSleepOps(code: ShareCode, uid: String): Flow<List<SleepOp>> =
-            emptyFlow()
-
-        override suspend fun deleteSleepOps(code: ShareCode, opIds: List<String>) = Unit
+        every { service.observeFeedOps(any(), any()) } returns emptyFlow()
+        every { service.observeFeedOps(any()) } returns emptyFlow()
+        every { service.observeSleepOps(any(), any()) } returns emptyFlow()
+        every { service.observeSleepOps(any()) } returns emptyFlow()
+        coEvery { service.writeFeedOp(any(), any(), any()) } just Runs
+        coEvery { service.deleteFeedOps(any(), any()) } just Runs
+        coEvery { service.writeSleepOp(any(), any(), any()) } just Runs
+        coEvery { service.deleteSleepOps(any(), any()) } just Runs
+        return FakeService(service, counter)
     }
 
     private class FakePartnerSettingsRepository : SettingsRepository {

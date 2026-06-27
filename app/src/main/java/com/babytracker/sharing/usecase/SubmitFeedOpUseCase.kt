@@ -2,9 +2,9 @@ package com.babytracker.sharing.usecase
 
 import com.babytracker.di.ApplicationScope
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.ShareCode
-import com.babytracker.sharing.domain.repository.SharingRepository
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
@@ -21,16 +21,16 @@ import javax.inject.Inject
  * @throws PartnerDataFetchException for any other Firestore failure while queueing.
  */
 class SubmitFeedOpUseCase @Inject constructor(
-    private val sharingRepository: SharingRepository,
+    private val service: FirestoreSharingService,
     private val settingsRepository: SettingsRepository,
     @param:ApplicationScope private val applicationScope: CoroutineScope,
 ) {
     suspend operator fun invoke(buildOp: (authorUid: String) -> FeedOp) {
         val code = ShareCode(settingsRepository.getShareCode().first() ?: error("No share code"))
-        val uid = sharingRepository.signInAnonymously()
+        val uid = service.signInAnonymously()
         try {
-            sharingRepository.writeFeedOp(
-                code,
+            service.writeFeedOp(
+                code.value,
                 buildOp(uid),
                 onFailure = { error ->
                     error.clearPartnerStateIfRevokedLater(settingsRepository, code, applicationScope)

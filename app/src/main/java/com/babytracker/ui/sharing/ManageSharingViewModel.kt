@@ -5,10 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.R
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.PartnerInfo
-import com.babytracker.sharing.domain.model.ShareCode
-import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.GenerateShareCodeUseCase
 import com.babytracker.sharing.usecase.RevokePartnerUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,7 +32,7 @@ data class ManageSharingUiState(
 @HiltViewModel
 class ManageSharingViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
-    private val sharingRepository: SharingRepository,
+    private val service: FirestoreSharingService,
     private val generateShareCodeUseCase: GenerateShareCodeUseCase,
     private val revokePartnerUseCase: RevokePartnerUseCase,
     @ApplicationContext private val appContext: Context,
@@ -60,7 +59,7 @@ class ManageSharingViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                val partners = sharingRepository.getPartners(ShareCode(state.shareCode))
+                val partners = service.getPartners(state.shareCode)
                 _uiState.update { it.copy(partners = partners, isLoading = false, error = null) }
             } catch (_: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_sharing_load_partners)) }
@@ -72,14 +71,19 @@ class ManageSharingViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                generateShareCodeUseCase()
-                val code = ShareCode(settingsRepository.getShareCode().first() ?: return@launch)
-                val partners = sharingRepository.getPartners(code)
-                _uiState.update { it.copy(partners = partners, isLoading = false) }
+                regenerateAndLoad()
             } catch (_: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_sharing_enable)) }
             }
         }
+    }
+
+    /** Generates a fresh share code, then loads its (empty) partner list into state. */
+    private suspend fun regenerateAndLoad() {
+        generateShareCodeUseCase()
+        val code = settingsRepository.getShareCode().first() ?: return
+        val partners = service.getPartners(code)
+        _uiState.update { it.copy(partners = partners, isLoading = false) }
     }
 
     fun stopSharing() {
@@ -87,7 +91,7 @@ class ManageSharingViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 val code = settingsRepository.getShareCode().first()
-                if (code != null) sharingRepository.deleteShareDocument(ShareCode(code))
+                if (code != null) service.deleteShareDocument(code)
                 settingsRepository.clearShareCode()
                 settingsRepository.setAppMode(AppMode.NONE)
                 _uiState.update { it.copy(isLoading = false, partners = emptyList()) }
@@ -102,12 +106,9 @@ class ManageSharingViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 val oldCode = settingsRepository.getShareCode().first()
-                if (oldCode != null) sharingRepository.deleteShareDocument(ShareCode(oldCode))
+                if (oldCode != null) service.deleteShareDocument(oldCode)
                 settingsRepository.clearShareCode()
-                generateShareCodeUseCase()
-                val newCode = ShareCode(settingsRepository.getShareCode().first() ?: return@launch)
-                val partners = sharingRepository.getPartners(newCode)
-                _uiState.update { it.copy(partners = partners, isLoading = false) }
+                regenerateAndLoad()
             } catch (_: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_sharing_new_code)) }
             }

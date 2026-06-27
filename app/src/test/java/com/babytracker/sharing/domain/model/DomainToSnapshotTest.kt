@@ -59,7 +59,7 @@ class DomainToSnapshotTest {
             ),
         )
 
-        val snapshot = state.toSnapshot(generatedAt)
+        val snapshot = state.toSnapshot(generatedAt, { it.toString() }, "")
 
         assertEquals("NEED_MORE_DATA", snapshot?.stateLabel)
         assertNull(snapshot?.windowStart)
@@ -70,14 +70,14 @@ class DomainToSnapshotTest {
 
     @Test
     fun `CueLed maps label`() {
-        assertEquals("CUE_LED", SleepPredictionState.CueLed.toSnapshot(generatedAt)?.stateLabel)
+        assertEquals("CUE_LED", SleepPredictionState.CueLed.toSnapshot(generatedAt, { it.toString() }, "")?.stateLabel)
     }
 
     @Test
     fun `CurrentlySleeping maps label`() {
         assertEquals(
             "CURRENTLY_SLEEPING",
-            SleepPredictionState.CurrentlySleeping.toSnapshot(generatedAt)?.stateLabel,
+            SleepPredictionState.CurrentlySleeping.toSnapshot(generatedAt, { it.toString() }, "")?.stateLabel,
         )
     }
 
@@ -85,18 +85,18 @@ class DomainToSnapshotTest {
     fun `AfterActiveFeed maps label`() {
         assertEquals(
             "AFTER_ACTIVE_FEED",
-            SleepPredictionState.AfterActiveFeed.toSnapshot(generatedAt)?.stateLabel,
+            SleepPredictionState.AfterActiveFeed.toSnapshot(generatedAt, { it.toString() }, "")?.stateLabel,
         )
     }
 
     @Test
     fun `Overdue maps label`() {
-        assertEquals("OVERDUE", SleepPredictionState.Overdue.toSnapshot(generatedAt)?.stateLabel)
+        assertEquals("OVERDUE", SleepPredictionState.Overdue.toSnapshot(generatedAt, { it.toString() }, "")?.stateLabel)
     }
 
     @Test
     fun `Unavailable returns null`() {
-        assertNull(SleepPredictionState.Unavailable("no baby profile").toSnapshot(generatedAt))
+        assertNull(SleepPredictionState.Unavailable("no baby profile").toSnapshot(generatedAt, { it.toString() }, ""))
     }
 
     @Test

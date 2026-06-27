@@ -9,11 +9,11 @@ import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.toSleepTypeOrNull
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.sharing.domain.model.ShareCode
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
+import com.babytracker.sharing.data.firebase.observeSleepOps
 import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.domain.model.mergeActiveSleep
-import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.PartnerAccessRevokedException
 import com.babytracker.sharing.usecase.StartPartnerSleepUseCase
 import com.babytracker.sharing.usecase.StopPartnerSleepUseCase
@@ -51,7 +51,6 @@ data class PartnerSleepUiState(
     val isBusy: Boolean = false,
     val editor: PartnerSleepEditorState? = null,
     val accessRevoked: Boolean = false,
-    val errorMessage: String? = null,
     // Bumped when an op the partner submitted is applied by the primary (it disappears from the op
     // listener). The dashboard's snapshot is pull-based, so it must refetch then or the applied
     // change keeps showing as stale (e.g. a stopped session reappears as active).
@@ -68,7 +67,7 @@ class PartnerSleepViewModel @Inject constructor(
     private val startSleep: StartPartnerSleepUseCase,
     private val stopSleep: StopPartnerSleepUseCase,
     private val updateSleep: UpdatePartnerSleepUseCase,
-    private val sharingRepository: SharingRepository,
+    private val service: FirestoreSharingService,
     private val settingsRepository: SettingsRepository,
     @ApplicationContext private val appContext: Context,
     private val now: () -> Instant,
@@ -85,8 +84,8 @@ class PartnerSleepViewModel @Inject constructor(
         viewModelScope.launch {
             val codeValue = settingsRepository.getShareCode().first() ?: return@launch
             runCatching {
-                val uid = sharingRepository.signInAnonymously()
-                sharingRepository.observeOwnSleepOps(ShareCode(codeValue), uid)
+                val uid = service.signInAnonymously()
+                service.observeSleepOps(codeValue, authorUid = uid)
                     .retryWhen { cause, attempt ->
                         // A transient Firestore listener error must not kill the stream for good:
                         // op tracking (and the dashboard refetch it drives) would freeze. Re-subscribe
@@ -147,7 +146,7 @@ class PartnerSleepViewModel @Inject constructor(
     }
 
     private fun submit(block: suspend () -> Unit) {
-        _uiState.update { it.copy(isBusy = true, errorMessage = null) }
+        _uiState.update { it.copy(isBusy = true) }
         viewModelScope.launch {
             runCatching { block() }
                 .onSuccess { _uiState.update { it.copy(isBusy = false) } }
@@ -160,7 +159,7 @@ class PartnerSleepViewModel @Inject constructor(
             if (t is PartnerAccessRevokedException) {
                 it.copy(isBusy = false, accessRevoked = true)
             } else {
-                it.copy(isBusy = false, errorMessage = appContext.getString(R.string.error_could_not_save))
+                it.copy(isBusy = false)
             }
         }
     }
@@ -225,8 +224,6 @@ class PartnerSleepViewModel @Inject constructor(
     }
 
     fun onAccessRevokedHandled() = _uiState.update { it.copy(accessRevoked = false) }
-
-    fun onErrorHandled() = _uiState.update { it.copy(errorMessage = null) }
 
     private inline fun updateEditor(transform: (PartnerSleepEditorState) -> PartnerSleepEditorState) {
         _uiState.update { state -> state.editor?.let { state.copy(editor = transform(it)) } ?: state }

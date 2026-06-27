@@ -1,7 +1,7 @@
 package com.babytracker.sharing.usecase
 
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.sharing.domain.repository.SharingRepository
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.google.firebase.firestore.FirebaseFirestoreException
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -18,21 +18,21 @@ import org.junit.jupiter.api.assertThrows
 import java.io.IOException
 
 class ObservePartnerFeedHistoryUseCaseTest {
-    private val sharingRepository: SharingRepository = mockk()
+    private val service: FirestoreSharingService = mockk()
     private val settingsRepository: SettingsRepository = mockk()
     private lateinit var useCase: ObservePartnerFeedHistoryUseCase
 
     @BeforeEach
     fun setUp() {
-        useCase = ObservePartnerFeedHistoryUseCase(sharingRepository, settingsRepository)
+        useCase = ObservePartnerFeedHistoryUseCase(service, settingsRepository)
         every { settingsRepository.getShareCode() } returns flowOf("CODE1234")
-        coEvery { sharingRepository.signInAnonymously() } returns "partner-uid"
+        coEvery { service.signInAnonymously() } returns "partner-uid"
     }
 
     @Test
     fun `permission denied listener clears partner state and throws revoked`() = runTest {
         val denied = FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
-        every { sharingRepository.observeOwnFeedOps(any(), "partner-uid") } returns flow {
+        every { service.observeFeedOps(any(), "partner-uid") } returns flow {
             throw denied
         }
         coEvery { settingsRepository.clearPartnerStateIfShareCodeMatches("CODE1234") } returns true
@@ -48,7 +48,7 @@ class ObservePartnerFeedHistoryUseCaseTest {
 
     @Test
     fun `non-revoked listener failure wraps as PartnerDataFetchException`() = runTest {
-        every { sharingRepository.observeOwnFeedOps(any(), "partner-uid") } returns flow {
+        every { service.observeFeedOps(any(), "partner-uid") } returns flow {
             throw IOException("network down")
         }
 

@@ -53,11 +53,6 @@ private fun SleepOp.toOptimisticActive(): SleepSnapshot = SleepSnapshot(
     startedBy = SleepAuthor.PARTNER.name,
 )
 
-/**
- * Overlays the partner's own fresh pending UPDATE on a single session snapshot for optimistic
- * display. Reverts automatically once the op is gone (applied / dropped / deleted) or past the TTL —
- * a dropped edit (e.g. it targeted an OWNER session) is deleted by Plan 04, so the snapshot wins.
- */
 data class MergedSleepHistory(
     val entries: List<SleepSnapshot>,
     val pendingOpIds: Set<String>,

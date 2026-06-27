@@ -29,14 +29,7 @@ fun Throwable.clearPartnerStateIfRevokedLater(
     }
 }
 
-private fun Throwable.isPermissionDenied(): Boolean {
-    var current: Throwable? = this
-    while (current != null) {
-        val firestoreException = current as? FirebaseFirestoreException
-        if (firestoreException?.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-            return true
-        }
-        current = current.cause
+private fun Throwable.isPermissionDenied(): Boolean =
+    generateSequence(this) { it.cause }.any {
+        (it as? FirebaseFirestoreException)?.code == FirebaseFirestoreException.Code.PERMISSION_DENIED
     }
-    return false
-}

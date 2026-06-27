@@ -103,8 +103,6 @@ import com.babytracker.ui.home.HomeTrackerTile
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
 import com.babytracker.ui.theme.OnWarningContainerAmberDark
-import com.babytracker.ui.theme.WarningAmber
-import com.babytracker.ui.theme.WarningAmberDark
 import com.babytracker.ui.theme.WarningContainerAmber
 import com.babytracker.ui.theme.WarningContainerAmberDark
 import com.babytracker.ui.theme.diaperColors
@@ -129,7 +127,6 @@ private const val ONE_MINUTE_MS = 60_000L
 private const val MAX_CONTENT_WIDTH_DP = 600
 
 internal data class PartnerWarningColors(
-    val accent: Color,
     val container: Color,
     val onContainer: Color,
     val onSurfaceAccent: Color,
@@ -1627,7 +1624,7 @@ internal fun sleepTypeLabel(sleepType: String, context: Context): String =
         context.getString(R.string.sleep_type_night)
     }
 
-private fun String.lowercaseFirstChar(): String =
+internal fun String.lowercaseFirstChar(): String =
     replaceFirstChar { it.lowercase() }
 
 @Composable
@@ -1649,14 +1646,12 @@ private fun dashboardPanelBorder() =
 internal fun partnerWarningColors(isDark: Boolean): PartnerWarningColors =
     if (isDark) {
         PartnerWarningColors(
-            accent = WarningAmberDark,
             container = WarningContainerAmberDark,
             onContainer = OnWarningContainerAmberDark,
             onSurfaceAccent = OnWarningContainerAmberDark,
         )
     } else {
         PartnerWarningColors(
-            accent = WarningAmber,
             container = WarningContainerAmber,
             onContainer = OnWarningContainerAmber,
             onSurfaceAccent = OnWarningContainerAmber,

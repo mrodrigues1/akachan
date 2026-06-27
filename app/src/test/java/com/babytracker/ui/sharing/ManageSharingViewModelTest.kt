@@ -4,8 +4,7 @@ import android.content.Context
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.PartnerInfo
-import com.babytracker.sharing.domain.model.ShareCode
-import com.babytracker.sharing.domain.repository.SharingRepository
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.usecase.GenerateShareCodeUseCase
 import com.babytracker.sharing.usecase.RevokePartnerUseCase
 import io.mockk.coEvery
@@ -30,7 +29,7 @@ import java.time.Instant
 class ManageSharingViewModelTest {
 
     private lateinit var settingsRepository: SettingsRepository
-    private lateinit var sharingRepository: SharingRepository
+    private lateinit var service: FirestoreSharingService
     private lateinit var generateShareCodeUseCase: GenerateShareCodeUseCase
     private lateinit var revokePartnerUseCase: RevokePartnerUseCase
     private lateinit var appContext: Context
@@ -39,7 +38,7 @@ class ManageSharingViewModelTest {
     fun setup() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         settingsRepository = mockk()
-        sharingRepository = mockk()
+        service = mockk()
         generateShareCodeUseCase = mockk()
         revokePartnerUseCase = mockk()
         appContext = mockk(relaxed = true)
@@ -54,7 +53,7 @@ class ManageSharingViewModelTest {
 
     private fun createViewModel() = ManageSharingViewModel(
         settingsRepository = settingsRepository,
-        sharingRepository = sharingRepository,
+        service = service,
         generateShareCodeUseCase = generateShareCodeUseCase,
         revokePartnerUseCase = revokePartnerUseCase,
         appContext = appContext,
@@ -76,7 +75,7 @@ class ManageSharingViewModelTest {
         val partners = listOf(PartnerInfo("uid1", Instant.now()))
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
         every { settingsRepository.getShareCode() } returns flowOf(code)
-        coEvery { sharingRepository.getPartners(ShareCode(code)) } returns partners
+        coEvery { service.getPartners(code) } returns partners
 
         val viewModel = createViewModel()
         viewModel.refresh()
@@ -91,7 +90,7 @@ class ManageSharingViewModelTest {
         val partners = listOf(PartnerInfo("uid1", Instant.now()))
         coJustRun { generateShareCodeUseCase() }
         every { settingsRepository.getShareCode() } returns flowOf(code)
-        coEvery { sharingRepository.getPartners(ShareCode(code)) } returns partners
+        coEvery { service.getPartners(code) } returns partners
 
         val viewModel = createViewModel()
         viewModel.startSharing()
@@ -116,14 +115,14 @@ class ManageSharingViewModelTest {
     fun `stopSharing deletes document and clears settings`() = runTest {
         val code = "ABCD1234"
         every { settingsRepository.getShareCode() } returns flowOf(code)
-        coJustRun { sharingRepository.deleteShareDocument(ShareCode(code)) }
+        coJustRun { service.deleteShareDocument(code) }
         coJustRun { settingsRepository.clearShareCode() }
         coJustRun { settingsRepository.setAppMode(AppMode.NONE) }
 
         val viewModel = createViewModel()
         viewModel.stopSharing()
 
-        coVerify { sharingRepository.deleteShareDocument(ShareCode(code)) }
+        coVerify { service.deleteShareDocument(code) }
         coVerify { settingsRepository.clearShareCode() }
         coVerify { settingsRepository.setAppMode(AppMode.NONE) }
         assertEquals(false, viewModel.uiState.value.isLoading)
@@ -138,15 +137,15 @@ class ManageSharingViewModelTest {
             flowOf(oldCode), // consumed by generateNewCode for oldCode
             flowOf(newCode), // consumed by generateNewCode for newCode
         )
-        coJustRun { sharingRepository.deleteShareDocument(ShareCode(oldCode)) }
+        coJustRun { service.deleteShareDocument(oldCode) }
         coJustRun { settingsRepository.clearShareCode() }
         coJustRun { generateShareCodeUseCase() }
-        coEvery { sharingRepository.getPartners(ShareCode(newCode)) } returns emptyList()
+        coEvery { service.getPartners(newCode) } returns emptyList()
 
         val viewModel = createViewModel()
         viewModel.generateNewCode()
 
-        coVerify { sharingRepository.deleteShareDocument(ShareCode(oldCode)) }
+        coVerify { service.deleteShareDocument(oldCode) }
         coVerify { settingsRepository.clearShareCode() }
         coVerify { generateShareCodeUseCase() }
         assertEquals(false, viewModel.uiState.value.isLoading)

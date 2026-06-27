@@ -3,11 +3,11 @@ package com.babytracker.sharing.usecase
 import com.babytracker.BuildConfig
 import com.babytracker.debug.DebugSeedConfig
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.MergedFeedHistory
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.mergeFeedHistory
-import com.babytracker.sharing.domain.repository.SharingRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class ObservePartnerFeedHistoryUseCase @Inject constructor(
-    private val sharingRepository: SharingRepository,
+    private val service: FirestoreSharingService,
     private val settingsRepository: SettingsRepository,
 ) {
     /**
@@ -36,9 +36,9 @@ class ObservePartnerFeedHistoryUseCase @Inject constructor(
         // signInAnonymously() lives inside the flow so a network/auth failure is routed through
         // .catch instead of crashing the caller — the suspend prelude is not covered otherwise.
         return flow {
-            val uid = sharingRepository.signInAnonymously()
+            val uid = service.signInAnonymously()
             emitAll(
-                sharingRepository.observeOwnFeedOps(code, uid)
+                service.observeFeedOps(code.value, authorUid = uid)
                     .map { ops -> mergeFeedHistory(snapshotFeeds, ops) },
             )
         }.catch { error ->

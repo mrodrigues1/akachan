@@ -1,6 +1,5 @@
 package com.babytracker.sharing.data.firebase
 
-import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.DiaperSnapshot
 import com.babytracker.sharing.domain.model.FeedOp
@@ -112,16 +111,6 @@ class FirestoreSharingService @Inject constructor(
             mapOf(
                 "lastSyncAt" to Timestamp.now(),
                 "diapers" to diapers.map { diaperToMap(it) },
-            ),
-        )
-    }
-
-    suspend fun syncBaby(code: String, baby: BabySnapshot) {
-        mergeData(
-            code,
-            mapOf(
-                "lastSyncAt" to Timestamp.now(),
-                "baby" to babyToMap(baby),
             ),
         )
     }

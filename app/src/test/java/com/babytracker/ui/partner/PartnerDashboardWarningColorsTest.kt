@@ -6,8 +6,6 @@ import com.babytracker.ui.theme.OnWarningContainerAmber
 import com.babytracker.ui.theme.OnWarningContainerAmberDark
 import com.babytracker.ui.theme.SurfaceDark
 import com.babytracker.ui.theme.SurfaceYellow
-import com.babytracker.ui.theme.WarningAmber
-import com.babytracker.ui.theme.WarningAmberDark
 import com.babytracker.ui.theme.WarningContainerAmber
 import com.babytracker.ui.theme.WarningContainerAmberDark
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -22,7 +20,6 @@ class PartnerDashboardWarningColorsTest {
     fun `light warning colors use light warning tokens`() {
         val colors = partnerWarningColors(isDark = false)
 
-        assertEquals(WarningAmber, colors.accent)
         assertEquals(WarningContainerAmber, colors.container)
         assertEquals(OnWarningContainerAmber, colors.onContainer)
         assertEquals(OnWarningContainerAmber, colors.onSurfaceAccent)
@@ -32,7 +29,6 @@ class PartnerDashboardWarningColorsTest {
     fun `dark warning colors use dark warning tokens`() {
         val colors = partnerWarningColors(isDark = true)
 
-        assertEquals(WarningAmberDark, colors.accent)
         assertEquals(WarningContainerAmberDark, colors.container)
         assertEquals(OnWarningContainerAmberDark, colors.onContainer)
         assertEquals(OnWarningContainerAmberDark, colors.onSurfaceAccent)

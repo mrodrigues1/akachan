@@ -3,11 +3,12 @@ package com.babytracker.sharing.usecase
 import com.babytracker.BuildConfig
 import com.babytracker.debug.DebugSeedConfig
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
+import com.babytracker.sharing.data.firebase.observeSleepOps
 import com.babytracker.sharing.domain.model.MergedSleepHistory
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.domain.model.mergeSleepHistory
-import com.babytracker.sharing.domain.repository.SharingRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
@@ -23,7 +24,7 @@ import javax.inject.Inject
  * with the partner's own pending edit ops for optimistic display. The caller owns snapshot refresh.
  */
 class ObservePartnerSleepHistoryUseCase @Inject constructor(
-    private val sharingRepository: SharingRepository,
+    private val service: FirestoreSharingService,
     private val settingsRepository: SettingsRepository,
     private val now: () -> Instant = Instant::now,
 ) {
@@ -37,9 +38,9 @@ class ObservePartnerSleepHistoryUseCase @Inject constructor(
         // signInAnonymously() lives inside the flow so a network/auth failure is routed through
         // .catch instead of crashing the caller — the suspend prelude is not covered otherwise.
         return flow {
-            val uid = sharingRepository.signInAnonymously()
+            val uid = service.signInAnonymously()
             emitAll(
-                sharingRepository.observeOwnSleepOps(code, uid)
+                service.observeSleepOps(code.value, authorUid = uid)
                     .map { ops -> mergeSleepHistory(snapshotRecords, ops, now().toEpochMilli()) },
             )
         }.catch { error ->

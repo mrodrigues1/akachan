@@ -20,11 +20,11 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
+import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
-import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -44,7 +44,7 @@ import java.time.LocalDate
 
 class SyncToFirestoreUseCaseTest {
 
-    private val sharingRepository: SharingRepository = mockk()
+    private val service: FirestoreSharingService = mockk()
     private val settingsRepository: SettingsRepository = mockk()
     private val sleepSettingsRepository: SleepSettingsRepository = mockk()
     private val babyRepository: BabyRepository = mockk()
@@ -81,7 +81,7 @@ class SyncToFirestoreUseCaseTest {
     @BeforeEach
     fun setUp() {
         useCase = SyncToFirestoreUseCase(
-            sharingRepository,
+            service,
             settingsRepository,
             sleepSettingsRepository,
             SnapshotSources(
@@ -106,12 +106,11 @@ class SyncToFirestoreUseCaseTest {
         coEvery { inventoryRepository.currentSummary() } returns InventorySummary.Empty
         every { inventoryRepository.getActiveBags() } returns flowOf(emptyList())
         coEvery { bottleFeedRepository.getRecent(any()) } returns listOf(mockBottleFeed)
-        coEvery { sharingRepository.syncFullSnapshot(any(), any()) } just Runs
-        coEvery { sharingRepository.syncSessions(any(), any(), any()) } just Runs
-        coEvery { sharingRepository.syncSleepRecords(any(), any(), any()) } just Runs
-        coEvery { sharingRepository.syncBaby(any(), any()) } just Runs
-        coEvery { sharingRepository.syncInventory(any(), any(), any()) } just Runs
-        coEvery { sharingRepository.syncBottleFeeds(any(), any()) } just Runs
+        coEvery { service.syncFullSnapshot(any(), any()) } just Runs
+        coEvery { service.syncSessions(any(), any(), any()) } just Runs
+        coEvery { service.syncSleepRecords(any(), any(), any()) } just Runs
+        coEvery { service.syncInventory(any(), any(), any()) } just Runs
+        coEvery { service.syncBottleFeeds(any(), any()) } just Runs
     }
 
     @Test
@@ -120,7 +119,7 @@ class SyncToFirestoreUseCaseTest {
 
         useCase()
 
-        coVerify(exactly = 0) { sharingRepository.syncFullSnapshot(any(), any()) }
+        coVerify(exactly = 0) { service.syncFullSnapshot(any(), any()) }
     }
 
     @Test
@@ -130,7 +129,7 @@ class SyncToFirestoreUseCaseTest {
 
         useCase()
 
-        coVerify(exactly = 0) { sharingRepository.syncFullSnapshot(any(), any()) }
+        coVerify(exactly = 0) { service.syncFullSnapshot(any(), any()) }
     }
 
     @Test
@@ -139,7 +138,7 @@ class SyncToFirestoreUseCaseTest {
 
         useCase(SyncType.FULL)
 
-        coVerify { sharingRepository.syncFullSnapshot(shareCode, any()) }
+        coVerify { service.syncFullSnapshot(shareCode.value, any()) }
     }
 
     @Test
@@ -148,8 +147,8 @@ class SyncToFirestoreUseCaseTest {
 
         useCase(SyncType.SESSIONS)
 
-        coVerify { sharingRepository.syncSessions(shareCode, any(), any()) }
-        coVerify(exactly = 0) { sharingRepository.syncFullSnapshot(any(), any()) }
+        coVerify { service.syncSessions(shareCode.value, any(), any()) }
+        coVerify(exactly = 0) { service.syncFullSnapshot(any(), any()) }
     }
 
     @Test
@@ -158,28 +157,19 @@ class SyncToFirestoreUseCaseTest {
 
         useCase(SyncType.SLEEP_RECORDS)
 
-        coVerify { sharingRepository.syncSleepRecords(shareCode, any(), any()) }
-    }
-
-    @Test
-    fun babySyncCallsSyncBaby() = runTest {
-        every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
-
-        useCase(SyncType.BABY)
-
-        coVerify { sharingRepository.syncBaby(shareCode, any()) }
+        coVerify { service.syncSleepRecords(shareCode.value, any(), any()) }
     }
 
     @Test
     fun bottleFeedsSyncCallsSyncBottleFeeds() = runTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
         val feeds = slot<List<com.babytracker.sharing.domain.model.BottleFeedSnapshot>>()
-        coEvery { sharingRepository.syncBottleFeeds(any(), capture(feeds)) } just Runs
+        coEvery { service.syncBottleFeeds(any(), capture(feeds)) } just Runs
 
         useCase(SyncType.BOTTLE_FEEDS)
 
-        coVerify { sharingRepository.syncBottleFeeds(shareCode, any()) }
-        coVerify(exactly = 0) { sharingRepository.syncFullSnapshot(any(), any()) }
+        coVerify { service.syncBottleFeeds(shareCode.value, any()) }
+        coVerify(exactly = 0) { service.syncFullSnapshot(any(), any()) }
         assertEquals(120, feeds.captured.single().volumeMl)
         assertEquals("FORMULA", feeds.captured.single().type)
     }
@@ -188,7 +178,7 @@ class SyncToFirestoreUseCaseTest {
     fun fullSyncIncludesBottleFeeds() = runTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
         val snapshot = slot<ShareSnapshot>()
-        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshot)) } just Runs
+        coEvery { service.syncFullSnapshot(any(), capture(snapshot)) } just Runs
 
         useCase(SyncType.FULL)
 
@@ -212,7 +202,7 @@ class SyncToFirestoreUseCaseTest {
             ),
         )
         val snapshot = slot<ShareSnapshot>()
-        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshot)) } just Runs
+        coEvery { service.syncFullSnapshot(any(), capture(snapshot)) } just Runs
 
         useCase(SyncType.FULL)
 
@@ -227,7 +217,7 @@ class SyncToFirestoreUseCaseTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
         every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
         val snapshot = slot<ShareSnapshot>()
-        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshot)) } just Runs
+        coEvery { service.syncFullSnapshot(any(), capture(snapshot)) } just Runs
 
         useCase(SyncType.FULL)
 
@@ -241,7 +231,7 @@ class SyncToFirestoreUseCaseTest {
         every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.AfterActiveFeed)
         val prediction = slot<SleepPredictionSnapshot>()
-        coEvery { sharingRepository.syncSessions(any(), any(), capture(prediction)) } just Runs
+        coEvery { service.syncSessions(any(), any(), capture(prediction)) } just Runs
 
         useCase(SyncType.SESSIONS)
 
@@ -256,7 +246,7 @@ class SyncToFirestoreUseCaseTest {
 
         useCase(SyncType.SESSIONS)
 
-        coVerify { sharingRepository.syncSessions(shareCode, any(), null) }
+        coVerify { service.syncSessions(shareCode.value, any(), null) }
         coVerify(exactly = 0) { predictSleepWindow() }
     }
 
@@ -267,7 +257,7 @@ class SyncToFirestoreUseCaseTest {
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.CurrentlySleeping)
         val prediction = slot<SleepPredictionSnapshot>()
         coEvery {
-            sharingRepository.syncSleepRecords(any(), any(), capture(prediction))
+            service.syncSleepRecords(any(), any(), capture(prediction))
         } just Runs
 
         useCase(SyncType.SLEEP_RECORDS)
@@ -281,7 +271,7 @@ class SyncToFirestoreUseCaseTest {
         every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("no baby profile"))
         val snapshot = slot<ShareSnapshot>()
-        coEvery { sharingRepository.syncFullSnapshot(any(), capture(snapshot)) } just Runs
+        coEvery { service.syncFullSnapshot(any(), capture(snapshot)) } just Runs
 
         useCase(SyncType.FULL)
 

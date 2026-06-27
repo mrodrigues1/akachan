@@ -567,3 +567,10 @@ object NotificationHelper {
     const val PREDICTIVE_SLEEP_NOTIFICATION_ID = 1008
     const val EXTRA_NAV_ROUTE = "com.babytracker.nav.route"
 }
+
+/** Picks the [dark] or [light] accent for the current UI night mode and returns it as an ARGB int. */
+internal fun Context.resolveNotificationAccent(light: Color, dark: Color): Int {
+    val nightMask = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+    val isDark = nightMask == Configuration.UI_MODE_NIGHT_YES
+    return (if (isDark) dark else light).toArgb()
+}

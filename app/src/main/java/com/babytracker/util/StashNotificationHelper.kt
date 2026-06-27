@@ -5,11 +5,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
 import android.os.Build
 import android.util.Log
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
 import com.babytracker.MainActivity
 import com.babytracker.R
@@ -64,7 +61,7 @@ object StashNotificationHelper {
         val body = context.resources.getQuantityString(
             R.plurals.notif_body_stash_expiration, count, count, totalMl,
         )
-        val accent = resolveAccent(context, WarningAmber, WarningAmberDark)
+        val accent = context.resolveNotificationAccent(WarningAmber, WarningAmberDark)
         val notification = NotificationCompat.Builder(context, STASH_EXPIRATION_CHANNEL_ID)
             .applyDesignSystem(accent, R.drawable.ic_notif_limit)
             .setContentTitle(title)
@@ -101,7 +98,7 @@ object StashNotificationHelper {
         } else {
             context.getString(R.string.notif_body_partner_stash_multi, totalMl)
         }
-        val accent = resolveAccent(context, Pink700, PrimaryPinkDark)
+        val accent = context.resolveNotificationAccent(Pink700, PrimaryPinkDark)
         val notification = NotificationCompat.Builder(context, PARTNER_STASH_CHANNEL_ID)
             .applyDesignSystem(accent, R.drawable.ic_notif_breastfeeding)
             .setContentTitle(title)
@@ -128,12 +125,6 @@ object StashNotificationHelper {
             },
             PENDING_INTENT_IMMUTABLE_UPDATE,
         )
-
-    private fun resolveAccent(context: Context, light: Color, dark: Color): Int {
-        val nightMask = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        val isDark = nightMask == Configuration.UI_MODE_NIGHT_YES
-        return (if (isDark) dark else light).toArgb()
-    }
 
     private fun NotificationCompat.Builder.applyDesignSystem(
         accentColor: Int,
