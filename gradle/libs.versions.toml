@@ -38,6 +38,7 @@ twitterComposeRules = "0.0.26"
 reorderable = "3.1.0"
 vico = "3.1.0"
 profileinstaller = "1.4.1"
+screenshot = "0.0.1-alpha15"
 
 [libraries]
 # Compose BOM
@@ -125,6 +126,9 @@ espresso-intents = { group = "androidx.test.espresso", name = "espresso-intents"
 compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 
+# Compose Preview Screenshot Testing
+screenshot-validation-api = { group = "com.android.tools.screenshot", name = "screenshot-validation-api", version.ref = "screenshot" }
+
 # Android JUnit 5 (instrumented tests)
 mannodermaus-core = { group = "de.mannodermaus.junit5", name = "android-test-core", version.ref = "androidJunit5" }
 mannodermaus-runner = { group = "de.mannodermaus.junit5", name = "android-test-runner", version.ref = "androidJunit5" }
@@ -146,3 +150,4 @@ detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 android-junit5 = { id = "de.mannodermaus.android-junit", version.ref = "androidJunit5" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+screenshot = { id = "com.android.compose.screenshot", version.ref = "screenshot" }
