@@ -1,7 +1,6 @@
 package com.babytracker.domain.repository
 
 import com.babytracker.domain.model.BreastfeedingActiveNotificationSettings
-import com.babytracker.domain.model.BreastfeedingNotificationScheduleSettings
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
@@ -35,19 +34,6 @@ class FeedSettingsRepositoryExtTest {
             BreastfeedingActiveNotificationSettings(
                 maxTotalFeedMinutes = 30,
                 richNotificationsEnabled = false
-            ),
-            settings
-        )
-    }
-
-    @Test
-    fun `getBreastfeedingNotificationScheduleSettings combines schedule values`() = runTest {
-        val settings = feedSettingsRepository.getBreastfeedingNotificationScheduleSettings().first()
-
-        assertEquals(
-            BreastfeedingNotificationScheduleSettings(
-                maxPerBreastMinutes = 15,
-                maxTotalFeedMinutes = 30
             ),
             settings
         )

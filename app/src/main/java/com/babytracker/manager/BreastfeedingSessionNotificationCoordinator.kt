@@ -3,14 +3,13 @@ package com.babytracker.manager
 import android.content.Context
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingActiveNotificationSettings
-import com.babytracker.domain.model.BreastfeedingNotificationScheduleSettings
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.FeedSettingsRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.getBreastfeedingActiveNotificationSettings
-import com.babytracker.domain.repository.getBreastfeedingNotificationScheduleSettings
 import com.babytracker.util.NotificationHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import java.time.Duration
 import java.time.Instant
@@ -26,25 +25,25 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
 ) {
 
     suspend fun scheduleInitial(session: BreastfeedingSession) {
-        val settings = breastfeedingNotificationScheduleSettings()
+        val (maxPerBreastMinutes, maxTotalFeedMinutes) = scheduleMinutes()
 
-        if (settings.maxPerBreastMinutes > 0) {
+        if (maxPerBreastMinutes > 0) {
             notificationScheduler.scheduleMaxPerBreastNotification(
                 sessionStartTime = session.startTime,
-                maxPerBreastMinutes = settings.maxPerBreastMinutes,
+                maxPerBreastMinutes = maxPerBreastMinutes,
                 sessionId = session.id,
                 currentSide = session.startingSide.name,
-                maxTotalMinutes = settings.maxTotalFeedMinutes
+                maxTotalMinutes = maxTotalFeedMinutes
             )
         }
 
-        if (settings.maxTotalFeedMinutes > 0) {
+        if (maxTotalFeedMinutes > 0) {
             notificationScheduler.scheduleMaxTotalTimeNotification(
                 sessionStartTime = session.startTime,
-                maxTotalMinutes = settings.maxTotalFeedMinutes,
+                maxTotalMinutes = maxTotalFeedMinutes,
                 sessionId = session.id,
                 currentSide = session.startingSide.name,
-                maxPerBreastMinutes = settings.maxPerBreastMinutes
+                maxPerBreastMinutes = maxPerBreastMinutes
             )
         }
     }
@@ -107,36 +106,36 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
         resumeInstant: Instant = Instant.now()
     ): Long {
         val pausedAt = pausedSession.pausedAt ?: return pausedSession.pausedDurationMs
-        val settings = breastfeedingNotificationScheduleSettings()
+        val (maxPerBreastMinutes, maxTotalFeedMinutes) = scheduleMinutes()
 
-        if (settings.maxPerBreastMinutes > 0) {
+        if (maxPerBreastMinutes > 0) {
             val adjustedTrigger = pausedSession.startTime
-                .plusSeconds(settings.maxPerBreastMinutes * 60L)
+                .plusSeconds(maxPerBreastMinutes * 60L)
                 .plusMillis(pausedSession.pausedDurationMs)
             val remaining = Duration.between(pausedAt, adjustedTrigger)
             if (!remaining.isNegative && !remaining.isZero) {
                 notificationScheduler.scheduleMaxPerBreastNotificationAt(
                     triggerTime = resumeInstant.plus(remaining),
                     sessionId = pausedSession.id,
-                    maxPerBreastMinutes = settings.maxPerBreastMinutes,
+                    maxPerBreastMinutes = maxPerBreastMinutes,
                     currentSide = pausedSession.startingSide.name,
-                    maxTotalMinutes = settings.maxTotalFeedMinutes
+                    maxTotalMinutes = maxTotalFeedMinutes
                 )
             }
         }
 
-        if (settings.maxTotalFeedMinutes > 0) {
+        if (maxTotalFeedMinutes > 0) {
             val adjustedTrigger = pausedSession.startTime
-                .plusSeconds(settings.maxTotalFeedMinutes * 60L)
+                .plusSeconds(maxTotalFeedMinutes * 60L)
                 .plusMillis(pausedSession.pausedDurationMs)
             val remaining = Duration.between(pausedAt, adjustedTrigger)
             if (!remaining.isNegative && !remaining.isZero) {
                 notificationScheduler.scheduleMaxTotalTimeNotificationAt(
                     triggerTime = resumeInstant.plus(remaining),
                     sessionId = pausedSession.id,
-                    maxTotalMinutes = settings.maxTotalFeedMinutes,
+                    maxTotalMinutes = maxTotalFeedMinutes,
                     currentSide = pausedSession.startingSide.name,
-                    maxPerBreastMinutes = settings.maxPerBreastMinutes
+                    maxPerBreastMinutes = maxPerBreastMinutes
                 )
             }
         }
@@ -146,14 +145,14 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
     }
 
     suspend fun rearmAfterKeepGoing(sessionId: Long, currentSide: String) {
-        val settings = breastfeedingNotificationScheduleSettings()
-        if (settings.maxTotalFeedMinutes > 0) {
+        val (maxPerBreastMinutes, maxTotalFeedMinutes) = scheduleMinutes()
+        if (maxTotalFeedMinutes > 0) {
             notificationScheduler.scheduleMaxTotalTimeNotificationAt(
                 triggerTime = Instant.now().plusSeconds(600),
                 sessionId = sessionId,
-                maxTotalMinutes = settings.maxTotalFeedMinutes,
+                maxTotalMinutes = maxTotalFeedMinutes,
                 currentSide = currentSide,
-                maxPerBreastMinutes = settings.maxPerBreastMinutes
+                maxPerBreastMinutes = maxPerBreastMinutes
             )
         }
     }
@@ -161,8 +160,12 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
     private suspend fun breastfeedingActiveNotificationSettings(): BreastfeedingActiveNotificationSettings =
         feedSettingsRepository.getBreastfeedingActiveNotificationSettings(settingsRepository).first()
 
-    private suspend fun breastfeedingNotificationScheduleSettings(): BreastfeedingNotificationScheduleSettings =
-        feedSettingsRepository.getBreastfeedingNotificationScheduleSettings().first()
+    /** (maxPerBreastMinutes, maxTotalFeedMinutes) — the feed-owned scheduling limits. */
+    private suspend fun scheduleMinutes(): Pair<Int, Int> =
+        combine(
+            feedSettingsRepository.getMaxPerBreastMinutes(),
+            feedSettingsRepository.getMaxTotalFeedMinutes(),
+        ) { maxPerBreast, maxTotal -> maxPerBreast to maxTotal }.first()
 
     private fun currentSideName(session: BreastfeedingSession): String =
         if (session.switchTime != null) {
