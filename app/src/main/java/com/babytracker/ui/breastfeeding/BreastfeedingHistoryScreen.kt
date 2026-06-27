@@ -16,9 +16,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,7 +26,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -53,6 +49,7 @@ import com.babytracker.R
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.ui.component.BreastfeedingIcon
+import com.babytracker.ui.component.DeleteConfirmationDialog
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.HistoryDayHeader
 import com.babytracker.ui.theme.LocalDarkTheme
@@ -267,18 +264,12 @@ internal fun BreastfeedingDeleteConfirmationDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.breastfeeding_delete_title)) },
-        text = { Text(stringResource(R.string.breastfeeding_delete_message)) },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) { Text(stringResource(R.string.delete)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-        }
+    DeleteConfirmationDialog(
+        title = stringResource(R.string.breastfeeding_delete_title),
+        message = stringResource(R.string.breastfeeding_delete_message),
+        confirmText = stringResource(R.string.delete),
+        dismissText = stringResource(R.string.cancel),
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
     )
 }
