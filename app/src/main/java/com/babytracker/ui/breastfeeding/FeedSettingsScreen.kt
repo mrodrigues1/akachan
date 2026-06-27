@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.babytracker.R
+import com.babytracker.domain.model.PredictionTuning
 import com.babytracker.ui.settings.LeadTimeSegmentedRow
 import com.babytracker.ui.settings.MinutesEditSheet
 import com.babytracker.ui.settings.QuietHoursRow
@@ -60,8 +61,6 @@ import com.babytracker.ui.settings.WarningSurface
 import kotlinx.coroutines.launch
 
 private enum class FeedSettingsSheet { MAX_PER_BREAST, MAX_TOTAL_FEED }
-
-private const val MIN_VALID_INTERVALS = 3
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,7 +91,7 @@ fun FeedSettingsScreen(
         scope.launch { sheetState.hide() }.invokeOnCompletion { activeSheet = null }
     }
 
-    val remindersEnabled = uiState.predictiveEnabled && uiState.validIntervalCount >= MIN_VALID_INTERVALS
+    val remindersEnabled = uiState.predictiveEnabled && uiState.validIntervalCount >= PredictionTuning.SAMPLE_SIZE_MIN
 
     Scaffold(
         modifier = modifier,
@@ -173,8 +172,8 @@ fun FeedSettingsScreen(
                 leadingIcon = { Icon(Icons.Outlined.Schedule, contentDescription = null) },
             )
 
-            if (uiState.predictiveEnabled && uiState.validIntervalCount < MIN_VALID_INTERVALS) {
-                val remaining = MIN_VALID_INTERVALS - uiState.validIntervalCount
+            if (uiState.predictiveEnabled && uiState.validIntervalCount < PredictionTuning.SAMPLE_SIZE_MIN) {
+                val remaining = PredictionTuning.SAMPLE_SIZE_MIN - uiState.validIntervalCount
                 Row(
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
