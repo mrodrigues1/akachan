@@ -2,7 +2,7 @@
 
 Whole-section ponytail audit (over-engineering/complexity only; no correctness/security/perf).
 Scope: domain models, use cases, repository/DAO/entity, ViewModels, screens, coordinator,
-receivers, prediction/settings helpers. **Sections A + B applied; Section C deferred — see
+receivers, prediction/settings helpers. **Sections A + B + C1 applied; C2/C3 deferred — see
 Execution status below.**
 
 Line numbers drift — each item is grep-able by file + symbol. Each is behavior-preserving; file as
@@ -26,9 +26,15 @@ Two items overlap the existing deferred backlog in `docs/tech-debt-simplificatio
   filed). B1's shared helper lives in `RecentFeedInterval.kt` (type `RecentFeedInterval`,
   fun `recentValidIntervals`) next to `QuietHours.kt`.
 
-**Section C not executed** — left to an explicit decision: C1 (app-wide icon dedup, readability call),
-C2 (passthrough use cases — contradicts CLAUDE.md's use-case convention; needs a convention-relaxation
-decision), C3 (`StartSessionAction` — audit verdict is "leave").
+**Section C — partially executed:**
+
+- **C1 executed (Variant A):** added a shared `SectionIcon(@DrawableRes)` in `ui/component/BreastfeedingIcon.kt`;
+  the 17 section-icon composables (and `DiaperTypeIcon`) are now thin aliases that fix the drawable.
+  Call sites unchanged (~119 across the app), so named-call readability is preserved. The contested
+  Variant B (inline `@DrawableRes` at every call site) was **not** taken.
+- **C2 not executed** — passthrough use cases kept; deleting them contradicts CLAUDE.md's use-case
+  convention and reverses PR #350. Needs an explicit convention-relaxation decision.
+- **C3** — `StartSessionAction` left as-is (audit verdict: "leave").
 
 ---
 
