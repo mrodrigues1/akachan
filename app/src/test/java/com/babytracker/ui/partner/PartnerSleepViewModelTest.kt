@@ -4,6 +4,9 @@ import android.content.Context
 import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.sharing.domain.model.ShareCode
+import com.babytracker.sharing.domain.model.SleepOp
+import com.babytracker.sharing.domain.model.SleepOpAction
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.domain.repository.SharingRepository
 import com.babytracker.sharing.usecase.PartnerAccessRevokedException
@@ -154,6 +157,24 @@ class PartnerSleepViewModelTest {
             updateSleep("edit-cid", any(), any(), SleepType.NIGHT_SLEEP, any())
         }
         assertNull(vm.uiState.value.editor)
+    }
+
+    @Test
+    fun `snapshotRefreshTick bumps when a submitted op is applied by the primary`() = runTest {
+        // A pending op that the primary then applies (it disappears from the op listener).
+        val op = SleepOp(
+            opId = "op-1", action = SleepOpAction.STOP, entryClientId = "active-cid",
+            authorUid = "uid", createdAtMs = now.toEpochMilli(), endTimeMs = now.toEpochMilli(),
+        )
+        every { settingsRepository.getShareCode() } returns flowOf("CODE")
+        coEvery { sharingRepository.signInAnonymously() } returns "uid"
+        every { sharingRepository.observeOwnSleepOps(ShareCode("CODE"), "uid") } returns
+            flowOf(listOf(op), emptyList())
+
+        val vm = buildViewModel()
+        advanceUntilIdle()
+
+        assertEquals(1, vm.uiState.value.snapshotRefreshTick)
     }
 
     @Test

@@ -48,6 +48,10 @@ data class PartnerSleepUiState(
     val editor: PartnerSleepEditorState? = null,
     val accessRevoked: Boolean = false,
     val errorMessage: String? = null,
+    // Bumped when an op the partner submitted is applied by the primary (it disappears from the op
+    // listener). The dashboard's snapshot is pull-based, so it must refetch then or the applied
+    // change keeps showing as stale (e.g. a stopped session reappears as active).
+    val snapshotRefreshTick: Int = 0,
 )
 
 /**
@@ -71,6 +75,7 @@ class PartnerSleepViewModel @Inject constructor(
 
     private var snapshotRecords: List<SleepSnapshot> = emptyList()
     private var pendingOps: List<SleepOp> = emptyList()
+    private var trackedOpIds: Set<String> = emptySet()
 
     init {
         viewModelScope.launch {
@@ -78,7 +83,14 @@ class PartnerSleepViewModel @Inject constructor(
             runCatching {
                 val uid = sharingRepository.signInAnonymously()
                 sharingRepository.observeOwnSleepOps(ShareCode(codeValue), uid).collect { ops ->
+                    val ids = ops.mapTo(mutableSetOf()) { it.opId }
+                    // A previously-pending op vanished -> the primary applied (or dropped) it and has
+                    // already re-pushed the snapshot (it pushes before deleting), so the stale
+                    // dashboard snapshot must be refetched to reflect the change.
+                    val applied = trackedOpIds.any { it !in ids }
+                    trackedOpIds = ids
                     pendingOps = ops
+                    if (applied) _uiState.update { it.copy(snapshotRefreshTick = it.snapshotRefreshTick + 1) }
                     recomputeActive()
                 }
             }
