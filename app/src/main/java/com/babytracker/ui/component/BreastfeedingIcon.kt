@@ -9,170 +9,78 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import com.babytracker.R
 import com.babytracker.domain.model.DiaperType
 
+/**
+ * Decorative section icon: draws [res] with cleared semantics so screen readers skip it. The named
+ * section-icon composables below are thin aliases that fix [res], keeping call sites self-documenting.
+ */
 @Composable
-fun BreastfeedingIcon(modifier: Modifier = Modifier) {
+fun SectionIcon(
+    @DrawableRes res: Int,
+    modifier: Modifier = Modifier,
+) {
     Image(
-        painter = painterResource(R.drawable.ic_breastfeeding_section),
+        painter = painterResource(res),
         contentDescription = null,
         modifier = modifier.clearAndSetSemantics {},
     )
 }
 
 @Composable
-fun BottleFeedIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_bottle_feed_section),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun BreastfeedingIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_breastfeeding_section, modifier)
 
 @Composable
-fun FeedingHistoryIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_feeding_history_section),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun BottleFeedIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_bottle_feed_section, modifier)
 
 @Composable
-fun SleepIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_sleep_section),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun FeedingHistoryIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_feeding_history_section, modifier)
 
 @Composable
-fun NapIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_nap_section),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun SleepIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_sleep_section, modifier)
 
 @Composable
-fun PumpingIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_pumping_section),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun NapIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_nap_section, modifier)
 
 @Composable
-fun InventoryIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_inventory_section),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun PumpingIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_pumping_section, modifier)
 
 @Composable
-fun DiaperIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_diaper_section),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun InventoryIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_inventory_section, modifier)
 
 @Composable
-fun GrowthIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_growth_section),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun DiaperIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_diaper_section, modifier)
 
 @Composable
-fun WeightIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_weight_section),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun GrowthIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_growth_section, modifier)
 
 @Composable
-fun LengthIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_length_section),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun WeightIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_weight_section, modifier)
 
 @Composable
-fun HeadIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_head_section),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun LengthIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_length_section, modifier)
 
 @Composable
-fun TrendsIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_trends_section),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun HeadIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_head_section, modifier)
 
 @Composable
-fun MilestoneIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_milestone_section),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun TrendsIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_trends_section, modifier)
 
 @Composable
-fun VaccineIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_vaccine_section),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun MilestoneIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_milestone_section, modifier)
 
 @Composable
-fun DoctorVisitIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_doctor_visit_section),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun VaccineIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_vaccine_section, modifier)
 
 @Composable
-fun HomeGreetingHandIcon(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(R.drawable.ic_home_greeting_hand),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+fun DoctorVisitIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_doctor_visit_section, modifier)
+
+@Composable
+fun HomeGreetingHandIcon(modifier: Modifier = Modifier) = SectionIcon(R.drawable.ic_home_greeting_hand, modifier)
 
 @Composable
 fun DiaperTypeIcon(
     type: DiaperType,
     modifier: Modifier = Modifier,
-) {
-    Image(
-        painter = painterResource(type.iconRes),
-        contentDescription = null,
-        modifier = modifier.clearAndSetSemantics {},
-    )
-}
+) = SectionIcon(type.iconRes, modifier)
 
 @get:DrawableRes
 private val DiaperType.iconRes: Int
