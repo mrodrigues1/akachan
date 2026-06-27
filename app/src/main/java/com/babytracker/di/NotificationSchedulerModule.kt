@@ -1,7 +1,5 @@
 package com.babytracker.di
 
-import android.content.Context
-import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.manager.BreastfeedingNotificationManager
 import com.babytracker.manager.DoctorVisitReminderManager
 import com.babytracker.manager.DoctorVisitReminderScheduler
@@ -20,40 +18,29 @@ import com.babytracker.manager.VaccineReminderManager
 import com.babytracker.manager.VaccineReminderScheduler
 import dagger.Binds
 import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object NotificationSchedulerModule {
+abstract class NotificationSchedulerModule {
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideNotificationScheduler(
-        @ApplicationContext context: Context
-    ): NotificationScheduler = BreastfeedingNotificationManager(context)
+    abstract fun bindNotificationScheduler(impl: BreastfeedingNotificationManager): NotificationScheduler
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideSleepNotificationScheduler(
-        @ApplicationContext context: Context,
-        settingsRepository: SettingsRepository
-    ): SleepNotificationScheduler = SleepNotificationManager(context, settingsRepository)
+    abstract fun bindSleepNotificationScheduler(impl: SleepNotificationManager): SleepNotificationScheduler
 
-    @Provides
+    @Binds
     @Singleton
-    fun providePredictiveFeedScheduler(
-        @ApplicationContext context: Context
-    ): PredictiveFeedScheduler = PredictiveFeedSchedulerImpl(context)
+    abstract fun bindPredictiveFeedScheduler(impl: PredictiveFeedSchedulerImpl): PredictiveFeedScheduler
 
-    @Provides
+    @Binds
     @Singleton
-    fun providePredictiveSleepScheduler(
-        @ApplicationContext context: Context,
-    ): PredictiveSleepScheduler = PredictiveSleepSchedulerImpl(context)
+    abstract fun bindPredictiveSleepScheduler(impl: PredictiveSleepSchedulerImpl): PredictiveSleepScheduler
 }
 
 @Module
