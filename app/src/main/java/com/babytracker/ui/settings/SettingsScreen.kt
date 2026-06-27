@@ -315,13 +315,15 @@ fun SettingsScreen(
             )
             HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
 
-            SettingsRow(
-                label = stringResource(R.string.settings_features_title),
-                value = stringResource(R.string.settings_features_value),
-                actionLabel = stringResource(R.string.settings_features_action),
-                onClick = onNavigateToFeatures,
-            )
-            HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+            if (uiState.appMode != null && uiState.appMode != AppMode.PARTNER) {
+                SettingsRow(
+                    label = stringResource(R.string.settings_features_title),
+                    value = stringResource(R.string.settings_features_value),
+                    actionLabel = stringResource(R.string.settings_features_action),
+                    onClick = onNavigateToFeatures,
+                )
+                HorizontalDivider(modifier = Modifier.padding(start = 16.dp))
+            }
 
             VolumeUnitRow(
                 selected = uiState.volumeUnit,
