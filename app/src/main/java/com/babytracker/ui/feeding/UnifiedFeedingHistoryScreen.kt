@@ -1,5 +1,7 @@
 package com.babytracker.ui.feeding
 
+import com.babytracker.ui.component.EmptyState
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -421,26 +423,12 @@ internal fun FeedingDeleteConfirmationDialog(
 
 @Composable
 private fun EmptyFeedingHistoryState() {
-    Column(
+    EmptyState(
+        title = stringResource(R.string.feeding_history_empty),
+        subtitle = stringResource(R.string.feeding_history_empty_supporting),
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(text = "🍼", style = MaterialTheme.typography.displaySmall)
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = stringResource(R.string.feeding_history_empty),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.semantics { heading() },
-        )
-        Text(
-            text = stringResource(R.string.feeding_history_empty_supporting),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 32.dp, vertical = 4.dp),
-        )
     }
 }
 
