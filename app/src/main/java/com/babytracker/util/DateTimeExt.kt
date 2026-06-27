@@ -131,3 +131,16 @@ fun Duration.formatElapsedCompact(context: Context): String {
         else -> context.getString(R.string.elapsed_just_now)
     }
 }
+
+/**
+ * Group items by the local calendar day (in [zone]) of [instantOf], newest day first, with each
+ * day's items sorted newest-first too. Shared by the history screens that show a reverse-chronological
+ * day-sectioned list.
+ */
+fun <T> List<T>.groupByDateDescending(
+    zone: ZoneId,
+    instantOf: (T) -> Instant,
+): List<Pair<LocalDate, List<T>>> =
+    groupBy { instantOf(it).atZone(zone).toLocalDate() }
+        .toSortedMap(reverseOrder())
+        .map { (date, items) -> date to items.sortedByDescending { instantOf(it) } }
