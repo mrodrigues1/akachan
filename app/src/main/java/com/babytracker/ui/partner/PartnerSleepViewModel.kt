@@ -1,6 +1,7 @@
 package com.babytracker.ui.partner
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.R
@@ -19,14 +20,17 @@ import com.babytracker.sharing.usecase.StopPartnerSleepUseCase
 import com.babytracker.sharing.usecase.UpdatePartnerSleepUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
 import javax.inject.Inject
+import kotlin.math.min
 
 /** Editor state for a partner-owned sleep session (active or completed). */
 data class PartnerSleepEditorState(
@@ -82,7 +86,16 @@ class PartnerSleepViewModel @Inject constructor(
             val codeValue = settingsRepository.getShareCode().first() ?: return@launch
             runCatching {
                 val uid = sharingRepository.signInAnonymously()
-                sharingRepository.observeOwnSleepOps(ShareCode(codeValue), uid).collect { ops ->
+                sharingRepository.observeOwnSleepOps(ShareCode(codeValue), uid)
+                    .retryWhen { cause, attempt ->
+                        // A transient Firestore listener error must not kill the stream for good:
+                        // op tracking (and the dashboard refetch it drives) would freeze. Re-subscribe
+                        // with capped backoff; trackedOpIds survives so applied-op detection still works.
+                        Log.w(TAG, "own sleep op listener error (attempt $attempt); retrying", cause)
+                        delay(min(RETRY_BASE_MS * (attempt + 1), RETRY_MAX_MS))
+                        true
+                    }
+                    .collect { ops ->
                     val ids = ops.mapTo(mutableSetOf()) { it.opId }
                     // A previously-pending op vanished -> the primary applied (or dropped) it and has
                     // already re-pushed the snapshot (it pushes before deleting), so the stale
@@ -217,5 +230,11 @@ class PartnerSleepViewModel @Inject constructor(
 
     private inline fun updateEditor(transform: (PartnerSleepEditorState) -> PartnerSleepEditorState) {
         _uiState.update { state -> state.editor?.let { state.copy(editor = transform(it)) } ?: state }
+    }
+
+    private companion object {
+        const val TAG = "PartnerSleepVM"
+        const val RETRY_BASE_MS = 5_000L
+        const val RETRY_MAX_MS = 60_000L
     }
 }
