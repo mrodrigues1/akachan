@@ -16,7 +16,7 @@ class DiaperRepositoryImpl @Inject constructor(
     private val dao: DiaperDao,
 ) : DiaperRepository {
     override fun observeAll(): Flow<List<DiaperChange>> =
-        dao.observeAll().map { rows -> rows.map { it.toDomain() } }
+        dao.observeAll().mapList { it.toDomain() }
 
     override fun observeLatest(): Flow<DiaperChange?> =
         dao.observeLatest().map { it?.toDomain() }

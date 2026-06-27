@@ -20,10 +20,10 @@ class GrowthRepositoryImpl @Inject constructor(
         dao.insert(measurement.toEntity())
 
     override fun getAllMeasurements(): Flow<List<GrowthMeasurement>> =
-        dao.getAll().map { entities -> entities.map { it.toDomain() } }
+        dao.getAll().mapList { it.toDomain() }
 
     override fun getMeasurementsByType(type: GrowthType): Flow<List<GrowthMeasurement>> =
-        dao.getByType(type.name).map { entities -> entities.map { it.toDomain() } }
+        dao.getByType(type.name).mapList { it.toDomain() }
 
     override suspend fun deleteMeasurement(id: Long) = dao.deleteById(id)
 }

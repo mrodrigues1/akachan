@@ -17,10 +17,10 @@ class BreastfeedingRepositoryImpl @Inject constructor(
     private val dao: BreastfeedingDao
 ) : BreastfeedingRepository {
     override fun getAllSessions(): Flow<List<BreastfeedingSession>> =
-        dao.getAllSessions().map { entities -> entities.map { it.toDomain() } }
+        dao.getAllSessions().mapList { it.toDomain() }
 
     override fun getRecentSessionsFlow(limit: Int): Flow<List<BreastfeedingSession>> =
-        dao.getRecentSessionsFlow(limit).map { entities -> entities.map { it.toDomain() } }
+        dao.getRecentSessionsFlow(limit).mapList { it.toDomain() }
 
     override fun observeLatestSession(): Flow<BreastfeedingSession?> =
         dao.observeLatestSession().map { it?.toDomain() }

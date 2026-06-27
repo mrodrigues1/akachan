@@ -18,10 +18,10 @@ class BottleFeedRepositoryImpl @Inject constructor(
 ) : BottleFeedRepository {
 
     override fun getAll(): Flow<List<BottleFeed>> =
-        dao.getAll().map { rows -> rows.map { it.toDomain() } }
+        dao.getAll().mapList { it.toDomain() }
 
     override fun getSince(start: Instant): Flow<List<BottleFeed>> =
-        dao.getSince(start.toEpochMilli()).map { rows -> rows.map { it.toDomain() } }
+        dao.getSince(start.toEpochMilli()).mapList { it.toDomain() }
 
     override suspend fun getRecent(limit: Int): List<BottleFeed> =
         dao.getRecent(limit).map { it.toDomain() }

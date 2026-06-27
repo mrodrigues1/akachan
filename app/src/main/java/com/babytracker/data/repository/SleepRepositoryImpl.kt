@@ -18,7 +18,7 @@ class SleepRepositoryImpl @Inject constructor(
     private val dao: SleepDao
 ) : SleepRepository {
     override fun getAllRecords(): Flow<List<SleepRecord>> =
-        dao.getAllRecords().map { entities -> entities.map { it.toDomain() } }
+        dao.getAllRecords().mapList { it.toDomain() }
 
     override fun observeLatestRecord(): Flow<SleepRecord?> =
         dao.observeLatestRecord().map { it?.toDomain() }
