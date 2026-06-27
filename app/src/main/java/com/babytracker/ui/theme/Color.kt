@@ -133,10 +133,10 @@ val OnMilestonePurpleDark = Purple900
 
 // ─── Bottle-feed dot — extended (non-M3) ─────────────────────
 // Rhythm strip draws breast feeds with M3 primary (Pink700 crimson); bottle feeds need a
-// distinct, redder tone so the two dot kinds read apart at ~5px. True reds (not pink) provide
-// that separation. Accessed as top-level vals, NOT through MaterialTheme.colorScheme.
-val BottleFeedRed = Color(0xFFD32F2F)       // Material Red 700 — light scheme
-val BottleFeedRedDark = Color(0xFFFF8A80)   // Material Red A100 — brighter on dark surfaces
+// distinct hue so the two dot kinds read apart at ~5px. Red/orange sat too close to the
+// crimson primary; green separates cleanly. Accessed as top-level vals, NOT via colorScheme.
+val BottleFeedGreen = Color(0xFF388E3C)      // Material Green 700 — light scheme
+val BottleFeedGreenDark = Color(0xFF81C784)  // Material Green 300 — brighter on dark surfaces
 
 // ─── Raw palette — Growth / Teal ─────────────────────────────
 // Extended (non-M3) accent. Teal conveys growth/vitality and stays clear of the
