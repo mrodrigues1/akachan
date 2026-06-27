@@ -12,6 +12,7 @@ import com.babytracker.domain.usecase.growth.DeleteGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.GetGrowthChartDataUseCase
 import com.babytracker.domain.usecase.growth.UpdateGrowthMeasurementUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.syncSharedSnapshot
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,7 +77,7 @@ class GrowthViewModel @Inject constructor(
                     notes = notes?.takeIf { it.isNotBlank() },
                 ),
             )
-            syncSharedSnapshot()
+            syncToFirestore.syncSharedSnapshot()
         }
     }
 
@@ -91,21 +92,15 @@ class GrowthViewModel @Inject constructor(
                     notes = notes?.takeIf { it.isNotBlank() },
                 ),
             )
-            syncSharedSnapshot()
+            syncToFirestore.syncSharedSnapshot()
         }
     }
 
     fun onDeleteMeasurement(id: Long) {
         viewModelScope.launch {
             deleteGrowthMeasurement(id)
-            syncSharedSnapshot()
+            syncToFirestore.syncSharedSnapshot()
         }
-    }
-
-    // Growth edits are infrequent, so a full resync (a no-op unless sharing is the
-    // PRIMARY device) keeps the partner snapshot current without partial-sync plumbing.
-    private suspend fun syncSharedSnapshot() {
-        runCatching { syncToFirestore() }
     }
 
     private companion object {
