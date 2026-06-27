@@ -16,7 +16,7 @@ class DoctorVisitRepositoryImpl @Inject constructor(
     private val dao: DoctorVisitDao,
 ) : DoctorVisitRepository {
     override fun observeAllVisits(): Flow<List<DoctorVisit>> =
-        dao.observeAllVisits().map { rows -> rows.map { it.toDomain() } }
+        dao.observeAllVisits().mapList { it.toDomain() }
 
     override suspend fun getRecentVisits(limit: Int): List<DoctorVisit> =
         dao.getRecentVisits(limit).map { it.toDomain() }
@@ -43,10 +43,10 @@ class DoctorVisitRepositoryImpl @Inject constructor(
         dao.updateVisitReconcilingAttachments(visit.toEntity(), questionIds)
 
     override fun observeInboxQuestions(): Flow<List<VisitQuestion>> =
-        dao.observeInboxQuestions().map { rows -> rows.map { it.toDomain() } }
+        dao.observeInboxQuestions().mapList { it.toDomain() }
 
     override fun observeQuestionsForVisit(visitId: Long): Flow<List<VisitQuestion>> =
-        dao.observeQuestionsForVisit(visitId).map { rows -> rows.map { it.toDomain() } }
+        dao.observeQuestionsForVisit(visitId).mapList { it.toDomain() }
 
     override fun observeAttachedQuestionCounts(): Flow<Map<Long, Int>> =
         dao.observeAttachedQuestionCounts().map { rows -> rows.associate { it.visitId to it.count } }

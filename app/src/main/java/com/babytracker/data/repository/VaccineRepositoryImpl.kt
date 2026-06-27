@@ -15,10 +15,10 @@ class VaccineRepositoryImpl @Inject constructor(
     private val dao: VaccineDao,
 ) : VaccineRepository {
     override fun observeAll(): Flow<List<VaccineRecord>> =
-        dao.observeAll().map { rows -> rows.map { it.toDomain() } }
+        dao.observeAll().mapList { it.toDomain() }
 
     override fun observeUpcoming(): Flow<List<VaccineRecord>> =
-        dao.observeUpcoming().map { rows -> rows.map { it.toDomain() } }
+        dao.observeUpcoming().mapList { it.toDomain() }
 
     override suspend fun getScheduledFutureAfter(nowMs: Long): List<VaccineRecord> =
         dao.getScheduledFutureAfter(nowMs).map { it.toDomain() }

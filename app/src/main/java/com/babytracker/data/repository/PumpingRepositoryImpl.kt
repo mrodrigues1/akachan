@@ -17,7 +17,7 @@ class PumpingRepositoryImpl @Inject constructor(
 ) : PumpingRepository {
 
     override fun getAllSessions(): Flow<List<PumpingSession>> =
-        dao.getAllSessions().map { rows -> rows.map { it.toDomain() } }
+        dao.getAllSessions().mapList { it.toDomain() }
 
     override fun getActiveSession(): Flow<PumpingSession?> =
         dao.getActiveSession().map { it?.toDomain() }

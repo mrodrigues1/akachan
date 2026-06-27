@@ -16,7 +16,7 @@ class MilestoneRepositoryImpl @Inject constructor(
 ) : MilestoneRepository {
 
     override fun getMilestones(): Flow<List<Milestone>> =
-        dao.getAll().map { entities -> entities.map { it.toDomain() } }
+        dao.getAll().mapList { it.toDomain() }
 
     override fun getMilestone(id: Long): Flow<Milestone?> =
         dao.getById(id).map { it?.toDomain() }

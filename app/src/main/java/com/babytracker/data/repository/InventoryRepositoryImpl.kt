@@ -19,10 +19,10 @@ class InventoryRepositoryImpl @Inject constructor(
 ) : InventoryRepository {
 
     override fun getActiveBags(): Flow<List<MilkBag>> =
-        dao.getActiveBags().map { rows -> rows.map { it.toDomain() } }
+        dao.getActiveBags().mapList { it.toDomain() }
 
     override fun getAllBags(): Flow<List<MilkBag>> =
-        dao.getAllBags().map { rows -> rows.map { it.toDomain() } }
+        dao.getAllBags().mapList { it.toDomain() }
 
     override fun getSummary(): Flow<InventorySummary> =
         dao.getActiveSummary().map { row ->
