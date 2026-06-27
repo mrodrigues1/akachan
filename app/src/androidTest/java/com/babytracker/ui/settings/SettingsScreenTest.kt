@@ -71,6 +71,15 @@ class SettingsScreenTest {
     }
 
     @Test
+    fun partnerModeHidesFeaturesRow() {
+        composeRule.setContent {
+            SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel(), dataVm = buildFakeDataExportViewModel())
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("What you track").assertDoesNotExist()
+    }
+
+    @Test
     fun partnerModeHidesNotificationsSection() {
         composeRule.setContent {
             SettingsScreen(onNavigateBack = {}, viewModel = buildPartnerViewModel(), dataVm = buildFakeDataExportViewModel())
