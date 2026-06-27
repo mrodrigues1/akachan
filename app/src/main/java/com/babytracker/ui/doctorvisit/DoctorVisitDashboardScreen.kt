@@ -83,6 +83,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.model.VisitQuestion
+import com.babytracker.ui.component.DashboardError
+import com.babytracker.ui.component.DashboardSkeleton
+import com.babytracker.ui.component.countdownLabel
 import com.babytracker.ui.theme.DoctorVisitPalette
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.doctorVisitColors
@@ -196,11 +199,16 @@ fun DoctorVisitDashboardContent(
         },
     ) { padding ->
         if (state.isLoading) {
-            DashboardSkeleton(modifier = Modifier.padding(padding))
+            DashboardSkeleton(heroHeight = 132.dp, modifier = Modifier.padding(padding))
             return@Scaffold
         }
         if (state.isError) {
-            DashboardError(onRetry = onRetry, modifier = Modifier.padding(padding))
+            DashboardError(
+                errorText = stringResource(R.string.doctor_visit_load_error),
+                accent = colors.accent,
+                onRetry = onRetry,
+                modifier = Modifier.padding(padding),
+            )
             return@Scaffold
         }
         Column(
@@ -279,7 +287,12 @@ private fun NextVisitHero(
     val timeFormatter = remember(locale) { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT) }
     val zone = ZoneId.systemDefault()
     val visitDate = visit.date.atZone(zone)
-    val countdown = countdownLabel(daysUntil)
+    val countdown = countdownLabel(
+        days = daysUntil,
+        todayRes = R.string.doctor_visit_countdown_today,
+        tomorrowRes = R.string.doctor_visit_countdown_tomorrow,
+        pluralRes = R.plurals.doctor_visit_countdown_in_days,
+    )
     val whenLine = "${dateFormatter.format(visitDate)} · ${timeFormatter.format(visitDate)}"
     // The visible "date · time" uses a middot; give TalkBack a comma so it doesn't read "dot".
     val whenSpoken = "${dateFormatter.format(visitDate)}, ${timeFormatter.format(visitDate)}"
@@ -758,77 +771,6 @@ private fun AddVisitBar(
     }
 }
 
-/**
- * Replaces the body when an upstream flow throws, so a load failure offers a calm retry instead of
- * a skeleton that never resolves. Copy is reassuring, not alarming, per the product's tone.
- */
-@Composable
-private fun DashboardError(
-    onRetry: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = doctorVisitColors()
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = stringResource(R.string.doctor_visit_load_error),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(12.dp))
-        TextButton(onClick = onRetry) {
-            Text(text = stringResource(R.string.try_again), color = colors.accent)
-        }
-    }
-}
-
-/**
- * Calm placeholder shown until the first [combine] emission lands, so a cold start no longer
- * flashes the "no upcoming visit" / "no questions" empty states for a frame. Static low-emphasis
- * blocks (no shimmer) keep it quiet, per the "calm over clever" principle.
- */
-@Composable
-private fun DashboardSkeleton(modifier: Modifier = Modifier) {
-    val block = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-    val loadingLabel = stringResource(R.string.loading)
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
-            // Otherwise the placeholder blocks announce nothing; tell TalkBack the screen is loading.
-            .semantics {
-                contentDescription = loadingLabel
-                liveRegion = LiveRegionMode.Polite
-            },
-    ) {
-        Spacer(Modifier.height(8.dp))
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(132.dp)
-                .clip(MaterialTheme.shapes.large)
-                .background(block),
-        )
-        Spacer(Modifier.height(24.dp))
-        repeat(3) { index ->
-            Box(
-                Modifier
-                    .fillMaxWidth(if (index == 0) 0.4f else 1f)
-                    .height(20.dp)
-                    .clip(MaterialTheme.shapes.small)
-                    .background(block),
-            )
-            Spacer(Modifier.height(12.dp))
-        }
-    }
-}
-
 @Composable
 private fun SectionLabel(
     text: String,
@@ -840,13 +782,4 @@ private fun SectionLabel(
         modifier = modifier,
         color = color,
     )
-}
-
-/** Day-granularity countdown to the next appointment: Today / Tomorrow / in N days. The day count
- *  is computed in the ViewModel against the injected clock, so it stays consistent with isUpcoming. */
-@Composable
-private fun countdownLabel(days: Int): String = when {
-    days <= 0 -> stringResource(R.string.doctor_visit_countdown_today)
-    days == 1 -> stringResource(R.string.doctor_visit_countdown_tomorrow)
-    else -> pluralStringResource(R.plurals.doctor_visit_countdown_in_days, days, days)
 }

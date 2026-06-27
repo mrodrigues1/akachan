@@ -1,6 +1,9 @@
 package com.babytracker.ui.vaccine
 
+import com.babytracker.ui.component.DashboardError
+import com.babytracker.ui.component.DashboardSkeleton
 import com.babytracker.ui.component.EmptyState
+import com.babytracker.ui.component.countdownLabel
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -238,8 +241,13 @@ fun VaccineDashboardContent(
         bottomBar = { AddVaccineBar(colors = colors, onAddVaccine = onAddVaccine) },
     ) { padding ->
         when {
-            state.isLoading -> DashboardSkeleton(modifier = Modifier.padding(padding))
-            state.isError -> DashboardError(colors = colors, onRetry = onRetry, modifier = Modifier.padding(padding))
+            state.isLoading -> DashboardSkeleton(heroHeight = 150.dp, modifier = Modifier.padding(padding))
+            state.isError -> DashboardError(
+                errorText = stringResource(R.string.vaccine_load_error),
+                accent = colors.accent,
+                onRetry = onRetry,
+                modifier = Modifier.padding(padding),
+            )
             state.isFirstRun -> VaccineEmpty(modifier = Modifier.padding(padding))
             else -> DashboardBody(
                 state = state,
@@ -449,7 +457,12 @@ private fun NextUpHeroSingle(
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = countdownLabel(daysUntil),
+            text = countdownLabel(
+                days = daysUntil,
+                todayRes = R.string.vaccine_tile_today,
+                tomorrowRes = R.string.vaccine_countdown_tomorrow,
+                pluralRes = R.plurals.vaccine_countdown_in_days,
+            ),
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
             color = colors.onAccent,
@@ -495,7 +508,12 @@ private fun NextUpHeroGroup(
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = countdownLabel(daysUntil),
+            text = countdownLabel(
+                days = daysUntil,
+                todayRes = R.string.vaccine_tile_today,
+                tomorrowRes = R.string.vaccine_countdown_tomorrow,
+                pluralRes = R.plurals.vaccine_countdown_in_days,
+            ),
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
             color = colors.onAccent,
@@ -844,77 +862,6 @@ private fun VaccineEmpty(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun DashboardError(
-    colors: VaccinePalette,
-    onRetry: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val announce = stringResource(R.string.vaccine_load_error)
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp)
-            // Announce the failure on transition, not only when a screen reader lands on the text.
-            .semantics {
-                liveRegion = LiveRegionMode.Polite
-                contentDescription = announce
-            },
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = stringResource(R.string.vaccine_load_error),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(12.dp))
-        TextButton(onClick = onRetry) {
-            Text(text = stringResource(R.string.try_again), color = colors.accent)
-        }
-    }
-}
-
-/**
- * Calm placeholder shown until the first Room emission lands, so a cold start no longer flashes the
- * empty state for a frame. Static low-emphasis blocks (no shimmer) keep it quiet.
- */
-@Composable
-private fun DashboardSkeleton(modifier: Modifier = Modifier) {
-    val block = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-    val loadingLabel = stringResource(R.string.loading)
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
-            .semantics {
-                contentDescription = loadingLabel
-                liveRegion = LiveRegionMode.Polite
-            },
-    ) {
-        Spacer(Modifier.height(8.dp))
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(150.dp)
-                .clip(MaterialTheme.shapes.large)
-                .background(block),
-        )
-        Spacer(Modifier.height(24.dp))
-        repeat(3) { index ->
-            Box(
-                Modifier
-                    .fillMaxWidth(if (index == 0) 0.4f else 1f)
-                    .height(20.dp)
-                    .clip(MaterialTheme.shapes.small)
-                    .background(block),
-            )
-            Spacer(Modifier.height(12.dp))
-        }
-    }
-}
-
-@Composable
 private fun SectionLabel(
     text: String,
     color: Color,
@@ -925,12 +872,4 @@ private fun SectionLabel(
         modifier = modifier,
         color = color,
     )
-}
-
-/** Day-granularity countdown to an upcoming vaccine: Today / Tomorrow / In N days. */
-@Composable
-private fun countdownLabel(days: Int): String = when {
-    days <= 0 -> stringResource(R.string.vaccine_tile_today)
-    days == 1 -> stringResource(R.string.vaccine_countdown_tomorrow)
-    else -> pluralStringResource(R.plurals.vaccine_countdown_in_days, days, days)
 }
