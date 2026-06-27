@@ -135,25 +135,11 @@ class BreastfeedingViewModel @Inject constructor(
                 feedSettingsRepository.getMaxPerBreastMinutes(),
                 feedSettingsRepository.getMaxTotalFeedMinutes()
             ) { session, maxPerBreast, maxTotal ->
-                val previous = _uiState.value
-                BreastfeedingUiState(
+                _uiState.value.copy(
                     activeSession = session,
-                    selectedSide = previous.selectedSide,
                     maxPerBreastMinutes = maxPerBreast,
                     maxTotalFeedMinutes = maxTotal,
-                    lastFeedingSummary = previous.lastFeedingSummary,
-                    nextFeedPrediction = previous.nextFeedPrediction,
-                    error = previous.error,
                     currentSide = session?.currentSide(),
-                    editSheet = previous.editSheet,
-                    pendingDeleteSession = previous.pendingDeleteSession,
-                    showManualEntrySheet = previous.showManualEntrySheet,
-                    manualEntryDate = previous.manualEntryDate,
-                    manualEntryStartTime = previous.manualEntryStartTime,
-                    manualEntryEndTime = previous.manualEntryEndTime,
-                    manualEntrySide = previous.manualEntrySide,
-                    manualEntryError = previous.manualEntryError,
-                    manualEntryDurationPreview = previous.manualEntryDurationPreview,
                 )
             }.collect { newState ->
                 _uiState.value = newState
