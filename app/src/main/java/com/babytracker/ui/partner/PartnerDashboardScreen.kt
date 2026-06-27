@@ -93,6 +93,7 @@ import com.babytracker.ui.component.GrowthIcon
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.InventoryIcon
 import com.babytracker.ui.component.MilestoneIcon
+import com.babytracker.ui.component.NapIcon
 import com.babytracker.ui.component.SleepIcon
 import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.home.ActiveStatusBadge
@@ -1230,10 +1231,7 @@ private fun DashboardTimelineSections(
         }
 
         if (recentBottles.isNotEmpty()) {
-            DashboardSection(
-                title = stringResource(R.string.partner_recent_bottles),
-                color = MaterialTheme.colorScheme.tertiary,
-            ) {
+            DashboardSection(title = stringResource(R.string.partner_recent_bottles)) {
                 recentBottles.forEach { feed ->
                     BottleHistoryRow(feed = feed, now = now, volumeUnit = volumeUnit)
                 }
@@ -1353,9 +1351,9 @@ private fun BottleHistoryRow(
         title = volumeText,
         subtitle = typeLabel,
         trailing = timeAgo,
-        badgeColor = MaterialTheme.colorScheme.tertiaryContainer,
+        badgeColor = MaterialTheme.colorScheme.primaryContainer,
         badgeContent = { BottleFeedIcon(modifier = Modifier.size(34.dp)) },
-        trailingColor = MaterialTheme.colorScheme.tertiary,
+        trailingColor = MaterialTheme.colorScheme.primary,
     )
 }
 
@@ -1376,8 +1374,14 @@ private fun SleepHistoryRow(sleep: SleepSnapshot, now: Instant) {
         title = duration?.formatDuration() ?: stringResource(R.string.label_in_progress),
         subtitle = typeLabel,
         trailing = timeAgo ?: "",
-        badgeEmoji = "💤",
         badgeColor = MaterialTheme.colorScheme.secondaryContainer,
+        badgeContent = {
+            if (sleep.sleepType == "NIGHT_SLEEP") {
+                SleepIcon(modifier = Modifier.size(34.dp))
+            } else {
+                NapIcon(modifier = Modifier.size(34.dp))
+            }
+        },
         trailingColor = MaterialTheme.colorScheme.secondary,
     )
 }
