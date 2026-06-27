@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -53,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.ui.component.HistoryCard
+import com.babytracker.ui.component.HistoryDayHeader
 import com.babytracker.ui.component.PumpingIcon
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.Pink200
@@ -165,8 +164,8 @@ internal fun PumpingHistoryContent(
         ) {
             sortedGroups.forEach { (date, sessions) ->
                 stickyHeader(key = date.toString()) {
-                    Text(
-                        text = pluralStringResource(
+                    HistoryDayHeader(
+                        label = pluralStringResource(
                             R.plurals.pumping_history_day_header,
                             sessions.size,
                             date.toRelativeLabel(
@@ -174,12 +173,7 @@ internal fun PumpingHistoryContent(
                                 stringResource(R.string.relative_yesterday),
                             ),
                             sessions.size,
-                        ).uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
+                        ),
                     )
                 }
 
