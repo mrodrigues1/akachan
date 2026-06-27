@@ -43,7 +43,7 @@ fun SleepEntity.toDomain(): SleepRecord = SleepRecord(
     notes = notes,
     timezoneId = timezoneId,
     clientId = clientId,
-    startedBy = SleepAuthor.entries.firstOrNull { it.name == startedBy } ?: SleepAuthor.OWNER,
+    startedBy = SleepAuthor.entries.find { it.name == startedBy } ?: SleepAuthor.OWNER,
 )
 
 fun SleepRecord.toEntity(): SleepEntity = SleepEntity(
