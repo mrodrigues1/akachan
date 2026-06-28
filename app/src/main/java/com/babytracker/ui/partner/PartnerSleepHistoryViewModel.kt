@@ -6,19 +6,16 @@ import androidx.lifecycle.viewModelScope
 import com.babytracker.R
 import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.sharing.domain.model.SleepSnapshot
-import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
+import com.babytracker.sharing.usecase.ObservePartnerDataUseCase
 import com.babytracker.sharing.usecase.ObservePartnerSleepHistoryUseCase
 import com.babytracker.widget.WidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -33,7 +30,7 @@ data class PartnerSleepHistoryUiState(
 /** Mirrors [PartnerFeedHistoryViewModel] for sleep (read + edit-own; no delete in this domain). */
 @HiltViewModel
 class PartnerSleepHistoryViewModel @Inject constructor(
-    private val fetchPartnerData: FetchPartnerDataUseCase,
+    private val observePartnerData: ObservePartnerDataUseCase,
     private val observePartnerSleepHistory: ObservePartnerSleepHistoryUseCase,
     private val widgetUpdater: WidgetUpdater,
     @ApplicationContext private val appContext: Context,
@@ -42,63 +39,40 @@ class PartnerSleepHistoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PartnerSleepHistoryUiState())
     val uiState: StateFlow<PartnerSleepHistoryUiState> = _uiState.asStateFlow()
 
-    private var historyJob: Job? = null
-    private var lastPendingOpIds = emptySet<String>()
-    private val refreshTrigger = MutableSharedFlow<Unit>(
-        replay = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
+    private var collectJob: Job? = null
 
     init {
         refresh()
-        viewModelScope.launch {
-            refreshTrigger.collectLatest {
-                delay(REFRESH_DEBOUNCE_MS)
-                refresh()
-            }
-        }
     }
 
+    /** Restarts the live collection (used by the screen's retry button). */
     fun refresh() {
-        historyJob?.cancel()
-        historyJob = viewModelScope.launch {
-            refreshPartnerHistory(
-                fetchPartnerData = fetchPartnerData,
-                widgetUpdater = widgetUpdater,
-                observe = { observePartnerSleepHistory(it.sleepRecords) },
-                onLoadingStart = {
-                    _uiState.update { it.copy(isLoading = true, accessRevoked = false, error = null) }
-                },
-                onSnapshotLoaded = { },
-                onMerged = { merged ->
-                    _uiState.update { it.copy(entries = merged.entries, isLoading = false) }
-                    if (hasConsumedPendingOps(lastPendingOpIds, merged.pendingOpIds)) {
-                        refreshTrigger.tryEmit(Unit)
-                    }
-                    lastPendingOpIds = merged.pendingOpIds
-                },
-                onAccessRevoked = {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            accessRevoked = true,
-                            error = appContext.getString(R.string.error_partner_access_revoked),
-                        )
-                    }
-                },
-                onLoadFailed = {
-                    _uiState.update {
-                        it.copy(isLoading = false, error = appContext.getString(R.string.error_partner_load_failed))
-                    }
-                },
-            )
+        collectJob?.cancel()
+        collectJob = viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, accessRevoked = false, error = null) }
+            observePartnerSleepHistory(observePartnerData().map { it.sleepRecords })
+                .map { it.entries }
+                .collectPartnerHistory(
+                    widgetUpdater = widgetUpdater,
+                    onItem = { entries -> _uiState.update { it.copy(entries = entries, isLoading = false) } },
+                    onAccessRevoked = {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                accessRevoked = true,
+                                error = appContext.getString(R.string.error_partner_access_revoked),
+                            )
+                        }
+                    },
+                    onLoadFailed = {
+                        _uiState.update {
+                            it.copy(isLoading = false, error = appContext.getString(R.string.error_partner_load_failed))
+                        }
+                    },
+                )
         }
     }
 
     fun isEditable(entry: SleepSnapshot): Boolean =
         entry.startedBy == SleepAuthor.PARTNER.name && entry.clientId.isNotEmpty()
-
-    private companion object {
-        const val REFRESH_DEBOUNCE_MS = 300L
-    }
 }

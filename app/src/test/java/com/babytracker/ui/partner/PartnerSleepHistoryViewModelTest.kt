@@ -6,7 +6,7 @@ import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.MergedSleepHistory
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
-import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
+import com.babytracker.sharing.usecase.ObservePartnerDataUseCase
 import com.babytracker.sharing.usecase.ObservePartnerSleepHistoryUseCase
 import com.babytracker.widget.WidgetUpdater
 import io.mockk.coEvery
@@ -30,7 +30,7 @@ import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PartnerSleepHistoryViewModelTest {
-    private val fetchPartnerData: FetchPartnerDataUseCase = mockk()
+    private val observePartnerData: ObservePartnerDataUseCase = mockk()
     private val observeHistory: ObservePartnerSleepHistoryUseCase = mockk()
     private val widgetUpdater: WidgetUpdater = mockk(relaxed = true)
     private val appContext: Context = mockk()
@@ -45,11 +45,13 @@ class PartnerSleepHistoryViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         every { appContext.getString(any()) } returns "error"
-        coEvery { fetchPartnerData() } returns ShareSnapshot(
-            lastSyncAt = Instant.EPOCH,
-            baby = BabySnapshot("Mia", 0L, emptyList()),
-            sessions = emptyList(),
-            sleepRecords = emptyList(),
+        every { observePartnerData() } returns flowOf(
+            ShareSnapshot(
+                lastSyncAt = Instant.EPOCH,
+                baby = BabySnapshot("Mia", 0L, emptyList()),
+                sessions = emptyList(),
+                sleepRecords = emptyList(),
+            ),
         )
     }
 
@@ -63,7 +65,7 @@ class PartnerSleepHistoryViewModelTest {
         val rows = listOf(row("p", SleepAuthor.PARTNER), row("o", SleepAuthor.OWNER))
         coEvery { observeHistory(any()) } returns flowOf(MergedSleepHistory(rows, emptySet()))
 
-        val vm = PartnerSleepHistoryViewModel(fetchPartnerData, observeHistory, widgetUpdater, appContext)
+        val vm = PartnerSleepHistoryViewModel(observePartnerData, observeHistory, widgetUpdater, appContext)
         advanceUntilIdle()
 
         assertEquals(rows, vm.uiState.value.entries)
@@ -73,7 +75,7 @@ class PartnerSleepHistoryViewModelTest {
     @Test
     fun `isEditable is true only for a partner-started row with a clientId`() = runTest {
         coEvery { observeHistory(any()) } returns flowOf(MergedSleepHistory(emptyList(), emptySet()))
-        val vm = PartnerSleepHistoryViewModel(fetchPartnerData, observeHistory, widgetUpdater, appContext)
+        val vm = PartnerSleepHistoryViewModel(observePartnerData, observeHistory, widgetUpdater, appContext)
         advanceUntilIdle()
 
         assertTrue(vm.isEditable(row("p", SleepAuthor.PARTNER)))
