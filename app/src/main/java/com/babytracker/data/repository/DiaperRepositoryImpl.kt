@@ -6,7 +6,6 @@ import com.babytracker.data.local.entity.toEntity
 import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.repository.DiaperRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -18,16 +17,11 @@ class DiaperRepositoryImpl @Inject constructor(
     override fun observeAll(): Flow<List<DiaperChange>> =
         dao.observeAll().mapList { it.toDomain() }
 
-    override fun observeLatest(): Flow<DiaperChange?> =
-        dao.observeLatest().map { it?.toDomain() }
-
     override suspend fun getRecent(limit: Int): List<DiaperChange> =
         dao.getRecent(limit).map { it.toDomain() }
 
     override suspend fun getBetween(start: Instant, end: Instant): List<DiaperChange> =
         dao.getBetween(start.toEpochMilli(), end.toEpochMilli()).map { it.toDomain() }
-
-    override suspend fun getById(id: Long): DiaperChange? = dao.getById(id)?.toDomain()
 
     override suspend fun insert(change: DiaperChange): Long = dao.insert(change.toEntity())
 

@@ -12,9 +12,6 @@ interface DiaperDao {
     @Query("SELECT * FROM diaper_changes ORDER BY timestamp DESC")
     fun observeAll(): Flow<List<DiaperEntity>>
 
-    @Query("SELECT * FROM diaper_changes ORDER BY timestamp DESC LIMIT 1")
-    fun observeLatest(): Flow<DiaperEntity?>
-
     @Query("SELECT * FROM diaper_changes ORDER BY timestamp DESC LIMIT :limit")
     suspend fun getRecent(limit: Int): List<DiaperEntity>
 
@@ -25,9 +22,6 @@ interface DiaperDao {
 
     @Query("SELECT * FROM diaper_changes ORDER BY timestamp ASC")
     suspend fun getAllOnce(): List<DiaperEntity>
-
-    @Query("SELECT * FROM diaper_changes WHERE id = :id LIMIT 1")
-    suspend fun getById(id: Long): DiaperEntity?
 
     @Insert
     suspend fun insert(entity: DiaperEntity): Long
