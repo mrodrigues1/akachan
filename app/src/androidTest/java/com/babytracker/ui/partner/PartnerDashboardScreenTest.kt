@@ -20,8 +20,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -33,7 +31,9 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.data.firebase.deleteSleepOps
+import com.babytracker.sharing.data.firebase.observePartnerConnected
 import com.babytracker.sharing.data.firebase.observeSleepOps
+import com.babytracker.sharing.data.firebase.observeSnapshot
 import com.babytracker.sharing.data.firebase.writeSleepOp
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.BabySnapshot
@@ -41,8 +41,9 @@ import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.usecase.EditPartnerFeedUseCase
-import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
 import com.babytracker.sharing.usecase.LogPartnerFeedUseCase
+import com.babytracker.sharing.usecase.ObservePartnerDataUseCase
+import com.babytracker.sharing.usecase.ObservePartnerFeedHistoryUseCase
 import com.babytracker.sharing.usecase.StartPartnerSleepUseCase
 import com.babytracker.sharing.usecase.StopPartnerSleepUseCase
 import com.babytracker.sharing.usecase.SubmitFeedOpUseCase
@@ -57,7 +58,6 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
@@ -95,24 +95,14 @@ class PartnerDashboardScreenTest {
     private val appContext: Context
         get() = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
 
-    private fun buildViewModel(): PartnerDashboardViewModel {
-        return PartnerDashboardViewModel(buildFetchUseCase(snapshot = null), noOpWidgetUpdater, FakePartnerSettingsRepository(), appContext)
-    }
+    private fun buildViewModel(): PartnerDashboardViewModel = buildViewModel(snapshot = null)
 
-    private fun buildViewModel(snapshot: ShareSnapshot): PartnerDashboardViewModel {
-        return PartnerDashboardViewModel(buildFetchUseCase(snapshot), noOpWidgetUpdater, FakePartnerSettingsRepository(), appContext)
-    }
-
-    private fun buildFetchUseCase(
-        snapshot: ShareSnapshot?,
-        sharingRepository: FakeService = fakeSharing(snapshot),
-    ): FetchPartnerDataUseCase {
-        return FetchPartnerDataUseCase(
-            service = sharingRepository.service,
-            settingsRepository = FakePartnerSettingsRepository(),
-            // Debug builder only fires for the placeholder code; this fake uses a real code.
-            debugSnapshotBuilder = dagger.Lazy { error("debug snapshot builder should not be used") },
-        )
+    private fun buildViewModel(snapshot: ShareSnapshot?): PartnerDashboardViewModel {
+        val service = fakeSharing(snapshot).service
+        val settings = FakePartnerSettingsRepository()
+        val observeData = ObservePartnerDataUseCase(service, settings, dagger.Lazy { error("debug builder unused") })
+        val observeFeed = ObservePartnerFeedHistoryUseCase(service, settings) { fixedNow }
+        return PartnerDashboardViewModel(observeData, observeFeed, noOpWidgetUpdater, settings, appContext)
     }
 
     private fun buildBottleFeedViewModel(): PartnerBottleFeedViewModel {
@@ -434,86 +424,6 @@ class PartnerDashboardScreenTest {
     }
 
     @Test
-    fun refreshButtonExposesCurrentStateForAccessibility() {
-        composeRule.setContent {
-            PartnerDashboardScreen(
-                nowProvider = fixedNowProvider,
-                viewModel = buildViewModel(makeSnapshot()),
-                bottleFeedViewModel = buildBottleFeedViewModel(),
-                sleepViewModel = buildSleepViewModel(),
-            )
-        }
-
-        composeRule.onNode(
-            hasText("Check shared updates")
-                .and(
-                    SemanticsMatcher.expectValue(
-                        SemanticsProperties.StateDescription,
-                        "Ready to check shared updates",
-                    ),
-                ),
-        ).performScrollTo().assertIsDisplayed()
-    }
-
-    @Test
-    fun pullDownRefreshChecksForSharedUpdates() {
-        val sharingRepository = fakeSharing(makeSnapshot())
-        val fetchUseCase = buildFetchUseCase(makeSnapshot(), sharingRepository)
-        val viewModel = PartnerDashboardViewModel(fetchUseCase, noOpWidgetUpdater, FakePartnerSettingsRepository(), appContext)
-
-        composeRule.setContent {
-            PartnerDashboardScreen(
-                nowProvider = fixedNowProvider,
-                viewModel = viewModel,
-                bottleFeedViewModel = buildBottleFeedViewModel(),
-                sleepViewModel = buildSleepViewModel(),
-            )
-        }
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithContentDescription("Pull down to check for shared updates")
-            .performTouchInput { swipeDown() }
-        composeRule.waitForIdle()
-
-        assertTrue(sharingRepository.fetchCount >= 2)
-    }
-
-    @Test
-    fun refreshingExistingDashboardShowsOneProgressSignal() {
-        val releaseRefresh = CompletableDeferred<Unit>()
-        val sharingRepository = fakeSharing(
-            snapshot = makeSnapshot(),
-            beforeFetchReturns = { fetchCount ->
-                if (fetchCount == 2) {
-                    releaseRefresh.await()
-                }
-            },
-        )
-        val viewModel = PartnerDashboardViewModel(buildFetchUseCase(makeSnapshot(), sharingRepository), noOpWidgetUpdater, FakePartnerSettingsRepository(), appContext)
-
-        composeRule.setContent {
-            PartnerDashboardScreen(
-                nowProvider = fixedNowProvider,
-                viewModel = viewModel,
-                bottleFeedViewModel = buildBottleFeedViewModel(),
-                sleepViewModel = buildSleepViewModel(),
-            )
-        }
-        composeRule.waitUntil { viewModel.uiState.value.snapshot != null }
-
-        composeRule.runOnUiThread { viewModel.refresh() }
-        composeRule.waitUntil { viewModel.uiState.value.isLoading }
-
-        composeRule.onAllNodes(
-            SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo),
-            useUnmergedTree = true,
-        ).assertCountEquals(1)
-        composeRule.onNodeWithText("Checking").assertDoesNotExist()
-
-        releaseRefresh.complete(Unit)
-    }
-
-    @Test
     fun staleWarningAppearsWhenVisibleDashboardCrossesThreshold() {
         val initialNow = Instant.parse("2026-05-12T06:00:00Z")
         var currentTimeMs = initialNow.toEpochMilli()
@@ -597,7 +507,6 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithContentDescription("Allergy: $longAllergy")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithText("Check shared updates").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -632,7 +541,6 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithText("Mia").assertIsDisplayed()
         composeRule.onNodeWithText("Feeding when shared").assertIsDisplayed()
         composeRule.onNodeWithText("This read-only view may be behind.", substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Check shared updates").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -694,37 +602,31 @@ class PartnerDashboardScreenTest {
         composeRule.onNodeWithText("Updated 2h 0m ago").performScrollTo().assertIsDisplayed()
     }
 
-    private class FakeService(
-        val service: FirestoreSharingService,
-        private val counter: java.util.concurrent.atomic.AtomicInteger,
-    ) {
-        val fetchCount: Int get() = counter.get()
-    }
+    private class FakeService(val service: FirestoreSharingService)
 
-    private fun fakeSharing(
-        snapshot: ShareSnapshot?,
-        beforeFetchReturns: suspend (Int) -> Unit = {},
-    ): FakeService {
+    private fun fakeSharing(snapshot: ShareSnapshot?): FakeService {
         val service = mockk<FirestoreSharingService>(relaxed = true)
-        val counter = java.util.concurrent.atomic.AtomicInteger(0)
         coEvery { service.signInAnonymously() } returns "partner-uid"
         coEvery { service.isPartnerConnected(any(), any()) } returns true
         coEvery { service.isShareCodeValid(any()) } returns true
         coEvery { service.getPartners(any()) } returns emptyList()
-        coEvery { service.fetchSnapshot(any()) } coAnswers {
-            val c = counter.incrementAndGet()
-            beforeFetchReturns(c)
-            snapshot ?: throw RuntimeException("offline")
-        }
-        every { service.observeFeedOps(any(), any()) } returns emptyFlow()
-        every { service.observeFeedOps(any()) } returns emptyFlow()
+        coEvery { service.fetchSnapshot(any()) } coAnswers { snapshot ?: throw RuntimeException("offline") }
+        every { service.observeSnapshot(any()) } returns
+            flowOf(com.babytracker.sharing.data.firebase.SnapshotEmission(snapshot, fromCache = false))
+        every { service.observePartnerConnected(any(), any()) } returns
+            flowOf(com.babytracker.sharing.data.firebase.ConnectionEmission(connected = true, fromCache = false))
+        // The live dashboard combines the snapshot with the feed-history flow, which combines the
+        // snapshot's feeds with observeFeedOps — so the op listener must emit at least once or the
+        // dashboard's combine never produces a value. An empty op list is the no-pending-ops case.
+        every { service.observeFeedOps(any(), any()) } returns flowOf(emptyList())
+        every { service.observeFeedOps(any()) } returns flowOf(emptyList())
         every { service.observeSleepOps(any(), any()) } returns emptyFlow()
         every { service.observeSleepOps(any()) } returns emptyFlow()
         coEvery { service.writeFeedOp(any(), any(), any()) } just Runs
         coEvery { service.deleteFeedOps(any(), any()) } just Runs
         coEvery { service.writeSleepOp(any(), any(), any()) } just Runs
         coEvery { service.deleteSleepOps(any(), any()) } just Runs
-        return FakeService(service, counter)
+        return FakeService(service)
     }
 
     private class FakePartnerSettingsRepository : SettingsRepository {
