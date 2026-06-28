@@ -51,6 +51,11 @@ read path too.
 - **Primary-offline** remains unsolvable by any listener — if the primary is not
   running, partner ops sit unprocessed and the snapshot never updates. This is
   inherent to the op-inbox / primary-authoritative model and out of scope.
+- **True server-side revocation is out of scope.** Making a removed partner
+  cryptographically unable to read the snapshot (capability rotation or
+  owner-authorized reads + a tightened `shares/{code}` read rule) is a separate
+  security workstream. This refactor preserves the existing capability model
+  exactly — see "Security model & limitations".
 - No Firestore security-rule changes, no Room migration, no new dependency.
 
 ## Key constraint discovered
@@ -58,14 +63,47 @@ read path too.
 `firestore.rules` keeps `allow read: if request.auth != null` on
 `/shares/{shareCode}` — share-document reads are open to **any** authed user (the
 share code is the capability). Therefore a listener on the share document alone
-**cannot** detect a per-partner revoke: revoking one partner only deletes that
-partner's `shares/{code}/partners/{uid}` doc, leaving the share doc readable.
+**cannot** detect a per-partner disconnect: removing one partner only deletes
+that partner's `shares/{code}/partners/{uid}` doc, leaving the share doc
+readable.
 
-Live revoke detection therefore requires a second, cheap listener on the
-partner's own `partners/{uid}` document (readable per rules:
-`request.auth.uid == partnerUid`). Its deletion → revoked. A full
+Live **disconnect detection** (see "Security model & limitations" below — this is
+a UI signal, not an access boundary) therefore requires a second, cheap listener
+on the partner's own `partners/{uid}` document (readable per rules:
+`request.auth.uid == partnerUid`). Its deletion → disconnect. A full
 `deleteShareDocument` is covered separately by the share-doc listener emitting a
 missing/no-data snapshot.
+
+Both signals are subject to a **cache-origin caveat**: a Firestore snapshot
+listener emits a cache-sourced result first (`metadata.isFromCache == true`),
+and on an offline start with a cold cache that result can be a *non-existent*
+document. Treating that as a disconnect would wrongly nuke a valid partner's
+local state. So absence/disconnect is acted on **only when server-confirmed**
+(`isFromCache == false`); cache-origin absence is ignored until the server
+corrects it. This is the central correctness rule of section A.
+
+## Security model & limitations (pre-existing; not changed by this refactor)
+
+This refactor changes *how fast and how often* the partner reads the share
+document, not *who may read it*. The existing model is preserved verbatim:
+
+- **Share-document reads are open to any authenticated holder of the share code**
+  (`allow read: if request.auth != null`; the code is the capability). The live
+  listener uses the **exact same read permission** as today's one-shot `get()` —
+  no broader, no narrower.
+- **Deleting the partner doc is a disconnect signal, not an access boundary.**
+  `observePartnerConnected` (like the current `isPartnerConnected` check) detects
+  that the owner removed the partner and drives the UI to the "sharing ended"
+  state + clears the *local* partner cache. It does **not** stop a client that
+  still holds the code from reading the snapshot, and the current rules let that
+  same UID re-create its own `partners/{uid}` doc and reconnect.
+
+Therefore `PartnerAccessRevokedException` in this design means **"disconnect the
+partner UI"**, not "the data is now inaccessible." That is a deliberate,
+pre-existing property of the capability model. This refactor **neither introduces
+nor worsens it** — the one-shot path already had identical read access and the
+same recreatable-partner-doc behavior. True revocation is tracked as out of scope
+(see Non-goals).
 
 ## Design
 
@@ -75,14 +113,22 @@ missing/no-data snapshot.
 the existing sleep-op convention that keeps the class under detekt's
 `TooManyFunctions` ceiling):
 
-- `observeSnapshot(code: String): Flow<ShareSnapshot?>` — `callbackFlow` +
-  `addSnapshotListener` on `shareDoc(code)`. Emits `mapToSnapshot(data)` when
-  the `data` field is present; emits `null` when the document is missing or has
-  no `data` (the full-delete revoke signal). Mirrors `observeFeedOps`:
-  `close(error)` on listener error, `awaitClose { registration.remove() }`.
-- `observePartnerConnected(code: String, partnerUid: String): Flow<Boolean>` —
-  listener on `partnersCollection(code).document(partnerUid)`; emits
-  `snapshot.exists()`. The live equivalent of `isPartnerConnected`.
+Both emit `metadata.isFromCache` alongside their value so the use case can tell a
+server-confirmed absence from a cache-origin one (see the cache-origin caveat
+above):
+
+- `observeSnapshot(code: String): Flow<SnapshotEmission>` where
+  `data class SnapshotEmission(val data: ShareSnapshot?, val fromCache: Boolean)`
+  — `callbackFlow` + `addSnapshotListener` on `shareDoc(code)`. `data` =
+  `mapToSnapshot(...)` when the `data` field is present, else `null` (document
+  missing / no `data`); `fromCache = snapshot.metadata.isFromCache`. Mirrors
+  `observeFeedOps`: `close(error)` on listener error,
+  `awaitClose { registration.remove() }`.
+- `observePartnerConnected(code, partnerUid): Flow<ConnectionEmission>` where
+  `data class ConnectionEmission(val connected: Boolean, val fromCache: Boolean)`
+  — listener on `partnersCollection(code).document(partnerUid)`;
+  `connected = snapshot.exists()`, `fromCache = snapshot.metadata.isFromCache`.
+  The live equivalent of `isPartnerConnected`.
 
 **Use case — new `ObservePartnerDataUseCase`** (parallels
 `FetchPartnerDataUseCase`, which is kept for the widget):
@@ -97,22 +143,51 @@ operator fun invoke(code: ShareCode): Flow<ShareSnapshot>
   `FetchPartnerDataUseCase`'s seam.
 - Otherwise: `signInAnonymously()` (suspend prelude inside the flow so auth/network
   failures route through `.catch`, not a crash — same idiom as the history use
-  cases), then:
+  cases), then `combine` the two listeners into a three-way intent and act on it,
+  clearing local state **only on a server-confirmed** loss of access:
   ```kotlin
+  // private sealed interface in the use case
+  sealed interface Access {
+      data class Data(val snapshot: ShareSnapshot) : Access
+      object Disconnected : Access   // server-confirmed: clear + throw
+      object Pending : Access         // cache-origin absence: ignore, await server
+  }
+
   combine(
       service.observeSnapshot(code.value),
       service.observePartnerConnected(code.value, uid),
-  ) { snapshot, connected ->
-      if (!connected || snapshot == null) {
-          settingsRepository.clearPartnerStateIfShareCodeMatches(code.value)
-          throw PartnerAccessRevokedException("Partner access revoked")
+  ) { snap, conn ->
+      when {
+          // Present data + connected — show it (cached data is fine, offline-first).
+          snap.data != null && conn.connected -> Access.Data(snap.data)
+          // Server-CONFIRMED absence or disconnect — the only state that clears DataStore.
+          (snap.data == null && !snap.fromCache) ||
+              (!conn.connected && !conn.fromCache) -> Access.Disconnected
+          // Cache-origin absence/disconnect (offline start, cold cache): do NOT clear
+          // state or throw; wait for the server emission to correct it.
+          else -> Access.Pending
       }
-      snapshot
+  }.transform { access ->
+      when (access) {
+          is Access.Data -> emit(access.snapshot)
+          Access.Pending -> Unit // emit nothing
+          Access.Disconnected -> {
+              settingsRepository.clearPartnerStateIfShareCodeMatches(code.value)
+              throw PartnerAccessRevokedException("Partner disconnected")
+          }
+      }
   }
   ```
 - `.catch`: re-throw `PartnerAccessRevokedException`; wrap any other
   `FirebaseException` as `PartnerDataFetchException` so the consuming view
   models' existing error branches are unchanged.
+
+> The `fromCache` gate is the fix for the "cached missing snapshot erases valid
+> partner state" failure mode: a cold-cache offline start emits
+> `SnapshotEmission(null, fromCache = true)` → `Access.Pending` → no clear, no
+> throw; the dashboard stays in its loading/last-known state until the server
+> emission arrives. Local state is cleared only when Firestore has confirmed,
+> from the server, that the share doc is gone or the partner doc was removed.
 
 Transient network drops do **not** error the flow — the Firestore SDK serves
 cached data and auto-reconnects, re-emitting on recovery. A thrown error is
@@ -206,9 +281,21 @@ logic remain.
 
 ## Testing
 
-- **New** `ObservePartnerDataUseCaseTest` (Turbine): emits snapshot; revoke on
-  disconnect (`connected = false`); revoke on missing/no-data snapshot; debug
-  placeholder path; `FirebaseException → PartnerDataFetchException` mapping.
+- **New** `ObservePartnerDataUseCaseTest` (Turbine):
+  - emits the snapshot when present + connected (server **and** cache origin —
+    cached data must still display offline-first);
+  - **server-confirmed** disconnect (`connected = false, fromCache = false`) →
+    clears state + throws `PartnerAccessRevokedException`;
+  - **server-confirmed** missing/no-data snapshot (`data = null, fromCache =
+    false`) → clears state + throws;
+  - **cache-origin absence does NOT clear or throw**: emit
+    `SnapshotEmission(null, fromCache = true)` then a valid server emission →
+    assert no exception, DataStore untouched, and the later snapshot is emitted
+    (the regression guard for finding 2);
+  - **cache-origin disconnect ignored**: `ConnectionEmission(false, fromCache =
+    true)` then `(true, fromCache = false)` → no throw, snapshot emitted;
+  - debug placeholder path; `FirebaseException → PartnerDataFetchException`
+    mapping (non-cache terminal errors only).
 - Rewrite `PartnerDashboardViewModelTest`, `PartnerFeedHistoryViewModelTest`,
   `PartnerSleepHistoryViewModelTest` to mock the `Flow`-returning
   `ObservePartnerDataUseCase` instead of the `suspend` fetch.
