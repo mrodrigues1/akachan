@@ -850,10 +850,7 @@
     <string name="partner_ended_title">Acesso de parceiro encerrado</string>
     <string name="partner_ended_message">Peça ao responsável principal um novo código de compartilhamento para reconectar.</string>
     <string name="partner_go_settings">Ir para configurações</string>
-    <string name="partner_checking_updates">Verificando atualizações compartilhadas</string>
-    <string name="partner_checking">Verificando</string>
     <string name="partner_check_updates_cd">Verificar atualizações compartilhadas</string>
-    <string name="partner_pull_refresh">Puxe para baixo para verificar atualizações compartilhadas</string>
     <string name="partner_loading">Carregando dados compartilhados do parceiro</string>
     <string name="partner_readonly">Visão somente leitura do parceiro</string>
     <string name="partner_recent_feedings">MAMADAS RECENTES</string>
@@ -864,7 +861,6 @@
     <string name="partner_quiet">Tudo tranquilo agora</string>
     <string name="partner_quiet_desc">Nenhuma mamada ou sono ativo foi compartilhado. Nada precisa de atenção.</string>
     <string name="partner_shared_ago">Compartilhado %1$s</string>
-    <string name="partner_checked_ago">Verificado %1$s</string>
     <string name="partner_feeding_when_shared">Mamando quando compartilhado</string>
     <string name="partner_estimate">Estimativa da última atualização compartilhada</string>
     <string name="partner_sleeping_when_shared">Dormindo quando compartilhado</string>
@@ -888,7 +884,6 @@
     <string name="partner_allergies">ALERGIAS</string>
     <string name="partner_no_allergies">Nenhuma alergia compartilhada</string>
     <string name="partner_allergy_cd">Alergia: %1$s</string>
-    <string name="partner_check_shared">Verificar atualizações compartilhadas</string>
     <string name="partner_check_again">Verificar novamente</string>
 
     <!-- Partner dashboard runtime (computed labels + accessibility) -->
@@ -904,15 +899,12 @@
     <string name="partner_share_behind">A atualização compartilhada pode estar atrasada</string>
     <string name="partner_share_current">A atualização compartilhada está em dia</string>
     <string name="partner_status_cd">%1$s. %2$s. Compartilhado %3$s</string>
-    <string name="partner_status_cd_checked">%1$s. %2$s. Compartilhado %3$s. Verificado %4$s</string>
     <string name="partner_side_switch">Seio %1$s para %2$s</string>
     <string name="partner_side_switch_short">%1$s para %2$s</string>
     <string name="partner_side_single">Seio %1$s</string>
     <string name="partner_no_sleep_shared">Nenhum sono compartilhado ainda</string>
     <string name="partner_slept_nap">Cochilou</string>
     <string name="partner_slept_night">Dormiu</string>
-    <string name="partner_check_state_loading">Verificando atualizações compartilhadas</string>
-    <string name="partner_check_state_ready">Pronto para verificar atualizações compartilhadas</string>
     <string name="partner_no_allergies_shared">Nenhuma alergia compartilhada</string>
     <plurals name="partner_allergies_shared">
         <item quantity="one">%1$d alergia compartilhada</item>
