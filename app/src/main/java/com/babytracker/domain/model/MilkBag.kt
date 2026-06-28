@@ -10,6 +10,4 @@ data class MilkBag(
     val usedAt: Instant? = null,
     val notes: String? = null,
     val createdAt: Instant,
-) {
-    val isActive: Boolean get() = usedAt == null
-}
+)

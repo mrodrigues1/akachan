@@ -13,9 +13,6 @@ interface MilkBagDao {
     @Query("SELECT * FROM milk_bags WHERE used_at IS NULL ORDER BY collection_date ASC")
     fun getActiveBags(): Flow<List<MilkBagEntity>>
 
-    @Query("SELECT * FROM milk_bags ORDER BY collection_date DESC")
-    fun getAllBags(): Flow<List<MilkBagEntity>>
-
     @Query(
         """
         SELECT COALESCE(SUM(volume_ml), 0) AS totalMl,

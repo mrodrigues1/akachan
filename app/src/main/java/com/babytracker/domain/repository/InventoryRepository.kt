@@ -7,10 +7,8 @@ import java.time.Instant
 
 interface InventoryRepository {
     fun getActiveBags(): Flow<List<MilkBag>>
-    fun getAllBags(): Flow<List<MilkBag>>
     fun getSummary(): Flow<InventorySummary>
     suspend fun currentSummary(): InventorySummary
-    suspend fun getById(id: Long): MilkBag?
 
     /** Sums `volumeMl` across [ids] in one query. Missing ids contribute 0. [ids] must be non-empty. */
     suspend fun sumVolumeForIds(ids: List<Long>): Int

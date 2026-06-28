@@ -36,22 +36,27 @@
 
 **Validated:** `rg "getAllBags\(\)"` over the whole repo hits only the three definitions above plus `app/src/androidTest/.../MilkBagDaoTest.kt` (4 blocks). The live "show me bags" path uses `getActiveBags()` (active-only, ASC); the receiver and backup use `getAllBagsOnce()` (suspend). Nothing consumes the Flow-of-all-bags. Active-bags filtering already lives in `getActiveBags()`/`getActiveSummary()`, so this is genuinely orphaned, not "the only place that includes used bags."
 
-**Execution note:** delete the three definitions, then delete the `MilkBagDaoTest` cases that call `bagDao.getAllBags()` (they only assert ordering of the dead query). `./gradlew test` + `./gradlew build` after (Room/DAO change).
+**Execution note:** delete the three definitions. The four `MilkBagDaoTest` blocks that called `bagDao.getAllBags()` assert real behavior (FK-set-null, update-editable-fields), so they were **migrated** to the kept suspend `getAllBagsOnce()` readback rather than deleted. `./gradlew test` + `./gradlew build` after (Room/DAO change).
+
+> **Executed** on `chore/inventory-ponytail-audit`.
 
 ---
 
-### 2. `delete` — Dead `getById()` across the repository + DAO
-**~4 production lines + the `InventoryRepositoryImplTest` case**
+### 2. `delete` — Dead `getById()` on the repository layer
+**~3 production lines + the `InventoryRepositoryImplTest` case**
 
-`InventoryRepository.getById(id)` has **no production caller** — only `InventoryRepositoryImplTest` calls it. Its sole production consumer (`MilkBagDao.getById`) is in turn called only by the dead repo method, so the whole chain is test-only.
+`InventoryRepository.getById(id)` has **no production caller** — only `InventoryRepositoryImplTest` calls it. The dead repository wrapper goes:
 
 - `domain/repository/InventoryRepository.kt:13` — interface method, delete
 - `data/repository/InventoryRepositoryImpl.kt:38` — impl, delete
-- `data/local/dao/MilkBagDao.kt:33-34` — `@Query(... WHERE id = :id LIMIT 1)`, delete
 
-**Validated:** `rg "\.getById\(" app/src/main` shows `MilkBagDao.getById` is called **only** at `InventoryRepositoryImpl.kt:38`; `rg "repository.getById\|inventory.getById"` over `app/src/main` returns nothing for inventory (the hits are vaccine/pumping/sleep). The partner-sharing snapshot path reads via `getActiveBags()` / `currentSummary()`, never `getById`. Edit/mark-used/delete all operate on the full `MilkBag` already in UI state, so no lookup-by-id is needed.
+**Refinement (validated during execution):** the underlying `MilkBagDao.getById` query is **retained** — `BottleFeedDaoTest` legitimately uses it for clean per-id `usedAt`-swap assertions, so it is not dead. Only the never-called repository abstraction is removed; rewriting that test to `getAllBagsOnce().first { … }` would be strictly worse readability for no production gain.
 
-**Execution note:** delete the three definitions + the `getById` test in `InventoryRepositoryImplTest` (and the `BottleFeedDaoTest` reference to `milkBagDao.getById` if it asserts on the now-removed path — check it's not verifying the *bottle-feed* link instead). `./gradlew test` + `./gradlew build`.
+**Validated:** `rg "repository.getById|inventory.getById"` over `app/src/main` returns nothing for inventory (the hits are vaccine/pumping/sleep). The partner-sharing snapshot path reads via `getActiveBags()` / `currentSummary()`, never `getById`. Edit/mark-used/delete all operate on the full `MilkBag` already in UI state, so no lookup-by-id is needed.
+
+**Execution note:** delete the interface + impl method + the `getById` test in `InventoryRepositoryImplTest`. `./gradlew test` + `./gradlew build`.
+
+> **Executed** on `chore/inventory-ponytail-audit` (DAO query kept — live test consumer).
 
 ---
 
@@ -84,11 +89,11 @@
 
 ```
 net: -5 lines   dead getAllBags() chain (interface + impl + DAO query)   [#1]
-     -4 lines   dead getById() chain (interface + impl + DAO query)       [#2]
+     -3 lines   dead getById() repository wrapper (interface + impl)      [#2]
      -2 lines   dead MilkBag.isActive                                     [#3]
      -2 lines   dead WIDE_SIZE widget bucket                              [#4]
 ------------------------------------------------------------------------
-~ -13 production lines, plus the now-orphaned test cases for #1-#3.
+~ -12 production lines, plus orphaned test cases removed/migrated for #1-#3.
 0 dependencies removable (no dep bloat in this subsystem).
 ```
 
