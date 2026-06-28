@@ -45,9 +45,10 @@ read path too.
 - **Widget worker** stays one-shot. WorkManager cannot hold a long-lived
   listener; `WidgetRefreshWorker` keeps using `FetchPartnerDataUseCase(code)`,
   which is therefore retained.
-- **Sleep-history list behavior is unchanged.** It deliberately overlays edit
-  ops only (`mergeSleepHistory`) and does not synthesize a partner-started
-  active session into the list; this refactor does not change that.
+- **Sleep-history list semantics are unchanged.** It still overlays edit ops only
+  (`mergeSleepHistory`) and does not synthesize a partner-started active session
+  into the list. (It does gain the A.1 convergence retention, like every
+  optimistic surface — that is a correctness fix, not a semantic change.)
 - **Primary-offline** remains unsolvable by any listener — if the primary is not
   running, partner ops sit unprocessed and the snapshot never updates. This is
   inherent to the op-inbox / primary-authoritative model and out of scope.
@@ -194,53 +195,93 @@ cached data and auto-reconnects, re-emitting on recovery. A thrown error is
 therefore genuinely terminal (permission denied / revoke), which is why no
 `retryWhen` is added here.
 
+### A.1 Convergence: retaining optimism until the snapshot catches up
+
+The snapshot (share document) and the op query are **independent Firestore watch
+streams with no cross-target ordering guarantee**. The primary applies an op,
+pushes the updated snapshot, **then** deletes the op (`ProcessFeedOpsUseCase`
+order: `syncToFirestore` → `deleteFeedOps`). If the partner observes the op
+*deletion* before the snapshot *update*, merging the still-stale snapshot with the
+now-empty op set makes the just-logged entry **disappear** — a flicker normally,
+or missing until reconnect if connectivity drops in that window. This is the exact
+regression the refactor targets, and it is precisely what today's
+`hasConsumedPendingOps` (history) and `snapshotRefreshTick` (`PartnerSleepViewModel`)
+guard against by refetching on op-shrink. They must be **replaced, not deleted**.
+
+**Rule — op disappearance is NOT convergence.** An optimistic op overlay is
+retained until the earlier of:
+
+1. **the snapshot reflects the op's effect**, keyed by `clientId`:
+   create / update / sleep start / stop / edit → the snapshot has an entry for
+   that `clientId` whose fields match the op's effect; delete → the snapshot has
+   no entry for that `clientId`;
+2. **a TTL elapses** since `op.createdAtMs` — generalize the existing
+   `PENDING_SLEEP_OP_TTL_MS` (~60s) to `PENDING_OP_TTL_MS`. This bounds ops the
+   primary dropped/rejected without applying (`ProcessFeedOpsUseCase` deletes
+   *every* op in a batch, applied or not — a rejected op never reflects and must
+   time out) and the primary-offline case.
+
+**Mechanism.** One pure, independently tested helper reconciles across emissions:
+
+```kotlin
+// effectiveOps = liveOps ∪ { tracked op : not reflected in snapshot ∧ within TTL }
+// nextTracked  = effectiveOps minus any now reflected or expired
+fun <O> reconcilePendingOps(
+    isReflected: (op: O) -> Boolean,   // clientId/field match against the current snapshot
+    liveOps: List<O>,                  // ops still present in the op listener
+    tracked: List<O>,                  // ops carried forward from prior emissions
+    nowMs: Long,
+    ttlMs: Long = PENDING_OP_TTL_MS,
+): Reconciled<O>                        // (effectiveOps, nextTracked)
+```
+
+The existing pure merges (`mergeFeedHistory`, `mergeSleepHistory`,
+`mergeActiveSleep`) are then applied to `effectiveOps` **unchanged**. The op-merge
+use cases thread it with `combine(snapshotStream, opStream).scan(reconcile)`, so
+an op-deletion delivered before its snapshot keeps overlaying until the snapshot
+converges or the TTL fires. This is a declarative replacement for the imperative
+refetch trigger that also survives the connectivity-drop window.
+
 **History view models** — `PartnerFeedHistoryViewModel` /
 `PartnerSleepHistoryViewModel`:
 
-- Replace the one-shot `refreshPartnerHistory` body with
-  `observePartnerData().flatMapLatest { snapshot -> observePartnerXHistory(snapshot.…) }`.
-- The existing op-merge use cases (`ObservePartnerFeedHistoryUseCase`,
-  `ObservePartnerSleepHistoryUseCase`) are **unchanged** — they keep overlaying
-  the partner's own pending ops. The live snapshot re-emission (when the primary
-  consumes an op and re-pushes) now drives the re-merge automatically.
-- **Delete** the manual refetch machinery this replaces: `historyJob`,
-  `refreshTrigger` (`MutableSharedFlow` debounce), `lastPendingOpIds`, and
-  `hasConsumedPendingOps` in `PartnerHistoryRefresh.kt`. The shared helper
-  becomes a small flow builder (or is inlined if no longer shared).
-
-> Note: `flatMapLatest` re-subscribes the op listener on each snapshot emission.
-> Snapshots change infrequently (only on a primary push), so the occasional
-> op-listener re-registration is an acceptable cost for the simpler structure.
+- Collect the adapted op-merge use cases, which now take the **live snapshot
+  stream** and apply the A.1 reconciliation before their existing pure merge,
+  instead of a one-shot stateless merge over a fixed snapshot list:
+  `observePartnerFeedHistory(observePartnerData().map { it.bottleFeeds })`.
+- **Delete** the manual refetch machinery the reconciliation replaces:
+  `historyJob`, `refreshTrigger` (`MutableSharedFlow` debounce),
+  `lastPendingOpIds`, and `hasConsumedPendingOps` in `PartnerHistoryRefresh.kt`.
+  The shared helper is inlined if no longer shared.
 
 ### B. Partner's own actions, instant
 
 **Sleep tile** — source the active session from `sleepState.active`
-(`PartnerSleepViewModel`, which already computes the optimistic + live active via
+(`PartnerSleepViewModel`, which computes the optimistic + live active via
 `mergeActiveSleep` on its own op listener) instead of
 `snapshot.sleepRecords.firstOrNull { it.endTime == null }`. The screen already
 collects `sleepState`; this is a wiring change to thread the active session into
 the sleep tile. `lastCompletedSleep` and the timeline rows stay snapshot-sourced.
 
-**Bottle tile** — the dashboard view model reuses the existing
-`ObservePartnerFeedHistoryUseCase` to overlay the partner's own pending feed ops
-onto `snapshot.bottleFeeds`, so a just-logged bottle appears immediately:
+**Bottle tile** — the dashboard view model reuses the adapted
+`ObservePartnerFeedHistoryUseCase` (now A.1-reconciling over the live snapshot
+stream) to overlay the partner's own pending feed ops, so a just-logged bottle
+appears immediately and does not flicker out when the op is consumed:
 
 ```kotlin
-observePartnerData().flatMapLatest { snap ->
-    observePartnerFeedHistory(snap.bottleFeeds)
-        .map { merged -> snap.copy(bottleFeeds = merged.entries) }
-}
+observePartnerFeedHistory(observePartnerData().map { it.bottleFeeds })
+    .map { snapshot /* with reconciled bottleFeeds */ -> snapshot }
 ```
 
-`lastBottle = snapshot.bottleFeeds.maxByOrNull { it.timestamp }` then includes
-the optimistic entry. (Both `mergeFeedHistory` and `mergeActiveSleep` are
-idempotent on already-merged input, so no double-merge hazard arises from this
-layering.)
+`lastBottle = snapshot.bottleFeeds.maxByOrNull { it.timestamp }` then includes the
+optimistic entry until the snapshot converges (per A.1).
 
-**`PartnerSleepViewModel`** — remove the `snapshotRefreshTick` mechanism (state
-field + bump in the op collector). It existed only to drive the now-deleted
-dashboard refetch. The op listener, `stopping`, editor, and `canEditActive`
-logic remain.
+**`PartnerSleepViewModel`** — replace the `snapshotRefreshTick` mechanism (state
+field + the op-shrink bump that drove the deleted dashboard refetch) with the A.1
+reconciliation: when a START/STOP/edit op disappears from the op listener, retain
+its overlay (via `reconcilePendingOps`) until the snapshot reflects it or the TTL
+fires, instead of relying on op-disappearance to trigger a refetch. The op
+listener, `stopping`, editor, and `canEditActive` logic remain.
 
 ### C. Dashboard view model & screen cleanup
 
@@ -268,15 +309,23 @@ logic remain.
 - `sharing/data/firebase/FirestoreSharingService.kt` — add `observeSnapshot`,
   `observePartnerConnected` (extension functions).
 - `sharing/usecase/ObservePartnerDataUseCase.kt` — **new**.
+- `sharing/domain/model/ReconcilePendingOps.kt` (or alongside the merge files) —
+  **new**: the pure A.1 `reconcilePendingOps` helper + `PENDING_OP_TTL_MS`
+  (generalizes `PENDING_SLEEP_OP_TTL_MS`).
+- `sharing/usecase/ObservePartnerFeedHistoryUseCase.kt`,
+  `ObservePartnerSleepHistoryUseCase.kt` — take the live snapshot **stream**;
+  apply the A.1 reconciliation (`combine(...).scan(reconcile)`) before the
+  existing pure merge.
 - `ui/partner/PartnerDashboardViewModel.kt` — collect live flow; drop refresh.
 - `ui/partner/PartnerDashboardScreen.kt` — remove refresh affordances; thread
   `sleepState.active` into the sleep tile.
 - `ui/partner/PartnerFeedHistoryViewModel.kt`,
-  `ui/partner/PartnerSleepHistoryViewModel.kt` — live snapshot source; drop
-  refetch dance.
+  `ui/partner/PartnerSleepHistoryViewModel.kt` — live snapshot source via the
+  reconciling use cases; drop refetch dance.
 - `ui/partner/PartnerHistoryRefresh.kt` — remove `hasConsumedPendingOps`;
-  reshape/inline the shared helper.
-- `ui/partner/PartnerSleepViewModel.kt` — remove `snapshotRefreshTick`.
+  inline the shared helper.
+- `ui/partner/PartnerSleepViewModel.kt` — replace `snapshotRefreshTick` with the
+  A.1 reconciliation on its own op stream.
 - `FetchPartnerDataUseCase.kt`, `WidgetRefreshWorker.kt` — unchanged (widget).
 
 ## Testing
@@ -296,10 +345,23 @@ logic remain.
     true)` then `(true, fromCache = false)` → no throw, snapshot emitted;
   - debug placeholder path; `FirebaseException → PartnerDataFetchException`
     mapping (non-cache terminal errors only).
+- **New** `ReconcilePendingOpsTest` — the A.1 convergence regression guards
+  (deterministic, no Firestore):
+  - **op-delete delivered before snapshot-update**: emit `(stale snapshot, [op])`
+    then `(stale snapshot, [])` — assert the entry is **still shown** (overlay
+    retained), then emit `(fresh snapshot, [])` — assert it converges to the
+    snapshot entry with no flicker. Cover feed create / update / delete and sleep
+    start / stop / edit.
+  - **rejected/never-applied op**: op disappears, snapshot never reflects it →
+    overlay retained until `PENDING_OP_TTL_MS`, then dropped.
+  - **already-reflected op**: snapshot reflects it while the op still lives →
+    overlay is a no-op (idempotent), dropped once the op disappears.
 - Rewrite `PartnerDashboardViewModelTest`, `PartnerFeedHistoryViewModelTest`,
   `PartnerSleepHistoryViewModelTest` to mock the `Flow`-returning
-  `ObservePartnerDataUseCase` instead of the `suspend` fetch.
-- Update `PartnerSleepViewModelTest` for the removed `snapshotRefreshTick`.
+  `ObservePartnerDataUseCase` instead of the `suspend` fetch, including the
+  out-of-order op-delete/snapshot case end to end.
+- Update `PartnerSleepViewModelTest` for the `snapshotRefreshTick` → reconciliation
+  change (retain a consumed START overlay until the snapshot shows the session).
 - Delete the `hasConsumedPendingOps` test alongside the function.
 - Update `PartnerDashboardScreenTest` (androidTest) for the removed
   pull-to-refresh / Refresh button, and assert the sleep tile reflects an
