@@ -47,7 +47,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -172,19 +171,10 @@ fun PartnerDashboardScreen(
     LaunchedEffect(bottleFeedState.saved) {
         if (bottleFeedState.saved) {
             showBottleFeedSheet = false
-            viewModel.refresh()
-        }
-    }
-    // A revoked partner is detected globally by the dashboard refresh, which shows the "ended" dialog.
-    LaunchedEffect(sleepState.accessRevoked) {
-        if (sleepState.accessRevoked) {
-            sleepViewModel.onAccessRevokedHandled()
-            viewModel.refresh()
         }
     }
 
     val babyName = snapshot?.baby?.name?.takeIf { it.isNotBlank() }
-    val isRefreshingExistingDashboard = uiState.isLoading && snapshot != null
 
     Scaffold(
         modifier = modifier,
@@ -210,32 +200,6 @@ fun PartnerDashboardScreen(
                     }
                 },
                 actions = {
-                    if (isRefreshingExistingDashboard) {
-                        val checkingDescription = stringResource(R.string.partner_checking_updates)
-                        val checkingState = stringResource(R.string.partner_checking)
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .semantics {
-                                    contentDescription = checkingDescription
-                                    stateDescription = checkingState
-                                    liveRegion = LiveRegionMode.Polite
-                                },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                            )
-                        }
-                    } else {
-                        IconButton(
-                            onClick = viewModel::refresh,
-                            enabled = !uiState.isLoading,
-                        ) {
-                            Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.partner_check_updates_cd))
-                        }
-                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.home_settings_content_description))
                     }
@@ -246,59 +210,49 @@ fun PartnerDashboardScreen(
             )
         },
     ) { padding ->
-        val pullRefreshDescription = stringResource(R.string.partner_pull_refresh)
         val loadingDescription = stringResource(R.string.partner_loading)
-        PullToRefreshBox(
-            isRefreshing = false,
-            onRefresh = viewModel::refresh,
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .semantics {
-                    contentDescription = pullRefreshDescription
-                },
+                .padding(padding),
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                when {
-                    uiState.isLoading && snapshot == null -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .semantics {
-                                    contentDescription = loadingDescription
-                                },
-                        )
-                    }
-                    snapshot != null -> {
-                        DashboardContent(
-                            snapshot = snapshot,
-                            error = uiState.error,
-                            onClearError = viewModel::clearError,
-                            lastRefreshAt = uiState.lastRefreshAt,
-                            isLoading = uiState.isLoading,
-                            onRefresh = viewModel::refresh,
-                            onLogBottle = {
-                                bottleFeedViewModel.startLogging()
-                                showBottleFeedSheet = true
+            when {
+                uiState.isLoading && snapshot == null -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .semantics {
+                                contentDescription = loadingDescription
                             },
-                            onOpenSleepSheet = { showSleepSheet = true },
-                            onNavigateToFeedHistory = onNavigateToFeedHistory,
-                            nowProvider = nowProvider,
-                            volumeUnit = uiState.volumeUnit,
-                        )
-                    }
-                    uiState.error != null -> {
-                        ErrorState(
-                            message = uiState.error!!,
-                            onRetry = viewModel::refresh,
-                        )
-                    }
-                    else -> {
-                        EmptyState(
-                            babyName = babyName,
-                            onRefresh = viewModel::refresh,
-                        )
-                    }
+                    )
+                }
+                snapshot != null -> {
+                    DashboardContent(
+                        snapshot = snapshot,
+                        activeSleep = sleepState.active,
+                        error = uiState.error,
+                        onClearError = viewModel::clearError,
+                        onLogBottle = {
+                            bottleFeedViewModel.startLogging()
+                            showBottleFeedSheet = true
+                        },
+                        onOpenSleepSheet = { showSleepSheet = true },
+                        onNavigateToFeedHistory = onNavigateToFeedHistory,
+                        nowProvider = nowProvider,
+                        volumeUnit = uiState.volumeUnit,
+                    )
+                }
+                uiState.error != null -> {
+                    ErrorState(
+                        message = uiState.error!!,
+                        onRetry = viewModel::retry,
+                    )
+                }
+                else -> {
+                    EmptyState(
+                        babyName = babyName,
+                        onRefresh = viewModel::retry,
+                    )
                 }
             }
         }
@@ -382,11 +336,9 @@ private fun BabyAgeSubtitle(
 @Composable
 private fun DashboardContent(
     snapshot: ShareSnapshot,
+    activeSleep: SleepSnapshot?,
     error: String?,
     onClearError: () -> Unit,
-    lastRefreshAt: Long,
-    isLoading: Boolean,
-    onRefresh: () -> Unit,
     onLogBottle: () -> Unit,
     onOpenSleepSheet: () -> Unit,
     onNavigateToFeedHistory: () -> Unit,
@@ -406,7 +358,6 @@ private fun DashboardContent(
     // remember the whole body — and these list scans — re-ran every minute. Key on the snapshot so
     // they recompute on data change only; let `now` feed just the elapsed-time formatters below.
     val activeSession = remember(snapshot.sessions) { snapshot.sessions.firstOrNull { it.endTime == null } }
-    val activeSleep = remember(snapshot.sleepRecords) { snapshot.sleepRecords.firstOrNull { it.endTime == null } }
     val lastFeeding = remember(snapshot.sessions) { snapshot.sessions.firstOrNull { it.endTime != null } }
     val completedSessions =
         remember(snapshot.sessions) { snapshot.sessions.filter { it.endTime != null }.take(3) }
@@ -428,15 +379,6 @@ private fun DashboardContent(
     val lastSharedText = remember(snapshot.lastSyncAt, nowMs, context) {
         Duration.between(snapshot.lastSyncAt, now).coerceAtLeast(Duration.ZERO).formatElapsedAgo(context)
     }
-    val lastCheckedText = remember(lastRefreshAt, nowMs, context) {
-        if (lastRefreshAt == 0L) {
-            null
-        } else {
-            Duration.between(Instant.ofEpochMilli(lastRefreshAt), now)
-                .coerceAtLeast(Duration.ZERO)
-                .formatElapsedAgo(context)
-        }
-    }
     val isShareStale = remember(snapshot.lastSyncAt, nowMs) {
         Duration.between(snapshot.lastSyncAt, now).toMinutes() >= STALE_SYNC_THRESHOLD_MINUTES
     }
@@ -457,7 +399,6 @@ private fun DashboardContent(
                 activeSession = activeSession,
                 activeSleep = activeSleep,
                 lastSharedText = lastSharedText,
-                lastCheckedText = lastCheckedText,
                 isShareStale = isShareStale,
                 error = error,
                 onClearError = onClearError,
@@ -482,7 +423,7 @@ private fun DashboardContent(
                     prediction = prediction,
                     now = now,
                     activeSleepType = activeSleep?.sleepType,
-                    hasActiveSleep = snapshot.sleepRecords.any { it.endTime == null },
+                    hasActiveSleep = activeSleep != null,
                     hasActiveFeeding = activeSession != null,
                 )
             }
@@ -499,12 +440,6 @@ private fun DashboardContent(
                 baby = snapshot.baby,
                 now = now,
                 volumeUnit = volumeUnit,
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-            RefreshSharedUpdatesButton(
-                isLoading = isLoading,
-                onRefresh = onRefresh,
             )
         }
     }
@@ -1035,7 +970,6 @@ private fun PartnerSyncStrip(
     activeSession: SessionSnapshot?,
     activeSleep: SleepSnapshot?,
     lastSharedText: String,
-    lastCheckedText: String?,
     isShareStale: Boolean,
     error: String?,
     onClearError: () -> Unit,
@@ -1054,22 +988,12 @@ private fun PartnerSyncStrip(
     } else {
         stringResource(R.string.partner_share_current)
     }
-    val statusDescription = if (lastCheckedText != null) {
-        stringResource(
-            R.string.partner_status_cd_checked,
-            activeStateText,
-            stateText,
-            lastSharedText.lowercaseFirstChar(),
-            lastCheckedText.lowercaseFirstChar(),
-        )
-    } else {
-        stringResource(
-            R.string.partner_status_cd,
-            activeStateText,
-            stateText,
-            lastSharedText.lowercaseFirstChar(),
-        )
-    }
+    val statusDescription = stringResource(
+        R.string.partner_status_cd,
+        activeStateText,
+        stateText,
+        lastSharedText.lowercaseFirstChar(),
+    )
 
     Card(
         modifier = Modifier
@@ -1108,13 +1032,6 @@ private fun PartnerSyncStrip(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    if (lastCheckedText != null) {
-                        Text(
-                            text = stringResource(R.string.partner_checked_ago, lastCheckedText.lowercaseFirstChar()),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
                 }
             }
 
@@ -1438,33 +1355,6 @@ private fun AllergyChip(
             color = colors.onContainer,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
-private fun RefreshSharedUpdatesButton(
-    isLoading: Boolean,
-    onRefresh: () -> Unit,
-) {
-    val checkingDescription = stringResource(R.string.partner_check_state_loading)
-    val readyDescription = stringResource(R.string.partner_check_state_ready)
-    Button(
-        onClick = onRefresh,
-        enabled = !isLoading,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .semantics {
-                stateDescription = if (isLoading) checkingDescription else readyDescription
-            },
-    ) {
-        Icon(Icons.Default.Refresh, contentDescription = null)
-        Spacer(modifier = Modifier.width(10.dp))
-        Text(
-            text = stringResource(R.string.partner_check_shared),
-            maxLines = 2,
-            textAlign = TextAlign.Center,
         )
     }
 }
