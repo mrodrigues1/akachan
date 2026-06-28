@@ -6,7 +6,8 @@ import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
-import com.babytracker.manager.SleepSessionNotificationCoordinator
+import com.babytracker.manager.NapReminderScheduler
+import com.babytracker.manager.SleepNotificationScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.widget.WidgetUpdater
 import kotlinx.coroutines.flow.first
@@ -28,7 +29,8 @@ class TileToggleHandler @Inject constructor(
     private val breastfeedingRepository: BreastfeedingRepository,
     private val sleepRepository: SleepRepository,
     private val breastfeedingNotifications: BreastfeedingSessionNotificationCoordinator,
-    private val sleepNotifications: SleepSessionNotificationCoordinator,
+    private val sleepNotificationScheduler: SleepNotificationScheduler,
+    private val napReminderScheduler: NapReminderScheduler,
     private val syncToFirestore: SyncToFirestoreUseCase,
     private val widgetUpdater: WidgetUpdater,
     private val clock: Clock,
@@ -85,9 +87,9 @@ class TileToggleHandler @Inject constructor(
     private suspend fun stopSleepRecord(latest: SleepRecord, now: Instant): Boolean {
         val stopped = sleepRepository.stopActiveRecord(now)
         if (stopped) {
-            sleepNotifications.cancelNotification()
+            sleepNotificationScheduler.cancel()
             if (latest.sleepType == SleepType.NAP) {
-                runCatching { sleepNotifications.scheduleNapReminderIfEnabled(now) }
+                runCatching { napReminderScheduler.scheduleIfEnabled(now) }
             }
             runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
         }
@@ -103,8 +105,8 @@ class TileToggleHandler @Inject constructor(
         val id = sleepRepository.startRecordIfNone(record)
         if (id != null) {
             val created = record.copy(id = id)
-            runCatching { sleepNotifications.cancelNapReminder() }
-            runCatching { sleepNotifications.showNotification(created.id, created.sleepType, created.startTime) }
+            runCatching { napReminderScheduler.cancel() }
+            runCatching { sleepNotificationScheduler.show(created.id, created.sleepType, created.startTime) }
             runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
         }
         return id != null

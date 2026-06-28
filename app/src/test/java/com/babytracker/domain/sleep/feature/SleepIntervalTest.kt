@@ -20,7 +20,6 @@ class SleepIntervalTest {
         assertTrue(result != null)
         assertEquals(base, result!!.startMillis)
         assertEquals(base + durationMillis, result.endMillis)
-        assertEquals(durationMillis, result.durationMillis)
         assertTrue(result.isCompleted)
     }
 
@@ -45,7 +44,7 @@ class SleepIntervalTest {
         val result = SleepInterval.from(base, base + durationMillis, SleepType.NIGHT_SLEEP)
 
         assertTrue(result != null)
-        assertEquals(durationMillis, result!!.durationMillis)
+        assertEquals(base + durationMillis, result!!.endMillis)
     }
 
     @Test
@@ -61,7 +60,6 @@ class SleepIntervalTest {
 
         assertTrue(result != null)
         assertNull(result!!.endMillis)
-        assertNull(result.durationMillis)
         assertFalse(result.isCompleted)
     }
 }

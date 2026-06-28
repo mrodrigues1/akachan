@@ -154,7 +154,7 @@ class SleepFeatureExtractorTest {
         )
 
         assertEquals(2, intervals.size)
-        assertTrue(intervals.last().isActive)
+        assertNull(intervals.last().endMillis)
     }
 
     @Test
@@ -183,7 +183,7 @@ class SleepFeatureExtractorTest {
         )
 
         assertEquals(1, intervals.size)
-        assertFalse(intervals.single().isActive)
+        assertNotNull(intervals.single().endMillis)
     }
 
     @Test
@@ -192,15 +192,12 @@ class SleepFeatureExtractorTest {
 
         assertNull(metrics.lastWakeMillis)
         assertNull(metrics.lastSleepType)
-        assertNull(metrics.lastSleepDurationMillis)
         assertTrue(metrics.completedWakeIntervals.isEmpty())
         assertNull(metrics.medianWakeIntervalMillis)
         assertNull(metrics.wakeIntervalIqrMillis)
         assertEquals(0L, metrics.sleepLast24hMillis)
-        assertEquals(0L, metrics.daySleepTodayMillis)
         assertEquals(0, metrics.napCountToday)
         assertNull(metrics.medianBedtimeMinuteOfDay)
-        assertNull(metrics.medianMorningWakeMinuteOfDay)
     }
 
     @Test
@@ -214,7 +211,6 @@ class SleepFeatureExtractorTest {
 
         assertEquals(nowInstant.minusMillis(hoursMs(1.0)).toEpochMilli(), metrics.lastWakeMillis)
         assertEquals(SleepType.NAP, metrics.lastSleepType)
-        assertEquals(hoursMs(1.0), metrics.lastSleepDurationMillis)
     }
 
     @Test
@@ -288,7 +284,6 @@ class SleepFeatureExtractorTest {
         val metrics = londonExtractor.computeMetrics(listOf(interval))
 
         assertEquals(1, metrics.napCountToday)
-        assertEquals(3_600_000L, metrics.daySleepTodayMillis)
     }
 
     @Test
@@ -301,7 +296,6 @@ class SleepFeatureExtractorTest {
         )
 
         assertEquals(20 * 60 + 15, metrics.medianBedtimeMinuteOfDay)
-        assertEquals(6 * 60 + 15, metrics.medianMorningWakeMinuteOfDay)
     }
 
     @Test
@@ -314,7 +308,6 @@ class SleepFeatureExtractorTest {
         )
 
         assertEquals(0, metrics.medianBedtimeMinuteOfDay)
-        assertEquals(30, metrics.medianMorningWakeMinuteOfDay)
     }
 
     @Test
@@ -328,7 +321,6 @@ class SleepFeatureExtractorTest {
         )
 
         assertNull(features.metrics.medianBedtimeMinuteOfDay)
-        assertNull(features.metrics.medianMorningWakeMinuteOfDay)
     }
 
     @Test
@@ -380,7 +372,6 @@ class SleepFeatureExtractorTest {
         val metrics = extractor.computeMetrics(intervals)
         val quality = extractor.computeQuality(intervals, rawRecordCount = 9, metrics = metrics)
 
-        assertTrue(quality.invalidRecordRate > SleepPredictionTuning.MAX_INVALID_RATE)
         assertFalse(quality.hasSufficientZoneIndependentEvidence)
     }
 
@@ -467,15 +458,12 @@ class SleepFeatureExtractorTest {
         val metrics = SleepMetrics(
             lastWakeMillis = null,
             lastSleepType = null,
-            lastSleepDurationMillis = null,
             completedWakeIntervals = emptyList(),
             medianWakeIntervalMillis = null,
             wakeIntervalIqrMillis = null,
             sleepLast24hMillis = 0L,
-            daySleepTodayMillis = 0L,
             napCountToday = 0,
             medianBedtimeMinuteOfDay = null,
-            medianMorningWakeMinuteOfDay = null,
             napWakeIntervalCount = 0,
             napWakeP25Millis = null,
             napWakeP50Millis = null,

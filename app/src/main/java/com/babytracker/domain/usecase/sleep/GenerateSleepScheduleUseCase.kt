@@ -131,7 +131,7 @@ class GenerateSleepScheduleUseCase @Inject constructor(
         val (minBound, maxBound) = wakeWindowBounds
         val blendedWindows = defaultWakeWindows.map { defaultWw ->
             val blended = defaultWw.multipliedBy(40).plus(avgActualWakeWindow.multipliedBy(60)).dividedBy(100)
-            clampDuration(blended, minBound, maxBound)
+            blended.coerceIn(minBound, maxBound)
         }
 
         return PersonalizationResult(blendedWindows, avgNapDuration, true)
@@ -229,7 +229,7 @@ class GenerateSleepScheduleUseCase @Inject constructor(
         val lastNapEnd = lastNap.startTime.plus(lastNap.duration)
         val calculated = lastNapEnd.plus(wakeWindows.last())
 
-        return clampLocalTime(calculated, bedtimeWindow)
+        return calculated.coerceIn(bedtimeWindow.start, bedtimeWindow.endInclusive)
     }
 
     // --- Total Sleep ---
@@ -314,17 +314,4 @@ class GenerateSleepScheduleUseCase @Inject constructor(
             .sortedBy { it.startTime }
     }
 
-    // --- Utility ---
-
-    private fun clampDuration(value: Duration, min: Duration, max: Duration): Duration = when {
-        value < min -> min
-        value > max -> max
-        else -> value
-    }
-
-    private fun clampLocalTime(time: LocalTime, range: ClosedRange<LocalTime>): LocalTime = when {
-        time < range.start -> range.start
-        time > range.endInclusive -> range.endInclusive
-        else -> time
-    }
 }

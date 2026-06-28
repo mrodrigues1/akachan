@@ -18,13 +18,11 @@ class SleepScheduleTimelineTest {
                     startTime = LocalTime.of(9, 0),
                     duration = Duration.ofMinutes(45),
                     napNumber = 1,
-                    emoji = "N"
                 ),
                 ScheduleEntry(
                     startTime = LocalTime.of(12, 0),
                     duration = Duration.ofMinutes(60),
                     napNumber = 2,
-                    emoji = "N"
                 )
             ),
             wakeWindows = listOf(

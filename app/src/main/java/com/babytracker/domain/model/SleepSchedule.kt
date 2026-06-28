@@ -24,7 +24,6 @@ data class ScheduleEntry(
     val duration: Duration,
     val napNumber: Int,
     val isAdjusted: Boolean = false,
-    val emoji: String = "😴"
 )
 
 enum class ScheduleMode {

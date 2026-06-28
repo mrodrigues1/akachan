@@ -8,7 +8,6 @@ import com.babytracker.domain.sleep.median
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 
 class SleepFeatureExtractor(
@@ -75,17 +74,14 @@ class SleepFeatureExtractor(
         return SleepMetrics(
             lastWakeMillis = lastSleep?.endMillis,
             lastSleepType = lastSleep?.sleepType,
-            lastSleepDurationMillis = lastSleep?.durationMillis,
             completedWakeIntervals = wakeIntervals,
             medianWakeIntervalMillis = median(wakeIntervals),
             wakeIntervalIqrMillis = iqr(wakeIntervals),
             sleepLast24hMillis = sumOverlap(completed, nowMillis - Duration.ofHours(24).toMillis(), nowMillis),
-            daySleepTodayMillis = sumTodayDaySleep(completed, today),
             napCountToday = completed.count {
                 it.sleepType == SleepType.NAP && Instant.ofEpochMilli(it.startMillis).atZone(zoneId).toLocalDate() == today
             },
             medianBedtimeMinuteOfDay = medianMinuteOfDay(nightSleeps.map { it.startMillis }),
-            medianMorningWakeMinuteOfDay = medianMinuteOfDay(nightSleeps.mapNotNull { it.endMillis }),
             napWakeIntervalCount = napIntervals.size,
             napWakeP25Millis = napQuartiles?.first,
             napWakeP50Millis = napQuartiles?.second ?: median(napIntervals),
@@ -134,13 +130,10 @@ class SleepFeatureExtractor(
             qualifiedTzCount.toFloat() / recentCompleted.size >= SleepPredictionTuning.MIN_QUALIFIED_TZ_PROVENANCE_RATE
 
         return EvidenceQuality(
-            lastWakeRecencyMillis = recencyMillis,
             isFresh = isFresh,
             completedIntervalCount = metrics.completedWakeIntervals.size,
             localDayCoverage = localDayCoverage,
             isLocalDayCoverageSufficient = localDayCoverage >= SleepPredictionTuning.MIN_LOCAL_DAYS,
-            wakeIntervalIqrMillis = metrics.wakeIntervalIqrMillis,
-            invalidRecordRate = invalidRecordRate,
             hasSufficientZoneIndependentEvidence = hasSufficientZoneIndependentEvidence,
             hasQualifiedTimezoneProvenance = hasQualifiedTimezoneProvenance,
         )
@@ -203,17 +196,6 @@ class SleepFeatureExtractor(
             val overlapEnd = minOf(it.endMillis!!, windowEndMillis)
             (overlapEnd - overlapStart).coerceAtLeast(0L)
         }
-
-    private fun sumTodayDaySleep(completed: List<SleepInterval>, today: LocalDate): Long =
-        completed
-            .filter { it.sleepType == SleepType.NAP }
-            .sumOf { interval ->
-                val startOfDay = today.atStartOfDay(zoneId).toInstant().toEpochMilli()
-                val endOfDay = today.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
-                val overlapStart = maxOf(interval.startMillis, startOfDay)
-                val overlapEnd = minOf(interval.endMillis!!, endOfDay)
-                (overlapEnd - overlapStart).coerceAtLeast(0L)
-            }
 
     private fun medianMinuteOfDay(timesMillis: List<Long>): Int? =
         circularMedian(timesMillis.map { minuteOfDay(it) })

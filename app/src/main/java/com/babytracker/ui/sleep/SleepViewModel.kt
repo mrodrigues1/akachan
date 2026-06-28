@@ -37,7 +37,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
@@ -136,17 +135,14 @@ class SleepViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            // flowOn(Default) is load-bearing: it keeps this infinite delay loop off the
+            // viewModelScope dispatcher so tests using virtual-time advanceUntilIdle() don't spin.
             val ticker = flow<Unit> {
-                emit(Unit)
-                emitAll(
-                    flow<Unit> {
-                        while (true) {
-                            kotlinx.coroutines.delay(LAST_SLEEP_TICK_MS)
-                            emit(Unit)
-                        }
-                    }.flowOn(Dispatchers.Default)
-                )
-            }
+                while (true) {
+                    emit(Unit)
+                    kotlinx.coroutines.delay(LAST_SLEEP_TICK_MS)
+                }
+            }.flowOn(Dispatchers.Default)
             // Select the latest completed record only when history changes; the per-minute tick then
             // just reformats its elapsed-awake label instead of rescanning the whole history list.
             val latestCompleted = history
