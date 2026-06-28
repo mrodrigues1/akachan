@@ -10,7 +10,7 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.usecase.DeletePartnerFeedUseCase
-import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
+import com.babytracker.sharing.usecase.ObservePartnerDataUseCase
 import com.babytracker.sharing.usecase.ObservePartnerFeedHistoryUseCase
 import com.babytracker.sharing.usecase.PartnerAccessRevokedException
 import com.babytracker.sharing.usecase.PartnerDataFetchException
@@ -18,13 +18,11 @@ import com.babytracker.widget.WidgetUpdater
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -40,7 +38,7 @@ data class PartnerFeedHistoryUiState(
 
 @HiltViewModel
 class PartnerFeedHistoryViewModel @Inject constructor(
-    private val fetchPartnerData: FetchPartnerDataUseCase,
+    private val observePartnerData: ObservePartnerDataUseCase,
     private val observePartnerFeedHistory: ObservePartnerFeedHistoryUseCase,
     private val deletePartnerFeed: DeletePartnerFeedUseCase,
     private val widgetUpdater: WidgetUpdater,
@@ -51,24 +49,10 @@ class PartnerFeedHistoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PartnerFeedHistoryUiState())
     val uiState: StateFlow<PartnerFeedHistoryUiState> = _uiState.asStateFlow()
 
-    private var historyJob: Job? = null
-    private var lastPendingOpIds = emptySet<String>()
-    // replay = 1 so a trigger emitted before the debounce collector subscribes is not lost.
-    private val refreshTrigger = MutableSharedFlow<Unit>(
-        replay = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
+    private var collectJob: Job? = null
 
     init {
         refresh()
-        viewModelScope.launch {
-            // Debounce: rapid emissions while ops are consumed restart the delay, so a burst of
-            // consumed ops costs one snapshot refetch + listener restart instead of one each.
-            refreshTrigger.collectLatest {
-                delay(REFRESH_DEBOUNCE_MS)
-                refresh()
-            }
-        }
         viewModelScope.launch {
             settingsRepository.getVolumeUnit().collect { unit ->
                 _uiState.update { it.copy(volumeUnit = unit) }
@@ -76,41 +60,38 @@ class PartnerFeedHistoryViewModel @Inject constructor(
         }
     }
 
+    /** Restarts the live collection (used by the screen's retry button). */
     fun refresh() {
-        historyJob?.cancel()
-        historyJob = viewModelScope.launch {
-            refreshPartnerHistory(
-                fetchPartnerData = fetchPartnerData,
-                widgetUpdater = widgetUpdater,
-                observe = { observePartnerFeedHistory(it.bottleFeeds) },
-                onLoadingStart = {
-                    _uiState.update { it.copy(isLoading = true, accessRevoked = false, error = null) }
-                },
-                onSnapshotLoaded = { snapshot ->
-                    _uiState.update { it.copy(milkBags = snapshot.milkBags, isLoading = false) }
-                },
-                onMerged = { merged ->
-                    _uiState.update { it.copy(entries = merged.entries, isLoading = false) }
-                    if (hasConsumedPendingOps(lastPendingOpIds, merged.pendingOpIds)) {
-                        refreshTrigger.tryEmit(Unit)
-                    }
-                    lastPendingOpIds = merged.pendingOpIds
-                },
-                onAccessRevoked = {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            accessRevoked = true,
-                            error = appContext.getString(R.string.error_partner_access_revoked),
-                        )
-                    }
-                },
-                onLoadFailed = {
-                    _uiState.update {
-                        it.copy(isLoading = false, error = appContext.getString(R.string.error_partner_load_failed))
-                    }
-                },
-            )
+        collectJob?.cancel()
+        collectJob = viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, accessRevoked = false, error = null) }
+            // ponytail: `snapshots` is subscribed twice (here + inside the feed-history use case), so the
+            // dashboard read costs two listeners on one doc. Fine for a single screen; share if it matters.
+            val snapshots = observePartnerData()
+            combine(
+                snapshots,
+                observePartnerFeedHistory(snapshots.map { it.bottleFeeds }),
+            ) { snapshot, history -> snapshot.milkBags to history.entries }
+                .collectPartnerHistory(
+                    widgetUpdater = widgetUpdater,
+                    onItem = { (milkBags, entries) ->
+                        _uiState.update { it.copy(milkBags = milkBags, entries = entries, isLoading = false) }
+                    },
+                    onAccessRevoked = {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                accessRevoked = true,
+                                error = appContext.getString(R.string.error_partner_access_revoked),
+                            )
+                        }
+                    },
+                    onLoadFailed = {
+                        _uiState.update {
+                            it.copy(isLoading = false, error = appContext.getString(R.string.error_partner_load_failed))
+                        }
+                    },
+                )
         }
     }
 
@@ -138,8 +119,4 @@ class PartnerFeedHistoryViewModel @Inject constructor(
 
     fun isEditable(entry: BottleFeedSnapshot): Boolean =
         entry.author == FeedAuthor.PARTNER.name && entry.clientId.isNotEmpty()
-
-    private companion object {
-        const val REFRESH_DEBOUNCE_MS = 300L
-    }
 }
