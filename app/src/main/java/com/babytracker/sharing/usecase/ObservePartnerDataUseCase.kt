@@ -4,9 +4,7 @@ import com.babytracker.BuildConfig
 import com.babytracker.debug.DebugPartnerSnapshotBuilder
 import com.babytracker.debug.DebugSeedConfig
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.sharing.data.firebase.ConnectionEmission
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
-import com.babytracker.sharing.data.firebase.SnapshotEmission
 import com.babytracker.sharing.data.firebase.observePartnerConnected
 import com.babytracker.sharing.data.firebase.observeSnapshot
 import com.babytracker.sharing.domain.model.ShareCode
@@ -54,15 +52,18 @@ class ObservePartnerDataUseCase @Inject constructor(
                 combine(
                     service.observeSnapshot(code.value),
                     service.observePartnerConnected(code.value, uid),
-                ) { snap, conn -> resolveAccess(snap, conn) }
-                    .transform { access ->
-                        when (access) {
-                            is Access.Data -> emit(access.snapshot)
-                            Access.Pending -> Unit // cache-origin absence: emit nothing, await the server
-                            Access.Disconnected -> {
+                ) { snap, conn -> snap to conn }
+                    .transform { (snap, conn) ->
+                        when {
+                            // Present data + connected — show it (cached data is fine, offline-first).
+                            snap.data != null && conn.connected -> emit(snap.data)
+                            // Server-CONFIRMED absence/disconnect — the only state that clears DataStore.
+                            (snap.data == null && !snap.fromCache) || (!conn.connected && !conn.fromCache) -> {
                                 settingsRepository.clearPartnerStateIfShareCodeMatches(code.value)
                                 throw PartnerAccessRevokedException("Partner disconnected")
                             }
+                            // Cache-origin absence/disconnect (cold offline start): await the server emission.
+                            else -> Unit
                         }
                     },
             )
@@ -72,20 +73,5 @@ class ObservePartnerDataUseCase @Inject constructor(
             if (error is PartnerAccessRevokedException) throw error
             throw PartnerDataFetchException("Could not load partner data", error)
         }
-    }
-
-    private sealed interface Access {
-        data class Data(val snapshot: ShareSnapshot) : Access
-        data object Disconnected : Access
-        data object Pending : Access
-    }
-
-    private fun resolveAccess(snap: SnapshotEmission, conn: ConnectionEmission): Access = when {
-        // Present data + connected — show it (cached data is fine, offline-first).
-        snap.data != null && conn.connected -> Access.Data(snap.data)
-        // Server-CONFIRMED absence or disconnect — the only state that clears DataStore.
-        (snap.data == null && !snap.fromCache) || (!conn.connected && !conn.fromCache) -> Access.Disconnected
-        // Cache-origin absence/disconnect (offline start, cold cache): wait for the server emission.
-        else -> Access.Pending
     }
 }
