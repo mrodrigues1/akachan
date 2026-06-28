@@ -378,7 +378,11 @@ internal fun ActiveTimerContent(
     ) {
         Spacer(Modifier.height(4.dp))
 
-        val statusText = if (session.isPaused) "Session paused" else "Session in progress"
+        val statusText = if (session.isPaused) {
+            stringResource(R.string.breastfeeding_status_paused)
+        } else {
+            stringResource(R.string.breastfeeding_status_in_progress)
+        }
         Card(
             shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(containerColor = statusCardColor),
