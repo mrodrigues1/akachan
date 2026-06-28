@@ -6,13 +6,13 @@ enum class SleepOpAction { START, STOP, UPDATE }
 // startTimeMs: START (tap) + UPDATE (edited). endTimeMs: STOP (tap) + UPDATE (null = still in progress).
 // sleepType holds the SleepType.name ("NAP"/"NIGHT_SLEEP"); the serializer lowercases it for the wire.
 data class SleepOp(
-    val opId: String,
+    override val opId: String,
     val action: SleepOpAction,
     val entryClientId: String,
     val authorUid: String,
-    val createdAtMs: Long,
+    override val createdAtMs: Long,
     val startTimeMs: Long? = null,
     val endTimeMs: Long? = null,
     val sleepType: String? = null,
     val notes: String? = null,
-)
+) : PendingOp
