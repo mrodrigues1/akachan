@@ -1,16 +1,7 @@
 package com.babytracker.domain.model
 
-enum class DiaperType(val label: String, val emoji: String) {
-    WET("Wet", "💧"),
-    DIRTY("Dirty", "💩"),
-    BOTH("Both", "🌀"),
-}
+enum class DiaperType { WET, DIRTY, BOTH }
 
-fun String.toDiaperTypeOrNull(): DiaperType? = when (this) {
-    DiaperType.WET.name, DiaperType.WET.label -> DiaperType.WET
-    DiaperType.DIRTY.name, DiaperType.DIRTY.label -> DiaperType.DIRTY
-    DiaperType.BOTH.name, DiaperType.BOTH.label -> DiaperType.BOTH
-    else -> null
-}
-
-fun String.toDiaperTypeSafe(): DiaperType = toDiaperTypeOrNull() ?: DiaperType.WET
+/** Parses a stored type token (`type.name`); defaults to [DiaperType.WET] on corruption. */
+fun String.toDiaperTypeSafe(): DiaperType =
+    DiaperType.entries.firstOrNull { it.name == this } ?: DiaperType.WET
