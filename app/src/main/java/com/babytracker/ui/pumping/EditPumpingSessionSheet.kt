@@ -156,7 +156,7 @@ private fun EditPumpingSheetBody(
         PumpingDurationOrError(state = state)
 
         Spacer(Modifier.height(20.dp))
-        SectionLabel("BREAST")
+        SectionLabel(stringResource(R.string.pumping_breast_caps))
         Spacer(Modifier.height(8.dp))
         BreastPillRow(
             selected = state.editedBreast,
