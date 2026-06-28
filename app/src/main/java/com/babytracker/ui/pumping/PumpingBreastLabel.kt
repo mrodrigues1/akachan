@@ -4,10 +4,7 @@ import androidx.annotation.StringRes
 import com.babytracker.R
 import com.babytracker.domain.model.PumpingBreast
 
-/**
- * Localized label resource for a [PumpingBreast]. The domain `displayName()` stays
- * locale-agnostic; UI display resolves via `stringResource(breast.labelRes())`.
- */
+/** Localized label resource for a [PumpingBreast]; resolve via `stringResource(breast.labelRes())`. */
 @StringRes
 internal fun PumpingBreast.labelRes(): Int = when (this) {
     PumpingBreast.LEFT -> R.string.side_left
