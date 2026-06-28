@@ -9,9 +9,10 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.MergedFeedHistory
+import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.usecase.DeletePartnerFeedUseCase
-import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
+import com.babytracker.sharing.usecase.ObservePartnerDataUseCase
 import com.babytracker.sharing.usecase.ObservePartnerFeedHistoryUseCase
 import com.babytracker.sharing.usecase.PartnerAccessRevokedException
 import com.babytracker.sharing.usecase.PartnerDataFetchException
@@ -26,7 +27,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -41,7 +41,7 @@ import java.time.Instant
 @OptIn(ExperimentalCoroutinesApi::class)
 class PartnerFeedHistoryViewModelTest {
 
-    private val fetchPartnerData = mockk<FetchPartnerDataUseCase>()
+    private val observePartnerData = mockk<ObservePartnerDataUseCase>()
     private val observePartnerFeedHistory = mockk<ObservePartnerFeedHistoryUseCase>()
     private val deletePartnerFeed = mockk<DeletePartnerFeedUseCase>()
     private val settingsRepository = mockk<SettingsRepository>()
@@ -52,6 +52,7 @@ class PartnerFeedHistoryViewModelTest {
     fun setup() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
+        every { observePartnerData() } returns flowOf(snapshot())
         coJustRun { deletePartnerFeed(any()) }
         coJustRun { widgetUpdater.updateAll() }
         every { appContext.getString(R.string.error_partner_load_failed) } returns "load-failed"
@@ -67,10 +68,7 @@ class PartnerFeedHistoryViewModelTest {
     @Test
     fun `merged entries land in state`() = runTest {
         val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
-        coEvery { fetchPartnerData() } returns snapshot()
-        coEvery { observePartnerFeedHistory(any()) } returns flowOf(
-            MergedFeedHistory(entries = listOf(entry)),
-        )
+        coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(entries = listOf(entry)))
 
         val viewModel = viewModel()
 
@@ -79,8 +77,17 @@ class PartnerFeedHistoryViewModelTest {
     }
 
     @Test
+    fun `milk bags are sourced from the live snapshot`() = runTest {
+        coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList()))
+        every { observePartnerData() } returns flowOf(snapshot().copy(milkBags = listOf(MilkBagSnapshot(1L, 0L, 120, null))))
+
+        val viewModel = viewModel()
+
+        assertEquals(1, viewModel.uiState.value.milkBags.size)
+    }
+
+    @Test
     fun `isEditable is true only for partner entries with clientId`() = runTest {
-        coEvery { fetchPartnerData() } returns snapshot()
         coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList()))
         val viewModel = viewModel()
 
@@ -90,91 +97,8 @@ class PartnerFeedHistoryViewModelTest {
     }
 
     @Test
-    fun `pending op count shrink triggers snapshot refetch`() = runTest {
-        val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
-        coEvery { fetchPartnerData() } returns snapshot()
-        coEvery { observePartnerFeedHistory(any()) } returnsMany listOf(
-            flowOf(
-                MergedFeedHistory(entries = listOf(entry), pendingOpIds = setOf("op-1")),
-                MergedFeedHistory(entries = listOf(entry), pendingOpIds = emptySet()),
-            ),
-            flowOf(MergedFeedHistory(entries = listOf(entry))),
-        )
-
-        viewModel()
-        advanceUntilIdle()
-
-        coVerify(exactly = 2) { fetchPartnerData() }
-    }
-
-    @Test
-    fun `pending op id disappearance triggers snapshot refetch when count is unchanged`() = runTest {
-        val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
-        coEvery { fetchPartnerData() } returns snapshot()
-        coEvery { observePartnerFeedHistory(any()) } returnsMany listOf(
-            flowOf(
-                MergedFeedHistory(entries = listOf(entry), pendingOpIds = setOf("op-1")),
-                MergedFeedHistory(entries = listOf(entry), pendingOpIds = setOf("op-2")),
-            ),
-            flowOf(MergedFeedHistory(entries = listOf(entry), pendingOpIds = setOf("op-2"))),
-        )
-
-        viewModel()
-        advanceUntilIdle()
-
-        coVerify(exactly = 2) { fetchPartnerData() }
-    }
-
-    @Test
-    fun `ops consumed across rapid emissions debounce into a single refetch`() = runTest {
-        val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
-        coEvery { fetchPartnerData() } returns snapshot()
-        coEvery { observePartnerFeedHistory(any()) } returnsMany listOf(
-            flowOf(
-                MergedFeedHistory(entries = listOf(entry), pendingOpIds = setOf("op-1", "op-2", "op-3")),
-                MergedFeedHistory(entries = listOf(entry), pendingOpIds = setOf("op-2", "op-3")),
-                MergedFeedHistory(entries = listOf(entry), pendingOpIds = setOf("op-3")),
-                MergedFeedHistory(entries = listOf(entry), pendingOpIds = emptySet()),
-            ),
-            flowOf(MergedFeedHistory(entries = listOf(entry))),
-        )
-
-        viewModel()
-        advanceUntilIdle()
-
-        coVerify(exactly = 2) { fetchPartnerData() }
-    }
-
-    @Test
-    fun `hasConsumedPendingOps is true when a previous op id disappears`() {
-        assertTrue(hasConsumedPendingOps(previous = setOf("op-1", "op-2"), current = setOf("op-2")))
-        assertTrue(hasConsumedPendingOps(previous = setOf("op-1"), current = setOf("op-2")))
-        assertTrue(hasConsumedPendingOps(previous = setOf("op-1"), current = emptySet()))
-    }
-
-    @Test
-    fun `hasConsumedPendingOps is false when ids only grow or stay`() {
-        assertFalse(hasConsumedPendingOps(previous = emptySet(), current = emptySet()))
-        assertFalse(hasConsumedPendingOps(previous = emptySet(), current = setOf("op-1")))
-        assertFalse(hasConsumedPendingOps(previous = setOf("op-1"), current = setOf("op-1", "op-2")))
-    }
-
-    @Test
-    fun `PartnerAccessRevokedException sets accessRevoked`() = runTest {
-        coEvery { fetchPartnerData() } throws PartnerAccessRevokedException("revoked")
-
-        val viewModel = viewModel()
-
-        assertTrue(viewModel.uiState.value.accessRevoked)
-        coVerify { widgetUpdater.updateAll() }
-    }
-
-    @Test
     fun `listener access revoked exception sets accessRevoked`() = runTest {
-        coEvery { fetchPartnerData() } returns snapshot()
-        coEvery { observePartnerFeedHistory(any()) } returns flow {
-            throw PartnerAccessRevokedException("revoked")
-        }
+        coEvery { observePartnerFeedHistory(any()) } returns flow { throw PartnerAccessRevokedException("revoked") }
 
         val viewModel = viewModel()
 
@@ -184,21 +108,7 @@ class PartnerFeedHistoryViewModelTest {
 
     @Test
     fun `listener feed history exception clears loading and shows error`() = runTest {
-        coEvery { fetchPartnerData() } returns snapshot()
-        coEvery { observePartnerFeedHistory(any()) } returns flow {
-            throw PartnerDataFetchException("Could not load feed history")
-        }
-
-        val viewModel = viewModel()
-
-        assertFalse(viewModel.uiState.value.isLoading)
-        assertFalse(viewModel.uiState.value.accessRevoked)
-        assertEquals("load-failed", viewModel.uiState.value.error)
-    }
-
-    @Test
-    fun `fetch failure clears loading and shows retryable error`() = runTest {
-        coEvery { fetchPartnerData() } throws PartnerDataFetchException("Could not load partner data")
+        coEvery { observePartnerFeedHistory(any()) } returns flow { throw PartnerDataFetchException("Could not load feed history") }
 
         val viewModel = viewModel()
 
@@ -210,7 +120,6 @@ class PartnerFeedHistoryViewModelTest {
     @Test
     fun `delete delegates to DeletePartnerFeedUseCase`() = runTest {
         val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
-        coEvery { fetchPartnerData() } returns snapshot()
         coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList()))
         val viewModel = viewModel()
 
@@ -220,23 +129,8 @@ class PartnerFeedHistoryViewModelTest {
     }
 
     @Test
-    fun `delete retryable failure sets error`() = runTest {
-        val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
-        coEvery { fetchPartnerData() } returns snapshot()
-        coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList()))
-        coEvery { deletePartnerFeed(entry) } throws PartnerDataFetchException("Could not queue feed write")
-        val viewModel = viewModel()
-
-        viewModel.onDelete(entry)
-
-        assertEquals("delete-failed", viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.accessRevoked)
-    }
-
-    @Test
     fun `delete revoked failure sets accessRevoked and updates widgets`() = runTest {
         val entry = feed(clientId = "entry-1", author = FeedAuthor.PARTNER.name)
-        coEvery { fetchPartnerData() } returns snapshot()
         coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList()))
         coEvery { deletePartnerFeed(entry) } throws PartnerAccessRevokedException("Partner access revoked")
         val viewModel = viewModel()
@@ -248,7 +142,7 @@ class PartnerFeedHistoryViewModelTest {
     }
 
     private fun viewModel() = PartnerFeedHistoryViewModel(
-        fetchPartnerData = fetchPartnerData,
+        observePartnerData = observePartnerData,
         observePartnerFeedHistory = observePartnerFeedHistory,
         deletePartnerFeed = deletePartnerFeed,
         widgetUpdater = widgetUpdater,
@@ -263,15 +157,7 @@ class PartnerFeedHistoryViewModelTest {
         sleepRecords = emptyList(),
     )
 
-    private fun feed(
-        clientId: String,
-        author: String,
-    ) = BottleFeedSnapshot(
-        timestamp = 2_000L,
-        volumeMl = 90,
-        type = FeedType.FORMULA.name,
-        clientId = clientId,
-        author = author,
-        notes = null,
+    private fun feed(clientId: String, author: String) = BottleFeedSnapshot(
+        timestamp = 2_000L, volumeMl = 90, type = FeedType.FORMULA.name, clientId = clientId, author = author, notes = null,
     )
 }

@@ -5,48 +5,67 @@ import com.babytracker.debug.DebugSeedConfig
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
+import com.babytracker.sharing.domain.model.FeedOp
 import com.babytracker.sharing.domain.model.MergedFeedHistory
+import com.babytracker.sharing.domain.model.Reconciled
 import com.babytracker.sharing.domain.model.ShareCode
+import com.babytracker.sharing.domain.model.feedOpReflected
 import com.babytracker.sharing.domain.model.mergeFeedHistory
+import com.babytracker.sharing.domain.model.reconcilePendingOps
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.scan
+import java.time.Instant
 import javax.inject.Inject
 
+/**
+ * The partner's feed history over the LIVE snapshot stream: each (snapshot, own-ops) emission is run
+ * through [reconcilePendingOps] (so an op deleted before its snapshot update keeps overlaying until the
+ * snapshot converges or the TTL fires) and then the existing [mergeFeedHistory].
+ */
 class ObservePartnerFeedHistoryUseCase @Inject constructor(
     private val service: FirestoreSharingService,
     private val settingsRepository: SettingsRepository,
+    private val now: () -> Instant = Instant::now,
 ) {
-    /**
-     * The caller owns snapshot refresh. When the pending-op set shrinks, Plan 06 must re-fetch the
-     * snapshot before presenting the fallback state, because Plan 04 pushes the updated snapshot
-     * before deleting consumed ops.
-     */
-    suspend operator fun invoke(snapshotFeeds: List<BottleFeedSnapshot>): Flow<MergedFeedHistory> {
+    suspend operator fun invoke(snapshotFeeds: Flow<List<BottleFeedSnapshot>>): Flow<MergedFeedHistory> {
         val code = ShareCode(settingsRepository.getShareCode().first() ?: error("No share code"))
-        // Debug offline partner mode: serve the seeded feeds with no pending ops instead of hitting
-        // Firebase (mirrors FetchPartnerDataUseCase's placeholder-code seam).
+        // Debug offline partner mode: merge the seeded feeds with no pending ops.
         if (BuildConfig.DEBUG && code.value == DebugSeedConfig.PARTNER_SHARE_CODE) {
-            return flowOf(mergeFeedHistory(snapshotFeeds, emptyList()))
+            return snapshotFeeds.map { feeds -> mergeFeedHistory(feeds, emptyList()) }
         }
-        // signInAnonymously() lives inside the flow so a network/auth failure is routed through
-        // .catch instead of crashing the caller — the suspend prelude is not covered otherwise.
         return flow {
             val uid = service.signInAnonymously()
             emitAll(
-                service.observeFeedOps(code.value, authorUid = uid)
-                    .map { ops -> mergeFeedHistory(snapshotFeeds, ops) },
+                combine(snapshotFeeds, service.observeFeedOps(code.value, authorUid = uid)) { feeds, ops ->
+                    feeds to ops
+                }.scan(ReconcileState()) { state, (feeds, liveOps) ->
+                    val reconciled = reconcilePendingOps(
+                        isReflected = { feedOpReflected(it, feeds) },
+                        liveOps = liveOps,
+                        tracked = state.reconciled.nextTracked,
+                        nowMs = now().toEpochMilli(),
+                    )
+                    ReconcileState(feeds, reconciled)
+                }.drop(1).map { state ->
+                    mergeFeedHistory(state.feeds, state.reconciled.effectiveOps)
+                },
             )
         }.catch { error ->
             val revoked = error.toPartnerAccessRevokedExceptionAfterClearing(settingsRepository, code)
-            if (revoked != null) {
-                throw revoked
-            }
+            if (revoked != null) throw revoked
             throw PartnerDataFetchException("Could not load feed history", error)
         }
     }
+
+    private data class ReconcileState(
+        val feeds: List<BottleFeedSnapshot> = emptyList(),
+        val reconciled: Reconciled<FeedOp> = Reconciled(emptyList(), emptyList()),
+    )
 }
