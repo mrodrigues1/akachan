@@ -14,7 +14,7 @@ import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.MergedSleepHistory
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
-import com.babytracker.sharing.usecase.FetchPartnerDataUseCase
+import com.babytracker.sharing.usecase.ObservePartnerDataUseCase
 import com.babytracker.sharing.usecase.ObservePartnerSleepHistoryUseCase
 import com.babytracker.sharing.usecase.StartPartnerSleepUseCase
 import com.babytracker.sharing.usecase.StopPartnerSleepUseCase
@@ -47,16 +47,18 @@ class PartnerSleepHistoryScreenTest {
     )
 
     private fun buildHistoryViewModel(rows: List<SleepSnapshot>): PartnerSleepHistoryViewModel {
-        val fetch: FetchPartnerDataUseCase = mockk()
+        val observeData: ObservePartnerDataUseCase = mockk()
         val observe: ObservePartnerSleepHistoryUseCase = mockk()
-        coEvery { fetch() } returns ShareSnapshot(
-            lastSyncAt = Instant.EPOCH,
-            baby = BabySnapshot("Mia", 0L, emptyList()),
-            sessions = emptyList(),
-            sleepRecords = rows,
+        every { observeData() } returns flowOf(
+            ShareSnapshot(
+                lastSyncAt = Instant.EPOCH,
+                baby = BabySnapshot("Mia", 0L, emptyList()),
+                sessions = emptyList(),
+                sleepRecords = rows,
+            ),
         )
         coEvery { observe(any()) } returns flowOf(MergedSleepHistory(rows, emptySet()))
-        return PartnerSleepHistoryViewModel(fetch, observe, mockk(relaxed = true), appContext)
+        return PartnerSleepHistoryViewModel(observeData, observe, mockk(relaxed = true), appContext)
     }
 
     private fun buildSleepViewModel(): PartnerSleepViewModel {

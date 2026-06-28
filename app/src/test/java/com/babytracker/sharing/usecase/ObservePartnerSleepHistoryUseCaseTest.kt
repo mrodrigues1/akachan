@@ -51,7 +51,7 @@ class ObservePartnerSleepHistoryUseCaseTest {
         val edit = SleepOp("op-1", SleepOpAction.UPDATE, "cid", "uid", now.toEpochMilli(), 91_000L, 94_000L, "NIGHT_SLEEP", "x")
         coEvery { service.observeSleepOps("CODE1234", "uid") } returns flowOf(listOf(edit))
 
-        val merged = useCase(listOf(record)).first()
+        val merged = useCase(flowOf(listOf(record))).first()
 
         assertEquals(1, merged.entries.size)
         assertEquals("NIGHT_SLEEP", merged.entries.first().sleepType)
@@ -67,7 +67,7 @@ class ObservePartnerSleepHistoryUseCaseTest {
             clientId = "cid", startedBy = "OWNER",
         )
 
-        val merged = useCase(listOf(record)).first()
+        val merged = useCase(flowOf(listOf(record))).first()
 
         assertEquals(1, merged.entries.size)
         assertEquals("NAP", merged.entries.first().sleepType)
