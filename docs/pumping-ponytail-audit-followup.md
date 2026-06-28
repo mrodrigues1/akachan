@@ -1,8 +1,12 @@
 # Pumping Section — Ponytail Over-Engineering Audit (follow-up)
 
+> **STATUS: COMPLETE ✅** — all 3 findings executed and merged (#360 finding 1, #361 findings 2-3),
+> and the out-of-scope i18n gap was extracted and merged (#362, tracked on AKA-185). The pumping
+> section is now lean against this audit. Detail preserved below as a record.
+
 Fresh whole-section pass. Scope: **over-engineering / complexity only**. Correctness bugs,
-security, performance, and i18n gaps are out of scope (noted but routed elsewhere). This is a
-report — nothing was applied.
+security, performance, and i18n gaps are out of scope (noted but routed elsewhere). This was a
+report; every finding has since been applied (see per-finding status).
 
 Context: the prior `docs/pumping-ponytail-audit.md` found exactly one safe cut
 (`PumpingBreast.displayName()`), which has **already been executed** (commit `f043e2180`). This
@@ -99,7 +103,11 @@ plus the unit suite to confirm.
 > local `enum` in `PumpingScreen.kt` reusing the shared *helpers* (the big win) without sharing the
 > enum. Promoting `EditField` to an internal shared enum is optional polish, not required.
 
-### 2. ⚠️ OPTIONAL — inline private `SectionLabel(text)` wrapper  *(marginal, ~0 net)*
+### 2. ✅ DONE (#361) — inline private `SectionLabel(text)` wrapper  *(marginal, ~0 net)*
+
+> Executed: the private wrapper was deleted; the 3 call sites bind to the shared
+> `ui.component.SectionLabel(text)` (whose `color` already defaults to `primary`), so no color arg is
+> needed. Verified by `EditPumpingSessionSheetTest` (10/10).
 
 `EditPumpingSessionSheet.kt:251` still wraps the shared `ui.component.SectionLabel(text, color)` only
 to inject `color = MaterialTheme.colorScheme.primary` — but `SectionLabel`'s `color` **already
@@ -112,7 +120,10 @@ from prior audit finding 5; do it only when touching the file (e.g. alongside fi
 file, so skip unless convenient). The shared default makes this *cleaner* than prior audit implied —
 no color arg needed at all.
 
-### 3. ✅ EXECUTE (cheap) — stale `displayName()` KDoc  *(-3 comment lines)*
+### 3. ✅ DONE (#361) — stale `displayName()` KDoc  *(-3 comment lines)*
+
+> Executed: trimmed the `PumpingBreastLabel` KDoc to a single accurate line; the dead
+> `displayName()` reference is gone.
 
 `PumpingBreastLabel.kt:7-10` doc comment says *"The domain `displayName()` stays locale-agnostic"* —
 but `PumpingBreast.displayName()` was deleted in `f043e2180`. The comment references a symbol that no
@@ -122,12 +133,14 @@ longer exists. Trim to a one-liner (e.g. *"Localized label resource for a [Pumpi
 
 ---
 
-## Out of scope — route elsewhere (NOT over-engineering)
+## Out of scope — routed elsewhere (NOT over-engineering)
 
-- **i18n gaps:** hardcoded English `"Session paused"` / `"Session in progress"`
-  (`PumpingScreen.kt:390`) and the `"BREAST"` literal passed to `SectionLabel`
-  (`EditPumpingSessionSheet.kt:159`). These are missing `stringResource` calls — route to the i18n
-  project, not this pass. (Prior audit also flagged `"BREAST"`; still unfixed.)
+- **i18n gaps — ✅ ROUTED + FIXED (#362):** hardcoded English `"Session paused"` /
+  `"Session in progress"` (`PumpingScreen.kt`) and the `"BREAST"` literal passed to `SectionLabel`
+  (`EditPumpingSessionSheet.kt`) were missing `stringResource` calls. Routed to the i18n project
+  (AKA-185) and then wired to existing resources (`breastfeeding_status_paused` /
+  `breastfeeding_status_in_progress` / `pumping_breast_caps`, all with pt-BR copy) — no new strings
+  needed. `ui/pumping/` now has zero UI-facing literals.
 
 ## Re-confirmed lean / deliberate (no action) — agreeing with prior audit
 
@@ -148,12 +161,15 @@ longer exists. Trim to a one-liner (e.g. *"Localized label resource for a [Pumpi
 
 ---
 
-## Status / remaining
+## Status — all done
 
-1. ✅ **Finding 1** — DONE on this branch (see above). Verified by `PumpingScreenTest` (11/11 green on emulator).
-2. **Finding 3** (cheap, remaining): trim the stale `displayName()` KDoc in `PumpingBreastLabel.kt`.
-3. (Optional, remaining) **Finding 2**: delete the redundant private `SectionLabel` wrapper.
+1. ✅ **Finding 1** — DONE (#360). Manual mode reuses shared edit date/time components. `PumpingScreenTest` 11/11.
+2. ✅ **Finding 2** — DONE (#361). Redundant private `SectionLabel` wrapper deleted.
+3. ✅ **Finding 3** — DONE (#361). Stale `displayName()` KDoc trimmed.
+4. ✅ **i18n gap** (out of scope here) — ROUTED to AKA-185 + FIXED (#362).
+
+Nothing outstanding. Pumping is lean against this audit.
 
 ```
-net realized if all applied: ~-95 lines, -0 deps.
+net realized (all findings applied): ~-95 lines, -0 deps. Plus the i18n gap closed (#362).
 ```
