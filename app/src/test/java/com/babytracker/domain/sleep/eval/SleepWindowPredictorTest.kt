@@ -22,13 +22,10 @@ class SleepWindowPredictorTest {
     private val ageInWeeks = 20 // 90-180 min wake-window bounds
 
     private fun sufficientQuality(completedCount: Int = 10) = EvidenceQuality(
-        lastWakeRecencyMillis = Duration.ofHours(1).toMillis(),
         isFresh = true,
         completedIntervalCount = completedCount,
         localDayCoverage = 5,
         isLocalDayCoverageSufficient = true,
-        wakeIntervalIqrMillis = Duration.ofMinutes(10).toMillis(),
-        invalidRecordRate = 0f,
         hasSufficientZoneIndependentEvidence = true,
     )
 
@@ -46,15 +43,12 @@ class SleepWindowPredictorTest {
     ) = SleepMetrics(
         lastWakeMillis = lastWakeMillis,
         lastSleepType = SleepType.NAP,
-        lastSleepDurationMillis = Duration.ofMinutes(60).toMillis(),
         completedWakeIntervals = listOf(medianIntervalMillis),
         medianWakeIntervalMillis = medianIntervalMillis,
         wakeIntervalIqrMillis = Duration.ofMinutes(10).toMillis(),
         sleepLast24hMillis = Duration.ofHours(4).toMillis(),
-        daySleepTodayMillis = Duration.ofHours(2).toMillis(),
         napCountToday = 1,    // < expectedNaps(20w)=2 → nextType=NAP
         medianBedtimeMinuteOfDay = null,
-        medianMorningWakeMinuteOfDay = null,
         napWakeIntervalCount = napWakeIntervalCount,
         napWakeP25Millis = napWakeP25Millis,
         napWakeP50Millis = napWakeP50Millis,

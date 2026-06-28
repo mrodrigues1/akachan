@@ -666,7 +666,7 @@ internal fun buildSleepTimelineItems(
             startTime = entry.startTime,
             napNumber = entry.napNumber,
             trailing = entry.duration.formatDuration(),
-            emoji = entry.emoji,
+            emoji = "😴",
             isAdjusted = entry.isAdjusted
         )
     }

@@ -4,7 +4,6 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.SleepPredictionTuning
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -16,9 +15,8 @@ class BreastfeedIntervalTest {
         val result = BreastfeedInterval.from(session(1_000L, 4_600L))
 
         assertTrue(result != null)
-        assertFalse(result!!.isActive)
-        assertTrue(result.isCompleted)
-        assertEquals(3_600L, result.durationMillis)
+        assertEquals(1_000L, result!!.startMillis)
+        assertEquals(4_600L, result.endMillis)
     }
 
     @Test
@@ -43,9 +41,7 @@ class BreastfeedIntervalTest {
         val result = BreastfeedInterval.from(session(1_000L, null))
 
         assertTrue(result != null)
-        assertTrue(result!!.isActive)
-        assertNull(result.endMillis)
-        assertNull(result.durationMillis)
+        assertNull(result!!.endMillis)
     }
 
     private fun session(startMillis: Long, endMillis: Long?): BreastfeedingSession =

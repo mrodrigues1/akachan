@@ -14,9 +14,6 @@ data class SleepInterval(
     val isCompleted: Boolean
         get() = endMillis != null
 
-    val durationMillis: Long?
-        get() = endMillis?.let { it - startMillis }
-
     companion object {
         private val maxNapMillis = Duration.ofHours(SleepPredictionTuning.MAX_NAP_DURATION_HOURS).toMillis()
         private val maxNightSleepMillis =

@@ -8,15 +8,6 @@ data class BreastfeedInterval(
     val startMillis: Long,
     val endMillis: Long?,
 ) {
-    val isActive: Boolean
-        get() = endMillis == null
-
-    val isCompleted: Boolean
-        get() = endMillis != null
-
-    val durationMillis: Long?
-        get() = endMillis?.let { it - startMillis }
-
     companion object {
         private val maxFeedMillis = Duration.ofHours(SleepPredictionTuning.MAX_FEED_DURATION_HOURS).toMillis()
 

@@ -7,7 +7,8 @@ import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
-import com.babytracker.manager.SleepSessionNotificationCoordinator
+import com.babytracker.manager.NapReminderScheduler
+import com.babytracker.manager.SleepNotificationScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.widget.WidgetUpdater
 import io.mockk.coEvery
@@ -36,7 +37,8 @@ class TileToggleHandlerTest {
     private lateinit var breastfeedingRepository: BreastfeedingRepository
     private lateinit var sleepRepository: SleepRepository
     private lateinit var breastfeedingNotifications: BreastfeedingSessionNotificationCoordinator
-    private lateinit var sleepNotifications: SleepSessionNotificationCoordinator
+    private lateinit var sleepNotificationScheduler: SleepNotificationScheduler
+    private lateinit var napReminderScheduler: NapReminderScheduler
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
     private lateinit var widgetUpdater: WidgetUpdater
     private lateinit var handler: TileToggleHandler
@@ -70,7 +72,8 @@ class TileToggleHandlerTest {
         breastfeedingRepository = mockk()
         sleepRepository = mockk()
         breastfeedingNotifications = mockk(relaxed = true)
-        sleepNotifications = mockk(relaxed = true)
+        sleepNotificationScheduler = mockk(relaxed = true)
+        napReminderScheduler = mockk(relaxed = true)
         syncToFirestore = mockk(relaxed = true)
         widgetUpdater = mockk(relaxed = true)
         handler = buildHandler(Clock.fixed(fixedNow, zone))
@@ -80,7 +83,8 @@ class TileToggleHandlerTest {
         breastfeedingRepository = breastfeedingRepository,
         sleepRepository = sleepRepository,
         breastfeedingNotifications = breastfeedingNotifications,
-        sleepNotifications = sleepNotifications,
+        sleepNotificationScheduler = sleepNotificationScheduler,
+        napReminderScheduler = napReminderScheduler,
         syncToFirestore = syncToFirestore,
         widgetUpdater = widgetUpdater,
         clock = clock,
@@ -289,7 +293,7 @@ class TileToggleHandlerTest {
 
         handler.toggleSleep()
 
-        verify { sleepNotifications.cancelNotification() }
+        verify { sleepNotificationScheduler.cancel() }
     }
 
     @Test
@@ -299,7 +303,7 @@ class TileToggleHandlerTest {
 
         handler.toggleSleep()
 
-        coVerify { sleepNotifications.scheduleNapReminderIfEnabled(fixedNow) }
+        coVerify { napReminderScheduler.scheduleIfEnabled(fixedNow) }
     }
 
     @Test
@@ -331,8 +335,8 @@ class TileToggleHandlerTest {
 
         handler.toggleSleep()
 
-        coVerify(exactly = 0) { sleepNotifications.scheduleNapReminderIfEnabled(any()) }
-        verify { sleepNotifications.cancelNotification() }
+        coVerify(exactly = 0) { napReminderScheduler.scheduleIfEnabled(any()) }
+        verify { sleepNotificationScheduler.cancel() }
     }
 
     // ── Sleep start at evening (NIGHT_SLEEP) ───────────────────────────────────
@@ -380,8 +384,8 @@ class TileToggleHandlerTest {
 
         eveningHandler.toggleSleep()
 
-        verify { sleepNotifications.cancelNapReminder() }
-        coVerify { sleepNotifications.showNotification(any(), any(), any()) }
+        verify { napReminderScheduler.cancel() }
+        coVerify { sleepNotificationScheduler.show(any(), any(), any()) }
     }
 
     @Test
@@ -431,7 +435,7 @@ class TileToggleHandlerTest {
 
         handler.toggleSleep()
 
-        coVerify(exactly = 0) { sleepNotifications.showNotification(any(), any(), any()) }
+        coVerify(exactly = 0) { sleepNotificationScheduler.show(any(), any(), any()) }
         coVerify(exactly = 0) { syncToFirestore(any()) }
         coVerify(exactly = 0) { widgetUpdater.updateAll() }
     }
@@ -453,7 +457,7 @@ class TileToggleHandlerTest {
 
         handler.toggleSleep()
 
-        coVerify(exactly = 0) { sleepNotifications.showNotification(any(), any(), any()) }
+        coVerify(exactly = 0) { sleepNotificationScheduler.show(any(), any(), any()) }
         coVerify(exactly = 0) { syncToFirestore(any()) }
         coVerify(exactly = 0) { widgetUpdater.updateAll() }
     }
