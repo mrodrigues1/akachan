@@ -41,3 +41,17 @@ fun mergeFeedHistory(
         pendingOpIds = pendingOps.mapTo(mutableSetOf()) { it.opId },
     )
 }
+
+/** True once the snapshot already shows the op's effect, so the optimistic overlay can be dropped. */
+fun feedOpReflected(op: FeedOp, snapshotFeeds: List<BottleFeedSnapshot>): Boolean {
+    val entry = snapshotFeeds.firstOrNull { it.clientId.isNotEmpty() && it.clientId == op.entryClientId }
+    return when (op.action) {
+        FeedOpAction.DELETE -> entry == null
+        FeedOpAction.CREATE, FeedOpAction.UPDATE ->
+            entry != null &&
+                entry.timestamp == op.timestampMs &&
+                entry.volumeMl == op.volumeMl &&
+                entry.type == op.type &&
+                entry.notes == op.notes
+    }
+}

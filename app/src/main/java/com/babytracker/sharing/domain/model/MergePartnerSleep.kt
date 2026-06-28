@@ -3,10 +3,6 @@ package com.babytracker.sharing.domain.model
 import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepType
 
-// A never-applied op (primary offline) stops pinning the UI after this window; op existence within
-// the window is otherwise the pending boundary (Plan 04 deletes the op once applied or dropped).
-const val PENDING_SLEEP_OP_TTL_MS = 60_000L
-
 data class MergedActiveSleep(
     val session: SleepSnapshot?,
     val stopping: Boolean = false,
@@ -24,7 +20,7 @@ fun mergeActiveSleep(
     activeSnapshot: SleepSnapshot?,
     pendingOps: List<SleepOp>,
     nowMs: Long,
-    ttlMs: Long = PENDING_SLEEP_OP_TTL_MS,
+    ttlMs: Long = PENDING_OP_TTL_MS,
 ): MergedActiveSleep {
     val fresh = pendingOps.filter { nowMs - it.createdAtMs <= ttlMs }
     if (activeSnapshot != null) {
@@ -67,7 +63,7 @@ fun mergeSleepHistory(
     snapshotRecords: List<SleepSnapshot>,
     pendingOps: List<SleepOp>,
     nowMs: Long,
-    ttlMs: Long = PENDING_SLEEP_OP_TTL_MS,
+    ttlMs: Long = PENDING_OP_TTL_MS,
 ): MergedSleepHistory = MergedSleepHistory(
     entries = snapshotRecords
         .map { mergeSleepEdit(it, pendingOps, nowMs, ttlMs) }
@@ -79,7 +75,7 @@ fun mergeSleepEdit(
     session: SleepSnapshot,
     pendingOps: List<SleepOp>,
     nowMs: Long,
-    ttlMs: Long = PENDING_SLEEP_OP_TTL_MS,
+    ttlMs: Long = PENDING_OP_TTL_MS,
 ): SleepSnapshot {
     val edit = pendingOps
         .filter {
@@ -95,4 +91,31 @@ fun mergeSleepEdit(
         sleepType = edit.sleepType ?: session.sleepType,
         notes = edit.notes,
     )
+}
+
+/**
+ * Edit (UPDATE) op is reflected once the snapshot record matches the edited fields. START/STOP do not
+ * affect the history overlay, so they are treated as reflected (never pinned by the history merge).
+ */
+fun sleepEditReflected(op: SleepOp, snapshotRecords: List<SleepSnapshot>): Boolean {
+    if (op.action != SleepOpAction.UPDATE) return true
+    val entry = snapshotRecords.firstOrNull { it.clientId.isNotEmpty() && it.clientId == op.entryClientId }
+        ?: return false
+    return (op.startTimeMs == null || entry.startTime == op.startTimeMs) &&
+        entry.endTime == op.endTimeMs &&
+        (op.sleepType == null || entry.sleepType == op.sleepType) &&
+        entry.notes == op.notes
+}
+
+/**
+ * For the active-session overlay: a START is reflected once the snapshot has that session; a STOP once
+ * the snapshot session is ended (or gone); an UPDATE per [sleepEditReflected].
+ */
+fun sleepActiveReflected(op: SleepOp, snapshotRecords: List<SleepSnapshot>): Boolean {
+    val entry = snapshotRecords.firstOrNull { it.clientId.isNotEmpty() && it.clientId == op.entryClientId }
+    return when (op.action) {
+        SleepOpAction.START -> entry != null
+        SleepOpAction.STOP -> entry == null || entry.endTime != null
+        SleepOpAction.UPDATE -> sleepEditReflected(op, snapshotRecords)
+    }
 }
