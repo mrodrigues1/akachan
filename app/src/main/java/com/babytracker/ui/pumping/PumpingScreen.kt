@@ -15,7 +15,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,8 +45,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,12 +60,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -87,21 +81,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.PumpingBreast
+import com.babytracker.ui.component.EditDatePicker
+import com.babytracker.ui.component.EditDateTimeRow
+import com.babytracker.ui.component.EditTimePicker
 import com.babytracker.ui.component.TimerDisplay
+import com.babytracker.ui.component.toEditDateLabel
+import com.babytracker.ui.component.withEditedDate
+import com.babytracker.ui.component.withEditedTime
 import com.babytracker.util.formatTime12h
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.ZoneId
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -613,8 +604,8 @@ internal fun ManualModeContent(
             color = MaterialTheme.colorScheme.primary,
         )
         Spacer(Modifier.height(8.dp))
-        ManualFieldRow(
-            dateLabel = manual.startTime.toManualDateLabel(),
+        EditDateTimeRow(
+            dateLabel = manual.startTime.toEditDateLabel(),
             timeLabel = manual.startTime.formatTime12h(),
             onDateClick = { datePickerFor = ManualField.START },
             onTimeClick = { timePickerFor = ManualField.START },
@@ -628,8 +619,8 @@ internal fun ManualModeContent(
             color = MaterialTheme.colorScheme.primary,
         )
         Spacer(Modifier.height(8.dp))
-        ManualFieldRow(
-            dateLabel = manual.endTime.toManualDateLabel(),
+        EditDateTimeRow(
+            dateLabel = manual.endTime.toEditDateLabel(),
             timeLabel = manual.endTime.formatTime12h(),
             onDateClick = { datePickerFor = ManualField.END },
             onTimeClick = { timePickerFor = ManualField.END },
@@ -698,10 +689,10 @@ internal fun ManualModeContent(
 
     datePickerFor?.let { field ->
         val original = if (field == ManualField.START) manual.startTime else manual.endTime
-        ManualDatePicker(
+        EditDatePicker(
             initial = original,
             onConfirm = { newDate ->
-                val combined = original.withManualDate(newDate)
+                val combined = original.withEditedDate(newDate)
                 if (field == ManualField.START) {
                     onFieldChange { it.copy(startTime = combined) }
                 } else {
@@ -715,10 +706,10 @@ internal fun ManualModeContent(
 
     timePickerFor?.let { field ->
         val original = if (field == ManualField.START) manual.startTime else manual.endTime
-        ManualTimePicker(
+        EditTimePicker(
             initial = original,
             onConfirm = { newTime ->
-                val combined = original.withManualTime(newTime)
+                val combined = original.withEditedTime(newTime)
                 if (field == ManualField.START) {
                     onFieldChange { it.copy(startTime = combined) }
                 } else {
@@ -727,55 +718,6 @@ internal fun ManualModeContent(
                 timePickerFor = null
             },
             onDismiss = { timePickerFor = null },
-        )
-    }
-}
-
-@Composable
-private fun ManualFieldRow(
-    dateLabel: String,
-    timeLabel: String,
-    onDateClick: () -> Unit,
-    onTimeClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        ManualFieldCell(
-            label = dateLabel,
-            onClick = onDateClick,
-            modifier = Modifier.weight(1f),
-        )
-        ManualFieldCell(
-            label = timeLabel,
-            onClick = onTimeClick,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
-private fun ManualFieldCell(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .height(56.dp)
-            .background(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = MaterialTheme.shapes.medium,
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
@@ -859,81 +801,4 @@ private fun StopVolumeSheet(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ManualDatePicker(
-    initial: Instant,
-    onConfirm: (LocalDate) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val zone = ZoneId.systemDefault()
-    val localDate = initial.atZone(zone).toLocalDate()
-    val initialEpochMillis = localDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-    val state = rememberDatePickerState(initialSelectedDateMillis = initialEpochMillis)
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                val millis = state.selectedDateMillis ?: return@TextButton
-                val picked = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
-                onConfirm(picked)
-            }) { Text(stringResource(android.R.string.ok)) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        DatePicker(state = state)
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ManualTimePicker(
-    initial: Instant,
-    onConfirm: (LocalTime) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val local = initial.atZone(ZoneId.systemDefault()).toLocalTime()
-    val state = rememberTimePickerState(
-        initialHour = local.hour,
-        initialMinute = local.minute,
-        is24Hour = false,
-    )
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = { onConfirm(LocalTime.of(state.hour, state.minute)) }) {
-                Text(stringResource(android.R.string.ok))
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-        text = { TimePicker(state = state) },
-        shape = MaterialTheme.shapes.large,
-    )
-}
-
 private enum class ManualField { START, END }
-
-@Composable
-private fun Instant.toManualDateLabel(): String {
-    val zone = ZoneId.systemDefault()
-    val date = atZone(zone).toLocalDate()
-    val today = LocalDate.now(zone)
-    return when (date) {
-        today -> stringResource(R.string.relative_today)
-        today.minusDays(1) -> stringResource(R.string.relative_yesterday)
-        else -> DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()).format(date)
-    }
-}
-
-private fun Instant.withManualDate(date: LocalDate): Instant {
-    val zone = ZoneId.systemDefault()
-    val time = atZone(zone).toLocalTime()
-    return LocalDateTime.of(date, time).atZone(zone).toInstant()
-}
-
-private fun Instant.withManualTime(time: LocalTime): Instant {
-    val zone = ZoneId.systemDefault()
-    val date = atZone(zone).toLocalDate()
-    return LocalDateTime.of(date, time).atZone(zone).toInstant()
-}

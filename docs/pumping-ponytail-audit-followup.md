@@ -40,7 +40,13 @@ net: -90 lines, -0 deps possible (finding 1 is ~-90; findings 2-3 ~0 net / -3 co
 
 ## Validation & feasibility (execute-later notes)
 
-### 1. ✅ EXECUTE — PumpingScreen manual mode duplicates shared edit components  *(~-90 lines, the real cut)*
+### 1. ✅ DONE (this branch) — PumpingScreen manual mode duplicates shared edit components  *(~-90 lines, the real cut)*
+
+> Executed: `ManualFieldRow`/`ManualFieldCell`/`ManualDatePicker`/`ManualTimePicker`/`toManualDateLabel`/
+> `withManualDate`/`withManualTime` deleted; manual mode now calls shared `EditDateTimeRow`/
+> `EditDatePicker`/`EditTimePicker`/`toEditDateLabel`/`withEditedDate`/`withEditedTime`. The local
+> `enum ManualField` was kept (the sibling's `EditField` is `private`; importing it adds coupling for
+> no gain). All 11 `PumpingScreenTest` instrumented tests pass on emulator.
 
 `PumpingScreen.kt` (Manual tab) defines a complete private copy of the date/time editing stack:
 
@@ -142,17 +148,11 @@ longer exists. Trim to a one-liner (e.g. *"Localized label resource for a [Pumpi
 
 ---
 
-## Suggested execution plan (next session)
+## Status / remaining
 
-1. **Finding 1** (the cut): swap `PumpingScreen` manual-mode helpers for the shared
-   `ui.component` ones. Accept the 56→64dp / titleSmall→titleMedium visual alignment.
-2. **Finding 3** (cheap): trim the stale `displayName()` KDoc in `PumpingBreastLabel.kt`.
-3. (Optional) **Finding 2**: delete the redundant private `SectionLabel` wrapper.
-4. Validate: `./gradlew test` (unit) green; if a device is available,
-   `:app:connectedAndroidTest --tests "*PumpingScreenTest*"`. The pre-commit hook runs
-   ktlintFormat + detekt — let it drop the now-unused imports.
-5. Commit: `refactor(pumping): reuse shared edit date/time components in manual mode`
-   (and `docs`/`refactor` for the KDoc trim).
+1. ✅ **Finding 1** — DONE on this branch (see above). Verified by `PumpingScreenTest` (11/11 green on emulator).
+2. **Finding 3** (cheap, remaining): trim the stale `displayName()` KDoc in `PumpingBreastLabel.kt`.
+3. (Optional, remaining) **Finding 2**: delete the redundant private `SectionLabel` wrapper.
 
 ```
 net realized if all applied: ~-95 lines, -0 deps.
