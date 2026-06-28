@@ -169,11 +169,6 @@ fun PartnerDashboardScreen(
     LaunchedEffect(snapshot?.sleepRecords) {
         sleepViewModel.onSleepRecordsAvailable(snapshot?.sleepRecords ?: emptyList())
     }
-    // Pull-based dashboard: refetch once the primary applies a partner sleep op so the snapshot
-    // reflects the change instead of the optimistic overlay reverting to stale data.
-    LaunchedEffect(sleepState.snapshotRefreshTick) {
-        if (sleepState.snapshotRefreshTick > 0) viewModel.refresh()
-    }
     LaunchedEffect(bottleFeedState.saved) {
         if (bottleFeedState.saved) {
             showBottleFeedSheet = false

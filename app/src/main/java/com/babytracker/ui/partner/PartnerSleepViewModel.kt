@@ -14,6 +14,8 @@ import com.babytracker.sharing.data.firebase.observeSleepOps
 import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.domain.model.mergeActiveSleep
+import com.babytracker.sharing.domain.model.reconcilePendingOps
+import com.babytracker.sharing.domain.model.sleepActiveReflected
 import com.babytracker.sharing.usecase.PartnerAccessRevokedException
 import com.babytracker.sharing.usecase.StartPartnerSleepUseCase
 import com.babytracker.sharing.usecase.StopPartnerSleepUseCase
@@ -51,10 +53,6 @@ data class PartnerSleepUiState(
     val isBusy: Boolean = false,
     val editor: PartnerSleepEditorState? = null,
     val accessRevoked: Boolean = false,
-    // Bumped when an op the partner submitted is applied by the primary (it disappears from the op
-    // listener). The dashboard's snapshot is pull-based, so it must refetch then or the applied
-    // change keeps showing as stale (e.g. a stopped session reappears as active).
-    val snapshotRefreshTick: Int = 0,
 )
 
 /**
@@ -77,8 +75,8 @@ class PartnerSleepViewModel @Inject constructor(
     val uiState: StateFlow<PartnerSleepUiState> = _uiState.asStateFlow()
 
     private var snapshotRecords: List<SleepSnapshot> = emptyList()
-    private var pendingOps: List<SleepOp> = emptyList()
-    private var trackedOpIds: Set<String> = emptySet()
+    private var liveOps: List<SleepOp> = emptyList()
+    private var trackedOps: List<SleepOp> = emptyList()
 
     init {
         viewModelScope.launch {
@@ -87,24 +85,17 @@ class PartnerSleepViewModel @Inject constructor(
                 val uid = service.signInAnonymously()
                 service.observeSleepOps(codeValue, authorUid = uid)
                     .retryWhen { cause, attempt ->
-                        // A transient Firestore listener error must not kill the stream for good:
-                        // op tracking (and the dashboard refetch it drives) would freeze. Re-subscribe
-                        // with capped backoff; trackedOpIds survives so applied-op detection still works.
+                        // A transient Firestore listener error must not kill the stream for good: the
+                        // optimistic active overlay would freeze. Re-subscribe with capped backoff;
+                        // trackedOps survives so a consumed op keeps overlaying until the snapshot converges.
                         Log.w(TAG, "own sleep op listener error (attempt $attempt); retrying", cause)
                         delay(min(RETRY_BASE_MS * (attempt + 1), RETRY_MAX_MS))
                         true
                     }
                     .collect { ops ->
-                    val ids = ops.mapTo(mutableSetOf()) { it.opId }
-                    // A previously-pending op vanished -> the primary applied (or dropped) it and has
-                    // already re-pushed the snapshot (it pushes before deleting), so the stale
-                    // dashboard snapshot must be refetched to reflect the change.
-                    val applied = trackedOpIds.any { it !in ids }
-                    trackedOpIds = ids
-                    pendingOps = ops
-                    if (applied) _uiState.update { it.copy(snapshotRefreshTick = it.snapshotRefreshTick + 1) }
-                    recomputeActive()
-                }
+                        liveOps = ops
+                        recomputeActive()
+                    }
             }
         }
     }
@@ -116,8 +107,15 @@ class PartnerSleepViewModel @Inject constructor(
     }
 
     private fun recomputeActive() {
+        val reconciled = reconcilePendingOps(
+            isReflected = { sleepActiveReflected(it, snapshotRecords) },
+            liveOps = liveOps,
+            tracked = trackedOps,
+            nowMs = now().toEpochMilli(),
+        )
+        trackedOps = reconciled.nextTracked
         val snapshotActive = snapshotRecords.firstOrNull { it.endTime == null }
-        val merged = mergeActiveSleep(snapshotActive, pendingOps, now().toEpochMilli())
+        val merged = mergeActiveSleep(snapshotActive, reconciled.effectiveOps, now().toEpochMilli())
         val session = merged.session
         _uiState.update {
             it.copy(

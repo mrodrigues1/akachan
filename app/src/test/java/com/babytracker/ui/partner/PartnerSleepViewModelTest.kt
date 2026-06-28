@@ -167,45 +167,47 @@ class PartnerSleepViewModelTest {
     }
 
     @Test
-    fun `snapshotRefreshTick bumps when a submitted op is applied by the primary`() = runTest {
-        // A pending op that the primary then applies (it disappears from the op listener).
-        val op = SleepOp(
-            opId = "op-1", action = SleepOpAction.STOP, entryClientId = "active-cid",
-            authorUid = "uid", createdAtMs = now.toEpochMilli(), endTimeMs = now.toEpochMilli(),
-        )
-        every { settingsRepository.getShareCode() } returns flowOf("CODE")
-        coEvery { service.signInAnonymously() } returns "uid"
-        every { service.observeSleepOps("CODE", "uid") } returns
-            flowOf(listOf(op), emptyList())
-
-        val vm = buildViewModel()
-        advanceUntilIdle()
-
-        assertEquals(1, vm.uiState.value.snapshotRefreshTick)
-    }
-
-    @Test
     fun `op listener resubscribes after a transient error`() = runTest {
-        val op = SleepOp(
-            opId = "op-1", action = SleepOpAction.STOP, entryClientId = "active-cid",
-            authorUid = "uid", createdAtMs = now.toEpochMilli(), endTimeMs = now.toEpochMilli(),
+        val startOp = SleepOp(
+            opId = "op-1", action = SleepOpAction.START, entryClientId = "active-cid",
+            authorUid = "uid", createdAtMs = now.toEpochMilli(), startTimeMs = now.toEpochMilli(), sleepType = "NAP",
         )
         var attempts = 0
         every { settingsRepository.getShareCode() } returns flowOf("CODE")
         coEvery { service.signInAnonymously() } returns "uid"
-        // First subscription blows up; retryWhen must re-subscribe and pick up the applied op.
+        // First subscription blows up; retryWhen must re-subscribe and pick up the op.
         every { service.observeSleepOps("CODE", "uid") } returns flow {
             attempts++
             if (attempts == 1) throw IOException("listener boom")
-            emit(listOf(op))
-            emit(emptyList())
+            emit(listOf(startOp))
         }
 
         val vm = buildViewModel()
+        vm.onSleepRecordsAvailable(emptyList())
         advanceUntilIdle()
 
         assertTrue(attempts >= 2)
-        assertEquals(1, vm.uiState.value.snapshotRefreshTick)
+        assertNotNull(vm.uiState.value.active) // the optimistic START surfaced after re-subscribe
+    }
+
+    @Test
+    fun `a consumed START overlay is retained until the snapshot shows the session`() = runTest {
+        val startOp = SleepOp(
+            opId = "op-1", action = SleepOpAction.START, entryClientId = "p-cid",
+            authorUid = "uid", createdAtMs = now.toEpochMilli(), startTimeMs = now.toEpochMilli(), sleepType = "NAP",
+        )
+        every { settingsRepository.getShareCode() } returns flowOf("CODE")
+        coEvery { service.signInAnonymously() } returns "uid"
+        // START op present, then consumed (empty) — BEFORE the snapshot has the session.
+        every { service.observeSleepOps("CODE", "uid") } returns flowOf(listOf(startOp), emptyList())
+
+        val vm = buildViewModel()
+        vm.onSleepRecordsAvailable(emptyList()) // snapshot still has no active session
+        advanceUntilIdle()
+
+        // The just-started session is retained optimistically instead of vanishing on op-consume.
+        assertNotNull(vm.uiState.value.active)
+        assertEquals("p-cid", vm.uiState.value.active?.clientId)
     }
 
     @Test
