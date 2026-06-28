@@ -14,7 +14,7 @@ import com.babytracker.widget.theme.BabyWidgetColors
 class MilkStashWidget : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Responsive(
-        setOf(SMALL_SIZE, WIDE_SHORT_SIZE, WIDE_SIZE, TALL_SIZE, MEDIUM_SIZE),
+        setOf(SMALL_SIZE, WIDE_SHORT_SIZE, TALL_SIZE, MEDIUM_SIZE),
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -41,7 +41,6 @@ class MilkStashWidget : GlanceAppWidget() {
         // falling back to the smallest-area bucket and clipping. ~57dp per cell + ~73dp gutter.
         val SMALL_SIZE: DpSize = DpSize(57.dp, 57.dp)
         val WIDE_SHORT_SIZE: DpSize = DpSize(130.dp, 57.dp)
-        val WIDE_SIZE: DpSize = DpSize(200.dp, 57.dp)
         val TALL_SIZE: DpSize = DpSize(57.dp, 130.dp)
         val MEDIUM_SIZE: DpSize = DpSize(130.dp, 130.dp)
     }

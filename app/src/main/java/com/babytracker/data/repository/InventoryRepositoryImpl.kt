@@ -21,9 +21,6 @@ class InventoryRepositoryImpl @Inject constructor(
     override fun getActiveBags(): Flow<List<MilkBag>> =
         dao.getActiveBags().mapList { it.toDomain() }
 
-    override fun getAllBags(): Flow<List<MilkBag>> =
-        dao.getAllBags().mapList { it.toDomain() }
-
     override fun getSummary(): Flow<InventorySummary> =
         dao.getActiveSummary().map { row ->
             InventorySummary(
@@ -34,8 +31,6 @@ class InventoryRepositoryImpl @Inject constructor(
         }
 
     override suspend fun currentSummary(): InventorySummary = getSummary().first()
-
-    override suspend fun getById(id: Long): MilkBag? = dao.getById(id)?.toDomain()
 
     override suspend fun sumVolumeForIds(ids: List<Long>): Int = dao.sumVolumeForIds(ids)
 

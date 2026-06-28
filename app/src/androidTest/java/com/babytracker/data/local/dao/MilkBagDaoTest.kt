@@ -47,10 +47,7 @@ class MilkBagDaoTest {
             assertEquals(100, active[0].volumeMl)
             cancelAndIgnoreRemainingEvents()
         }
-        bagDao.getAllBags().test {
-            assertEquals(2, awaitItem().size)
-            cancelAndIgnoreRemainingEvents()
-        }
+        assertEquals(2, bagDao.getAllBagsOnce().size)
     }
 
     @Test
@@ -99,12 +96,8 @@ class MilkBagDaoTest {
         val session = pumpingDao.getById(sessionId)!!
         pumpingDao.delete(session)
 
-        bagDao.getAllBags().test {
-            val all = awaitItem()
-            val bag = all.first { it.id == bagId }
-            assertNull(bag.sourceSessionId)
-            cancelAndIgnoreRemainingEvents()
-        }
+        val bag = bagDao.getAllBagsOnce().first { it.id == bagId }
+        assertNull(bag.sourceSessionId)
     }
 
     @Test
@@ -131,16 +124,13 @@ class MilkBagDaoTest {
         )
 
         assertEquals(1, updatedRows)
-        bagDao.getAllBags().test {
-            val bag = awaitItem().single()
-            assertEquals(2_000L, bag.collectionDate)
-            assertEquals(150, bag.volumeMl)
-            assertEquals("New", bag.notes)
-            assertEquals(sessionId, bag.sourceSessionId)
-            assertNull(bag.usedAt)
-            assertEquals(900L, bag.createdAt)
-            cancelAndIgnoreRemainingEvents()
-        }
+        val bag = bagDao.getAllBagsOnce().single()
+        assertEquals(2_000L, bag.collectionDate)
+        assertEquals(150, bag.volumeMl)
+        assertEquals("New", bag.notes)
+        assertEquals(sessionId, bag.sourceSessionId)
+        assertNull(bag.usedAt)
+        assertEquals(900L, bag.createdAt)
     }
 
     @Test
@@ -163,13 +153,10 @@ class MilkBagDaoTest {
         )
 
         assertEquals(0, updatedRows)
-        bagDao.getAllBags().test {
-            val bag = awaitItem().single()
-            assertEquals(1_000L, bag.collectionDate)
-            assertEquals(100, bag.volumeMl)
-            assertEquals("Old", bag.notes)
-            assertEquals(1_500L, bag.usedAt)
-            cancelAndIgnoreRemainingEvents()
-        }
+        val bag = bagDao.getAllBagsOnce().single()
+        assertEquals(1_000L, bag.collectionDate)
+        assertEquals(100, bag.volumeMl)
+        assertEquals("Old", bag.notes)
+        assertEquals(1_500L, bag.usedAt)
     }
 }
