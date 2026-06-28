@@ -1,30 +1,18 @@
 package com.babytracker.domain.model
 
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 class DiaperTypeTest {
     @Test
     fun `parses enum names`() {
-        assertEquals(DiaperType.WET, "WET".toDiaperTypeOrNull())
-        assertEquals(DiaperType.DIRTY, "DIRTY".toDiaperTypeOrNull())
-        assertEquals(DiaperType.BOTH, "BOTH".toDiaperTypeOrNull())
+        assertEquals(DiaperType.WET, "WET".toDiaperTypeSafe())
+        assertEquals(DiaperType.DIRTY, "DIRTY".toDiaperTypeSafe())
+        assertEquals(DiaperType.BOTH, "BOTH".toDiaperTypeSafe())
     }
 
     @Test
-    fun `parses human labels`() {
-        assertEquals(DiaperType.WET, "Wet".toDiaperTypeOrNull())
-        assertEquals(DiaperType.BOTH, "Both".toDiaperTypeOrNull())
-    }
-
-    @Test
-    fun `returns null for unknown`() {
-        assertNull("nope".toDiaperTypeOrNull())
-    }
-
-    @Test
-    fun `safe defaults to WET`() {
+    fun `safe defaults to WET for unknown`() {
         assertEquals(DiaperType.WET, "garbage".toDiaperTypeSafe())
     }
 }

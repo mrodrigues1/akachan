@@ -6,8 +6,8 @@ import com.babytracker.domain.model.DiaperType
 
 /**
  * Localized label resource for a [DiaperType]. UI layer resolves it via
- * `stringResource(type.labelRes())`; the domain `label` stays locale-agnostic
- * because it doubles as the persistence/serialization token.
+ * `stringResource(type.labelRes())`. Persistence/serialization uses the enum
+ * `name` (see `toDiaperTypeSafe`), not this label.
  */
 @StringRes
 internal fun DiaperType.labelRes(): Int = when (this) {
