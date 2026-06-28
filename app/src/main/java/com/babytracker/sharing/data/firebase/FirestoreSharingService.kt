@@ -249,7 +249,7 @@ class FirestoreSharingService @Inject constructor(
 
     companion object {
         internal const val SHARES = "shares"
-        private const val PARTNERS = "partners"
+        internal const val PARTNERS = "partners"
         private const val FEED_OPS = "feedOps"
         internal const val SLEEP_OPS = "sleepOps"
         internal const val BATCH_LIMIT = 450
@@ -307,4 +307,56 @@ suspend fun FirestoreSharingService.deleteSleepOps(code: String, opIds: List<Str
         }
         batch.commit().await()
     }
+}
+
+/** A share-document emission with its cache origin, so callers can distinguish a server-confirmed
+ *  absence (document gone) from a cache-origin one (cold offline start). */
+data class SnapshotEmission(val data: ShareSnapshot?, val fromCache: Boolean)
+
+/** A partner-connection emission with its cache origin. [connected] = the partner doc exists. */
+data class ConnectionEmission(val connected: Boolean, val fromCache: Boolean)
+
+/**
+ * Streams the share document. [SnapshotEmission.data] is the mapped snapshot when the `data` field is
+ * present, else null (document missing / no data). Mirrors [FirestoreSharingService.observeFeedOps]:
+ * close on listener error, remove the registration on cancellation.
+ */
+fun FirestoreSharingService.observeSnapshot(code: String): Flow<SnapshotEmission> = callbackFlow {
+    val registration = firestore.collection(FirestoreSharingService.SHARES).document(code)
+        .addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+            if (snapshot != null) {
+                val data = snapshot.get("data") as? Map<*, *>
+                trySend(
+                    SnapshotEmission(
+                        data = data?.let { mapToSnapshot(it) },
+                        fromCache = snapshot.metadata.isFromCache,
+                    ),
+                )
+            }
+        }
+    awaitClose { registration.remove() }
+}
+
+/** The live equivalent of [FirestoreSharingService.isPartnerConnected]: streams whether the partner's
+ *  own `partners/{partnerUid}` document exists (readable per rules: request.auth.uid == partnerUid). */
+fun FirestoreSharingService.observePartnerConnected(
+    code: String,
+    partnerUid: String,
+): Flow<ConnectionEmission> = callbackFlow {
+    val registration = firestore.collection(FirestoreSharingService.SHARES).document(code)
+        .collection(FirestoreSharingService.PARTNERS).document(partnerUid)
+        .addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+            if (snapshot != null) {
+                trySend(ConnectionEmission(connected = snapshot.exists(), fromCache = snapshot.metadata.isFromCache))
+            }
+        }
+    awaitClose { registration.remove() }
 }
