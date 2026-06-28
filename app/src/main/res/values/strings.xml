@@ -842,10 +842,7 @@
     <string name="partner_ended_title">Partner access ended</string>
     <string name="partner_ended_message">Ask the primary parent for a new sharing code to reconnect.</string>
     <string name="partner_go_settings">Go to settings</string>
-    <string name="partner_checking_updates">Checking for shared updates</string>
-    <string name="partner_checking">Checking</string>
     <string name="partner_check_updates_cd">Check for shared updates</string>
-    <string name="partner_pull_refresh">Pull down to check for shared updates</string>
     <string name="partner_loading">Loading shared partner data</string>
     <string name="partner_readonly">Read-only partner view</string>
     <string name="partner_recent_feedings">RECENT FEEDINGS</string>
@@ -856,7 +853,6 @@
     <string name="partner_quiet">Quiet right now</string>
     <string name="partner_quiet_desc">No active feeding or sleep was shared. Nothing needs attention.</string>
     <string name="partner_shared_ago">Shared %1$s</string>
-    <string name="partner_checked_ago">Checked %1$s</string>
     <string name="partner_feeding_when_shared">Feeding when shared</string>
     <string name="partner_estimate">Estimate from the last shared update</string>
     <string name="partner_sleeping_when_shared">Sleeping when shared</string>
@@ -879,7 +875,6 @@
     <string name="partner_allergies">ALLERGIES</string>
     <string name="partner_no_allergies">No allergies shared</string>
     <string name="partner_allergy_cd">Allergy: %1$s</string>
-    <string name="partner_check_shared">Check shared updates</string>
     <string name="partner_check_again">Check again</string>
 
     <!-- Partner dashboard runtime (computed labels + accessibility) -->
@@ -895,15 +890,12 @@
     <string name="partner_share_behind">Shared update may be behind</string>
     <string name="partner_share_current">Shared update is current</string>
     <string name="partner_status_cd">%1$s. %2$s. Shared %3$s</string>
-    <string name="partner_status_cd_checked">%1$s. %2$s. Shared %3$s. Checked %4$s</string>
     <string name="partner_side_switch">%1$s to %2$s breast</string>
     <string name="partner_side_switch_short">%1$s to %2$s</string>
     <string name="partner_side_single">%1$s breast</string>
     <string name="partner_no_sleep_shared">No sleep shared yet</string>
     <string name="partner_slept_nap">Napped</string>
     <string name="partner_slept_night">Slept</string>
-    <string name="partner_check_state_loading">Checking for shared updates</string>
-    <string name="partner_check_state_ready">Ready to check shared updates</string>
     <string name="partner_no_allergies_shared">No allergies shared</string>
     <plurals name="partner_allergies_shared">
         <item quantity="one">%1$d allergy shared</item>
