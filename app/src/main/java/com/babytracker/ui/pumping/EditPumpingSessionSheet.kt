@@ -249,14 +249,6 @@ private fun EditPumpingSheetBody(
 }
 
 @Composable
-private fun SectionLabel(text: String) {
-    SectionLabel(
-        text = text,
-        color = MaterialTheme.colorScheme.primary,
-    )
-}
-
-@Composable
 private fun PumpingDurationOrError(state: EditPumpingSheetState) {
     val error = state.validationError
     if (error != null) {
