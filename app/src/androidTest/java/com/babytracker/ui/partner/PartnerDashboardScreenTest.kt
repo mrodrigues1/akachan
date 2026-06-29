@@ -384,6 +384,42 @@ class PartnerDashboardScreenTest {
     }
 
     @Test
+    fun activeSleepTimerTicksEverySecondWhileShareIsFresh() {
+        val initialNow = Instant.parse("2026-05-12T06:00:00Z")
+        var currentTimeMs = initialNow.toEpochMilli()
+        val activeSleep = SleepSnapshot(
+            id = 3L,
+            startTime = initialNow.minus(Duration.ofSeconds(30)).toEpochMilli(),
+            endTime = null,
+            sleepType = "NIGHT_SLEEP",
+            notes = null,
+        )
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            PartnerDashboardScreen(
+                nowProvider = { currentTimeMs },
+                viewModel = buildViewModel(
+                    makeSnapshot(lastSyncAt = initialNow, sleepRecords = listOf(activeSleep)),
+                ),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
+            )
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("30s").assertIsDisplayed()
+
+        currentTimeMs += Duration.ofSeconds(2).toMillis()
+        composeRule.mainClock.advanceTimeBy(1_001L)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("32s").assertIsDisplayed()
+        composeRule.onNodeWithText("30s").assertDoesNotExist()
+        composeRule.mainClock.autoAdvance = true
+    }
+
+    @Test
     fun staleActiveSessionCopyDoesNotPresentSharedDataAsLive() {
         val lastSyncAt = fixedNow.minus(Duration.ofMinutes(31))
         val activeSession = SessionSnapshot(
