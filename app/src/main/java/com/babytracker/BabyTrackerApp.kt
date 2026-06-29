@@ -3,6 +3,11 @@ package com.babytracker
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.babytracker.BuildConfig
 import com.babytracker.debug.DebugDataSeeder
 import com.babytracker.domain.model.AppFeature
@@ -26,6 +31,7 @@ import com.babytracker.util.StashNotificationHelper
 import com.babytracker.util.VaccineNotificationHelper
 import com.babytracker.util.createPredictiveFeedNotificationChannel
 import com.babytracker.util.createPredictiveSleepNotificationChannel
+import com.babytracker.sharing.work.PartnerOpDrainWorker
 import com.babytracker.widget.MilkStashWidgetSyncManager
 import com.babytracker.widget.WidgetSyncManager
 import dagger.Lazy
@@ -35,6 +41,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -84,6 +91,7 @@ class BabyTrackerApp : Application(), Configuration.Provider {
         reconcileStashExpirationAlarm()
         reconcileVaccineReminders()
         reconcileDoctorVisitReminders()
+        schedulePartnerOpDrain()
         appScope.launch { runCatching { bootstrapBabyProfile.get().invoke() } }
         if (BuildConfig.DEBUG) {
             appScope.launch { debugDataSeeder.get().seedIfEmpty() }
@@ -153,6 +161,25 @@ class BabyTrackerApp : Application(), Configuration.Provider {
                     doctorVisitReminderScheduler.get().rescheduleAll()
                 }
             }
+        }
+    }
+
+    // Periodic backstop that drains the partner op inboxes while the app is closed (the foreground
+    // collectors in MainActivity only run while STARTED). Scheduled unconditionally with KEEP and
+    // self-guarded inside the worker — a non-primary device just does one cheap settings read. Enqueued
+    // on the IO scope so the WorkManager IPC stays off the cold-start critical path.
+    private fun schedulePartnerOpDrain() {
+        appScope.launch {
+            val request = PeriodicWorkRequestBuilder<PartnerOpDrainWorker>(15, TimeUnit.MINUTES)
+                .setConstraints(
+                    Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build(),
+                )
+                .build()
+            WorkManager.getInstance(this@BabyTrackerApp).enqueueUniquePeriodicWork(
+                PartnerOpDrainWorker.UNIQUE_NAME,
+                ExistingPeriodicWorkPolicy.KEEP,
+                request,
+            )
         }
     }
 }

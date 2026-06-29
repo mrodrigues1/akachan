@@ -6,6 +6,7 @@ import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.data.firebase.deleteSleepOps
+import com.babytracker.sharing.data.firebase.getSleepOps
 import com.babytracker.sharing.data.firebase.observeSleepOps
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.SleepOp
@@ -203,6 +204,53 @@ class ProcessSleepOpsUseCaseTest {
         advanceUntilIdle()
 
         verify(exactly = 0) { PartnerSleepNotificationHelper.showPartnerSleepChange(any(), any()) }
+    }
+
+    @Test
+    fun `drainOnce applies fetched ops and pushes snapshot before delete when primary`() = runTest {
+        everyPrimaryWithCode()
+        coEvery { service.getSleepOps(shareCode) } returns listOf(op("op-1", 100))
+
+        useCase.drainOnce()
+
+        coVerifyOrder {
+            applySleepOp(match { it.opId == "op-1" })
+            syncToFirestore(sleepSync)
+            service.deleteSleepOps(shareCode, listOf("op-1"))
+        }
+    }
+
+    @Test
+    fun `drainOnce no-ops in partner mode`() = runTest {
+        every { settingsRepository.getAppMode() } returns flowOf(AppMode.PARTNER)
+        every { settingsRepository.getShareCode() } returns flowOf(shareCode)
+
+        useCase.drainOnce()
+
+        coVerify(exactly = 0) { service.getSleepOps(any()) }
+        coVerify(exactly = 0) { applySleepOp(any()) }
+    }
+
+    @Test
+    fun `drainOnce no-ops without a share code`() = runTest {
+        every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
+        every { settingsRepository.getShareCode() } returns flowOf(null)
+
+        useCase.drainOnce()
+
+        coVerify(exactly = 0) { service.getSleepOps(any()) }
+    }
+
+    @Test
+    fun `drainOnce with no pending ops does nothing`() = runTest {
+        everyPrimaryWithCode()
+        coEvery { service.getSleepOps(shareCode) } returns emptyList()
+
+        useCase.drainOnce()
+
+        coVerify(exactly = 0) { applySleepOp(any()) }
+        coVerify(exactly = 0) { syncToFirestore(any()) }
+        coVerify(exactly = 0) { service.deleteSleepOps(any(), any()) }
     }
 
     private fun everyPrimaryWithCode() {

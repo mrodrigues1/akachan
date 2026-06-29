@@ -426,6 +426,53 @@ class ProcessFeedOpsUseCaseTest {
         assertEquals(listOf(11L), bagSlot.captured)
     }
 
+    @Test
+    fun `drainOnce applies fetched ops and pushes snapshot before delete when primary`() = runTest {
+        everyPrimaryWithCode()
+        coEvery { service.getFeedOps(shareCode) } returns listOf(op("op-1", 100))
+
+        useCase.drainOnce()
+
+        coVerifyOrder {
+            applyFeedOp(match { it.opId == "op-1" })
+            syncToFirestore(coalescedSync)
+            service.deleteFeedOps(shareCode, listOf("op-1"))
+        }
+    }
+
+    @Test
+    fun `drainOnce no-ops in partner mode`() = runTest {
+        every { settingsRepository.getAppMode() } returns flowOf(AppMode.PARTNER)
+        every { settingsRepository.getShareCode() } returns flowOf(shareCode)
+
+        useCase.drainOnce()
+
+        coVerify(exactly = 0) { service.getFeedOps(any()) }
+        coVerify(exactly = 0) { applyFeedOp(any()) }
+    }
+
+    @Test
+    fun `drainOnce no-ops without a share code`() = runTest {
+        every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
+        every { settingsRepository.getShareCode() } returns flowOf(null)
+
+        useCase.drainOnce()
+
+        coVerify(exactly = 0) { service.getFeedOps(any()) }
+    }
+
+    @Test
+    fun `drainOnce with no pending ops does nothing`() = runTest {
+        everyPrimaryWithCode()
+        coEvery { service.getFeedOps(shareCode) } returns emptyList()
+
+        useCase.drainOnce()
+
+        coVerify(exactly = 0) { applyFeedOp(any()) }
+        coVerify(exactly = 0) { syncToFirestore(any()) }
+        coVerify(exactly = 0) { service.deleteFeedOps(any(), any()) }
+    }
+
     private fun everyPrimaryWithCode() {
         every { settingsRepository.getAppMode() } returns MutableStateFlow(AppMode.PRIMARY)
         every { settingsRepository.getShareCode() } returns MutableStateFlow(shareCode)
