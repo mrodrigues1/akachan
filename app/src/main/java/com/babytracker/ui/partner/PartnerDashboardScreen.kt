@@ -52,6 +52,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -123,6 +124,7 @@ import java.util.Locale
 
 private const val STALE_SYNC_THRESHOLD_MINUTES = 30L
 private const val ONE_MINUTE_MS = 60_000L
+private const val ONE_SECOND_MS = 1_000L
 private const val MAX_CONTENT_WIDTH_DP = 600
 
 internal data class PartnerWarningColors(
@@ -412,6 +414,7 @@ private fun DashboardContent(
                 lastCompletedSleep = lastCompletedSleep,
                 lastBottle = lastBottle,
                 now = now,
+                nowProvider = nowProvider,
                 volumeUnit = volumeUnit,
                 onOpenSleepSheet = onOpenSleepSheet,
                 onLogBottle = onLogBottle,
@@ -456,6 +459,7 @@ private fun PartnerTileGrid(
     lastCompletedSleep: SleepSnapshot?,
     lastBottle: BottleFeedSnapshot?,
     now: Instant,
+    nowProvider: () -> Long,
     volumeUnit: VolumeUnit,
     onOpenSleepSheet: () -> Unit,
     onLogBottle: () -> Unit,
@@ -472,6 +476,7 @@ private fun PartnerTileGrid(
                 lastCompletedSleep = lastCompletedSleep,
                 lastSyncAt = snapshot.lastSyncAt,
                 now = now,
+                nowProvider = nowProvider,
                 onClick = onOpenSleepSheet,
                 modifier = tileModifier,
             )
@@ -482,6 +487,7 @@ private fun PartnerTileGrid(
                 lastFeeding = lastFeeding,
                 lastSyncAt = snapshot.lastSyncAt,
                 now = now,
+                nowProvider = nowProvider,
                 onClick = onNavigateToFeedHistory,
                 modifier = tileModifier,
             )
@@ -545,6 +551,7 @@ private fun PartnerSleepTile(
     lastCompletedSleep: SleepSnapshot?,
     lastSyncAt: Instant,
     now: Instant,
+    nowProvider: () -> Long,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -593,8 +600,18 @@ private fun PartnerSleepTile(
         },
     ) {
         if (activeSleep != null) {
-            val elapsed = remember(activeSleep.startTime, lastSyncAt, now) {
-                activeSleepElapsedDuration(sleep = activeSleep, lastSyncAt = lastSyncAt, now = now)
+            // Tick the elapsed stopwatch every second so it reads live like the parent Home screen,
+            // not once a minute with the rest of the dashboard. The staleness gate still freezes it
+            // at lastSyncAt once the share falls behind.
+            val elapsed by produceState(
+                initialValue = activeSleepElapsedDuration(activeSleep, lastSyncAt, Instant.ofEpochMilli(nowProvider())),
+                activeSleep.startTime,
+                lastSyncAt,
+            ) {
+                while (true) {
+                    delay(ONE_SECOND_MS)
+                    value = activeSleepElapsedDuration(activeSleep, lastSyncAt, Instant.ofEpochMilli(nowProvider()))
+                }
             }
             Text(
                 text = stringResource(R.string.partner_sleeping_when_shared),
@@ -631,6 +648,7 @@ private fun PartnerBreastfeedingTile(
     lastFeeding: SessionSnapshot?,
     lastSyncAt: Instant,
     now: Instant,
+    nowProvider: () -> Long,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -679,8 +697,20 @@ private fun PartnerBreastfeedingTile(
         },
     ) {
         if (activeSession != null) {
-            val elapsed = remember(activeSession.startTime, activeSession.pausedDurationMs, lastSyncAt, now) {
-                activeSessionElapsedDuration(session = activeSession, lastSyncAt = lastSyncAt, now = now)
+            // Tick the elapsed stopwatch every second so it reads live like the parent Home screen,
+            // not once a minute with the rest of the dashboard. The staleness gate still freezes it
+            // at lastSyncAt once the share falls behind.
+            val elapsed by produceState(
+                initialValue =
+                    activeSessionElapsedDuration(activeSession, lastSyncAt, Instant.ofEpochMilli(nowProvider())),
+                activeSession.startTime,
+                activeSession.pausedDurationMs,
+                lastSyncAt,
+            ) {
+                while (true) {
+                    delay(ONE_SECOND_MS)
+                    value = activeSessionElapsedDuration(activeSession, lastSyncAt, Instant.ofEpochMilli(nowProvider()))
+                }
             }
             Text(
                 text = stringResource(R.string.partner_feeding_when_shared),
