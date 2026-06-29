@@ -5,6 +5,7 @@ import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.GrowthSnapshot
 import com.babytracker.sharing.domain.model.MilestoneSnapshot
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
+import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.SleepOpAction
@@ -63,6 +64,42 @@ class FirestoreSnapshotMappingTest {
         val roundTripped = mapToSnapshot(snapshotToMap(snapshot))
 
         assertEquals(snapshot.sleepRecords, roundTripped.sleepRecords)
+    }
+
+    @Test
+    fun `session round-trips pausedAtMs through map`() {
+        val snapshot = ShareSnapshot(
+            lastSyncAt = Instant.ofEpochSecond(100),
+            baby = BabySnapshot("Aiko", 1000L, listOf("dairy")),
+            sessions = listOf(
+                SessionSnapshot(
+                    id = 1L,
+                    startTime = 1000L,
+                    endTime = null,
+                    startingSide = "LEFT",
+                    switchTime = null,
+                    pausedDurationMs = 0L,
+                    notes = null,
+                    pausedAtMs = 4200L,
+                ),
+            ),
+            sleepRecords = emptyList(),
+        )
+
+        val roundTripped = mapToSnapshot(snapshotToMap(snapshot))
+
+        assertEquals(snapshot.sessions, roundTripped.sessions)
+        assertEquals(4200L, roundTripped.sessions.single().pausedAtMs)
+    }
+
+    @Test
+    fun `legacy session map without pausedAtMs parses as running`() {
+        val legacy = mapOf("id" to 1L, "startTime" to 2000L, "startingSide" to "LEFT", "pausedDurationMs" to 0L)
+
+        val parsed = mapToSession(legacy)
+
+        assertEquals(null, parsed.pausedAtMs)
+        assertEquals(false, parsed.isPaused)
     }
 
     @Test

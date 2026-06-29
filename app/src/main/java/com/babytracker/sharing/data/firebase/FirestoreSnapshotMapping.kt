@@ -100,6 +100,7 @@ internal fun sessionToMap(session: SessionSnapshot): Map<String, Any?> = mapOf(
     "switchTime" to session.switchTime,
     "pausedDurationMs" to session.pausedDurationMs,
     "notes" to session.notes,
+    "pausedAtMs" to session.pausedAtMs,
 )
 
 internal fun sleepToMap(sleep: SleepSnapshot): Map<String, Any?> = mapOf(
@@ -200,6 +201,7 @@ internal fun mapToSession(map: Map<*, *>): SessionSnapshot = SessionSnapshot(
     switchTime = map["switchTime"] as? Long,
     pausedDurationMs = (map["pausedDurationMs"] as? Long) ?: 0L,
     notes = map["notes"] as? String,
+    pausedAtMs = map["pausedAtMs"] as? Long,
 )
 
 internal fun mapToSleep(map: Map<*, *>): SleepSnapshot = SleepSnapshot(
