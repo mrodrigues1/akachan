@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Partner Duo Sync — Backend Options Comparison (post-Firebase)</title>
+<style>
+  :root{
+    --ink:#1f2430; --muted:#5b6472; --line:#e6e3ee; --bg:#faf8fc;
+    --card:#ffffff; --accent:#5b53c6; --accent-soft:#efeefb;
+    --good:#1f8a5b; --bad:#c0413b; --warn:#b07d12;
+    --pink:#d9587f;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; font:16px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink); background:var(--bg); padding:0 0 80px;
+  }
+  .wrap{max-width:1000px; margin:0 auto; padding:0 24px}
+  header{
+    background:linear-gradient(135deg,#5b53c6,#7d6fe0 55%,#d9587f);
+    color:#fff; padding:44px 0 38px; margin-bottom:36px;
+  }
+  header .wrap{padding-top:0}
+  header h1{margin:0 0 8px; font-size:30px; letter-spacing:-.4px}
+  header p{margin:0; opacity:.92; max-width:760px}
+  header .meta{margin-top:16px; font-size:13px; opacity:.8}
+  h2{font-size:22px; margin:44px 0 14px; letter-spacing:-.3px}
+  h3{font-size:17px; margin:22px 0 8px}
+  p{margin:0 0 14px}
+  .lead{font-size:17px; color:var(--muted)}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:22px 24px; margin:16px 0; box-shadow:0 1px 2px rgba(30,30,60,.04);
+  }
+  .callout{
+    background:var(--accent-soft); border:1px solid #ddd9f6; border-left:4px solid var(--accent);
+    border-radius:10px; padding:16px 20px; margin:18px 0;
+  }
+  .callout strong{color:var(--accent)}
+  code{background:#f1eff8; padding:2px 6px; border-radius:5px; font-size:.86em; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:14.5px}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{background:#f4f2fb; font-weight:600; color:#3a3550}
+  tbody tr:nth-child(even){background:#fbfaff}
+  .yes{color:var(--good); font-weight:600}
+  .no{color:var(--bad); font-weight:600}
+  .meh{color:var(--warn); font-weight:600}
+  ul.tight{margin:6px 0 14px; padding-left:20px}
+  ul.tight li{margin:4px 0}
+  .pro::before{content:"✅ "; }
+  .con::before{content:"❌ "; }
+  .neu::before{content:"⚠️ "; }
+  .opt-tag{
+    display:inline-block; font-size:12px; font-weight:700; letter-spacing:.04em;
+    text-transform:uppercase; color:#fff; background:var(--accent);
+    border-radius:6px; padding:3px 9px; margin-right:8px; vertical-align:middle;
+  }
+  .opt-tag.rec{background:var(--good)}
+  .opt-tag.skip{background:#9aa1ad}
+  .price{font-variant-numeric:tabular-nums}
+  .scale{color:var(--pink); font-weight:600}
+  .rec-box{
+    background:#eef8f1; border:1px solid #c8e8d4; border-left:4px solid var(--good);
+    border-radius:10px; padding:18px 22px; margin:18px 0;
+  }
+  .footnote{font-size:13px; color:var(--muted)}
+  a{color:var(--accent)}
+  .sources a{display:inline-block; margin:2px 0}
+  hr{border:none; border-top:1px solid var(--line); margin:34px 0}
+  @media print{
+    body{background:#fff} header{background:#5b53c6 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact}
+    .card,.callout,.rec-box{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Partner Duo Sync — Backend Options</h1>
+    <p>Making both parents first-class writers ("a duo"), assuming Firebase is replaced. Architectural options, trade-offs, and current pricing for each candidate backend.</p>
+    <div class="meta">Akachan / BabyTracker · Generated 2026-06-29 · Companion to the Firebase&nbsp;→&nbsp;Supabase migration plan</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <p class="lead">Today the <strong>primary</strong> device owns all shared data (Room) and the partner only submits <em>operation documents</em> the primary later applies. We want both devices to execute actions directly — start a nap, log a bottle — with live, two-way updates. This report compares backends that can deliver that <strong>once Firebase is dropped</strong>.</p>
+
+  <div class="callout">
+    <strong>The key reframing.</strong> The current op-inbox (<code>feedOps</code>/<code>sleepOps</code> → primary applies → re-publishes snapshot) was largely a <em>workaround for Firestore</em>: a single snapshot doc with a 1&nbsp;MB ceiling, whole-field last-write-wins, and no clean way for two devices to write the same collection without echo loops. <strong>On a Postgres backend, that whole problem class disappears.</strong> The natural model becomes: shared rows, both devices write, row-level security gates by <em>share membership</em> (not "owner"), and a realtime stream pushes changes to the other phone. Symmetric authority falls out of the platform — there's no privileged executor to port.
+  </div>
+
+  <p>So the real decision is no longer "how do I let the partner write." It's <strong>how much of the offline / conflict sync do I build versus buy.</strong> That axis orders the four options below.</p>
+
+  <div class="callout">
+    <strong>One fix needed in every option:</strong> identity. Anonymous auth that resets on reinstall strands a parent's authorship and share access. In a symmetric duo there is no "primary" to re-bootstrap from, so lightweight real accounts (or device-key linking) in the chosen auth system matters more here than it did before. Budget for it regardless of which option wins.
+  </div>
+
+  <h2>Current architecture (what we're replacing)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Direction</th><th>Mechanism today</th></tr></thead>
+      <tbody>
+        <tr><td>Partner → Primary</td><td>Partner writes op docs to <code>shares/{code}/feedOps</code> · <code>sleepOps</code>. Never touches shared state directly.</td></tr>
+        <tr><td>Primary applies</td><td>Foreground Firestore listener <em>+</em> ~15-min <code>PartnerOpDrainWorker</code> → applies ops into Room → re-publishes snapshot → deletes ops.</td></tr>
+        <tr><td>Primary → Partner</td><td>Pushes the <strong>whole</strong> snapshot to a single doc <code>shares/{code}</code>.</td></tr>
+        <tr><td>Partner reads</td><td>Fetches that snapshot, merges its own pending ops for optimistic UI. No local DB of shared data.</td></tr>
+      </tbody>
+    </table>
+    <p class="footnote">Two failure modes drive the "not a duo" feeling: <strong>write authority</strong> (partner ops are inert — and if the primary phone is off, lost — until the primary processes them) and <strong>propagation latency</strong> (no push; realtime only while the primary is foregrounded, otherwise a 15-min floor). They are independent; a Postgres + realtime stack fixes both.</p>
+  </div>
+
+  <h2>The options</h2>
+
+  <!-- OPTION A -->
+  <div class="card">
+    <h3><span class="opt-tag rec">Option A · Recommended</span>Supabase-native, DIY sync</h3>
+    <p>The planned migration, extended for symmetry. Both devices write to shared Postgres tables; RLS gates by <em>share membership</em>; Supabase Realtime (Postgres Changes) streams row changes to the other device; offline writes queue in the Room outbox you're already building and flush on reconnect; conflicts resolve last-write-wins by <code>updated_at</code> with delete tombstones.</p>
+    <ul class="tight">
+      <li class="pro"><strong>Fits the roadmap exactly</strong> — no vendor beyond the Supabase you're already adopting. The duo becomes mostly an RLS rule (membership, not owner) + both devices subscribing &amp; writing.</li>
+      <li class="pro">Op-inbox, snapshot doc, and the 1&nbsp;MB ceiling are all <strong>deleted</strong>. No privileged primary.</li>
+      <li class="pro">You own the conflict policy; Postgres holds canonical state.</li>
+      <li class="con">You <strong>hand-roll the hard part</strong>: outbox retry, dedupe, delete tombstones, LWW, and the Realtime↔Room reconciliation — exactly where local-first apps go subtly wrong.</li>
+      <li class="neu">Use Realtime's <em>Postgres Changes</em> mode (RLS-respecting), not Broadcast. The per-change RLS check is irrelevant at two devices.</li>
+    </ul>
+  </div>
+
+  <!-- OPTION B -->
+  <div class="card">
+    <h3><span class="opt-tag">Option B</span>Supabase + a local-first sync engine (PowerSync)</h3>
+    <p>Keep Supabase Postgres, but drop <strong>PowerSync</strong> between device SQLite and Postgres. You read/write a local DB directly (instant, offline); PowerSync owns the upload queue, reconnect, realtime streaming and conflict handling. Both devices are equal peers. This retires the op-inbox <em>and</em> the outbox you were about to build.</p>
+    <ul class="tight">
+      <li class="pro"><strong>Least sync code you write</strong> — the offline queue, dedupe and streaming are the product's job. True duo + offline + live with the smallest hand-rolled surface.</li>
+      <li class="pro">Has a <strong>Kotlin Multiplatform / Android SDK</strong> (reactive via Coroutines/Flows), first-class Supabase integration, non-invasive to the Postgres schema. Composes <em>with</em> the migration.</li>
+      <li class="con"><strong>Adds a second service + cost</strong> on top of Supabase — two things to operate and pay for.</li>
+      <li class="con">The Kotlin SDK is <strong>open alpha</strong> — real risk for a shipping app; small community.</li>
+      <li class="con">You'd likely <strong>replace Room</strong> with PowerSync's SQLite for shared data (or run both). The app is Room-centric today — a real splice.</li>
+      <li class="neu">Conflict model is LWW at the queue/row level, not CRDT — fine for two parents who rarely edit the same field in the same second.</li>
+    </ul>
+  </div>
+
+  <!-- OPTION C -->
+  <div class="card">
+    <h3><span class="opt-tag">Option C</span>Realtime transport only — keep a symmetric op-log</h3>
+    <p>Don't adopt table-sync. Use Supabase purely as (1) a Postgres <code>ops</code> table holding the same <code>FeedOp</code>/<code>SleepOp</code> docs you already model and (2) Realtime to deliver them instantly. Both devices write ops <em>and</em> both apply ops into their own Room. It's the current op-inbox, made bidirectional and live, on Postgres.</p>
+    <ul class="tight">
+      <li class="pro"><strong>Maximum reuse</strong> — <code>FeedOp</code>/<code>SleepOp</code>/<code>ApplyFeedOpUseCase</code>/<code>ReconcilePendingOps</code> survive almost verbatim; swap Firestore for a table + Realtime. Smallest change mid-flight on the Collaborative Partner View work.</li>
+      <li class="pro">Live + symmetric immediately.</li>
+      <li class="con">You <strong>keep the op-log's accidental complexity</strong>: an op must live until <em>both</em> peers apply it, so delete-after-apply becomes per-peer <strong>ack cursors</strong>; plus server-timestamp ordering and idempotent apply. A hand-maintained mini event-sourcing system.</li>
+      <li class="con">You use a relational DB as a dumb queue and still rebuild state in Room on each device — Option&nbsp;A gets the same duo with Postgres keeping state and two fewer representations per entity.</li>
+    </ul>
+    <p class="footnote">Best use: an <strong>interim</strong> step if the migration timeline forces shipping the duo before full table-sync lands.</p>
+  </div>
+
+  <!-- OPTION D -->
+  <div class="card">
+    <h3><span class="opt-tag skip">Option D · Skip</span>Turnkey mobile-sync platform that isn't Supabase</h3>
+    <p><strong>Couchbase Lite + Capella App Services</strong> (embedded DB, multi-master replication, built-in conflict resolution, native Kotlin SDK — purpose-built for "N devices sync a shared dataset offline") or <strong>AWS Amplify DataStore + AppSync</strong> (local-first, versioned conflict resolution, Android SDK — the Firestore analog).</p>
+    <ul class="tight">
+      <li class="pro">Most of the sync problem is solved by the platform; battle-tested for multi-device offline.</li>
+      <li class="con"><strong>Contradicts the Supabase decision.</strong> Couchbase = NoSQL doc model (re-think the relational schema you're migrating <em>to</em>); Amplify = AWS lock-in + GraphQL codegen + AWS being lukewarm on DataStore.</li>
+      <li class="con">Heavier ops / lock-in for a small app. Only sensible if you abandon Supabase — which is not on the table.</li>
+    </ul>
+  </div>
+
+  <h2>Pricing (2026)</h2>
+  <p>List prices below; the column that actually matters for a two-parent app is <span class="scale">"At Akachan's scale."</span> Tiered plans are built for thousands of users — a baby app with a handful of families is tiny, so the practical cost is usually the free tier or a single low flat fee.</p>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr><th>Backend</th><th>Free tier</th><th>Paid entry</th><th>Scales like</th><th class="scale">At Akachan's scale</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Supabase</strong><br><span class="footnote">Options A &amp; C</span></td>
+          <td class="price">$0 — 500&nbsp;MB DB, 50K MAU, 200 concurrent realtime connections, 2M realtime msgs/mo. <em>Projects pause after 7 days idle.</em></td>
+          <td class="price"><strong>Pro $25/mo</strong> + usage (8&nbsp;GB DB, 100K MAU, 500 connections, daily backups, no pausing, $10 compute credit included)</td>
+          <td>DB size, MAU, realtime connections, egress</td>
+          <td class="scale">Free tier covers it; <strong>Pro $25/mo</strong> only if you want no-pausing + backups. Real-world Pro lands ~$35–75/mo at moderate load.</td>
+        </tr>
+        <tr>
+          <td><strong>PowerSync</strong><br><span class="footnote">Option B — <em>on top of</em> Supabase</span></td>
+          <td class="price">$0 — 2&nbsp;GB synced/mo, 500&nbsp;MB hosted. <em>Deactivates after 1 week idle.</em></td>
+          <td class="price"><strong>Pro from $49/mo</strong> — 30&nbsp;GB synced/mo. Team from $599/mo.</td>
+          <td>GB of data synced/mo, DAU</td>
+          <td class="scale">Free tier likely covers one family ($0), but <strong>add Supabase underneath</strong>. Production: ~$49 + $25 = <strong>~$74/mo</strong>. Example: 5K DAU ≈ $51/mo; 100K DAU ≈ $399/mo (PowerSync only).</td>
+        </tr>
+        <tr>
+          <td><strong>Couchbase Capella<br>App Services</strong><br><span class="footnote">Option D</span></td>
+          <td class="price">Free <strong>trial</strong> only (time-limited credits). No always-free production tier.</td>
+          <td class="price">Hourly per provisioned App Service (rate varies by cloud/region) + data processing (first 1&nbsp;GiB/clock-hour free).</td>
+          <td>Provisioned hours + data processed</td>
+          <td class="scale">Bills <strong>hourly even at zero traffic</strong> → likely the most expensive at rest (~tens of $/mo minimum for an always-on gateway). Overkill.</td>
+        </tr>
+        <tr>
+          <td><strong>AWS AppSync<br>+ DynamoDB</strong><br><span class="footnote">Option D (Amplify DataStore)</span></td>
+          <td class="price">12-mo free tier: 250K queries/mods, 250K realtime updates, 600K connection-min/mo. DynamoDB has its own free allowance.</td>
+          <td class="price">$4.00/M query+mutation ops · $2.00/M realtime updates · $0.08/M connection-minutes. DynamoDB billed separately (on-demand R/W + storage).</td>
+          <td>Per request / realtime update / connection-minute</td>
+          <td class="scale">Essentially <strong>~$0 at this scale</strong> (pennies after the free year). Cheapest on paper — but two services to reason about, GraphQL codegen, and AWS lock-in. DataStore itself has no separate price; it bills as AppSync + DynamoDB.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="footnote">Couchbase does not publish a flat App Services rate — it varies by provider/region and is billed per clock-hour provisioned. Amplify DataStore has no standalone price line; its cost is whatever AppSync + DynamoDB usage it generates.</p>
+  </div>
+
+  <h2>Side-by-side</h2>
+  <div class="card">
+    <table>
+      <thead>
+        <tr><th>&nbsp;</th><th>A · Supabase DIY</th><th>B · PowerSync</th><th>C · Op-log on Supabase</th><th>D · Couchbase / Amplify</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>True duo (symmetric authority)</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td></tr>
+        <tr><td>Live updates</td><td class="yes">Realtime</td><td class="yes">Built-in</td><td class="yes">Realtime</td><td class="yes">Built-in</td></tr>
+        <tr><td>Offline + conflict</td><td class="bad"><span class="no">You build it</span></td><td class="yes">Bought</td><td class="meh">You build (acks)</td><td class="yes">Bought</td></tr>
+        <tr><td>Fits Supabase migration</td><td class="yes">Perfect</td><td class="meh">+ a service</td><td class="yes">Interim shape</td><td class="no">Different stack</td></tr>
+        <tr><td>Reuses existing op code</td><td class="no">No (delete it)</td><td class="no">No (delete it)</td><td class="yes">Mostly</td><td class="no">No</td></tr>
+        <tr><td>New vendor / cost</td><td class="yes">None</td><td class="meh">+ PowerSync</td><td class="yes">None</td><td class="no">+ AWS / Couchbase</td></tr>
+        <tr><td>Maturity risk</td><td class="yes">Low</td><td class="meh">Alpha SDK</td><td class="yes">Low</td><td class="yes">Low</td></tr>
+        <tr><td>Cost at Akachan's scale</td><td class="price">$0–25/mo</td><td class="price">$0, or ~$74/mo prod</td><td class="price">$0–25/mo</td><td class="price">~$0 (AWS) / tens (Couchbase)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Recommendation</h2>
+  <div class="rec-box">
+    <p><strong>Default to Option A (Supabase-native).</strong> You're already building the outbox + tables; making it a duo is largely an RLS change (membership, not owner) plus both sides subscribing. You get symmetric authority and live updates as <em>platform properties</em> and delete a whole subsystem (the op-inbox). The only real risk is the hand-rolled offline/conflict reconciliation.</p>
+    <p><strong>Reach for Option B (PowerSync) only when that reconciliation bites.</strong> It's built precisely to remove that risk and keeps Supabase — but it's alpha and adds a service, so don't buy the engine before you've felt the pain of hand-building it.</p>
+    <p><strong>Use Option C only as an interim</strong> if the timeline forces shipping the duo before full table-sync lands. <strong>Skip Option D</strong> — it trades away the Supabase decision for a marginal turnkey benefit.</p>
+    <p style="margin-bottom:0">The decision reduces to one risk question: <strong>do you trust yourself to get offline LWW + tombstones + reconnect right?</strong> Yes → A. "I'd rather pay someone" → B. Either way, fix the anonymous-identity problem as part of it.</p>
+  </div>
+
+  <h2>Rejected alternatives</h2>
+  <div class="card">
+    <ul class="tight">
+      <li><strong>ElectricSQL</strong> — pivoted (v1.1, Aug 2025) to <strong>read-path-only</strong> sync (Shapes API); writes are bring-your-own back to Postgres. No turnkey bidirectional duo writes anymore. Not a fit.</li>
+      <li><strong>Convex / InstantDB</strong> — realtime/offline but web/React-first; native Kotlin/Android support is weak or absent.</li>
+      <li><strong>CRDTs (Automerge / Yjs)</strong> — perfect concurrent-merge, but heavy/immature on Kotlin, and two parents almost never edit the same field simultaneously. LWW is enough. Overkill.</li>
+    </ul>
+  </div>
+
+  <hr>
+  <p class="sources footnote">
+    <strong>Sources</strong><br>
+    <a href="https://supabase.com/pricing">Supabase pricing</a> ·
+    <a href="https://supabase.com/docs/guides/realtime/authorization">Supabase Realtime (Postgres Changes vs Broadcast)</a> ·
+    <a href="https://supabase.com/blog/realtime-row-level-security-in-postgresql">Realtime Postgres RLS</a> ·
+    <a href="https://www.powersync.com/pricing">PowerSync pricing</a> ·
+    <a href="https://docs.powersync.com/client-sdk-references/kotlin-multiplatform">PowerSync Kotlin Multiplatform SDK</a> ·
+    <a href="https://supabase.com/partners/integrations/powersync">PowerSync + Supabase</a> ·
+    <a href="https://www.couchbase.com/pricing/">Couchbase Capella pricing</a> ·
+    <a href="https://docs.couchbase.com/cloud/app-services/billing/billing.html">Capella App Services billing</a> ·
+    <a href="https://aws.amazon.com/appsync/pricing/">AWS AppSync pricing</a> ·
+    <a href="https://electric-sql.com/docs/guides/writes">ElectricSQL writes (read-path pivot)</a> ·
+    <a href="https://electric.ax/blog/2025/08/13/electricsql-v1.1-released">Electric 1.1 release</a>
+  </p>
+  <p class="footnote">Prices are list figures captured 2026-06-29 and drift; confirm against the live pricing pages before committing budget. PowerSync, Couchbase and AWS costs are <em>in addition to</em> any database hosting they sit on.</p>
+
+</div>
+</body>
+</html>
