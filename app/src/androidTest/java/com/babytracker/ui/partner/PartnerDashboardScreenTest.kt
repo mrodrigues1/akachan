@@ -420,6 +420,48 @@ class PartnerDashboardScreenTest {
     }
 
     @Test
+    fun staleActiveSleepTimerStillCountsLiveFromStartAndTicks() {
+        // Reproduces the partner dashboard bug: with a share well past the 30-minute staleness
+        // threshold, the sleep stopwatch must keep counting from the shared start time (not show 0s,
+        // not freeze at the last shared update, and keep ticking every second).
+        val initialNow = Instant.parse("2026-05-12T06:00:00Z")
+        var currentTimeMs = initialNow.toEpochMilli()
+        val activeSleep = SleepSnapshot(
+            id = 3L,
+            startTime = initialNow.minus(Duration.ofHours(3)).toEpochMilli(),
+            endTime = null,
+            sleepType = "NIGHT_SLEEP",
+            notes = null,
+        )
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            PartnerDashboardScreen(
+                nowProvider = { currentTimeMs },
+                viewModel = buildViewModel(
+                    makeSnapshot(
+                        lastSyncAt = initialNow.minus(Duration.ofMinutes(45)),
+                        sleepRecords = listOf(activeSleep),
+                    ),
+                ),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
+            )
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("3h 0m").assertIsDisplayed()
+
+        currentTimeMs += Duration.ofMinutes(1).toMillis()
+        composeRule.mainClock.advanceTimeBy(1_001L)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("3h 1m").assertIsDisplayed()
+        composeRule.onNodeWithText("3h 0m").assertDoesNotExist()
+        composeRule.mainClock.autoAdvance = true
+    }
+
+    @Test
     fun pausedActiveFeedingTimerDoesNotTick() {
         val initialNow = Instant.parse("2026-05-12T06:00:00Z")
         var currentTimeMs = initialNow.toEpochMilli()

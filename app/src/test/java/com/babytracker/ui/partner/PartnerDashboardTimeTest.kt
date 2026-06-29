@@ -139,7 +139,6 @@ class PartnerDashboardTimeTest {
     @Test
     fun `active sleep duration estimates from current partner time`() {
         val startedAt = Instant.parse("2026-05-12T22:00:00Z")
-        val lastSyncAt = Instant.parse("2026-05-13T00:25:00Z")
         val now = Instant.parse("2026-05-13T00:30:00Z")
         val sleep = SleepSnapshot(
             id = 1L,
@@ -151,33 +150,28 @@ class PartnerDashboardTimeTest {
 
         assertEquals(
             Duration.ofHours(2).plusMinutes(30),
-            activeSleepElapsedDuration(
-                sleep = sleep,
-                lastSyncAt = lastSyncAt,
-                now = now,
-            ),
+            activeSleepElapsedDuration(sleep = sleep, now = now),
         )
     }
 
     @Test
-    fun `stale active sleep duration stays frozen at last shared update`() {
-        val lastSyncAt = Instant.parse("2026-05-12T22:00:00Z")
+    fun `stale active sleep keeps ticking live from the shared start time`() {
+        // Even when the share is well past the 30-minute staleness threshold, the sleep stopwatch
+        // keeps counting from the absolute start time instead of freezing at the last shared update
+        // (the bug that showed 0s / a wrong value / a never-ticking timer on the partner dashboard).
+        val startedAt = Instant.parse("2026-05-12T21:00:00Z")
         val now = Instant.parse("2026-05-12T22:31:00Z")
         val sleep = SleepSnapshot(
             id = 1L,
-            startTime = lastSyncAt.minus(Duration.ofHours(1)).toEpochMilli(),
+            startTime = startedAt.toEpochMilli(),
             endTime = null,
             sleepType = "NAP",
             notes = null,
         )
 
         assertEquals(
-            Duration.ofHours(1),
-            activeSleepElapsedDuration(
-                sleep = sleep,
-                lastSyncAt = lastSyncAt,
-                now = now,
-            ),
+            Duration.ofHours(1).plusMinutes(31),
+            activeSleepElapsedDuration(sleep = sleep, now = now),
         )
     }
 }
