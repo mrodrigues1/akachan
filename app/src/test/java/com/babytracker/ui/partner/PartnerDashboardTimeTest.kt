@@ -82,6 +82,33 @@ class PartnerDashboardTimeTest {
     }
 
     @Test
+    fun `paused active feeding duration freezes at the pause moment`() {
+        val startedAt = Instant.parse("2026-05-12T20:15:00Z")
+        val pausedAt = Instant.parse("2026-05-12T20:18:06Z")
+        // now is well past the pause, but the share is still fresh — elapsed must not keep ticking.
+        val now = Instant.parse("2026-05-12T20:25:00Z")
+        val session = SessionSnapshot(
+            id = 1L,
+            startTime = startedAt.toEpochMilli(),
+            endTime = null,
+            startingSide = "LEFT",
+            switchTime = null,
+            pausedDurationMs = 0L,
+            notes = null,
+            pausedAtMs = pausedAt.toEpochMilli(),
+        )
+
+        assertEquals(
+            Duration.ofMinutes(3).plusSeconds(6),
+            activeSessionElapsedDuration(
+                session = session,
+                lastSyncAt = now,
+                now = now,
+            ),
+        )
+    }
+
+    @Test
     fun `diaper count rolls over at local midnight`() {
         val zone = java.time.ZoneId.of("America/Sao_Paulo")
         val today = java.time.LocalDate.of(2026, 5, 12)

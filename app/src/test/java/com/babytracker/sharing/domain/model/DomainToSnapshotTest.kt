@@ -1,6 +1,8 @@
 package com.babytracker.sharing.domain.model
 
 import com.babytracker.domain.model.BottleFeed
+import com.babytracker.domain.model.BreastSide
+import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.FeedAuthor
@@ -117,6 +119,19 @@ class DomainToSnapshotTest {
         assertEquals("client-1", snapshot.clientId)
         assertEquals("PARTNER", snapshot.author)
         assertEquals("after nap", snapshot.notes)
+    }
+
+    @Test
+    fun `breastfeeding session snapshot carries pausedAt as epoch millis`() {
+        val running = BreastfeedingSession(
+            id = 1,
+            startTime = Instant.ofEpochMilli(1000),
+            startingSide = BreastSide.LEFT,
+        )
+        val paused = running.copy(pausedAt = Instant.ofEpochMilli(4200))
+
+        assertNull(running.toSnapshot().pausedAtMs)
+        assertEquals(4200L, paused.toSnapshot().pausedAtMs)
     }
 
     @Test

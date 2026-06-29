@@ -689,7 +689,7 @@ private fun PartnerBreastfeedingTile(
                 exit = fadeOut(tween(120)) + scaleOut(targetScale = 0.82f, animationSpec = tween(120)),
             ) {
                 ActiveStatusBadge(
-                    paused = false,
+                    paused = activeSession?.isPaused == true,
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
@@ -699,14 +699,16 @@ private fun PartnerBreastfeedingTile(
         if (activeSession != null) {
             // Tick the elapsed stopwatch every second so it reads live like the parent Home screen,
             // not once a minute with the rest of the dashboard. The staleness gate still freezes it
-            // at lastSyncAt once the share falls behind.
+            // at lastSyncAt once the share falls behind; a paused session freezes outright.
             val elapsed by produceState(
                 initialValue =
                     activeSessionElapsedDuration(activeSession, lastSyncAt, Instant.ofEpochMilli(nowProvider())),
                 activeSession.startTime,
                 activeSession.pausedDurationMs,
+                activeSession.pausedAtMs,
                 lastSyncAt,
             ) {
+                if (activeSession.isPaused) return@produceState
                 while (true) {
                     delay(ONE_SECOND_MS)
                     value = activeSessionElapsedDuration(activeSession, lastSyncAt, Instant.ofEpochMilli(nowProvider()))
@@ -1595,13 +1597,15 @@ internal fun activeSessionElapsedDuration(
     session: SessionSnapshot,
     lastSyncAt: Instant,
     now: Instant,
-): Duration =
-    Duration.between(
-        Instant.ofEpochMilli(session.startTime),
-        activeSessionReferenceTime(lastSyncAt = lastSyncAt, now = now),
-    )
+): Duration {
+    // A paused session freezes at the moment it was paused (mirrors Home's ActiveFeedingTimer);
+    // a running one tracks the staleness-gated reference time.
+    val reference = session.pausedAtMs?.let { Instant.ofEpochMilli(it) }
+        ?: activeSessionReferenceTime(lastSyncAt = lastSyncAt, now = now)
+    return Duration.between(Instant.ofEpochMilli(session.startTime), reference)
         .minusMillis(session.pausedDurationMs)
         .coerceAtLeast(Duration.ZERO)
+}
 
 internal fun activeSleepElapsedDuration(
     sleep: SleepSnapshot,

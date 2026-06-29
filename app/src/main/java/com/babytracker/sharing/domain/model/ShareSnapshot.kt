@@ -33,7 +33,12 @@ data class SessionSnapshot(
     val switchTime: Long?,
     val pausedDurationMs: Long,
     val notes: String?,
-)
+    // Epoch ms the session was paused at, null when running. Lets the partner freeze the live
+    // timer mid-pause exactly like Home; absent on snapshots from older primaries (defaults null).
+    val pausedAtMs: Long? = null,
+) {
+    val isPaused: Boolean get() = pausedAtMs != null
+}
 
 data class SleepSnapshot(
     val id: Long,

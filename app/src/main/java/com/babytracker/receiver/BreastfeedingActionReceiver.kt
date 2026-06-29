@@ -16,6 +16,7 @@ import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUs
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.util.NotificationHelper
 import com.babytracker.util.goAsyncWithTimeout
 import dagger.hilt.android.AndroidEntryPoint
@@ -34,6 +35,7 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
     @Inject lateinit var pauseSession: PauseBreastfeedingSessionUseCase
     @Inject lateinit var resumeSession: ResumeBreastfeedingSessionUseCase
     @Inject lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
+    @Inject lateinit var syncToFirestore: SyncToFirestoreUseCase
 
     companion object {
         const val ACTION = "com.babytracker.BREASTFEEDING_ACTION"
@@ -79,6 +81,7 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
                 notificationCoordinator.cancelPerBreastScheduled()
                 showSwitchedActiveNotification(context, session)
             }
+            syncSessions()
         }
         NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
     }
@@ -104,6 +107,7 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
             pauseSession(session)
             notificationCoordinator.cancelScheduled()
             notificationCoordinator.showPaused(session, pausedAt)
+            syncSessions()
         }
     }
 
@@ -114,6 +118,7 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
             resumeSession(session)
             val totalPausedMs = notificationCoordinator.rescheduleAfterResume(session, resumeInstant)
             notificationCoordinator.showRunning(session, pausedDurationMs = totalPausedMs)
+            syncSessions()
         }
     }
 
@@ -122,6 +127,7 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
         if (session?.id == sessionId) {
             stopSession(session)
             notificationCoordinator.cancelScheduled()
+            syncSessions()
         }
         notificationCoordinator.cancelPostedSessionNotifications()
     }
@@ -149,6 +155,13 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
             maxTotalMinutes = settings.maxTotalFeedMinutes,
             canSwitchSides = session.switchTime == null
         )
+    }
+
+    // Mirror BreastfeedingViewModel: push the session change to the partner snapshot so notification
+    // quick-actions reach the partner like in-app edits do. No-op unless this device is the sharing
+    // primary; best-effort so a sync failure never breaks the notification action.
+    private suspend fun syncSessions() {
+        runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
     }
 
     private suspend fun breastfeedingActiveNotificationSettings(): BreastfeedingActiveNotificationSettings =

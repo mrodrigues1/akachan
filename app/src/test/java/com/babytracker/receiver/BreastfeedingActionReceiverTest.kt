@@ -12,6 +12,7 @@ import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUs
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.util.NotificationHelper
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -41,6 +42,7 @@ class BreastfeedingActionReceiverTest {
     private lateinit var pauseSession: PauseBreastfeedingSessionUseCase
     private lateinit var resumeSession: ResumeBreastfeedingSessionUseCase
     private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
+    private lateinit var syncToFirestore: SyncToFirestoreUseCase
     private lateinit var receiver: BreastfeedingActionReceiver
     private val context = mockk<Context>(relaxed = true)
 
@@ -60,6 +62,7 @@ class BreastfeedingActionReceiverTest {
         pauseSession = mockk()
         resumeSession = mockk()
         notificationCoordinator = mockk()
+        syncToFirestore = mockk()
         receiver = BreastfeedingActionReceiver()
         receiver.repository = repository
         receiver.feedSettingsRepository = feedSettingsRepository
@@ -69,8 +72,10 @@ class BreastfeedingActionReceiverTest {
         receiver.pauseSession = pauseSession
         receiver.resumeSession = resumeSession
         receiver.notificationCoordinator = notificationCoordinator
+        receiver.syncToFirestore = syncToFirestore
 
         coEvery { repository.getActiveSession() } returns flowOf(activeSession)
+        coEvery { syncToFirestore(any()) } returns Unit
         every { settingsRepository.getRichNotificationsEnabled() } returns MutableStateFlow(false)
         every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns MutableStateFlow(30)
         coEvery { pauseSession(any()) } returns Unit
@@ -136,6 +141,7 @@ class BreastfeedingActionReceiverTest {
         verify(exactly = 1) { notificationCoordinator.cancelScheduled() }
         verify(exactly = 1) { notificationCoordinator.cancelPostedSessionNotifications() }
         verify(exactly = 0) { notificationCoordinator.cancelAllSessionNotifications() }
+        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
     }
 
     @Test
@@ -146,6 +152,7 @@ class BreastfeedingActionReceiverTest {
         verify(exactly = 0) { notificationCoordinator.cancelScheduled() }
         verify(exactly = 1) { notificationCoordinator.cancelPostedSessionNotifications() }
         verify(exactly = 0) { notificationCoordinator.cancelAllSessionNotifications() }
+        coVerify(exactly = 0) { syncToFirestore(any()) }
     }
 
     @Test
@@ -155,6 +162,7 @@ class BreastfeedingActionReceiverTest {
         coVerify { pauseSession(activeSession) }
         verify { notificationCoordinator.cancelScheduled() }
         coVerify { notificationCoordinator.showPaused(activeSession, any()) }
+        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
     }
 
     @Test
@@ -164,6 +172,7 @@ class BreastfeedingActionReceiverTest {
         coVerify(exactly = 0) { pauseSession(any()) }
         verify(exactly = 0) { notificationCoordinator.cancelScheduled() }
         coVerify(exactly = 0) { notificationCoordinator.showPaused(any(), any()) }
+        coVerify(exactly = 0) { syncToFirestore(any()) }
     }
 
     @Test
@@ -189,6 +198,7 @@ class BreastfeedingActionReceiverTest {
         coVerify { resumeSession(pausedSession) }
         coVerify { notificationCoordinator.rescheduleAfterResume(pausedSession, any()) }
         coVerify { notificationCoordinator.showRunning(pausedSession, pausedDurationMs = 30_000L) }
+        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
     }
 
     @Test

@@ -420,6 +420,48 @@ class PartnerDashboardScreenTest {
     }
 
     @Test
+    fun pausedActiveFeedingTimerDoesNotTick() {
+        val initialNow = Instant.parse("2026-05-12T06:00:00Z")
+        var currentTimeMs = initialNow.toEpochMilli()
+        val pausedSession = SessionSnapshot(
+            id = 1L,
+            startTime = initialNow.minus(Duration.ofMinutes(5)).toEpochMilli(),
+            endTime = null,
+            startingSide = "LEFT",
+            switchTime = null,
+            pausedDurationMs = 0L,
+            notes = null,
+            pausedAtMs = initialNow.minus(Duration.ofMinutes(2)).toEpochMilli(),
+        )
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            PartnerDashboardScreen(
+                nowProvider = { currentTimeMs },
+                viewModel = buildViewModel(
+                    makeSnapshot(lastSyncAt = initialNow, sessions = listOf(pausedSession)),
+                ),
+                bottleFeedViewModel = buildBottleFeedViewModel(),
+                sleepViewModel = buildSleepViewModel(),
+            )
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("3m 0s").assertIsDisplayed()
+        // The status badge must read paused, not "Live", while the timer is frozen.
+        composeRule.onNodeWithText("Paused").assertIsDisplayed()
+        composeRule.onNodeWithText("Live").assertDoesNotExist()
+
+        currentTimeMs += Duration.ofSeconds(5).toMillis()
+        composeRule.mainClock.advanceTimeBy(1_001L)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("3m 0s").assertIsDisplayed()
+        composeRule.onNodeWithText("3m 5s").assertDoesNotExist()
+        composeRule.mainClock.autoAdvance = true
+    }
+
+    @Test
     fun staleActiveSessionCopyDoesNotPresentSharedDataAsLive() {
         val lastSyncAt = fixedNow.minus(Duration.ofMinutes(31))
         val activeSession = SessionSnapshot(

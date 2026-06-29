@@ -27,6 +27,7 @@ fun BreastfeedingSession.toSnapshot(): SessionSnapshot = SessionSnapshot(
     switchTime = switchTime?.toEpochMilli(),
     pausedDurationMs = pausedDurationMs,
     notes = notes,
+    pausedAtMs = pausedAt?.toEpochMilli(),
 )
 
 fun BottleFeed.toSnapshot(): BottleFeedSnapshot = BottleFeedSnapshot(
