@@ -474,7 +474,6 @@ private fun PartnerTileGrid(
             PartnerSleepTile(
                 activeSleep = activeSleep,
                 lastCompletedSleep = lastCompletedSleep,
-                lastSyncAt = snapshot.lastSyncAt,
                 now = now,
                 nowProvider = nowProvider,
                 onClick = onOpenSleepSheet,
@@ -549,7 +548,6 @@ private fun PartnerTileGrid(
 private fun PartnerSleepTile(
     activeSleep: SleepSnapshot?,
     lastCompletedSleep: SleepSnapshot?,
-    lastSyncAt: Instant,
     now: Instant,
     nowProvider: () -> Long,
     onClick: () -> Unit,
@@ -600,17 +598,15 @@ private fun PartnerSleepTile(
         },
     ) {
         if (activeSleep != null) {
-            // Tick the elapsed stopwatch every second so it reads live like the parent Home screen,
-            // not once a minute with the rest of the dashboard. The staleness gate still freezes it
-            // at lastSyncAt once the share falls behind.
+            // Tick the elapsed stopwatch every second so it reads live like the parent Home screen
+            // and the widget, counting from the shared sleep start time regardless of share staleness.
             val elapsed by produceState(
-                initialValue = activeSleepElapsedDuration(activeSleep, lastSyncAt, Instant.ofEpochMilli(nowProvider())),
+                initialValue = activeSleepElapsedDuration(activeSleep, Instant.ofEpochMilli(nowProvider())),
                 activeSleep.startTime,
-                lastSyncAt,
             ) {
                 while (true) {
                     delay(ONE_SECOND_MS)
-                    value = activeSleepElapsedDuration(activeSleep, lastSyncAt, Instant.ofEpochMilli(nowProvider()))
+                    value = activeSleepElapsedDuration(activeSleep, Instant.ofEpochMilli(nowProvider()))
                 }
             }
             Text(
@@ -1609,13 +1605,15 @@ internal fun activeSessionElapsedDuration(
 
 internal fun activeSleepElapsedDuration(
     sleep: SleepSnapshot,
-    lastSyncAt: Instant,
     now: Instant,
 ): Duration =
-    Duration.between(
-        Instant.ofEpochMilli(sleep.startTime),
-        activeSessionReferenceTime(lastSyncAt = lastSyncAt, now = now),
-    ).coerceAtLeast(Duration.ZERO)
+    // A sleep stopwatch counts from an absolute, already-shared start time that never goes stale,
+    // so it always reads live now - startTime — matching the parent Home screen, the widget, and
+    // history — instead of freezing at lastSyncAt the way short-lived feed sessions do. Freezing
+    // here was the root cause of the partner dashboard timer showing 0s, a wrong value, or never
+    // ticking once the share fell behind the 30-minute staleness threshold.
+    Duration.between(Instant.ofEpochMilli(sleep.startTime), now)
+        .coerceAtLeast(Duration.ZERO)
 
 private fun activeSessionReferenceTime(
     lastSyncAt: Instant,
