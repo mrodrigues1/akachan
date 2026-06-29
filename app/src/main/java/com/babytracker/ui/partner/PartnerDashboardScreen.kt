@@ -1,6 +1,7 @@
 package com.babytracker.ui.partner
 
 import android.content.Context
+import android.content.res.Resources
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
@@ -59,6 +60,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -875,16 +877,17 @@ private fun PartnerGrowthTile(
     modifier: Modifier = Modifier,
 ) {
     val colors = growthColors()
-    val context = LocalContext.current
+    // LocalResources (not LocalContext.getString) so the labels invalidate on a configuration change.
+    val resources = LocalResources.current
     // Latest value for every measurement category, matching what the old summary card surfaced — the
     // tile is read-only, so dropping categories would hide data the partner can no longer reach.
-    val lines = remember(growth, context) {
+    val lines = remember(growth, resources) {
         GrowthType.entries.mapNotNull { type ->
             val latest = growth.filter { it.type == type.name }.maxByOrNull { it.takenAtMs }
             latest?.let {
-                context.getString(
+                resources.getString(
                     R.string.partner_growth_label,
-                    type.partnerLabel(context),
+                    type.partnerLabel(resources),
                     formatGrowthValue(type, it.valueCanonical),
                 )
             }
@@ -1511,10 +1514,10 @@ private fun feedingSideLabel(session: SessionSnapshot, context: Context): String
     }
 }
 
-private fun GrowthType.partnerLabel(context: Context): String = when (this) {
-    GrowthType.WEIGHT -> context.getString(R.string.growth_tab_weight)
-    GrowthType.LENGTH -> context.getString(R.string.growth_tab_length)
-    GrowthType.HEAD_CIRC -> context.getString(R.string.growth_tab_head)
+private fun GrowthType.partnerLabel(resources: Resources): String = when (this) {
+    GrowthType.WEIGHT -> resources.getString(R.string.growth_tab_weight)
+    GrowthType.LENGTH -> resources.getString(R.string.growth_tab_length)
+    GrowthType.HEAD_CIRC -> resources.getString(R.string.growth_tab_head)
 }
 
 private fun formatGrowthValue(type: GrowthType, valueCanonical: Long): String = when (type) {
