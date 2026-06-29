@@ -11,6 +11,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -65,6 +66,20 @@ class ProcessFeedOpsUseCase @Inject constructor(
                 if (ops.isEmpty()) return@collect
                 processBatchWithRetry(code, ops)
             }
+    }
+
+    /**
+     * One-shot drain for the background worker: fetches the current pending ops once from the
+     * server and runs them through the same [processBatchWithRetry] path as the live collector.
+     * Server-sourced on purpose — the listener's first emission is cache-first and could miss the
+     * very op a partner just wrote. No-op unless this device is the primary with an active share code.
+     */
+    suspend fun drainOnce() {
+        val mode = settingsRepository.getAppMode().first()
+        val code = settingsRepository.getShareCode().first() ?: return
+        if (mode != AppMode.PRIMARY) return
+        val ops = service.getFeedOps(code)
+        if (ops.isNotEmpty()) processBatchWithRetry(ShareCode(code), ops)
     }
 
     /**

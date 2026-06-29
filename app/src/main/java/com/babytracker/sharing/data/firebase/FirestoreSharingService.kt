@@ -17,6 +17,7 @@ import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.Source
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -247,6 +248,17 @@ class FirestoreSharingService @Inject constructor(
         }
     }
 
+    /**
+     * One-shot fetch of all pending feed ops for the background drain worker. Forces
+     * [Source.SERVER] so a freshly-written op isn't missed by a cache-first read: the very op
+     * the drain exists to apply may not be in this device's local cache yet (it woke from the
+     * background and never opened a live listener). Throws if the server is unreachable; the
+     * worker treats that as retryable.
+     */
+    suspend fun getFeedOps(code: String): List<FeedOp> =
+        shareDoc(code).collection(FEED_OPS).get(Source.SERVER).await()
+            .documents.mapNotNull { doc -> mapToFeedOp(doc.id, doc.data ?: return@mapNotNull null) }
+
     companion object {
         internal const val SHARES = "shares"
         internal const val PARTNERS = "partners"
@@ -308,6 +320,12 @@ suspend fun FirestoreSharingService.deleteSleepOps(code: String, opIds: List<Str
         batch.commit().await()
     }
 }
+
+/** One-shot server fetch of all pending sleep ops, mirroring [FirestoreSharingService.getFeedOps]
+ *  for the background drain worker. Server-sourced so a just-written op isn't missed by a cache read. */
+suspend fun FirestoreSharingService.getSleepOps(code: String): List<SleepOp> =
+    sleepOps(code).get(Source.SERVER).await()
+        .documents.mapNotNull { doc -> mapToSleepOp(doc.id, doc.data ?: return@mapNotNull null) }
 
 /** A share-document emission with its cache origin, so callers can distinguish a server-confirmed
  *  absence (document gone) from a cache-origin one (cold offline start). */
