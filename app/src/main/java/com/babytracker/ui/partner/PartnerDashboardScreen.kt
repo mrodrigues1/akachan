@@ -232,6 +232,8 @@ fun PartnerDashboardScreen(
                     DashboardContent(
                         snapshot = snapshot,
                         activeSleep = sleepState.active,
+                        lastCompletedSleep = sleepState.lastCompleted,
+                        mostRecentSleep = sleepState.mostRecent,
                         error = uiState.error,
                         onClearError = viewModel::clearError,
                         onLogBottle = {
@@ -339,6 +341,8 @@ private fun BabyAgeSubtitle(
 private fun DashboardContent(
     snapshot: ShareSnapshot,
     activeSleep: SleepSnapshot?,
+    lastCompletedSleep: SleepSnapshot?,
+    mostRecentSleep: SleepSnapshot?,
     error: String?,
     onClearError: () -> Unit,
     onLogBottle: () -> Unit,
@@ -363,10 +367,6 @@ private fun DashboardContent(
     val lastFeeding = remember(snapshot.sessions) { snapshot.sessions.firstOrNull { it.endTime != null } }
     val completedSessions =
         remember(snapshot.sessions) { snapshot.sessions.filter { it.endTime != null }.take(3) }
-    val lastSleep = remember(snapshot.sleepRecords) { snapshot.sleepRecords.firstOrNull() }
-    val lastCompletedSleep = remember(snapshot.sleepRecords) {
-        snapshot.sleepRecords.firstOrNull { it.endTime != null }
-    }
     val lastBottle = remember(snapshot.bottleFeeds) { snapshot.bottleFeeds.maxByOrNull { it.timestamp } }
     val hasSharedRecords = remember(snapshot) {
         snapshot.sessions.isNotEmpty() ||
@@ -438,7 +438,7 @@ private fun DashboardContent(
             Spacer(modifier = Modifier.height(4.dp))
             DashboardTimelineSections(
                 completedSessions = completedSessions,
-                lastSleep = lastSleep,
+                lastSleep = mostRecentSleep,
                 bottleFeeds = snapshot.bottleFeeds,
                 baby = snapshot.baby,
                 now = now,

@@ -12,7 +12,7 @@ import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.domain.model.mergeSleepHistory
 import com.babytracker.sharing.domain.model.reconcilePendingOps
-import com.babytracker.sharing.domain.model.sleepEditReflected
+import com.babytracker.sharing.domain.model.sleepHistoryReflected
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -27,8 +27,9 @@ import javax.inject.Inject
 
 /**
  * Mirrors [ObservePartnerFeedHistoryUseCase] for sleep over the LIVE snapshot stream: reconciles the
- * partner's own pending edit ops (retaining an op deleted before its snapshot update) before the
- * existing [mergeSleepHistory], which overlays edit (UPDATE) ops only.
+ * partner's own pending ops (retaining an op deleted before its snapshot update) before
+ * [mergeSleepHistory], which overlays the partner's own START/STOP/UPDATE ops so a session the partner
+ * just started or ended shows immediately, ahead of the primary's re-published snapshot.
  */
 class ObservePartnerSleepHistoryUseCase @Inject constructor(
     private val service: FirestoreSharingService,
@@ -47,7 +48,7 @@ class ObservePartnerSleepHistoryUseCase @Inject constructor(
                     records to ops
                 }.scan(ReconcileState()) { state, (records, liveOps) ->
                     val reconciled = reconcilePendingOps(
-                        isReflected = { sleepEditReflected(it, records) },
+                        isReflected = { sleepHistoryReflected(it, records) },
                         liveOps = liveOps,
                         tracked = state.reconciled.nextTracked,
                         nowMs = now().toEpochMilli(),

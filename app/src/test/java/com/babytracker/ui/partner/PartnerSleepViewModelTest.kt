@@ -211,6 +211,33 @@ class PartnerSleepViewModelTest {
     }
 
     @Test
+    fun `a stopped session the primary has not yet published shows as the last completed sleep`() = runTest {
+        val t = now.toEpochMilli()
+        val startOp = SleepOp(
+            opId = "op-start", action = SleepOpAction.START, entryClientId = "c",
+            authorUid = "uid", createdAtMs = t - 1_000, startTimeMs = t - 1_000, sleepType = "NAP",
+        )
+        val stopOp = SleepOp(
+            opId = "op-stop", action = SleepOpAction.STOP, entryClientId = "c",
+            authorUid = "uid", createdAtMs = t, endTimeMs = t,
+        )
+        every { settingsRepository.getShareCode() } returns flowOf("CODE")
+        coEvery { service.signInAnonymously() } returns "uid"
+        every { service.observeSleepOps("CODE", "uid") } returns flowOf(listOf(startOp, stopOp))
+
+        val vm = buildViewModel()
+        vm.onSleepRecordsAvailable(emptyList()) // primary hasn't published the session yet
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.active) // no longer active (start then stop)
+        val completed = vm.uiState.value.lastCompleted
+        assertNotNull(completed)
+        assertEquals("c", completed?.clientId)
+        assertEquals(t, completed?.endTime)
+        assertEquals("c", vm.uiState.value.mostRecent?.clientId)
+    }
+
+    @Test
     fun `revoked access surfaces an accessRevoked event`() = runTest {
         coEvery { startSleep(any()) } throws PartnerAccessRevokedException("revoked")
         val vm = buildViewModel()
