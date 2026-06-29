@@ -13,7 +13,7 @@ First write path from the partner device to the primary. The partner can log bot
 | Decision | Choice |
 |---|---|
 | Stash interaction | Consume-only: partner selects an active bag while logging a breast-milk feed; bag is marked used on the primary's stash. No adding/editing bags. |
-| Sync freshness | Realtime while the primary app is foregrounded (Firestore listener) + automatic catch-up on app open. No background sync, no FCM. |
+| Sync freshness | Realtime while the primary app is foregrounded (Firestore listener) + automatic catch-up on app open + a ~15-min WorkManager background drain while the primary is closed ([background-drain design](../docs/superpowers/specs/2026-06-29-partner-op-background-drain-design.md)). No FCM/push. |
 | Ownership | Sticks to creator. Primary editing a partner entry does not change ownership; the partner can still edit/delete it. Conflicts resolve last-write-wins per entry. |
 | Offline | Partner writes queue via Firestore's built-in offline persistence and sync when network returns. |
 | Attribution UX | Partner-created entries show a "Partner" badge in feed history on both devices. Primary entries stay unlabeled. |
@@ -127,7 +127,7 @@ Note: rules can verify who wrote an op, but cannot see Room state — they canno
 
 ### Primary (inbound — new)
 
-- `ObserveFeedOpsUseCase` (`sharing/usecase/`): Firestore listener on `feedOps`, active only while the app is foregrounded in PRIMARY mode (lifecycle-aware). Catch-up on app open is automatic — the listener replays all docs present.
+- `ObserveFeedOpsUseCase` (`sharing/usecase/`): Firestore listener on `feedOps`, active only while the app is foregrounded in PRIMARY mode (lifecycle-aware). Catch-up on app open is automatic — the listener replays all docs present. A ~15-min `PartnerOpDrainWorker` (WorkManager) performs a one-shot, server-sourced drain of the same inbox while the app is closed, so a partner op no longer waits for the next app open — see the [background-drain design](../docs/superpowers/specs/2026-06-29-partner-op-background-drain-design.md).
 - `ApplyFeedOpUseCase` per op:
   - **Ownership authorization (blocking requirement):** the primary is the authoritative enforcement point — Firestore rules cannot inspect Room ownership, and the snapshot exposes every entry's `clientId` to the partner, so a buggy or malicious connected client can forge an update/delete op targeting an OWNER entry. Update/delete ops are applied **only if the existing entry has `author == PARTNER`**; ops targeting OWNER entries are dropped and logged. Create ops force `author = PARTNER` regardless of payload.
   - **create** → upsert-by-`clientId` `BottleFeed(author = PARTNER)`; if the `clientId` already exists with `author == OWNER`, drop the op (forged upsert). If `consumedBagId` refers to a still-active bag → mark it used. If the bag was consumed/deleted meanwhile → insert the feed without the link (feed truth outranks the stash link).
