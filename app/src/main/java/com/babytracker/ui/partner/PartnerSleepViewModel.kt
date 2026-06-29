@@ -14,8 +14,10 @@ import com.babytracker.sharing.data.firebase.observeSleepOps
 import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.domain.model.mergeActiveSleep
+import com.babytracker.sharing.domain.model.mergeSleepHistory
 import com.babytracker.sharing.domain.model.reconcilePendingOps
 import com.babytracker.sharing.domain.model.sleepActiveReflected
+import com.babytracker.sharing.domain.model.sleepHistoryReflected
 import com.babytracker.sharing.usecase.PartnerAccessRevokedException
 import com.babytracker.sharing.usecase.StartPartnerSleepUseCase
 import com.babytracker.sharing.usecase.StopPartnerSleepUseCase
@@ -47,6 +49,11 @@ data class PartnerSleepEditorState(
 
 data class PartnerSleepUiState(
     val active: SleepSnapshot? = null,
+    // Sleep records overlaid with the partner's own pending START/STOP ops so a session the partner just
+    // started/ended shows on the dashboard ahead of the primary's re-published snapshot. lastCompleted =
+    // most recent ended session (tile); mostRecent = most recent of any (the timeline's "Last sleep").
+    val lastCompleted: SleepSnapshot? = null,
+    val mostRecent: SleepSnapshot? = null,
     val stopping: Boolean = false,
     // The active session was started by the partner and can be edited from the dashboard.
     val canEditActive: Boolean = false,
@@ -77,6 +84,9 @@ class PartnerSleepViewModel @Inject constructor(
     private var snapshotRecords: List<SleepSnapshot> = emptyList()
     private var liveOps: List<SleepOp> = emptyList()
     private var trackedOps: List<SleepOp> = emptyList()
+    // Separate tracked state for the history overlay: its STOP-reflected rule differs from the active
+    // overlay's (see sleepHistoryReflected), so it must reconcile independently.
+    private var trackedHistoryOps: List<SleepOp> = emptyList()
 
     init {
         viewModelScope.launch {
@@ -117,9 +127,22 @@ class PartnerSleepViewModel @Inject constructor(
         val snapshotActive = snapshotRecords.firstOrNull { it.endTime == null }
         val merged = mergeActiveSleep(snapshotActive, reconciled.effectiveOps, now().toEpochMilli())
         val session = merged.session
+
+        val reconciledHistory = reconcilePendingOps(
+            isReflected = { sleepHistoryReflected(it, snapshotRecords) },
+            liveOps = liveOps,
+            tracked = trackedHistoryOps,
+            nowMs = now().toEpochMilli(),
+        )
+        trackedHistoryOps = reconciledHistory.nextTracked
+        val historyEntries =
+            mergeSleepHistory(snapshotRecords, reconciledHistory.effectiveOps, now().toEpochMilli()).entries
+
         _uiState.update {
             it.copy(
                 active = session,
+                lastCompleted = historyEntries.firstOrNull { entry -> entry.endTime != null },
+                mostRecent = historyEntries.firstOrNull(),
                 stopping = merged.stopping,
                 canEditActive = session != null &&
                     session.startedBy == SleepAuthor.PARTNER.name &&

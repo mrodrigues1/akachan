@@ -86,16 +86,17 @@ class MergePartnerSleepTest {
         assertNull(merged.session)
     }
 
-    // --- mergeSleepEdit ---
+    // --- mergeSleepHistory: edits (UPDATE) ---
 
     @Test
-    fun `pending update overlays edited fields on the matching session`() {
+    fun `update overlays edited fields on the matching snapshot row`() {
         val session = activeSnap("cid").copy(endTime = 95_000L, sleepType = "NAP")
-        val edited = mergeSleepEdit(
-            session,
-            listOf(op(SleepOpAction.UPDATE, "cid", startTimeMs = 91_000L, endTimeMs = 94_000L, sleepType = "NIGHT_SLEEP", notes = "fixed")),
-            now,
+        val merged = mergeSleepHistory(
+            snapshotRecords = listOf(session),
+            pendingOps = listOf(op(SleepOpAction.UPDATE, "cid", startTimeMs = 91_000L, endTimeMs = 94_000L, sleepType = "NIGHT_SLEEP", notes = "fixed")),
+            nowMs = now,
         )
+        val edited = merged.entries.single()
         assertEquals(91_000L, edited.startTime)
         assertEquals(94_000L, edited.endTime)
         assertEquals("NIGHT_SLEEP", edited.sleepType)
@@ -103,31 +104,53 @@ class MergePartnerSleepTest {
     }
 
     @Test
-    fun `no pending update reverts to the snapshot`() {
+    fun `update for another session is ignored`() {
         val session = activeSnap("cid")
-        assertEquals(session, mergeSleepEdit(session, emptyList(), now))
+        val merged = mergeSleepHistory(
+            snapshotRecords = listOf(session),
+            pendingOps = listOf(op(SleepOpAction.UPDATE, "other", startTimeMs = 1L, sleepType = "NIGHT_SLEEP")),
+            nowMs = now,
+        )
+        assertEquals(session, merged.entries.single())
     }
 
     @Test
-    fun `stale pending update reverts to the snapshot`() {
+    fun `stale update past the ttl is ignored`() {
         val session = activeSnap("cid")
-        val edited = mergeSleepEdit(
-            session,
-            listOf(op(SleepOpAction.UPDATE, "cid", createdAtMs = 0L, startTimeMs = 1L, sleepType = "NIGHT_SLEEP")),
-            now,
+        val merged = mergeSleepHistory(
+            snapshotRecords = listOf(session),
+            pendingOps = listOf(op(SleepOpAction.UPDATE, "cid", createdAtMs = 0L, startTimeMs = 1L, sleepType = "NIGHT_SLEEP")),
+            nowMs = now,
         )
-        assertEquals(session, edited)
+        assertEquals(session, merged.entries.single())
     }
 
     @Test
-    fun `pending update for another session is ignored`() {
-        val session = activeSnap("cid")
-        val edited = mergeSleepEdit(
-            session,
-            listOf(op(SleepOpAction.UPDATE, "other", startTimeMs = 1L, sleepType = "NIGHT_SLEEP")),
-            now,
+    fun `an update before a stop does not reopen the completed session (op order matches primary)`() {
+        val session = activeSnap("cid") // active: startTime 90_000, endTime null
+        val merged = mergeSleepHistory(
+            snapshotRecords = listOf(session),
+            pendingOps = listOf(
+                op(SleepOpAction.UPDATE, "cid", createdAtMs = 95_000L, startTimeMs = 90_000L, endTimeMs = null, sleepType = "NAP"),
+                op(SleepOpAction.STOP, "cid", createdAtMs = 96_000L, endTimeMs = 96_000L),
+            ),
+            nowMs = now,
         )
-        assertEquals(session, edited)
+        assertEquals(96_000L, merged.entries.single().endTime)
+    }
+
+    @Test
+    fun `a stop before a later update reflects the edit (last-write-wins)`() {
+        val session = activeSnap("cid")
+        val merged = mergeSleepHistory(
+            snapshotRecords = listOf(session),
+            pendingOps = listOf(
+                op(SleepOpAction.STOP, "cid", createdAtMs = 95_000L, endTimeMs = 95_000L),
+                op(SleepOpAction.UPDATE, "cid", createdAtMs = 96_000L, startTimeMs = 90_000L, endTimeMs = 99_000L, sleepType = "NAP"),
+            ),
+            nowMs = now,
+        )
+        assertEquals(99_000L, merged.entries.single().endTime)
     }
 
     // --- mergeSleepHistory ---
@@ -157,5 +180,66 @@ class MergePartnerSleepTest {
             nowMs = now,
         )
         assertEquals(setOf("op-a-UPDATE"), merged.pendingOpIds)
+    }
+
+    @Test
+    fun `history synthesizes a session from a pending start with no snapshot record`() {
+        val merged = mergeSleepHistory(
+            snapshotRecords = emptyList(),
+            pendingOps = listOf(op(SleepOpAction.START, "new", startTimeMs = 99_000L, sleepType = "NIGHT_SLEEP")),
+            nowMs = now,
+        )
+        val entry = merged.entries.single()
+        assertEquals("new", entry.clientId)
+        assertEquals(99_000L, entry.startTime)
+        assertNull(entry.endTime)
+        assertEquals("NIGHT_SLEEP", entry.sleepType)
+        assertEquals("PARTNER", entry.startedBy)
+    }
+
+    @Test
+    fun `history completes a snapshot-active session from a pending stop`() {
+        val merged = mergeSleepHistory(
+            snapshotRecords = listOf(activeSnap("a")), // startTime 90_000, endTime null
+            pendingOps = listOf(op(SleepOpAction.STOP, "a", endTimeMs = now)),
+            nowMs = now,
+        )
+        assertEquals(now, merged.entries.single().endTime)
+    }
+
+    @Test
+    fun `history synthesizes start-then-stop as a completed session (primary never processed it)`() {
+        val merged = mergeSleepHistory(
+            snapshotRecords = emptyList(),
+            pendingOps = listOf(
+                op(SleepOpAction.START, "c", createdAtMs = 98_000L, startTimeMs = 98_000L, sleepType = "NAP"),
+                op(SleepOpAction.STOP, "c", createdAtMs = 99_000L, endTimeMs = 99_000L),
+            ),
+            nowMs = now,
+        )
+        val entry = merged.entries.single()
+        assertEquals("c", entry.clientId)
+        assertEquals(98_000L, entry.startTime)
+        assertEquals(99_000L, entry.endTime)
+    }
+
+    @Test
+    fun `history stop clamps a before-start end time to the start (no negative duration)`() {
+        val merged = mergeSleepHistory(
+            snapshotRecords = listOf(activeSnap("a")), // startTime 90_000
+            pendingOps = listOf(op(SleepOpAction.STOP, "a", endTimeMs = 80_000L)),
+            nowMs = now,
+        )
+        assertEquals(90_000L, merged.entries.single().endTime)
+    }
+
+    @Test
+    fun `history stop on a missing session is ignored`() {
+        val merged = mergeSleepHistory(
+            snapshotRecords = emptyList(),
+            pendingOps = listOf(op(SleepOpAction.STOP, "ghost", endTimeMs = now)),
+            nowMs = now,
+        )
+        assertTrue(merged.entries.isEmpty())
     }
 }

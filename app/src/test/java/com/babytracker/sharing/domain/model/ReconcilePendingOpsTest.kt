@@ -97,4 +97,21 @@ class ReconcilePendingOpsTest {
         // START/STOP are not history edits -> treated as reflected so they never pin the history overlay.
         assertTrue(sleepEditReflected(SleepOp("op-s", SleepOpAction.START, "c1", "uid", t0), emptyList()))
     }
+
+    @Test
+    fun `history start is reflected once the snapshot has the session`() {
+        val op = SleepOp("op-s", SleepOpAction.START, "c1", "uid", t0, startTimeMs = 1_000L, sleepType = "NAP")
+        assertFalse(sleepHistoryReflected(op, emptyList()))
+        assertTrue(sleepHistoryReflected(op, listOf(record("c1", endTime = null))))
+    }
+
+    @Test
+    fun `history stop stays unreflected until the snapshot session is ENDED (not merely gone)`() {
+        val op = SleepOp("op-x", SleepOpAction.STOP, "c1", "uid", t0, endTimeMs = 9_000L)
+        // Unlike sleepActiveReflected: a gone/active session must keep the completed entry pinned so it
+        // doesn't flicker back to active during the primary's delete-op-before-publish-snapshot window.
+        assertFalse(sleepHistoryReflected(op, emptyList())) // gone -> NOT reflected
+        assertFalse(sleepHistoryReflected(op, listOf(record("c1", endTime = null)))) // active -> NOT reflected
+        assertTrue(sleepHistoryReflected(op, listOf(record("c1", endTime = 9_000L)))) // ended -> reflected
+    }
 }
