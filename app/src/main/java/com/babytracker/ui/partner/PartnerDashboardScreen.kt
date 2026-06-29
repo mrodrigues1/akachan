@@ -337,6 +337,25 @@ private fun BabyAgeSubtitle(
     }
 }
 
+/**
+ * Shared data exists if the snapshot has any record OR an optimistic sleep is showing (the partner
+ * started/ended a session before the primary republished). Without the optimistic check the dashboard
+ * would render that sleep AND the "no shared records" empty state at the same time.
+ */
+internal fun hasSharedDashboardRecords(
+    snapshot: ShareSnapshot,
+    activeSleep: SleepSnapshot?,
+    mostRecentSleep: SleepSnapshot?,
+): Boolean = snapshot.sessions.isNotEmpty() ||
+    snapshot.sleepRecords.isNotEmpty() ||
+    snapshot.bottleFeeds.isNotEmpty() ||
+    snapshot.growth.isNotEmpty() ||
+    snapshot.milestones.isNotEmpty() ||
+    snapshot.diapers.isNotEmpty() ||
+    snapshot.doctorVisits.isNotEmpty() ||
+    activeSleep != null ||
+    mostRecentSleep != null
+
 @Composable
 private fun DashboardContent(
     snapshot: ShareSnapshot,
@@ -368,14 +387,8 @@ private fun DashboardContent(
     val completedSessions =
         remember(snapshot.sessions) { snapshot.sessions.filter { it.endTime != null }.take(3) }
     val lastBottle = remember(snapshot.bottleFeeds) { snapshot.bottleFeeds.maxByOrNull { it.timestamp } }
-    val hasSharedRecords = remember(snapshot) {
-        snapshot.sessions.isNotEmpty() ||
-            snapshot.sleepRecords.isNotEmpty() ||
-            snapshot.bottleFeeds.isNotEmpty() ||
-            snapshot.growth.isNotEmpty() ||
-            snapshot.milestones.isNotEmpty() ||
-            snapshot.diapers.isNotEmpty() ||
-            snapshot.doctorVisits.isNotEmpty()
+    val hasSharedRecords = remember(snapshot, activeSleep, mostRecentSleep) {
+        hasSharedDashboardRecords(snapshot, activeSleep, mostRecentSleep)
     }
     val context = LocalContext.current
     val lastSharedText = remember(snapshot.lastSyncAt, nowMs, context) {
