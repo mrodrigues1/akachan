@@ -42,6 +42,23 @@ class HomeTileTitleTest {
         assertFalse("Histórico de mamadas".isWordSplitAt(10))
     }
 
+    @Test
+    fun `long subtitle wraps without ellipsis`() {
+        val subtitle = "Capture os momentos especiais do seu bebê"
+        composeRule.setContent {
+            BabyTrackerTheme {
+                HomeTileStatusText(
+                    text = subtitle,
+                    color = Color.Black,
+                    modifier = Modifier.width(10.dp),
+                )
+            }
+        }
+
+        val result = layoutResultFor(subtitle)
+        assertFalse(result.hasVisualOverflow)
+    }
+
     private fun setTile(
         title: String,
         width: Int,
