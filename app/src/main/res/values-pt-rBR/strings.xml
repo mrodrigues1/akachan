@@ -667,6 +667,7 @@
     <string name="milestone_empty_title">Nenhum momento ainda</string>
     <string name="milestone_empty_subtitle">Toque em + para capturar o primeiro momento do seu bebê: um sorriso, uma risada, um primeiro passo.</string>
     <string name="milestone_card_cd">%1$s. %2$s. Toque para abrir.</string>
+    <string name="milestone_latest_label">Último momento</string>
     <string name="milestone_detail_title">Momento</string>
     <string name="milestone_delete_title">Excluir momento?</string>
     <string name="milestone_delete_message">Este momento e qualquer foto serão excluídos permanentemente. Não dá para desfazer.</string>

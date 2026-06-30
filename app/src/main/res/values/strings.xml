@@ -659,6 +659,7 @@
     <string name="milestone_empty_title">No moments yet</string>
     <string name="milestone_empty_subtitle">Tap + to capture your baby\'s first moment: a smile, a giggle, a first step.</string>
     <string name="milestone_card_cd">%1$s. %2$s. Tap to open.</string>
+    <string name="milestone_latest_label">Latest moment</string>
     <string name="milestone_detail_title">Moment</string>
     <string name="milestone_delete_title">Delete moment?</string>
     <string name="milestone_delete_message">This moment and any photo will be permanently deleted. You can\'t undo this.</string>

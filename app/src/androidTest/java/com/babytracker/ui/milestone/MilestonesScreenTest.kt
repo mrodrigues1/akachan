@@ -75,22 +75,36 @@ class MilestonesScreenTest {
     }
 
     @Test
-    fun seededMomentIsRenderedInTheList() {
+    fun newestMomentIsPromotedToTheHero() {
         moments.value = listOf(
             Milestone(id = 1, title = "First giggle", date = LocalDate.of(2026, 6, 1)),
         )
 
         setScreen()
 
-        composeRule.onNodeWithTag("moment_card_1").assertIsDisplayed()
+        composeRule.onNodeWithTag("milestone_hero_card").assertIsDisplayed()
         composeRule.onNodeWithText("First giggle").assertIsDisplayed()
     }
 
     @Test
-    fun tappingFabOpensTheEditor() {
+    fun olderMomentsAreListedBelowTheHero() {
+        moments.value = listOf(
+            Milestone(id = 2, title = "First step", date = LocalDate.of(2026, 6, 2)),
+            Milestone(id = 1, title = "First giggle", date = LocalDate.of(2026, 6, 1)),
+        )
+
         setScreen()
 
-        composeRule.onNodeWithTag("milestone_fab").performClick()
+        // Newest is the hero; the older one falls into the timeline below it.
+        composeRule.onNodeWithTag("milestone_hero_card").assertIsDisplayed()
+        composeRule.onNodeWithTag("moment_card_1").assertIsDisplayed()
+    }
+
+    @Test
+    fun tappingAddOpensTheEditor() {
+        setScreen()
+
+        composeRule.onNodeWithTag("milestone_add").performClick()
 
         composeRule.onNodeWithText("New moment").assertIsDisplayed()
         composeRule.onNodeWithTag("milestone_title").assertIsDisplayed()
