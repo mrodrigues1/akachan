@@ -14,6 +14,10 @@ data class MilestonePalette(
     val container: Color,
     val onContainer: Color,
     val onAccent: Color,
+    // Deep-purple wash painted under the bottom of the photo hero so overlaid white text always
+    // clears AA, regardless of the photo. Theme-independent: the photo (and thus the contrast it
+    // demands) is the same in light and dark, so the scrim stays dark in both.
+    val heroScrim: Color,
 )
 
 @Composable
@@ -25,6 +29,7 @@ fun milestoneColors(): MilestonePalette =
             container = MilestoneContainerPurpleDark,
             onContainer = OnMilestoneContainerPurpleDark,
             onAccent = OnMilestonePurpleDark,
+            heroScrim = Purple900,
         )
     } else {
         MilestonePalette(
@@ -32,5 +37,6 @@ fun milestoneColors(): MilestonePalette =
             container = MilestoneContainerPurple,
             onContainer = OnMilestoneContainerPurple,
             onAccent = OnMilestoneWhite,
+            heroScrim = Purple900,
         )
     }
