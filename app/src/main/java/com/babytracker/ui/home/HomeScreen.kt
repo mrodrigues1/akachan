@@ -54,12 +54,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.Alignment
@@ -131,6 +134,44 @@ private fun TextStyle.fitHomeTileTitle(width: Dp): TextStyle = when {
     else -> this
 }
 
+internal fun String.isWordSplitAt(index: Int): Boolean =
+    index in 1 until length &&
+        !this[index - 1].isWhitespace() &&
+        !this[index].isWhitespace()
+
+private fun TextLayoutResult.splitsWord(text: String): Boolean =
+    (0 until lineCount - 1).any { line ->
+        text.isWordSplitAt(getLineEnd(line))
+    }
+
+@Composable
+private fun HomeTileTitle(
+    title: String,
+    style: TextStyle,
+    color: Color,
+    width: Dp,
+) {
+    val initialStyle = style.fitHomeTileTitle(width).copy(lineBreak = LineBreak.Heading)
+    var fittedStyle by remember(title, initialStyle, width) { mutableStateOf(initialStyle) }
+    var ready by remember(title, initialStyle, width) { mutableStateOf(false) }
+
+    Text(
+        text = title,
+        modifier = Modifier.drawWithContent { if (ready) drawContent() },
+        style = fittedStyle,
+        color = color,
+        maxLines = 2,
+        onTextLayout = { result ->
+            val needsSmallerText = result.hasVisualOverflow || result.splitsWord(title)
+            if (needsSmallerText && fittedStyle.fontSize > 14.sp) {
+                fittedStyle = fittedStyle.copy(fontSize = (fittedStyle.fontSize.value - 1f).sp)
+            } else {
+                ready = true
+            }
+        },
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun HomeTrackerTile(
@@ -181,12 +222,11 @@ internal fun HomeTrackerTile(
             }
             Spacer(modifier = Modifier.height(12.dp))
             BoxWithConstraints {
-                Text(
-                    text = title,
-                    style = titleStyle.fitHomeTileTitle(maxWidth),
+                HomeTileTitle(
+                    title = title,
+                    style = titleStyle,
                     color = contentColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    width = maxWidth,
                 )
             }
             Spacer(modifier = Modifier.height(3.dp))
