@@ -5,7 +5,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.R
-import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BabySex
@@ -25,11 +24,20 @@ import java.time.LocalDate
 import java.time.Period
 import javax.inject.Inject
 
-enum class OnboardingStep { WELCOME, FEATURES, BABY_INFO, ALLERGIES }
+enum class OnboardingStep { WELCOME, NAME, BIRTHDAY, SEX, TRACKERS, SUMMARY }
 
 const val MAX_BABY_NAME_LENGTH = 50
+
+// Retained for AllergiesStepContent's character counter, which is now reused only by Settings.
 const val MAX_CUSTOM_ALLERGY_NOTE_LENGTH = 100
-const val MAX_CUSTOM_ALLERGY_NOTE_LINES = 3
+
+/** Steps that show a progress dot — the cover and final screens sit outside the count. */
+val ONBOARDING_PROGRESS_STEPS = listOf(
+    OnboardingStep.NAME,
+    OnboardingStep.BIRTHDAY,
+    OnboardingStep.SEX,
+    OnboardingStep.TRACKERS,
+)
 
 private val LINE_BREAK_REGEX = Regex("[\\r\\n]+")
 
@@ -41,8 +49,9 @@ data class OnboardingUiState(
     val birthDate: LocalDate = LocalDate.now(),
     val birthDateError: String? = null,
     val sex: BabySex = BabySex.UNSPECIFIED,
-    val selectedAllergies: Set<AllergyType> = emptySet(),
-    val customAllergyNote: String = "",
+    val bornEarly: Boolean = false,
+    val dueDate: LocalDate? = null,
+    val dueDateError: String? = null,
     val showAgeWarning: Boolean = false,
     val isSaving: Boolean = false,
     val savingError: Boolean = false,
@@ -60,11 +69,15 @@ class OnboardingViewModel @Inject constructor(
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
 
     val isNextEnabled: Boolean
-        get() = when (_uiState.value.currentStep) {
-            OnboardingStep.WELCOME -> true
-            OnboardingStep.FEATURES -> _uiState.value.enabledFeatures.isNotEmpty()
-            OnboardingStep.BABY_INFO -> _uiState.value.birthDateError == null
-            OnboardingStep.ALLERGIES -> true
+        get() = with(_uiState.value) {
+            when (currentStep) {
+                OnboardingStep.WELCOME -> true
+                OnboardingStep.NAME -> babyName.isNotBlank()
+                OnboardingStep.BIRTHDAY -> isBirthdayStepValid
+                OnboardingStep.SEX -> true
+                OnboardingStep.TRACKERS -> enabledFeatures.isNotEmpty()
+                OnboardingStep.SUMMARY -> true
+            }
         }
 
     fun onFeatureToggled(feature: AppFeature, enabled: Boolean) {
@@ -100,10 +113,15 @@ class OnboardingViewModel @Inject constructor(
 
         val monthsAgo = Period.between(date, today).toTotalMonths()
         _uiState.update {
+            // Re-validate any existing due date against the new birth date.
+            val dueDateError = it.dueDate
+                ?.takeIf { due -> due.isBefore(date) }
+                ?.let { appContext.getString(R.string.error_due_date_before_birth) }
             it.copy(
                 birthDate = date,
                 birthDateError = null,
                 showAgeWarning = monthsAgo > 12,
+                dueDateError = dueDateError,
             )
         }
     }
@@ -112,43 +130,42 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { it.copy(sex = sex) }
     }
 
-    fun onAllergyToggled(allergy: AllergyType) {
-        _uiState.update { state ->
-            val updated = state.selectedAllergies.toMutableSet()
-            val removingOther = allergy == AllergyType.OTHER && allergy in updated
-            if (allergy in updated) updated.remove(allergy) else updated.add(allergy)
-            state.copy(
-                selectedAllergies = updated,
-                customAllergyNote = if (removingOther) "" else state.customAllergyNote,
-            )
-        }
-    }
-
-    fun onAllergiesCleared() {
+    fun onBornEarlyToggled(bornEarly: Boolean) {
         _uiState.update {
             it.copy(
-                selectedAllergies = emptySet(),
-                customAllergyNote = "",
+                bornEarly = bornEarly,
+                dueDate = if (bornEarly) it.dueDate else null,
+                dueDateError = if (bornEarly) it.dueDateError else null,
             )
         }
     }
 
-    fun onCustomAllergyNoteChanged(note: String) {
-        val sanitizedNote = note
-            .normalizeLineBreaks()
-            .takeLines(MAX_CUSTOM_ALLERGY_NOTE_LINES)
-            .takeCodePoints(MAX_CUSTOM_ALLERGY_NOTE_LENGTH)
-        _uiState.update { it.copy(customAllergyNote = sanitizedNote) }
+    fun onDueDateSelected(date: LocalDate) {
+        _uiState.update {
+            // A preterm baby is born before the due date, so the due date must be on or after birth.
+            if (date.isBefore(it.birthDate)) {
+                it.copy(dueDate = date, dueDateError = appContext.getString(R.string.error_due_date_before_birth))
+            } else {
+                it.copy(dueDate = date, dueDateError = null)
+            }
+        }
     }
 
     fun onNextStep() {
         _uiState.update { state ->
             when (state.currentStep) {
-                OnboardingStep.WELCOME -> state.copy(currentStep = OnboardingStep.FEATURES)
-                OnboardingStep.FEATURES -> state.copy(currentStep = OnboardingStep.BABY_INFO)
-                OnboardingStep.BABY_INFO ->
-                    state.nextFromBabyInfo(appContext.getString(R.string.error_name_required))
-                OnboardingStep.ALLERGIES -> state
+                OnboardingStep.WELCOME -> state.copy(currentStep = OnboardingStep.NAME)
+                OnboardingStep.NAME ->
+                    state.nextFromName(appContext.getString(R.string.error_name_required))
+                OnboardingStep.BIRTHDAY ->
+                    if (state.isBirthdayStepValid) {
+                        state.copy(currentStep = OnboardingStep.SEX)
+                    } else {
+                        state
+                    }
+                OnboardingStep.SEX -> state.copy(currentStep = OnboardingStep.TRACKERS)
+                OnboardingStep.TRACKERS -> state.copy(currentStep = OnboardingStep.SUMMARY)
+                OnboardingStep.SUMMARY -> state
             }
         }
     }
@@ -157,19 +174,22 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { state ->
             when (state.currentStep) {
                 OnboardingStep.WELCOME -> state
-                OnboardingStep.FEATURES -> state.copy(currentStep = OnboardingStep.WELCOME)
-                OnboardingStep.BABY_INFO -> state.copy(currentStep = OnboardingStep.FEATURES)
-                OnboardingStep.ALLERGIES -> state.copy(currentStep = OnboardingStep.BABY_INFO)
+                OnboardingStep.NAME -> state.copy(currentStep = OnboardingStep.WELCOME)
+                OnboardingStep.BIRTHDAY -> state.copy(currentStep = OnboardingStep.NAME)
+                OnboardingStep.SEX -> state.copy(currentStep = OnboardingStep.BIRTHDAY)
+                OnboardingStep.TRACKERS -> state.copy(currentStep = OnboardingStep.SEX)
+                OnboardingStep.SUMMARY -> state.copy(currentStep = OnboardingStep.TRACKERS)
             }
         }
     }
 
     fun onFinish() {
-        if (!_uiState.value.isBabyInfoValid()) {
-            val nameRequiredError = appContext.getString(R.string.error_name_required)
+        if (_uiState.value.babyName.isBlank()) {
             _uiState.update {
-                it.withBabyInfoValidationErrors(nameRequiredError)
-                    .copy(currentStep = OnboardingStep.BABY_INFO)
+                it.copy(
+                    currentStep = OnboardingStep.NAME,
+                    babyNameError = appContext.getString(R.string.error_name_required),
+                )
             }
             return
         }
@@ -180,14 +200,12 @@ class OnboardingViewModel @Inject constructor(
             val baby = Baby(
                 name = state.babyName.trim(),
                 birthDate = state.birthDate,
-                allergies = state.selectedAllergies.toList(),
-                customAllergyNote = state.customAllergyNote
-                    .takeIf { AllergyType.OTHER in state.selectedAllergies && it.isNotBlank() },
                 sex = state.sex,
             )
+            val userDueDate = state.dueDate?.takeIf { state.bornEarly }
             try {
                 featureToggleRepository.setEnabledFeatures(state.enabledFeatures)
-                saveBabyProfile(baby)
+                saveBabyProfile(baby, userDueDate)
                 _uiState.update { it.copy(isSaving = false, navigationComplete = true) }
             } catch (e: IllegalArgumentException) {
                 Log.w(TAG, "Invalid baby profile during onboarding", e)
@@ -204,32 +222,21 @@ class OnboardingViewModel @Inject constructor(
     }
 }
 
-private fun OnboardingUiState.isBabyInfoValid(): Boolean =
-    babyName.isNotBlank() && birthDateError == null
-
-private fun OnboardingUiState.nextFromBabyInfo(nameRequiredError: String): OnboardingUiState =
-    if (isBabyInfoValid()) {
-        copy(
-            currentStep = OnboardingStep.ALLERGIES,
-            babyNameError = null,
-            birthDateError = null,
-        )
-    } else {
-        withBabyInfoValidationErrors(nameRequiredError)
+/** The birthday step is complete once the birth date is valid and, if born early, a valid due date is set. */
+private val OnboardingUiState.isBirthdayStepValid: Boolean
+    get() {
+        val dueDateOk = !bornEarly || (dueDate != null && dueDateError == null)
+        return birthDateError == null && dueDateOk
     }
 
-private fun OnboardingUiState.withBabyInfoValidationErrors(nameRequiredError: String): OnboardingUiState =
-    copy(
-        babyNameError = if (babyName.isBlank()) nameRequiredError else babyNameError,
-    )
+private fun OnboardingUiState.nextFromName(nameRequiredError: String): OnboardingUiState =
+    if (babyName.isNotBlank()) {
+        copy(currentStep = OnboardingStep.BIRTHDAY, babyNameError = null)
+    } else {
+        copy(babyNameError = nameRequiredError)
+    }
 
 private fun String.takeCodePoints(maxCodePoints: Int): String {
     if (codePointCount(0, length) <= maxCodePoints) return this
     return substring(0, offsetByCodePoints(0, maxCodePoints))
 }
-
-private fun String.normalizeLineBreaks(): String =
-    replace(LINE_BREAK_REGEX, "\n")
-
-private fun String.takeLines(maxLines: Int): String =
-    lineSequence().take(maxLines).joinToString("\n")

@@ -13,6 +13,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -118,6 +119,23 @@ class BootstrapBabyProfileUseCaseTest {
         useCase()
 
         coVerify(exactly = 0) { profileRepo.upsertProfile(any()) }
+    }
+
+    @Test
+    fun `uses birthDate override without reading the saved baby (onboarding due-date-first path)`() = runTest {
+        val birthDate = LocalDate.of(2026, 5, 1)
+        val dueDate = LocalDate.of(2026, 6, 1)
+        coEvery { profileRepo.getProfile() } returns null
+        coEvery { profileRepo.upsertProfile(any()) } returns Unit
+
+        useCase(userDueDate = dueDate, birthDate = birthDate)
+
+        val slot = slot<BabyProfile>()
+        coVerify { profileRepo.upsertProfile(capture(slot)) }
+        assertEquals(birthDate, slot.captured.dateOfBirth)
+        assertEquals(dueDate, slot.captured.dueDate)
+        assertTrue(slot.captured.isDueDateUserProvided)
+        coVerify(exactly = 0) { babyRepo.getBabyProfile() }
     }
 
     @Test

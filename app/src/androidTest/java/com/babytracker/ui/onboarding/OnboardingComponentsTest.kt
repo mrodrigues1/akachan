@@ -39,7 +39,9 @@ import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import io.mockk.mockk
 import com.babytracker.ui.onboarding.components.AllergiesStepContent
-import com.babytracker.ui.onboarding.components.BabyInfoStepContent
+import com.babytracker.ui.onboarding.components.BirthdayStepContent
+import com.babytracker.ui.onboarding.components.NameStepContent
+import com.babytracker.ui.onboarding.components.SexStepContent
 import com.babytracker.ui.onboarding.components.WelcomeStepContent
 import com.babytracker.ui.theme.BabyTrackerTheme
 import kotlinx.coroutines.flow.Flow
@@ -58,7 +60,7 @@ class OnboardingComponentsTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun welcomeStepShowsAkachanSetupExperience() {
+    fun welcomeStepShowsAkachanCover() {
         composeRule.setContent {
             BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
                 WelcomeStepContent(onGetStarted = {})
@@ -68,7 +70,7 @@ class OnboardingComponentsTest {
         composeRule.onNodeWithText("Welcome to Akachan").assertIsDisplayed()
         composeRule.onNodeWithText("A calm place to track feeds, sleep, and allergy notes during the first year.")
             .assertIsDisplayed()
-        composeRule.onNodeWithText("Set up baby profile").assertIsDisplayed()
+        composeRule.onNodeWithText("Get started").assertIsDisplayed()
         composeRule.onNodeWithText("Welcome to Baby Tracker").assertDoesNotExist()
     }
 
@@ -87,7 +89,7 @@ class OnboardingComponentsTest {
 
         composeRule.onNodeWithText("Welcome to Akachan").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Optional partner view").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Set up baby profile").assertIsDisplayed()
+        composeRule.onNodeWithText("Get started").assertIsDisplayed()
         composeRule.onNode(
             SemanticsMatcher.keyIsDefined(SemanticsActions.ScrollBy),
         ).assertIsDisplayed()
@@ -108,11 +110,11 @@ class OnboardingComponentsTest {
 
         composeRule.onNodeWithText("Welcome to Akachan").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Optional partner view").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Set up baby profile").assertIsDisplayed()
+        composeRule.onNodeWithText("Get started").assertIsDisplayed()
     }
 
     @Test
-    fun welcomePreviewIsHiddenFromTalkBack() {
+    fun welcomeHeroIsHiddenFromTalkBack() {
         composeRule.setContent {
             BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
                 WelcomeStepContent(onGetStarted = {})
@@ -136,18 +138,162 @@ class OnboardingComponentsTest {
     }
 
     @Test
-    fun babyInfoPrimaryActionKeepsMinimumTouchHeight() {
+    fun nameStepPrimaryActionKeepsMinimumTouchHeight() {
         composeRule.setContent {
             BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
-                BabyInfoStepContent(
+                NameStepContent(
                     name = "Luna",
                     nameError = null,
+                    isNextEnabled = true,
+                    onNameChanged = {},
+                    onBack = {},
+                    onNext = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("onboarding_name_primary_action").assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test
+    fun nameStepShowsQuestionAndValidationError() {
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                NameStepContent(
+                    name = "",
+                    nameError = "Enter a name to continue.",
+                    isNextEnabled = false,
+                    onNameChanged = {},
+                    onBack = {},
+                    onNext = {},
+                )
+            }
+        }
+
+        composeRule.onNode(
+            hasText("What should we call your baby?")
+                .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)),
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText("Enter a name to continue.").assertIsDisplayed()
+    }
+
+    @Test
+    fun birthdayStepAnnouncesStepProgressPolitely() {
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                BirthdayStepContent(
+                    babyName = "Luna",
                     selectedDate = LocalDate.now(),
                     birthDateError = null,
                     showAgeWarning = false,
+                    bornEarly = false,
+                    dueDate = null,
+                    dueDateError = null,
                     isNextEnabled = true,
-                    onNameChanged = {},
                     onDateSelected = {},
+                    onBornEarlyToggled = {},
+                    onDueDateSelected = {},
+                    onBack = {},
+                    onNext = {},
+                )
+            }
+        }
+
+        composeRule.onNode(
+            hasContentDescription("Step 2 of 4")
+                .and(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite)),
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun birthdayStepShowsAgeWarningAndPersonalizedQuestion() {
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                BirthdayStepContent(
+                    babyName = "Luna",
+                    selectedDate = LocalDate.now().minusMonths(14),
+                    birthDateError = null,
+                    showAgeWarning = true,
+                    bornEarly = false,
+                    dueDate = null,
+                    dueDateError = null,
+                    isNextEnabled = true,
+                    onDateSelected = {},
+                    onBornEarlyToggled = {},
+                    onDueDateSelected = {},
+                    onBack = {},
+                    onNext = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("When was Luna born?").assertIsDisplayed()
+        composeRule.onNodeWithText("1 year, 2 months old").assertIsDisplayed()
+        composeRule.onNodeWithText("Akachan is designed for babies 0-12 months.").assertIsDisplayed()
+        composeRule.onNodeWithText("Continue").assertIsDisplayed()
+    }
+
+    @Test
+    fun birthdayStepRevealsDueDateWhenBornEarly() {
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                BirthdayStepContent(
+                    babyName = "Luna",
+                    selectedDate = LocalDate.now().minusMonths(2),
+                    birthDateError = null,
+                    showAgeWarning = false,
+                    bornEarly = true,
+                    dueDate = null,
+                    dueDateError = null,
+                    isNextEnabled = true,
+                    onDateSelected = {},
+                    onBornEarlyToggled = {},
+                    onDueDateSelected = {},
+                    onBack = {},
+                    onNext = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Born early?").assertIsDisplayed()
+        composeRule.onNodeWithText("Due date").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun dateOfBirthFieldExposesOneTalkBackButtonTarget() {
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                BirthdayStepContent(
+                    babyName = "Luna",
+                    selectedDate = LocalDate.of(2025, 2, 3),
+                    birthDateError = null,
+                    showAgeWarning = false,
+                    bornEarly = false,
+                    dueDate = null,
+                    dueDateError = null,
+                    isNextEnabled = true,
+                    onDateSelected = {},
+                    onBornEarlyToggled = {},
+                    onDueDateSelected = {},
+                    onBack = {},
+                    onNext = {},
+                )
+            }
+        }
+
+        composeRule.onNode(
+            hasContentDescription("Date of birth, February 3, 2025")
+                .and(hasClickAction()),
+        ).assertIsDisplayed()
+        composeRule.onAllNodes(hasContentDescription("Select date"), useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun sexStepShowsChoicesAndPersonalizedQuestion() {
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                SexStepContent(
+                    babyName = "Luna",
                     selectedSex = BabySex.UNSPECIFIED,
                     onSexSelected = {},
                     onBack = {},
@@ -156,7 +302,38 @@ class OnboardingComponentsTest {
             }
         }
 
-        composeRule.onNodeWithTag("onboarding_baby_info_primary_action").assertHeightIsAtLeast(48.dp)
+        composeRule.onNodeWithText("Is Luna a boy or a girl?").assertIsDisplayed()
+        composeRule.onNodeWithText("Boy").assertIsDisplayed()
+        composeRule.onNodeWithText("Girl").assertIsDisplayed()
+        composeRule.onNodeWithText("Prefer not to say").assertIsDisplayed()
+    }
+
+    @Test
+    fun onboardingScreenShowsSaveFailureSnackbar() {
+        val viewModel = OnboardingViewModel(
+            SaveBabyProfileUseCase(FailingBabyRepository(), mockk(relaxed = true)),
+            mockk(relaxed = true),
+            mockk(relaxed = true),
+        )
+
+        composeRule.setContent {
+            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
+                OnboardingScreen(
+                    onOnboardingComplete = {},
+                    viewModel = viewModel,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Get started").performClick() // WELCOME -> NAME
+        composeRule.onNodeWithText("Baby's name").performTextInput("Luna")
+        composeRule.onNodeWithText("Continue").performClick() // NAME -> BIRTHDAY
+        composeRule.onNodeWithText("Continue").performClick() // BIRTHDAY -> SEX
+        composeRule.onNodeWithText("Continue").performClick() // SEX -> TRACKERS
+        composeRule.onNodeWithText("Continue").performClick() // TRACKERS -> SUMMARY
+        composeRule.onNodeWithText("Enter app").performClick()
+
+        composeRule.onNodeWithText("Could not save. Please try again.").assertIsDisplayed()
     }
 
     @Test
@@ -178,32 +355,6 @@ class OnboardingComponentsTest {
         }
 
         composeRule.onNodeWithTag("onboarding_allergies_primary_action").assertHeightIsAtLeast(48.dp)
-    }
-
-    @Test
-    fun onboardingScreenShowsSaveFailureSnackbar() {
-        val viewModel = OnboardingViewModel(
-            SaveBabyProfileUseCase(FailingBabyRepository(), mockk(relaxed = true)),
-            mockk(relaxed = true),
-            mockk(relaxed = true),
-        )
-
-        composeRule.setContent {
-            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
-                OnboardingScreen(
-                    onOnboardingComplete = {},
-                    viewModel = viewModel,
-                )
-            }
-        }
-
-        composeRule.onNodeWithText("Set up baby profile").performClick() // WELCOME -> FEATURES
-        composeRule.onNodeWithText("Continue").performClick() // FEATURES -> BABY_INFO
-        composeRule.onNodeWithText("Baby's name").performTextInput("Luna")
-        composeRule.onNodeWithText("Continue").performClick() // BABY_INFO -> ALLERGIES
-        composeRule.onNodeWithText("Finish setup").performClick()
-
-        composeRule.onNodeWithText("Could not save. Please try again.").assertIsDisplayed()
     }
 
     @Test
@@ -236,179 +387,6 @@ class OnboardingComponentsTest {
             hasText("Add known allergies")
                 .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)),
         ).assertIsDisplayed()
-    }
-
-    @Test
-    fun onboardingStepHeaderAnnouncesStepChangesPolitely() {
-        composeRule.setContent {
-            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
-                BabyInfoStepContent(
-                    name = "Luna",
-                    nameError = null,
-                    selectedDate = LocalDate.now(),
-                    birthDateError = null,
-                    showAgeWarning = false,
-                    isNextEnabled = true,
-                    onNameChanged = {},
-                    onDateSelected = {},
-                    selectedSex = BabySex.UNSPECIFIED,
-                    onSexSelected = {},
-                    onBack = {},
-                    onNext = {},
-                )
-            }
-        }
-
-        composeRule.onNode(
-            hasContentDescription("Step 2 of 3, Baby profile")
-                .and(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite)),
-        ).assertIsDisplayed()
-    }
-
-    @Test
-    fun babyInfoStepShowsProfileHeaderProgressAndAgeWarning() {
-        composeRule.setContent {
-            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
-                BabyInfoStepContent(
-                    name = "Luna",
-                    nameError = null,
-                    selectedDate = LocalDate.now().minusMonths(14),
-                    birthDateError = null,
-                    showAgeWarning = true,
-                    isNextEnabled = true,
-                    onNameChanged = {},
-                    onDateSelected = {},
-                    selectedSex = BabySex.UNSPECIFIED,
-                    onSexSelected = {},
-                    onBack = {},
-                    onNext = {},
-                )
-            }
-        }
-
-        composeRule.onNodeWithText("Step 2 of 3").assertIsDisplayed()
-        composeRule.onNodeWithText("Baby profile").assertIsDisplayed()
-        composeRule.onNodeWithText("Start with the basics").assertIsDisplayed()
-        composeRule.onNodeWithText("1 year, 2 months old").assertIsDisplayed()
-        composeRule.onNodeWithText("Akachan is designed for babies 0-12 months.").assertIsDisplayed()
-        composeRule.onNodeWithText("Continue").assertIsDisplayed()
-        composeRule.onNodeWithText("BABY INFO").assertDoesNotExist()
-    }
-
-    @Test
-    fun babyInfoStepSupportsNarrow2xFontScaleWithValidation() {
-        composeRule.setContent {
-            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
-                BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
-                    BabyInfoStepContent(
-                        name = "Mia Sophia Isabelle Charlotte",
-                        nameError = "Use 50 characters or fewer.",
-                        selectedDate = LocalDate.now().minusMonths(14),
-                        birthDateError = null,
-                        showAgeWarning = true,
-                        isNextEnabled = true,
-                        onNameChanged = {},
-                        onDateSelected = {},
-                        selectedSex = BabySex.UNSPECIFIED,
-                        onSexSelected = {},
-                        onBack = {},
-                        onNext = {},
-                        modifier = Modifier.requiredWidth(320.dp),
-                    )
-                }
-            }
-        }
-
-        composeRule.onNodeWithText("Baby profile").assertIsDisplayed()
-        composeRule.onNodeWithText("Use 50 characters or fewer.").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Akachan is designed for babies 0-12 months.")
-            .performScrollTo()
-            .assertIsDisplayed()
-        composeRule.onNodeWithText("Continue").assertIsDisplayed()
-    }
-
-    @Test
-    fun babyInfoStepSupportsSmallHeight2xFontScale() {
-        composeRule.setContent {
-            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
-                BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
-                    BabyInfoStepContent(
-                        name = "Luna",
-                        nameError = null,
-                        selectedDate = LocalDate.now().minusMonths(2),
-                        birthDateError = null,
-                        showAgeWarning = false,
-                        isNextEnabled = true,
-                        onNameChanged = {},
-                        onDateSelected = {},
-                        selectedSex = BabySex.UNSPECIFIED,
-                        onSexSelected = {},
-                        onBack = {},
-                        onNext = {},
-                        modifier = Modifier.requiredSize(width = 320.dp, height = 420.dp),
-                    )
-                }
-            }
-        }
-
-        composeRule.onNodeWithText("Baby profile").assertIsDisplayed()
-        composeRule.onNodeWithText("Date of birth").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Continue").assertIsDisplayed()
-    }
-
-    @Test
-    fun dateOfBirthFieldExposesOneTalkBackButtonTarget() {
-        val selectedDate = LocalDate.of(2025, 2, 3)
-
-        composeRule.setContent {
-            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
-                BabyInfoStepContent(
-                    name = "Luna",
-                    nameError = null,
-                    selectedDate = selectedDate,
-                    birthDateError = null,
-                    showAgeWarning = false,
-                    isNextEnabled = true,
-                    onNameChanged = {},
-                    onDateSelected = {},
-                    selectedSex = BabySex.UNSPECIFIED,
-                    onSexSelected = {},
-                    onBack = {},
-                    onNext = {},
-                )
-            }
-        }
-
-        composeRule.onNode(
-            hasContentDescription("Date of birth, February 3, 2025")
-                .and(hasClickAction()),
-        ).assertIsDisplayed()
-        composeRule.onAllNodes(hasContentDescription("Select date"), useUnmergedTree = true).assertCountEquals(0)
-    }
-
-    @Test
-    fun babyInfoStepShowsValidationErrors() {
-        composeRule.setContent {
-            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
-                BabyInfoStepContent(
-                    name = "",
-                    nameError = "Enter a name to continue.",
-                    selectedDate = LocalDate.now(),
-                    birthDateError = "Birth date cannot be in the future.",
-                    showAgeWarning = false,
-                    isNextEnabled = false,
-                    onNameChanged = {},
-                    onDateSelected = {},
-                    selectedSex = BabySex.UNSPECIFIED,
-                    onSexSelected = {},
-                    onBack = {},
-                    onNext = {},
-                )
-            }
-        }
-
-        composeRule.onNodeWithText("Enter a name to continue.").assertIsDisplayed()
-        composeRule.onNodeWithText("Birth date cannot be in the future.").assertIsDisplayed()
     }
 
     @Test
@@ -464,59 +442,6 @@ class OnboardingComponentsTest {
                 .and(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo)),
             useUnmergedTree = true,
         ).assertIsDisplayed()
-    }
-
-    @Test
-    fun allergiesStepShowsFinalHeaderSummaryAndFinishAction() {
-        composeRule.setContent {
-            BabyTrackerTheme(themeConfig = ThemeConfig.LIGHT) {
-                AllergiesStepContent(
-                    babyName = "Luna",
-                    selectedAllergies = emptySet(),
-                    customNote = "",
-                    isSaving = false,
-                    onAllergyToggled = {},
-                    onAllergiesCleared = {},
-                    onCustomNoteChanged = {},
-                    onBack = {},
-                    onFinish = {},
-                )
-            }
-        }
-
-        composeRule.onNodeWithText("Step 3 of 3").assertIsDisplayed()
-        composeRule.onNodeWithText("Allergy notes").assertIsDisplayed()
-        composeRule.onNodeWithText("Any allergies to note?").assertIsDisplayed()
-        composeRule.onNodeWithText("None known yet").assertIsDisplayed()
-        composeRule.onNodeWithText("No allergies will be saved yet.").assertIsDisplayed()
-        composeRule.onNodeWithText("Finish setup").assertIsDisplayed()
-        composeRule.onNodeWithText("ALLERGIES").assertDoesNotExist()
-    }
-
-    @Test
-    fun allergiesStepSupportsLandscapeDark2xFontScale() {
-        composeRule.setContent {
-            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
-                BabyTrackerTheme(themeConfig = ThemeConfig.DARK) {
-                    AllergiesStepContent(
-                        babyName = "Luna",
-                        selectedAllergies = setOf(AllergyType.CMPA, AllergyType.OTHER),
-                        customNote = "Pears",
-                        isSaving = false,
-                        onAllergyToggled = {},
-                        onAllergiesCleared = {},
-                        onCustomNoteChanged = {},
-                        onBack = {},
-                        onFinish = {},
-                        modifier = Modifier.requiredSize(width = 640.dp, height = 360.dp),
-                    )
-                }
-            }
-        }
-
-        composeRule.onNodeWithText("Allergy notes").assertIsDisplayed()
-        composeRule.onNodeWithText("Describe other allergy").performScrollTo().assertExists()
-        composeRule.onNodeWithText("Finish setup").assertIsDisplayed()
     }
 
     @Test

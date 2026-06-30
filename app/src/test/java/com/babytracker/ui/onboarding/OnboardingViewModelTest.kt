@@ -2,9 +2,9 @@ package com.babytracker.ui.onboarding
 
 import android.content.Context
 import com.babytracker.R
-import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.Baby
+import com.babytracker.domain.model.BabySex
 import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import io.mockk.coEvery
@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -45,6 +46,7 @@ class OnboardingViewModelTest {
         appContext = mockk {
             every { getString(R.string.error_name_required) } returns "Enter a name to continue."
             every { getString(R.string.error_birth_date_future) } returns "Birth date cannot be in the future."
+            every { getString(R.string.error_due_date_before_birth) } returns "Due date can't be before the birth date."
         }
         viewModel = OnboardingViewModel(saveBabyProfile, featureToggleRepository, appContext)
     }
@@ -54,11 +56,11 @@ class OnboardingViewModelTest {
         Dispatchers.resetMain()
     }
 
-    /** WELCOME -> FEATURES -> BABY_INFO. Sets a valid name so BABY_INFO can later advance. */
-    private fun advanceToBabyInfo(name: String = "Luna") {
-        viewModel.onNextStep() // WELCOME -> FEATURES
-        viewModel.onNextStep() // FEATURES -> BABY_INFO
+    /** WELCOME -> NAME -> (named) so the wizard can advance past the name gate. */
+    private fun advanceToBirthday(name: String = "Luna") {
+        viewModel.onNextStep() // WELCOME -> NAME
         viewModel.onNameChanged(name)
+        viewModel.onNextStep() // NAME -> BIRTHDAY
     }
 
     @Test
@@ -69,31 +71,49 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `onNextStep from welcome moves to features`() {
+    fun `onNextStep from welcome moves to name`() {
         viewModel.onNextStep()
-        assertEquals(OnboardingStep.FEATURES, viewModel.uiState.value.currentStep)
+        assertEquals(OnboardingStep.NAME, viewModel.uiState.value.currentStep)
     }
 
     @Test
-    fun `onNextStep from features moves to baby info`() {
-        viewModel.onNextStep() // WELCOME -> FEATURES
-        viewModel.onNextStep() // FEATURES -> BABY_INFO
-        assertEquals(OnboardingStep.BABY_INFO, viewModel.uiState.value.currentStep)
+    fun `onNextStep from name with blank name stays and shows error`() {
+        viewModel.onNextStep() // -> NAME
+        viewModel.onNextStep() // blank name, stays
+        assertEquals(OnboardingStep.NAME, viewModel.uiState.value.currentStep)
+        assertEquals("Enter a name to continue.", viewModel.uiState.value.babyNameError)
     }
 
     @Test
-    fun `onNextStep from baby info moves to allergies`() {
-        advanceToBabyInfo()
-        viewModel.onNextStep() // BABY_INFO -> ALLERGIES
-        assertEquals(OnboardingStep.ALLERGIES, viewModel.uiState.value.currentStep)
+    fun `onNextStep from name with valid name moves to birthday`() {
+        viewModel.onNextStep() // -> NAME
+        viewModel.onNameChanged("Luna")
+        viewModel.onNextStep()
+        assertEquals(OnboardingStep.BIRTHDAY, viewModel.uiState.value.currentStep)
     }
 
     @Test
-    fun `onNextStep from allergies stays on allergies`() {
-        advanceToBabyInfo()
-        viewModel.onNextStep() // -> ALLERGIES
-        viewModel.onNextStep() // stays
-        assertEquals(OnboardingStep.ALLERGIES, viewModel.uiState.value.currentStep)
+    fun `onNextStep from birthday moves to sex`() {
+        advanceToBirthday()
+        viewModel.onNextStep()
+        assertEquals(OnboardingStep.SEX, viewModel.uiState.value.currentStep)
+    }
+
+    @Test
+    fun `onNextStep from sex moves to trackers`() {
+        advanceToBirthday()
+        viewModel.onNextStep() // -> SEX
+        viewModel.onNextStep() // -> TRACKERS
+        assertEquals(OnboardingStep.TRACKERS, viewModel.uiState.value.currentStep)
+    }
+
+    @Test
+    fun `onNextStep from trackers moves to summary`() {
+        advanceToBirthday()
+        viewModel.onNextStep() // -> SEX
+        viewModel.onNextStep() // -> TRACKERS
+        viewModel.onNextStep() // -> SUMMARY
+        assertEquals(OnboardingStep.SUMMARY, viewModel.uiState.value.currentStep)
     }
 
     @Test
@@ -103,26 +123,15 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `onPreviousStep from features moves to welcome`() {
-        viewModel.onNextStep() // WELCOME -> FEATURES
+    fun `onPreviousStep walks back through the wizard`() {
+        advanceToBirthday()
+        viewModel.onNextStep() // -> SEX
+        viewModel.onPreviousStep()
+        assertEquals(OnboardingStep.BIRTHDAY, viewModel.uiState.value.currentStep)
+        viewModel.onPreviousStep()
+        assertEquals(OnboardingStep.NAME, viewModel.uiState.value.currentStep)
         viewModel.onPreviousStep()
         assertEquals(OnboardingStep.WELCOME, viewModel.uiState.value.currentStep)
-    }
-
-    @Test
-    fun `onPreviousStep from baby info moves to features`() {
-        viewModel.onNextStep() // WELCOME -> FEATURES
-        viewModel.onNextStep() // FEATURES -> BABY_INFO
-        viewModel.onPreviousStep()
-        assertEquals(OnboardingStep.FEATURES, viewModel.uiState.value.currentStep)
-    }
-
-    @Test
-    fun `onPreviousStep from allergies moves to baby info`() {
-        advanceToBabyInfo()
-        viewModel.onNextStep() // -> ALLERGIES
-        viewModel.onPreviousStep()
-        assertEquals(OnboardingStep.BABY_INFO, viewModel.uiState.value.currentStep)
     }
 
     @Test
@@ -147,30 +156,10 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `onDomainToggled enabling a domain restores its features`() {
-        viewModel.onDomainToggled(com.babytracker.domain.model.FeatureDomain.GROWTH_DEVELOPMENT, enabled = false)
-        assertEquals(
-            AppFeature.ALL - AppFeature.GROWTH - AppFeature.MILESTONES,
-            viewModel.uiState.value.enabledFeatures,
-        )
-        viewModel.onDomainToggled(com.babytracker.domain.model.FeatureDomain.GROWTH_DEVELOPMENT, enabled = true)
-        assertEquals(AppFeature.ALL, viewModel.uiState.value.enabledFeatures)
-    }
-
-    @Test
-    fun `onNameChanged updates name`() {
+    fun `onNameChanged updates name and limits length by code point`() {
         viewModel.onNameChanged("Luna")
         assertEquals("Luna", viewModel.uiState.value.babyName)
-    }
 
-    @Test
-    fun `onNameChanged limits typed names to 50 characters`() {
-        viewModel.onNameChanged("A".repeat(51))
-        assertEquals("A".repeat(50), viewModel.uiState.value.babyName)
-    }
-
-    @Test
-    fun `onNameChanged limits names by code point so emoji are not split`() {
         val babyEmoji = "👶"
         viewModel.onNameChanged(babyEmoji.repeat(51))
         assertEquals(babyEmoji.repeat(50), viewModel.uiState.value.babyName)
@@ -183,79 +172,31 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `onNextStep from baby info with blank name stays on baby info and shows error`() {
-        viewModel.onNextStep() // WELCOME -> FEATURES
-        viewModel.onNextStep() // FEATURES -> BABY_INFO
-        viewModel.onNextStep() // blank name, stays on BABY_INFO
-
-        assertEquals(OnboardingStep.BABY_INFO, viewModel.uiState.value.currentStep)
-        assertEquals("Enter a name to continue.", viewModel.uiState.value.babyNameError)
-    }
-
-    @Test
-    fun `onNameChanged clears baby name error once name is valid`() {
-        viewModel.onNextStep() // WELCOME -> FEATURES
-        viewModel.onNextStep() // FEATURES -> BABY_INFO
-        viewModel.onNextStep() // blank name -> error
-        assertEquals("Enter a name to continue.", viewModel.uiState.value.babyNameError)
-
-        viewModel.onNameChanged("Luna")
-
-        assertEquals(null, viewModel.uiState.value.babyNameError)
-    }
-
-    @Test
-    fun `isNextEnabled on welcome is always true`() {
-        assertTrue(viewModel.isNextEnabled)
-    }
-
-    @Test
-    fun `isNextEnabled on features is true when at least one feature is on`() {
-        viewModel.onNextStep() // -> FEATURES
-        assertTrue(viewModel.isNextEnabled)
-    }
-
-    @Test
-    fun `isNextEnabled on baby info with blank name is true`() {
-        viewModel.onNextStep() // -> FEATURES
-        viewModel.onNextStep() // -> BABY_INFO
-        assertTrue(viewModel.isNextEnabled)
-    }
-
-    @Test
-    fun `isNextEnabled on baby info with whitespace only name is true`() {
-        viewModel.onNextStep() // -> FEATURES
-        viewModel.onNextStep() // -> BABY_INFO
+    fun `isNextEnabled on name requires a non-blank name`() {
+        viewModel.onNextStep() // -> NAME
+        assertFalse(viewModel.isNextEnabled)
         viewModel.onNameChanged("   ")
-        assertTrue(viewModel.isNextEnabled)
-    }
-
-    @Test
-    fun `isNextEnabled on baby info with valid name is true`() {
-        viewModel.onNextStep() // -> FEATURES
-        viewModel.onNextStep() // -> BABY_INFO
+        assertFalse(viewModel.isNextEnabled)
         viewModel.onNameChanged("Luna")
         assertTrue(viewModel.isNextEnabled)
     }
 
     @Test
-    fun `isNextEnabled on allergies is always true`() {
-        advanceToBabyInfo()
-        viewModel.onNextStep() // -> ALLERGIES
+    fun `isNextEnabled on sex is always true`() {
+        advanceToBirthday()
+        viewModel.onNextStep() // -> SEX
         assertTrue(viewModel.isNextEnabled)
     }
 
     @Test
     fun `onBirthDateSelected over 12 months shows warning`() {
-        val fourteenMonthsAgo = LocalDate.now().minusMonths(14)
-        viewModel.onBirthDateSelected(fourteenMonthsAgo)
+        viewModel.onBirthDateSelected(LocalDate.now().minusMonths(14))
         assertTrue(viewModel.uiState.value.showAgeWarning)
     }
 
     @Test
     fun `onBirthDateSelected under 12 months no warning`() {
-        val threeMonthsAgo = LocalDate.now().minusMonths(3)
-        viewModel.onBirthDateSelected(threeMonthsAgo)
+        viewModel.onBirthDateSelected(LocalDate.now().minusMonths(3))
         assertFalse(viewModel.uiState.value.showAgeWarning)
     }
 
@@ -269,67 +210,93 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `onAllergyToggled adds and removes`() {
-        viewModel.onAllergyToggled(AllergyType.CMPA)
-        assertTrue(AllergyType.CMPA in viewModel.uiState.value.selectedAllergies)
-        viewModel.onAllergyToggled(AllergyType.CMPA)
-        assertFalse(AllergyType.CMPA in viewModel.uiState.value.selectedAllergies)
+    fun `onBornEarlyToggled off clears due date`() {
+        viewModel.onBornEarlyToggled(true)
+        viewModel.onBirthDateSelected(LocalDate.now().minusMonths(2))
+        viewModel.onDueDateSelected(LocalDate.now().minusMonths(1))
+        assertTrue(viewModel.uiState.value.dueDate != null)
+
+        viewModel.onBornEarlyToggled(false)
+        assertNull(viewModel.uiState.value.dueDate)
+        assertFalse(viewModel.uiState.value.bornEarly)
     }
 
     @Test
-    fun `onAllergyToggled clears custom note when other is removed`() {
-        viewModel.onAllergyToggled(AllergyType.OTHER)
-        viewModel.onCustomAllergyNoteChanged("Pears")
-
-        viewModel.onAllergyToggled(AllergyType.OTHER)
-
-        assertFalse(AllergyType.OTHER in viewModel.uiState.value.selectedAllergies)
-        assertEquals("", viewModel.uiState.value.customAllergyNote)
+    fun `onDueDateSelected before birth date sets error`() {
+        viewModel.onBirthDateSelected(LocalDate.now().minusMonths(2))
+        viewModel.onDueDateSelected(LocalDate.now().minusMonths(3))
+        assertEquals("Due date can't be before the birth date.", viewModel.uiState.value.dueDateError)
     }
 
     @Test
-    fun `onCustomAllergyNoteChanged limits note by code point`() {
-        val pearEmoji = "🍐"
-        viewModel.onCustomAllergyNoteChanged(pearEmoji.repeat(101))
-        assertEquals(pearEmoji.repeat(100), viewModel.uiState.value.customAllergyNote)
+    fun `isNextEnabled on birthday is false while due date is invalid`() {
+        advanceToBirthday()
+        viewModel.onBirthDateSelected(LocalDate.now().minusMonths(2))
+        viewModel.onBornEarlyToggled(true)
+        viewModel.onDueDateSelected(LocalDate.now().minusMonths(3)) // before birth -> error
+        assertFalse(viewModel.isNextEnabled)
     }
 
     @Test
-    fun `onCustomAllergyNoteChanged limits pasted note to three lines`() {
-        viewModel.onCustomAllergyNoteChanged("one\ntwo\nthree\nfour")
-        assertEquals("one\ntwo\nthree", viewModel.uiState.value.customAllergyNote)
+    fun `isNextEnabled on birthday is false when born early without a due date`() {
+        advanceToBirthday()
+        viewModel.onBirthDateSelected(LocalDate.now().minusMonths(2))
+        viewModel.onBornEarlyToggled(true)
+        assertFalse(viewModel.isNextEnabled)
+
+        viewModel.onDueDateSelected(LocalDate.now().minusMonths(1))
+        assertTrue(viewModel.isNextEnabled)
     }
 
     @Test
-    fun `onAllergiesCleared clears selected allergies and custom note`() {
-        viewModel.onAllergyToggled(AllergyType.CMPA)
-        viewModel.onAllergyToggled(AllergyType.OTHER)
-        viewModel.onCustomAllergyNoteChanged("Pears")
-
-        viewModel.onAllergiesCleared()
-
-        assertEquals(emptySet<AllergyType>(), viewModel.uiState.value.selectedAllergies)
-        assertEquals("", viewModel.uiState.value.customAllergyNote)
-    }
-
-    @Test
-    fun `onFinish saves profile and sets navigationComplete`() = runTest {
+    fun `onFinish saves profile with name and sex and sets navigationComplete`() = runTest {
         val babySlot = slot<Baby>()
-        coJustRun { saveBabyProfile(capture(babySlot)) }
+        coJustRun { saveBabyProfile(capture(babySlot), any()) }
 
         viewModel.onNameChanged("Luna")
+        viewModel.onSexSelected(BabySex.FEMALE)
         viewModel.onFinish()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify(exactly = 1) { saveBabyProfile(any()) }
+        coVerify(exactly = 1) { saveBabyProfile(any(), any()) }
         assertEquals("Luna", babySlot.captured.name)
+        assertEquals(BabySex.FEMALE, babySlot.captured.sex)
         assertTrue(viewModel.uiState.value.navigationComplete)
         assertFalse(viewModel.uiState.value.isSaving)
     }
 
     @Test
+    fun `onFinish passes the user due date when born early`() = runTest {
+        val dueSlot = slot<LocalDate?>()
+        coJustRun { saveBabyProfile(any(), captureNullable(dueSlot)) }
+        val birth = LocalDate.now().minusMonths(2)
+        val due = LocalDate.now().minusMonths(1)
+
+        viewModel.onNameChanged("Luna")
+        viewModel.onBirthDateSelected(birth)
+        viewModel.onBornEarlyToggled(true)
+        viewModel.onDueDateSelected(due)
+        viewModel.onFinish()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(due, dueSlot.captured)
+    }
+
+    @Test
+    fun `onFinish does not pass a due date when not born early`() = runTest {
+        val dueSlot = slot<LocalDate?>()
+        coJustRun { saveBabyProfile(any(), captureNullable(dueSlot)) }
+
+        viewModel.onNameChanged("Luna")
+        viewModel.onFinish()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(dueSlot.captured)
+    }
+
+    @Test
     fun `onFinish persists chosen features`() = runTest {
-        coJustRun { saveBabyProfile(any()) }
+        coJustRun { saveBabyProfile(any(), any()) }
         viewModel.onFeatureToggled(AppFeature.DIAPERS, enabled = false)
         viewModel.onNameChanged("Luna")
 
@@ -340,19 +307,19 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `onFinish with blank name returns to baby info and does not save`() = runTest {
+    fun `onFinish with blank name returns to name step and does not save`() = runTest {
         viewModel.onFinish()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify(exactly = 0) { saveBabyProfile(any()) }
+        coVerify(exactly = 0) { saveBabyProfile(any(), any()) }
         coVerify(exactly = 0) { featureToggleRepository.setEnabledFeatures(any()) }
-        assertEquals(OnboardingStep.BABY_INFO, viewModel.uiState.value.currentStep)
+        assertEquals(OnboardingStep.NAME, viewModel.uiState.value.currentStep)
         assertEquals("Enter a name to continue.", viewModel.uiState.value.babyNameError)
     }
 
     @Test
     fun `onFinish on failure sets savingError and clears isSaving`() = runTest {
-        coEvery { saveBabyProfile(any()) } throws IOException("storage error")
+        coEvery { saveBabyProfile(any(), any()) } throws IOException("storage error")
 
         viewModel.onNameChanged("Luna")
         viewModel.onFinish()
@@ -365,14 +332,13 @@ class OnboardingViewModelTest {
 
     @Test
     fun `onFinish resets savingError before retry so snackbar can fire again`() = runTest {
-        coEvery { saveBabyProfile(any()) } throws IOException("storage error")
+        coEvery { saveBabyProfile(any(), any()) } throws IOException("storage error")
         viewModel.onNameChanged("Luna")
         viewModel.onFinish()
         testDispatcher.scheduler.advanceUntilIdle()
         assertTrue(viewModel.uiState.value.savingError)
 
-        // Second attempt succeeds — savingError must be false at the end
-        coJustRun { saveBabyProfile(any()) }
+        coJustRun { saveBabyProfile(any(), any()) }
         viewModel.onFinish()
         testDispatcher.scheduler.advanceUntilIdle()
         assertFalse(viewModel.uiState.value.savingError)

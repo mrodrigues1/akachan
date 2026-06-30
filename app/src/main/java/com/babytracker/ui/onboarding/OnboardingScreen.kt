@@ -19,9 +19,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
-import com.babytracker.ui.onboarding.components.AllergiesStepContent
-import com.babytracker.ui.onboarding.components.BabyInfoStepContent
-import com.babytracker.ui.onboarding.components.FeatureSelectionStepContent
+import com.babytracker.ui.onboarding.components.BirthdayStepContent
+import com.babytracker.ui.onboarding.components.NameStepContent
+import com.babytracker.ui.onboarding.components.SexStepContent
+import com.babytracker.ui.onboarding.components.SummaryStepContent
+import com.babytracker.ui.onboarding.components.TrackersStepContent
 import com.babytracker.ui.onboarding.components.WelcomeStepContent
 
 @Composable
@@ -68,35 +70,47 @@ fun OnboardingScreen(
                 OnboardingStep.WELCOME -> WelcomeStepContent(
                     onGetStarted = viewModel::onNextStep,
                 )
-                OnboardingStep.FEATURES -> FeatureSelectionStepContent(
+                OnboardingStep.NAME -> NameStepContent(
+                    name = uiState.babyName,
+                    nameError = uiState.babyNameError,
+                    isNextEnabled = viewModel.isNextEnabled,
+                    onNameChanged = viewModel::onNameChanged,
+                    onBack = viewModel::onPreviousStep,
+                    onNext = viewModel::onNextStep,
+                )
+                OnboardingStep.BIRTHDAY -> BirthdayStepContent(
+                    babyName = uiState.babyName,
+                    selectedDate = uiState.birthDate,
+                    birthDateError = uiState.birthDateError,
+                    showAgeWarning = uiState.showAgeWarning,
+                    bornEarly = uiState.bornEarly,
+                    dueDate = uiState.dueDate,
+                    dueDateError = uiState.dueDateError,
+                    isNextEnabled = viewModel.isNextEnabled,
+                    onDateSelected = viewModel::onBirthDateSelected,
+                    onBornEarlyToggled = viewModel::onBornEarlyToggled,
+                    onDueDateSelected = viewModel::onDueDateSelected,
+                    onBack = viewModel::onPreviousStep,
+                    onNext = viewModel::onNextStep,
+                )
+                OnboardingStep.SEX -> SexStepContent(
+                    babyName = uiState.babyName,
+                    selectedSex = uiState.sex,
+                    onSexSelected = viewModel::onSexSelected,
+                    onBack = viewModel::onPreviousStep,
+                    onNext = viewModel::onNextStep,
+                )
+                OnboardingStep.TRACKERS -> TrackersStepContent(
                     enabledFeatures = uiState.enabledFeatures,
+                    isNextEnabled = viewModel.isNextEnabled,
                     onFeatureToggled = viewModel::onFeatureToggled,
                     onDomainToggled = viewModel::onDomainToggled,
                     onBack = viewModel::onPreviousStep,
                     onNext = viewModel::onNextStep,
                 )
-                OnboardingStep.BABY_INFO -> BabyInfoStepContent(
-                    name = uiState.babyName,
-                    nameError = uiState.babyNameError,
-                    selectedDate = uiState.birthDate,
-                    birthDateError = uiState.birthDateError,
-                    showAgeWarning = uiState.showAgeWarning,
-                    selectedSex = uiState.sex,
-                    isNextEnabled = viewModel.isNextEnabled,
-                    onNameChanged = viewModel::onNameChanged,
-                    onDateSelected = viewModel::onBirthDateSelected,
-                    onSexSelected = viewModel::onSexSelected,
-                    onBack = viewModel::onPreviousStep,
-                    onNext = viewModel::onNextStep,
-                )
-                OnboardingStep.ALLERGIES -> AllergiesStepContent(
+                OnboardingStep.SUMMARY -> SummaryStepContent(
                     babyName = uiState.babyName,
-                    selectedAllergies = uiState.selectedAllergies,
-                    customNote = uiState.customAllergyNote,
                     isSaving = uiState.isSaving,
-                    onAllergyToggled = viewModel::onAllergyToggled,
-                    onAllergiesCleared = viewModel::onAllergiesCleared,
-                    onCustomNoteChanged = viewModel::onCustomAllergyNoteChanged,
                     onBack = viewModel::onPreviousStep,
                     onFinish = viewModel::onFinish,
                 )

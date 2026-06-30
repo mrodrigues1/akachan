@@ -3,14 +3,17 @@ package com.babytracker.domain.usecase.baby
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.repository.BabyRepository
+import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import java.io.IOException
 import java.time.LocalDate
 
 class SaveBabyProfileUseCaseTest {
@@ -57,6 +60,45 @@ class SaveBabyProfileUseCaseTest {
     fun invokeNoAllergiesSavesEmptyList() = runTest {
         val baby = Baby("Luna", LocalDate.now(), emptyList(), null)
         coJustRun { repository.saveBabyProfile(baby) }
+
+        useCase(baby)
+
+        coVerify(exactly = 1) { repository.saveBabyProfile(baby) }
+    }
+
+    @Test
+    fun invokeWithDueDatePropagatesBootstrapFailureBeforeMarkingComplete() {
+        val baby = Baby("Luna", LocalDate.now())
+        val dueDate = LocalDate.now().plusWeeks(3)
+        coEvery { bootstrap.invoke(dueDate, baby.birthDate) } throws IOException("disk full")
+
+        assertThrows<IOException> {
+            runBlocking { useCase(baby, dueDate) }
+        }
+
+        // saveBabyProfile (which flips onboarding_complete) must not run once the due date failed.
+        coVerify(exactly = 0) { repository.saveBabyProfile(any()) }
+    }
+
+    @Test
+    fun invokeWithDueDatePersistsDueDateBeforeSavingBaby() = runTest {
+        val baby = Baby("Luna", LocalDate.now())
+        val dueDate = LocalDate.now().plusWeeks(3)
+        coJustRun { repository.saveBabyProfile(baby) }
+
+        useCase(baby, dueDate)
+
+        coVerifyOrder {
+            bootstrap.invoke(dueDate, baby.birthDate)
+            repository.saveBabyProfile(baby)
+        }
+    }
+
+    @Test
+    fun invokeWithoutDueDateSwallowsBootstrapFailure() = runTest {
+        val baby = Baby("Luna", LocalDate.now())
+        coJustRun { repository.saveBabyProfile(baby) }
+        coEvery { bootstrap.invoke() } throws IOException("disk full")
 
         useCase(baby)
 

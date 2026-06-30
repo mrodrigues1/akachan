@@ -620,6 +620,40 @@
     <string name="onboarding_allergies_selected">Known allergies selected</string>
     <string name="onboarding_no_allergies_save">No allergies will be saved yet.</string>
     <string name="onboarding_will_save">"Will save: "</string>
+    <!-- Conversational onboarding wizard -->
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_cover_reassurance">Takes about a minute</string>
+    <string name="onboarding_baby_fallback">your baby</string>
+    <string name="onboarding_name_question">What should we call your baby?</string>
+    <string name="onboarding_name_subtitle">A nickname is fine — you can change it anytime in Settings.</string>
+    <string name="onboarding_birthday_question">When was %1$s born?</string>
+    <string name="onboarding_birthday_subtitle">This keeps ages and records accurate across every tracker.</string>
+    <string name="onboarding_born_early">Born early?</string>
+    <string name="onboarding_born_early_desc">Add a due date so ages adjust for prematurity.</string>
+    <string name="onboarding_due_date_label">Due date</string>
+    <string name="onboarding_due_date_unset">Select due date</string>
+    <string name="onboarding_age_separator">", "</string>
+    <string name="onboarding_age_old">%1$s old</string>
+    <plurals name="onboarding_age_years">
+        <item quantity="one">%1$d year</item>
+        <item quantity="other">%1$d years</item>
+    </plurals>
+    <plurals name="onboarding_age_months">
+        <item quantity="one">%1$d month</item>
+        <item quantity="other">%1$d months</item>
+    </plurals>
+    <plurals name="onboarding_age_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <string name="onboarding_sex_question">Is %1$s a boy or a girl?</string>
+    <string name="onboarding_trackers_question">What would you like to track?</string>
+    <string name="onboarding_trackers_subtitle">Everything\'s on to start. Turn off anything you do not need — you can change this later in Settings.</string>
+    <string name="onboarding_summary_title">You\'re all set, %1$s!</string>
+    <string name="onboarding_summary_subtitle">Everything\'s ready. You can fine-tune trackers, allergies, and more in Settings.</string>
+    <string name="onboarding_partner_card_title">Share with your partner</string>
+    <string name="onboarding_partner_card_body">Akachan can share a read-only snapshot of your baby\'s day with your partner. Turn it on anytime in Settings.</string>
+    <string name="onboarding_enter_app">Enter app</string>
 
     <!-- Growth -->
     <string name="growth_title">Growth</string>
@@ -993,6 +1027,7 @@
     <string name="action_open">Open</string>
     <string name="error_name_required">Enter a name to continue.</string>
     <string name="error_birth_date_future">Birth date cannot be in the future.</string>
+    <string name="error_due_date_before_birth">Due date can\'t be before the birth date.</string>
 
     <!-- Baby sex (display labels; domain enum name is the persistence token) -->
     <string name="baby_sex_male">Boy</string>

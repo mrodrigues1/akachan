@@ -1,6 +1,6 @@
 package com.babytracker.ui.onboarding.components
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -25,17 +25,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
-import com.babytracker.ui.theme.LocalDarkTheme
 
 @Composable
 fun WelcomeStepContent(
@@ -51,30 +51,10 @@ fun WelcomeStepContent(
             val isCompactHeight = maxHeight < 560.dp || maxWidth > maxHeight
             val usesLargeText = fontScale >= 1.5f
             val horizontalPadding = if (isCompactHeight) 20.dp else 24.dp
-            val topPadding = when {
-                isCompactHeight && usesLargeText -> 12.dp
-                isCompactHeight -> 18.dp
-                else -> 32.dp
-            }
-            val bottomPadding = when {
-                isCompactHeight && usesLargeText -> 12.dp
-                isCompactHeight -> 18.dp
-                else -> 28.dp
-            }
-            val previewHeight = when {
-                isCompactHeight && usesLargeText -> 84.dp
-                isCompactHeight -> 144.dp
-                else -> 224.dp
-            }
-            val previewTitleSpacing = when {
-                isCompactHeight && usesLargeText -> 12.dp
-                isCompactHeight -> 18.dp
-                else -> 32.dp
-            }
-            val featureTopSpacing = when {
-                isCompactHeight && usesLargeText -> 14.dp
-                isCompactHeight -> 20.dp
-                else -> 28.dp
+            val heroHeight = when {
+                isCompactHeight && usesLargeText -> 96.dp
+                isCompactHeight -> 140.dp
+                else -> 220.dp
             }
 
             Column(
@@ -83,19 +63,15 @@ fun WelcomeStepContent(
                     .statusBarsPadding()
                     .navigationBarsPadding()
                     .padding(horizontal = horizontalPadding)
-                    .padding(top = topPadding, bottom = bottomPadding),
+                    .padding(top = if (isCompactHeight) 16.dp else 32.dp, bottom = if (isCompactHeight) 16.dp else 28.dp),
             ) {
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .verticalScroll(rememberScrollState()),
                 ) {
-                    WelcomeCarePreview(
-                        previewHeight = previewHeight,
-                        isCompactHeight = isCompactHeight,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(modifier = Modifier.height(previewTitleSpacing))
+                    WelcomeHero(heroHeight = heroHeight)
+                    Spacer(modifier = Modifier.height(if (isCompactHeight) 18.dp else 32.dp))
                     Text(
                         text = stringResource(R.string.onboarding_welcome_title),
                         style = MaterialTheme.typography.headlineLarge,
@@ -108,10 +84,18 @@ fun WelcomeStepContent(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Spacer(modifier = Modifier.height(featureTopSpacing))
+                    Spacer(modifier = Modifier.height(if (isCompactHeight) 20.dp else 28.dp))
                     WelcomeFeatureList()
                     Spacer(modifier = Modifier.height(24.dp))
                 }
+                Text(
+                    text = stringResource(R.string.onboarding_cover_reassurance),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(10.dp))
                 Button(
                     onClick = onGetStarted,
                     modifier = Modifier
@@ -120,7 +104,7 @@ fun WelcomeStepContent(
                         .testTag("onboarding_welcome_primary_action"),
                     shape = MaterialTheme.shapes.extraLarge,
                 ) {
-                    Text(stringResource(R.string.onboarding_setup_profile))
+                    Text(stringResource(R.string.onboarding_get_started))
                 }
             }
         }
@@ -128,90 +112,21 @@ fun WelcomeStepContent(
 }
 
 @Composable
-private fun WelcomeCarePreview(
-    previewHeight: Dp,
-    isCompactHeight: Boolean,
+private fun WelcomeHero(
+    heroHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val darkModeBorder = if (LocalDarkTheme.current) {
-        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    } else {
-        null
-    }
-
-    Surface(
+    Box(
         modifier = modifier
-            .height(previewHeight)
+            .fillMaxWidth()
+            .height(heroHeight)
             .clearAndSetSemantics {},
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentAlignment = Alignment.Center,
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(if (isCompactHeight) 16.dp else 22.dp),
-        ) {
-            Surface(
-                modifier = Modifier
-                    .size(if (isCompactHeight) 88.dp else 112.dp)
-                    .align(Alignment.Center),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                border = darkModeBorder,
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.onboarding_preview_care),
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                }
-            }
-            PreviewPill(
-                label = stringResource(R.string.onboarding_preview_feeding),
-                modifier = Modifier.align(Alignment.TopStart),
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                border = darkModeBorder,
-            )
-            PreviewPill(
-                label = stringResource(R.string.onboarding_preview_sleep),
-                modifier = Modifier.align(Alignment.BottomEnd),
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                border = darkModeBorder,
-            )
-            PreviewPill(
-                label = stringResource(R.string.onboarding_preview_allergies),
-                modifier = Modifier.align(Alignment.BottomStart),
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            )
-        }
-    }
-}
-
-@Composable
-private fun PreviewPill(
-    label: String,
-    containerColor: Color,
-    contentColor: Color,
-    modifier: Modifier = Modifier,
-    border: BorderStroke? = null,
-) {
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.extraLarge,
-        color = containerColor,
-        contentColor = contentColor,
-        tonalElevation = 0.dp,
-        border = border,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+        Image(
+            painter = painterResource(R.mipmap.ic_launcher_foreground),
+            contentDescription = null,
+            modifier = Modifier.size(heroHeight),
         )
     }
 }
