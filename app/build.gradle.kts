@@ -46,8 +46,8 @@ android {
         applicationId = "com.babytracker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 90
-        versionName = "1.67.0"
+        versionCode = 91
+        versionName = "1.67.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["runnerBuilder"] =
