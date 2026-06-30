@@ -215,6 +215,17 @@ When working on a new feature, pull `main` branch latest changes and create a ne
 
 ---
 
+## Task Progress File
+
+At the start of any work, read `AI_TASK_PROGRESS.md` (repo root). Keep it updated throughout the task so work can be resumed in a different session.
+
+- If empty, create it as a minimal todo list for the current task — no extra prose.
+- If not empty, check whether it matches the current task/context. Resume from it if it does; overwrite it if it doesn't.
+- Update it as steps complete, not just at the end.
+- Keep it terse: short heading, todo list, only the context needed to resume. No history log, no analysis.
+
+---
+
 ## Code Patterns
 
 ### Use Cases
