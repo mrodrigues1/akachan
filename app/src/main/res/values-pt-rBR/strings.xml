@@ -628,6 +628,43 @@
     <string name="onboarding_allergies_selected">Alergias conhecidas selecionadas</string>
     <string name="onboarding_no_allergies_save">Nenhuma alergia será salva ainda.</string>
     <string name="onboarding_will_save">"Vai salvar: "</string>
+    <!-- Conversational onboarding wizard -->
+    <string name="onboarding_get_started">Começar</string>
+    <string name="onboarding_cover_reassurance">Leva cerca de um minuto</string>
+    <string name="onboarding_baby_fallback">seu bebê</string>
+    <string name="onboarding_name_question">Como vamos chamar seu bebê?</string>
+    <string name="onboarding_name_subtitle">Um apelido também serve — você pode mudar quando quiser nos Ajustes.</string>
+    <string name="onboarding_birthday_question">Quando %1$s nasceu?</string>
+    <string name="onboarding_birthday_subtitle">Isso mantém as idades e os registros corretos em todos os monitoramentos.</string>
+    <string name="onboarding_born_early">Nasceu prematuro?</string>
+    <string name="onboarding_born_early_desc">Adicione a data prevista para que as idades sejam ajustadas pela prematuridade.</string>
+    <string name="onboarding_due_date_label">Data prevista</string>
+    <string name="onboarding_due_date_unset">Selecionar data prevista</string>
+    <string name="onboarding_age_separator">" e "</string>
+    <string name="onboarding_age_old">%1$s</string>
+    <plurals name="onboarding_age_years">
+        <item quantity="one">%1$d ano</item>
+        <item quantity="other">%1$d anos</item>
+        <item quantity="many">%1$d anos</item>
+    </plurals>
+    <plurals name="onboarding_age_months">
+        <item quantity="one">%1$d mês</item>
+        <item quantity="other">%1$d meses</item>
+        <item quantity="many">%1$d meses</item>
+    </plurals>
+    <plurals name="onboarding_age_days">
+        <item quantity="one">%1$d dia</item>
+        <item quantity="other">%1$d dias</item>
+        <item quantity="many">%1$d dias</item>
+    </plurals>
+    <string name="onboarding_sex_question">%1$s é menino ou menina?</string>
+    <string name="onboarding_trackers_question">O que você gostaria de acompanhar?</string>
+    <string name="onboarding_trackers_subtitle">Tudo começa ativado. Desative o que não precisar — você pode mudar isso depois nos Ajustes.</string>
+    <string name="onboarding_summary_title">Tudo pronto, %1$s!</string>
+    <string name="onboarding_summary_subtitle">Está tudo pronto. Você pode ajustar monitoramentos, alergias e mais nos Ajustes.</string>
+    <string name="onboarding_partner_card_title">Compartilhe com seu parceiro</string>
+    <string name="onboarding_partner_card_body">O Akachan pode compartilhar um resumo somente leitura do dia do seu bebê com seu parceiro. Ative quando quiser nos Ajustes.</string>
+    <string name="onboarding_enter_app">Entrar no app</string>
 
     <!-- Growth -->
     <string name="growth_title">Crescimento</string>
@@ -1005,6 +1042,7 @@
     <string name="action_open">Abrir</string>
     <string name="error_name_required">Informe um nome para continuar.</string>
     <string name="error_birth_date_future">A data de nascimento não pode ser no futuro.</string>
+    <string name="error_due_date_before_birth">A data prevista não pode ser anterior ao nascimento.</string>
 
     <!-- Sexo do bebê -->
     <string name="baby_sex_male">Menino</string>
