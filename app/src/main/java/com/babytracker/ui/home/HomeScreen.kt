@@ -271,7 +271,7 @@ internal fun HomeTileStatusText(
     text: String,
     color: Color,
     modifier: Modifier = Modifier,
-    maxLines: Int = 2,
+    maxLines: Int = Int.MAX_VALUE,
 ) {
     Text(
         text = text,
