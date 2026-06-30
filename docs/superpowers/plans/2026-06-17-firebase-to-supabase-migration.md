@@ -4,22 +4,25 @@
 
 **Goal:** Replace Firestore + anonymous Firebase Auth in the partner-sharing feature with Supabase (Postgres + GoTrue + Realtime), with no behaviour regression and zero `com.google.firebase` dependencies at the end.
 
-**Architecture:** Firebase is already isolated behind the `SharingRepository` interface; the only Firebase-touching class is `FirestoreSharingService`. We add a parallel `SupabaseSharingService` implementing identical behaviour against normalized Postgres tables, flip the repository's injected service in a single cutover task, then delete all Firebase code. Offline feed-op writes — which the Firestore SDK queued for free — are restored with a Room outbox drained by WorkManager.
+> **Reconciled 2026-06-29** against `feat/firebase-to-supabase-migration` HEAD. The sharing code drifted substantially since this plan was first written — see the per-task notes. The plan now targets the *current* surface, not the 2026-06-17 one.
 
-**Tech Stack:** Kotlin 2.3.20, Hilt 2.59, Room 2.8.4, WorkManager 2.10.0, Coroutines/Flow, supabase-kt (Auth + Postgrest + Realtime) + Ktor client, Supabase CLI (local Docker stack for tests), JUnit5 / MockK / Turbine / Robolectric / Konsist.
+**Architecture:** There is **no `SharingRepository` interface** (the project rule is "no interface unless multiple implementations exist"). The Firebase seam is the concrete `FirestoreSharingService` plus the sleep-op and live-observer **extension functions declared in the same file** (`observeSleepOps`/`writeSleepOp`/`deleteSleepOps`/`getSleepOps`, `observeSnapshot`, `observePartnerConnected`). That seam is injected directly into 12 use cases + `PartnerSleepViewModel` + `ManageSharingViewModel`, and Firebase exception types have **leaked** into 4 use-case/error files (the partner-access-revoked detection). In Firestore a share is **one document** holding the whole snapshot as a nested `data` map; the op inboxes (`feedOps`, `sleepOps`) and `partners` are subcollections. We add a parallel `SupabaseSharingService` that mirrors that surface 1:1 (members **and** the extension functions) but writes/reads **normalized** Postgres tables. Cutover swaps the injected concrete type + imports at every call site and ports the leaked Firebase-exception handling to Supabase errors (no binding flip — there is no binding). Offline op writes — which the Firestore SDK queued for free — are restored with a Room outbox drained by WorkManager.
+
+**Tech Stack:** Kotlin 2.3.20, Hilt 2.59, Room 2.8.4, WorkManager 2.11.0, Coroutines/Flow, supabase-kt (Auth + Postgrest + Realtime) + Ktor client, Supabase CLI (local Docker stack for tests), JUnit5 / MockK / Turbine / Robolectric / Konsist.
 
 ## Global Constraints
 
 - One PR per task; each task = one Linear issue (AKA-165 … AKA-173) and is independently shippable.
-- The `SharingRepository` interface is **frozen** — do not change its signatures. The whole migration hides behind it.
+- **The Firebase seam has no interface.** `SupabaseSharingService` must mirror the full `FirestoreSharingService` surface — member functions **and** the extension functions in the same file — method-name-for-method-name, so cutover is a concrete-type swap at each call site (12 use cases + `PartnerSleepViewModel` + `ManageSharingViewModel`). Do **not** add a repository interface (single implementation; project rule).
+- **Firebase exception types leaked** into `usecase/PartnerAccessError.kt`, `usecase/FetchPartnerDataUseCase.kt`, `usecase/SubmitFeedOpUseCase.kt`, `usecase/SubmitSleepOpUseCase.kt`. The "partner access revoked" path keys on `FirebaseFirestoreException.Code.PERMISSION_DENIED`; cutover (Task 8) must re-express this as a Supabase RLS-denied check (Postgrest `RestException` / HTTP 401|403) behind a backend-agnostic predicate.
 - No Mapper classes — use extension functions on snapshot/row types (project rule).
 - No `sealed class Result<T>` wrappers, no BaseViewModel/BaseFragment, no KAPT (KSP only), no multi-module.
 - DateTime: `java.time.Instant`; store epoch millis (`Long`) — same convention as today.
-- Firebase deps remain in the build until AKA-173; only the cutover task (AKA-172) flips the binding.
+- Firebase deps remain in the build until AKA-173; only the cutover task (AKA-172) swaps the injected service type.
 - Secrets (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) come from `local.properties` / CI secrets via `BuildConfig`; never commit them.
 - Snapshots are ephemeral — no historical data migration. Existing Firebase share codes are abandoned at cutover.
 - Run `./gradlew test --tests "<changed test>"` per task; full `./gradlew build` before each PR. ktlint/detekt run via the pre-commit hook.
-- Source of truth for table columns: the `*Snapshot` models in `sharing/domain/model/` (fields enumerated in Task 1).
+- Source of truth for table columns: the `*Snapshot` models in `sharing/domain/model/ShareSnapshot.kt` and `FeedOp.kt`/`SleepOp.kt` (fields enumerated in Task 1). Current Room schema is **v17** — the outbox migration in Task 7 targets **v17 → v18**.
 
 ---
 
@@ -36,19 +39,22 @@ Stand up the backend. **No app/Kotlin code.** Deliverable: a `supabase/` dir who
 **Interfaces:**
 - Produces: the table/column contract every later task serializes against (column names below) and the RLS predicates the integration tests assert.
 
-**Column contract (1:1 with snapshot models):**
+**Column contract (1:1 with snapshot models — 15 tables):**
 - `shares(code text pk, owner_uid text not null, created_at timestamptz default now(), last_sync_at timestamptz)`
 - `baby(code text pk → shares, name text, birth_date_ms bigint, allergies text[])`
-- `sessions(code text → shares, id bigint, start_time bigint, end_time bigint, starting_side text, switch_time bigint, paused_duration_ms bigint, notes text, pk(code,id))`
-- `sleep_records(code text → shares, id bigint, start_time bigint, end_time bigint, sleep_type text, notes text, pk(code,id))`
+- `sessions(code text → shares, id bigint, start_time bigint, end_time bigint, starting_side text, switch_time bigint, paused_duration_ms bigint, notes text, paused_at_ms bigint, pk(code,id))`  ← `paused_at_ms` added (SessionSnapshot.pausedAtMs; null = running)
+- `sleep_records(code text → shares, id bigint, start_time bigint, end_time bigint, sleep_type text, notes text, client_id text, started_by text, pk(code,id))`  ← `client_id`/`started_by` added (SPEC-008 partner sleep; default `''`/`'OWNER'`)
 - `sleep_prediction(code text pk → shares, state_label text, window_start bigint, window_end bigint, best_estimate bigint, confidence text, reasons text[], feed_prompt text, generated_at bigint)`
-- `bottle_feeds(code text → shares, client_id text, timestamp bigint, volume_ml int, type text, author text, notes text, pk(code,client_id))`
+- `bottle_feeds(id bigint generated always as identity pk, code text → shares, timestamp bigint, volume_ml int, type text, client_id text, author text, notes text)`  ← surrogate `id` PK (was `pk(code,client_id)`; owner feeds default `client_id` to `''` and would collide). Sync is delete-by-code + insert, so the DB assigns `id` — `client_id` stays a column for the partner's optimistic merge.
 - `milk_bags(code text → shares, id bigint, collection_date_ms bigint, volume_ml int, notes text, pk(code,id))`
 - `inventory(code text pk → shares, total_ml int, bag_count int, updated_at_ms bigint)`
 - `growth(code text → shares, type text, taken_at_ms bigint, value_canonical bigint, notes text, pk(code,type,taken_at_ms))`
 - `milestones(code text → shares, title text, date_epoch_day bigint, time_minute_of_day int, note text, pk(code,title,date_epoch_day))`
+- `diapers(id bigint generated always as identity pk, code text → shares, timestamp bigint, type text, notes text)`  ← NEW (DiaperSnapshot); surrogate `id` PK (timestamps aren't guaranteed unique; delete-by-code + insert assigns it)
+- `doctor_visits(code text → shares, date bigint, provider_name text, pk(code,date))`  ← NEW (DoctorVisitSnapshot; only `date` + `providerName` sync — questions/notes stay local)
 - `partners(code text → shares, uid text, connected_at timestamptz default now(), pk(code,uid))`
 - `feed_ops(op_id text pk, code text → shares, author_uid text, action text, entry_client_id text, created_at_ms bigint, timestamp_ms bigint, volume_ml int, type text, notes text, consumed_bag_id bigint)`
+- `sleep_ops(op_id text pk, code text → shares, author_uid text, action text, entry_client_id text, created_at_ms bigint, start_time_ms bigint, end_time_ms bigint, sleep_type text, notes text)`  ← NEW (SleepOp; action ∈ start|stop|update — SPEC-008)
 
 All child tables `references shares(code) on delete cascade`.
 
@@ -62,7 +68,7 @@ enable_anonymous_sign_ins = true
 
 - [ ] **Step 2: Write `0001_schema.sql`**
 
-Create all 12 tables exactly per the column contract above. Example (repeat the pattern for every table):
+Create all 15 tables exactly per the column contract above. Example (repeat the pattern for every table):
 ```sql
 create table shares (
   code         text primary key,
@@ -82,10 +88,10 @@ create table sessions (
   notes             text,
   primary key (code, id)
 );
--- ...baby, sleep_records, sleep_prediction, bottle_feeds, milk_bags,
---    inventory, growth, milestones, partners, feed_ops likewise.
+-- ...baby, sleep_records, sleep_prediction, bottle_feeds, milk_bags, inventory,
+--    growth, milestones, diapers, doctor_visits, partners, feed_ops, sleep_ops likewise.
 ```
-Add the feed-op field validation as CHECK constraints (mirror `isValidFeedOp`):
+Add the op-field validation as CHECK constraints (mirror `isValidFeedOp` / the SleepOp action set):
 ```sql
 alter table feed_ops
   add constraint feed_ops_action_chk check (action in ('create','update','delete')),
@@ -93,6 +99,13 @@ alter table feed_ops
   add constraint feed_ops_entry_chk  check (char_length(entry_client_id) between 1 and 64),
   add constraint feed_ops_create_fields_chk
     check (action = 'delete' or (timestamp_ms is not null and volume_ml is not null and type is not null));
+
+alter table sleep_ops
+  add constraint sleep_ops_action_chk check (action in ('start','stop','update')),
+  add constraint sleep_ops_entry_chk  check (char_length(entry_client_id) between 1 and 64),
+  -- START carries start_time_ms; STOP carries end_time_ms; UPDATE may set either.
+  add constraint sleep_ops_start_fields_chk check (action <> 'start' or start_time_ms is not null),
+  add constraint sleep_ops_stop_fields_chk  check (action <> 'stop'  or end_time_ms is not null);
 ```
 
 - [ ] **Step 3: Write `0002_rls.sql`** — helper functions + policies
@@ -116,8 +129,8 @@ create policy shares_update on shares for update using (owner_uid = auth.uid()::
 create policy shares_delete on shares for delete using (owner_uid = auth.uid()::text);
 
 -- snapshot child tables: read to any authed user, write only to share owner.
--- repeat this block for baby, sessions, sleep_records, sleep_prediction,
--- bottle_feeds, milk_bags, inventory, growth, milestones:
+-- repeat this block for baby, sessions, sleep_records, sleep_prediction, bottle_feeds,
+-- milk_bags, inventory, growth, milestones, diapers, doctor_visits:
 alter table sessions enable row level security;
 create policy sessions_read on sessions for select using (auth.uid() is not null);
 create policy sessions_write on sessions for all
@@ -133,8 +146,18 @@ create policy feed_ops_read   on feed_ops for select using (is_owner(code) or (i
 create policy feed_ops_insert on feed_ops for insert with check (is_connected_partner(code) and author_uid = auth.uid()::text);
 create policy feed_ops_update on feed_ops for update using (is_connected_partner(code) and author_uid = auth.uid()::text) with check (author_uid = auth.uid()::text);
 create policy feed_ops_delete on feed_ops for delete using (is_owner(code) or (is_connected_partner(code) and author_uid = auth.uid()::text));
+
+-- sleep_ops: identical predicate shape to feed_ops (SPEC-008 mirrors SPEC-007).
+alter table sleep_ops enable row level security;
+create policy sleep_ops_read   on sleep_ops for select using (is_owner(code) or (is_connected_partner(code) and author_uid = auth.uid()::text));
+create policy sleep_ops_insert on sleep_ops for insert with check (is_connected_partner(code) and author_uid = auth.uid()::text);
+create policy sleep_ops_update on sleep_ops for update using (is_connected_partner(code) and author_uid = auth.uid()::text) with check (author_uid = auth.uid()::text);
+create policy sleep_ops_delete on sleep_ops for delete using (is_owner(code) or (is_connected_partner(code) and author_uid = auth.uid()::text));
 ```
-Enable Realtime on `feed_ops`: `alter publication supabase_realtime add table feed_ops;`
+Enable Realtime on the op inboxes **and** on `shares` + `partners` — the partner UI now streams the whole snapshot (`observeSnapshot`) and its own connection (`observePartnerConnected`) live, not just one-shot fetches:
+```sql
+alter publication supabase_realtime add table feed_ops, sleep_ops, shares, partners;
+```
 
 - [ ] **Step 4: Verify locally**
 
@@ -326,7 +349,9 @@ Row models + extension-function mapping + all `sync*` and share-lifecycle writes
 
 **Interfaces:**
 - Consumes: `SupabaseClient`, snapshot models.
-- Produces: `@Serializable` row classes (`ShareRow`, `BabyRow`, `SessionRow`, `SleepRow`, `SleepPredictionRow`, `BottleFeedRow`, `MilkBagRow`, `InventoryRow`, `GrowthRow`, `MilestoneRow`); `fun <Snapshot>.toRow(code): <Row>` + `fun <Row>.toSnapshot(): <Snapshot>`; service methods `createShareDocument`, `isShareCodeValid`, `deleteShareDocument`, `syncFullSnapshot`, `syncSessions`, `syncSleepRecords`, `syncBottleFeeds`, `syncBaby`, `syncInventory` (and growth/milestones inside `syncFullSnapshot`).
+- Produces: `@Serializable` row classes (`ShareRow`, `BabyRow`, `SessionRow`, `SleepRow`, `SleepPredictionRow`, `BottleFeedRow`, `MilkBagRow`, `InventoryRow`, `GrowthRow`, `MilestoneRow`, `DiaperRow`, `DoctorVisitRow`); `fun <Snapshot>.toRow(code): <Row>` + `fun <Row>.toSnapshot(): <Snapshot>`; service methods mirroring `FirestoreSharingService` member funcs: `createShareDocument`, `isShareCodeValid`, `deleteShareDocument`, `syncFullSnapshot`, `syncSessions`, `syncSleepRecords`, `syncBottleFeeds`, `syncDiapers`, `syncInventory`, `syncBottleFeedsAndInventory` (baby, growth, milestones, and doctor-visits are written inside `syncFullSnapshot`, not as standalone incremental methods — match the current surface).
+- **New fields vs the 2026-06-17 model:** `SessionRow.pausedAtMs` (null=running), `SleepRow.clientId`/`SleepRow.startedBy` (SPEC-008). Round-trip-test them too.
+- **`BottleFeedRow` / `DiaperRow` have no `id` field** — the surrogate PK is `generated always as identity`, so the row class omits it: Postgres assigns it on insert, and the `id` column on read is ignored (Postgrest decodes with `ignoreUnknownKeys`). These two round-trip on their data columns only.
 
 - [ ] **Step 1: Failing mapping test (representative — session)**
 
@@ -335,12 +360,12 @@ class SupabaseRowMappingTest {
     @Test
     fun `session snapshot round-trips through row`() {
         val s = SessionSnapshot(id = 1, startTime = 100, endTime = 200,
-            startingSide = "LEFT", switchTime = 150, pausedDurationMs = 10, notes = "n")
+            startingSide = "LEFT", switchTime = 150, pausedDurationMs = 10, notes = "n", pausedAtMs = 180)
         assertEquals(s, s.toRow("CODE1234").toSnapshot())
     }
 }
 ```
-Add an equivalent assertion for every snapshot type (baby, sleep, sleepPrediction, bottleFeed, milkBag, inventory, growth, milestone). Source fields verbatim from `sharing/domain/model/` (see Task 1 column contract).
+Add an equivalent assertion for every snapshot type (baby, sleep [incl. `clientId`/`startedBy`], sleepPrediction, bottleFeed, milkBag, inventory, growth, milestone, diaper, doctorVisit). Source fields verbatim from `sharing/domain/model/ShareSnapshot.kt` (see Task 1 column contract).
 
 - [ ] **Step 2: Run → FAIL.**
 
@@ -382,9 +407,10 @@ suspend fun syncSessions(code: String, sessions: List<SessionSnapshot>, predicti
     upsertPrediction(code, prediction)
     touchLastSync(code)
 }
-// syncSleepRecords / syncBottleFeeds / syncMilkBags follow the same delete-by-code + insert pattern.
+// syncSleepRecords / syncBottleFeeds / syncMilkBags / syncDiapers follow the same delete-by-code + insert pattern.
 // syncBaby / syncInventory / upsertPrediction use upsert on the share-keyed PK.
-// syncFullSnapshot calls each section writer (incl. growth + milestones) for one snapshot.
+// syncBottleFeedsAndInventory writes both in one call (mirror the Firestore method of the same name).
+// syncFullSnapshot calls each section writer (incl. growth, milestones, diapers, doctor_visits) for one snapshot.
 suspend fun deleteShareDocument(code: String) { db.from("shares").delete { filter { eq("code", code) } } }
 ```
 
@@ -432,8 +458,9 @@ suspend fun fetchSnapshot(code: String): ShareSnapshot {
     // select each section filtered by code, then assemble via *.toSnapshot()
     val baby = db.from("baby").select { filter { eq("code", code) } }.decodeSingle<BabyRow>()
     val sessions = db.from("sessions").select { filter { eq("code", code) } }.decodeList<SessionRow>()
-    // ...sleep_records, sleep_prediction, bottle_feeds, milk_bags, inventory, growth, milestones, shares.last_sync_at
-    return ShareSnapshot(/* assemble from the above */)
+    // ...sleep_records, sleep_prediction, bottle_feeds, milk_bags, inventory, growth,
+    //    milestones, diapers, doctor_visits, shares.last_sync_at
+    return ShareSnapshot(/* assemble from the above, incl. diapers + doctorVisits */)
 }
 ```
 
@@ -452,33 +479,37 @@ git commit -m "feat(sharing): add Supabase partner connect and fetch [AKA-169]"
 
 ---
 
-### Task 6: Feed ops realtime subscriptions (online path) — AKA-170
+### Task 6: Realtime streams — feed ops, sleep ops, live snapshot & connection (online path) — AKA-170
 
-Realtime streams + online write/delete.
+Realtime streams + online write/delete. **Scope grew since 2026-06-17:** besides feed ops, the current service streams sleep ops (SPEC-008) and — as extension functions — the **whole snapshot** (`observeSnapshot`) and the partner's **own connection** (`observePartnerConnected`) live. Mirror all four on Supabase Realtime.
 
 **Files:**
 - Modify: `app/src/main/java/com/babytracker/sharing/data/supabase/SupabaseSharingService.kt`
 - Create: `app/src/test/java/com/babytracker/sharing/data/supabase/SupabaseSharingServiceFeedOpsTest.kt` (integration)
+- Create: `app/src/test/java/com/babytracker/sharing/data/supabase/SupabaseSharingServiceSleepOpsTest.kt` (integration)
+- Create: `app/src/test/java/com/babytracker/sharing/data/supabase/SupabaseSnapshotStreamTest.kt` (integration — `observeSnapshot` / `observePartnerConnected`)
 
 **Interfaces:**
-- Produces: `observeFeedOps(code): Flow<List<FeedOp>>`, `observeOwnFeedOps(code, uid): Flow<List<FeedOp>>`, `writeFeedOp(code, op, onFailure)`, `deleteFeedOps(code, opIds)`. Plus `FeedOpRow` + `FeedOp.toRow(code)` / `FeedOpRow.toFeedOp()` in `SupabaseRowMapping`.
+- Produces, matching the current Firestore surface 1:1:
+  - Feed ops: `observeFeedOps(code, authorUid? = null): Flow<List<FeedOp>>`, `writeFeedOp(code, op, onFailure)`, `deleteFeedOps(code, opIds)`, `getFeedOps(code)`. Plus `FeedOpRow` + `FeedOp.toRow(code)` / `FeedOpRow.toFeedOp()`.
+  - Sleep ops: `observeSleepOps(code, authorUid? = null): Flow<List<SleepOp>>`, `writeSleepOp(code, op, onFailure)`, `deleteSleepOps(code, opIds)`, `getSleepOps(code)`. Plus `SleepOpRow` + `SleepOp.toRow(code)` / `SleepOpRow.toSleepOp()`. (In Firestore these are extension functions; on Supabase they can be plain members or extensions — call-site imports change either way at cutover.)
+  - Live observers: `observeSnapshot(code): Flow<SnapshotEmission>` and `observePartnerConnected(code, partnerUid): Flow<ConnectionEmission>`. Reuse the existing `SnapshotEmission(data: ShareSnapshot?, fromCache: Boolean)` / `ConnectionEmission(connected: Boolean, fromCache: Boolean)` types (currently declared in the Firebase file — relocate to a backend-neutral spot at cutover).
+- **`fromCache` gap (decide here):** Supabase Realtime has no Firestore-style cache-origin flag. Partner code uses `fromCache` to tell a cold-offline emission from a server-confirmed one (e.g. don't treat a cache-origin missing doc as "share deleted"). Supabase equivalent: emit the seed `select` (online) with `fromCache = false`, and only surface `fromCache = true` when offline/seed-from-outbox. Verify every `fromCache` consumer still behaves; if none rely on `true` post-migration, hardcoding `false` is acceptable — but confirm, don't assume.
 
-- [ ] **Step 1: Add `FeedOpRow` mapping** (enum ↔ lowercase string for `action`; round-trip test in `SupabaseRowMappingTest`).
+- [ ] **Step 1: Add `FeedOpRow` + `SleepOpRow` mapping** (enum ↔ lowercase string for `action`: feed `create/update/delete`, sleep `start/stop/update`; round-trip tests in `SupabaseRowMappingTest`).
 
 - [ ] **Step 2: Implement realtime + writes**
 
 ```kotlin
 private val realtime get() = client.pluginManager.getPlugin(Realtime)
 
-fun observeFeedOps(code: String): Flow<List<FeedOp>> = feedOpStream(code, ownerUid = null)
-fun observeOwnFeedOps(code: String, uid: String): Flow<List<FeedOp>> = feedOpStream(code, ownerUid = uid)
-
-private fun feedOpStream(code: String, ownerUid: String?): Flow<List<FeedOp>> = flow {
+// Single method with an optional author filter, matching the current Firestore signature.
+fun observeFeedOps(code: String, authorUid: String? = null): Flow<List<FeedOp>> = flow {
     val channel = realtime.channel("feed_ops:$code")
     val changes = channel.postgresChangeFlow<PostgresAction>(schema = "public") { table = "feed_ops"; filter("code", FilterOperator.EQ, code) }
     channel.subscribe()
-    // emit initial select, then re-query on each change; filter by author when ownerUid != null
-    emitAll(changes.map { currentFeedOps(code, ownerUid) }.onStart { emit(currentFeedOps(code, ownerUid)) })
+    // emit initial select, then re-query on each change; filter by author when authorUid != null
+    emitAll(changes.map { currentFeedOps(code, authorUid) }.onStart { emit(currentFeedOps(code, authorUid)) })
 }.onCompletion { /* channel.unsubscribe() */ }
 
 suspend fun writeFeedOp(code: String, op: FeedOp, onFailure: (Throwable) -> Unit = {}) =
@@ -488,25 +519,31 @@ suspend fun deleteFeedOps(code: String, opIds: List<String>) {
     opIds.chunked(BATCH_LIMIT).forEach { chunk -> db.from("feed_ops").delete { filter { isIn("op_id", chunk) } } }
 }
 ```
+**Sleep ops** mirror the block above against `sleep_ops` (`observeSleepOps`/`writeSleepOp`/`deleteSleepOps`/`getSleepOps`). **Live observers** open a channel on `shares` (filter `code`) and re-query → `SnapshotEmission`, and on `partners` (filter `code` + `uid`) → `ConnectionEmission(connected = row exists)`, seeding each with an initial `select` (see `fromCache` note above).
 
-- [ ] **Step 3: Integration test**
+- [ ] **Step 3: Integration tests**
 
-Against `supabase start`: owner + connected partner. Partner `writeFeedOp`; assert owner's `observeFeedOps` emits it (Turbine). Assert a second partner does NOT receive another partner's op (RLS on subscription). `deleteFeedOps` removes + emits.
+Against `supabase start`: owner + connected partner.
+- Feed ops: partner `writeFeedOp`; assert owner's `observeFeedOps` emits it (Turbine). A second partner does NOT receive another partner's op (RLS on subscription). `deleteFeedOps` removes + emits.
+- Sleep ops: same shape against `observeSleepOps`/`writeSleepOp`/`deleteSleepOps`.
+- Live observers: owner `syncFullSnapshot` → partner's `observeSnapshot` emits the equal `ShareSnapshot`; `revokePartner` → partner's `observePartnerConnected` emits `connected = false`.
 
-Run: `./gradlew test --tests "com.babytracker.sharing.data.supabase.SupabaseSharingServiceFeedOpsTest"` → PASS.
+Run: `./gradlew test --tests "com.babytracker.sharing.data.supabase.SupabaseSharingService*OpsTest"` and `...SupabaseSnapshotStreamTest` → PASS.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add app/src/main/java/com/babytracker/sharing/data/supabase/ app/src/test/java/com/babytracker/sharing/data/supabase/SupabaseSharingServiceFeedOpsTest.kt
-git commit -m "feat(sharing): add Supabase realtime feed ops [AKA-170]"
+git add app/src/main/java/com/babytracker/sharing/data/supabase/ app/src/test/java/com/babytracker/sharing/data/supabase/
+git commit -m "feat(sharing): add Supabase realtime feed ops, sleep ops, and live streams [AKA-170]"
 ```
 
 ---
 
-### Task 7: Offline write outbox for feed ops — AKA-171
+### Task 7: Offline write outbox for feed ops **and sleep ops** — AKA-171
 
-Restore offline-first feed-op writes with a Room outbox + WorkManager.
+Restore offline-first op writes with a Room outbox + WorkManager. The Firestore SDK queued *both* feed-op and sleep-op writes for free; Supabase/Postgrest does not, so the outbox must cover both.
+
+> **Don't confuse with the existing `PartnerOpDrainWorker`.** That worker (in `sharing/work/`) drains the **owner-side inboxes** — it pulls pending partner ops out of Firestore and applies them locally (`ProcessSleepOps/ProcessFeedOps.drainOnce()`), and is **not** part of this migration. This Task 7 outbox is the **partner-side send queue**: it persists the partner's outgoing op locally and pushes it up when connectivity returns. Keep them separate; `PartnerOpDrainWorker` stays as-is (it just calls Supabase reads after cutover).
 
 > **AKACHAN-298 (generic op pipeline):** this plan predates partner sleep ops
 > (SPEC-008), which now duplicate the whole feed-op pipeline. Build the outbox
@@ -516,95 +553,104 @@ Restore offline-first feed-op writes with a Room outbox + WorkManager.
 > genericity" in the design doc for the constraints the seam must absorb.
 
 **Files:**
-- Create: `app/src/main/java/com/babytracker/sharing/data/supabase/outbox/FeedOpOutboxEntity.kt`
-- Create: `app/src/main/java/com/babytracker/sharing/data/supabase/outbox/FeedOpOutboxDao.kt`
-- Create: `app/src/main/java/com/babytracker/sharing/data/supabase/outbox/FeedOpSyncWorker.kt`
-- Modify: the Room database class + add a Room migration; `SupabaseSharingService` (route `writeFeedOp`, union into `observeOwnFeedOps`)
-- Create: `app/src/test/java/com/babytracker/sharing/data/supabase/outbox/FeedOpOutboxDaoTest.kt` (Room in-memory) + `FeedOpSyncWorkerTest.kt`
+- Create: `app/src/main/java/com/babytracker/sharing/data/supabase/outbox/OpOutboxEntity.kt`
+- Create: `app/src/main/java/com/babytracker/sharing/data/supabase/outbox/OpOutboxDao.kt`
+- Create: `app/src/main/java/com/babytracker/sharing/data/supabase/outbox/OpSyncWorker.kt`
+- Modify: `BabyTrackerDatabase` (v17 → **v18**) + add `MIGRATION_17_18`; `SupabaseSharingService` (route `writeFeedOp`/`writeSleepOp`, union into `observeFeedOps`/`observeSleepOps` for own ops)
+- Create: `app/src/test/java/com/babytracker/sharing/data/supabase/outbox/OpOutboxDaoTest.kt` (Room in-memory) + `OpSyncWorkerTest.kt`
 
 **Interfaces:**
-- Consumes: `FeedOpOutboxDao`, `SupabaseSharingService` online write.
-- Produces: `writeFeedOp` persists locally + enqueues unique work; `FeedOpSyncWorker` drains pending rows and marks synced; `observeOwnFeedOps` unions unsynced outbox rows.
+- Consumes: `OpOutboxDao`, `SupabaseSharingService` online writes.
+- Produces: `writeFeedOp`/`writeSleepOp` persist locally + enqueue unique work; `OpSyncWorker` drains pending rows (both kinds) and marks synced; the own-op streams union unsynced outbox rows.
 
 - [ ] **Step 1: Entity + DAO + migration**
 
+One discriminated table covers both op kinds (they share `opId`/`code`/`authorUid`/`createdAtMs`/`entryClientId`; the rest are nullable per kind — same flat/nullable shape as `FeedOp`/`SleepOp`):
 ```kotlin
-@Entity(tableName = "feed_op_outbox")
-data class FeedOpOutboxEntity(
+@Entity(tableName = "op_outbox")
+data class OpOutboxEntity(
     @PrimaryKey val opId: String,
+    val opKind: String,            // "feed" | "sleep"
     val code: String, val action: String, val entryClientId: String,
     val authorUid: String, val createdAtMs: Long,
-    val timestampMs: Long?, val volumeMl: Int?, val type: String?,
-    val notes: String?, val consumedBagId: Long?,
+    // feed fields
+    val timestampMs: Long?, val volumeMl: Int?, val type: String?, val consumedBagId: Long?,
+    // sleep fields
+    val startTimeMs: Long?, val endTimeMs: Long?, val sleepType: String?,
+    val notes: String?,
     val synced: Boolean = false,
 )
 ```
-DAO: `upsert`, `pending(): List<…>` (where `synced = 0`), `markSynced(opId)`, `observePending(code, uid): Flow<List<…>>`. Bump DB version + add a `MIGRATION_n_n+1` creating the table; register it; add a Room schema export test if the project has one.
+DAO: `upsert`, `pending(): List<…>` (where `synced = 0`), `markSynced(opId)`, `observePending(code, uid, kind): Flow<List<…>>`. Bump DB version to **18** + add `MIGRATION_17_18` creating the table; register it; update the Room schema export (`app/schemas/…/18.json`) and any schema-export test.
 
-- [ ] **Step 2: DAO test** (Room `inMemoryDatabaseBuilder`): insert pending, observe, markSynced removes from pending, dedupe on `opId`.
+- [ ] **Step 2: DAO test** (Room `inMemoryDatabaseBuilder`): insert pending (feed + sleep), observe, markSynced removes from pending, dedupe on `opId`.
 
 - [ ] **Step 3: Worker**
 
 ```kotlin
 @HiltWorker
-class FeedOpSyncWorker @AssistedInject constructor(
+class OpSyncWorker @AssistedInject constructor(
     @Assisted ctx: Context, @Assisted params: WorkerParameters,
-    private val dao: FeedOpOutboxDao, private val service: SupabaseSharingService,
+    private val dao: OpOutboxDao, private val service: SupabaseSharingService,
 ) : CoroutineWorker(ctx, params) {
     override suspend fun doWork(): Result = try {
-        dao.pending().forEach { service.writeFeedOpDirect(it.toFeedOp(), it.code); dao.markSynced(it.opId) }
+        dao.pending().forEach { row ->
+            when (row.opKind) {
+                "feed"  -> service.writeFeedOpDirect(row.toFeedOp(), row.code)
+                "sleep" -> service.writeSleepOpDirect(row.toSleepOp(), row.code)
+            }
+            dao.markSynced(row.opId)
+        }
         Result.success()
     } catch (e: Exception) { Result.retry() }
 }
 ```
-Enqueue as unique work with exponential backoff from `writeFeedOp`.
+Enqueue as unique work with exponential backoff from `writeFeedOp`/`writeSleepOp`.
 
-- [ ] **Step 4: Worker test** (faked service): drains pending → marks synced; service failure → `Result.retry()` and rows stay pending.
+- [ ] **Step 4: Worker test** (faked service): drains pending (both kinds) → marks synced; service failure → `Result.retry()` and rows stay pending.
 
-- [ ] **Step 5: Route writes + union reads** — `writeFeedOp` inserts to outbox + enqueues; `observeOwnFeedOps` merges realtime rows with unsynced outbox rows, de-duped by `opId`. Turbine test for the union.
+- [ ] **Step 5: Route writes + union reads** — `writeFeedOp`/`writeSleepOp` insert to outbox + enqueue; the own-op streams (`observeFeedOps`/`observeSleepOps` with `authorUid` set) merge realtime rows with unsynced outbox rows of that kind, de-duped by `opId`. Turbine test for each union.
 
 - [ ] **Step 6: Run** `./gradlew test --tests "com.babytracker.sharing.data.supabase.outbox.*"` → PASS; `./gradlew build`.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add app/src/main/java/com/babytracker/sharing/data/supabase/outbox/ app/src/test/java/com/babytracker/sharing/data/supabase/outbox/ <db + migration files>
-git commit -m "feat(sharing): add offline feed-op outbox with WorkManager sync [AKA-171]"
+git add app/src/main/java/com/babytracker/sharing/data/supabase/outbox/ app/src/test/java/com/babytracker/sharing/data/supabase/outbox/ <db + MIGRATION_17_18 + schema 18.json>
+git commit -m "feat(sharing): add offline op outbox (feed + sleep) with WorkManager sync [AKA-171]"
 ```
 
 ---
 
-### Task 8: Cutover — rebind repository + migrate integration tests — AKA-172
+### Task 8: Cutover — swap the injected service everywhere + abstract leaked errors — AKA-172
 
-The single binding flip. Firebase code still physically present for one-revert rollback.
+**There is no binding to flip** (no `SharingRepository`). Cutover is a concrete-type swap at every injection site, plus re-expressing the leaked Firebase exception handling against Supabase. Firebase code stays physically present for one-revert rollback. This is the largest task — consider splitting the error-abstraction prep into its own commit within the PR.
 
 **Files:**
-- Modify: `app/src/main/java/com/babytracker/sharing/data/repository/SharingRepositoryImpl.kt` (inject `SupabaseSharingService`)
-- Modify/replace: `FirestoreSharingServiceBottleFeedRoundTripTest`, `FirestoreSharingServiceInventoryRoundTripTest`, `FirestoreSnapshotMappingTest` → Supabase equivalents
-- Modify: CI workflow + test harness (replace Firebase emulator with `supabase start`)
+- Modify (swap `FirestoreSharingService` → `SupabaseSharingService` in the constructor + fix imports of the moved extension functions): the 12 use cases that inject it — `ConnectAsPartnerUseCase`, `FetchPartnerDataUseCase`, `GenerateShareCodeUseCase`, `ObservePartnerDataUseCase`, `ObservePartnerFeedHistoryUseCase`, `ObservePartnerSleepHistoryUseCase`, `ProcessFeedOpsUseCase`, `ProcessSleepOpsUseCase`, `RevokePartnerUseCase`, `SubmitFeedOpUseCase`, `SubmitSleepOpUseCase`, `SyncToFirestoreUseCase` — plus `ui/partner/PartnerSleepViewModel.kt` and `ui/sharing/ManageSharingViewModel.kt`.
+- Modify (abstract leaked Firebase exceptions): `usecase/PartnerAccessError.kt` (`isPermissionDenied` keys on `FirebaseFirestoreException.Code.PERMISSION_DENIED`), `usecase/FetchPartnerDataUseCase.kt` (catches `FirebaseException`), `usecase/SubmitFeedOpUseCase.kt`, `usecase/SubmitSleepOpUseCase.kt` (catch `FirebaseFirestoreException`). Replace with a backend-neutral `Throwable.isRlsDeniedError()` checking the Supabase Postgrest error (`RestException` / HTTP 401|403).
+- Relocate `SnapshotEmission` / `ConnectionEmission` out of the Firebase file to a backend-neutral location (they're returned by the live observers).
+- Modify/replace integration + mapping tests → Supabase equivalents: `FirestoreSharingServiceBottleFeedRoundTripTest`, `FirestoreSharingServiceInventoryRoundTripTest`, `FirestoreSnapshotMappingTest`, `FirestoreSnapshotDoctorVisitTest`, `DiaperFirestoreMappingTest`, and the `SyncToFirestore*` use-case tests (`SyncToFirestoreUseCaseTest`, `SyncToFirestoreUseCaseInventoryTest`, `SyncToFirestoreDiapersTest`, `SyncToFirestoreDoctorVisitTest`).
+- Modify: CI workflow + test harness (replace Firebase emulator with `supabase start`).
 
 **Interfaces:**
-- Consumes: complete `SupabaseSharingService` (Tasks 3–7).
-- Produces: `SharingRepositoryImpl` delegating to Supabase; the `SharingRepository` interface is unchanged so all use-case/ViewModel tests pass untouched.
+- Consumes: complete `SupabaseSharingService` (Tasks 3–7) mirroring the Firestore surface.
+- Produces: every sharing use case / ViewModel injecting Supabase; the partner-access-revoked path working off a Supabase error; mapping/use-case unit tests pass against the new types.
 
-- [ ] **Step 1: Swap the injected service**
+- [ ] **Step 1: Abstract the leaked errors first** — introduce `Throwable.isRlsDeniedError()` (Supabase) and point `PartnerAccessError.isPermissionDenied`, the two `SubmitOp` catches, and `FetchPartnerDataUseCase` at it. (Doing this before the swap keeps each file compiling.)
 
-```kotlin
-class SharingRepositoryImpl @Inject constructor(
-    private val service: SupabaseSharingService,   // was FirestoreSharingService
-) : SharingRepository { /* body unchanged: still delegates method-for-method */ }
-```
+- [ ] **Step 2: Swap the injected service** at all 14 sites: change the constructor param type and the imports (the sleep-op / live-observer extension functions move from `com.babytracker.sharing.data.firebase.*` to `...data.supabase.*`). Method names are identical, so call bodies are unchanged.
 
-- [ ] **Step 2: Re-point integration tests** from Firebase emulator (port 8080) to local Supabase (`supabase start`). Update CI to boot Supabase before tests (resolves the `firebase-emulator-jvm-leak` orphaned-java issue — it goes away).
+- [ ] **Step 3: Re-point integration tests** from Firebase emulator (port 8080) to local Supabase (`supabase start`). Update CI to boot Supabase before tests (resolves the `firebase-emulator-jvm-leak` orphaned-java issue — it goes away).
 
-- [ ] **Step 3: End-to-end test** — primary creates share + syncs snapshot → partner connects + fetches → partner logs a feed op (online + offline-then-online) → primary observes it. All on Supabase.
+- [ ] **Step 4: End-to-end test** — primary creates share + syncs full snapshot (incl. diapers + doctor visits) → partner connects + `observeSnapshot` streams it → partner logs a feed op AND a sleep op (online + offline-then-online via the outbox) → primary observes both → `revokePartner` surfaces as `isRlsDeniedError` on the partner. All on Supabase.
 
-- [ ] **Step 4: Run full suite** `./gradlew test` → all green; `./gradlew build`.
+- [ ] **Step 5: Run full suite** `./gradlew test` → all green; `./gradlew build`.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add app/src/main/java/com/babytracker/sharing/data/repository/SharingRepositoryImpl.kt app/src/test/ <ci files>
+git add app/src/main/java/com/babytracker/sharing/ app/src/main/java/com/babytracker/ui/ app/src/test/ <ci files>
 git commit -m "feat(sharing): cut sharing over to Supabase backend [AKA-172]"
 ```
 
@@ -615,13 +661,15 @@ git commit -m "feat(sharing): cut sharing over to Supabase backend [AKA-172]"
 Delete all Firebase artifacts; flip the guardrails.
 
 **Files:**
-- Delete: `app/src/main/java/com/babytracker/sharing/data/firebase/FirestoreSharingService.kt`, `FirestoreSnapshotMapping.kt`, `app/src/main/java/com/babytracker/di/SharingModule.kt` Firebase providers, any Firebase-only tests
-- Delete: `app/google-services.json`, `firebase.json`, `firestore.rules`
+- Delete: `app/src/main/java/com/babytracker/sharing/data/firebase/FirestoreSharingService.kt` (incl. the sleep-op + `observeSnapshot`/`observePartnerConnected` extension functions at the bottom), `FirestoreSnapshotMapping.kt`, `app/src/main/java/com/babytracker/di/SharingModule.kt` Firebase providers, any Firebase-only tests
+- Delete: `app/google-services.json`, `firebase.json`, `firestore.rules` (which gates both `feedOps` and `sleepOps` subcollections — replaced by Supabase RLS)
 - Modify: `gradle/libs.versions.toml`, `app/build.gradle.kts` (remove firebase + google-services plugin)
 - Modify: `app/src/test/java/com/babytracker/architecture/AntiPatternTest.kt`
-- Modify: `specs/SPEC-005-SHARING-FEATURE.md`, `CLAUDE.md`, `AGENTS.md`, `docs/AI_REPO_MAP.md`
+- Modify: `specs/SPEC-005-SHARING-FEATURE.md` and `specs/SPEC-007-PARTNER-BOTTLE-FEED-LOGGING.md` (op-inbox = Firestore subcollection → Supabase table), `CLAUDE.md`, `AGENTS.md`, `docs/AI_REPO_MAP.md`. (Partner-sleep / "SPEC-008" has **no committed spec file** under `specs/` — it's the AKA-259 project tracked in `AI_TASK_PROGRESS.md`; nothing to edit there.)
 
-- [ ] **Step 1: Delete Firebase code + config files** (list above). Keep `SharingModule` only if it still binds the repository; remove its `FirebaseFirestore`/`FirebaseAuth` providers.
+> The leaked-error use-case files (`PartnerAccessError`, `FetchPartnerDataUseCase`, `SubmitFeedOpUseCase`, `SubmitSleepOpUseCase`) were already de-Firebased in Task 8, so no `com.google.firebase` imports should remain outside the deleted `data/firebase/` package by the time this task starts — Step 5's `rg` is the gate.
+
+- [ ] **Step 1: Delete Firebase code + config files** (list above). Keep `SharingModule` only if it still provides non-Firebase bindings; remove its `FirebaseFirestore`/`FirebaseAuth` providers.
 
 - [ ] **Step 2: Remove deps** — `firebase-bom`, `firebase-firestore`, `firebase-auth` from the catalog + `app/build.gradle.kts`; drop `alias(libs.plugins.google.services)` and the `google-services` plugin entry.
 
@@ -656,6 +704,7 @@ git commit -m "feat(sharing): remove Firebase and finalize Supabase migration [A
 
 ## Self-Review
 
-- **Spec coverage:** §3 decisions → Tasks 1/2/7/8-9; §4 mapping table → Tasks 3–7; §5 schema (incl. growth + milestones) → Task 1; §6 RLS → Task 1; §7 components → Tasks 2–7; §8 build/config → Tasks 2 & 9; §9 testing → every task's test step + Task 8; §10 cutover → Task 8; §11 breakdown → Tasks 1–9; §12 risks (offline, RLS, realtime auth) → Tasks 7, 1+8, 6. No uncovered section.
+- **2026-06-29 reconciliation:** the plan was realigned to the current `feat/firebase-to-supabase-migration` HEAD. Drift folded in: no `SharingRepository` interface (cutover = concrete-type swap at 14 sites, Task 8); leaked Firebase exception types abstracted (Task 8); new `sleep_ops` inbox + `diapers`/`doctor_visits` tables + `sessions.paused_at_ms` / `sleep_records.client_id,started_by` columns (Tasks 1/4/5); live `observeSnapshot`/`observePartnerConnected` streams with the `fromCache` gap (Task 6); outbox covers feed **and** sleep ops at DB v17→v18, kept distinct from the existing owner-side `PartnerOpDrainWorker` (Task 7).
+- **Spec coverage:** §3 decisions → Tasks 1/2/7/8-9; §4 mapping table → Tasks 3–7; §5 schema (incl. growth, milestones, diapers, doctor visits) → Task 1; §6 RLS (incl. sleep_ops) → Task 1; §7 components → Tasks 2–7; §8 build/config → Tasks 2 & 9; §9 testing → every task's test step + Task 8; §10 cutover → Task 8; §11 breakdown → Tasks 1–9; §12 risks (offline, RLS, realtime auth, `fromCache`) → Tasks 7, 1+8, 6. No uncovered section.
 - **Placeholder scan:** version pins in Task 2 are marked to resolve against the current supabase-kt BOM at execution time (genuine external lookup, not a hidden TODO); all code steps carry real code. Mapping/CRUD/RLS use one concrete representative + an explicit "repeat per type/table" instruction keyed to the Task 1 column contract — DRY, not a placeholder.
-- **Type consistency:** row names (`SessionRow`, `FeedOpRow`, …) and conversion fns (`toRow`/`toSnapshot`/`toFeedOp`/`toPartnerInfo`) are used consistently across Tasks 4–8; `signInAnonymously(): String`, `fetchSnapshot(code): ShareSnapshot`, and the feed-op stream signatures match the frozen `SharingRepository` interface.
+- **Type consistency:** row names (`SessionRow`, `FeedOpRow`, `SleepOpRow`, `DiaperRow`, `DoctorVisitRow`, …) and conversion fns (`toRow`/`toSnapshot`/`toFeedOp`/`toSleepOp`/`toPartnerInfo`) are used consistently across Tasks 4–8; `signInAnonymously(): String`, `fetchSnapshot(code): ShareSnapshot`, and the feed/sleep-op + live-observer stream signatures mirror the current `FirestoreSharingService` surface (members + extension functions) that cutover swaps against.
