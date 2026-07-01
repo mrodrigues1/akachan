@@ -29,6 +29,7 @@ import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
 import com.babytracker.util.durationBetween
 import com.babytracker.util.formatElapsedShort
 import com.babytracker.util.formatTime12h
+import com.babytracker.util.groupByDateDescending
 import com.babytracker.util.tickerFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -139,14 +140,7 @@ class SleepViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val historyByDateDesc: StateFlow<List<Pair<LocalDate, List<SleepRecord>>>> = history
-        .map { records ->
-            val zone = ZoneId.systemDefault()
-            records
-                .groupBy { it.startTime.atZone(zone).toLocalDate() }
-                .entries
-                .sortedByDescending { it.key }
-                .map { (date, recs) -> date to recs }
-        }
+        .map { records -> records.groupByDateDescending { it.startTime } }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

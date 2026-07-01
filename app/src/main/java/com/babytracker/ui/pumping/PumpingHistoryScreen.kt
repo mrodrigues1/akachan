@@ -52,7 +52,7 @@ import com.babytracker.ui.theme.Pink900
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatVolume
 import com.babytracker.util.formatTime12h
-import com.babytracker.util.groupByLocalDate
+import com.babytracker.util.groupByDateDescending
 import com.babytracker.util.toRelativeLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -147,8 +147,7 @@ internal fun PumpingHistoryContent(
         }
 
         val sortedGroups = remember(state.sessions) {
-            state.sessions.groupByLocalDate { it.startTime }
-                .entries.sortedByDescending { it.key }.map { (date, sessions) -> date to sessions }
+            state.sessions.groupByDateDescending { it.startTime }
         }
 
         LazyColumn(
