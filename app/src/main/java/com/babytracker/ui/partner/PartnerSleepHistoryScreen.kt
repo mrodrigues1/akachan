@@ -45,10 +45,10 @@ import com.babytracker.ui.component.SleepIcon
 import com.babytracker.ui.sleep.labelRes
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
+import com.babytracker.util.groupByDateDescending
 import com.babytracker.util.toRelativeLabel
 import java.time.Duration
 import java.time.Instant
-import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -158,12 +158,8 @@ private fun SleepHistoryList(
     onEdit: (SleepSnapshot) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val zone = remember { ZoneId.systemDefault() }
     val grouped = remember(entries) {
-        entries
-            .groupBy { Instant.ofEpochMilli(it.startTime).atZone(zone).toLocalDate() }
-            .toList()
-            .sortedByDescending { it.first }
+        entries.groupByDateDescending { Instant.ofEpochMilli(it.startTime) }
     }
     val today = stringResource(R.string.relative_today)
     val yesterday = stringResource(R.string.relative_yesterday)

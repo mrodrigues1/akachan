@@ -85,9 +85,6 @@ fun Duration.formatDuration(): String {
     }
 }
 
-fun <T> List<T>.groupByLocalDate(keySelector: (T) -> Instant): Map<LocalDate, List<T>> =
-    groupBy { keySelector(it).atZone(ZoneId.systemDefault()).toLocalDate() }
-
 fun LocalDate.toRelativeLabel(today: String, yesterday: String): String {
     val now = LocalDate.now()
     return when (this) {
@@ -138,7 +135,7 @@ fun Duration.formatElapsedCompact(context: Context): String {
  * day-sectioned list.
  */
 fun <T> List<T>.groupByDateDescending(
-    zone: ZoneId,
+    zone: ZoneId = ZoneId.systemDefault(),
     instantOf: (T) -> Instant,
 ): List<Pair<LocalDate, List<T>>> =
     groupBy { instantOf(it).atZone(zone).toLocalDate() }

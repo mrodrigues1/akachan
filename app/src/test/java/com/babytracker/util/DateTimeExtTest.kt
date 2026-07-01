@@ -13,6 +13,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneOffset
 import java.util.Locale
 
 @Config(sdk = [34])
@@ -40,25 +41,33 @@ class DateTimeExtTest {
     }
 
     @Test
-    fun groupByLocalDateEmptyListReturnsEmptyMap() {
-        val result = emptyList<Instant>().groupByLocalDate { it }
-        assertEquals(emptyMap<LocalDate, List<Instant>>(), result)
+    fun groupByDateDescendingEmptyListReturnsEmptyList() {
+        val result = emptyList<Instant>().groupByDateDescending(ZoneOffset.UTC) { it }
+        assertEquals(emptyList<Pair<LocalDate, List<Instant>>>(), result)
     }
 
     @Test
-    fun groupByLocalDateSingleDayReturnsOneGroup() {
+    fun groupByDateDescendingSameDayReturnsOneGroup() {
         val morning = Instant.parse("2026-04-06T12:00:00Z")
         val evening = Instant.parse("2026-04-06T13:00:00Z")
-        val result = listOf(morning, evening).groupByLocalDate { it }
+        val result = listOf(morning, evening).groupByDateDescending(ZoneOffset.UTC) { it }
         assertEquals(1, result.size)
     }
 
     @Test
-    fun groupByLocalDateTwoDaysReturnsTwoGroups() {
+    fun groupByDateDescendingSortsDaysNewestFirst() {
         val day1 = Instant.parse("2026-04-05T10:00:00Z")
         val day2 = Instant.parse("2026-04-06T10:00:00Z")
-        val result = listOf(day1, day2).groupByLocalDate { it }
-        assertEquals(2, result.size)
+        val result = listOf(day1, day2).groupByDateDescending(ZoneOffset.UTC) { it }
+        assertEquals(listOf(LocalDate.of(2026, 4, 6), LocalDate.of(2026, 4, 5)), result.map { it.first })
+    }
+
+    @Test
+    fun groupByDateDescendingSortsItemsWithinDayNewestFirst() {
+        val morning = Instant.parse("2026-04-06T09:00:00Z")
+        val evening = Instant.parse("2026-04-06T20:00:00Z")
+        val result = listOf(morning, evening).groupByDateDescending(ZoneOffset.UTC) { it }
+        assertEquals(listOf(evening, morning), result.single().second)
     }
 
     @Test

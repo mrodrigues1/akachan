@@ -52,7 +52,7 @@ import com.babytracker.ui.theme.Pink200
 import com.babytracker.ui.theme.Pink900
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatTime12h
-import com.babytracker.util.groupByLocalDate
+import com.babytracker.util.groupByDateDescending
 import com.babytracker.util.toRelativeLabel
 import java.time.Duration
 
@@ -66,9 +66,7 @@ fun BreastfeedingHistoryScreen(
     val history by viewModel.history.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val sortedGroups = remember(history) {
-        history.groupByLocalDate { it.startTime }
-            .entries
-            .sortedByDescending { it.key }
+        history.groupByDateDescending { it.startTime }
             .map { (date, sessions) ->
                 val totalDuration = sessions
                     .mapNotNull { it.activeDuration }
