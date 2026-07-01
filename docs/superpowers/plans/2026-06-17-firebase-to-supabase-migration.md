@@ -508,6 +508,13 @@ git commit -m "feat(sharing): add Supabase realtime feed ops [AKA-170]"
 
 Restore offline-first feed-op writes with a Room outbox + WorkManager.
 
+> **AKACHAN-298 (generic op pipeline):** this plan predates partner sleep ops
+> (SPEC-008), which now duplicate the whole feed-op pipeline. Build the outbox
+> entity/DAO/worker generic over an *OpKind* (op type + codec + publish type +
+> notify accumulation) rather than feed-specific, so sleep ops reuse it as a
+> thin adapter instead of a `SleepOp*` clone set. See §7 "Op-pipeline
+> genericity" in the design doc for the constraints the seam must absorb.
+
 **Files:**
 - Create: `app/src/main/java/com/babytracker/sharing/data/supabase/outbox/FeedOpOutboxEntity.kt`
 - Create: `app/src/main/java/com/babytracker/sharing/data/supabase/outbox/FeedOpOutboxDao.kt`

@@ -192,6 +192,27 @@ di/
   `observeOwnFeedOps` unions Realtime rows with not-yet-synced outbox rows so the
   author sees their own pending writes immediately.
 
+### Op-pipeline genericity (AKACHAN-298)
+
+This design predates partner sleep ops (SPEC-008), which shipped a second op
+pipeline (`SleepOp`) as a near-clone of the feed one — Process/Submit/Apply use
+cases, codec, and service methods all duplicated per feature. AKACHAN-298
+(closed as superseded by this migration) requires the Supabase op/outbox layer
+to be built **generic from day one**: one pipeline parameterized on an *OpKind*
+(codec, apply hook, sync/publish type, notify accumulation), with Feed and
+Sleep as thin adapters. Do not re-clone `FeedOp*` files into `SleepOp*` files.
+Constraints the OpKind seam must absorb (verified against today's code):
+
+- **Per-kind apply rules stay separate** — ownership gating, idempotent
+  re-apply after a crash between push and delete, end-time clamping. The
+  `Apply*OpUseCase` classes are the adapters, not the duplication.
+- **Notification accumulator lifetime differs deliberately:** feed dedupes
+  consumed-bag notifications by `entryClientId` *across* retry attempts; sleep
+  rebuilds *per* attempt and coalesces to the last change. The OpKind must own
+  accumulation, not just expose a notify callback.
+- **Per-kind publish type:** feed pushes one merged
+  `BOTTLE_FEEDS_AND_INVENTORY` write; sleep pushes `SLEEP_RECORDS`.
+
 ---
 
 ## 8. Build & config changes
