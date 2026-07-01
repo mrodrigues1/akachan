@@ -34,6 +34,7 @@ import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
@@ -147,7 +148,7 @@ class HomeViewModelTest {
             getBabyProfile,
             getBreastfeedingHistory,
             getSleepHistory,
-            syncToFirestore,
+            SyncedWrite(syncToFirestore),
             settingsRepository,
             pumpingRepository,
             inventoryRepository,

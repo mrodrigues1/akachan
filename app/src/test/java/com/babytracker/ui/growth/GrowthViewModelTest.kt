@@ -11,6 +11,7 @@ import com.babytracker.domain.usecase.growth.DeleteGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.UpdateGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.GetGrowthChartDataUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -72,7 +73,7 @@ class GrowthViewModelTest {
         updateGrowthMeasurement,
         deleteGrowthMeasurement,
         settingsRepository,
-        syncToFirestore,
+        SyncedWrite(syncToFirestore),
     )
 
     @Test

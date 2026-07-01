@@ -3,6 +3,7 @@ package com.babytracker.domain.usecase.doctorvisit
 import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.manager.DoctorVisitReminderScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import io.mockk.mockk
@@ -25,7 +26,7 @@ class DeleteDoctorVisitUseCaseTest {
 
     @Test
     fun `deletes atomically then cancels reminder and syncs`() = runTest {
-        DeleteDoctorVisitUseCase(repository, scheduler, syncToFirestore)(6)
+        DeleteDoctorVisitUseCase(repository, scheduler, SyncedWrite(syncToFirestore))(6)
         coVerifyOrder {
             repository.deleteVisitDetachingQuestions(6)
             // cancel happens after the DB mutation

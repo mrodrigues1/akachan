@@ -20,6 +20,7 @@ import com.babytracker.domain.usecase.sleep.UpdateSleepEntryUseCase
 import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.SleepNotificationScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import com.babytracker.util.formatTime12h
 import io.mockk.coEvery
 import io.mockk.coJustRun
@@ -128,7 +129,7 @@ class SleepViewModelTest {
         stopRecord,
         sleepNotificationScheduler,
         napReminderScheduler,
-        syncToFirestore,
+        SyncedWrite(syncToFirestore),
         predictSleepWindow,
         logBabyEvent,
         appContext,

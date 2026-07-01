@@ -11,6 +11,7 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.bottlefeed.DeleteBottleFeedUseCase
 import com.babytracker.domain.usecase.feeding.ObserveFeedingHistoryUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coVerify
 import io.mockk.coEvery
 import io.mockk.every
@@ -109,7 +110,7 @@ class FeedingHistoryViewModelTest {
 
         val vm = FeedingHistoryViewModel(
             observe,
-            DeleteBottleFeedUseCase(bottleFeedRepository, sync),
+            DeleteBottleFeedUseCase(bottleFeedRepository, SyncedWrite(sync)),
             settings,
             appContext,
             ZoneId.of("UTC"),

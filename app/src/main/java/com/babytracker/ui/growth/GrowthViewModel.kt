@@ -11,8 +11,7 @@ import com.babytracker.domain.usecase.growth.AddGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.DeleteGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.GetGrowthChartDataUseCase
 import com.babytracker.domain.usecase.growth.UpdateGrowthMeasurementUseCase
-import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
-import com.babytracker.sharing.usecase.syncSharedSnapshot
+import com.babytracker.sharing.usecase.SyncedWrite
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +39,7 @@ class GrowthViewModel @Inject constructor(
     private val updateGrowthMeasurement: UpdateGrowthMeasurementUseCase,
     private val deleteGrowthMeasurement: DeleteGrowthMeasurementUseCase,
     private val settingsRepository: SettingsRepository,
-    private val syncToFirestore: SyncToFirestoreUseCase,
+    private val syncedWrite: SyncedWrite,
 ) : ViewModel() {
 
     private val selectedType = MutableStateFlow(GrowthType.WEIGHT)
@@ -77,7 +76,7 @@ class GrowthViewModel @Inject constructor(
                     notes = notes?.takeIf { it.isNotBlank() },
                 ),
             )
-            syncToFirestore.syncSharedSnapshot()
+            syncedWrite.sync()
         }
     }
 
@@ -92,14 +91,14 @@ class GrowthViewModel @Inject constructor(
                     notes = notes?.takeIf { it.isNotBlank() },
                 ),
             )
-            syncToFirestore.syncSharedSnapshot()
+            syncedWrite.sync()
         }
     }
 
     fun onDeleteMeasurement(id: Long) {
         viewModelScope.launch {
             deleteGrowthMeasurement(id)
-            syncToFirestore.syncSharedSnapshot()
+            syncedWrite.sync()
         }
     }
 

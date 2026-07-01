@@ -4,6 +4,7 @@ import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.manager.DoctorVisitReminderScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -26,7 +27,7 @@ class AddDoctorVisitUseCaseTest {
         repository = mockk(relaxed = true)
         scheduler = mockk(relaxed = true)
         syncToFirestore = mockk(relaxed = true)
-        useCase = AddDoctorVisitUseCase(repository, scheduler, syncToFirestore)
+        useCase = AddDoctorVisitUseCase(repository, scheduler, SyncedWrite(syncToFirestore))
         coEvery { repository.insertVisitWithAttachments(any(), any()) } returns 11
     }
 

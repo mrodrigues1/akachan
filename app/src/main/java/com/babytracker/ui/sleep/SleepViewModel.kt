@@ -22,7 +22,8 @@ import com.babytracker.domain.usecase.sleep.StopSleepRecordUseCase
 import com.babytracker.domain.usecase.sleep.UpdateSleepEntryUseCase
 import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.SleepNotificationScheduler
-import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
+import com.babytracker.sharing.usecase.SyncedWrite
 import com.babytracker.domain.model.BabyEventType
 import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
 import com.babytracker.util.durationBetween
@@ -95,7 +96,7 @@ class SleepViewModel @Inject constructor(
     private val stopRecord: StopSleepRecordUseCase,
     private val sleepNotificationScheduler: SleepNotificationScheduler,
     private val napReminderScheduler: NapReminderScheduler,
-    private val syncToFirestore: SyncToFirestoreUseCase,
+    private val syncedWrite: SyncedWrite,
     private val predictSleepWindow: PredictSleepWindowUseCase,
     private val logBabyEvent: LogBabyEventUseCase,
     @ApplicationContext private val appContext: Context,
@@ -169,7 +170,7 @@ class SleepViewModel @Inject constructor(
             napReminderScheduler.cancel()
             val record = startRecord(sleepType)
             sleepNotificationScheduler.show(record.id, record.sleepType, record.startTime)
-            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
+            syncedWrite.sync(SyncType.SLEEP_RECORDS)
         }
     }
 
@@ -198,7 +199,7 @@ class SleepViewModel @Inject constructor(
                     }
                 }
             }
-            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
+            syncedWrite.sync(SyncType.SLEEP_RECORDS)
         }
     }
 
@@ -246,7 +247,7 @@ class SleepViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(pendingDeleteRecord = null)
         viewModelScope.launch {
             deleteSleepEntry(record.id)
-            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
+            syncedWrite.sync(SyncType.SLEEP_RECORDS)
         }
     }
 
@@ -327,7 +328,7 @@ class SleepViewModel @Inject constructor(
                 }
             }
             _uiState.value = _uiState.value.copy(showEntrySheet = false, entryError = null, editingRecord = null)
-            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
+            syncedWrite.sync(SyncType.SLEEP_RECORDS)
         }
     }
 

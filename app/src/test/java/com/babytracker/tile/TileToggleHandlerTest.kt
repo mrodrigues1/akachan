@@ -10,6 +10,7 @@ import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.SleepNotificationScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import com.babytracker.widget.WidgetUpdater
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -85,7 +86,7 @@ class TileToggleHandlerTest {
         breastfeedingNotifications = breastfeedingNotifications,
         sleepNotificationScheduler = sleepNotificationScheduler,
         napReminderScheduler = napReminderScheduler,
-        syncToFirestore = syncToFirestore,
+        syncedWrite = SyncedWrite(syncToFirestore),
         widgetUpdater = widgetUpdater,
         clock = clock,
     )

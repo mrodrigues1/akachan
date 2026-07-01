@@ -18,6 +18,7 @@ import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCa
 import com.babytracker.domain.usecase.breastfeeding.UpdateBreastfeedingSessionUseCase
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
@@ -148,7 +149,7 @@ class BreastfeedingViewModelTest {
         repository,
         feedSettingsRepository,
         notificationCoordinator,
-        syncToFirestore,
+        SyncedWrite(syncToFirestore),
         predictNextFeed,
     )
 

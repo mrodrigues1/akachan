@@ -34,7 +34,7 @@ import com.babytracker.domain.usecase.vaccine.ObserveVaccineSummaryUseCase
 import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
-import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -77,7 +77,7 @@ class HomeViewModel @Inject constructor(
     getBabyProfile: GetBabyProfileUseCase,
     getBreastfeedingHistory: GetBreastfeedingHistoryUseCase,
     getSleepHistory: GetSleepHistoryUseCase,
-    private val syncToFirestore: SyncToFirestoreUseCase,
+    private val syncedWrite: SyncedWrite,
     private val settingsRepository: SettingsRepository,
     pumpingRepository: PumpingRepository,
     inventoryRepository: InventoryRepository,
@@ -198,7 +198,7 @@ class HomeViewModel @Inject constructor(
     }
 
     init {
-        viewModelScope.launch { runCatching { syncToFirestore() } }
+        viewModelScope.launch { syncedWrite.sync() }
     }
 
 }

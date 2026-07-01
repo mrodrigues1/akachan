@@ -3,6 +3,7 @@ package com.babytracker.domain.usecase.inventory
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
@@ -22,7 +23,7 @@ class DeleteMilkBagUseCaseTest {
     fun setup() {
         repository = mockk(relaxed = true)
         sync = mockk(relaxed = true)
-        useCase = DeleteMilkBagUseCase(repository, sync)
+        useCase = DeleteMilkBagUseCase(repository, SyncedWrite(sync))
     }
 
     @Test

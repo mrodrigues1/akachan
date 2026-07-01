@@ -13,6 +13,7 @@ import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseC
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import com.babytracker.util.NotificationHelper
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -72,7 +73,7 @@ class BreastfeedingActionReceiverTest {
         receiver.pauseSession = pauseSession
         receiver.resumeSession = resumeSession
         receiver.notificationCoordinator = notificationCoordinator
-        receiver.syncToFirestore = syncToFirestore
+        receiver.syncedWrite = SyncedWrite(syncToFirestore)
 
         coEvery { repository.getActiveSession() } returns flowOf(activeSession)
         coEvery { syncToFirestore(any()) } returns Unit
