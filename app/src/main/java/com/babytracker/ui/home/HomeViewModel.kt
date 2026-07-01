@@ -111,18 +111,7 @@ class HomeViewModel @Inject constructor(
                 .fold(Duration.ZERO) { acc, d -> acc + d }
                 .takeIf { !it.isZero }
 
-            val lastCompleted = feedings.firstOrNull { it.endTime != null }
-            val nextRecommendedSide = lastCompleted?.let { session ->
-                val endTime = session.endTime ?: return@let null
-                val oppositeSide = if (session.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
-                if (session.switchTime == null) {
-                    oppositeSide
-                } else {
-                    val firstDuration = Duration.between(session.startTime, session.switchTime!!)
-                    val secondDuration = Duration.between(session.switchTime!!, endTime)
-                    if (secondDuration < firstDuration) oppositeSide else session.startingSide
-                }
-            }
+            val nextRecommendedSide = feedings.firstOrNull { it.endTime != null }?.recommendedNextSide()
 
             HomeUiState(
                 baby = baby,

@@ -30,6 +30,25 @@ data class BreastfeedingSession(
             .minus(Duration.ofMillis(pausedDurationMs))
             .coerceAtLeast(Duration.ZERO)
 
+    /**
+     * Which breast to offer next, or null while the session is in progress: the side that was used
+     * less last time. Pause time is subtracted via [sideDurationsUntil], so a paused feed doesn't
+     * inflate the side it happened on.
+     */
+    fun recommendedNextSide(): BreastSide? {
+        val end = endTime ?: return null
+        val (firstSideDuration, secondSideDuration) = sideDurationsUntil(end)
+        val oppositeSide = if (startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
+        return when {
+            // No switch: only the starting side was used — recommend the other side
+            secondSideDuration == null -> oppositeSide
+            // Second side was used less than first — recommend second side (opposite of starting)
+            secondSideDuration < firstSideDuration -> oppositeSide
+            // First side was used less (or both equal) — recommend first/starting side
+            else -> startingSide
+        }
+    }
+
     fun sideDurationsUntil(until: Instant): Pair<Duration, Duration?> {
         val effectiveUntil = endTime ?: until
         val pausedDuration = Duration.ofMillis(pausedDurationMs)
