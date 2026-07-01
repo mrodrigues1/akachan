@@ -9,6 +9,7 @@ import com.babytracker.domain.usecase.doctorvisit.AddVisitQuestionUseCase
 import com.babytracker.domain.usecase.doctorvisit.ObserveDoctorVisitsUseCase
 import com.babytracker.domain.usecase.doctorvisit.ObserveInboxQuestionsUseCase
 import com.babytracker.domain.usecase.doctorvisit.ToggleVisitQuestionAnsweredUseCase
+import com.babytracker.util.daysUntil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +22,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
-import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 /**
@@ -90,9 +90,7 @@ class DoctorVisitDashboardViewModel @Inject constructor(
                 val nextVisit = upcoming.firstOrNull()
                 val zone = ZoneId.systemDefault()
                 val today = instant.atZone(zone).toLocalDate()
-                val daysUntil = nextVisit?.let {
-                    ChronoUnit.DAYS.between(today, it.date.atZone(zone).toLocalDate()).toInt()
-                }
+                val daysUntil = nextVisit?.date?.daysUntil(today, zone)
                 val recent = visits
                     .filterNot { it.isUpcoming(instant) }
                     .sortedByDescending { it.date }

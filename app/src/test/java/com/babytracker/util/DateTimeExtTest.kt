@@ -71,6 +71,24 @@ class DateTimeExtTest {
     }
 
     @Test
+    fun daysUntilSameDayReturnsZero() {
+        val today = LocalDate.of(2026, 4, 6)
+        assertEquals(0, Instant.parse("2026-04-06T23:59:00Z").daysUntil(today, ZoneOffset.UTC))
+    }
+
+    @Test
+    fun daysUntilFutureDateReturnsPositiveDays() {
+        val today = LocalDate.of(2026, 4, 6)
+        assertEquals(3, Instant.parse("2026-04-09T00:01:00Z").daysUntil(today, ZoneOffset.UTC))
+    }
+
+    @Test
+    fun daysUntilPastDateReturnsNegativeDays() {
+        val today = LocalDate.of(2026, 4, 6)
+        assertEquals(-2, Instant.parse("2026-04-04T12:00:00Z").daysUntil(today, ZoneOffset.UTC))
+    }
+
+    @Test
     fun localDateToRelativeLabelTodayReturnsToday() {
         val today = LocalDate.now()
         assertEquals("Today", today.toRelativeLabel("Today", "Yesterday"))
