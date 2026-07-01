@@ -354,3 +354,19 @@ Read specs before implementing new features — they define the intended behavio
 - Both tools run automatically on CI (GitHub Actions) on every push to `main` and on every pull request.
 - If detekt reports a violation, **always fix the code - never suppress with `@Suppress`**. Each fix should be its own commit using the format `fix(detekt): fix <RuleName> violations`.
 - **Do not run `ktlintFormat` or `detekt` manually after finishing a task.** The pre-commit hook runs both automatically on every commit. Only run them manually if you need to diagnose a specific failure.
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as Plane work items in the `aka-enterprise` workspace, via the `plane` MCP server. External PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical label names used as-is: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
