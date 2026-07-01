@@ -34,16 +34,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.babytracker.util.durationBetween
 import com.babytracker.util.formatElapsedAgo
+import com.babytracker.util.tickerFlow
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -103,6 +100,7 @@ data class BreastfeedingUiState(
 )
 
 private const val MANUAL_ENTRY_DEFAULT_MINUTES = 15L
+private const val SUMMARY_TICK_MS = 60_000L
 
 @HiltViewModel
 class BreastfeedingViewModel @Inject constructor(
@@ -148,28 +146,13 @@ class BreastfeedingViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            // The initial emit runs on the collecting coroutine (Main/testDispatcher) so that
-            // StandardTestDispatcher.advanceUntilIdle() sees it and terminates correctly.
-            // Subsequent ticks are delayed on Dispatchers.Default to keep the infinite loop
-            // off the test scheduler.
-            val ticker = flow<Unit> {
-                emit(Unit)
-                emitAll(
-                    flow<Unit> {
-                        while (true) {
-                            kotlinx.coroutines.delay(60_000L)
-                            emit(Unit)
-                        }
-                    }.flowOn(Dispatchers.Default)
-                )
-            }
             combine(
                 history.map { sessions ->
                     // Single pass, no intermediate filtered list: pick the latest non-null endTime
                     // (sessions with a null endTime sort to Instant.MIN and are dropped by takeIf).
                     sessions.maxByOrNull { it.endTime ?: Instant.MIN }?.takeIf { it.endTime != null }
                 }.distinctUntilChanged(),
-                ticker
+                tickerFlow(SUMMARY_TICK_MS)
             ) { lastSession, _ ->
                 buildLastFeedingSummary(lastSession)
             }.collect { summary ->
