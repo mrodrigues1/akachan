@@ -9,6 +9,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
@@ -84,6 +85,14 @@ fun Duration.formatDuration(): String {
         else -> "${seconds}s"
     }
 }
+
+/**
+ * Whole calendar days from [today] until this instant's local date in [zone]:
+ * 0 = today, positive = future, negative = past. Shared by the scheduled-date countdowns
+ * (vaccines, doctor visits).
+ */
+fun Instant.daysUntil(today: LocalDate, zone: ZoneId): Int =
+    ChronoUnit.DAYS.between(today, atZone(zone).toLocalDate()).toInt()
 
 fun LocalDate.toRelativeLabel(today: String, yesterday: String): String {
     val now = LocalDate.now()

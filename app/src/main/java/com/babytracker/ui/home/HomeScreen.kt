@@ -111,6 +111,7 @@ import com.babytracker.ui.theme.doctorVisitColors
 import com.babytracker.ui.theme.growthColors
 import com.babytracker.ui.theme.milestoneColors
 import com.babytracker.ui.theme.vaccineColors
+import com.babytracker.util.daysUntil
 import com.babytracker.util.formatDuration
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatMinutesSeconds
@@ -121,7 +122,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.delay
 
 internal val EaseOutQuart = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
@@ -738,11 +738,11 @@ internal fun DoctorVisitHomeCard(
     val title = stringResource(R.string.doctor_visit_tile_label)
     val subtitle = when {
         next != null -> {
-            val days = ChronoUnit.DAYS.between(LocalDate.now(zone), next.date.atZone(zone).toLocalDate())
-            if (days <= 0L) {
+            val days = next.date.daysUntil(LocalDate.now(zone), zone)
+            if (days <= 0) {
                 stringResource(R.string.doctor_visit_tile_today)
             } else {
-                pluralStringResource(R.plurals.doctor_visit_tile_in_days, days.toInt(), days.toInt())
+                pluralStringResource(R.plurals.doctor_visit_tile_in_days, days, days)
             }
         }
         last != null -> stringResource(
@@ -791,11 +791,11 @@ internal fun DoctorVisitHomeCard(
 @Composable
 private fun daysUntilLabel(scheduledDate: Instant): String {
     val zone = ZoneId.systemDefault()
-    val days = ChronoUnit.DAYS.between(LocalDate.now(zone), scheduledDate.atZone(zone).toLocalDate())
-    return if (days <= 0L) {
+    val days = scheduledDate.daysUntil(LocalDate.now(zone), zone)
+    return if (days <= 0) {
         stringResource(R.string.vaccine_tile_today)
     } else {
-        pluralStringResource(R.plurals.vaccine_tile_in_days, days.toInt(), days.toInt())
+        pluralStringResource(R.plurals.vaccine_tile_in_days, days, days)
     }
 }
 

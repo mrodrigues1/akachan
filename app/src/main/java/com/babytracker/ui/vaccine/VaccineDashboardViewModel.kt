@@ -11,6 +11,7 @@ import com.babytracker.domain.usecase.vaccine.MarkVaccineScheduledUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
 import com.babytracker.domain.usecase.vaccine.RestoreVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.UndoMarkVaccineAdministeredUseCase
+import com.babytracker.util.daysUntil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,9 +23,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
-import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 /**
@@ -171,9 +170,9 @@ class VaccineDashboardViewModel @Inject constructor(
                     isLoading = false,
                     nextVaccine = next,
                     nextVaccines = nextVaccines,
-                    nextInDays = next?.scheduledDate?.let { daysBetween(today, it) },
+                    nextInDays = next?.scheduledDate?.daysUntil(today, zone),
                     mostOverdue = mostOverdue,
-                    mostOverdueDays = mostOverdue?.scheduledDate?.let { -daysBetween(today, it) },
+                    mostOverdueDays = mostOverdue?.scheduledDate?.let { -it.daysUntil(today, zone) },
                     overdueCount = overdue.size,
                     schedule = overdue + future,
                     toSchedule = toSchedule,
@@ -192,9 +191,6 @@ class VaccineDashboardViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
             initialValue = VaccineDashboardUiState(),
         )
-
-    private fun daysBetween(today: LocalDate, date: Instant): Int =
-        ChronoUnit.DAYS.between(today, date.atZone(zone).toLocalDate()).toInt()
 
     /**
      * Mark [record] given now. The write commits immediately so it survives the screen leaving
