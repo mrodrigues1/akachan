@@ -29,6 +29,7 @@ import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
 import com.babytracker.util.durationBetween
 import com.babytracker.util.formatElapsedShort
 import com.babytracker.util.formatTime12h
+import com.babytracker.util.tickerFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -40,7 +41,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -136,14 +136,6 @@ class SleepViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            // flowOn(Default) is load-bearing: it keeps this infinite delay loop off the
-            // viewModelScope dispatcher so tests using virtual-time advanceUntilIdle() don't spin.
-            val ticker = flow<Unit> {
-                while (true) {
-                    emit(Unit)
-                    kotlinx.coroutines.delay(LAST_SLEEP_TICK_MS)
-                }
-            }.flowOn(Dispatchers.Default)
             // Select the latest completed record only when history changes; the per-minute tick then
             // just reformats its elapsed-awake label instead of rescanning the whole history list.
             val latestCompleted = history
@@ -156,7 +148,7 @@ class SleepViewModel @Inject constructor(
                     }
                 }
                 .distinctUntilChanged()
-            combine(latestCompleted, ticker) { record, _ ->
+            combine(latestCompleted, tickerFlow(LAST_SLEEP_TICK_MS)) { record, _ ->
                 buildLastSleepSummary(record)
             }.collect { summary ->
                 _uiState.value = _uiState.value.copy(lastSleepSummary = summary)
