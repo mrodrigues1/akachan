@@ -7,6 +7,7 @@ import com.babytracker.domain.usecase.milestone.DeleteMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.GetMilestonesUseCase
 import com.babytracker.domain.usecase.milestone.UpdateMilestoneUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -56,7 +57,7 @@ class MilestonesViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel() = MilestonesViewModel(
-        getMilestones, addMilestone, updateMilestone, deleteMilestone, photoCleaner, syncToFirestore,
+        getMilestones, addMilestone, updateMilestone, deleteMilestone, photoCleaner, SyncedWrite(syncToFirestore),
     )
 
     @Test

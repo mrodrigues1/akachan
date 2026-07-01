@@ -7,8 +7,7 @@ import com.babytracker.domain.usecase.milestone.AddMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.DeleteMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.GetMilestonesUseCase
 import com.babytracker.domain.usecase.milestone.UpdateMilestoneUseCase
-import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
-import com.babytracker.sharing.usecase.syncSharedSnapshot
+import com.babytracker.sharing.usecase.SyncedWrite
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +29,7 @@ class MilestonesViewModel @Inject constructor(
     private val updateMilestone: UpdateMilestoneUseCase,
     private val deleteMilestone: DeleteMilestoneUseCase,
     private val photoCleaner: MilestonePhotoCleaner,
-    private val syncToFirestore: SyncToFirestoreUseCase,
+    private val syncedWrite: SyncedWrite,
 ) : ViewModel() {
 
     val uiState: StateFlow<MilestonesUiState> =
@@ -61,7 +60,7 @@ class MilestonesViewModel @Inject constructor(
             if (previousPhoto != null && previousPhoto != milestone.photoUri) {
                 photoCleaner.delete(previousPhoto)
             }
-            syncToFirestore.syncSharedSnapshot()
+            syncedWrite.sync()
         }
     }
 
@@ -70,7 +69,7 @@ class MilestonesViewModel @Inject constructor(
             val photoUri = existingPhotoUri(id)
             deleteMilestone(id)
             photoCleaner.delete(photoUri)
-            syncToFirestore.syncSharedSnapshot()
+            syncedWrite.sync()
         }
     }
 

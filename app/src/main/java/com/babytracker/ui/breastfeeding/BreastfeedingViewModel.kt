@@ -24,7 +24,8 @@ import com.babytracker.domain.usecase.breastfeeding.UpdateBreastfeedingSessionUs
 import com.babytracker.domain.usecase.breastfeeding.foldPause
 import com.babytracker.domain.usecase.breastfeeding.validateBreastfeedingEdit
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
-import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
+import com.babytracker.sharing.usecase.SyncedWrite
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -118,7 +119,7 @@ class BreastfeedingViewModel @Inject constructor(
     private val repository: BreastfeedingRepository,
     private val feedSettingsRepository: FeedSettingsRepository,
     private val notificationCoordinator: BreastfeedingSessionNotificationCoordinator,
-    private val syncToFirestore: SyncToFirestoreUseCase,
+    private val syncedWrite: SyncedWrite,
     predictNextFeed: PredictNextFeedUseCase,
 ) : ViewModel() {
 
@@ -207,7 +208,7 @@ class BreastfeedingViewModel @Inject constructor(
                     notificationCoordinator.scheduleInitial(session)
                     notificationCoordinator.showRunning(session)
                 }
-            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+            syncedWrite.sync(SyncType.SESSIONS)
         }
     }
 
@@ -221,7 +222,7 @@ class BreastfeedingViewModel @Inject constructor(
             }
             notificationCoordinator.cancelAllSessionNotifications()
             _uiState.value = _uiState.value.copy(selectedSide = null)
-            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+            syncedWrite.sync(SyncType.SESSIONS)
         }
     }
 
@@ -238,7 +239,7 @@ class BreastfeedingViewModel @Inject constructor(
                 val switchedSession = session.copy(switchTime = Instant.now())
                 notificationCoordinator.showRunning(switchedSession)
             }
-            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+            syncedWrite.sync(SyncType.SESSIONS)
         }
     }
 
@@ -249,7 +250,7 @@ class BreastfeedingViewModel @Inject constructor(
             pauseSession(session)
             notificationCoordinator.cancelScheduled()
             notificationCoordinator.showPaused(session, pausedAt)
-            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+            syncedWrite.sync(SyncType.SESSIONS)
         }
     }
 
@@ -260,7 +261,7 @@ class BreastfeedingViewModel @Inject constructor(
             resumeSession(session)
             val totalPausedMs = notificationCoordinator.rescheduleAfterResume(session, resumeInstant)
             notificationCoordinator.showRunning(session, pausedDurationMs = totalPausedMs)
-            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+            syncedWrite.sync(SyncType.SESSIONS)
         }
     }
 
@@ -317,7 +318,7 @@ class BreastfeedingViewModel @Inject constructor(
                 notificationCoordinator.cancelAllSessionNotifications()
             }
             _uiState.value = _uiState.value.copy(editSheet = null)
-            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+            syncedWrite.sync(SyncType.SESSIONS)
         }
     }
 
@@ -349,7 +350,7 @@ class BreastfeedingViewModel @Inject constructor(
         if (session.endTime == null) {
             notificationCoordinator.cancelAllSessionNotifications()
         }
-        runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+        syncedWrite.sync(SyncType.SESSIONS)
         return true
     }
 
@@ -407,7 +408,7 @@ class BreastfeedingViewModel @Inject constructor(
         viewModelScope.launch {
             saveBreastfeedingEntry(startInstant, endInstant, side)
             _uiState.value = _uiState.value.copy(showManualEntrySheet = false, manualEntryError = null)
-            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+            syncedWrite.sync(SyncType.SESSIONS)
         }
     }
 

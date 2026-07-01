@@ -4,6 +4,7 @@ import com.babytracker.domain.model.BottleFeed
 import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -22,7 +23,7 @@ class DeleteBottleFeedUseCaseTest {
         val feed = feed(linkedMilkBagId = null)
         coEvery { repository.deleteWithInventoryRestore(feed) } returns true
 
-        DeleteBottleFeedUseCase(repository, sync)(feed)
+        DeleteBottleFeedUseCase(repository, SyncedWrite(sync))(feed)
 
         coVerify { repository.deleteWithInventoryRestore(feed) }
         coVerify { sync(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS_AND_INVENTORY) }
@@ -35,7 +36,7 @@ class DeleteBottleFeedUseCaseTest {
         val feed = feed(linkedMilkBagId = 8L)
         coEvery { repository.deleteWithInventoryRestore(feed) } returns true
 
-        DeleteBottleFeedUseCase(repository, sync)(feed)
+        DeleteBottleFeedUseCase(repository, SyncedWrite(sync))(feed)
 
         coVerify { sync(SyncToFirestoreUseCase.SyncType.BOTTLE_FEEDS_AND_INVENTORY) }
     }
@@ -48,7 +49,7 @@ class DeleteBottleFeedUseCaseTest {
         coEvery { repository.deleteWithInventoryRestore(feed) } returns false
 
         assertThrows<IllegalStateException> {
-            runBlocking { DeleteBottleFeedUseCase(repository, sync)(feed) }
+            runBlocking { DeleteBottleFeedUseCase(repository, SyncedWrite(sync))(feed) }
         }
 
         coVerify(exactly = 0) { sync(any()) }

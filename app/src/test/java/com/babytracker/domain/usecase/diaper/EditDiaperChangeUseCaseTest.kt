@@ -4,6 +4,7 @@ import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.model.DiaperType
 import com.babytracker.domain.repository.DiaperRepository
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
@@ -22,7 +23,7 @@ class EditDiaperChangeUseCaseTest {
     @BeforeEach
     fun setup() {
         repository = mockk(relaxed = true)
-        useCase = EditDiaperChangeUseCase(repository, sync) { fixedNow }
+        useCase = EditDiaperChangeUseCase(repository, SyncedWrite(sync)) { fixedNow }
     }
 
     @Test

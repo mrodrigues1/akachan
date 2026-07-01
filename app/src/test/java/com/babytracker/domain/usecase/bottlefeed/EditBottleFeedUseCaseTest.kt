@@ -3,6 +3,7 @@ package com.babytracker.domain.usecase.bottlefeed
 import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -24,7 +25,7 @@ class EditBottleFeedUseCaseTest {
     fun setup() {
         repository = mockk()
         sync = mockk(relaxed = true)
-        useCase = EditBottleFeedUseCase(repository, sync) { now }
+        useCase = EditBottleFeedUseCase(repository, SyncedWrite(sync)) { now }
     }
 
     @Test

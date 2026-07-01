@@ -8,6 +8,7 @@ import com.babytracker.domain.usecase.milestone.GetMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.UpdateMilestoneUseCase
 import com.babytracker.navigation.Routes
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -53,7 +54,7 @@ class MilestoneDetailViewModelTest {
 
     private fun viewModel() = MilestoneDetailViewModel(
         SavedStateHandle(mapOf(Routes.MILESTONE_DETAIL_ARG to "1")),
-        getMilestone, updateMilestone, deleteMilestone, photoCleaner, syncToFirestore,
+        getMilestone, updateMilestone, deleteMilestone, photoCleaner, SyncedWrite(syncToFirestore),
     )
 
     @Test

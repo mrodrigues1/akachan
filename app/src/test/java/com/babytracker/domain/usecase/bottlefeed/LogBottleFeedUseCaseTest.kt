@@ -6,6 +6,7 @@ import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.usecase.inventory.MarkBagUsedUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -31,7 +32,7 @@ class LogBottleFeedUseCaseTest {
         repository = mockk()
         markBagUsed = mockk(relaxed = true)
         syncToFirestore = mockk(relaxed = true)
-        useCase = LogBottleFeedUseCase(repository, markBagUsed, syncToFirestore) { now }
+        useCase = LogBottleFeedUseCase(repository, markBagUsed, SyncedWrite(syncToFirestore)) { now }
     }
 
     @Test

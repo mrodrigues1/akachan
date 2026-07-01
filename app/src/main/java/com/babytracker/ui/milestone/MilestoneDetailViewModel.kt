@@ -8,8 +8,7 @@ import com.babytracker.domain.usecase.milestone.DeleteMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.GetMilestoneUseCase
 import com.babytracker.domain.usecase.milestone.UpdateMilestoneUseCase
 import com.babytracker.navigation.Routes
-import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
-import com.babytracker.sharing.usecase.syncSharedSnapshot
+import com.babytracker.sharing.usecase.SyncedWrite
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +29,7 @@ class MilestoneDetailViewModel @Inject constructor(
     private val updateMilestone: UpdateMilestoneUseCase,
     private val deleteMilestone: DeleteMilestoneUseCase,
     private val photoCleaner: MilestonePhotoCleaner,
-    private val syncToFirestore: SyncToFirestoreUseCase,
+    private val syncedWrite: SyncedWrite,
 ) : ViewModel() {
 
     private val milestoneId: Long = savedStateHandle.get<String>(Routes.MILESTONE_DETAIL_ARG)?.toLongOrNull() ?: 0L
@@ -58,7 +57,7 @@ class MilestoneDetailViewModel @Inject constructor(
             if (previousPhoto != null && previousPhoto != updated.photoUri) {
                 photoCleaner.delete(previousPhoto)
             }
-            syncToFirestore.syncSharedSnapshot()
+            syncedWrite.sync()
         }
     }
 
@@ -71,7 +70,7 @@ class MilestoneDetailViewModel @Inject constructor(
             // deleting the orphaned file must not block the sync or strand the caller on its
             // post-delete UI. Always reach onDeleted() so the screen can navigate away.
             runCatching { photoCleaner.delete(photoUri) }
-            syncToFirestore.syncSharedSnapshot()
+            syncedWrite.sync()
             onDeleted()
         }
     }

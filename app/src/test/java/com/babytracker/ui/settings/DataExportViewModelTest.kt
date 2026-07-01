@@ -21,6 +21,7 @@ import com.babytracker.export.domain.usecase.GeneratePdfReportUseCase
 import com.babytracker.export.domain.usecase.ImportBackupUseCase
 import com.babytracker.export.domain.usecase.ValidateBackupUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -97,7 +98,7 @@ class DataExportViewModelTest {
         vm = DataExportViewModel(
             exportBackup, exportCsvUseCase, generatePdf, validateBackup, importBackup,
             reader, writer, settingsRepository, breastfeedingRepository, pumpingRepository,
-            sleepRepository, syncToFirestore, appContext,
+            sleepRepository, SyncedWrite(syncToFirestore), appContext,
         )
     }
 

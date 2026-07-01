@@ -19,7 +19,7 @@ import com.babytracker.export.domain.usecase.ExportCsvUseCase
 import com.babytracker.export.domain.usecase.GeneratePdfReportUseCase
 import com.babytracker.export.domain.usecase.ImportBackupUseCase
 import com.babytracker.export.domain.usecase.ValidateBackupUseCase
-import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -73,7 +73,7 @@ class DataExportViewModel @Inject constructor(
     private val breastfeedingRepository: BreastfeedingRepository,
     private val pumpingRepository: PumpingRepository,
     private val sleepRepository: SleepRepository,
-    private val syncToFirestore: SyncToFirestoreUseCase,
+    private val syncedWrite: SyncedWrite,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -167,7 +167,7 @@ class DataExportViewModel @Inject constructor(
         _uiState.update { it.copy(importPreview = null) }
         execute(appContext.getString(R.string.msg_backup_imported)) {
             importBackup(preview.data)
-            runCatching { syncToFirestore() }
+            syncedWrite.sync()
         }
     }
 

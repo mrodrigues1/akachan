@@ -1,13 +1,14 @@
 package com.babytracker.domain.usecase.inventory
 
 import com.babytracker.domain.repository.InventoryRepository
-import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
+import com.babytracker.sharing.usecase.SyncedWrite
 import java.time.Instant
 import javax.inject.Inject
 
 class UpdateMilkBagUseCase @Inject constructor(
     private val repository: InventoryRepository,
-    private val syncToFirestore: SyncToFirestoreUseCase,
+    private val syncedWrite: SyncedWrite,
     private val now: () -> Instant,
 ) {
     suspend operator fun invoke(
@@ -27,6 +28,7 @@ class UpdateMilkBagUseCase @Inject constructor(
                 notes = notes,
             ),
         ) { "Milk bag is no longer editable" }
-        return runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.INVENTORY) }.isSuccess
+        // The edit sheet shows a "saved locally" hint when the partner sync fails.
+        return syncedWrite.sync(SyncType.INVENTORY)
     }
 }

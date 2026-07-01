@@ -8,7 +8,8 @@ import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.SleepNotificationScheduler
-import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
+import com.babytracker.sharing.usecase.SyncedWrite
 import com.babytracker.widget.WidgetUpdater
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
@@ -31,7 +32,7 @@ class TileToggleHandler @Inject constructor(
     private val breastfeedingNotifications: BreastfeedingSessionNotificationCoordinator,
     private val sleepNotificationScheduler: SleepNotificationScheduler,
     private val napReminderScheduler: NapReminderScheduler,
-    private val syncToFirestore: SyncToFirestoreUseCase,
+    private val syncedWrite: SyncedWrite,
     private val widgetUpdater: WidgetUpdater,
     private val clock: Clock,
 ) {
@@ -46,7 +47,7 @@ class TileToggleHandler @Inject constructor(
                 if (stopped) {
                     breastfeedingNotifications.cancelScheduled()
                     breastfeedingNotifications.cancelPostedSessionNotifications()
-                    runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+                    syncedWrite.sync(SyncType.SESSIONS)
                 }
                 stopped
             } else {
@@ -57,7 +58,7 @@ class TileToggleHandler @Inject constructor(
                     val created = session.copy(id = id)
                     runCatching { breastfeedingNotifications.scheduleInitial(created) }
                     runCatching { breastfeedingNotifications.showRunning(created) }
-                    runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+                    syncedWrite.sync(SyncType.SESSIONS)
                 }
                 id != null
             }
@@ -91,7 +92,7 @@ class TileToggleHandler @Inject constructor(
             if (latest.sleepType == SleepType.NAP) {
                 runCatching { napReminderScheduler.scheduleIfEnabled(now) }
             }
-            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
+            syncedWrite.sync(SyncType.SLEEP_RECORDS)
         }
         return stopped
     }
@@ -107,7 +108,7 @@ class TileToggleHandler @Inject constructor(
             val created = record.copy(id = id)
             runCatching { napReminderScheduler.cancel() }
             runCatching { sleepNotificationScheduler.show(created.id, created.sleepType, created.startTime) }
-            runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
+            syncedWrite.sync(SyncType.SLEEP_RECORDS)
         }
         return id != null
     }

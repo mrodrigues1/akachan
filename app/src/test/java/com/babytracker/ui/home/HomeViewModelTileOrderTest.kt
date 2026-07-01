@@ -26,6 +26,7 @@ import com.babytracker.domain.usecase.vaccine.ObserveVaccineSummaryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
@@ -125,7 +126,7 @@ class HomeViewModelTileOrderTest {
             getBabyProfile,
             getBreastfeedingHistory,
             getSleepHistory,
-            syncToFirestore,
+            SyncedWrite(syncToFirestore),
             settingsRepository,
             pumpingRepository,
             inventoryRepository,

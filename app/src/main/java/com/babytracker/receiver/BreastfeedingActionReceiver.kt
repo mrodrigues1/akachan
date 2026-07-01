@@ -16,7 +16,8 @@ import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUs
 import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
-import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
+import com.babytracker.sharing.usecase.SyncedWrite
 import com.babytracker.util.NotificationHelper
 import com.babytracker.util.goAsyncWithTimeout
 import dagger.hilt.android.AndroidEntryPoint
@@ -35,7 +36,7 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
     @Inject lateinit var pauseSession: PauseBreastfeedingSessionUseCase
     @Inject lateinit var resumeSession: ResumeBreastfeedingSessionUseCase
     @Inject lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
-    @Inject lateinit var syncToFirestore: SyncToFirestoreUseCase
+    @Inject lateinit var syncedWrite: SyncedWrite
 
     companion object {
         const val ACTION = "com.babytracker.BREASTFEEDING_ACTION"
@@ -161,7 +162,7 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
     // quick-actions reach the partner like in-app edits do. No-op unless this device is the sharing
     // primary; best-effort so a sync failure never breaks the notification action.
     private suspend fun syncSessions() {
-        runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+        syncedWrite.sync(SyncType.SESSIONS)
     }
 
     private suspend fun breastfeedingActiveNotificationSettings(): BreastfeedingActiveNotificationSettings =

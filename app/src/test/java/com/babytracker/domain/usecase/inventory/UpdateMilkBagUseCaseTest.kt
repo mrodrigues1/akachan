@@ -3,6 +3,7 @@ package com.babytracker.domain.usecase.inventory
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
@@ -37,7 +38,7 @@ class UpdateMilkBagUseCaseTest {
     fun setup() {
         repository = mockk(relaxed = true)
         sync = mockk(relaxed = true)
-        useCase = UpdateMilkBagUseCase(repository, sync) { fixedNow }
+        useCase = UpdateMilkBagUseCase(repository, SyncedWrite(sync)) { fixedNow }
     }
 
     @Test

@@ -2,13 +2,14 @@ package com.babytracker.domain.usecase.inventory
 
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.repository.InventoryRepository
-import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
+import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
+import com.babytracker.sharing.usecase.SyncedWrite
 import java.time.Instant
 import javax.inject.Inject
 
 class AddMilkBagUseCase @Inject constructor(
     private val repository: InventoryRepository,
-    private val syncToFirestore: SyncToFirestoreUseCase,
+    private val syncedWrite: SyncedWrite,
     private val now: () -> Instant,
 ) {
     suspend operator fun invoke(
@@ -25,8 +26,6 @@ class AddMilkBagUseCase @Inject constructor(
             notes = notes,
             createdAt = now(),
         )
-        val id = repository.insert(bag)
-        runCatching { syncToFirestore(SyncToFirestoreUseCase.SyncType.INVENTORY) }
-        return id
+        return syncedWrite(SyncType.INVENTORY) { repository.insert(bag) }
     }
 }
