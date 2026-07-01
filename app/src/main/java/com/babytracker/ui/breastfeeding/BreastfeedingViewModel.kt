@@ -411,15 +411,9 @@ class BreastfeedingViewModel @Inject constructor(
         val firstSideDuration = sideDurations.first
         val secondSideDuration = sideDurations.second
 
-        val oppositeSide = if (lastSession.startingSide == BreastSide.LEFT) BreastSide.RIGHT else BreastSide.LEFT
-        val nextRecommendedSide = when {
-            // No switch: only the starting side was used — recommend the other side
-            secondSideDuration == null -> oppositeSide
-            // Second side was used less than first — recommend second side (opposite of starting)
-            secondSideDuration < firstSideDuration -> oppositeSide
-            // First side was used less (or both equal) — recommend first/starting side
-            else -> lastSession.startingSide
-        }
+        // Non-null: endTime was checked above, and a completed session always has a recommendation.
+        val nextRecommendedSide = lastSession.recommendedNextSide()
+            ?: return LastFeedingSummaryState.Empty
 
         return LastFeedingSummaryState.Populated(
             lastSession = lastSession,
