@@ -63,6 +63,36 @@ sealed class LastSleepSummaryState {
     ) : LastSleepSummaryState()
 }
 
+/** Today's completed-sleep rollup for the tracking screen: list, totals, and nap count. */
+data class SleepTodayStats(
+    val entries: List<SleepRecord> = emptyList(),
+    val totalSleep: Duration = Duration.ZERO,
+    val napCount: Int = 0,
+    val nightSleep: Duration = Duration.ZERO,
+)
+
+/**
+ * [entries]/[totalSleep]/[napCount] cover completed records that started on [today];
+ * [nightSleep] sums night sleeps that ended on [today], so last night's sleep that started
+ * yesterday still counts.
+ */
+internal fun sleepTodayStats(records: List<SleepRecord>, today: LocalDate, zone: ZoneId): SleepTodayStats {
+    val entries = records
+        .filter { it.startTime.atZone(zone).toLocalDate() == today && it.endTime != null }
+        .sortedByDescending { it.startTime }
+    return SleepTodayStats(
+        entries = entries,
+        totalSleep = entries
+            .mapNotNull { record -> record.endTime?.let { Duration.between(record.startTime, it) } }
+            .fold(Duration.ZERO) { acc, d -> acc + d },
+        napCount = entries.count { it.sleepType == SleepType.NAP },
+        nightSleep = records
+            .filter { it.sleepType == SleepType.NIGHT_SLEEP && it.endTime?.atZone(zone)?.toLocalDate() == today }
+            .mapNotNull { record -> record.endTime?.let { Duration.between(record.startTime, it) } }
+            .fold(Duration.ZERO) { acc, d -> acc + d },
+    )
+}
+
 data class SleepUiState(
     val schedule: SleepSchedule? = null,
     val isLoading: Boolean = false,
@@ -123,6 +153,11 @@ class SleepViewModel @Inject constructor(
     val activeSleepSession: StateFlow<SleepRecord?> = history
         .map { records -> records.find { it.isInProgress } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val todayStats: StateFlow<SleepTodayStats> = history
+        .map { records -> sleepTodayStats(records, LocalDate.now(), ZoneId.systemDefault()) }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SleepTodayStats())
 
     init {
         viewModelScope.launch {

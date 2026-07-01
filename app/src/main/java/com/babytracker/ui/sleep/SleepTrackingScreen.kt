@@ -97,7 +97,6 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
@@ -112,35 +111,8 @@ fun SleepTrackingScreen(
     viewModel: SleepViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val history by viewModel.history.collectAsStateWithLifecycle()
     val activeSleepSession by viewModel.activeSleepSession.collectAsStateWithLifecycle()
-
-    val zone = ZoneId.systemDefault()
-    val todayEntries = remember(history) {
-        val today = LocalDate.now()
-        history
-            .filter { it.startTime.atZone(zone).toLocalDate() == today && it.endTime != null }
-            .sortedByDescending { it.startTime }
-    }
-    val totalSleepToday = remember(todayEntries) {
-        todayEntries
-            .filter { it.endTime != null }
-            .mapNotNull { record -> record.endTime?.let { Duration.between(record.startTime, it) } }
-            .fold(Duration.ZERO) { acc, d -> acc + d }
-    }
-    val napCount = remember(todayEntries) {
-        todayEntries.count { it.sleepType == SleepType.NAP }
-    }
-    val nightSleepDuration = remember(history) {
-        val today = LocalDate.now()
-        history
-            .filter { record ->
-                record.sleepType == SleepType.NIGHT_SLEEP &&
-                    record.endTime?.atZone(zone)?.toLocalDate() == today
-            }
-            .mapNotNull { record -> record.endTime?.let { Duration.between(record.startTime, it) } }
-            .fold(Duration.ZERO) { acc, d -> acc + d }
-    }
+    val todayStats by viewModel.todayStats.collectAsStateWithLifecycle()
 
     uiState.activeTimePicker?.let { target ->
         val initial = when (target) {
@@ -235,9 +207,9 @@ fun SleepTrackingScreen(
                     TodayContextCard(
                         summary = uiState.lastSleepSummary,
                         wakeTime = uiState.wakeTime,
-                        totalSleep = totalSleepToday,
-                        napCount = napCount,
-                        nightSleep = nightSleepDuration,
+                        totalSleep = todayStats.totalSleep,
+                        napCount = todayStats.napCount,
+                        nightSleep = todayStats.nightSleep,
                         onWakeTimeClick = { viewModel.onShowTimePicker(SleepTimePickerTarget.WAKE) },
                     )
                 }
@@ -257,10 +229,10 @@ fun SleepTrackingScreen(
                     color = MaterialTheme.colorScheme.secondary,
                 )
             }
-            if (todayEntries.isEmpty()) {
+            if (todayStats.entries.isEmpty()) {
                 item { TodayEmptyState() }
             } else {
-                items(todayEntries, key = { it.id }) { record ->
+                items(todayStats.entries, key = { it.id }) { record ->
                     SwipeableSleepEntry(
                         record = record,
                         onDeleteRequest = viewModel::onDeleteRequest,
