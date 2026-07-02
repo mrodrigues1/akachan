@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.domain.usecase.doctorvisit.DeleteDoctorVisitUseCase
-import com.babytracker.domain.usecase.doctorvisit.ObserveDoctorVisitsUseCase
 import com.babytracker.manager.DoctorVisitReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +28,6 @@ data class DoctorVisitHistoryUiState(
 
 @HiltViewModel
 class DoctorVisitHistoryViewModel @Inject constructor(
-    observeVisits: ObserveDoctorVisitsUseCase,
     private val repository: DoctorVisitRepository,
     private val deleteVisit: DeleteDoctorVisitUseCase,
     private val reminderScheduler: DoctorVisitReminderScheduler,
@@ -40,7 +38,7 @@ class DoctorVisitHistoryViewModel @Inject constructor(
 
     val uiState: StateFlow<DoctorVisitHistoryUiState> =
         combine(
-            observeVisits(),
+            repository.observeAllVisits(),
             repository.observeAttachedQuestionCounts(),
             local,
         ) { visits, counts, state ->

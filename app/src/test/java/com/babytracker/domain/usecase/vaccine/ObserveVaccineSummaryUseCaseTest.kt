@@ -3,6 +3,7 @@ package com.babytracker.domain.usecase.vaccine
 import app.cash.turbine.test
 import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.VaccineStatus
+import com.babytracker.domain.repository.VaccineRepository
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
@@ -19,8 +20,8 @@ class ObserveVaccineSummaryUseCaseTest {
 
     @Test
     fun `picks soonest future and counts overdue and administered`() = runTest {
-        val observe = mockk<ObserveVaccineRecordsUseCase>()
-        every { observe() } returns flowOf(
+        val observe = mockk<VaccineRepository>()
+        every { observe.observeAll() } returns flowOf(
             listOf(
                 VaccineRecord(
                     id = 1,
@@ -65,8 +66,8 @@ class ObserveVaccineSummaryUseCaseTest {
 
     @Test
     fun `dose scheduled earlier today is upcoming, not overdue`() = runTest {
-        val observe = mockk<ObserveVaccineRecordsUseCase>()
-        every { observe() } returns flowOf(
+        val observe = mockk<VaccineRepository>()
+        every { observe.observeAll() } returns flowOf(
             listOf(
                 VaccineRecord(
                     id = 1,

@@ -3,9 +3,8 @@ package com.babytracker.ui.doctorvisit
 import app.cash.turbine.test
 import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.model.VisitQuestion
+import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.domain.usecase.doctorvisit.AddVisitQuestionUseCase
-import com.babytracker.domain.usecase.doctorvisit.ObserveDoctorVisitsUseCase
-import com.babytracker.domain.usecase.doctorvisit.ObserveInboxQuestionsUseCase
 import com.babytracker.domain.usecase.doctorvisit.ToggleVisitQuestionAnsweredUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -30,8 +29,7 @@ import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DoctorVisitDashboardViewModelTest {
-    private val observeVisits = mockk<ObserveDoctorVisitsUseCase>()
-    private val observeInbox = mockk<ObserveInboxQuestionsUseCase>()
+    private val repository = mockk<DoctorVisitRepository>()
     private val add = mockk<AddVisitQuestionUseCase>(relaxed = true)
     private val toggle = mockk<ToggleVisitQuestionAnsweredUseCase>(relaxed = true)
 
@@ -57,7 +55,7 @@ class DoctorVisitDashboardViewModelTest {
 
     @Test
     fun `derives next visit, remaining upcoming, recent visits, and open questions`() = runTest {
-        every { observeVisits() } returns flowOf(
+        every { repository.observeAllVisits() } returns flowOf(
             listOf(
                 visit(1, offsetDays = 3, provider = "Dr. Silva"),
                 visit(2, offsetDays = -2, provider = "Dr. Costa"),
@@ -66,14 +64,14 @@ class DoctorVisitDashboardViewModelTest {
                 visit(5, offsetDays = 10, provider = "Dr. Reis"),
             ),
         )
-        every { observeInbox() } returns flowOf(
+        every { repository.observeInboxQuestions() } returns flowOf(
             listOf(
                 question(10, "Is the rash normal?"),
                 question(11, "Tummy time?", answered = true),
                 question(12, "Vitamin D dose?"),
             ),
         )
-        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+        val vm = DoctorVisitDashboardViewModel(repository, add, toggle, now)
 
         vm.uiState.test {
             var state = awaitItem()
@@ -92,11 +90,11 @@ class DoctorVisitDashboardViewModelTest {
 
     @Test
     fun `exposes every open question without capping the preview`() = runTest {
-        every { observeVisits() } returns flowOf(emptyList())
-        every { observeInbox() } returns flowOf(
+        every { repository.observeAllVisits() } returns flowOf(emptyList())
+        every { repository.observeInboxQuestions() } returns flowOf(
             (1L..8L).map { question(it, "Question $it") },
         )
-        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+        val vm = DoctorVisitDashboardViewModel(repository, add, toggle, now)
 
         vm.uiState.test {
             var state = awaitItem()
@@ -109,9 +107,9 @@ class DoctorVisitDashboardViewModelTest {
 
     @Test
     fun `upcoming list is empty when only one visit is scheduled`() = runTest {
-        every { observeVisits() } returns flowOf(listOf(visit(1, offsetDays = 3)))
-        every { observeInbox() } returns flowOf(emptyList())
-        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+        every { repository.observeAllVisits() } returns flowOf(listOf(visit(1, offsetDays = 3)))
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
+        val vm = DoctorVisitDashboardViewModel(repository, add, toggle, now)
 
         vm.uiState.test {
             var state = awaitItem()
@@ -124,9 +122,9 @@ class DoctorVisitDashboardViewModelTest {
 
     @Test
     fun `first run flag set when nothing recorded`() = runTest {
-        every { observeVisits() } returns flowOf(emptyList())
-        every { observeInbox() } returns flowOf(emptyList())
-        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+        every { repository.observeAllVisits() } returns flowOf(emptyList())
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
+        val vm = DoctorVisitDashboardViewModel(repository, add, toggle, now)
 
         vm.uiState.test {
             var state = awaitItem()
@@ -140,10 +138,10 @@ class DoctorVisitDashboardViewModelTest {
 
     @Test
     fun `onAddQuestion trims, clears draft, and ignores the immediate repeat tap`() = runTest {
-        every { observeVisits() } returns flowOf(emptyList())
-        every { observeInbox() } returns flowOf(emptyList())
+        every { repository.observeAllVisits() } returns flowOf(emptyList())
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
         coEvery { add(any(), any()) } returns 1
-        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+        val vm = DoctorVisitDashboardViewModel(repository, add, toggle, now)
 
         vm.onDraftChange("  Ask about sleep  ")
         vm.onAddQuestion()
@@ -155,9 +153,9 @@ class DoctorVisitDashboardViewModelTest {
 
     @Test
     fun `blank draft is ignored`() = runTest {
-        every { observeVisits() } returns flowOf(emptyList())
-        every { observeInbox() } returns flowOf(emptyList())
-        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+        every { repository.observeAllVisits() } returns flowOf(emptyList())
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
+        val vm = DoctorVisitDashboardViewModel(repository, add, toggle, now)
 
         vm.onDraftChange("   ")
         vm.onAddQuestion()
@@ -168,9 +166,9 @@ class DoctorVisitDashboardViewModelTest {
 
     @Test
     fun `onToggleAnswered delegates to use case`() = runTest {
-        every { observeVisits() } returns flowOf(emptyList())
-        every { observeInbox() } returns flowOf(emptyList())
-        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+        every { repository.observeAllVisits() } returns flowOf(emptyList())
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
+        val vm = DoctorVisitDashboardViewModel(repository, add, toggle, now)
 
         vm.onToggleAnswered(7)
         advanceUntilIdle()
@@ -180,9 +178,9 @@ class DoctorVisitDashboardViewModelTest {
 
     @Test
     fun `onToggleAnswered captures the question and undo flips it back`() = runTest {
-        every { observeVisits() } returns flowOf(emptyList())
-        every { observeInbox() } returns flowOf(listOf(question(10, "Is the rash normal?")))
-        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+        every { repository.observeAllVisits() } returns flowOf(emptyList())
+        every { repository.observeInboxQuestions() } returns flowOf(listOf(question(10, "Is the rash normal?")))
+        val vm = DoctorVisitDashboardViewModel(repository, add, toggle, now)
 
         vm.uiState.test {
             var state = awaitItem()
@@ -205,9 +203,9 @@ class DoctorVisitDashboardViewModelTest {
 
     @Test
     fun `consuming the snackbar clears lastAnswered without re-toggling`() = runTest {
-        every { observeVisits() } returns flowOf(emptyList())
-        every { observeInbox() } returns flowOf(listOf(question(10, "Is the rash normal?")))
-        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+        every { repository.observeAllVisits() } returns flowOf(emptyList())
+        every { repository.observeInboxQuestions() } returns flowOf(listOf(question(10, "Is the rash normal?")))
+        val vm = DoctorVisitDashboardViewModel(repository, add, toggle, now)
 
         vm.uiState.test {
             var state = awaitItem()
@@ -229,9 +227,9 @@ class DoctorVisitDashboardViewModelTest {
 
     @Test
     fun `surfaces an error state when a source flow throws`() = runTest {
-        every { observeVisits() } returns flow { throw IllegalStateException("boom") }
-        every { observeInbox() } returns flowOf(emptyList())
-        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+        every { repository.observeAllVisits() } returns flow { throw IllegalStateException("boom") }
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
+        val vm = DoctorVisitDashboardViewModel(repository, add, toggle, now)
 
         vm.uiState.test {
             var state = awaitItem()
@@ -244,12 +242,12 @@ class DoctorVisitDashboardViewModelTest {
 
     @Test
     fun `onRetry rebuilds the flow and clears the error`() = runTest {
-        every { observeVisits() } returnsMany listOf(
+        every { repository.observeAllVisits() } returnsMany listOf(
             flow { throw IllegalStateException("boom") },
             flowOf(emptyList()),
         )
-        every { observeInbox() } returns flowOf(emptyList())
-        val vm = DoctorVisitDashboardViewModel(observeVisits, observeInbox, add, toggle, now)
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
+        val vm = DoctorVisitDashboardViewModel(repository, add, toggle, now)
 
         vm.uiState.test {
             var state = awaitItem()

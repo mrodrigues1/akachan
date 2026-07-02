@@ -5,9 +5,8 @@ import com.babytracker.R
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.domain.usecase.pumping.DeletePumpingSessionUseCase
-import com.babytracker.domain.usecase.pumping.GetPumpingHistoryUseCase
 import com.babytracker.domain.usecase.pumping.UpdatePumpingSessionUseCase
 import io.mockk.coEvery
 import io.mockk.coJustRun
@@ -35,9 +34,8 @@ import java.time.Instant
 @OptIn(ExperimentalCoroutinesApi::class)
 class PumpingHistoryViewModelTest {
 
-    private lateinit var getHistory: GetPumpingHistoryUseCase
+    private lateinit var pumpingRepository: PumpingRepository
     private lateinit var updateSession: UpdatePumpingSessionUseCase
-    private lateinit var deleteSession: DeletePumpingSessionUseCase
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var appContext: Context
     private lateinit var viewModel: PumpingHistoryViewModel
@@ -58,18 +56,16 @@ class PumpingHistoryViewModelTest {
     @BeforeEach
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        getHistory = mockk()
+        pumpingRepository = mockk()
         updateSession = mockk()
-        deleteSession = mockk()
         settingsRepository = mockk()
-        every { getHistory() } returns historyFlow
+        every { pumpingRepository.getAllSessions() } returns historyFlow
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         appContext = mockk(relaxed = true)
         every { appContext.getString(R.string.error_start_future) } returns "Start cannot be in the future"
         viewModel = PumpingHistoryViewModel(
-            getHistory = getHistory,
+            pumpingRepository = pumpingRepository,
             updateSession = updateSession,
-            deleteSession = deleteSession,
             settingsRepository = settingsRepository,
             appContext = appContext,
             now = { fixedNow },
@@ -205,14 +201,14 @@ class PumpingHistoryViewModelTest {
     @Test
     fun `onDeleteConfirmed calls deleteSession and clears sheet on success`() = runTest {
         viewModel.onEditClicked(sampleSession)
-        coJustRun { deleteSession(sampleSession) }
+        coJustRun { pumpingRepository.delete(sampleSession) }
 
         viewModel.onDeleteRequested()
         viewModel.onDeleteConfirmed()
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.editSheet)
-        coVerify(exactly = 1) { deleteSession(sampleSession) }
+        coVerify(exactly = 1) { pumpingRepository.delete(sampleSession) }
     }
 
     @Test
@@ -225,7 +221,7 @@ class PumpingHistoryViewModelTest {
         viewModel.onDeleteCancelled()
 
         assertTrue(!viewModel.uiState.value.editSheet!!.deleteConfirm)
-        coVerify(exactly = 0) { deleteSession(any()) }
+        coVerify(exactly = 0) { pumpingRepository.delete(any()) }
     }
 
     @Test
@@ -241,7 +237,7 @@ class PumpingHistoryViewModelTest {
     @Test
     fun `onDeleteConfirmed sets error and keeps sheet when deleteSession throws`() = runTest {
         viewModel.onEditClicked(sampleSession)
-        coEvery { deleteSession(sampleSession) } throws RuntimeException("db error")
+        coEvery { pumpingRepository.delete(sampleSession) } throws RuntimeException("db error")
 
         viewModel.onDeleteRequested()
         viewModel.onDeleteConfirmed()
@@ -254,7 +250,7 @@ class PumpingHistoryViewModelTest {
     @Test
     fun `onErrorDismissed clears error`() = runTest {
         viewModel.onEditClicked(sampleSession)
-        coEvery { deleteSession(sampleSession) } throws RuntimeException("db error")
+        coEvery { pumpingRepository.delete(sampleSession) } throws RuntimeException("db error")
         viewModel.onDeleteRequested()
         viewModel.onDeleteConfirmed()
         testDispatcher.scheduler.advanceUntilIdle()

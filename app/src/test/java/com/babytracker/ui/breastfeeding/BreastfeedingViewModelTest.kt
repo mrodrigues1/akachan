@@ -6,14 +6,9 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.FeedSettingsRepository
-import com.babytracker.domain.usecase.breastfeeding.DeleteBreastfeedingSessionUseCase
-import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
-import com.babytracker.domain.usecase.breastfeeding.SaveBreastfeedingEntryUseCase
-import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
-import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.domain.usecase.breastfeeding.UpdateBreastfeedingSessionUseCase
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
@@ -53,15 +48,10 @@ import java.time.ZoneId
 @OptIn(ExperimentalCoroutinesApi::class)
 class BreastfeedingViewModelTest {
 
-    private lateinit var startSession: StartBreastfeedingSessionUseCase
-    private lateinit var stopSession: StopBreastfeedingSessionUseCase
     private lateinit var switchSide: SwitchBreastfeedingSideUseCase
-    private lateinit var getHistory: GetBreastfeedingHistoryUseCase
     private lateinit var pauseSession: PauseBreastfeedingSessionUseCase
     private lateinit var resumeSession: ResumeBreastfeedingSessionUseCase
     private lateinit var updateSession: UpdateBreastfeedingSessionUseCase
-    private lateinit var deleteSession: DeleteBreastfeedingSessionUseCase
-    private lateinit var saveBreastfeedingEntry: SaveBreastfeedingEntryUseCase
     private lateinit var repository: BreastfeedingRepository
     private lateinit var feedSettingsRepository: FeedSettingsRepository
     private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
@@ -80,17 +70,14 @@ class BreastfeedingViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
 
-        startSession = mockk()
-        stopSession = mockk()
         switchSide = mockk()
-        getHistory = mockk()
         repository = mockk()
         feedSettingsRepository = mockk()
         notificationCoordinator = mockk()
         syncToFirestore = mockk()
         predictNextFeed = mockk()
 
-        every { getHistory() } returns flowOf(emptyList())
+        every { repository.getAllSessions() } returns flowOf(emptyList())
         every { repository.getActiveSession() } returns activeSessionFlow
         every { feedSettingsRepository.getMaxPerBreastMinutes() } returns maxPerBreastFlow
         every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns maxTotalFlow
@@ -111,10 +98,7 @@ class BreastfeedingViewModelTest {
         pauseSession = mockk()
         resumeSession = mockk()
         updateSession = mockk()
-        deleteSession = mockk()
-        saveBreastfeedingEntry = mockk()
-        coEvery { saveBreastfeedingEntry(any(), any(), any()) } returns 1L
-        coJustRun { startSession(any()) }
+        coEvery { repository.insertSession(any()) } returns 1L
         coJustRun { pauseSession(any()) }
         coJustRun { resumeSession(any()) }
         coJustRun { syncToFirestore(any()) }
@@ -137,15 +121,10 @@ class BreastfeedingViewModelTest {
 
     private fun createViewModel() = BreastfeedingViewModel(
         appContext,
-        startSession,
-        stopSession,
         switchSide,
-        getHistory,
         pauseSession,
         resumeSession,
         updateSession,
-        deleteSession,
-        saveBreastfeedingEntry,
         repository,
         feedSettingsRepository,
         notificationCoordinator,
@@ -206,7 +185,7 @@ class BreastfeedingViewModelTest {
         viewModel.onStartSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify(exactly = 0) { startSession(any()) }
+        coVerify(exactly = 0) { repository.insertSession(any()) }
     }
 
     @Test
@@ -219,7 +198,7 @@ class BreastfeedingViewModelTest {
             startingSide = BreastSide.LEFT
         )
 
-        coEvery { startSession(BreastSide.LEFT) } answers {
+        coEvery { repository.insertSession(any()) } answers {
             activeSessionFlow.value = session
             1L
         }
@@ -227,7 +206,7 @@ class BreastfeedingViewModelTest {
         viewModel.onStartSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify(exactly = 1) { startSession(BreastSide.LEFT) }
+        coVerify(exactly = 1) { repository.insertSession(match { it.startingSide == BreastSide.LEFT }) }
     }
 
     @Test
@@ -238,7 +217,7 @@ class BreastfeedingViewModelTest {
             startTime = Instant.now(),
             startingSide = BreastSide.LEFT
         )
-        coEvery { startSession(BreastSide.LEFT) } answers {
+        coEvery { repository.insertSession(any()) } answers {
             activeSessionFlow.value = session
             1L
         }
@@ -260,7 +239,7 @@ class BreastfeedingViewModelTest {
         )
         activeSessionFlow.value = session
         testDispatcher.scheduler.advanceUntilIdle()
-        coJustRun { stopSession(session) }
+        coJustRun { repository.updateSession(any()) }
 
         viewModel.onStopSession()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -373,7 +352,7 @@ class BreastfeedingViewModelTest {
         activeSessionFlow.value = session
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coJustRun { stopSession(session) }
+        coJustRun { repository.updateSession(any()) }
         // Just verify the method can be called without error.
 
         // Just verify the method can be called without error
@@ -385,7 +364,7 @@ class BreastfeedingViewModelTest {
         viewModel.onStopSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify(exactly = 0) { stopSession(any()) }
+        coVerify(exactly = 0) { repository.updateSession(any()) }
     }
 
     @Test
@@ -435,7 +414,7 @@ class BreastfeedingViewModelTest {
             )
         )
 
-        every { getHistory() } returns flowOf(historySessions)
+        every { repository.getAllSessions() } returns flowOf(historySessions)
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -453,7 +432,7 @@ class BreastfeedingViewModelTest {
             startingSide = BreastSide.LEFT
         )
 
-        coEvery { startSession(BreastSide.LEFT) } answers {
+        coEvery { repository.insertSession(any()) } answers {
             activeSessionFlow.value = session
             1L
         }
@@ -568,7 +547,7 @@ class BreastfeedingViewModelTest {
 
     @Test
     fun `lastFeedingSummary is Empty when no sessions exist`() = runTest {
-        every { getHistory() } returns flowOf(emptyList())
+        every { repository.getAllSessions() } returns flowOf(emptyList())
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -585,7 +564,7 @@ class BreastfeedingViewModelTest {
             endTime = null,
             startingSide = BreastSide.LEFT
         )
-        every { getHistory() } returns flowOf(listOf(inProgress))
+        every { repository.getAllSessions() } returns flowOf(listOf(inProgress))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -610,7 +589,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.LEFT,
                 switchTime = null
             )
-            every { getHistory() } returns flowOf(listOf(session))
+            every { repository.getAllSessions() } returns flowOf(listOf(session))
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -642,7 +621,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.LEFT,
                 switchTime = switchTime
             )
-            every { getHistory() } returns flowOf(listOf(session))
+            every { repository.getAllSessions() } returns flowOf(listOf(session))
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -674,7 +653,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.RIGHT,
                 switchTime = switchTime
             )
-            every { getHistory() } returns flowOf(listOf(session))
+            every { repository.getAllSessions() } returns flowOf(listOf(session))
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -705,7 +684,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.RIGHT,
                 switchTime = switchTime
             )
-            every { getHistory() } returns flowOf(listOf(session))
+            every { repository.getAllSessions() } returns flowOf(listOf(session))
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -734,7 +713,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.RIGHT,
                 switchTime = null
             )
-            every { getHistory() } returns flowOf(listOf(session))
+            every { repository.getAllSessions() } returns flowOf(listOf(session))
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -763,7 +742,7 @@ class BreastfeedingViewModelTest {
                 endTime = endTime,
                 startingSide = BreastSide.RIGHT
             )
-            every { getHistory() } returns flowOf(listOf(session))
+            every { repository.getAllSessions() } returns flowOf(listOf(session))
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -792,7 +771,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.LEFT,
                 switchTime = null
             )
-            every { getHistory() } returns flowOf(listOf(session))
+            every { repository.getAllSessions() } returns flowOf(listOf(session))
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -824,7 +803,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.LEFT,
                 switchTime = switchTime
             )
-            every { getHistory() } returns flowOf(listOf(session))
+            every { repository.getAllSessions() } returns flowOf(listOf(session))
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -853,7 +832,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.LEFT,
                 pausedDurationMs = Duration.ofMinutes(10).toMillis()
             )
-            every { getHistory() } returns flowOf(listOf(session))
+            every { repository.getAllSessions() } returns flowOf(listOf(session))
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -884,7 +863,7 @@ class BreastfeedingViewModelTest {
                 switchTime = switchTime,
                 pausedDurationMs = Duration.ofMinutes(10).toMillis()
             )
-            every { getHistory() } returns flowOf(listOf(session))
+            every { repository.getAllSessions() } returns flowOf(listOf(session))
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -902,7 +881,7 @@ class BreastfeedingViewModelTest {
         val session = BreastfeedingSession(
             id = 1L, startTime = Instant.now(), startingSide = BreastSide.LEFT
         )
-        coEvery { startSession(BreastSide.LEFT) } answers {
+        coEvery { repository.insertSession(any()) } answers {
             activeSessionFlow.value = session
             1L
         }
@@ -917,7 +896,7 @@ class BreastfeedingViewModelTest {
             id = 1L, startTime = Instant.now().minusSeconds(300), startingSide = BreastSide.LEFT
         )
         activeSessionFlow.value = session
-        coJustRun { stopSession(session) }
+        coJustRun { repository.updateSession(any()) }
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onStopSession()
@@ -993,7 +972,7 @@ class BreastfeedingViewModelTest {
                 endTime = newerEnd,
                 startingSide = BreastSide.RIGHT
             )
-            every { getHistory() } returns flowOf(listOf(older, newer))
+            every { repository.getAllSessions() } returns flowOf(listOf(older, newer))
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -1028,7 +1007,7 @@ class BreastfeedingViewModelTest {
             startingSide = BreastSide.LEFT,
             switchTime = null,
         )
-        every { getHistory() } returns flowOf(listOf(session))
+        every { repository.getAllSessions() } returns flowOf(listOf(session))
         viewModel = createViewModel()
         awaitLastFeedingSummaryPopulated()
 
@@ -1054,11 +1033,8 @@ class BreastfeedingViewModelTest {
 
     @Test
     fun `onSaveManualEntry saves completed session with selected side and dismisses sheet`() = runTest {
-        val startSlot = slot<Instant>()
-        val endSlot = slot<Instant>()
-        coEvery {
-            saveBreastfeedingEntry(capture(startSlot), capture(endSlot), BreastSide.RIGHT)
-        } returns 7L
+        val sessionSlot = slot<BreastfeedingSession>()
+        coEvery { repository.insertSession(capture(sessionSlot)) } returns 7L
 
         viewModel.onAddEntryClick()
         val date = LocalDate.of(2026, 6, 1)
@@ -1069,12 +1045,12 @@ class BreastfeedingViewModelTest {
         viewModel.onSaveManualEntry(BreastSide.RIGHT)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify(exactly = 1) { saveBreastfeedingEntry(any(), any(), BreastSide.RIGHT) }
+        coVerify(exactly = 1) { repository.insertSession(match { it.startingSide == BreastSide.RIGHT }) }
         assertFalse(viewModel.uiState.value.showManualEntrySheet)
         assertNull(viewModel.uiState.value.manualEntryError)
         val zone = ZoneId.systemDefault()
-        assertEquals(LocalTime.of(10, 0).atDate(date).atZone(zone).toInstant(), startSlot.captured)
-        assertEquals(LocalTime.of(10, 20).atDate(date).atZone(zone).toInstant(), endSlot.captured)
+        assertEquals(LocalTime.of(10, 0).atDate(date).atZone(zone).toInstant(), sessionSlot.captured.startTime)
+        assertEquals(LocalTime.of(10, 20).atDate(date).atZone(zone).toInstant(), sessionSlot.captured.endTime)
         coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
     }
 
@@ -1089,14 +1065,13 @@ class BreastfeedingViewModelTest {
 
         assertEquals("End time must be after start time", viewModel.uiState.value.manualEntryError)
         assertTrue(viewModel.uiState.value.showManualEntrySheet)
-        coVerify(exactly = 0) { saveBreastfeedingEntry(any(), any(), any()) }
+        coVerify(exactly = 0) { repository.insertSession(any()) }
     }
 
     @Test
     fun `onSaveManualEntry handles cross-midnight session by shifting start back a day`() = runTest {
-        val startSlot = slot<Instant>()
-        val endSlot = slot<Instant>()
-        coEvery { saveBreastfeedingEntry(capture(startSlot), capture(endSlot), any()) } returns 9L
+        val sessionSlot = slot<BreastfeedingSession>()
+        coEvery { repository.insertSession(capture(sessionSlot)) } returns 9L
 
         viewModel.onAddEntryClick()
         val date = LocalDate.of(2026, 6, 1)
@@ -1109,9 +1084,9 @@ class BreastfeedingViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         val zone = ZoneId.systemDefault()
-        assertEquals(LocalTime.of(23, 0).atDate(date.minusDays(1)).atZone(zone).toInstant(), startSlot.captured)
-        assertEquals(LocalTime.of(1, 0).atDate(date).atZone(zone).toInstant(), endSlot.captured)
-        assertEquals(Duration.ofHours(2), Duration.between(startSlot.captured, endSlot.captured))
+        assertEquals(LocalTime.of(23, 0).atDate(date.minusDays(1)).atZone(zone).toInstant(), sessionSlot.captured.startTime)
+        assertEquals(LocalTime.of(1, 0).atDate(date).atZone(zone).toInstant(), sessionSlot.captured.endTime)
+        assertEquals(Duration.ofHours(2), Duration.between(sessionSlot.captured.startTime, sessionSlot.captured.endTime!!))
         assertNull(viewModel.uiState.value.manualEntryError)
     }
 

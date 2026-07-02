@@ -8,7 +8,7 @@ import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.bottlefeed.EditBottleFeedUseCase
 import com.babytracker.domain.usecase.bottlefeed.LogBottleFeedUseCase
-import com.babytracker.domain.usecase.inventory.GetInventoryUseCase
+import com.babytracker.domain.repository.InventoryRepository
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -31,7 +31,7 @@ class BottleFeedViewModelTest {
 
     private val log = mockk<LogBottleFeedUseCase>(relaxed = true)
     private val edit = mockk<EditBottleFeedUseCase>(relaxed = true)
-    private val getInventory = mockk<GetInventoryUseCase>()
+    private val inventoryRepository = mockk<InventoryRepository>()
     private val settings = mockk<SettingsRepository>()
     private val appContext = mockk<Context>()
     private val dispatcher = StandardTestDispatcher()
@@ -39,7 +39,7 @@ class BottleFeedViewModelTest {
     @BeforeEach
     fun setup() {
         Dispatchers.setMain(dispatcher)
-        every { getInventory() } returns flowOf(emptyList())
+        every { inventoryRepository.getActiveBags() } returns flowOf(emptyList())
         every { settings.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         every { appContext.getString(R.string.error_volume_positive) } returns "Enter a volume greater than 0"
         every { appContext.getString(R.string.error_could_not_save) } returns "Could not save"
@@ -48,7 +48,7 @@ class BottleFeedViewModelTest {
     @AfterEach
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm() = BottleFeedViewModel(log, edit, getInventory, settings, appContext) { Instant.ofEpochMilli(10_000) }
+    private fun vm() = BottleFeedViewModel(log, edit, inventoryRepository, settings, appContext) { Instant.ofEpochMilli(10_000) }
 
     @Test
     fun `blank volume sets validation error and does not save`() = runTest {
@@ -91,7 +91,7 @@ class BottleFeedViewModelTest {
             volumeMl = 119,
             createdAt = Instant.ofEpochMilli(1_000),
         )
-        every { getInventory() } returns flowOf(listOf(bag))
+        every { inventoryRepository.getActiveBags() } returns flowOf(listOf(bag))
         val viewModel = vm()
         dispatcher.scheduler.advanceUntilIdle()
         viewModel.onSave() // triggers "Enter a volume" error
@@ -111,7 +111,7 @@ class BottleFeedViewModelTest {
             volumeMl = 119,
             createdAt = Instant.ofEpochMilli(1_000),
         )
-        every { getInventory() } returns flowOf(listOf(bag))
+        every { inventoryRepository.getActiveBags() } returns flowOf(listOf(bag))
         val viewModel = vm()
         dispatcher.scheduler.advanceUntilIdle()
         viewModel.onBagSelect(5)

@@ -7,14 +7,9 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.FeedSettingsRepository
-import com.babytracker.domain.usecase.breastfeeding.DeleteBreastfeedingSessionUseCase
-import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
-import com.babytracker.domain.usecase.breastfeeding.SaveBreastfeedingEntryUseCase
-import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
-import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.domain.usecase.breastfeeding.UpdateBreastfeedingSessionUseCase
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
@@ -47,15 +42,10 @@ class BreastfeedingEditSheetViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
-    private lateinit var startSession: StartBreastfeedingSessionUseCase
-    private lateinit var stopSession: StopBreastfeedingSessionUseCase
     private lateinit var switchSide: SwitchBreastfeedingSideUseCase
-    private lateinit var getHistory: GetBreastfeedingHistoryUseCase
     private lateinit var pauseSession: PauseBreastfeedingSessionUseCase
     private lateinit var resumeSession: ResumeBreastfeedingSessionUseCase
     private lateinit var updateSession: UpdateBreastfeedingSessionUseCase
-    private lateinit var deleteSession: DeleteBreastfeedingSessionUseCase
-    private lateinit var saveBreastfeedingEntry: SaveBreastfeedingEntryUseCase
     private lateinit var repository: BreastfeedingRepository
     private lateinit var feedSettingsRepository: FeedSettingsRepository
     private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
@@ -73,22 +63,17 @@ class BreastfeedingEditSheetViewModelTest {
     @BeforeEach
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        startSession = mockk()
-        stopSession = mockk()
         switchSide = mockk()
         pauseSession = mockk()
         resumeSession = mockk()
         updateSession = mockk()
-        deleteSession = mockk()
-        saveBreastfeedingEntry = mockk()
         repository = mockk()
         feedSettingsRepository = mockk()
         notificationCoordinator = mockk(relaxed = true)
         syncToFirestore = mockk()
 
-        getHistory = mockk()
         predictNextFeed = mockk()
-        every { getHistory() } returns flowOf(emptyList())
+        every { repository.getAllSessions() } returns flowOf(emptyList())
         every { repository.getActiveSession() } returns MutableStateFlow(null)
         every { feedSettingsRepository.getMaxPerBreastMinutes() } returns flowOf(0)
         every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns flowOf(0)
@@ -106,8 +91,8 @@ class BreastfeedingEditSheetViewModelTest {
 
     private fun viewModel() = BreastfeedingViewModel(
         appContext,
-        startSession, stopSession, switchSide, getHistory, pauseSession, resumeSession,
-        updateSession, deleteSession, saveBreastfeedingEntry, repository, feedSettingsRepository,
+        switchSide, pauseSession, resumeSession,
+        updateSession, repository, feedSettingsRepository,
         notificationCoordinator, SyncedWrite(syncToFirestore), predictNextFeed,
     )
 
@@ -261,12 +246,12 @@ class BreastfeedingEditSheetViewModelTest {
         advanceUntilIdle()
 
         assertNull(vm.uiState.value.pendingDeleteSession)
-        coVerify(exactly = 0) { deleteSession(any()) }
+        coVerify(exactly = 0) { repository.deleteSession(any()) }
     }
 
     @Test
     fun onConfirmDeleteSessionDeletesSyncsAndClearsPending() = runTest(testDispatcher) {
-        coJustRun { deleteSession(any()) }
+        coJustRun { repository.deleteSession(any()) }
         val vm = viewModel()
         advanceUntilIdle()
         vm.onPendingDeleteSessionChanged(sampleSession)
@@ -274,14 +259,14 @@ class BreastfeedingEditSheetViewModelTest {
         vm.onConfirmDeleteSession()
         advanceUntilIdle()
 
-        coVerify(exactly = 1) { deleteSession(sampleSession) }
+        coVerify(exactly = 1) { repository.deleteSession(sampleSession) }
         coVerify(exactly = 1) { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
         assertNull(vm.uiState.value.pendingDeleteSession)
     }
 
     @Test
     fun onConfirmDeleteSessionForInProgressCancelsNotifications() = runTest(testDispatcher) {
-        coJustRun { deleteSession(any()) }
+        coJustRun { repository.deleteSession(any()) }
         val inProgress = sampleSession.copy(endTime = null)
         val vm = viewModel()
         advanceUntilIdle()
@@ -295,7 +280,7 @@ class BreastfeedingEditSheetViewModelTest {
 
     @Test
     fun onConfirmDeleteSessionSetsErrorAndSkipsSyncWhenDeleteFails() = runTest(testDispatcher) {
-        coEvery { deleteSession(any()) } throws RuntimeException("DB error")
+        coEvery { repository.deleteSession(any()) } throws RuntimeException("DB error")
         val vm = viewModel()
         advanceUntilIdle()
         vm.onPendingDeleteSessionChanged(sampleSession)

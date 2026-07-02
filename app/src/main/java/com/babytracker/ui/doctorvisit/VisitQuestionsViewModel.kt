@@ -3,9 +3,8 @@ package com.babytracker.ui.doctorvisit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.VisitQuestion
+import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.domain.usecase.doctorvisit.AddVisitQuestionUseCase
-import com.babytracker.domain.usecase.doctorvisit.DeleteVisitQuestionUseCase
-import com.babytracker.domain.usecase.doctorvisit.ObserveInboxQuestionsUseCase
 import com.babytracker.domain.usecase.doctorvisit.ToggleVisitQuestionAnsweredUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,16 +25,15 @@ data class VisitQuestionsUiState(
 
 @HiltViewModel
 class VisitQuestionsViewModel @Inject constructor(
-    observeInbox: ObserveInboxQuestionsUseCase,
+    private val repository: DoctorVisitRepository,
     private val addQuestion: AddVisitQuestionUseCase,
     private val toggleAnswered: ToggleVisitQuestionAnsweredUseCase,
-    private val deleteQuestion: DeleteVisitQuestionUseCase,
 ) : ViewModel() {
 
     private val localState = MutableStateFlow(VisitQuestionsUiState())
 
     val uiState: StateFlow<VisitQuestionsUiState> =
-        combine(observeInbox(), localState) { questions, local ->
+        combine(repository.observeInboxQuestions(), localState) { questions, local ->
             local.copy(questions = questions)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), VisitQuestionsUiState())
 
@@ -58,7 +56,7 @@ class VisitQuestionsViewModel @Inject constructor(
 
     fun onDelete(question: VisitQuestion) {
         viewModelScope.launch {
-            deleteQuestion(question.id)
+            repository.deleteQuestionById(question.id)
             localState.update { it.copy(lastDeleted = question) }
         }
     }

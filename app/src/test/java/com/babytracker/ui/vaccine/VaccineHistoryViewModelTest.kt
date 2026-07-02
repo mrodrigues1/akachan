@@ -3,10 +3,10 @@ package com.babytracker.ui.vaccine
 import app.cash.turbine.test
 import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.VaccineStatus
+import com.babytracker.domain.repository.VaccineRepository
 import com.babytracker.domain.usecase.vaccine.DeleteVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineScheduledUseCase
-import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
 import com.babytracker.domain.usecase.vaccine.RestoreVaccineRecordUseCase
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -33,7 +33,7 @@ import java.time.ZonedDateTime
 class VaccineHistoryViewModelTest {
     private val zone = ZoneId.of("UTC")
     private val fixedNow = Instant.ofEpochMilli(100_000)
-    private val observe = mockk<ObserveVaccineRecordsUseCase>()
+    private val vaccineRepository = mockk<VaccineRepository>()
     private val markGiven = mockk<MarkVaccineAdministeredUseCase>()
     private val markScheduled = mockk<MarkVaccineScheduledUseCase>(relaxed = true)
     private val delete = mockk<DeleteVaccineRecordUseCase>()
@@ -45,13 +45,13 @@ class VaccineHistoryViewModelTest {
     @AfterEach
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm() = VaccineHistoryViewModel(observe, markGiven, markScheduled, delete, restore, zone) { fixedNow }
+    private fun vm() = VaccineHistoryViewModel(vaccineRepository, markGiven, markScheduled, delete, restore, zone) { fixedNow }
 
     @Test
     fun `splits upcoming ascending and administered by day descending`() = runTest {
         val day16 = ZonedDateTime.of(2026, 6, 16, 8, 0, 0, 0, zone).toInstant()
         val day15 = ZonedDateTime.of(2026, 6, 15, 9, 0, 0, 0, zone).toInstant()
-        every { observe() } returns flowOf(
+        every { vaccineRepository.observeAll() } returns flowOf(
             listOf(
                 VaccineRecord(id = 1, name = "Future", status = VaccineStatus.SCHEDULED, scheduledDate = Instant.ofEpochMilli(200_000), createdAt = fixedNow),
                 VaccineRecord(id = 2, name = "Overdue", status = VaccineStatus.SCHEDULED, scheduledDate = Instant.ofEpochMilli(5_000), createdAt = fixedNow),
@@ -71,7 +71,7 @@ class VaccineHistoryViewModelTest {
 
     @Test
     fun `markGiven invokes the use case`() = runTest {
-        every { observe() } returns flowOf(emptyList())
+        every { vaccineRepository.observeAll() } returns flowOf(emptyList())
         coEvery { markGiven(9, any()) } just Runs
         vm().markGiven(9)
         coVerify { markGiven(9, fixedNow) }
@@ -81,7 +81,7 @@ class VaccineHistoryViewModelTest {
     fun `to-schedule records populate the toSchedule list sorted by target date`() = runTest {
         val later = VaccineRecord(id = 1, name = "B", status = VaccineStatus.TO_SCHEDULE, scheduledDate = Instant.ofEpochMilli(300_000), createdAt = fixedNow)
         val sooner = VaccineRecord(id = 2, name = "A", status = VaccineStatus.TO_SCHEDULE, scheduledDate = Instant.ofEpochMilli(200_000), createdAt = fixedNow)
-        every { observe() } returns flowOf(listOf(later, sooner))
+        every { vaccineRepository.observeAll() } returns flowOf(listOf(later, sooner))
         vm().uiState.test {
             var state = awaitItem()
             if (state.isEmpty) state = awaitItem()
@@ -92,7 +92,7 @@ class VaccineHistoryViewModelTest {
 
     @Test
     fun `markScheduled delegates to the use case`() = runTest {
-        every { observe() } returns flowOf(emptyList())
+        every { vaccineRepository.observeAll() } returns flowOf(emptyList())
         vm().markScheduled(5)
         coVerify { markScheduled(5) }
     }
@@ -100,7 +100,7 @@ class VaccineHistoryViewModelTest {
     @Test
     fun `requestDelete commits immediately and optimistically hides the record`() = runTest {
         val record = VaccineRecord(id = 7, name = "BCG", status = VaccineStatus.ADMINISTERED, administeredDate = fixedNow, createdAt = fixedNow)
-        every { observe() } returns flowOf(listOf(record))
+        every { vaccineRepository.observeAll() } returns flowOf(listOf(record))
         coEvery { delete(7) } just Runs
         val viewModel = vm()
 
@@ -124,7 +124,7 @@ class VaccineHistoryViewModelTest {
     @Test
     fun `undoDelete restores the record after the immediate delete`() = runTest {
         val record = VaccineRecord(id = 7, name = "BCG", status = VaccineStatus.ADMINISTERED, administeredDate = fixedNow, createdAt = fixedNow)
-        every { observe() } returns flowOf(emptyList())
+        every { vaccineRepository.observeAll() } returns flowOf(emptyList())
         coEvery { delete(7) } just Runs
         val viewModel = vm()
         viewModel.requestDelete(record)

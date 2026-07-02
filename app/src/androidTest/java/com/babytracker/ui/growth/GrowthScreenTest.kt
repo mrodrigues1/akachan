@@ -21,7 +21,6 @@ import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.GrowthRepository
 import com.babytracker.domain.usecase.growth.AddGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.UpdateGrowthMeasurementUseCase
-import com.babytracker.domain.usecase.growth.DeleteGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.GetGrowthChartDataUseCase
 import com.babytracker.ui.theme.BabyTrackerTheme
 import io.mockk.coEvery
@@ -80,7 +79,7 @@ class GrowthScreenTest {
         GetGrowthChartDataUseCase(growthRepository, babyRepository, whoReferenceData),
         AddGrowthMeasurementUseCase(growthRepository),
         UpdateGrowthMeasurementUseCase(growthRepository),
-        DeleteGrowthMeasurementUseCase(growthRepository),
+        growthRepository,
         settingsRepository,
         mockk(relaxed = true),
     )

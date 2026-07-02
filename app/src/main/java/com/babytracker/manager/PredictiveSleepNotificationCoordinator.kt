@@ -158,14 +158,14 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
                 quietHoursFeedbackCreated = false
 
                 scheduler.schedulePredictiveReminderAt(decision.triggerAt, window.bestEstimate, recId)
-                recommendation.updateLifecycle(recId, RecommendationLifecycle.SCHEDULED)
+                recommendation.repository.updateLifecycle(recId, RecommendationLifecycle.SCHEDULED)
             }
         }
     }
 
     private suspend fun supersedeCurrent() {
         val id = activeRecommendationId ?: return
-        recommendation.updateLifecycle(id, RecommendationLifecycle.SUPERSEDED)
+        recommendation.repository.updateLifecycle(id, RecommendationLifecycle.SUPERSEDED)
         recommendation.createFeedback(id, RecommendationOutcome.SUPERSEDED)
         activeRecommendationId = null
         activeAnchorId = null

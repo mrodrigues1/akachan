@@ -1,6 +1,6 @@
 # Use cases exist only when they have behaviour
 
-Status: proposed (AKACHAN-301) — until accepted, SPEC-001 §3.2 remains the operative rule: new work keeps scaffolding the use-case tier. Everything below describes what changes **on acceptance**.
+Status: accepted (AKACHAN-301, 2026-07-01) — implemented on `refact/architecture`: SPEC-001 §3.2/§4.1 amended, pass-through use cases deleted, ViewModels rewired to repository interfaces.
 
 SPEC-001 mandates `ViewModel → UseCase → Repository` for every flow. In practice that produced ~40 one-line pass-through use cases (`GetSleepHistoryUseCase = repository.getAllRecords()`) whose tests only assert that a mock was called, and a plain CRUD concept spans ~8 files. Meanwhile 24 ViewModels already inject repository interfaces directly without tripping any konsist rule — the mandate was prose-only, never test-enforced.
 

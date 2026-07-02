@@ -8,10 +8,6 @@ import androidx.compose.ui.test.performClick
 import com.babytracker.domain.model.Milestone
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.repository.MilestoneRepository
-import com.babytracker.domain.usecase.milestone.AddMilestoneUseCase
-import com.babytracker.domain.usecase.milestone.DeleteMilestoneUseCase
-import com.babytracker.domain.usecase.milestone.GetMilestonesUseCase
-import com.babytracker.domain.usecase.milestone.UpdateMilestoneUseCase
 import com.babytracker.ui.theme.BabyTrackerTheme
 import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow
@@ -49,10 +45,7 @@ class MilestonesScreenTest {
     }
 
     private fun viewModel() = MilestonesViewModel(
-        GetMilestonesUseCase(repository),
-        AddMilestoneUseCase(repository),
-        UpdateMilestoneUseCase(repository),
-        DeleteMilestoneUseCase(repository),
+        repository,
         object : MilestonePhotoCleaner {
             override suspend fun delete(photoUri: String?) = Unit
         },

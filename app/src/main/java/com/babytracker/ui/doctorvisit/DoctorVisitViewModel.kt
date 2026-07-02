@@ -8,10 +8,9 @@ import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.domain.usecase.doctorvisit.AddDoctorVisitUseCase
 import com.babytracker.domain.usecase.doctorvisit.AttachSnapshotToVisitUseCase
 import com.babytracker.domain.usecase.doctorvisit.EditDoctorVisitUseCase
-import com.babytracker.domain.usecase.doctorvisit.GenerateVisitSnapshotUseCase
-import com.babytracker.domain.usecase.doctorvisit.ObserveInboxQuestionsUseCase
-import com.babytracker.domain.usecase.doctorvisit.ObserveVisitQuestionsUseCase
 import com.babytracker.export.data.BackupFileWriter
+import com.babytracker.export.domain.model.DateRange
+import com.babytracker.export.domain.usecase.GeneratePdfReportUseCase
 import com.babytracker.ui.settings.ShareArtifact
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -56,13 +55,11 @@ data class DoctorVisitUiState(
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class DoctorVisitViewModel @Inject constructor(
-    observeInbox: ObserveInboxQuestionsUseCase,
-    private val observeVisitQuestions: ObserveVisitQuestionsUseCase,
     private val repository: DoctorVisitRepository,
     private val addVisit: AddDoctorVisitUseCase,
     private val editVisit: EditDoctorVisitUseCase,
     private val attachSnapshot: AttachSnapshotToVisitUseCase,
-    private val generateSnapshot: GenerateVisitSnapshotUseCase,
+    private val generatePdfReport: GeneratePdfReportUseCase,
     private val fileWriter: BackupFileWriter,
 ) : ViewModel() {
 
@@ -71,11 +68,11 @@ class DoctorVisitViewModel @Inject constructor(
     // Live attached-questions stream for the visit being edited (empty list on the add path).
     private val attachedFlow =
         local.map { it.editingId }.distinctUntilChanged().flatMapLatest { id ->
-            if (id == null) flowOf(emptyList()) else observeVisitQuestions(id)
+            if (id == null) flowOf(emptyList()) else repository.observeQuestionsForVisit(id)
         }
 
     val uiState: StateFlow<DoctorVisitUiState> =
-        combine(observeInbox(), attachedFlow, local) { inbox, attached, state ->
+        combine(repository.observeInboxQuestions(), attachedFlow, local) { inbox, attached, state ->
             state.copy(inboxQuestions = inbox, attachedQuestions = attached)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DoctorVisitUiState())
 
@@ -103,7 +100,7 @@ class DoctorVisitViewModel @Inject constructor(
         // Seed the selection from the questions currently attached to this visit (one-shot),
         // so the edit form starts with all existing attachments selected; the user can deselect.
         viewModelScope.launch {
-            val attachedIds = observeVisitQuestions(visit.id).first().map { it.id }.toSet()
+            val attachedIds = repository.observeQuestionsForVisit(visit.id).first().map { it.id }.toSet()
             local.update { it.copy(selectedQuestionIds = attachedIds) }
         }
     }
@@ -158,7 +155,7 @@ class DoctorVisitViewModel @Inject constructor(
     fun onViewSnapshot() {
         viewModelScope.launch {
             runCatching {
-                val bytes = generateSnapshot()
+                val bytes = generatePdfReport(DateRange.allTime())
                 fileWriter.writeCacheBytes("visit-snapshot-${Instant.now().toEpochMilli()}.pdf", bytes)
             }.onSuccess { uri ->
                 local.update { it.copy(pendingSnapshotShare = ShareArtifact(uri, "application/pdf")) }

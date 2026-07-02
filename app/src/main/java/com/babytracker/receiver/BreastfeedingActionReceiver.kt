@@ -13,7 +13,6 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.getBreastfeedingActiveNotificationSettings
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
-import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
@@ -32,7 +31,6 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
     @Inject lateinit var feedSettingsRepository: FeedSettingsRepository
     @Inject lateinit var settingsRepository: SettingsRepository
     @Inject lateinit var switchSide: SwitchBreastfeedingSideUseCase
-    @Inject lateinit var stopSession: StopBreastfeedingSessionUseCase
     @Inject lateinit var pauseSession: PauseBreastfeedingSessionUseCase
     @Inject lateinit var resumeSession: ResumeBreastfeedingSessionUseCase
     @Inject lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
@@ -126,7 +124,7 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
     private suspend fun handleStop(sessionId: Long) {
         val session = repository.getActiveSession().first()
         if (session?.id == sessionId) {
-            stopSession(session)
+            repository.updateSession(session.copy(endTime = Instant.now()))
             notificationCoordinator.cancelScheduled()
             syncSessions()
         }

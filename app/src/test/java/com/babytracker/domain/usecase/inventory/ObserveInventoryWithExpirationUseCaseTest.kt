@@ -3,6 +3,7 @@ package com.babytracker.domain.usecase.inventory
 import app.cash.turbine.test
 import com.babytracker.domain.model.ExpirationStatus
 import com.babytracker.domain.model.MilkBag
+import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.InventorySettingsRepository
 import io.mockk.every
 import io.mockk.mockk
@@ -18,7 +19,7 @@ import java.time.ZoneId
 
 class ObserveInventoryWithExpirationUseCaseTest {
 
-    private lateinit var getInventory: GetInventoryUseCase
+    private lateinit var inventoryRepository: InventoryRepository
     private lateinit var settings: InventorySettingsRepository
     private lateinit var useCase: ObserveInventoryWithExpirationUseCase
 
@@ -28,9 +29,9 @@ class ObserveInventoryWithExpirationUseCaseTest {
 
     @BeforeEach
     fun setup() {
-        getInventory = mockk()
+        inventoryRepository = mockk()
         settings = mockk()
-        useCase = ObserveInventoryWithExpirationUseCase(getInventory, settings)
+        useCase = ObserveInventoryWithExpirationUseCase(inventoryRepository, settings)
         every { settings.getExpirationDays() } returns flowOf(days)
     }
 
@@ -41,7 +42,7 @@ class ObserveInventoryWithExpirationUseCaseTest {
 
     @Test
     fun `feature disabled maps every bag to NONE`() = runTest {
-        every { getInventory() } returns flowOf(
+        every { inventoryRepository.getActiveBags() } returns flowOf(
             listOf(bagExpiringOn(today.minusDays(10)), bagExpiringOn(today)),
         )
         every { settings.getExpirationEnabled() } returns flowOf(false)
@@ -55,7 +56,7 @@ class ObserveInventoryWithExpirationUseCaseTest {
 
     @Test
     fun `bag expiring today is EXPIRING_OR_EXPIRED`() = runTest {
-        every { getInventory() } returns flowOf(listOf(bagExpiringOn(today)))
+        every { inventoryRepository.getActiveBags() } returns flowOf(listOf(bagExpiringOn(today)))
         every { settings.getExpirationEnabled() } returns flowOf(true)
 
         useCase(flowOf(today)).test {
@@ -66,7 +67,7 @@ class ObserveInventoryWithExpirationUseCaseTest {
 
     @Test
     fun `bag expired yesterday is EXPIRING_OR_EXPIRED`() = runTest {
-        every { getInventory() } returns flowOf(listOf(bagExpiringOn(today.minusDays(1))))
+        every { inventoryRepository.getActiveBags() } returns flowOf(listOf(bagExpiringOn(today.minusDays(1))))
         every { settings.getExpirationEnabled() } returns flowOf(true)
 
         useCase(flowOf(today)).test {
@@ -77,7 +78,7 @@ class ObserveInventoryWithExpirationUseCaseTest {
 
     @Test
     fun `bag expiring tomorrow is EXPIRING_SOON`() = runTest {
-        every { getInventory() } returns flowOf(listOf(bagExpiringOn(today.plusDays(1))))
+        every { inventoryRepository.getActiveBags() } returns flowOf(listOf(bagExpiringOn(today.plusDays(1))))
         every { settings.getExpirationEnabled() } returns flowOf(true)
 
         useCase(flowOf(today)).test {
@@ -88,7 +89,7 @@ class ObserveInventoryWithExpirationUseCaseTest {
 
     @Test
     fun `bag expiring in two days is NONE`() = runTest {
-        every { getInventory() } returns flowOf(listOf(bagExpiringOn(today.plusDays(2))))
+        every { inventoryRepository.getActiveBags() } returns flowOf(listOf(bagExpiringOn(today.plusDays(2))))
         every { settings.getExpirationEnabled() } returns flowOf(true)
 
         useCase(flowOf(today)).test {
@@ -99,7 +100,7 @@ class ObserveInventoryWithExpirationUseCaseTest {
 
     @Test
     fun `empty bag list emits empty list`() = runTest {
-        every { getInventory() } returns flowOf(emptyList())
+        every { inventoryRepository.getActiveBags() } returns flowOf(emptyList())
         every { settings.getExpirationEnabled() } returns flowOf(true)
 
         useCase(flowOf(today)).test {
@@ -111,7 +112,7 @@ class ObserveInventoryWithExpirationUseCaseTest {
     @Test
     fun `recomputes when date flow emits a new day`() = runTest {
         val expiry = today
-        every { getInventory() } returns flowOf(listOf(bagExpiringOn(expiry)))
+        every { inventoryRepository.getActiveBags() } returns flowOf(listOf(bagExpiringOn(expiry)))
         every { settings.getExpirationEnabled() } returns flowOf(true)
         val dateFlow = MutableStateFlow(expiry.minusDays(1))
 

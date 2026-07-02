@@ -3,8 +3,8 @@ package com.babytracker.ui.diaper
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.DiaperChange
+import com.babytracker.domain.repository.DiaperRepository
 import com.babytracker.domain.usecase.diaper.DeleteDiaperChangeUseCase
-import com.babytracker.domain.usecase.diaper.ObserveDiaperChangesUseCase
 import com.babytracker.util.groupByDateDescending
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,13 +20,13 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DiaperHistoryViewModel @Inject constructor(
-    observeDiaperChanges: ObserveDiaperChangesUseCase,
+    diaperRepository: DiaperRepository,
     private val deleteDiaperChange: DeleteDiaperChangeUseCase,
     private val zone: ZoneId,
 ) : ViewModel() {
 
     val historyByDateDesc: StateFlow<List<Pair<LocalDate, List<DiaperChange>>>> =
-        observeDiaperChanges()
+        diaperRepository.observeAll()
             .map { changes ->
                 changes.groupByDateDescending(zone) { it.timestamp }
             }

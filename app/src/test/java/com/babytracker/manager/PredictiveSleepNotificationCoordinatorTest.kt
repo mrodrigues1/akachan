@@ -15,7 +15,7 @@ import com.babytracker.domain.usecase.sleep.CreateSleepRecommendationFeedbackUse
 import com.babytracker.domain.usecase.sleep.PersistSleepRecommendationUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.domain.usecase.sleep.SleepRecommendationUseCases
-import com.babytracker.domain.usecase.sleep.UpdateRecommendationLifecycleUseCase
+import com.babytracker.domain.repository.SleepRecommendationRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -242,7 +242,7 @@ class PredictiveSleepNotificationCoordinatorTest {
             leadFlow = MutableStateFlow(15),
             recommendation = SleepRecommendationUseCases(
                 persist = persist,
-                updateLifecycle = mockk(relaxed = true),
+                repository = mockk(relaxed = true),
                 createFeedback = mockk(relaxed = true),
             ),
         )
@@ -256,7 +256,7 @@ class PredictiveSleepNotificationCoordinatorTest {
     fun `writes SCHEDULED lifecycle when alarm is set`() = runTest {
         val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
         coEvery { persist(any(), any(), any()) } returns 42L
-        val updateLifecycle = mockk<UpdateRecommendationLifecycleUseCase>(relaxed = true)
+        val updateLifecycle = mockk<SleepRecommendationRepository>(relaxed = true)
         val bestEstimate = Instant.now().plusSeconds(3600)
 
         val coordinator = buildCoordinator(
@@ -265,21 +265,21 @@ class PredictiveSleepNotificationCoordinatorTest {
             leadFlow = MutableStateFlow(15),
             recommendation = SleepRecommendationUseCases(
                 persist = persist,
-                updateLifecycle = updateLifecycle,
+                repository = updateLifecycle,
                 createFeedback = mockk(relaxed = true),
             ),
         )
         coordinator.start()
         advanceTimeBy(300)
 
-        coVerify { updateLifecycle(42L, RecommendationLifecycle.SCHEDULED) }
+        coVerify { updateLifecycle.updateLifecycle(42L, RecommendationLifecycle.SCHEDULED) }
     }
 
     @Test
     fun `writes SUPERSEDED lifecycle when feature is disabled`() = runTest {
         val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
         coEvery { persist(any(), any(), any()) } returns 55L
-        val updateLifecycle = mockk<UpdateRecommendationLifecycleUseCase>(relaxed = true)
+        val updateLifecycle = mockk<SleepRecommendationRepository>(relaxed = true)
         val bestEstimate = Instant.now().plusSeconds(3600)
         val enabled = MutableStateFlow(true)
 
@@ -289,7 +289,7 @@ class PredictiveSleepNotificationCoordinatorTest {
             leadFlow = MutableStateFlow(15),
             recommendation = SleepRecommendationUseCases(
                 persist = persist,
-                updateLifecycle = updateLifecycle,
+                repository = updateLifecycle,
                 createFeedback = mockk(relaxed = true),
             ),
         )
@@ -298,7 +298,7 @@ class PredictiveSleepNotificationCoordinatorTest {
         enabled.value = false
         advanceTimeBy(300)
 
-        coVerify { updateLifecycle(55L, RecommendationLifecycle.SUPERSEDED) }
+        coVerify { updateLifecycle.updateLifecycle(55L, RecommendationLifecycle.SUPERSEDED) }
     }
 
     @Test
@@ -317,7 +317,7 @@ class PredictiveSleepNotificationCoordinatorTest {
             quietEndFlow = MutableStateFlow(1439),
             recommendation = SleepRecommendationUseCases(
                 persist = persist,
-                updateLifecycle = mockk(relaxed = true),
+                repository = mockk(relaxed = true),
                 createFeedback = createFeedback,
             ),
         )
@@ -343,7 +343,7 @@ class PredictiveSleepNotificationCoordinatorTest {
             quietEndFlow = MutableStateFlow(1439),
             recommendation = SleepRecommendationUseCases(
                 persist = persist,
-                updateLifecycle = mockk(relaxed = true),
+                repository = mockk(relaxed = true),
                 createFeedback = createFeedback,
             ),
         )
@@ -382,7 +382,7 @@ class PredictiveSleepNotificationCoordinatorTest {
             sleepRepository = customSleepRepo,
             recommendation = SleepRecommendationUseCases(
                 persist = persist,
-                updateLifecycle = mockk(relaxed = true),
+                repository = mockk(relaxed = true),
                 createFeedback = createFeedback,
             ),
         )
@@ -422,7 +422,7 @@ class PredictiveSleepNotificationCoordinatorTest {
             sleepRepository = customSleepRepo,
             recommendation = SleepRecommendationUseCases(
                 persist = persist,
-                updateLifecycle = mockk(relaxed = true),
+                repository = mockk(relaxed = true),
                 createFeedback = createFeedback,
             ),
         )
@@ -480,7 +480,7 @@ class PredictiveSleepNotificationCoordinatorTest {
 
     private fun defaultRecommendationUseCases(): SleepRecommendationUseCases {
         val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
-        val update = mockk<UpdateRecommendationLifecycleUseCase>(relaxed = true)
+        val update = mockk<SleepRecommendationRepository>(relaxed = true)
         val feedback = mockk<CreateSleepRecommendationFeedbackUseCase>(relaxed = true)
         return SleepRecommendationUseCases(persist, update, feedback)
     }

@@ -6,8 +6,8 @@ import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.MeasurementSystem
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,7 +33,7 @@ data class SettingsUiState(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val getBabyProfile: GetBabyProfileUseCase,
+    private val babyRepository: BabyRepository,
     private val settingsRepository: SettingsRepository,
     private val saveBabyProfile: SaveBabyProfileUseCase,
 ) : ViewModel() {
@@ -44,7 +44,7 @@ class SettingsViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             combine(
-                getBabyProfile(),
+                babyRepository.getBabyProfile(),
                 settingsRepository.getThemeConfig(),
                 settingsRepository.getAutoUpdateEnabled(),
                 settingsRepository.getRichNotificationsEnabled(),

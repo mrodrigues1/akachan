@@ -18,20 +18,20 @@ import com.babytracker.domain.model.TodayFeedingSummary
 import com.babytracker.domain.model.DoctorVisitSummary
 import com.babytracker.domain.model.VaccineSummary
 import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.BabyRepository
+import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.model.BabyEventType
-import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
-import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.diaper.ObserveTodayDiaperSummaryUseCase
 import com.babytracker.domain.usecase.feeding.ObserveTodayFeedingSummaryUseCase
-import com.babytracker.domain.usecase.features.GetEnabledFeaturesUseCase
 import com.babytracker.domain.usecase.doctorvisit.ObserveDoctorVisitSummaryUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineSummaryUseCase
-import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.SyncedWrite
@@ -74,9 +74,9 @@ data class HomeUiState(
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    getBabyProfile: GetBabyProfileUseCase,
-    getBreastfeedingHistory: GetBreastfeedingHistoryUseCase,
-    getSleepHistory: GetSleepHistoryUseCase,
+    babyRepository: BabyRepository,
+    breastfeedingRepository: BreastfeedingRepository,
+    sleepRepository: SleepRepository,
     private val syncedWrite: SyncedWrite,
     private val settingsRepository: SettingsRepository,
     pumpingRepository: PumpingRepository,
@@ -85,7 +85,7 @@ class HomeViewModel @Inject constructor(
     predictSleepWindow: PredictSleepWindowUseCase,
     observeTodayFeedingSummary: ObserveTodayFeedingSummaryUseCase,
     observeTodayDiaperSummary: ObserveTodayDiaperSummaryUseCase,
-    getEnabledFeatures: GetEnabledFeaturesUseCase,
+    featureToggleRepository: FeatureToggleRepository,
     observeVaccineSummary: ObserveVaccineSummaryUseCase,
     observeDoctorVisitSummary: ObserveDoctorVisitSummaryUseCase,
     private val logBabyEvent: LogBabyEventUseCase,
@@ -93,9 +93,9 @@ class HomeViewModel @Inject constructor(
 
     private val baseState = combine(
         combine(
-            getBabyProfile(),
-            getBreastfeedingHistory(),
-            getSleepHistory(),
+            babyRepository.getBabyProfile(),
+            breastfeedingRepository.getAllSessions(),
+            sleepRepository.getAllRecords(),
             settingsRepository.getAppMode(),
             predictNextFeed(),
         ) { baby, feedings, sleepRecords, appMode, prediction ->
@@ -149,7 +149,7 @@ class HomeViewModel @Inject constructor(
         // combine is capped at 5 typed flows, so fold the features+vaccine+doctor-visit triple
         // into one slot.
         combine(
-            getEnabledFeatures(),
+            featureToggleRepository.getEnabledFeatures(),
             observeVaccineSummary(),
             observeDoctorVisitSummary(),
         ) { features, vaccine, doctor -> Triple(features, vaccine, doctor) },

@@ -5,13 +5,12 @@ import com.babytracker.R
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
-import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
-import com.babytracker.domain.usecase.sleep.DeleteSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.GenerateSleepScheduleUseCase
-import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.domain.usecase.sleep.SaveSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.StartSleepRecordUseCase
@@ -56,10 +55,9 @@ class SleepViewModelTest {
 
     private lateinit var saveSleepEntry: SaveSleepEntryUseCase
     private lateinit var updateSleepEntry: UpdateSleepEntryUseCase
-    private lateinit var deleteSleepEntry: DeleteSleepEntryUseCase
-    private lateinit var getSleepHistory: GetSleepHistoryUseCase
+    private lateinit var sleepRepository: SleepRepository
     private lateinit var generateSchedule: GenerateSleepScheduleUseCase
-    private lateinit var getBabyProfile: GetBabyProfileUseCase
+    private lateinit var babyRepository: BabyRepository
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var sleepSettingsRepository: SleepSettingsRepository
     private lateinit var startRecord: StartSleepRecordUseCase
@@ -78,10 +76,9 @@ class SleepViewModelTest {
         Dispatchers.setMain(testDispatcher)
         saveSleepEntry = mockk()
         updateSleepEntry = mockk()
-        deleteSleepEntry = mockk()
-        getSleepHistory = mockk()
+        sleepRepository = mockk()
         generateSchedule = mockk()
-        getBabyProfile = mockk()
+        babyRepository = mockk()
         settingsRepository = mockk()
         sleepSettingsRepository = mockk()
         startRecord = mockk()
@@ -100,9 +97,9 @@ class SleepViewModelTest {
             "Ended at ${secondArg<Array<Any?>>()[0]}"
         }
 
-        every { getSleepHistory() } returns flowOf(emptyList())
+        every { sleepRepository.getAllRecords() } returns flowOf(emptyList())
         every { settingsRepository.getWakeTime() } returns flowOf(null)
-        every { getBabyProfile() } returns flowOf(null)
+        every { babyRepository.getBabyProfile() } returns flowOf(null)
         every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(false)
         every { sleepSettingsRepository.getNapReminderDelayMinutes() } returns flowOf(60)
         every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("test"))
@@ -119,10 +116,9 @@ class SleepViewModelTest {
     private fun createViewModel() = SleepViewModel(
         saveSleepEntry,
         updateSleepEntry,
-        deleteSleepEntry,
-        getSleepHistory,
+        sleepRepository,
         generateSchedule,
-        getBabyProfile,
+        babyRepository,
         settingsRepository,
         sleepSettingsRepository,
         startRecord,
@@ -153,7 +149,7 @@ class SleepViewModelTest {
         val inProgress = SleepRecord(
             id = 1L, startTime = Instant.now().minusSeconds(300), sleepType = SleepType.NAP
         )
-        every { getSleepHistory() } returns flowOf(listOf(inProgress))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(inProgress))
         viewModel = createViewModel()
 
         val collectJob = launch { viewModel.activeSleepSession.collect {} }
@@ -249,7 +245,7 @@ class SleepViewModelTest {
             endTime = Instant.now(),
             sleepType = SleepType.NAP,
         )
-        every { getSleepHistory() } returns flowOf(listOf(completed))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(completed))
         viewModel = createViewModel()
 
         viewModel.activeSleepSession.test {
@@ -267,7 +263,7 @@ class SleepViewModelTest {
             endTime = null,
             sleepType = SleepType.NIGHT_SLEEP,
         )
-        every { getSleepHistory() } returns flowOf(listOf(inProgress))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(inProgress))
         viewModel = createViewModel()
 
         viewModel.activeSleepSession.test {
@@ -294,7 +290,7 @@ class SleepViewModelTest {
             endTime = null,
             sleepType = SleepType.NIGHT_SLEEP,
         )
-        every { getSleepHistory() } returns flowOf(listOf(completed, inProgress))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(completed, inProgress))
         viewModel = createViewModel()
 
         viewModel.activeSleepSession.test {
@@ -315,7 +311,7 @@ class SleepViewModelTest {
         )
         val completed = inProgress.copy(endTime = Instant.now())
         val historyFlow = MutableStateFlow(listOf(inProgress))
-        every { getSleepHistory() } returns historyFlow
+        every { sleepRepository.getAllRecords() } returns historyFlow
         viewModel = createViewModel()
 
         viewModel.activeSleepSession.test {
@@ -346,7 +342,7 @@ class SleepViewModelTest {
             endTime = latestEnd,
             sleepType = SleepType.NAP,
         )
-        every { getSleepHistory() } returns flowOf(listOf(older, latest))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(older, latest))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -373,7 +369,7 @@ class SleepViewModelTest {
             endTime = null,
             sleepType = SleepType.NIGHT_SLEEP,
         )
-        every { getSleepHistory() } returns flowOf(listOf(completed, inProgress))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(completed, inProgress))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -405,7 +401,7 @@ class SleepViewModelTest {
 
     @Test
     fun `onConfirmDelete calls deleteSleepEntry and syncs`() = runTest {
-        coJustRun { deleteSleepEntry(any()) }
+        coJustRun { sleepRepository.deleteRecord(any()) }
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         val record = SleepRecord(id = 7L, startTime = Instant.now(), sleepType = SleepType.NAP)
@@ -414,7 +410,7 @@ class SleepViewModelTest {
         viewModel.onConfirmDelete()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { deleteSleepEntry(7L) }
+        coVerify { sleepRepository.deleteRecord(7L) }
         coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
         assertNull(viewModel.uiState.value.pendingDeleteRecord)
     }
@@ -772,7 +768,7 @@ class SleepViewModelTest {
         val r3 = SleepRecord(id = 3L, startTime = day2, endTime = day2.plusSeconds(1800), sleepType = SleepType.NAP)
         val r4 = SleepRecord(id = 4L, startTime = day3, endTime = day3.plusSeconds(1800), sleepType = SleepType.NIGHT_SLEEP)
 
-        every { getSleepHistory() } returns flowOf(listOf(r1, r2, r3, r4))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(r1, r2, r3, r4))
         viewModel = createViewModel()
 
         viewModel.historyByDateDesc.test {
@@ -806,7 +802,7 @@ class SleepViewModelTest {
             sleepType = SleepType.NAP,
         )
         val historyFlow = MutableStateFlow(listOf(initial))
-        every { getSleepHistory() } returns historyFlow
+        every { sleepRepository.getAllRecords() } returns historyFlow
         viewModel = createViewModel()
 
         viewModel.historyByDateDesc.test {
@@ -928,7 +924,7 @@ class SleepViewModelTest {
     @Test
     fun `onStopRecord schedules nap reminder when NAP type and reminder enabled`() = runTest {
         val inProgress = SleepRecord(id = 1L, startTime = Instant.now().minusSeconds(1800), sleepType = SleepType.NAP)
-        every { getSleepHistory() } returns flowOf(listOf(inProgress))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(inProgress))
         coEvery { stopRecord(1L) } returns inProgress
         every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(true)
         every { sleepSettingsRepository.getNapReminderDelayMinutes() } returns flowOf(10)
@@ -947,7 +943,7 @@ class SleepViewModelTest {
     @Test
     fun `onStopRecord does not schedule nap reminder when NAP type but reminder disabled`() = runTest {
         val inProgress = SleepRecord(id = 1L, startTime = Instant.now().minusSeconds(1800), sleepType = SleepType.NAP)
-        every { getSleepHistory() } returns flowOf(listOf(inProgress))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(inProgress))
         coEvery { stopRecord(1L) } returns inProgress
         every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(false)
         viewModel = createViewModel()
@@ -965,7 +961,7 @@ class SleepViewModelTest {
     @Test
     fun `onStopRecord does not schedule nap reminder when NIGHT_SLEEP type`() = runTest {
         val inProgress = SleepRecord(id = 2L, startTime = Instant.now().minusSeconds(28800), sleepType = SleepType.NIGHT_SLEEP)
-        every { getSleepHistory() } returns flowOf(listOf(inProgress))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(inProgress))
         coEvery { stopRecord(2L) } returns inProgress
         viewModel = createViewModel()
 
@@ -982,7 +978,7 @@ class SleepViewModelTest {
     @Test
     fun `onStopRecord does not schedule nap reminder when stopRecord returns null`() = runTest {
         val inProgress = SleepRecord(id = 1L, startTime = Instant.now().minusSeconds(1800), sleepType = SleepType.NAP)
-        every { getSleepHistory() } returns flowOf(listOf(inProgress))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(inProgress))
         coEvery { stopRecord(1L) } returns null
         every { sleepSettingsRepository.getNapReminderEnabled() } returns flowOf(true)
         viewModel = createViewModel()
@@ -1024,7 +1020,7 @@ class SleepViewModelTest {
         val now = Instant.now()
         val inProgress = SleepRecord(id = 2L, startTime = now.minusSeconds(28800), sleepType = SleepType.NIGHT_SLEEP)
         val stopped = inProgress.copy(endTime = now)
-        every { getSleepHistory() } returns flowOf(listOf(inProgress))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(inProgress))
         coEvery { stopRecord(2L) } returns stopped
         coJustRun { settingsRepository.setWakeTime(any()) }
         viewModel = createViewModel()
@@ -1043,7 +1039,7 @@ class SleepViewModelTest {
     @Test
     fun `onStopRecord does not set wake time when stopRecord returns null endTime`() = runTest {
         val inProgress = SleepRecord(id = 2L, startTime = Instant.now().minusSeconds(28800), sleepType = SleepType.NIGHT_SLEEP)
-        every { getSleepHistory() } returns flowOf(listOf(inProgress))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(inProgress))
         coEvery { stopRecord(2L) } returns inProgress
         viewModel = createViewModel()
 
@@ -1123,7 +1119,7 @@ class SleepViewModelTest {
             endTime = today.atTime(LocalTime.of(6, 0)).atZone(zone).toInstant(),
             sleepType = SleepType.NIGHT_SLEEP,
         )
-        every { getSleepHistory() } returns flowOf(listOf(existing))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(existing))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -1153,7 +1149,7 @@ class SleepViewModelTest {
             endTime = today.atTime(LocalTime.of(4, 0)).atZone(zone).toInstant(),
             sleepType = SleepType.NIGHT_SLEEP,
         )
-        every { getSleepHistory() } returns flowOf(listOf(existing))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(existing))
         coEvery { saveSleepEntry(any(), any(), any()) } returns 2L
         coJustRun { settingsRepository.setWakeTime(any()) }
         viewModel = createViewModel()
@@ -1182,7 +1178,7 @@ class SleepViewModelTest {
             endTime = today.atTime(LocalTime.of(6, 0)).atZone(zone).toInstant(),
             sleepType = SleepType.NIGHT_SLEEP,
         )
-        every { getSleepHistory() } returns flowOf(listOf(record))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(record))
         coJustRun { updateSleepEntry(any(), any(), any(), any(), any()) }
         coJustRun { settingsRepository.setWakeTime(any()) }
         viewModel = createViewModel()
@@ -1208,7 +1204,7 @@ class SleepViewModelTest {
             endTime = today.atTime(LocalTime.of(8, 0)).atZone(zone).toInstant(),
             sleepType = SleepType.NIGHT_SLEEP,
         )
-        every { getSleepHistory() } returns flowOf(listOf(laterRecord))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(laterRecord))
         coEvery { saveSleepEntry(any(), any(), any()) } returns 9L
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -1235,7 +1231,7 @@ class SleepViewModelTest {
             endTime = today.atTime(LocalTime.of(4, 0)).atZone(zone).toInstant(),
             sleepType = SleepType.NIGHT_SLEEP,
         )
-        every { getSleepHistory() } returns flowOf(listOf(earlierRecord))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(earlierRecord))
         coEvery { saveSleepEntry(any(), any(), any()) } returns 11L
         coJustRun { settingsRepository.setWakeTime(any()) }
         viewModel = createViewModel()

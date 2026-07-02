@@ -17,7 +17,6 @@ import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.export.domain.model.BackupData
-import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import io.mockk.every
 import io.mockk.mockk
@@ -45,7 +44,7 @@ class SettingsScreenTest {
         val babyRepository = FakeBabyRepository()
         val settingsRepository = FakeSettingsRepository()
         return SettingsViewModel(
-            getBabyProfile = GetBabyProfileUseCase(babyRepository),
+            babyRepository = babyRepository,
             settingsRepository = settingsRepository,
             saveBabyProfile = SaveBabyProfileUseCase(babyRepository, mockk(relaxed = true)),
         )
@@ -120,7 +119,7 @@ class SettingsScreenTest {
                 flowOf(com.babytracker.sharing.domain.model.AppMode.NONE)
         }
         val viewModel = SettingsViewModel(
-            getBabyProfile = GetBabyProfileUseCase(babyRepo),
+            babyRepository = babyRepo,
             settingsRepository = settingsRepo,
             saveBabyProfile = SaveBabyProfileUseCase(babyRepo, mockk(relaxed = true)),
         )
@@ -139,7 +138,7 @@ class SettingsScreenTest {
         val settingsRepo = FakeSettingsRepository()
         val babyRepo = FakeBabyRepository()
         val viewModel = SettingsViewModel(
-            getBabyProfile = GetBabyProfileUseCase(babyRepo),
+            babyRepository = babyRepo,
             settingsRepository = settingsRepo,
             saveBabyProfile = SaveBabyProfileUseCase(babyRepo, mockk(relaxed = true)),
         )

@@ -6,10 +6,8 @@ import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.domain.usecase.doctorvisit.AddDoctorVisitUseCase
 import com.babytracker.domain.usecase.doctorvisit.AttachSnapshotToVisitUseCase
 import com.babytracker.domain.usecase.doctorvisit.EditDoctorVisitUseCase
-import com.babytracker.domain.usecase.doctorvisit.GenerateVisitSnapshotUseCase
-import com.babytracker.domain.usecase.doctorvisit.ObserveInboxQuestionsUseCase
-import com.babytracker.domain.usecase.doctorvisit.ObserveVisitQuestionsUseCase
 import com.babytracker.export.data.BackupFileWriter
+import com.babytracker.export.domain.usecase.GeneratePdfReportUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -34,13 +32,11 @@ import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DoctorVisitViewModelTest {
-    private val observeInbox = mockk<ObserveInboxQuestionsUseCase>()
-    private val observeVisitQuestions = mockk<ObserveVisitQuestionsUseCase>()
     private val repository = mockk<DoctorVisitRepository>(relaxed = true)
     private val addVisit = mockk<AddDoctorVisitUseCase>(relaxed = true)
     private val editVisit = mockk<EditDoctorVisitUseCase>(relaxed = true)
     private val attachSnapshot = mockk<AttachSnapshotToVisitUseCase>(relaxed = true)
-    private val generateSnapshot = mockk<GenerateVisitSnapshotUseCase>(relaxed = true)
+    private val generatePdfReport = mockk<GeneratePdfReportUseCase>(relaxed = true)
     private val fileWriter = mockk<BackupFileWriter>(relaxed = true)
 
     @BeforeEach
@@ -50,14 +46,14 @@ class DoctorVisitViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun vm() = DoctorVisitViewModel(
-        observeInbox, observeVisitQuestions, repository,
-        addVisit, editVisit, attachSnapshot, generateSnapshot, fileWriter,
+        repository,
+        addVisit, editVisit, attachSnapshot, generatePdfReport, fileWriter,
     )
 
     @Test
     fun `add path calls addVisit with selected ids and blanks-allowed fields`() = runTest {
-        every { observeInbox() } returns flowOf(emptyList())
-        every { observeVisitQuestions(any()) } returns flowOf(emptyList())
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
+        every { repository.observeQuestionsForVisit(any()) } returns flowOf(emptyList())
         val vm = vm()
         vm.onProviderChange("Dr A")
         vm.onNotesChange("notes")
@@ -79,8 +75,8 @@ class DoctorVisitViewModelTest {
 
     @Test
     fun `edit path preserves original createdAt and snapshotCreatedAt`() = runTest {
-        every { observeInbox() } returns flowOf(emptyList())
-        every { observeVisitQuestions(any()) } returns flowOf(emptyList())
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
+        every { repository.observeQuestionsForVisit(any()) } returns flowOf(emptyList())
         val vm = vm()
         val visit = DoctorVisit(
             id = 7,
@@ -102,8 +98,8 @@ class DoctorVisitViewModelTest {
 
     @Test
     fun `loadForEdit seeds selection and surfaces attached questions`() = runTest {
-        every { observeInbox() } returns flowOf(emptyList())
-        every { observeVisitQuestions(7) } returns flowOf(
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
+        every { repository.observeQuestionsForVisit(7) } returns flowOf(
             listOf(
                 VisitQuestion(id = 3, text = "a", visitId = 7, createdAt = Instant.EPOCH),
                 VisitQuestion(id = 4, text = "b", visitId = 7, createdAt = Instant.EPOCH),
@@ -122,8 +118,8 @@ class DoctorVisitViewModelTest {
 
     @Test
     fun `toggle adds then removes a question id`() = runTest {
-        every { observeInbox() } returns flowOf(emptyList())
-        every { observeVisitQuestions(any()) } returns flowOf(emptyList())
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
+        every { repository.observeQuestionsForVisit(any()) } returns flowOf(emptyList())
         val vm = vm()
         backgroundScope.launch { vm.uiState.collect {} }
         vm.onToggleQuestion(5)
@@ -136,8 +132,8 @@ class DoctorVisitViewModelTest {
 
     @Test
     fun `saved flag set on save and cleared on consume`() = runTest {
-        every { observeInbox() } returns flowOf(emptyList())
-        every { observeVisitQuestions(any()) } returns flowOf(emptyList())
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
+        every { repository.observeQuestionsForVisit(any()) } returns flowOf(emptyList())
         val vm = vm()
         backgroundScope.launch { vm.uiState.collect {} }
         vm.onSave()

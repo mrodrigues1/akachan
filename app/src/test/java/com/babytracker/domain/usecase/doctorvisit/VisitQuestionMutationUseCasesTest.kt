@@ -33,10 +33,4 @@ class VisitQuestionMutationUseCasesTest {
         ToggleVisitQuestionAnsweredUseCase(repository)(9)
         coVerify(exactly = 0) { repository.updateQuestion(any()) }
     }
-
-    @Test
-    fun `delete delegates`() = runTest {
-        DeleteVisitQuestionUseCase(repository)(3)
-        coVerify { repository.deleteQuestionById(3) }
-    }
 }

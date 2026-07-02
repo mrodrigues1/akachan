@@ -7,10 +7,10 @@ import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.MilkBagWithExpiration
 import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.inventory.AddMilkBagUseCase
 import com.babytracker.domain.usecase.inventory.DeleteMilkBagUseCase
-import com.babytracker.domain.usecase.inventory.GetInventorySummaryUseCase
 import com.babytracker.domain.usecase.inventory.MarkBagUsedUseCase
 import com.babytracker.domain.usecase.inventory.ObserveInventoryWithExpirationUseCase
 import com.babytracker.domain.usecase.inventory.UpdateMilkBagUseCase
@@ -44,7 +44,7 @@ import java.time.LocalDate
 class InventoryViewModelTest {
 
     private lateinit var observeInventory: ObserveInventoryWithExpirationUseCase
-    private lateinit var getSummary: GetInventorySummaryUseCase
+    private lateinit var inventoryRepository: InventoryRepository
     private lateinit var addBag: AddMilkBagUseCase
     private lateinit var updateBag: UpdateMilkBagUseCase
     private lateinit var markUsed: MarkBagUsedUseCase
@@ -69,14 +69,14 @@ class InventoryViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         observeInventory = mockk()
-        getSummary = mockk()
+        inventoryRepository = mockk()
         addBag = mockk()
         updateBag = mockk()
         markUsed = mockk()
         deleteBag = mockk()
         settingsRepository = mockk()
         every { observeInventory(any<Flow<LocalDate>>()) } returns bagsFlow
-        every { getSummary() } returns summaryFlow
+        every { inventoryRepository.getSummary() } returns summaryFlow
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         appContext = mockk {
             every { getString(R.string.error_volume_greater_than_zero) } returns "Volume must be greater than 0"
@@ -88,7 +88,7 @@ class InventoryViewModelTest {
         }
         viewModel = InventoryViewModel(
             observeInventory = observeInventory,
-            getSummary = getSummary,
+            inventoryRepository = inventoryRepository,
             addBag = addBag,
             updateBag = updateBag,
             markUsed = markUsed,

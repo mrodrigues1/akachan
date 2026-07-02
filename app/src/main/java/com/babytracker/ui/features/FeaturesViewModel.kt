@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.FeatureDomain
-import com.babytracker.domain.usecase.features.GetEnabledFeaturesUseCase
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.usecase.features.SetDomainEnabledUseCase
 import com.babytracker.domain.usecase.features.SetFeatureEnabledUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,7 +23,7 @@ data class FeaturesUiState(
 
 @HiltViewModel
 class FeaturesViewModel @Inject constructor(
-    getEnabledFeatures: GetEnabledFeaturesUseCase,
+    featureToggleRepository: FeatureToggleRepository,
     private val setFeatureEnabled: SetFeatureEnabledUseCase,
     private val setDomainEnabled: SetDomainEnabledUseCase,
 ) : ViewModel() {
@@ -31,7 +31,7 @@ class FeaturesViewModel @Inject constructor(
     private val hint = MutableStateFlow(false)
 
     val uiState: StateFlow<FeaturesUiState> = combine(
-        getEnabledFeatures(),
+        featureToggleRepository.getEnabledFeatures(),
         hint,
     ) { features, showHint ->
         FeaturesUiState(enabledFeatures = features, showLastFeatureHint = showHint)

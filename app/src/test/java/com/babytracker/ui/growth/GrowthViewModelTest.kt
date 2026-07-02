@@ -5,9 +5,9 @@ import com.babytracker.domain.growth.GrowthChartData
 import com.babytracker.domain.model.GrowthMeasurement
 import com.babytracker.domain.model.GrowthType
 import com.babytracker.domain.model.MeasurementSystem
+import com.babytracker.domain.repository.GrowthRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.growth.AddGrowthMeasurementUseCase
-import com.babytracker.domain.usecase.growth.DeleteGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.UpdateGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.GetGrowthChartDataUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
@@ -34,7 +34,7 @@ class GrowthViewModelTest {
     private lateinit var getGrowthChartData: GetGrowthChartDataUseCase
     private lateinit var addGrowthMeasurement: AddGrowthMeasurementUseCase
     private lateinit var updateGrowthMeasurement: UpdateGrowthMeasurementUseCase
-    private lateinit var deleteGrowthMeasurement: DeleteGrowthMeasurementUseCase
+    private lateinit var growthRepository: GrowthRepository
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
 
@@ -55,7 +55,7 @@ class GrowthViewModelTest {
         getGrowthChartData = mockk()
         addGrowthMeasurement = mockk(relaxed = true)
         updateGrowthMeasurement = mockk(relaxed = true)
-        deleteGrowthMeasurement = mockk(relaxed = true)
+        growthRepository = mockk(relaxed = true)
         settingsRepository = mockk()
         syncToFirestore = mockk(relaxed = true)
         every { settingsRepository.getMeasurementSystem() } returns flowOf(MeasurementSystem.METRIC)
@@ -71,7 +71,7 @@ class GrowthViewModelTest {
         getGrowthChartData,
         addGrowthMeasurement,
         updateGrowthMeasurement,
-        deleteGrowthMeasurement,
+        growthRepository,
         settingsRepository,
         SyncedWrite(syncToFirestore),
     )
@@ -137,6 +137,6 @@ class GrowthViewModelTest {
         val vm = viewModel()
         vm.onDeleteMeasurement(7)
         testDispatcher.scheduler.advanceUntilIdle()
-        coVerify { deleteGrowthMeasurement(7) }
+        coVerify { growthRepository.deleteMeasurement(7) }
     }
 }

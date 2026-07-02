@@ -1,9 +1,8 @@
 package com.babytracker.ui.doctorvisit
 
 import com.babytracker.domain.model.VisitQuestion
+import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.domain.usecase.doctorvisit.AddVisitQuestionUseCase
-import com.babytracker.domain.usecase.doctorvisit.DeleteVisitQuestionUseCase
-import com.babytracker.domain.usecase.doctorvisit.ObserveInboxQuestionsUseCase
 import com.babytracker.domain.usecase.doctorvisit.ToggleVisitQuestionAnsweredUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -24,10 +23,9 @@ import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class VisitQuestionsViewModelTest {
-    private val observeInbox = mockk<ObserveInboxQuestionsUseCase>()
+    private val repository = mockk<DoctorVisitRepository>(relaxed = true)
     private val add = mockk<AddVisitQuestionUseCase>(relaxed = true)
     private val toggle = mockk<ToggleVisitQuestionAnsweredUseCase>(relaxed = true)
-    private val delete = mockk<DeleteVisitQuestionUseCase>(relaxed = true)
 
     @BeforeEach
     fun setup() = Dispatchers.setMain(StandardTestDispatcher())
@@ -37,9 +35,9 @@ class VisitQuestionsViewModelTest {
 
     @Test
     fun `add clears draft and calls use case`() = runTest {
-        every { observeInbox() } returns flowOf(emptyList())
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
         coEvery { add(any(), any()) } returns 1
-        val vm = VisitQuestionsViewModel(observeInbox, add, toggle, delete)
+        val vm = VisitQuestionsViewModel(repository, add, toggle)
         vm.onDraftChange("New Q")
         vm.onAdd()
         advanceUntilIdle()
@@ -48,8 +46,8 @@ class VisitQuestionsViewModelTest {
 
     @Test
     fun `blank draft is ignored`() = runTest {
-        every { observeInbox() } returns flowOf(emptyList())
-        val vm = VisitQuestionsViewModel(observeInbox, add, toggle, delete)
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
+        val vm = VisitQuestionsViewModel(repository, add, toggle)
         vm.onDraftChange("   ")
         vm.onAdd()
         advanceUntilIdle()
@@ -58,9 +56,9 @@ class VisitQuestionsViewModelTest {
 
     @Test
     fun `rapid double add enqueues the question only once`() = runTest {
-        every { observeInbox() } returns flowOf(emptyList())
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
         coEvery { add(any(), any()) } returns 1
-        val vm = VisitQuestionsViewModel(observeInbox, add, toggle, delete)
+        val vm = VisitQuestionsViewModel(repository, add, toggle)
         vm.onDraftChange("Only once")
         // Two taps before the suspending write runs: the first must clear the draft synchronously
         // so the second reads an empty draft and is ignored.
@@ -72,9 +70,9 @@ class VisitQuestionsViewModelTest {
 
     @Test
     fun `add trims surrounding whitespace`() = runTest {
-        every { observeInbox() } returns flowOf(emptyList())
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
         coEvery { add(any(), any()) } returns 1
-        val vm = VisitQuestionsViewModel(observeInbox, add, toggle, delete)
+        val vm = VisitQuestionsViewModel(repository, add, toggle)
         vm.onDraftChange("  Spaced out  ")
         vm.onAdd()
         advanceUntilIdle()
@@ -83,13 +81,13 @@ class VisitQuestionsViewModelTest {
 
     @Test
     fun `delete then undo re-adds`() = runTest {
-        every { observeInbox() } returns flowOf(emptyList())
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
         coEvery { add(any(), any()) } returns 1
-        val vm = VisitQuestionsViewModel(observeInbox, add, toggle, delete)
+        val vm = VisitQuestionsViewModel(repository, add, toggle)
         val q = VisitQuestion(id = 5, text = "Ask about sleep", createdAt = Instant.EPOCH)
         vm.onDelete(q)
         advanceUntilIdle()
-        coVerify { delete(5) }
+        coVerify { repository.deleteQuestionById(5) }
         vm.onUndoDelete()
         advanceUntilIdle()
         coVerify { add("Ask about sleep", any()) }

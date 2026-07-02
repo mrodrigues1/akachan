@@ -8,19 +8,19 @@ import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.TodayDiaperSummary
 import com.babytracker.domain.model.TodayFeedingSummary
 import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.BabyRepository
+import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
+import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
-import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.diaper.ObserveTodayDiaperSummaryUseCase
 import com.babytracker.domain.usecase.feeding.ObserveTodayFeedingSummaryUseCase
 import com.babytracker.domain.model.DoctorVisitSummary
 import com.babytracker.domain.model.VaccineSummary
-import com.babytracker.domain.usecase.features.GetEnabledFeaturesUseCase
-import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.doctorvisit.ObserveDoctorVisitSummaryUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineSummaryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
@@ -52,9 +52,9 @@ import java.time.LocalDate
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTileOrderTest {
 
-    private lateinit var getBabyProfile: GetBabyProfileUseCase
-    private lateinit var getBreastfeedingHistory: GetBreastfeedingHistoryUseCase
-    private lateinit var getSleepHistory: GetSleepHistoryUseCase
+    private lateinit var babyRepository: BabyRepository
+    private lateinit var breastfeedingRepository: BreastfeedingRepository
+    private lateinit var sleepRepository: SleepRepository
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var pumpingRepository: PumpingRepository
@@ -63,7 +63,7 @@ class HomeViewModelTileOrderTest {
     private lateinit var predictSleepWindow: PredictSleepWindowUseCase
     private lateinit var observeTodayFeedingSummary: ObserveTodayFeedingSummaryUseCase
     private lateinit var observeTodayDiaperSummary: ObserveTodayDiaperSummaryUseCase
-    private lateinit var getEnabledFeatures: GetEnabledFeaturesUseCase
+    private lateinit var featureToggleRepository: FeatureToggleRepository
     private lateinit var observeVaccineSummary: ObserveVaccineSummaryUseCase
     private lateinit var observeDoctorVisitSummary: ObserveDoctorVisitSummaryUseCase
     private lateinit var logBabyEvent: LogBabyEventUseCase
@@ -80,9 +80,9 @@ class HomeViewModelTileOrderTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         collectorScope = CoroutineScope(testDispatcher)
-        getBabyProfile = mockk()
-        getBreastfeedingHistory = mockk()
-        getSleepHistory = mockk()
+        babyRepository = mockk()
+        breastfeedingRepository = mockk()
+        sleepRepository = mockk()
         syncToFirestore = mockk()
         settingsRepository = mockk()
         pumpingRepository = mockk()
@@ -91,14 +91,14 @@ class HomeViewModelTileOrderTest {
         predictSleepWindow = mockk()
         observeTodayFeedingSummary = mockk()
         observeTodayDiaperSummary = mockk()
-        getEnabledFeatures = mockk()
+        featureToggleRepository = mockk()
         observeVaccineSummary = mockk()
         observeDoctorVisitSummary = mockk()
         logBabyEvent = mockk()
 
-        every { getBabyProfile() } returns flowOf(testBaby)
-        every { getBreastfeedingHistory() } returns flowOf(emptyList())
-        every { getSleepHistory() } returns flowOf(emptyList())
+        every { babyRepository.getBabyProfile() } returns flowOf(testBaby)
+        every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
+        every { sleepRepository.getAllRecords() } returns flowOf(emptyList())
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.NONE)
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         every { settingsRepository.getHomeTileOrder() } returns flowOf(HomeTile.DEFAULT_ORDER)
@@ -110,7 +110,7 @@ class HomeViewModelTileOrderTest {
         every { observeTodayDiaperSummary() } returns flowOf(TodayDiaperSummary())
         every { observeVaccineSummary() } returns flowOf(VaccineSummary())
         every { observeDoctorVisitSummary() } returns flowOf(DoctorVisitSummary())
-        every { getEnabledFeatures() } returns flowOf(AppFeature.ALL)
+        every { featureToggleRepository.getEnabledFeatures() } returns flowOf(AppFeature.ALL)
         coJustRun { syncToFirestore(any()) }
         coJustRun { logBabyEvent(any()) }
     }
@@ -123,9 +123,9 @@ class HomeViewModelTileOrderTest {
 
     private fun createViewModel(): HomeViewModel {
         val vm = HomeViewModel(
-            getBabyProfile,
-            getBreastfeedingHistory,
-            getSleepHistory,
+            babyRepository,
+            breastfeedingRepository,
+            sleepRepository,
             SyncedWrite(syncToFirestore),
             settingsRepository,
             pumpingRepository,
@@ -134,7 +134,7 @@ class HomeViewModelTileOrderTest {
             predictSleepWindow,
             observeTodayFeedingSummary,
             observeTodayDiaperSummary,
-            getEnabledFeatures,
+            featureToggleRepository,
             observeVaccineSummary,
             observeDoctorVisitSummary,
             logBabyEvent,
