@@ -58,6 +58,8 @@ fun DoctorVisitSheet(
     onDateChange: (Instant) -> Unit,
     onProviderChange: (String) -> Unit,
     onNotesChange: (String) -> Unit,
+    onQuestionDraftChange: (String) -> Unit,
+    onAddQuestion: () -> Unit,
     onToggleQuestion: (Long) -> Unit,
     onAttachSnapshot: (String) -> Unit,
     onViewSnapshot: () -> Unit,
@@ -130,6 +132,8 @@ fun DoctorVisitSheet(
 
             AttachQuestionsSection(
                 state = state,
+                onQuestionDraftChange = onQuestionDraftChange,
+                onAddQuestion = onAddQuestion,
                 onToggleQuestion = onToggleQuestion,
                 onManageQuestions = onManageQuestions,
             )
@@ -182,13 +186,23 @@ fun DoctorVisitSheet(
 @Composable
 private fun AttachQuestionsSection(
     state: DoctorVisitUiState,
+    onQuestionDraftChange: (String) -> Unit,
+    onAddQuestion: () -> Unit,
     onToggleQuestion: (Long) -> Unit,
     onManageQuestions: () -> Unit,
 ) {
     val colors = doctorVisitColors()
-    val questions: List<VisitQuestion> = remember(state.attachedQuestions, state.inboxQuestions) {
-        val attachedIds = state.attachedQuestions.map { it.id }.toSet()
-        state.attachedQuestions + state.inboxQuestions.filterNot { it.id in attachedIds }
+    val questions: List<VisitQuestion> = remember(
+        state.isEditing,
+        state.attachedQuestions,
+        state.inboxQuestions,
+        state.selectedQuestionIds,
+    ) {
+        if (state.isEditing) {
+            state.attachedQuestions + state.inboxQuestions.filter { it.id in state.selectedQuestionIds }
+        } else {
+            state.inboxQuestions
+        }
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -209,6 +223,13 @@ private fun AttachQuestionsSection(
                 Text(stringResource(R.string.doctor_visit_manage_questions))
             }
         }
+        QuestionCaptureRow(
+            draft = state.questionDraft,
+            colors = colors,
+            onDraftChange = onQuestionDraftChange,
+            onAddQuestion = onAddQuestion,
+        )
+        Spacer(Modifier.height(8.dp))
         // Cap the list height so a long question backlog scrolls here instead of pushing the Save
         // button far down the sheet.
         Column(

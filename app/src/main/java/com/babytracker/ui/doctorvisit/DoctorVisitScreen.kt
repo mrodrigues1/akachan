@@ -53,6 +53,8 @@ fun DoctorVisitScreen(
         onDateChange = viewModel::onDateChange,
         onProviderChange = viewModel::onProviderChange,
         onNotesChange = viewModel::onNotesChange,
+        onQuestionDraftChange = viewModel::onQuestionDraftChange,
+        onAddQuestion = viewModel::onAddQuestion,
         onToggleQuestion = viewModel::onToggleQuestion,
         onAttachSnapshot = viewModel::onAttachSnapshot,
         onViewSnapshot = viewModel::onViewSnapshot,

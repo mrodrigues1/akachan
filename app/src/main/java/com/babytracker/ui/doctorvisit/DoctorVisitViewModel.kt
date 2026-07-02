@@ -37,8 +37,7 @@ data class DoctorVisitUiState(
     val notes: String = "",
     val questionDraft: String = "",
     val inboxQuestions: List<VisitQuestion> = emptyList(),
-    // Questions already attached to the visit being edited (empty on the add path). Shown in the
-    // attach section alongside the inbox so the user can see + deselect existing attachments.
+    // Questions already attached to the visit being edited (empty on the add path).
     val attachedQuestions: List<VisitQuestion> = emptyList(),
     val selectedQuestionIds: Set<Long> = emptySet(),
     val snapshotLabel: String? = null,
