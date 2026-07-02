@@ -460,16 +460,12 @@ internal fun FeedingPredictionSubtitle(
                 text = primaryText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = primaryColor,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
             )
             if (detailText.isNotEmpty()) {
                 Text(
                     text = detailText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
