@@ -4,6 +4,7 @@ import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.model.VisitQuestion
 import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.domain.usecase.doctorvisit.AddDoctorVisitUseCase
+import com.babytracker.domain.usecase.doctorvisit.AddVisitQuestionUseCase
 import com.babytracker.domain.usecase.doctorvisit.AttachSnapshotToVisitUseCase
 import com.babytracker.domain.usecase.doctorvisit.EditDoctorVisitUseCase
 import com.babytracker.export.data.BackupFileWriter
@@ -33,6 +34,7 @@ import java.time.Instant
 @OptIn(ExperimentalCoroutinesApi::class)
 class DoctorVisitViewModelTest {
     private val repository = mockk<DoctorVisitRepository>(relaxed = true)
+    private val addQuestion = mockk<AddVisitQuestionUseCase>(relaxed = true)
     private val addVisit = mockk<AddDoctorVisitUseCase>(relaxed = true)
     private val editVisit = mockk<EditDoctorVisitUseCase>(relaxed = true)
     private val attachSnapshot = mockk<AttachSnapshotToVisitUseCase>(relaxed = true)
@@ -46,9 +48,40 @@ class DoctorVisitViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun vm() = DoctorVisitViewModel(
-        repository,
+        repository, addQuestion,
         addVisit, editVisit, attachSnapshot, generatePdfReport, fileWriter,
     )
+
+    @Test
+    fun `adding a question clears the draft and selects the inserted question`() = runTest {
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
+        every { repository.observeQuestionsForVisit(any()) } returns flowOf(emptyList())
+        coEvery { addQuestion("Question text", any()) } returns 42
+        val vm = vm()
+        backgroundScope.launch { vm.uiState.collect {} }
+
+        vm.onQuestionDraftChange("  Question text  ")
+        vm.onAddQuestion()
+        advanceUntilIdle()
+
+        assertEquals("", vm.uiState.value.questionDraft)
+        assertEquals(setOf(42L), vm.uiState.value.selectedQuestionIds)
+    }
+
+    @Test
+    fun `adding a blank question does nothing`() = runTest {
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
+        every { repository.observeQuestionsForVisit(any()) } returns flowOf(emptyList())
+        val vm = vm()
+        backgroundScope.launch { vm.uiState.collect {} }
+
+        vm.onQuestionDraftChange("   ")
+        vm.onAddQuestion()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { addQuestion(any(), any()) }
+        assertTrue(vm.uiState.value.selectedQuestionIds.isEmpty())
+    }
 
     @Test
     fun `add path calls addVisit with selected ids and blanks-allowed fields`() = runTest {
