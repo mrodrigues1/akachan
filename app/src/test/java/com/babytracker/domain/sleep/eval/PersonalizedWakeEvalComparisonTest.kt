@@ -2,6 +2,7 @@ package com.babytracker.domain.sleep.eval
 
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.Confidence
+import com.babytracker.domain.model.EvidenceHint
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepPredictionTuning
@@ -181,11 +182,10 @@ class PersonalizedWakeEvalComparisonTest {
                     requiredLocalDays = SleepPredictionTuning.MIN_LOCAL_DAYS,
                     hint = when {
                         quality.completedIntervalCount < SleepPredictionTuning.MIN_COMPLETED_INTERVALS ->
-                            "log a few more naps with both sleep and wake times"
-                        !quality.isLocalDayCoverageSufficient ->
-                            "keep logging over the next few days to complete the pattern"
-                        !quality.isFresh -> "log a sleep or wake time — prediction needs a recent record"
-                        else -> "sleep pattern is still settling — keep logging over the next few days"
+                            EvidenceHint.NEED_MORE_INTERVALS
+                        !quality.isLocalDayCoverageSufficient -> EvidenceHint.NEED_MORE_DAYS
+                        !quality.isFresh -> EvidenceHint.NEED_FRESH_RECORD
+                        else -> EvidenceHint.PATTERN_SETTLING
                     },
                 )
             )

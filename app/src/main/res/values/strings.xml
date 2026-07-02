@@ -1127,6 +1127,10 @@
     </plurals>
     <string name="sleep_reason_sleep_debt_earlier">Sleep debt: 24h total vs. daily target suggests earlier window</string>
     <string name="sleep_reason_sleep_debt_later">Sleep debt: 24h total vs. daily target suggests later window</string>
+    <string name="sleep_hint_need_more_intervals">Log a few more naps with both sleep and wake times</string>
+    <string name="sleep_hint_need_more_days">Keep logging over the next few days to complete the pattern</string>
+    <string name="sleep_hint_need_fresh_record">Log a sleep or wake time — prediction needs a recent record</string>
+    <string name="sleep_hint_pattern_settling">Sleep pattern is still settling — keep logging over the next few days</string>
     <string name="sleep_feed_prompt">a breastfeed may be due near this window — offer a feed first if hunger cues appear</string>
     <string name="sleep_safety_prompt">Always follow your baby\'s sleep cues — windows are estimates, not schedules.</string>
     <string name="sleep_awake_for">Awake for %1$s</string>

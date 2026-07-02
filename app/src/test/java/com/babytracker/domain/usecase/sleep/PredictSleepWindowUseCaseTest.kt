@@ -7,6 +7,7 @@ import com.babytracker.domain.model.BabyEventType
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.Confidence
+import com.babytracker.domain.model.EvidenceHint
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepRecord
@@ -289,7 +290,7 @@ class PredictSleepWindowUseCaseTest {
                 val progress = (state as SleepPredictionState.NeedMoreData).progress
                 assertEquals(0, progress.completedIntervals)
                 assertEquals(5, progress.requiredIntervals)
-                assertTrue(progress.hint.isNotEmpty())
+                assertEquals(EvidenceHint.NEED_MORE_INTERVALS, progress.hint)
                 cancelAndIgnoreRemainingEvents()
             }
         }

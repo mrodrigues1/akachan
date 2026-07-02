@@ -1,6 +1,7 @@
 package com.babytracker.domain.sleep.eval
 
 import com.babytracker.domain.model.Confidence
+import com.babytracker.domain.model.EvidenceHint
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepPredictionTuning
@@ -195,7 +196,7 @@ private fun needMoreData(completedIntervals: Int, localDays: Int) = SleepPredict
         requiredIntervals = SleepPredictionTuning.MIN_COMPLETED_INTERVALS,
         localDays = localDays,
         requiredLocalDays = SleepPredictionTuning.MIN_LOCAL_DAYS,
-        hint = "sweep — insufficient data",
+        hint = EvidenceHint.NEED_MORE_INTERVALS,
     ),
 )
 

@@ -2,6 +2,7 @@ package com.babytracker.util
 
 import android.content.Context
 import com.babytracker.R
+import com.babytracker.domain.model.EvidenceHint
 import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepType
 
@@ -62,3 +63,13 @@ fun SleepReason.resolve(context: Context): String = when (this) {
         },
     )
 }
+
+/** Resolves a locale-agnostic [EvidenceHint] to a localized string, same pattern as [SleepReason.resolve]. */
+fun EvidenceHint.resolve(context: Context): String = context.getString(
+    when (this) {
+        EvidenceHint.NEED_MORE_INTERVALS -> R.string.sleep_hint_need_more_intervals
+        EvidenceHint.NEED_MORE_DAYS -> R.string.sleep_hint_need_more_days
+        EvidenceHint.NEED_FRESH_RECORD -> R.string.sleep_hint_need_fresh_record
+        EvidenceHint.PATTERN_SETTLING -> R.string.sleep_hint_pattern_settling
+    },
+)

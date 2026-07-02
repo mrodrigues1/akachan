@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.Confidence
+import com.babytracker.domain.model.EvidenceHint
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepReason
@@ -49,7 +50,7 @@ class SleepRecommendationSectionTest {
             requiredIntervals = 10,
             localDays = 1,
             requiredLocalDays = 3,
-            hint = "Log a few more naps with both sleep and wake times.",
+            hint = EvidenceHint.NEED_MORE_INTERVALS,
         )
     )
 
@@ -119,7 +120,7 @@ class SleepRecommendationSectionTest {
         composeRule.setContent {
             BabyTrackerTheme { SleepRecommendationSection(state = needMoreDataState()) }
         }
-        composeRule.onNodeWithText("Log a few more naps with both sleep and wake times.", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Log a few more naps with both sleep and wake times", substring = true).assertIsDisplayed()
     }
 
     @Test

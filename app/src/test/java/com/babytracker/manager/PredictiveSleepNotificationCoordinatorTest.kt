@@ -2,6 +2,7 @@ package com.babytracker.manager
 
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.Confidence
+import com.babytracker.domain.model.EvidenceHint
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.RecommendationLifecycle
 import com.babytracker.domain.model.RecommendationOutcome
@@ -51,7 +52,7 @@ class PredictiveSleepNotificationCoordinatorTest {
                 requiredIntervals = 3,
                 localDays = 1,
                 requiredLocalDays = 2,
-                hint = "Need more data",
+                hint = EvidenceHint.NEED_MORE_INTERVALS,
             ),
         )
 

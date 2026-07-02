@@ -1146,6 +1146,10 @@
     </plurals>
     <string name="sleep_reason_sleep_debt_earlier">Débito de sono: total de 24h vs. meta diária sugere janela mais cedo</string>
     <string name="sleep_reason_sleep_debt_later">Débito de sono: total de 24h vs. meta diária sugere janela mais tarde</string>
+    <string name="sleep_hint_need_more_intervals">Registre mais algumas sonecas com horários de início e fim do sono</string>
+    <string name="sleep_hint_need_more_days">Continue registrando nos próximos dias para completar o padrão</string>
+    <string name="sleep_hint_need_fresh_record">Registre um sono ou despertar — a previsão precisa de um registro recente</string>
+    <string name="sleep_hint_pattern_settling">O padrão de sono ainda está se estabilizando — continue registrando nos próximos dias</string>
     <string name="sleep_feed_prompt">uma mamada pode estar próxima desta janela — ofereça o peito primeiro se houver sinais de fome</string>
     <string name="sleep_safety_prompt">Sempre siga os sinais de sono do seu bebê — as janelas são estimativas, não horários fixos.</string>
     <string name="sleep_awake_for">Acordado há %1$s</string>

@@ -279,7 +279,7 @@ private fun NeedMoreDataSectionContent(progress: EvidenceProgress) {
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            text = progress.hint,
+            text = progress.hint.resolve(LocalContext.current),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )

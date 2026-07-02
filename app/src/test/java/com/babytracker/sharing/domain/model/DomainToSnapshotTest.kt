@@ -4,6 +4,7 @@ import com.babytracker.domain.model.BottleFeed
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.Confidence
+import com.babytracker.domain.model.EvidenceHint
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.FeedAuthor
 import com.babytracker.domain.model.FeedType
@@ -55,7 +56,7 @@ class DomainToSnapshotTest {
                 requiredIntervals = 7,
                 localDays = 1,
                 requiredLocalDays = 3,
-                hint = "Keep logging",
+                hint = EvidenceHint.NEED_MORE_DAYS,
             ),
         )
 

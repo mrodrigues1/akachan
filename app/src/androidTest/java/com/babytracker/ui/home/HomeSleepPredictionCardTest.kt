@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.Confidence
+import com.babytracker.domain.model.EvidenceHint
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepType
@@ -46,7 +47,7 @@ class HomeSleepPredictionCardTest {
             requiredIntervals = 10,
             localDays = 1,
             requiredLocalDays = 3,
-            hint = "Log a few more naps with both sleep and wake times.",
+            hint = EvidenceHint.NEED_MORE_INTERVALS,
         )
     )
 
@@ -95,7 +96,7 @@ class HomeSleepPredictionCardTest {
         composeRule.setContent {
             BabyTrackerTheme { SleepPredictionCard(state = needMoreDataState()) }
         }
-        composeRule.onNodeWithText("Log a few more naps with both sleep and wake times.", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Log a few more naps with both sleep and wake times", substring = true).assertIsDisplayed()
     }
 
     @Test
