@@ -445,11 +445,11 @@ class SleepEvalHarnessTest {
 
         /**
          * Overlapping records: 25 naps all overlapping each other within a 2-hour window.
-         * SleepFeatureExtractor.removeOverlapping() drops the entire cluster → 0 completed intervals →
-         * NeedMoreData for all anchors → 0 scored → BLOCK.
+         * SleepFeatureExtractor.mergeOverlapping() collapses the cluster into a single envelope
+         * interval → 0 wake intervals → NeedMoreData for all anchors → 0 scored → BLOCK.
          */
         @Test
-        fun `overlapping records - all dropped by removeOverlapping, segment BLOCKS`() {
+        fun `overlapping records - merged into one envelope by mergeOverlapping, segment BLOCKS`() {
             var id = 1L
             // All records start within a 30-min band and end within another 30-min band → one giant cluster
             val clusterStart = baseNow.minus(Duration.ofHours(4))
@@ -463,7 +463,7 @@ class SleepEvalHarnessTest {
                 "Overlapping cluster must still produce segments, not empty report")
             assertTrue(report.segments.all { it.status == SegmentStatus.BLOCK_INSUFFICIENT_DATA },
                 "Overlapping cluster fixture should BLOCK; got: ${report.segments}")
-            // removeOverlapping drops the cluster → 0 scored anchors
+            // mergeOverlapping collapses the cluster to one interval → 0 wake intervals → 0 scored anchors
             assertEquals(0, report.totalScored,
                 "Overlapping cluster should score 0 anchors; got ${report.totalScored}")
             assertTrue(report.segments.all { it.scoredCount == 0 },

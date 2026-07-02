@@ -40,7 +40,7 @@ class SleepFeatureExtractorTest {
     }
 
     @Test
-    fun `buildSleepIntervals removes invalid and overlapping records`() {
+    fun `buildSleepIntervals removes invalid records and merges overlapping ones`() {
         val records = listOf(
             sleepRecord(6.0, 5.0),
             sleepRecord(4.5, 3.5),
@@ -50,8 +50,11 @@ class SleepFeatureExtractorTest {
 
         val intervals = extractor.buildSleepIntervals(records)
 
-        assertEquals(1, intervals.size)
+        assertEquals(2, intervals.size)
         assertEquals(nowInstant.minusMillis(hoursMs(6.0)).toEpochMilli(), intervals[0].startMillis)
+        // The 4.5–3.5 and 4.0–3.0 overlap merges into its envelope 4.5–3.0.
+        assertEquals(nowInstant.minusMillis(hoursMs(4.5)).toEpochMilli(), intervals[1].startMillis)
+        assertEquals(nowInstant.minusMillis(hoursMs(3.0)).toEpochMilli(), intervals[1].endMillis)
     }
 
     @Test
@@ -109,7 +112,7 @@ class SleepFeatureExtractorTest {
     }
 
     @Test
-    fun `buildSleepIntervals rejects all records in an overlapping completed cluster`() {
+    fun `buildSleepIntervals merges an overlapping completed cluster into its envelope with dominant type`() {
         val records = listOf(
             SleepRecord(
                 startTime = nowInstant.minusMillis(hoursMs(10.0)),
@@ -123,8 +126,27 @@ class SleepFeatureExtractorTest {
 
         val intervals = extractor.buildSleepIntervals(records)
 
+        assertEquals(2, intervals.size)
+        // 10h night sleep envelops the two naps → merged envelope keeps the dominant NIGHT_SLEEP type.
+        assertEquals(nowInstant.minusMillis(hoursMs(10.0)).toEpochMilli(), intervals[0].startMillis)
+        assertEquals(nowInstant.minusMillis(hoursMs(1.0)).toEpochMilli(), intervals[0].endMillis)
+        assertEquals(SleepType.NIGHT_SLEEP, intervals[0].sleepType)
+        assertEquals(nowInstant.minusMillis(hoursMs(0.5)).toEpochMilli(), intervals[1].startMillis)
+    }
+
+    @Test
+    fun `mergeOverlapping keeps longest member when the merged envelope is implausible`() {
+        // Two 3h naps bridged into a >4h envelope (exceeds MAX_NAP_DURATION_HOURS) → keep longest.
+        val records = listOf(
+            sleepRecord(8.0, 5.0),
+            sleepRecord(5.5, 3.0),
+        )
+
+        val intervals = extractor.buildSleepIntervals(records)
+
         assertEquals(1, intervals.size)
-        assertEquals(nowInstant.minusMillis(hoursMs(0.5)).toEpochMilli(), intervals.single().startMillis)
+        assertEquals(nowInstant.minusMillis(hoursMs(8.0)).toEpochMilli(), intervals.single().startMillis)
+        assertEquals(nowInstant.minusMillis(hoursMs(5.0)).toEpochMilli(), intervals.single().endMillis)
     }
 
     @Test

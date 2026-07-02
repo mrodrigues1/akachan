@@ -40,7 +40,7 @@ class SleepFeatureExtractor(
         val completed = perRecordValid
             .filter { it.isCompleted }
             .sortedBy { it.startMillis }
-            .let { removeOverlapping(it) }
+            .let { mergeOverlapping(it) }
         val latestOpen = perRecordValid
             .filter { !it.isCompleted }
             .maxByOrNull { it.startMillis }
@@ -139,13 +139,18 @@ class SleepFeatureExtractor(
         )
     }
 
-    private fun removeOverlapping(sortedCompleted: List<SleepInterval>): List<SleepInterval> {
+    // Merge each overlap cluster into its envelope instead of discarding it: near-duplicate
+    // records (partner sync, manual edits) must not delete real sleep evidence (AKACHAN-308).
+    private fun mergeOverlapping(sortedCompleted: List<SleepInterval>): List<SleepInterval> {
         val result = mutableListOf<SleepInterval>()
         var cluster = mutableListOf<SleepInterval>()
         var clusterEndMillis: Long? = null
 
         fun flushCluster() {
-            if (cluster.size == 1) result.add(cluster.single())
+            when {
+                cluster.size == 1 -> result.add(cluster.single())
+                cluster.size > 1 -> result.add(mergeCluster(cluster))
+            }
             cluster = mutableListOf()
             clusterEndMillis = null
         }
@@ -167,6 +172,22 @@ class SleepFeatureExtractor(
 
         flushCluster()
         return result
+    }
+
+    // Envelope of the cluster: min start, max end, type with the most summed duration. If the
+    // envelope fails plausibility validation (e.g. two distant naps chained by a bridging record),
+    // keep the longest member instead so the cluster still contributes evidence.
+    private fun mergeCluster(cluster: List<SleepInterval>): SleepInterval {
+        val dominantType = cluster
+            .groupBy { it.sleepType }
+            .maxBy { (_, members) -> members.sumOf { it.endMillis!! - it.startMillis } }
+            .key
+        return SleepInterval.from(
+            startMillis = cluster.minOf { it.startMillis },
+            endMillis = cluster.maxOf { it.endMillis!! },
+            sleepType = dominantType,
+            timezoneId = cluster.minBy { it.startMillis }.timezoneId,
+        ) ?: cluster.maxBy { it.endMillis!! - it.startMillis }
     }
 
     private fun SleepInterval.isPossibleAt(referenceMillis: Long): Boolean =
