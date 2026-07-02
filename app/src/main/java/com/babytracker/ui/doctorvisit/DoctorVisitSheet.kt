@@ -216,6 +216,7 @@ private fun AttachQuestionsSection(
                 text = stringResource(R.string.doctor_visit_attach_questions),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
             )
             OutlinedButton(
                 onClick = onManageQuestions,
