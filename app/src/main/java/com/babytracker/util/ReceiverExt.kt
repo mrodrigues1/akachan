@@ -27,6 +27,8 @@ fun BroadcastReceiver.goAsyncWithTimeout(
     timeoutMs: Long = RECEIVER_DEFAULT_TIMEOUT_MS,
     block: suspend () -> Unit,
 ) {
+    // goAsync() is @Nullable: it returns null when onReceive is invoked directly (e.g. unit tests)
+    // rather than dispatched by the system, so finish() must be null-safe.
     val result = goAsync()
     CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
         try {
@@ -38,7 +40,7 @@ fun BroadcastReceiver.goAsyncWithTimeout(
                 else -> Log.e(tag, "onReceive failed", failure)
             }
         } finally {
-            result.finish()
+            result?.finish()
         }
     }
 }
