@@ -9,7 +9,6 @@ import com.babytracker.domain.model.GrowthMeasurement
 import com.babytracker.domain.model.Milestone
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.SleepPredictionState
-import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepRecord
 import java.time.ZoneOffset
 
@@ -85,11 +84,7 @@ fun SleepRecord.toSnapshot(): SleepSnapshot = SleepSnapshot(
     startedBy = startedBy.name,
 )
 
-fun SleepPredictionState.toSnapshot(
-    generatedAt: Long,
-    resolveReason: (SleepReason) -> String,
-    feedPromptText: String,
-): SleepPredictionSnapshot? =
+fun SleepPredictionState.toSnapshot(generatedAt: Long): SleepPredictionSnapshot? =
     when (this) {
         is SleepPredictionState.Window -> SleepPredictionSnapshot(
             stateLabel = "WINDOW",
@@ -97,8 +92,8 @@ fun SleepPredictionState.toSnapshot(
             windowEnd = window.windowEnd.toEpochMilli(),
             bestEstimate = window.bestEstimate.toEpochMilli(),
             confidence = window.confidence.name,
-            reasons = window.reasons.map(resolveReason),
-            feedPrompt = if (window.feedDue) feedPromptText else null,
+            reasons = window.reasons,
+            feedDue = window.feedDue,
             generatedAt = generatedAt,
         )
         is SleepPredictionState.NeedMoreData ->

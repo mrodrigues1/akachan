@@ -36,6 +36,7 @@ import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.ui.home.EaseOutQuart
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatTime
+import com.babytracker.util.resolve
 import java.time.Duration
 import java.time.Instant
 
@@ -176,7 +177,8 @@ private fun WindowContent(prediction: SleepPredictionSnapshot) {
     val context = LocalContext.current
     val bestEstimate = prediction.bestEstimate?.let { Instant.ofEpochMilli(it).formatTime() }
     val range = rangeText(prediction, context)
-    val reasons = prediction.reasons.take(MAX_REASONS).joinToString(" · ")
+    // Synced reasons are semantic; resolve them here so the text follows this device's locale.
+    val reasons = prediction.reasons.take(MAX_REASONS).joinToString(" · ") { it.resolve(context) }
 
     Column {
         if (bestEstimate != null) {
@@ -202,10 +204,10 @@ private fun WindowContent(prediction: SleepPredictionSnapshot) {
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
-        prediction.feedPrompt?.let { prompt ->
+        if (prediction.feedDue) {
             Spacer(Modifier.height(4.dp))
             Text(
-                text = prompt,
+                text = stringResource(R.string.sleep_feed_prompt),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )

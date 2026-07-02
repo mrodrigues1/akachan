@@ -63,7 +63,6 @@ class GenerateShareCodeUseCaseInventoryTest {
                 mockk { every { getMilestones() } returns flowOf(emptyList()) },
                 mockk { coEvery { getRecentVisits(any()) } returns emptyList() },
             ),
-            appContext = mockk(relaxed = true),
         ) { fixedNow }
         every { babyRepository.getBabyProfile() } returns flowOf(Baby("Test", LocalDate.now()))
         coEvery { breastfeedingRepository.getRecentSessions(any()) } returns emptyList()

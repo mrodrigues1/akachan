@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import com.babytracker.domain.model.SleepReason
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import org.junit.Rule
 import org.junit.Test
@@ -51,16 +52,22 @@ class PartnerSleepPredictionCardTest {
                 windowEnd = now.plusSeconds(50 * 60).toEpochMilli(),
                 bestEstimate = now.plusSeconds(35 * 60).toEpochMilli(),
                 confidence = "MEDIUM",
-                reasons = listOf("Awake 2h 05m", "Based on recent wake patterns"),
-                feedPrompt = "A breastfeed may be due near this window.",
+                reasons = listOf(SleepReason.CircadianSlot, SleepReason.NapDeficit(deficit = 1)),
+                feedDue = true,
                 generatedAt = generatedAt,
             ),
         )
 
         composeRule.onNodeWithText("NEXT SLEEP WINDOW", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Awake 2h 05m", substring = true, useUnmergedTree = true).assertIsDisplayed()
+        // Reasons and the feed prompt are synced as semantics and resolved on this device.
         composeRule.onNodeWithText(
-            "A breastfeed may be due near this window.",
+            "Adjusted toward the expected bedtime circadian slot",
+            substring = true,
+            useUnmergedTree = true,
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText(
+            "a breastfeed may be due near this window",
+            substring = true,
             useUnmergedTree = true,
         ).assertIsDisplayed()
         composeRule.onNodeWithText("Estimated", substring = true, useUnmergedTree = true).assertIsDisplayed()

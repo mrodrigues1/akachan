@@ -70,7 +70,7 @@ class SyncToFirestoreDoctorVisitTest {
             mockk<PredictSleepWindowUseCase>(), growthRepo, milestoneRepo, doctorRepo,
         )
         val useCase = SyncToFirestoreUseCase(
-            service, settings, sleepSettings, sources, appContext = mockk(relaxed = true),
+            service, settings, sleepSettings, sources,
         ) { Instant.ofEpochMilli(99) }
 
         val captured = slot<ShareSnapshot>()

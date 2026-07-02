@@ -96,7 +96,6 @@ class SyncToFirestoreUseCaseTest {
                 mockk { every { getMilestones() } returns flowOf(emptyList()) },
                 mockk { coEvery { getRecentVisits(any()) } returns emptyList() },
             ),
-            appContext = mockk(relaxed = true),
         ) { fixedNow }
         every { settingsRepository.getShareCode() } returns flowOf(shareCode.value)
         every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)

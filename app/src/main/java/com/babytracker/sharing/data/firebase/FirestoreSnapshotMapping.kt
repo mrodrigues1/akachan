@@ -1,5 +1,8 @@
 package com.babytracker.sharing.data.firebase
 
+import com.babytracker.domain.model.SleepReason
+import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.model.toSleepTypeSafe
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.DiaperSnapshot
@@ -81,10 +84,60 @@ internal fun predictionToMap(prediction: SleepPredictionSnapshot): Map<String, A
     "windowEnd" to prediction.windowEnd,
     "bestEstimate" to prediction.bestEstimate,
     "confidence" to prediction.confidence,
-    "reasons" to prediction.reasons,
-    "feedPrompt" to prediction.feedPrompt,
+    // Reasons ship as semantic maps and feedDue as a fact; each device resolves text in its own
+    // locale. Older partner builds expected localized strings under "reasons"/"feedPrompt" — they
+    // filter these maps out and simply show no reason line, which degrades gracefully.
+    "reasons" to prediction.reasons.map { reasonToMap(it) },
+    "feedDue" to prediction.feedDue,
     "generatedAt" to prediction.generatedAt,
 )
+
+internal fun reasonToMap(reason: SleepReason): Map<String, Any?> = when (reason) {
+    is SleepReason.FullyPersonalized -> mapOf("type" to "FULLY_PERSONALIZED", "nextType" to reason.nextType.name)
+    is SleepReason.Blended ->
+        mapOf("type" to "BLENDED", "percent" to reason.percent, "nextType" to reason.nextType.name)
+    is SleepReason.TypicalWakeWindow -> mapOf(
+        "type" to "TYPICAL_WAKE_WINDOW",
+        "ageInWeeks" to reason.ageInWeeks,
+        "minMinutes" to reason.minMinutes,
+        "maxMinutes" to reason.maxMinutes,
+    )
+    is SleepReason.TypeSpecificPattern -> mapOf(
+        "type" to "TYPE_SPECIFIC_PATTERN",
+        "nextType" to reason.nextType.name,
+        "intervalCount" to reason.intervalCount,
+    )
+    is SleepReason.CombinedHistory -> mapOf("type" to "COMBINED_HISTORY", "nextType" to reason.nextType.name)
+    SleepReason.Disruption -> mapOf("type" to "DISRUPTION")
+    SleepReason.CircadianSlot -> mapOf("type" to "CIRCADIAN_SLOT")
+    is SleepReason.NapDeficit -> mapOf("type" to "NAP_DEFICIT", "deficit" to reason.deficit)
+    is SleepReason.SleepDebt -> mapOf("type" to "SLEEP_DEBT", "earlierWindow" to reason.earlierWindow)
+}
+
+private fun Map<*, *>.intField(key: String): Int = (this[key] as? Number)?.toInt() ?: 0
+
+private fun Map<*, *>.longField(key: String): Long = (this[key] as? Number)?.toLong() ?: 0L
+
+private fun Map<*, *>.sleepTypeField(): SleepType = (this["nextType"] as? String)?.toSleepTypeSafe() ?: SleepType.NAP
+
+/** Null for unknown reason types, so a partner on an older build drops reasons it can't render. */
+internal fun mapToReason(map: Map<*, *>): SleepReason? =
+    when (map["type"]) {
+        "FULLY_PERSONALIZED" -> SleepReason.FullyPersonalized(map.sleepTypeField())
+        "BLENDED" -> SleepReason.Blended(map.intField("percent"), map.sleepTypeField())
+        "TYPICAL_WAKE_WINDOW" -> SleepReason.TypicalWakeWindow(
+            ageInWeeks = map.intField("ageInWeeks"),
+            minMinutes = map.longField("minMinutes"),
+            maxMinutes = map.longField("maxMinutes"),
+        )
+        "TYPE_SPECIFIC_PATTERN" -> SleepReason.TypeSpecificPattern(map.sleepTypeField(), map.intField("intervalCount"))
+        "COMBINED_HISTORY" -> SleepReason.CombinedHistory(map.sleepTypeField())
+        "DISRUPTION" -> SleepReason.Disruption
+        "CIRCADIAN_SLOT" -> SleepReason.CircadianSlot
+        "NAP_DEFICIT" -> SleepReason.NapDeficit(map.intField("deficit"))
+        "SLEEP_DEBT" -> SleepReason.SleepDebt(map["earlierWindow"] as? Boolean ?: false)
+        else -> null
+    }
 
 internal fun babyToMap(baby: BabySnapshot): Map<String, Any> = mapOf(
     "name" to baby.name,
@@ -182,8 +235,8 @@ internal fun mapToPrediction(map: Map<*, *>): SleepPredictionSnapshot = SleepPre
     windowEnd = (map["windowEnd"] as? Number)?.toLong(),
     bestEstimate = (map["bestEstimate"] as? Number)?.toLong(),
     confidence = map["confidence"] as? String,
-    reasons = (map["reasons"] as? List<*>)?.filterIsInstance<String>().orEmpty(),
-    feedPrompt = map["feedPrompt"] as? String,
+    reasons = map.mapList("reasons") { mapToReason(it) }.filterNotNull(),
+    feedDue = map["feedDue"] as? Boolean ?: false,
     generatedAt = (map["generatedAt"] as? Number)?.toLong() ?: 0L,
 )
 

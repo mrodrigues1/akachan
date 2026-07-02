@@ -1,12 +1,10 @@
 package com.babytracker.sharing.usecase
 
-import android.content.Context
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.ShareCode
-import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
 import javax.inject.Inject
 
@@ -15,7 +13,6 @@ class GenerateShareCodeUseCase @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val sleepSettingsRepository: SleepSettingsRepository,
     private val sources: SnapshotSources,
-    @ApplicationContext private val appContext: Context,
     private val now: () -> Instant,
 ) {
     suspend operator fun invoke() {
@@ -24,7 +21,7 @@ class GenerateShareCodeUseCase @Inject constructor(
         service.createShareDocument(code.value, uid)
         service.syncFullSnapshot(
             code.value,
-            buildShareSnapshot(sources, sleepSettingsRepository, appContext, now()),
+            buildShareSnapshot(sources, sleepSettingsRepository, now()),
         )
         settingsRepository.setShareCode(code.value)
         settingsRepository.setAppMode(AppMode.PRIMARY)
