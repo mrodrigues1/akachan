@@ -33,6 +33,8 @@ data class VaccineHistoryUiState(
     val toSchedule: List<VaccineRecord> = emptyList(),
     val upcoming: List<VaccineRecord> = emptyList(),
     val administeredByDate: List<Pair<LocalDate, List<VaccineRecord>>> = emptyList(),
+    /** Set when a mark/delete/undo write fails, so the screen can tell the parent the change didn't save. */
+    val writeError: Boolean = false,
     val now: Instant = Instant.EPOCH,
 ) {
     /** Only meaningful once loaded without error. */
@@ -57,6 +59,9 @@ class VaccineHistoryViewModel @Inject constructor(
     private val _pendingDelete = MutableStateFlow<VaccineRecord?>(null)
     val pendingDelete: StateFlow<VaccineRecord?> = _pendingDelete.asStateFlow()
 
+    // Set when a mark/delete/undo write fails; cleared once the screen has shown the message.
+    private val writeError = MutableStateFlow(false)
+
     // Bumped by onRetry so flatMapLatest rebuilds the combined flow after an upstream failure;
     // a plain .catch would emit the error once and leave the flow terminated with no way back.
     private val retryTrigger = MutableStateFlow(0)
@@ -64,7 +69,7 @@ class VaccineHistoryViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<VaccineHistoryUiState> =
         retryTrigger.flatMapLatest {
-            combine(vaccineRepository.observeAll(), _pendingDelete) { records, pending ->
+            combine(vaccineRepository.observeAll(), _pendingDelete, writeError) { records, pending, hasWriteError ->
                 val visible = records.filterNot { it.id == pending?.id }
                 val toSchedule = visible
                     .filter { it.status == VaccineStatus.TO_SCHEDULE && it.scheduledDate != null }
@@ -81,6 +86,7 @@ class VaccineHistoryViewModel @Inject constructor(
                     toSchedule = toSchedule,
                     upcoming = upcoming,
                     administeredByDate = administeredByDate,
+                    writeError = hasWriteError,
                     now = now(),
                 )
             }.catch {
@@ -88,9 +94,13 @@ class VaccineHistoryViewModel @Inject constructor(
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), VaccineHistoryUiState())
 
-    fun markGiven(id: Long) = viewModelScope.launch { runCatching { markGivenUseCase(id, now()) } }
+    fun markGiven(id: Long) = viewModelScope.launch {
+        runCatching { markGivenUseCase(id, now()) }.onFailure { writeError.value = true }
+    }
 
-    fun markScheduled(id: Long) = viewModelScope.launch { runCatching { markScheduledUseCase(id) } }
+    fun markScheduled(id: Long) = viewModelScope.launch {
+        runCatching { markScheduledUseCase(id) }.onFailure { writeError.value = true }
+    }
 
     /** Rebuild the data flow after an error state so the screen can recover. */
     fun onRetry() {
@@ -103,19 +113,32 @@ class VaccineHistoryViewModel @Inject constructor(
      */
     fun requestDelete(record: VaccineRecord) {
         _pendingDelete.value = record
-        viewModelScope.launch { runCatching { deleteUseCase(record.id) } }
+        viewModelScope.launch {
+            runCatching { deleteUseCase(record.id) }.onFailure {
+                // Revert the optimistic hide so the row reappears (the record is still in the DB).
+                _pendingDelete.compareAndSet(record, null)
+                writeError.value = true
+            }
+        }
     }
 
     /** Snackbar "Undo": revert the committed delete by re-inserting the original record. */
     fun undoDelete() {
         val record = _pendingDelete.value ?: return
         _pendingDelete.value = null
-        viewModelScope.launch { runCatching { restoreUseCase(record) } }
+        viewModelScope.launch {
+            runCatching { restoreUseCase(record) }.onFailure { writeError.value = true }
+        }
     }
 
     /** Snackbar dismissed / timed out: the delete already happened, so just close the undo window. */
     fun commitDelete() {
         _pendingDelete.value = null
+    }
+
+    /** The screen has shown the write-failure message; clear the flag. */
+    fun onWriteErrorConsumed() {
+        writeError.value = false
     }
 
     private companion object {

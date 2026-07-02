@@ -9,6 +9,7 @@ import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineScheduledUseCase
 import com.babytracker.domain.usecase.vaccine.RestoreVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.UndoMarkVaccineAdministeredUseCase
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -412,6 +413,50 @@ class VaccineDashboardViewModelTest {
             state = awaitItem()
             assertTrue(!state.isError)
             assertTrue(!state.isLoading)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `markGiven failure reverts the optimistic mark and sets writeError`() = runTest {
+        val record = scheduled(1, offsetDays = 7)
+        every { vaccineRepository.observeAll() } returns flowOf(listOf(record))
+        coEvery { markGiven(any(), any()) } throws RuntimeException("db write failed")
+        val vm = viewModel()
+
+        vm.uiState.test {
+            var state = awaitItem()
+            if (state.isLoading) state = awaitItem()
+            vm.markGiven(record)
+            while (!state.writeError) state = awaitItem()
+
+            // Optimistic mark reverted: the row is back in the schedule, not in recently given.
+            assertNull(state.lastMarkedGiven)
+            assertEquals(listOf(1L), state.schedule.map { it.id })
+            assertEquals(0, state.givenCount)
+
+            vm.onWriteErrorConsumed()
+            while (state.writeError) state = awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `requestDelete failure unhides the row and sets writeError`() = runTest {
+        val record = scheduled(1, offsetDays = 7)
+        every { vaccineRepository.observeAll() } returns flowOf(listOf(record))
+        coEvery { delete(1) } throws RuntimeException("db write failed")
+        val vm = viewModel()
+
+        vm.uiState.test {
+            var state = awaitItem()
+            if (state.isLoading) state = awaitItem()
+            vm.requestDelete(record)
+            while (!state.writeError) state = awaitItem()
+
+            // Optimistic hide reverted: the record is still in the DB and visible again.
+            assertNull(state.lastDeleted)
+            assertEquals(listOf(1L), state.schedule.map { it.id })
             cancelAndIgnoreRemainingEvents()
         }
     }

@@ -71,6 +71,8 @@ data class VaccineDashboardUiState(
     val lastMarkedScheduled: VaccineRecord? = null,
     /** The vaccine inside the delete undo window, held so the screen can offer an undo snackbar. */
     val lastDeleted: VaccineRecord? = null,
+    /** Set when a mark/undo/delete write fails, so the screen can tell the parent the change didn't save. */
+    val writeError: Boolean = false,
     val now: Instant = Instant.EPOCH,
 ) {
     /** True on a clean install: nothing scheduled, nothing to-schedule, nothing recorded. */
@@ -106,6 +108,9 @@ class VaccineDashboardViewModel @Inject constructor(
     // screen can show the undo snackbar and the lists don't flicker while Room re-emits.
     private val pendingMarkScheduled = MutableStateFlow<VaccineRecord?>(null)
 
+    // Set when a mark/undo/delete write fails; cleared once the screen has shown the message.
+    private val writeError = MutableStateFlow(false)
+
     // Bumped by onRetry so flatMapLatest rebuilds the combined flow after an upstream failure;
     // a plain .catch would emit the error once and leave the flow terminated with no way back.
     private val retryTrigger = MutableStateFlow(0)
@@ -114,8 +119,8 @@ class VaccineDashboardViewModel @Inject constructor(
     val uiState: StateFlow<VaccineDashboardUiState> =
         retryTrigger.flatMapLatest {
             combine(
-                vaccineRepository.observeAll(), pendingMarkGiven, pendingDelete, pendingMarkScheduled,
-            ) { records, pendingMark, pendingDel, pendingSch ->
+                vaccineRepository.observeAll(), pendingMarkGiven, pendingDelete, pendingMarkScheduled, writeError,
+            ) { records, pendingMark, pendingDel, pendingSch, hasWriteError ->
                 val instant = now()
                 val today = instant.atZone(zone).toLocalDate()
                 // Optimistically hide a record inside its delete-undo window before anything else.
@@ -181,6 +186,7 @@ class VaccineDashboardViewModel @Inject constructor(
                     lastMarkedGiven = pendingMark,
                     lastMarkedScheduled = pendingSch,
                     lastDeleted = pendingDel,
+                    writeError = hasWriteError,
                     now = instant,
                 )
             }.catch {
@@ -199,14 +205,22 @@ class VaccineDashboardViewModel @Inject constructor(
      */
     fun markGiven(record: VaccineRecord) {
         pendingMarkGiven.value = record
-        viewModelScope.launch { runCatching { markGivenUseCase(record.id, now()) } }
+        viewModelScope.launch {
+            runCatching { markGivenUseCase(record.id, now()) }.onFailure {
+                // Revert the optimistic mark so the row reappears as scheduled (matching the DB).
+                pendingMarkGiven.compareAndSet(record, null)
+                writeError.value = true
+            }
+        }
     }
 
     /** Snackbar "Undo": revert the committed mark-given by writing the original scheduled record back. */
     fun undoMarkGiven() {
         val record = pendingMarkGiven.value ?: return
         pendingMarkGiven.value = null
-        viewModelScope.launch { runCatching { undoMarkGivenUseCase(record) } }
+        viewModelScope.launch {
+            runCatching { undoMarkGivenUseCase(record) }.onFailure { writeError.value = true }
+        }
     }
 
     /** Snackbar dismissed / timed out: the write already happened, so just close the undo window. */
@@ -217,7 +231,13 @@ class VaccineDashboardViewModel @Inject constructor(
     /** Flip [record] to scheduled now (one tap). Commits immediately; opens the undo window. */
     fun markScheduled(record: VaccineRecord) {
         pendingMarkScheduled.value = record
-        viewModelScope.launch { runCatching { markScheduledUseCase(record.id) } }
+        viewModelScope.launch {
+            runCatching { markScheduledUseCase(record.id) }.onFailure {
+                // Revert the optimistic flip so the dose reappears under to-schedule (matching the DB).
+                pendingMarkScheduled.compareAndSet(record, null)
+                writeError.value = true
+            }
+        }
     }
 
     /**
@@ -228,7 +248,9 @@ class VaccineDashboardViewModel @Inject constructor(
     fun undoMarkScheduled() {
         val record = pendingMarkScheduled.value ?: return
         pendingMarkScheduled.value = null
-        viewModelScope.launch { runCatching { undoMarkGivenUseCase(record) } }
+        viewModelScope.launch {
+            runCatching { undoMarkGivenUseCase(record) }.onFailure { writeError.value = true }
+        }
     }
 
     /** Snackbar dismissed / timed out: the flip already happened, so just close the undo window. */
@@ -246,19 +268,32 @@ class VaccineDashboardViewModel @Inject constructor(
      */
     fun requestDelete(record: VaccineRecord) {
         pendingDelete.value = record
-        viewModelScope.launch { runCatching { deleteUseCase(record.id) } }
+        viewModelScope.launch {
+            runCatching { deleteUseCase(record.id) }.onFailure {
+                // Revert the optimistic hide so the row reappears (the record is still in the DB).
+                pendingDelete.compareAndSet(record, null)
+                writeError.value = true
+            }
+        }
     }
 
     /** Snackbar "Undo": revert the committed delete by re-inserting the original record. */
     fun undoDelete() {
         val record = pendingDelete.value ?: return
         pendingDelete.value = null
-        viewModelScope.launch { runCatching { restoreUseCase(record) } }
+        viewModelScope.launch {
+            runCatching { restoreUseCase(record) }.onFailure { writeError.value = true }
+        }
     }
 
     /** Snackbar dismissed / timed out: the delete already happened, so just close the undo window. */
     fun onDeleteConsumed() {
         pendingDelete.value = null
+    }
+
+    /** The screen has shown the write-failure message; clear the flag. */
+    fun onWriteErrorConsumed() {
+        writeError.value = false
     }
 
     private companion object {

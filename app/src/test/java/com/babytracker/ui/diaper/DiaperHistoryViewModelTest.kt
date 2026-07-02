@@ -19,7 +19,9 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -82,5 +84,19 @@ class DiaperHistoryViewModelTest {
 
         assertNull(vm.pendingDelete.value)
         coVerify(exactly = 0) { delete(any()) }
+    }
+
+    @Test
+    fun `confirm delete failure sets deleteError and consume clears it`() = runTest {
+        every { diaperRepository.observeAll() } returns flowOf(emptyList())
+        coEvery { delete(7) } throws RuntimeException("db write failed")
+        val vm = DiaperHistoryViewModel(diaperRepository, delete, zone)
+
+        vm.onDeleteRequest(change(7, Instant.ofEpochMilli(1_000)))
+        vm.onConfirmDelete()
+
+        assertTrue(vm.deleteError.value)
+        vm.onDeleteErrorConsumed()
+        assertFalse(vm.deleteError.value)
     }
 }

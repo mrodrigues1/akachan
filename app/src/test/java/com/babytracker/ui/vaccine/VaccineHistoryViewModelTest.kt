@@ -135,4 +135,41 @@ class VaccineHistoryViewModelTest {
         coVerify { delete(7) }
         coVerify { restore(record) }
     }
+
+    @Test
+    fun `markGiven failure sets writeError`() = runTest {
+        every { vaccineRepository.observeAll() } returns flowOf(emptyList())
+        coEvery { markGiven(9, any()) } throws RuntimeException("db write failed")
+        val viewModel = vm()
+
+        viewModel.uiState.test {
+            var s = awaitItem()
+            viewModel.markGiven(9)
+            while (!s.writeError) s = awaitItem()
+
+            viewModel.onWriteErrorConsumed()
+            while (s.writeError) s = awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `requestDelete failure unhides the record and sets writeError`() = runTest {
+        val record = VaccineRecord(id = 7, name = "BCG", status = VaccineStatus.ADMINISTERED, administeredDate = fixedNow, createdAt = fixedNow)
+        every { vaccineRepository.observeAll() } returns flowOf(listOf(record))
+        coEvery { delete(7) } throws RuntimeException("db write failed")
+        val viewModel = vm()
+
+        viewModel.uiState.test {
+            var s = awaitItem()
+            if (s.isEmpty) s = awaitItem()
+            viewModel.requestDelete(record)
+            while (!s.writeError) s = awaitItem()
+
+            // Optimistic hide reverted: the record is still in the DB and visible again.
+            assertEquals(1, s.administeredByDate.sumOf { it.second.size })
+            assertNull(viewModel.pendingDelete.value)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }

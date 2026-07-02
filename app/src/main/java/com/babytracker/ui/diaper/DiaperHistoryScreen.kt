@@ -2,6 +2,7 @@ package com.babytracker.ui.diaper
 
 import com.babytracker.ui.component.EmptyState
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -79,6 +81,16 @@ fun DiaperHistoryScreen(
 
     LaunchedEffect(editState.saved) {
         if (editState.saved) showEditSheet = false
+    }
+
+    val context = LocalContext.current
+    val deleteError by historyViewModel.deleteError.collectAsStateWithLifecycle()
+    val deleteFailedMessage = stringResource(R.string.error_change_not_saved)
+    LaunchedEffect(deleteError) {
+        if (deleteError) {
+            Toast.makeText(context, deleteFailedMessage, Toast.LENGTH_SHORT).show()
+            historyViewModel.onDeleteErrorConsumed()
+        }
     }
 
     if (showEditSheet) {

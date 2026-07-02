@@ -150,6 +150,14 @@ fun VaccineDashboardScreen(
         }
     }
 
+    val writeFailedMessage = stringResource(R.string.error_change_not_saved)
+    LaunchedEffect(state.writeError) {
+        if (state.writeError) {
+            snackbarHostState.showSnackbar(writeFailedMessage)
+            dashboardViewModel.onWriteErrorConsumed()
+        }
+    }
+
     if (showSheet) {
         VaccineSheet(
             state = formState,

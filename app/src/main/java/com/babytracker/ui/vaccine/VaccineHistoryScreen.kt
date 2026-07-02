@@ -102,6 +102,14 @@ fun VaccineHistoryScreen(
         }
     }
 
+    val writeFailedMessage = stringResource(R.string.error_change_not_saved)
+    LaunchedEffect(state.writeError) {
+        if (state.writeError) {
+            snackbarHostState.showSnackbar(writeFailedMessage)
+            historyViewModel.onWriteErrorConsumed()
+        }
+    }
+
     if (showEditSheet) {
         VaccineSheet(
             state = editState,

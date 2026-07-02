@@ -36,6 +36,10 @@ class DiaperHistoryViewModel @Inject constructor(
     private val _pendingDelete = MutableStateFlow<DiaperChange?>(null)
     val pendingDelete: StateFlow<DiaperChange?> = _pendingDelete.asStateFlow()
 
+    // Set when the delete write fails, so the screen can tell the parent the row wasn't removed.
+    private val _deleteError = MutableStateFlow(false)
+    val deleteError: StateFlow<Boolean> = _deleteError.asStateFlow()
+
     fun onDeleteRequest(change: DiaperChange) {
         _pendingDelete.value = change
     }
@@ -48,8 +52,13 @@ class DiaperHistoryViewModel @Inject constructor(
         val change = _pendingDelete.value ?: return
         _pendingDelete.value = null
         viewModelScope.launch {
-            runCatching { deleteDiaperChange(change.id) }
+            runCatching { deleteDiaperChange(change.id) }.onFailure { _deleteError.value = true }
         }
+    }
+
+    /** The screen has shown the delete-failure message; clear the flag. */
+    fun onDeleteErrorConsumed() {
+        _deleteError.value = false
     }
 
     private companion object {
