@@ -15,6 +15,7 @@ import com.babytracker.export.domain.usecase.GeneratePdfReportUseCase
 import com.babytracker.ui.settings.ShareArtifact
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -66,6 +67,7 @@ class DoctorVisitViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val local = MutableStateFlow(DoctorVisitUiState())
+    private var questionAddJob: Job? = null
 
     // Live attached-questions stream for the visit being edited (empty list on the add path).
     private val attachedFlow =
@@ -85,9 +87,11 @@ class DoctorVisitViewModel @Inject constructor(
 
     fun onAddQuestion() {
         val text = local.value.questionDraft.trim()
-        if (text.isEmpty()) return
+        if (text.isEmpty() || local.value.isSaving) return
         local.update { it.copy(questionDraft = "") }
-        viewModelScope.launch {
+        val previousAdd = questionAddJob
+        questionAddJob = viewModelScope.launch {
+            previousAdd?.join()
             val id = addQuestion(text)
             local.update { it.copy(selectedQuestionIds = it.selectedQuestionIds + id) }
         }
@@ -127,10 +131,11 @@ class DoctorVisitViewModel @Inject constructor(
     }
 
     fun onSave() {
-        val s = local.value
-        if (s.isSaving) return
+        if (local.value.isSaving) return
         local.update { it.copy(isSaving = true) }
         viewModelScope.launch {
+            questionAddJob?.join()
+            val s = local.value
             val editingId = s.editingId
             if (editingId == null) {
                 addVisit(s.date, s.providerName, s.notes, s.selectedQuestionIds.toList())
