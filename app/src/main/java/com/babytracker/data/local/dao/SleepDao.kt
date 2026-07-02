@@ -41,9 +41,14 @@ abstract class SleepDao {
     @Query("SELECT * FROM sleep_records ORDER BY start_time ASC")
     abstract suspend fun getAllRecordsOnce(): List<SleepEntity>
 
+    // The extra start_time >= :startMillis - MAX_COMPLETED_SPAN_MS bound lets the start_time
+    // index prune the scan (end_time is unindexed and callers pass end = now, so without it
+    // every range query rescans the full history). ponytail: records longer than 48h fall out
+    // of range queries; index end_time instead if that ceiling ever matters.
     @Query(
         "SELECT * FROM sleep_records " +
             "WHERE end_time IS NOT NULL AND start_time <= :endMillis AND end_time >= :startMillis " +
+            "AND start_time >= :startMillis - $MAX_COMPLETED_SPAN_MS " +
             "ORDER BY start_time ASC",
     )
     abstract suspend fun getCompletedRecordsBetween(startMillis: Long, endMillis: Long): List<SleepEntity>
@@ -75,5 +80,10 @@ abstract class SleepDao {
         val active = getActiveRecordOnce() ?: return false
         markRecordEnded(active.id, endTime)
         return true
+    }
+
+    companion object {
+        /** Longest completed record a range query still finds when it crosses the window start. */
+        const val MAX_COMPLETED_SPAN_MS = 48 * 60 * 60 * 1000L
     }
 }

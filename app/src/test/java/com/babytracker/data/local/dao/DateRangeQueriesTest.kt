@@ -70,4 +70,31 @@ class DateRangeQueriesTest {
         assertEquals(2, result.size)
         assertEquals(listOf(-100L, 400L), result.map { it.startTime })
     }
+
+    // The queries bound the scan with start_time >= start - MAX_COMPLETED_SPAN_MS so the
+    // start_time index prunes instead of rescanning full history. Rows spanning more than
+    // 48h across the window start are deliberately out of range.
+
+    @Test
+    fun `between excludes rows starting more than the max span before the window`() = runTest {
+        val windowStart = 1_000_000_000L
+        // starts just inside the 48h bound, ends inside the window -> INCLUDED
+        db.breastfeedingDao().insertSession(
+            BreastfeedingEntity(
+                startTime = windowStart - BreastfeedingDao.MAX_COMPLETED_SPAN_MS,
+                endTime = windowStart + 10,
+                startingSide = "LEFT",
+            ),
+        )
+        // starts beyond the 48h bound -> excluded even though it ends inside the window
+        db.breastfeedingDao().insertSession(
+            BreastfeedingEntity(
+                startTime = windowStart - BreastfeedingDao.MAX_COMPLETED_SPAN_MS - 1,
+                endTime = windowStart + 20,
+                startingSide = "RIGHT",
+            ),
+        )
+        val result = db.breastfeedingDao().getCompletedSessionsBetween(windowStart, windowStart + 1000)
+        assertEquals(listOf(windowStart - BreastfeedingDao.MAX_COMPLETED_SPAN_MS), result.map { it.startTime })
+    }
 }
