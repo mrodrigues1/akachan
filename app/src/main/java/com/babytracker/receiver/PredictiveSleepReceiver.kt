@@ -8,6 +8,8 @@ import com.babytracker.domain.model.RecommendationLifecycle
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.usecase.sleep.UpdateRecommendationLifecycleUseCase
+import com.babytracker.util.FireDecision
+import com.babytracker.util.decideFire
 import com.babytracker.util.showPredictiveSleepReminder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -16,7 +18,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
-import java.time.ZoneId
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -40,12 +41,6 @@ class PredictiveSleepReceiver : BroadcastReceiver() {
             return
         }
         val recommendationId = intent.getLongExtra(EXTRA_RECOMMENDATION_ID, 0L)
-        val nowMs = System.currentTimeMillis()
-        val staleAfterMs = bestEstimateMs + MAX_STALE_MINUTES * 60_000L
-        if (nowMs > staleAfterMs) {
-            Log.i(TAG, "Prediction stale by ${(nowMs - bestEstimateMs) / 60_000L}m; dropping fire")
-            return
-        }
         // Re-read feature flag and quiet hours at fire time to handle inexact-alarm delivery
         // that may land inside a quiet window scheduled after the alarm was set.
         val result = goAsync()
@@ -58,14 +53,22 @@ class PredictiveSleepReceiver : BroadcastReceiver() {
                 }
                 val quietStart = settingsRepository.getQuietHoursStartMinute().first()
                 val quietEnd = settingsRepository.getQuietHoursEndMinute().first()
-                if (isInsideQuietHours(nowMs, quietStart, quietEnd)) {
-                    Log.d(TAG, "Fire time inside quiet hours; suppressing notification")
-                    return@launch
-                }
-                showPredictiveSleepReminder(context = context, bestEstimateMs = bestEstimateMs)
-                if (recommendationId > 0L) {
-                    runCatching {
-                        updateRecommendationLifecycle(recommendationId, RecommendationLifecycle.FIRED)
+                val decision = decideFire(
+                    now = Instant.now(),
+                    bestEstimate = Instant.ofEpochMilli(bestEstimateMs),
+                    quietStartMinute = quietStart,
+                    quietEndMinute = quietEnd,
+                )
+                when (decision) {
+                    FireDecision.Stale -> Log.i(TAG, "Prediction stale; dropping fire")
+                    FireDecision.QuietHours -> Log.d(TAG, "Fire time inside quiet hours; suppressing notification")
+                    FireDecision.Fire -> {
+                        showPredictiveSleepReminder(context = context, bestEstimateMs = bestEstimateMs)
+                        if (recommendationId > 0L) {
+                            runCatching {
+                                updateRecommendationLifecycle(recommendationId, RecommendationLifecycle.FIRED)
+                            }
+                        }
                     }
                 }
             } catch (e: SecurityException) {
@@ -81,20 +84,6 @@ class PredictiveSleepReceiver : BroadcastReceiver() {
         const val EXTRA_BEST_ESTIMATE_MS = "best_estimate_ms"
         const val EXTRA_RECOMMENDATION_ID = "recommendation_id"
         const val REQUEST_CODE_PREDICTIVE_SLEEP = 1005
-        internal const val MAX_STALE_MINUTES = 20L
         private const val TAG = "PredictiveSleepRx"
-
-        fun isInsideQuietHours(nowMs: Long, quietStartMinute: Int, quietEndMinute: Int): Boolean {
-            if (quietStartMinute == quietEndMinute) return false
-            val minuteOfDay = Instant.ofEpochMilli(nowMs)
-                .atZone(ZoneId.systemDefault())
-                .toLocalTime()
-                .let { it.hour * 60 + it.minute }
-            return if (quietStartMinute < quietEndMinute) {
-                minuteOfDay in quietStartMinute until quietEndMinute
-            } else {
-                minuteOfDay >= quietStartMinute || minuteOfDay < quietEndMinute
-            }
-        }
     }
 }

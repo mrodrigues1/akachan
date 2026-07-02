@@ -11,12 +11,13 @@ import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.domain.usecase.sleep.SleepRecommendationUseCases
+import com.babytracker.util.ScheduleDecision
+import com.babytracker.util.decideSchedule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
-import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import javax.inject.Inject
@@ -130,29 +131,36 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
         activeRecommendationId = recId
         activeAnchorId = anchorId
 
-        val triggerAt = window.bestEstimate.minus(Duration.ofMinutes(leadMinutes.toLong()))
-        if (triggerAt.isBefore(Instant.now())) {
-            clearScheduledWindowState()
-            scheduler.cancelPredictiveReminder()
-            return
-        }
-        if (isInQuietHours(triggerAt, quietStartMinute, quietEndMinute, ZoneId.systemDefault())) {
-            if (!quietHoursFeedbackCreated) {
-                recommendation.createFeedback(recId, RecommendationOutcome.QUIET_HOURS_SUPPRESSED)
-                quietHoursFeedbackCreated = true
+        val decision = decideSchedule(
+            now = Instant.now(),
+            bestEstimate = window.bestEstimate,
+            leadMinutes = leadMinutes,
+            quietStartMinute = quietStartMinute,
+            quietEndMinute = quietEndMinute,
+        )
+        when (decision) {
+            ScheduleDecision.PastTrigger -> {
+                clearScheduledWindowState()
+                scheduler.cancelPredictiveReminder()
             }
-            clearScheduledWindowState()
-            scheduler.cancelPredictiveReminder()
-            return
+            ScheduleDecision.QuietHours -> {
+                if (!quietHoursFeedbackCreated) {
+                    recommendation.createFeedback(recId, RecommendationOutcome.QUIET_HOURS_SUPPRESSED)
+                    quietHoursFeedbackCreated = true
+                }
+                clearScheduledWindowState()
+                scheduler.cancelPredictiveReminder()
+            }
+            is ScheduleDecision.Schedule -> {
+                scheduledWindowStart = window.windowStart
+                scheduledWindowEnd = window.windowEnd
+                scheduledBestEstimate = window.bestEstimate
+                quietHoursFeedbackCreated = false
+
+                scheduler.schedulePredictiveReminderAt(decision.triggerAt, window.bestEstimate, recId)
+                recommendation.updateLifecycle(recId, RecommendationLifecycle.SCHEDULED)
+            }
         }
-
-        scheduledWindowStart = window.windowStart
-        scheduledWindowEnd = window.windowEnd
-        scheduledBestEstimate = window.bestEstimate
-        quietHoursFeedbackCreated = false
-
-        scheduler.schedulePredictiveReminderAt(triggerAt, window.bestEstimate, recId)
-        recommendation.updateLifecycle(recId, RecommendationLifecycle.SCHEDULED)
     }
 
     private suspend fun supersedeCurrent() {

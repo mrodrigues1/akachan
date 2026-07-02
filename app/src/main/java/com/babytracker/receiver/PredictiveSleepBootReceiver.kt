@@ -13,6 +13,8 @@ import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.manager.PredictiveSleepScheduler
 import com.babytracker.util.createPredictiveSleepNotificationChannel
 import com.babytracker.util.goAsyncWithTimeout
+import com.babytracker.util.isInQuietHours
+import com.babytracker.util.isPredictionStale
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import java.time.Duration
@@ -49,14 +51,13 @@ class PredictiveSleepBootReceiver : BroadcastReceiver() {
             return
         }
         val now = Instant.now()
-        val staleAfter = window.bestEstimate.plusSeconds(PredictiveSleepReceiver.MAX_STALE_MINUTES * 60)
-        if (now.isAfter(staleAfter)) {
+        if (isPredictionStale(now, window.bestEstimate)) {
             scheduler.cancelPredictiveReminder()
             return
         }
         val triggerAt = window.bestEstimate.minus(Duration.ofMinutes(leadMinutes.toLong()))
         val effectiveTrigger = if (triggerAt.isBefore(now)) now.plusSeconds(IMMEDIATE_DELAY_SECONDS) else triggerAt
-        if (PredictiveSleepReceiver.isInsideQuietHours(effectiveTrigger.toEpochMilli(), quietStart, quietEnd)) {
+        if (isInQuietHours(effectiveTrigger, quietStart, quietEnd)) {
             scheduler.cancelPredictiveReminder()
             return
         }

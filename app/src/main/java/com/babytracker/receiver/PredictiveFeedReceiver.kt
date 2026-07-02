@@ -7,10 +7,15 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.manager.PredictiveFeedScheduler
+import com.babytracker.util.FireDecision
 import com.babytracker.util.NotificationHelper
+import com.babytracker.util.decideFire
+import com.babytracker.util.goAsyncWithTimeout
 import com.babytracker.util.showPredictiveReminder
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
 import java.time.Instant
 import javax.inject.Inject
 
@@ -18,6 +23,7 @@ import javax.inject.Inject
 class PredictiveFeedReceiver : BroadcastReceiver() {
 
     @Inject lateinit var scheduler: PredictiveFeedScheduler
+    @Inject lateinit var settingsRepository: SettingsRepository
 
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
@@ -33,20 +39,30 @@ class PredictiveFeedReceiver : BroadcastReceiver() {
             Log.w(TAG, "Missing predictedAt; dropping fire")
             return
         }
-        val nowMs = System.currentTimeMillis()
-        val staleAfterMs = predictedAtEpochMs + MAX_STALE_MINUTES * 60_000L
-        if (nowMs > staleAfterMs) {
-            Log.i(TAG, "Prediction stale by ${(nowMs - predictedAtEpochMs) / 60_000L}m; dropping fire")
-            return
-        }
-        try {
-            showPredictiveReminder(
-                context = context,
-                predictedAtEpochMs = predictedAtEpochMs,
-                snoozePendingIntent = buildSnoozePendingIntent(context, predictedAtEpochMs),
+        // Re-read quiet hours at fire time, matching PredictiveSleepReceiver: inexact-alarm
+        // delivery may land inside a quiet window configured after the alarm was set.
+        goAsyncWithTimeout(TAG) {
+            val quietStart = settingsRepository.getQuietHoursStartMinute().first()
+            val quietEnd = settingsRepository.getQuietHoursEndMinute().first()
+            val decision = decideFire(
+                now = Instant.now(),
+                bestEstimate = Instant.ofEpochMilli(predictedAtEpochMs),
+                quietStartMinute = quietStart,
+                quietEndMinute = quietEnd,
             )
-        } catch (e: SecurityException) {
-            Log.w(TAG, "POST_NOTIFICATIONS denied; skipping reminder", e)
+            when (decision) {
+                FireDecision.Stale -> Log.i(TAG, "Prediction stale; dropping fire")
+                FireDecision.QuietHours -> Log.d(TAG, "Fire time inside quiet hours; suppressing notification")
+                FireDecision.Fire -> try {
+                    showPredictiveReminder(
+                        context = context,
+                        predictedAtEpochMs = predictedAtEpochMs,
+                        snoozePendingIntent = buildSnoozePendingIntent(context, predictedAtEpochMs),
+                    )
+                } catch (e: SecurityException) {
+                    Log.w(TAG, "POST_NOTIFICATIONS denied; skipping reminder", e)
+                }
+            }
         }
     }
 
@@ -80,7 +96,6 @@ class PredictiveFeedReceiver : BroadcastReceiver() {
         const val REQUEST_CODE_PREDICTIVE = 1003
         const val REQUEST_CODE_SNOOZE = 1004
         private const val SNOOZE_MINUTES = 15L
-        private const val MAX_STALE_MINUTES = 20L
         private const val TAG = "PredictiveFeedRx"
     }
 }
