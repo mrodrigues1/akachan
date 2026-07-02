@@ -11,6 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.SleepPredictionState
+import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.ui.sleep.SleepPredictionCard
 import com.babytracker.ui.theme.BabyTrackerTheme
@@ -32,6 +33,7 @@ class HomeSleepPredictionCardTest {
             windowStart = Instant.parse("2024-01-01T14:20:00Z"),
             windowEnd = Instant.parse("2024-01-01T14:50:00Z"),
             bestEstimate = Instant.parse("2024-01-01T14:35:00Z"),
+            sleepType = SleepType.NAP,
             confidence = confidence,
             reasons = emptyList(),
             feedDue = false,

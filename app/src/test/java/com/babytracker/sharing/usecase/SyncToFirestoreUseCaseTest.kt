@@ -194,6 +194,7 @@ class SyncToFirestoreUseCaseTest {
                     windowStart = Instant.parse("2026-05-16T11:00:00Z"),
                     windowEnd = Instant.parse("2026-05-16T11:30:00Z"),
                     bestEstimate = Instant.parse("2026-05-16T11:15:00Z"),
+                    sleepType = SleepType.NAP,
                     confidence = Confidence.HIGH,
                     reasons = listOf(SleepReason.Disruption),
                     feedDue = false,

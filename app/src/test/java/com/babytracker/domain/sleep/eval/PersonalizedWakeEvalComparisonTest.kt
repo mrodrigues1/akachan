@@ -211,6 +211,7 @@ class PersonalizedWakeEvalComparisonTest {
                 windowStart = windowStart,
                 windowEnd = windowEnd,
                 bestEstimate = bestEstimate,
+                sleepType = SleepType.NAP,
                 confidence = confidence,
                 reasons = emptyList(),
                 feedDue = false,

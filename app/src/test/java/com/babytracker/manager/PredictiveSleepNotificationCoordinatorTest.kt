@@ -6,6 +6,7 @@ import com.babytracker.domain.model.EvidenceProgress
 import com.babytracker.domain.model.RecommendationLifecycle
 import com.babytracker.domain.model.RecommendationOutcome
 import com.babytracker.domain.model.SleepPredictionState
+import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SettingsRepository
@@ -36,6 +37,7 @@ class PredictiveSleepNotificationCoordinatorTest {
                 windowStart = bestEstimate.minusSeconds(1800),
                 windowEnd = bestEstimate.plusSeconds(1800),
                 bestEstimate = bestEstimate,
+                sleepType = SleepType.NAP,
                 confidence = Confidence.MEDIUM,
                 reasons = emptyList(),
                 feedDue = false,
@@ -233,7 +235,7 @@ class PredictiveSleepNotificationCoordinatorTest {
     @Test
     fun `persists recommendation when Window state received and enabled`() = runTest {
         val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
-        coEvery { persist(any(), any(), any()) } returns 1L
+        coEvery { persist(any(), any()) } returns 1L
         val bestEstimate = Instant.now().plusSeconds(3600)
 
         val coordinator = buildCoordinator(
@@ -249,13 +251,13 @@ class PredictiveSleepNotificationCoordinatorTest {
         coordinator.start()
         advanceTimeBy(300)
 
-        coVerify(atLeast = 1) { persist(any(), any(), any()) }
+        coVerify(atLeast = 1) { persist(any(), any()) }
     }
 
     @Test
     fun `writes SCHEDULED lifecycle when alarm is set`() = runTest {
         val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
-        coEvery { persist(any(), any(), any()) } returns 42L
+        coEvery { persist(any(), any()) } returns 42L
         val updateLifecycle = mockk<SleepRecommendationRepository>(relaxed = true)
         val bestEstimate = Instant.now().plusSeconds(3600)
 
@@ -278,7 +280,7 @@ class PredictiveSleepNotificationCoordinatorTest {
     @Test
     fun `writes SUPERSEDED lifecycle when feature is disabled`() = runTest {
         val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
-        coEvery { persist(any(), any(), any()) } returns 55L
+        coEvery { persist(any(), any()) } returns 55L
         val updateLifecycle = mockk<SleepRecommendationRepository>(relaxed = true)
         val bestEstimate = Instant.now().plusSeconds(3600)
         val enabled = MutableStateFlow(true)
@@ -304,7 +306,7 @@ class PredictiveSleepNotificationCoordinatorTest {
     @Test
     fun `creates QUIET_HOURS_SUPPRESSED feedback when trigger falls in quiet hours`() = runTest {
         val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
-        coEvery { persist(any(), any(), any()) } returns 77L
+        coEvery { persist(any(), any()) } returns 77L
         val createFeedback = mockk<CreateSleepRecommendationFeedbackUseCase>(relaxed = true)
         // bestEstimate = now + 2h, lead = 60min → triggerAt = now + 1h (future, in full-day quiet hours)
         val bestEstimate = Instant.now().plusSeconds(7200)
@@ -330,7 +332,7 @@ class PredictiveSleepNotificationCoordinatorTest {
     @Test
     fun `quiet-hours suppressed feedback is created only once per recommendation across repeated reconciles`() = runTest {
         val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
-        coEvery { persist(any(), any(), any()) } returns 88L
+        coEvery { persist(any(), any()) } returns 88L
         val createFeedback = mockk<CreateSleepRecommendationFeedbackUseCase>(relaxed = true)
         val bestEstimate = Instant.now().plusSeconds(7200)
         val stateFlow = MutableStateFlow<SleepPredictionState>(windowState(bestEstimate))
@@ -358,7 +360,7 @@ class PredictiveSleepNotificationCoordinatorTest {
     @Test
     fun `sleep completion does not create feedback when recommendation was suppressed by quiet hours`() = runTest {
         val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
-        coEvery { persist(any(), any(), any()) } returns 99L
+        coEvery { persist(any(), any()) } returns 99L
         val createFeedback = mockk<CreateSleepRecommendationFeedbackUseCase>(relaxed = true)
         val bestEstimate = Instant.now().plusSeconds(7200)
         val completedRecord = mockk<com.babytracker.domain.model.SleepRecord> {
@@ -398,7 +400,7 @@ class PredictiveSleepNotificationCoordinatorTest {
         // Regression: scheduled window state must be cleared when alarm is cancelled due to past-trigger,
         // otherwise sleep-completion collector creates false ACTED feedback.
         val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
-        coEvery { persist(any(), any(), any()) } returns 10L
+        coEvery { persist(any(), any()) } returns 10L
         val createFeedback = mockk<CreateSleepRecommendationFeedbackUseCase>(relaxed = true)
         val bestEstimate = Instant.now().plusSeconds(3600)
         val completedRecord = mockk<com.babytracker.domain.model.SleepRecord> {

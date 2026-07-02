@@ -10,6 +10,7 @@ import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepReason
+import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.SleepWindow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -27,6 +28,7 @@ class DomainToSnapshotTest {
                 windowStart = Instant.ofEpochMilli(1_000L),
                 windowEnd = Instant.ofEpochMilli(2_000L),
                 bestEstimate = Instant.ofEpochMilli(1_500L),
+                sleepType = SleepType.NAP,
                 confidence = Confidence.MEDIUM,
                 reasons = listOf(SleepReason.Disruption, SleepReason.CircadianSlot),
                 feedDue = true,

@@ -119,6 +119,7 @@ object SleepWindowPredictor {
                 windowStart = windowStart,
                 windowEnd = windowEnd,
                 bestEstimate = adjustedBestEstimate,
+                sleepType = nextType,
                 confidence = confidence,
                 reasons = buildReasons(qualityC, ageInWeeks, nextType, typeIntervalCount) +
                     listOfNotNull(disruptionReason) + factors.mapNotNull { it.reason },

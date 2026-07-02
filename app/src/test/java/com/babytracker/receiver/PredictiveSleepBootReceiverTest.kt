@@ -3,6 +3,7 @@ package com.babytracker.receiver
 import android.content.Context
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.SleepPredictionState
+import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRecommendationRepository
@@ -67,6 +68,7 @@ class PredictiveSleepBootReceiverTest {
                 windowStart = bestEstimate.minusSeconds(900),
                 windowEnd = bestEstimate.plusSeconds(900),
                 bestEstimate = bestEstimate,
+                sleepType = SleepType.NAP,
                 confidence = Confidence.HIGH,
                 reasons = emptyList(),
                 feedDue = false,
@@ -108,6 +110,7 @@ class PredictiveSleepBootReceiverTest {
                 windowStart = bestEstimate.minusSeconds(900),
                 windowEnd = bestEstimate.plusSeconds(900),
                 bestEstimate = bestEstimate,
+                sleepType = SleepType.NAP,
                 confidence = Confidence.HIGH,
                 reasons = emptyList(),
                 feedDue = false,
@@ -130,6 +133,7 @@ class PredictiveSleepBootReceiverTest {
                 windowStart = bestEstimate.minusSeconds(900),
                 windowEnd = bestEstimate.plusSeconds(900),
                 bestEstimate = bestEstimate,
+                sleepType = SleepType.NAP,
                 confidence = Confidence.HIGH,
                 reasons = emptyList(),
                 feedDue = false,
@@ -153,6 +157,7 @@ class PredictiveSleepBootReceiverTest {
                 windowStart = bestEstimate.minusSeconds(900),
                 windowEnd = bestEstimate.plusSeconds(900),
                 bestEstimate = bestEstimate,
+                sleepType = SleepType.NAP,
                 confidence = Confidence.HIGH,
                 reasons = emptyList(),
                 feedDue = false,
@@ -184,6 +189,7 @@ class PredictiveSleepBootReceiverTest {
                 windowStart = bestEstimate.minusSeconds(900),
                 windowEnd = bestEstimate.plusSeconds(900),
                 bestEstimate = bestEstimate,
+                sleepType = SleepType.NAP,
                 confidence = Confidence.HIGH,
                 reasons = emptyList(),
                 feedDue = false,
@@ -216,6 +222,7 @@ class PredictiveSleepBootReceiverTest {
                 windowStart = bestEstimate.minusSeconds(900),
                 windowEnd = bestEstimate.plusSeconds(900),
                 bestEstimate = bestEstimate,
+                sleepType = SleepType.NAP,
                 confidence = Confidence.HIGH,
                 reasons = emptyList(),
                 feedDue = false,

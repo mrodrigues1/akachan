@@ -15,8 +15,8 @@ class PersistSleepRecommendationUseCase @Inject constructor(
     suspend operator fun invoke(
         anchorSleepId: Long,
         window: SleepWindow,
-        recommendationType: String,
     ): Long {
+        val recommendationType = window.sleepType.name
         val insertedId = repository.insertRecommendation(
             NewSleepRecommendation(
                 anchorSleepId = anchorSleepId,

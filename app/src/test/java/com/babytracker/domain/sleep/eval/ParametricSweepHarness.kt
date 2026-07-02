@@ -116,6 +116,7 @@ private fun sweepBuildWindow(
             windowStart = windowStart,
             windowEnd = windowEnd,
             bestEstimate = adjusted,
+            sleepType = SleepType.NAP,
             confidence = Confidence.MEDIUM,
             reasons = emptyList(),
             feedDue = false,

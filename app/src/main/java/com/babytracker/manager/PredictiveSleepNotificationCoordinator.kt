@@ -19,7 +19,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import java.time.Instant
-import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -125,8 +124,7 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
             quietHoursFeedbackCreated = false
         }
 
-        val recommendationType = deriveRecommendationType(window.bestEstimate)
-        val recId = recommendation.persist(anchorId, window, recommendationType)
+        val recId = recommendation.persist(anchorId, window)
 
         activeRecommendationId = recId
         activeAnchorId = anchorId
@@ -178,9 +176,6 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
         scheduledWindowEnd = null
         scheduledBestEstimate = null
     }
-
-    private fun deriveRecommendationType(bestEstimate: Instant): String =
-        if (bestEstimate.atZone(ZoneId.systemDefault()).hour < 18) "NAP" else "NIGHT_SLEEP"
 
     private data class ReconcileParams(
         val state: SleepPredictionState,

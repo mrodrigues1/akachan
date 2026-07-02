@@ -3,6 +3,7 @@ package com.babytracker.domain.usecase.sleep
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.RecommendationLifecycle
 import com.babytracker.domain.model.SleepPredictionTuning
+import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.domain.repository.NewSleepRecommendation
 import com.babytracker.domain.repository.SleepRecommendationRepository
@@ -28,6 +29,7 @@ class PersistSleepRecommendationUseCaseTest {
         windowStart = fixedNow.plusSeconds(1800),
         windowEnd = fixedNow.plusSeconds(5400),
         bestEstimate = fixedNow.plusSeconds(3600),
+        sleepType = SleepType.NAP,
         confidence = Confidence.MEDIUM,
         reasons = emptyList(),
         feedDue = false,
@@ -43,7 +45,7 @@ class PersistSleepRecommendationUseCaseTest {
     fun `returns new row ID when insert succeeds`() = runTest {
         coEvery { repository.insertRecommendation(any()) } returns 42L
 
-        val id = useCase(anchorSleepId = 7L, window = window, recommendationType = "NAP")
+        val id = useCase(anchorSleepId = 7L, window = window)
 
         assertEquals(42L, id)
     }
@@ -55,10 +57,20 @@ class PersistSleepRecommendationUseCaseTest {
             repository.getIdByAnchorTypeVersion(7L, "NAP", SleepPredictionTuning.ALGORITHM_VERSION)
         } returns 99L
 
-        val id = useCase(anchorSleepId = 7L, window = window, recommendationType = "NAP")
+        val id = useCase(anchorSleepId = 7L, window = window)
 
         assertEquals(99L, id)
         coVerify { repository.getIdByAnchorTypeVersion(7L, "NAP", SleepPredictionTuning.ALGORITHM_VERSION) }
+    }
+
+    @Test
+    fun `inserts with the window's own sleep type`() = runTest {
+        val recSlot = slot<NewSleepRecommendation>()
+        coEvery { repository.insertRecommendation(capture(recSlot)) } returns 1L
+
+        useCase(anchorSleepId = 7L, window = window.copy(sleepType = SleepType.NIGHT_SLEEP))
+
+        assertEquals("NIGHT_SLEEP", recSlot.captured.type)
     }
 
     @Test
@@ -66,7 +78,7 @@ class PersistSleepRecommendationUseCaseTest {
         val recSlot = slot<NewSleepRecommendation>()
         coEvery { repository.insertRecommendation(capture(recSlot)) } returns 1L
 
-        useCase(anchorSleepId = 7L, window = window, recommendationType = "NAP")
+        useCase(anchorSleepId = 7L, window = window)
 
         assertEquals(RecommendationLifecycle.GENERATED, recSlot.captured.lifecycle)
     }
@@ -76,7 +88,7 @@ class PersistSleepRecommendationUseCaseTest {
         val recSlot = slot<NewSleepRecommendation>()
         coEvery { repository.insertRecommendation(capture(recSlot)) } returns 1L
 
-        useCase(anchorSleepId = 7L, window = window, recommendationType = "NAP")
+        useCase(anchorSleepId = 7L, window = window)
 
         assertEquals(SleepPredictionTuning.ALGORITHM_VERSION, recSlot.captured.algorithmVersion)
     }
@@ -86,7 +98,7 @@ class PersistSleepRecommendationUseCaseTest {
         val recSlot = slot<NewSleepRecommendation>()
         coEvery { repository.insertRecommendation(capture(recSlot)) } returns 1L
 
-        useCase(anchorSleepId = 7L, window = window, recommendationType = "NAP")
+        useCase(anchorSleepId = 7L, window = window)
 
         assertEquals(window.windowStart.toEpochMilli(), recSlot.captured.windowStart)
         assertEquals(window.bestEstimate.toEpochMilli(), recSlot.captured.bestEstimate)
