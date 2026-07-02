@@ -11,6 +11,7 @@ import com.babytracker.domain.repository.SleepRecommendationSnapshot
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.manager.PredictiveSleepScheduler
+import com.babytracker.util.PREDICTION_MAX_STALE_MINUTES
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -101,7 +102,7 @@ class PredictiveSleepBootReceiverTest {
 
     @Test
     fun `cancels when window is stale (past bestEstimate plus tolerance)`() = runTest {
-        val bestEstimate = Instant.now().minusSeconds(PredictiveSleepReceiver.MAX_STALE_MINUTES * 60 + 1)
+        val bestEstimate = Instant.now().minusSeconds(PREDICTION_MAX_STALE_MINUTES * 60 + 1)
         val window = SleepPredictionState.Window(
             SleepWindow(
                 windowStart = bestEstimate.minusSeconds(900),

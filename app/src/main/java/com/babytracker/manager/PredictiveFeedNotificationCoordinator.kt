@@ -7,32 +7,16 @@ import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.FeedSettingsRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
+import com.babytracker.util.ScheduleDecision
+import com.babytracker.util.decideSchedule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
-import java.time.Duration
 import java.time.Instant
-import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
-
-internal fun isInQuietHours(
-    instant: Instant,
-    quietStartMinute: Int,
-    quietEndMinute: Int,
-    zone: ZoneId = ZoneId.systemDefault(),
-): Boolean {
-    if (quietStartMinute == quietEndMinute) return false
-    val localTime = instant.atZone(zone).toLocalTime()
-    val minuteOfDay = localTime.hour * 60 + localTime.minute
-    return if (quietStartMinute < quietEndMinute) {
-        minuteOfDay in quietStartMinute until quietEndMinute
-    } else {
-        minuteOfDay >= quietStartMinute || minuteOfDay < quietEndMinute
-    }
-}
 
 @Singleton
 class PredictiveFeedNotificationCoordinator @Inject constructor(
@@ -86,16 +70,19 @@ class PredictiveFeedNotificationCoordinator @Inject constructor(
             scheduler.cancelPredictiveReminder()
             return
         }
-        val triggerAt = prediction.predictedAt.minus(Duration.ofMinutes(leadMinutes.toLong()))
-        if (triggerAt.isBefore(Instant.now())) {
-            scheduler.cancelPredictiveReminder()
-            return
+        val decision = decideSchedule(
+            now = Instant.now(),
+            bestEstimate = prediction.predictedAt,
+            leadMinutes = leadMinutes,
+            quietStartMinute = quietStartMinute,
+            quietEndMinute = quietEndMinute,
+        )
+        when (decision) {
+            is ScheduleDecision.Schedule ->
+                scheduler.schedulePredictiveReminderAt(decision.triggerAt, prediction.predictedAt)
+            ScheduleDecision.PastTrigger, ScheduleDecision.QuietHours ->
+                scheduler.cancelPredictiveReminder()
         }
-        if (isInQuietHours(triggerAt, quietStartMinute, quietEndMinute, ZoneId.systemDefault())) {
-            scheduler.cancelPredictiveReminder()
-            return
-        }
-        scheduler.schedulePredictiveReminderAt(triggerAt, prediction.predictedAt)
     }
 
     private data class ReconcileParams(
