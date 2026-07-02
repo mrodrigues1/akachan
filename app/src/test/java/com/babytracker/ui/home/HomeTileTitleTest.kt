@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import com.babytracker.ui.theme.BabyTrackerTheme
+import java.io.File
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -57,6 +58,20 @@ class HomeTileTitleTest {
 
         val result = layoutResultFor(subtitle)
         assertFalse(result.hasVisualOverflow)
+    }
+
+    @Test
+    fun `feeding prediction subtitle has no line limits`() {
+        val source = sequenceOf(
+            File("src/main/java/com/babytracker/ui/home/HomeScreen.kt"),
+            File("app/src/main/java/com/babytracker/ui/home/HomeScreen.kt"),
+        ).first(File::exists).readText()
+        val subtitle = source
+            .substringAfter("internal fun FeedingPredictionSubtitle(")
+            .substringBefore("internal fun PumpingHomeCard(")
+
+        assertFalse(subtitle.contains("maxLines"))
+        assertFalse(subtitle.contains("TextOverflow.Ellipsis"))
     }
 
     private fun setTile(
