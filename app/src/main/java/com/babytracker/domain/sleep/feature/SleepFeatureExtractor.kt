@@ -79,9 +79,9 @@ class SleepFeatureExtractor(
             wakeIntervalIqrMillis = iqr(wakeIntervals),
             sleepLast24hMillis = sumOverlap(completed, nowMillis - Duration.ofHours(24).toMillis(), nowMillis),
             napCountToday = completed.count {
-                it.sleepType == SleepType.NAP && Instant.ofEpochMilli(it.startMillis).atZone(zoneId).toLocalDate() == today
+                it.sleepType == SleepType.NAP && Instant.ofEpochMilli(it.startMillis).atZone(it.zone()).toLocalDate() == today
             },
-            medianBedtimeMinuteOfDay = medianMinuteOfDay(nightSleeps.map { it.startMillis }),
+            medianBedtimeMinuteOfDay = circularMedian(nightSleeps.map { startMinuteOfDay(it) }),
             napWakeIntervalCount = napIntervals.size,
             napWakeP25Millis = napQuartiles?.first,
             napWakeP50Millis = napQuartiles?.second ?: median(napIntervals),
@@ -106,7 +106,7 @@ class SleepFeatureExtractor(
         val lookbackStartMillis = nowMillis - Duration.ofDays(SleepPredictionTuning.LOOKBACK_DAYS).toMillis()
         val localDayCoverage = possibleIntervals
             .filter { it.isCompleted && it.endMillis!! >= lookbackStartMillis }
-            .map { Instant.ofEpochMilli(it.startMillis).atZone(zoneId).toLocalDate() }
+            .map { Instant.ofEpochMilli(it.startMillis).atZone(it.zone()).toLocalDate() }
             .toSet()
             .size
         val invalidRecordRate = if (rawRecordCount > 0) {
@@ -197,11 +197,13 @@ class SleepFeatureExtractor(
             (overlapEnd - overlapStart).coerceAtLeast(0L)
         }
 
-    private fun medianMinuteOfDay(timesMillis: List<Long>): Int? =
-        circularMedian(timesMillis.map { minuteOfDay(it) })
+    // Bucket each record by the zone it was logged in (falling back to the current zone) so
+    // records from another timezone don't skew local-date/minute-of-day stats (AKACHAN-306).
+    private fun SleepInterval.zone(): ZoneId =
+        timezoneId?.let { runCatching { ZoneId.of(it) }.getOrNull() } ?: zoneId
 
-    private fun minuteOfDay(epochMillis: Long): Int {
-        val time = Instant.ofEpochMilli(epochMillis).atZone(zoneId).toLocalTime()
+    private fun startMinuteOfDay(interval: SleepInterval): Int {
+        val time = Instant.ofEpochMilli(interval.startMillis).atZone(interval.zone()).toLocalTime()
         return time.hour * 60 + time.minute
     }
 
@@ -261,8 +263,8 @@ class SleepFeatureExtractor(
         }
         val observedDays = inLookback
             .flatMap { interval ->
-                val start = Instant.ofEpochMilli(interval.startMillis).atZone(zoneId).toLocalDate()
-                val end = Instant.ofEpochMilli(interval.endMillis!!).atZone(zoneId).toLocalDate()
+                val start = Instant.ofEpochMilli(interval.startMillis).atZone(interval.zone()).toLocalDate()
+                val end = Instant.ofEpochMilli(interval.endMillis!!).atZone(interval.zone()).toLocalDate()
                 generateSequence(start) { if (it < end) it.plusDays(1) else null }.toList()
             }
             .toSet()

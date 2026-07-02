@@ -30,6 +30,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
+import javax.inject.Provider
 
 class PredictSleepWindowUseCase @Inject constructor(
     private val sleepRepository: SleepRepository,
@@ -37,7 +38,9 @@ class PredictSleepWindowUseCase @Inject constructor(
     private val babyRepository: BabyRepository,
     private val babyEventRepository: BabyEventRepository,
     private val clock: Clock,
-    private val zoneId: ZoneId,
+    // Provider so each prediction re-reads the device zone; a captured ZoneId would freeze the
+    // zone for the life of the (singleton-held) use case across travel/DST changes.
+    private val zoneIdProvider: Provider<ZoneId>,
 ) {
     operator fun invoke(): Flow<SleepPredictionState> = flow {
         // Query-level cutoff, frozen at flow start. It only ever trails the real lookback bound, so
@@ -96,6 +99,7 @@ class PredictSleepWindowUseCase @Inject constructor(
         recentEvents: List<BabyEvent>,
         now: Instant,
     ): SleepPredictionState {
+        val zoneId = zoneIdProvider.get()
         val today = now.atZone(zoneId).toLocalDate()
         val ageInWeeks = ChronoUnit.WEEKS.between(baby.birthDate, today).toInt()
         if (ageInWeeks < SleepPredictionTuning.CUE_LED_MAX_AGE_WEEKS) return SleepPredictionState.CueLed

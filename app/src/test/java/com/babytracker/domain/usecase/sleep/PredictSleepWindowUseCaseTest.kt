@@ -53,7 +53,7 @@ class PredictSleepWindowUseCaseTest {
         babyEventRepository = mockk()
         every { babyEventRepository.getEventsSince(any()) } returns flowOf(emptyList())
         useCase = PredictSleepWindowUseCase(
-            sleepRepository, breastfeedingRepository, babyRepository, babyEventRepository, fixedClock, fixedZoneId,
+            sleepRepository, breastfeedingRepository, babyRepository, babyEventRepository, fixedClock, { fixedZoneId },
         )
     }
 
@@ -376,7 +376,7 @@ class PredictSleepWindowUseCaseTest {
                 babyRepository,
                 babyEventRepository,
                 Clock.fixed(overdueNow, fixedZoneId),
-                fixedZoneId,
+                { fixedZoneId },
             )
 
             every { sleepRepository.getAllRecords() } returns flowOf(sufficientSleepRecords())

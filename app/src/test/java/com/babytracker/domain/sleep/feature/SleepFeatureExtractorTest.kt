@@ -287,6 +287,42 @@ class SleepFeatureExtractorTest {
     }
 
     @Test
+    fun `computeMetrics buckets records by their own timezoneId over the injected zone`() {
+        // 2024-06-14T16:00Z is already 2024-06-15 in Tokyo: today's nap by record zone, yesterday's by UTC.
+        val interval = SleepInterval.from(
+            Instant.parse("2024-06-14T16:00:00Z").toEpochMilli(),
+            Instant.parse("2024-06-14T17:00:00Z").toEpochMilli(),
+            SleepType.NAP,
+            timezoneId = "Asia/Tokyo",
+        )!!
+
+        val metrics = extractor.computeMetrics(listOf(interval))
+
+        assertEquals(1, metrics.napCountToday)
+    }
+
+    @Test
+    fun `medianBedtimeMinuteOfDay uses record timezoneId and falls back to injected zone when invalid`() {
+        val tokyoBedtime = SleepInterval.from(
+            Instant.parse("2024-06-13T20:00:00Z").toEpochMilli(),
+            Instant.parse("2024-06-14T04:00:00Z").toEpochMilli(),
+            SleepType.NIGHT_SLEEP,
+            timezoneId = "Asia/Tokyo",
+        )!!
+        val invalidTzBedtime = SleepInterval.from(
+            Instant.parse("2024-06-13T20:00:00Z").toEpochMilli(),
+            Instant.parse("2024-06-14T04:00:00Z").toEpochMilli(),
+            SleepType.NIGHT_SLEEP,
+            timezoneId = "Not/AZone",
+        )!!
+
+        // 20:00Z = 05:00 next day in Tokyo → 300 minutes.
+        assertEquals(300, extractor.computeMetrics(listOf(tokyoBedtime)).medianBedtimeMinuteOfDay)
+        // Invalid zone id falls back to the injected UTC zone → 20:00 → 1200 minutes.
+        assertEquals(1200, extractor.computeMetrics(listOf(invalidTzBedtime)).medianBedtimeMinuteOfDay)
+    }
+
+    @Test
     fun `computeMetrics produces night bedtime and morning wake medians`() {
         val metrics = extractor.computeMetrics(
             listOf(

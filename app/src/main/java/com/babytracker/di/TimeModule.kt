@@ -16,7 +16,8 @@ object TimeModule {
     @Singleton
     fun provideClock(): Clock = Clock.systemDefaultZone()
 
+    // Deliberately unscoped: a @Singleton ZoneId freezes the zone at process start, so a
+    // Provider<ZoneId> could never observe a device timezone change (AKACHAN-306).
     @Provides
-    @Singleton
     fun provideZoneId(): ZoneId = ZoneId.systemDefault()
 }
