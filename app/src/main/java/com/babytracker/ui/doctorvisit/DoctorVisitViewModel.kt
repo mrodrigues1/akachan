@@ -6,6 +6,7 @@ import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.model.VisitQuestion
 import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.domain.usecase.doctorvisit.AddDoctorVisitUseCase
+import com.babytracker.domain.usecase.doctorvisit.AddVisitQuestionUseCase
 import com.babytracker.domain.usecase.doctorvisit.AttachSnapshotToVisitUseCase
 import com.babytracker.domain.usecase.doctorvisit.EditDoctorVisitUseCase
 import com.babytracker.export.data.BackupFileWriter
@@ -34,6 +35,7 @@ data class DoctorVisitUiState(
     val date: Instant = Instant.now(),
     val providerName: String = "",
     val notes: String = "",
+    val questionDraft: String = "",
     val inboxQuestions: List<VisitQuestion> = emptyList(),
     // Questions already attached to the visit being edited (empty on the add path). Shown in the
     // attach section alongside the inbox so the user can see + deselect existing attachments.
@@ -56,6 +58,7 @@ data class DoctorVisitUiState(
 @HiltViewModel
 class DoctorVisitViewModel @Inject constructor(
     private val repository: DoctorVisitRepository,
+    private val addQuestion: AddVisitQuestionUseCase,
     private val addVisit: AddDoctorVisitUseCase,
     private val editVisit: EditDoctorVisitUseCase,
     private val attachSnapshot: AttachSnapshotToVisitUseCase,
@@ -79,6 +82,17 @@ class DoctorVisitViewModel @Inject constructor(
     fun onDateChange(date: Instant) = local.update { it.copy(date = date) }
     fun onProviderChange(v: String) = local.update { it.copy(providerName = v) }
     fun onNotesChange(v: String) = local.update { it.copy(notes = v) }
+    fun onQuestionDraftChange(value: String) = local.update { it.copy(questionDraft = value) }
+
+    fun onAddQuestion() {
+        val text = local.value.questionDraft.trim()
+        if (text.isEmpty()) return
+        local.update { it.copy(questionDraft = "") }
+        viewModelScope.launch {
+            val id = addQuestion(text)
+            local.update { it.copy(selectedQuestionIds = it.selectedQuestionIds + id) }
+        }
+    }
 
     fun onToggleQuestion(id: Long) = local.update {
         val selected = it.selectedQuestionIds
