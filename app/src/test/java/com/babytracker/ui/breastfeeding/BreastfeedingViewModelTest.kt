@@ -11,6 +11,7 @@ import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.domain.usecase.breastfeeding.UpdateBreastfeedingSessionUseCase
+import com.babytracker.manager.BreastfeedingSessionController
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
@@ -121,9 +122,16 @@ class BreastfeedingViewModelTest {
 
     private fun createViewModel() = BreastfeedingViewModel(
         appContext,
-        switchSide,
-        pauseSession,
-        resumeSession,
+        // Real controller over the same mocks: the ViewModel contract is "delegates to the shared
+        // session-control behaviour", so tests verify through to the underlying collaborators.
+        BreastfeedingSessionController(
+            repository = repository,
+            switchSideUseCase = switchSide,
+            pauseSessionUseCase = pauseSession,
+            resumeSessionUseCase = resumeSession,
+            notificationCoordinator = notificationCoordinator,
+            syncedWrite = SyncedWrite(syncToFirestore),
+        ),
         updateSession,
         repository,
         feedSettingsRepository,
@@ -245,6 +253,25 @@ class BreastfeedingViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         verify { notificationCoordinator.cancelAllSessionNotifications() }
+    }
+
+    @Test
+    fun `onStopSession surfaces error and skips notifications and sync when persist fails`() = runTest {
+        val session = BreastfeedingSession(
+            id = 1L,
+            startTime = Instant.now().minusSeconds(300),
+            startingSide = BreastSide.LEFT
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+        coEvery { repository.updateSession(any()) } throws RuntimeException("db down")
+
+        viewModel.onStopSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("Could not stop session. Please try again.", viewModel.uiState.value.error)
+        verify(exactly = 0) { notificationCoordinator.cancelAllSessionNotifications() }
+        coVerify(exactly = 0) { syncToFirestore(any()) }
     }
 
     @Test

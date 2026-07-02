@@ -12,6 +12,7 @@ import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.domain.usecase.breastfeeding.UpdateBreastfeedingSessionUseCase
+import com.babytracker.manager.BreastfeedingSessionController
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
@@ -91,7 +92,14 @@ class BreastfeedingEditSheetViewModelTest {
 
     private fun viewModel() = BreastfeedingViewModel(
         appContext,
-        switchSide, pauseSession, resumeSession,
+        BreastfeedingSessionController(
+            repository = repository,
+            switchSideUseCase = switchSide,
+            pauseSessionUseCase = pauseSession,
+            resumeSessionUseCase = resumeSession,
+            notificationCoordinator = notificationCoordinator,
+            syncedWrite = SyncedWrite(syncToFirestore),
+        ),
         updateSession, repository, feedSettingsRepository,
         notificationCoordinator, SyncedWrite(syncToFirestore), predictNextFeed,
     )
