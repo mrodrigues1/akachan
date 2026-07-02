@@ -10,13 +10,10 @@ import com.babytracker.domain.repository.SleepRecommendationRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.util.FireDecision
 import com.babytracker.util.decideFire
+import com.babytracker.util.goAsyncWithTimeout
 import com.babytracker.util.showPredictiveSleepReminder
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import java.time.Instant
 import javax.inject.Inject
 
@@ -43,38 +40,35 @@ class PredictiveSleepReceiver : BroadcastReceiver() {
         val recommendationId = intent.getLongExtra(EXTRA_RECOMMENDATION_ID, 0L)
         // Re-read feature flag and quiet hours at fire time to handle inexact-alarm delivery
         // that may land inside a quiet window scheduled after the alarm was set.
-        val result = goAsync()
-        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
-            try {
-                val enabled = sleepSettingsRepository.getPredictiveSleepEnabled().first()
-                if (!enabled) {
-                    Log.d(TAG, "Feature disabled at fire time; dropping")
-                    return@launch
-                }
-                val quietStart = settingsRepository.getQuietHoursStartMinute().first()
-                val quietEnd = settingsRepository.getQuietHoursEndMinute().first()
-                val decision = decideFire(
-                    now = Instant.now(),
-                    bestEstimate = Instant.ofEpochMilli(bestEstimateMs),
-                    quietStartMinute = quietStart,
-                    quietEndMinute = quietEnd,
-                )
-                when (decision) {
-                    FireDecision.Stale -> Log.i(TAG, "Prediction stale; dropping fire")
-                    FireDecision.QuietHours -> Log.d(TAG, "Fire time inside quiet hours; suppressing notification")
-                    FireDecision.Fire -> {
+        goAsyncWithTimeout(TAG) {
+            val enabled = sleepSettingsRepository.getPredictiveSleepEnabled().first()
+            if (!enabled) {
+                Log.d(TAG, "Feature disabled at fire time; dropping")
+                return@goAsyncWithTimeout
+            }
+            val quietStart = settingsRepository.getQuietHoursStartMinute().first()
+            val quietEnd = settingsRepository.getQuietHoursEndMinute().first()
+            val decision = decideFire(
+                now = Instant.now(),
+                bestEstimate = Instant.ofEpochMilli(bestEstimateMs),
+                quietStartMinute = quietStart,
+                quietEndMinute = quietEnd,
+            )
+            when (decision) {
+                FireDecision.Stale -> Log.i(TAG, "Prediction stale; dropping fire")
+                FireDecision.QuietHours -> Log.d(TAG, "Fire time inside quiet hours; suppressing notification")
+                FireDecision.Fire -> {
+                    try {
                         showPredictiveSleepReminder(context = context, bestEstimateMs = bestEstimateMs)
                         if (recommendationId > 0L) {
                             runCatching {
                                 sleepRecommendationRepository.updateLifecycle(recommendationId, RecommendationLifecycle.FIRED)
                             }
                         }
+                    } catch (e: SecurityException) {
+                        Log.w(TAG, "POST_NOTIFICATIONS denied; skipping reminder", e)
                     }
                 }
-            } catch (e: SecurityException) {
-                Log.w(TAG, "POST_NOTIFICATIONS denied; skipping reminder", e)
-            } finally {
-                result?.finish()
             }
         }
     }
