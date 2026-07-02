@@ -47,6 +47,13 @@ fun DoctorVisitScreen(
             viewModel.onSnapshotErrorConsumed()
         }
     }
+    val saveFailed = stringResource(R.string.doctor_visit_save_failed)
+    LaunchedEffect(state.saveError) {
+        if (state.saveError) {
+            Toast.makeText(context, saveFailed, Toast.LENGTH_SHORT).show()
+            viewModel.onSaveErrorConsumed()
+        }
+    }
 
     DoctorVisitSheet(
         state = state,

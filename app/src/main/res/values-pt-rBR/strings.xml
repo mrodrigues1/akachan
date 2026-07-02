@@ -671,6 +671,7 @@
     <string name="growth_add_measurement_cd">Adicionar medição</string>
     <string name="growth_delete_title">Excluir medição?</string>
     <string name="growth_delete_message">Isso remove %1$s do histórico do seu bebê. Não pode ser desfeito.</string>
+    <string name="growth_save_failed">Não foi possível salvar as alterações. Tente novamente.</string>
     <string name="growth_history">Histórico</string>
     <string name="growth_empty_title">Nenhuma medição ainda</string>
     <string name="growth_empty_subtitle">Registre a primeira medição do seu bebê para vê-la no gráfico de percentis da OMS.</string>
@@ -993,6 +994,7 @@
 
     <!-- Runtime error & validation messages (ViewModel-surfaced) -->
     <string name="error_could_not_save">Não foi possível salvar</string>
+    <string name="error_change_not_saved">Não foi possível salvar sua alteração. Tente novamente.</string>
     <string name="error_volume_positive">Informe um volume maior que 0</string>
     <string name="error_volume_greater_than_zero">O volume deve ser maior que 0</string>
     <string name="error_collection_date_future">A data de coleta não pode ser no futuro</string>
@@ -1316,6 +1318,7 @@
     <string name="doctor_visit_snapshot_view">Ver resumo</string>
     <string name="doctor_visit_snapshot_replace">Substituir resumo</string>
     <string name="doctor_visit_snapshot_failed">Não foi possível criar o resumo. Tente novamente.</string>
+    <string name="doctor_visit_save_failed">Não foi possível salvar a consulta. Tente novamente.</string>
     <string name="doctor_visit_snapshot_hint">Salve a consulta primeiro para anexar um resumo</string>
     <string name="doctor_visit_snapshot_label">Resumo · %1$s</string>
     <string name="doctor_visit_save">Salvar</string>

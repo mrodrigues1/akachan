@@ -50,6 +50,7 @@ data class DoctorVisitUiState(
     val saved: Boolean = false,
     val pendingSnapshotShare: ShareArtifact? = null,
     val snapshotError: Boolean = false,
+    val saveError: Boolean = false,
 ) {
     val isEditing: Boolean get() = editingId != null
 }
@@ -136,28 +137,34 @@ class DoctorVisitViewModel @Inject constructor(
         viewModelScope.launch {
             questionAddJob?.join()
             val s = local.value
-            val editingId = s.editingId
-            if (editingId == null) {
-                addVisit(s.date, s.providerName, s.notes, s.selectedQuestionIds.toList())
-            } else {
-                editVisit(
-                    DoctorVisit(
-                        id = editingId,
-                        date = s.date,
-                        providerName = s.providerName,
-                        notes = s.notes,
-                        snapshotLabel = s.snapshotLabel,
-                        snapshotCreatedAt = s.snapshotCreatedAt,
-                        createdAt = s.createdAt, // preserved original — never Instant.now()
-                    ),
-                    s.selectedQuestionIds.toList(),
-                )
+            runCatching {
+                val editingId = s.editingId
+                if (editingId == null) {
+                    addVisit(s.date, s.providerName, s.notes, s.selectedQuestionIds.toList())
+                } else {
+                    editVisit(
+                        DoctorVisit(
+                            id = editingId,
+                            date = s.date,
+                            providerName = s.providerName,
+                            notes = s.notes,
+                            snapshotLabel = s.snapshotLabel,
+                            snapshotCreatedAt = s.snapshotCreatedAt,
+                            createdAt = s.createdAt, // preserved original — never Instant.now()
+                        ),
+                        s.selectedQuestionIds.toList(),
+                    )
+                }
+            }.onSuccess {
+                local.update { it.copy(isSaving = false, saved = true) }
+            }.onFailure {
+                local.update { it.copy(isSaving = false, saveError = true) }
             }
-            local.update { it.copy(isSaving = false, saved = true) }
         }
     }
 
     fun onSavedConsumed() = local.update { it.copy(saved = false) }
+    fun onSaveErrorConsumed() = local.update { it.copy(saveError = false) }
 
     /** Attach a lightweight snapshot reference (label + timestamp) to the saved visit being edited. */
     fun onAttachSnapshot(label: String) {

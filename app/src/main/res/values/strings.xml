@@ -660,6 +660,7 @@
     <string name="growth_add_measurement_cd">Add measurement</string>
     <string name="growth_delete_title">Delete measurement?</string>
     <string name="growth_delete_message">This removes %1$s from your baby\'s history. This can\'t be undone.</string>
+    <string name="growth_save_failed">Couldn\'t save changes. Try again.</string>
     <string name="growth_history">History</string>
     <string name="growth_empty_title">No measurements yet</string>
     <string name="growth_empty_subtitle">Log your baby\'s first measurement to see it on the WHO percentile chart.</string>
@@ -978,6 +979,7 @@
 
     <!-- Runtime error & validation messages (ViewModel-surfaced) -->
     <string name="error_could_not_save">Could not save</string>
+    <string name="error_change_not_saved">Couldn\'t save your change. Try again.</string>
     <string name="error_volume_positive">Enter a volume greater than 0</string>
     <string name="error_volume_greater_than_zero">Volume must be greater than 0</string>
     <string name="error_collection_date_future">Collection date cannot be in the future</string>
@@ -1291,6 +1293,7 @@
     <string name="doctor_visit_snapshot_view">View summary</string>
     <string name="doctor_visit_snapshot_replace">Replace summary</string>
     <string name="doctor_visit_snapshot_failed">Couldn\'t create the summary. Try again.</string>
+    <string name="doctor_visit_save_failed">Couldn\'t save the visit. Try again.</string>
     <string name="doctor_visit_snapshot_hint">Save the visit first to attach a summary</string>
     <string name="doctor_visit_snapshot_label">Summary · %1$s</string>
     <string name="doctor_visit_save">Save</string>

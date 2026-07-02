@@ -354,9 +354,15 @@ class BreastfeedingViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            repository.insertSession(
-                BreastfeedingSession(startTime = startInstant, endTime = endInstant, startingSide = side),
-            )
+            val result = runCatching {
+                repository.insertSession(
+                    BreastfeedingSession(startTime = startInstant, endTime = endInstant, startingSide = side),
+                )
+            }
+            if (result.isFailure) {
+                _uiState.value = _uiState.value.copy(manualEntryError = appContext.getString(R.string.error_bf_save))
+                return@launch
+            }
             _uiState.value = _uiState.value.copy(showManualEntrySheet = false, manualEntryError = null)
             syncedWrite.sync(SyncType.SESSIONS)
         }

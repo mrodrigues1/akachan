@@ -1129,4 +1129,17 @@ class BreastfeedingViewModelTest {
         assertFalse(viewModel.uiState.value.showManualEntrySheet)
         assertNull(viewModel.uiState.value.manualEntryError)
     }
+
+    @Test
+    fun `onSaveManualEntry surfaces error and keeps sheet open when insert fails`() = runTest {
+        coEvery { repository.insertSession(any()) } throws RuntimeException("db write failed")
+        viewModel.onAddEntryClick()
+
+        viewModel.onSaveManualEntry(BreastSide.LEFT)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.showManualEntrySheet)
+        assertEquals("Could not save changes. Please try again.", viewModel.uiState.value.manualEntryError)
+        coVerify(exactly = 0) { syncToFirestore(any()) }
+    }
 }

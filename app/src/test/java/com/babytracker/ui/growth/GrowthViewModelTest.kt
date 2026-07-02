@@ -12,6 +12,7 @@ import com.babytracker.domain.usecase.growth.UpdateGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.GetGrowthChartDataUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -138,5 +139,35 @@ class GrowthViewModelTest {
         vm.onDeleteMeasurement(7)
         testDispatcher.scheduler.advanceUntilIdle()
         coVerify { growthRepository.deleteMeasurement(7) }
+    }
+
+    @Test
+    fun `onAddMeasurement failure surfaces saveError and skips sync`() = runTest {
+        coEvery { addGrowthMeasurement(any()) } throws RuntimeException("db write failed")
+        val vm = viewModel()
+        vm.uiState.test {
+            var state = awaitItem()
+            while (state.isLoading) state = awaitItem()
+            vm.onAddMeasurement(GrowthType.WEIGHT, valueCanonical = 5200, takenAt = Instant.ofEpochMilli(2000), notes = null)
+            while (!state.saveError) state = awaitItem()
+            vm.onSaveErrorConsumed()
+            while (state.saveError) state = awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+        coVerify(exactly = 0) { syncToFirestore() }
+    }
+
+    @Test
+    fun `onDeleteMeasurement failure surfaces saveError and skips sync`() = runTest {
+        coEvery { growthRepository.deleteMeasurement(any()) } throws RuntimeException("db write failed")
+        val vm = viewModel()
+        vm.uiState.test {
+            var state = awaitItem()
+            while (state.isLoading) state = awaitItem()
+            vm.onDeleteMeasurement(7)
+            while (!state.saveError) state = awaitItem()
+            cancelAndIgnoreRemainingEvents()
+        }
+        coVerify(exactly = 0) { syncToFirestore() }
     }
 }

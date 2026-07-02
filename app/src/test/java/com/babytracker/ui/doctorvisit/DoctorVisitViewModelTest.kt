@@ -199,4 +199,21 @@ class DoctorVisitViewModelTest {
         advanceUntilIdle()
         assertFalse(vm.uiState.value.saved)
     }
+
+    @Test
+    fun `save failure resets isSaving and sets saveError instead of crashing`() = runTest {
+        every { repository.observeInboxQuestions() } returns flowOf(emptyList())
+        every { repository.observeQuestionsForVisit(any()) } returns flowOf(emptyList())
+        coEvery { addVisit(any(), any(), any(), any(), any()) } throws RuntimeException("db write failed")
+        val vm = vm()
+        backgroundScope.launch { vm.uiState.collect {} }
+        vm.onSave()
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.isSaving)
+        assertFalse(vm.uiState.value.saved)
+        assertTrue(vm.uiState.value.saveError)
+        vm.onSaveErrorConsumed()
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.saveError)
+    }
 }

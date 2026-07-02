@@ -29,6 +29,7 @@ data class GrowthUiState(
     val measurementSystem: MeasurementSystem = MeasurementSystem.METRIC,
     val chart: GrowthChartData? = null,
     val isLoading: Boolean = true,
+    val saveError: Boolean = false,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -43,18 +44,21 @@ class GrowthViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val selectedType = MutableStateFlow(GrowthType.WEIGHT)
+    private val saveError = MutableStateFlow(false)
 
     val uiState: StateFlow<GrowthUiState> =
         combine(
             selectedType,
             selectedType.flatMapLatest { getGrowthChartData(it) },
             settingsRepository.getMeasurementSystem(),
-        ) { type, chart, system ->
+            saveError,
+        ) { type, chart, system, error ->
             GrowthUiState(
                 selectedType = type,
                 measurementSystem = system,
                 chart = chart,
                 isLoading = false,
+                saveError = error,
             )
         }.stateIn(
             scope = viewModelScope,
@@ -68,38 +72,58 @@ class GrowthViewModel @Inject constructor(
 
     fun onAddMeasurement(type: GrowthType, valueCanonical: Long, takenAt: Instant, notes: String?) {
         viewModelScope.launch {
-            addGrowthMeasurement(
-                GrowthMeasurement(
-                    takenAt = takenAt,
-                    type = type,
-                    valueCanonical = valueCanonical,
-                    notes = notes?.takeIf { it.isNotBlank() },
-                ),
-            )
+            val result = runCatching {
+                addGrowthMeasurement(
+                    GrowthMeasurement(
+                        takenAt = takenAt,
+                        type = type,
+                        valueCanonical = valueCanonical,
+                        notes = notes?.takeIf { it.isNotBlank() },
+                    ),
+                )
+            }
+            if (result.isFailure) {
+                saveError.value = true
+                return@launch
+            }
             syncedWrite.sync()
         }
     }
 
     fun onUpdateMeasurement(id: Long, type: GrowthType, valueCanonical: Long, takenAt: Instant, notes: String?) {
         viewModelScope.launch {
-            updateGrowthMeasurement(
-                GrowthMeasurement(
-                    id = id,
-                    takenAt = takenAt,
-                    type = type,
-                    valueCanonical = valueCanonical,
-                    notes = notes?.takeIf { it.isNotBlank() },
-                ),
-            )
+            val result = runCatching {
+                updateGrowthMeasurement(
+                    GrowthMeasurement(
+                        id = id,
+                        takenAt = takenAt,
+                        type = type,
+                        valueCanonical = valueCanonical,
+                        notes = notes?.takeIf { it.isNotBlank() },
+                    ),
+                )
+            }
+            if (result.isFailure) {
+                saveError.value = true
+                return@launch
+            }
             syncedWrite.sync()
         }
     }
 
     fun onDeleteMeasurement(id: Long) {
         viewModelScope.launch {
-            growthRepository.deleteMeasurement(id)
+            val result = runCatching { growthRepository.deleteMeasurement(id) }
+            if (result.isFailure) {
+                saveError.value = true
+                return@launch
+            }
             syncedWrite.sync()
         }
+    }
+
+    fun onSaveErrorConsumed() {
+        saveError.value = false
     }
 
     private companion object {
