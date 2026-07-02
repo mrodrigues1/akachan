@@ -1,6 +1,5 @@
 package com.babytracker.sharing.usecase
 
-import android.content.Context
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
@@ -8,7 +7,6 @@ import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.InventorySnapshotFields
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.toSnapshot
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import java.time.Instant
 import javax.inject.Inject
@@ -18,7 +16,6 @@ class SyncToFirestoreUseCase @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val sleepSettingsRepository: SleepSettingsRepository,
     private val sources: SnapshotSources,
-    @ApplicationContext private val appContext: Context,
     private val now: () -> Instant = Instant::now,
 ) {
     enum class SyncType {
@@ -42,7 +39,7 @@ class SyncToFirestoreUseCase @Inject constructor(
     private suspend fun syncFull(code: ShareCode) {
         service.syncFullSnapshot(
             code.value,
-            buildShareSnapshot(sources, sleepSettingsRepository, appContext, now()),
+            buildShareSnapshot(sources, sleepSettingsRepository, now()),
         )
     }
 
@@ -51,7 +48,7 @@ class SyncToFirestoreUseCase @Inject constructor(
         service.syncSessions(
             code.value,
             sessions.map { it.toSnapshot() },
-            currentSleepPrediction(sources, sleepSettingsRepository, appContext, now().toEpochMilli()),
+            currentSleepPrediction(sources, sleepSettingsRepository, now().toEpochMilli()),
         )
     }
 
@@ -60,7 +57,7 @@ class SyncToFirestoreUseCase @Inject constructor(
         service.syncSleepRecords(
             code.value,
             sleepRecords.map { it.toSnapshot() },
-            currentSleepPrediction(sources, sleepSettingsRepository, appContext, now().toEpochMilli()),
+            currentSleepPrediction(sources, sleepSettingsRepository, now().toEpochMilli()),
         )
     }
 

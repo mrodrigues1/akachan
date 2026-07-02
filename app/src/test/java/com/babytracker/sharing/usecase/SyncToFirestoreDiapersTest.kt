@@ -44,7 +44,6 @@ class SyncToFirestoreDiapersTest {
             settings,
             sleepSettings,
             sources,
-            appContext = mockk(relaxed = true),
         ) {
             Instant.ofEpochMilli(99)
         }

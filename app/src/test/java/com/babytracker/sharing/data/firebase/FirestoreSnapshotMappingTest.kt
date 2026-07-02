@@ -1,5 +1,7 @@
 package com.babytracker.sharing.data.firebase
 
+import com.babytracker.domain.model.SleepReason
+import com.babytracker.domain.model.SleepType
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.GrowthSnapshot
@@ -9,8 +11,10 @@ import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.SleepOpAction
+import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import java.time.Instant
 
@@ -230,5 +234,57 @@ class FirestoreSnapshotMappingTest {
 
         assertEquals(emptyList<GrowthSnapshot>(), parsed.growth)
         assertEquals(emptyList<MilestoneSnapshot>(), parsed.milestones)
+    }
+
+    @Test
+    fun `prediction round-trips every reason variant and feedDue through the map`() {
+        val prediction = SleepPredictionSnapshot(
+            stateLabel = "WINDOW",
+            windowStart = 1_000L,
+            windowEnd = 2_000L,
+            bestEstimate = 1_500L,
+            confidence = "HIGH",
+            reasons = listOf(
+                SleepReason.FullyPersonalized(SleepType.NIGHT_SLEEP),
+                SleepReason.Blended(percent = 60, nextType = SleepType.NAP),
+                SleepReason.TypicalWakeWindow(ageInWeeks = 12, minMinutes = 60L, maxMinutes = 90L),
+                SleepReason.TypeSpecificPattern(nextType = SleepType.NAP, intervalCount = 5),
+                SleepReason.CombinedHistory(SleepType.NIGHT_SLEEP),
+                SleepReason.Disruption,
+                SleepReason.CircadianSlot,
+                SleepReason.NapDeficit(deficit = 2),
+                SleepReason.SleepDebt(earlierWindow = true),
+            ),
+            feedDue = true,
+            generatedAt = 42L,
+        )
+
+        assertEquals(prediction, mapToPrediction(predictionToMap(prediction)))
+    }
+
+    @Test
+    fun `unknown reason types are dropped instead of failing the whole prediction`() {
+        val map = mapOf(
+            "stateLabel" to "WINDOW",
+            "reasons" to listOf(mapOf("type" to "FROM_A_NEWER_APP_VERSION"), mapOf("type" to "DISRUPTION")),
+            "generatedAt" to 42L,
+        )
+
+        assertEquals(listOf(SleepReason.Disruption), mapToPrediction(map).reasons)
+    }
+
+    @Test
+    fun `legacy prediction map with localized string reasons parses to an empty semantic list`() {
+        val legacy = mapOf(
+            "stateLabel" to "WINDOW",
+            "reasons" to listOf("Awake 2h 05m"),
+            "feedPrompt" to "A breastfeed may be due near this window.",
+            "generatedAt" to 42L,
+        )
+
+        val parsed = mapToPrediction(legacy)
+
+        assertEquals(emptyList<SleepReason>(), parsed.reasons)
+        assertFalse(parsed.feedDue)
     }
 }
