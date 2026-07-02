@@ -1,5 +1,6 @@
 package com.babytracker.ui.settings
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.Baby
@@ -10,7 +11,9 @@ import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
 import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.sharing.usecase.UnregisterPartnerUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +39,7 @@ class SettingsViewModel @Inject constructor(
     private val babyRepository: BabyRepository,
     private val settingsRepository: SettingsRepository,
     private val saveBabyProfile: SaveBabyProfileUseCase,
+    private val unregisterPartner: UnregisterPartnerUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -99,6 +103,15 @@ class SettingsViewModel @Inject constructor(
 
     fun disconnect() {
         viewModelScope.launch {
+            // Best-effort: local disconnect must succeed even when the server-side
+            // revoke fails (offline, share already deleted by the owner).
+            try {
+                unregisterPartner()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (ignored: Exception) {
+                Log.w(TAG, "Failed to revoke partner registration on disconnect", ignored)
+            }
             settingsRepository.setAppMode(AppMode.NONE)
             settingsRepository.clearShareCode()
             _uiState.update { it.copy(isDisconnected = true) }
@@ -111,5 +124,9 @@ class SettingsViewModel @Inject constructor(
 
     fun onMeasurementSystemChanged(system: MeasurementSystem) {
         viewModelScope.launch { settingsRepository.setMeasurementSystem(system) }
+    }
+
+    private companion object {
+        const val TAG = "SettingsViewModel"
     }
 }

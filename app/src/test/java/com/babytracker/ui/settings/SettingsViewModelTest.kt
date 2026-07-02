@@ -6,6 +6,7 @@ import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.sharing.usecase.UnregisterPartnerUseCase
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
@@ -38,6 +39,7 @@ class SettingsViewModelTest {
     private val partnerStashNotificationsFlow = MutableStateFlow(true)
     private val appModeFlow = MutableStateFlow(AppMode.NONE)
     private lateinit var babyRepository: BabyRepository
+    private lateinit var unregisterPartner: UnregisterPartnerUseCase
 
     @BeforeEach
     fun setup() {
@@ -55,10 +57,14 @@ class SettingsViewModelTest {
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         every { settingsRepository.getMeasurementSystem() } returns flowOf(MeasurementSystem.METRIC)
 
+        unregisterPartner = mockk()
+        coJustRun { unregisterPartner() }
+
         viewModel = SettingsViewModel(
             babyRepository,
             settingsRepository,
             mockk(),
+            unregisterPartner,
         )
     }
 
@@ -122,6 +128,24 @@ class SettingsViewModelTest {
 
     @Test
     fun `disconnect calls setAppMode then clearShareCode in order and sets isDisconnected`() = runTest {
+        coJustRun { settingsRepository.setAppMode(AppMode.NONE) }
+        coJustRun { settingsRepository.clearShareCode() }
+
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.disconnect()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerifyOrder {
+            unregisterPartner()
+            settingsRepository.setAppMode(AppMode.NONE)
+            settingsRepository.clearShareCode()
+        }
+        assertTrue(viewModel.uiState.value.isDisconnected)
+    }
+
+    @Test
+    fun `disconnect still clears local state when server-side revoke fails`() = runTest {
+        coEvery { unregisterPartner() } throws RuntimeException("offline")
         coJustRun { settingsRepository.setAppMode(AppMode.NONE) }
         coJustRun { settingsRepository.clearShareCode() }
 
