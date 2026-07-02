@@ -521,6 +521,27 @@ class PredictSleepWindowUseCaseTest {
         }
 
         @Test
+        fun `disruption event older than 48h returned by a stale query cutoff does not lower confidence`() = runTest {
+            // Simulates a long-lived collector: the flow-start query cutoff froze days ago, so the
+            // DAO still returns an event now older than the 48h lookback. The fresh per-evaluation
+            // lower bound must expire it instead of pinning hasActiveDisruption forever.
+            val staleEvent = sickEventAt(fixedNow.minus(Duration.ofHours(49)))
+            every { sleepRepository.getAllRecords() } returns flowOf(fullyPersonalizedRecords())
+            every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
+            every { babyRepository.getBabyProfile() } returns flowOf(babyOfWeeks(20))
+            every { babyEventRepository.getEventsSince(any()) } returns flowOf(listOf(staleEvent))
+
+            useCase().test {
+                val state = awaitItem()
+                assertTrue(state is SleepPredictionState.Window)
+                assertEquals(Confidence.MEDIUM, (state as SleepPredictionState.Window).window.confidence) {
+                    "Disruption older than 48h must expire even when the query over-fetches it"
+                }
+                awaitComplete()
+            }
+        }
+
+        @Test
         fun `disruption event older than 48h does not lower confidence (excluded by DAO cutoff)`() = runTest {
             // getEventsSince returns empty list, simulating the DAO correctly excluding events
             // older than the 48h cutoff.

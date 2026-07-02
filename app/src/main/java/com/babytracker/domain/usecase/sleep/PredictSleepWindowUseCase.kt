@@ -38,6 +38,8 @@ class PredictSleepWindowUseCase @Inject constructor(
     private val zoneId: ZoneId,
 ) {
     operator fun invoke(): Flow<SleepPredictionState> = flow {
+        // Query-level cutoff, frozen at flow start. It only ever trails the real lookback bound, so
+        // the query over-fetches; the fresh per-evaluation bound is applied in predictForBaby().
         val disruptionCutoff = Instant.now(clock)
             .minus(Duration.ofHours(SleepPredictionTuning.DISRUPTION_LOOKBACK_HOURS))
         emitAll(
@@ -84,8 +86,11 @@ class PredictSleepWindowUseCase @Inject constructor(
         if (ageInWeeks < SleepPredictionTuning.CUE_LED_MAX_AGE_WEEKS) return SleepPredictionState.CueLed
 
         val lookbackStart = now.minus(Duration.ofDays(SleepPredictionTuning.LOOKBACK_DAYS))
+        // Fresh lower bound per evaluation: the flow-start query cutoff never advances, so without
+        // this a long-lived collector would treat a days-old disruption as active forever.
+        val disruptionCutoff = now.minus(Duration.ofHours(SleepPredictionTuning.DISRUPTION_LOOKBACK_HOURS))
         val hasActiveDisruption = recentEvents.any { event ->
-            event.type.isDisruption && event.timestamp <= now
+            event.type.isDisruption && event.timestamp <= now && event.timestamp >= disruptionCutoff
         }
 
         val features = SleepFeatureExtractor(clock, zoneId)
