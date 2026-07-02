@@ -16,9 +16,11 @@ import com.babytracker.domain.sleep.eval.SleepDebtFactor
 import com.babytracker.domain.sleep.eval.SleepWindowPredictor
 import com.babytracker.domain.sleep.feature.SleepFeatureExtractor
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -48,12 +50,25 @@ class PredictSleepWindowUseCase @Inject constructor(
                 breastfeedingRepository.getAllSessions(),
                 babyRepository.getBabyProfile(),
                 babyEventRepository.getEventsSince(disruptionCutoff),
-            ) { sleepRecords, feedSessions, baby, recentEvents ->
+                // Several states are functions of wall-clock time (Window -> Overdue after
+                // windowEnd + grace, freshness horizon, open-feed/open-sleep caps) but the data
+                // flows only emit on DB writes. The ticker re-runs the predictor so those
+                // transitions surface on an open screen; distinctUntilChanged below keeps
+                // downstream collectors (UI, notification coordinator) to real transitions only.
+                minuteTicker(),
+            ) { sleepRecords, feedSessions, baby, recentEvents, _ ->
                 predict(sleepRecords, feedSessions, baby, recentEvents)
             }
         )
-    }.flowOn(Dispatchers.Default).catch { e ->
+    }.distinctUntilChanged().flowOn(Dispatchers.Default).catch { e ->
         emit(SleepPredictionState.Unavailable(e.message ?: "prediction error"))
+    }
+
+    private fun minuteTicker(): Flow<Unit> = flow {
+        while (true) {
+            emit(Unit)
+            delay(RECOMPUTE_INTERVAL_MS)
+        }
     }
 
     private fun predict(
@@ -105,5 +120,11 @@ class PredictSleepWindowUseCase @Inject constructor(
             sleepDebtFactorProvider = SleepDebtFactor::adjustment,
             napBudgetFactorProvider = NapBudgetFactor::adjustment,
         )
+    }
+
+    private companion object {
+        // ponytail: coarse per-minute recompute instead of scheduling the exact next
+        // transition instant; switch to a delay-until-transition flow if the wakeups matter.
+        const val RECOMPUTE_INTERVAL_MS = 60_000L
     }
 }

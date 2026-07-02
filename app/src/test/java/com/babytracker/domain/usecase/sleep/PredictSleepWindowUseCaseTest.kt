@@ -17,6 +17,7 @@ import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SleepRepository
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -187,7 +188,7 @@ class PredictSleepWindowUseCaseTest {
             useCase().test {
                 val state = awaitItem()
                 assertTrue(state is SleepPredictionState.CurrentlySleeping)
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -204,7 +205,7 @@ class PredictSleepWindowUseCaseTest {
                 assertTrue(state !is SleepPredictionState.CurrentlySleeping) {
                     "Future-dated open sleep record must not trigger CurrentlySleeping — got $state"
                 }
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -221,7 +222,7 @@ class PredictSleepWindowUseCaseTest {
                 assertTrue(state !is SleepPredictionState.CurrentlySleeping) {
                     "Stale open sleep record (>18h) must not trigger CurrentlySleeping — got $state"
                 }
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
     }
@@ -238,7 +239,7 @@ class PredictSleepWindowUseCaseTest {
             useCase().test {
                 val state = awaitItem()
                 assertTrue(state is SleepPredictionState.CueLed)
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -251,7 +252,7 @@ class PredictSleepWindowUseCaseTest {
             useCase().test {
                 val state = awaitItem()
                 assertTrue(state !is SleepPredictionState.CueLed)
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -268,7 +269,7 @@ class PredictSleepWindowUseCaseTest {
                 assertTrue(state is SleepPredictionState.CueLed) {
                     "ageInWeeks must be computed from injected clock, not LocalDate.now() — got $state"
                 }
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
     }
@@ -289,7 +290,7 @@ class PredictSleepWindowUseCaseTest {
                 assertEquals(0, progress.completedIntervals)
                 assertEquals(5, progress.requiredIntervals)
                 assertTrue(progress.hint.isNotEmpty())
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -306,7 +307,7 @@ class PredictSleepWindowUseCaseTest {
                 assertTrue(state is SleepPredictionState.NeedMoreData) {
                     "Sparse logger must not produce a Window — got $state"
                 }
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
     }
@@ -323,7 +324,7 @@ class PredictSleepWindowUseCaseTest {
             useCase().test {
                 val state = awaitItem()
                 assertTrue(state is SleepPredictionState.AfterActiveFeed)
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -338,7 +339,7 @@ class PredictSleepWindowUseCaseTest {
                 assertTrue(state is SleepPredictionState.AfterActiveFeed) {
                     "Expected AfterActiveFeed (no window emitted, no feedEnd synthesized) but got $state"
                 }
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -356,7 +357,7 @@ class PredictSleepWindowUseCaseTest {
                 assertTrue(state is SleepPredictionState.Window) {
                     "Stale open feed (>4h) must not suppress sleep window — got $state"
                 }
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
     }
@@ -385,7 +386,7 @@ class PredictSleepWindowUseCaseTest {
             overdueUseCase().test {
                 val state = awaitItem()
                 assertTrue(state is SleepPredictionState.Overdue)
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
     }
@@ -410,7 +411,7 @@ class PredictSleepWindowUseCaseTest {
                     window.windowStart.plus(Duration.ofMinutes(15)),
                     window.bestEstimate,
                 )
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -427,7 +428,7 @@ class PredictSleepWindowUseCaseTest {
                 assertEquals(Confidence.MEDIUM, window.confidence) {
                     "HIGH confidence must not be emitted in Phase 0 — got ${window.confidence}"
                 }
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -448,7 +449,7 @@ class PredictSleepWindowUseCaseTest {
                 assertTrue(reasons.any { it is SleepReason.NapDeficit }) {
                     "NapBudgetFactor must be wired — expected a nap-deficit reason, got $reasons"
                 }
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -465,7 +466,7 @@ class PredictSleepWindowUseCaseTest {
                 val state = awaitItem()
                 assertTrue(state is SleepPredictionState.Window)
                 assertEquals(Confidence.MEDIUM, (state as SleepPredictionState.Window).window.confidence)
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
     }
@@ -496,7 +497,7 @@ class PredictSleepWindowUseCaseTest {
                 assertEquals(Confidence.LOW, (state as SleepPredictionState.Window).window.confidence) {
                     "Recent SICK event must lower base MEDIUM confidence to LOW"
                 }
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -516,7 +517,7 @@ class PredictSleepWindowUseCaseTest {
                 assertEquals(Confidence.MEDIUM, (state as SleepPredictionState.Window).window.confidence) {
                     "Future-dated disruption event must not lower base MEDIUM confidence — got ${(state as? SleepPredictionState.Window)?.window?.confidence}"
                 }
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -537,7 +538,7 @@ class PredictSleepWindowUseCaseTest {
                 assertEquals(Confidence.MEDIUM, (state as SleepPredictionState.Window).window.confidence) {
                     "Disruption older than 48h must expire even when the query over-fetches it"
                 }
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -556,7 +557,7 @@ class PredictSleepWindowUseCaseTest {
                 assertEquals(Confidence.MEDIUM, (state as SleepPredictionState.Window).window.confidence) {
                     "With no recent disruption events, confidence must remain at base MEDIUM"
                 }
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
     }
@@ -573,7 +574,7 @@ class PredictSleepWindowUseCaseTest {
             useCase().test {
                 val state = awaitItem()
                 assertTrue(state is SleepPredictionState.Unavailable)
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -589,7 +590,7 @@ class PredictSleepWindowUseCaseTest {
                 val state = awaitItem()
                 assertTrue(state is SleepPredictionState.Unavailable)
                 assertEquals("db failure", (state as SleepPredictionState.Unavailable).reason)
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -603,7 +604,7 @@ class PredictSleepWindowUseCaseTest {
                 val state = awaitItem()
                 assertTrue(state is SleepPredictionState.Unavailable)
                 assertEquals("sessions failure", (state as SleepPredictionState.Unavailable).reason)
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -617,8 +618,36 @@ class PredictSleepWindowUseCaseTest {
                 val state = awaitItem()
                 assertTrue(state is SleepPredictionState.Unavailable)
                 assertEquals("profile failure", (state as SleepPredictionState.Unavailable).reason)
-                awaitComplete()
+                cancelAndIgnoreRemainingEvents()
             }
+        }
+    }
+
+    // The per-minute recompute ticker re-runs the predictor with an unchanged dataset, so the
+    // flow must dedupe: downstream collectors (UI, notification coordinator that persists a
+    // recommendation per emission) only see real state transitions.
+    @Test
+    fun `identical recomputed states are deduped - only real transitions reach collectors`() = runTest {
+        // replay = 1: the first emit happens before combine has subscribed; without replay a
+        // zero-buffer SharedFlow drops it and the flow never produces an item.
+        val records = MutableSharedFlow<List<SleepRecord>>(replay = 1)
+        every { sleepRepository.getAllRecords() } returns records
+        every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
+        every { babyRepository.getBabyProfile() } returns flowOf(babyOfWeeks(12))
+
+        useCase().test {
+            records.emit(listOf(openSleepRecord()))
+            assertTrue(awaitItem() is SleepPredictionState.CurrentlySleeping)
+
+            // Same data again -> same state; must be suppressed. The next item the collector
+            // sees is the state produced by the genuinely different emission after it.
+            records.emit(listOf(openSleepRecord()))
+            records.emit(emptyList())
+            val next = awaitItem()
+            assertTrue(next !is SleepPredictionState.CurrentlySleeping) {
+                "Duplicate state leaked through distinctUntilChanged — got $next"
+            }
+            cancelAndIgnoreRemainingEvents()
         }
     }
 }
