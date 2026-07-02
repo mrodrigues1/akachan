@@ -537,7 +537,7 @@ private fun PartnerTileGrid(
             add { tileModifier -> PartnerMilestoneTile(milestones = snapshot.milestones, modifier = tileModifier) }
         }
         if (snapshot.doctorVisits.isNotEmpty()) {
-            add { tileModifier -> PartnerDoctorVisitTile(visits = snapshot.doctorVisits, modifier = tileModifier) }
+            add { tileModifier -> PartnerDoctorVisitTile(visits = snapshot.doctorVisits, now = now, modifier = tileModifier) }
         }
     }
 
@@ -882,15 +882,12 @@ private fun PartnerGrowthTile(
     // Latest value for every measurement category, matching what the old summary card surfaced — the
     // tile is read-only, so dropping categories would hide data the partner can no longer reach.
     val lines = remember(growth, resources) {
-        GrowthType.entries.mapNotNull { type ->
-            val latest = growth.filter { it.type == type.name }.maxByOrNull { it.takenAtMs }
-            latest?.let {
-                resources.getString(
-                    R.string.partner_growth_label,
-                    type.partnerLabel(resources),
-                    formatGrowthValue(type, it.valueCanonical),
-                )
-            }
+        latestGrowthPerType(growth).map { (type, latest) ->
+            resources.getString(
+                R.string.partner_growth_label,
+                type.partnerLabel(resources),
+                formatGrowthValue(type, latest.valueCanonical),
+            )
         }
     }
     HomeTrackerTile(
@@ -935,15 +932,14 @@ private val tileVisitDateFormatter = DateTimeFormatter.ofPattern("EEE, MMM d", L
 @Composable
 private fun PartnerDoctorVisitTile(
     visits: List<com.babytracker.sharing.domain.model.DoctorVisitSnapshot>,
+    now: Instant,
     modifier: Modifier = Modifier,
 ) {
     val colors = doctorVisitColors()
     val zone = remember { ZoneId.systemDefault() }
-    val shown = remember(visits) {
-        val nowMs = Instant.now().toEpochMilli()
-        visits.filter { it.date > nowMs }.minByOrNull { it.date }
-            ?: visits.maxByOrNull { it.date }
-    }
+    // Keyed on the ticking `now` so the shown visit rolls from "upcoming" to "latest past" while
+    // the screen stays open, instead of freezing at first composition.
+    val shown = remember(visits, now) { upcomingOrLatestVisit(visits, now.toEpochMilli()) }
     val line = shown?.let { visit ->
         val dateLabel = tileVisitDateFormatter.format(Instant.ofEpochMilli(visit.date).atZone(zone).toLocalDate())
         visit.providerName?.takeIf { it.isNotBlank() }?.let { "$dateLabel · $it" } ?: dateLabel
@@ -1167,9 +1163,7 @@ private fun DashboardTimelineSections(
     volumeUnit: VolumeUnit,
     modifier: Modifier = Modifier,
 ) {
-    val recentBottles = remember(bottleFeeds) {
-        bottleFeeds.sortedByDescending { it.timestamp }.take(3)
-    }
+    val recentBottles = remember(bottleFeeds) { recentBottleFeeds(bottleFeeds) }
 
     Column(
         modifier = modifier,
@@ -1585,6 +1579,26 @@ internal fun partnerWarningColors(isDark: Boolean): PartnerWarningColors =
             onContainer = OnWarningContainerAmber,
             onSurfaceAccent = OnWarningContainerAmber,
         )
+    }
+
+/** The three newest bottle feeds, newest first, for the timeline section. */
+internal fun recentBottleFeeds(bottleFeeds: List<BottleFeedSnapshot>): List<BottleFeedSnapshot> =
+    bottleFeeds.sortedByDescending { it.timestamp }.take(3)
+
+/** The next upcoming visit when one exists, otherwise the most recent past visit. */
+internal fun upcomingOrLatestVisit(
+    visits: List<com.babytracker.sharing.domain.model.DoctorVisitSnapshot>,
+    nowMs: Long,
+): com.babytracker.sharing.domain.model.DoctorVisitSnapshot? =
+    visits.filter { it.date > nowMs }.minByOrNull { it.date }
+        ?: visits.maxByOrNull { it.date }
+
+/** Latest measurement per growth category, in [GrowthType] declaration order; empty types dropped. */
+internal fun latestGrowthPerType(
+    growth: List<com.babytracker.sharing.domain.model.GrowthSnapshot>,
+): List<Pair<GrowthType, com.babytracker.sharing.domain.model.GrowthSnapshot>> =
+    GrowthType.entries.mapNotNull { type ->
+        growth.filter { it.type == type.name }.maxByOrNull { it.takenAtMs }?.let { type to it }
     }
 
 internal fun diaperCountForDay(
