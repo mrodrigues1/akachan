@@ -1,6 +1,8 @@
 package com.babytracker.ui.doctorvisit
 
 import androidx.activity.ComponentActivity
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -116,9 +118,58 @@ class DoctorVisitSheetTest {
         composeRule.runOnIdle { assertTrue(submitted) }
     }
 
+    @Test
+    fun sheetManageQuestionsIsAButton() {
+        var managed = false
+        setSheet(
+            state = DoctorVisitUiState(),
+            onManageQuestions = { managed = true },
+        )
+
+        composeRule.onNodeWithTag("DoctorVisitManageQuestionsButton")
+            .performScrollTo()
+            .assertHasClickAction()
+            .performClick()
+        composeRule.runOnIdle { assertTrue(managed) }
+    }
+
+    @Test
+    fun dashboardManageAllIsAButton() {
+        var managed = false
+        composeRule.setContent {
+            BabyTrackerTheme {
+                DoctorVisitDashboardContent(
+                    state = DoctorVisitDashboardUiState(
+                        isLoading = false,
+                        questions = listOf(question(1, "Inbox question")),
+                        openQuestionCount = 1,
+                    ),
+                    snackbarHostState = SnackbarHostState(),
+                    onDraftChange = {},
+                    onAddQuestion = {},
+                    onToggleAnswered = {},
+                    onRetry = {},
+                    onAddVisit = {},
+                    onEditVisit = {},
+                    onNavigateToHistory = {},
+                    onManageQuestions = { managed = true },
+                    onNavigateToSettings = {},
+                    onNavigateBack = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("DoctorVisitManageAllButton")
+            .performScrollTo()
+            .assertHasClickAction()
+            .performClick()
+        composeRule.runOnIdle { assertTrue(managed) }
+    }
+
     private fun setSheet(
         state: DoctorVisitUiState,
         onAddQuestion: () -> Unit = {},
+        onManageQuestions: () -> Unit = {},
     ) {
         composeRule.setContent {
             BabyTrackerTheme {
@@ -132,7 +183,7 @@ class DoctorVisitSheetTest {
                     onToggleQuestion = {},
                     onAttachSnapshot = {},
                     onViewSnapshot = {},
-                    onManageQuestions = {},
+                    onManageQuestions = onManageQuestions,
                     onSave = {},
                     onDismiss = {},
                 )

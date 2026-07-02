@@ -40,6 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -65,6 +66,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -460,10 +462,16 @@ private fun QuestionsSection(
                     },
             )
             if (openQuestionCount > 0) {
-                TextButton(onClick = onManageQuestions) {
+                OutlinedButton(
+                    onClick = onManageQuestions,
+                    shape = MaterialTheme.shapes.extraLarge,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.accent),
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .testTag("DoctorVisitManageAllButton"),
+                ) {
                     Text(
                         text = stringResource(R.string.doctor_visit_manage_all),
-                        color = colors.accent,
                     )
                 }
             }
