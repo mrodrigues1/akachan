@@ -3,8 +3,8 @@ package com.babytracker.ui.diaper
 import app.cash.turbine.test
 import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.model.DiaperType
+import com.babytracker.domain.repository.DiaperRepository
 import com.babytracker.domain.usecase.diaper.DeleteDiaperChangeUseCase
-import com.babytracker.domain.usecase.diaper.ObserveDiaperChangesUseCase
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -29,7 +29,7 @@ import java.time.ZonedDateTime
 
 class DiaperHistoryViewModelTest {
     private val zone = ZoneId.of("UTC")
-    private val observe = mockk<ObserveDiaperChangesUseCase>()
+    private val diaperRepository = mockk<DiaperRepository>()
     private val delete = mockk<DeleteDiaperChangeUseCase>()
 
     @BeforeEach
@@ -45,8 +45,8 @@ class DiaperHistoryViewModelTest {
     fun `groups by day descending`() = runTest {
         val day16 = ZonedDateTime.of(2026, 6, 16, 8, 0, 0, 0, zone).toInstant()
         val day15 = ZonedDateTime.of(2026, 6, 15, 9, 0, 0, 0, zone).toInstant()
-        every { observe() } returns flowOf(listOf(change(2, day16), change(1, day15)))
-        val vm = DiaperHistoryViewModel(observe, delete, zone)
+        every { diaperRepository.observeAll() } returns flowOf(listOf(change(2, day16), change(1, day15)))
+        val vm = DiaperHistoryViewModel(diaperRepository, delete, zone)
         vm.historyByDateDesc.test {
             // stateIn emits its initial empty value first; skip past it to the mapped value.
             var groups = awaitItem()
@@ -59,9 +59,9 @@ class DiaperHistoryViewModelTest {
 
     @Test
     fun `delete request then confirm deletes and clears pending`() = runTest {
-        every { observe() } returns flowOf(emptyList())
+        every { diaperRepository.observeAll() } returns flowOf(emptyList())
         coEvery { delete(7) } just Runs
-        val vm = DiaperHistoryViewModel(observe, delete, zone)
+        val vm = DiaperHistoryViewModel(diaperRepository, delete, zone)
         val c = change(7, Instant.ofEpochMilli(1_000))
 
         vm.onDeleteRequest(c)
@@ -74,8 +74,8 @@ class DiaperHistoryViewModelTest {
 
     @Test
     fun `cancel clears pending without deleting`() = runTest {
-        every { observe() } returns flowOf(emptyList())
-        val vm = DiaperHistoryViewModel(observe, delete, zone)
+        every { diaperRepository.observeAll() } returns flowOf(emptyList())
+        val vm = DiaperHistoryViewModel(diaperRepository, delete, zone)
 
         vm.onDeleteRequest(change(7, Instant.ofEpochMilli(1_000)))
         vm.onCancelDelete()

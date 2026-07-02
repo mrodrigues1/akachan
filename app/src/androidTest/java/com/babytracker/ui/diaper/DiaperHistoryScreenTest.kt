@@ -12,10 +12,10 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.model.DiaperType
+import com.babytracker.domain.repository.DiaperRepository
 import com.babytracker.domain.usecase.diaper.DeleteDiaperChangeUseCase
 import com.babytracker.domain.usecase.diaper.EditDiaperChangeUseCase
 import com.babytracker.domain.usecase.diaper.LogDiaperChangeUseCase
-import com.babytracker.domain.usecase.diaper.ObserveDiaperChangesUseCase
 import com.babytracker.ui.theme.BabyTrackerTheme
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -54,11 +54,11 @@ class DiaperHistoryScreenTest {
     )
 
     private fun setScreen(changes: List<DiaperChange>) {
-        val observe = mockk<ObserveDiaperChangesUseCase> { every { this@mockk.invoke() } returns flowOf(changes) }
+        val diaperRepository = mockk<DiaperRepository> { every { observeAll() } returns flowOf(changes) }
         val delete = mockk<DeleteDiaperChangeUseCase>().also { coEvery { it.invoke(any()) } just Runs }
         val log = mockk<LogDiaperChangeUseCase>(relaxed = true)
         val edit = mockk<EditDiaperChangeUseCase>(relaxed = true)
-        val historyVm = DiaperHistoryViewModel(observe, delete, zone)
+        val historyVm = DiaperHistoryViewModel(diaperRepository, delete, zone)
         val editVm = DiaperViewModel(log, edit, ApplicationProvider.getApplicationContext()) {
             Instant.ofEpochMilli(2_000)
         }

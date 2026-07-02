@@ -2,6 +2,7 @@ package com.babytracker.domain.usecase.inventory
 
 import com.babytracker.domain.model.ExpirationStatus
 import com.babytracker.domain.model.MilkBagWithExpiration
+import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.InventorySettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -20,12 +21,12 @@ import javax.inject.Inject
  * When the feature is disabled, every bag maps to [ExpirationStatus.NONE] and no date math runs.
  */
 class ObserveInventoryWithExpirationUseCase @Inject constructor(
-    private val getInventory: GetInventoryUseCase,
+    private val inventoryRepository: InventoryRepository,
     private val settings: InventorySettingsRepository,
 ) {
     operator fun invoke(dateFlow: Flow<LocalDate>): Flow<List<MilkBagWithExpiration>> =
         combine(
-            getInventory(),
+            inventoryRepository.getActiveBags(),
             settings.getExpirationEnabled(),
             settings.getExpirationDays(),
             dateFlow,

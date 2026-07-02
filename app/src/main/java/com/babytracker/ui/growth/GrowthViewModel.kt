@@ -6,9 +6,9 @@ import com.babytracker.domain.growth.GrowthChartData
 import com.babytracker.domain.model.GrowthMeasurement
 import com.babytracker.domain.model.GrowthType
 import com.babytracker.domain.model.MeasurementSystem
+import com.babytracker.domain.repository.GrowthRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.growth.AddGrowthMeasurementUseCase
-import com.babytracker.domain.usecase.growth.DeleteGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.GetGrowthChartDataUseCase
 import com.babytracker.domain.usecase.growth.UpdateGrowthMeasurementUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
@@ -37,7 +37,7 @@ class GrowthViewModel @Inject constructor(
     private val getGrowthChartData: GetGrowthChartDataUseCase,
     private val addGrowthMeasurement: AddGrowthMeasurementUseCase,
     private val updateGrowthMeasurement: UpdateGrowthMeasurementUseCase,
-    private val deleteGrowthMeasurement: DeleteGrowthMeasurementUseCase,
+    private val growthRepository: GrowthRepository,
     private val settingsRepository: SettingsRepository,
     private val syncedWrite: SyncedWrite,
 ) : ViewModel() {
@@ -97,7 +97,7 @@ class GrowthViewModel @Inject constructor(
 
     fun onDeleteMeasurement(id: Long) {
         viewModelScope.launch {
-            deleteGrowthMeasurement(id)
+            growthRepository.deleteMeasurement(id)
             syncedWrite.sync()
         }
     }

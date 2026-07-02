@@ -2,10 +2,7 @@ package com.babytracker.ui.milestone
 
 import app.cash.turbine.test
 import com.babytracker.domain.model.Milestone
-import com.babytracker.domain.usecase.milestone.AddMilestoneUseCase
-import com.babytracker.domain.usecase.milestone.DeleteMilestoneUseCase
-import com.babytracker.domain.usecase.milestone.GetMilestonesUseCase
-import com.babytracker.domain.usecase.milestone.UpdateMilestoneUseCase
+import com.babytracker.domain.repository.MilestoneRepository
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coVerify
@@ -26,10 +23,7 @@ import java.time.LocalDate
 class MilestonesViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private lateinit var getMilestones: GetMilestonesUseCase
-    private lateinit var addMilestone: AddMilestoneUseCase
-    private lateinit var updateMilestone: UpdateMilestoneUseCase
-    private lateinit var deleteMilestone: DeleteMilestoneUseCase
+    private lateinit var milestoneRepository: MilestoneRepository
     private lateinit var photoCleaner: MilestonePhotoCleaner
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
 
@@ -44,20 +38,17 @@ class MilestonesViewModelTest {
     @BeforeEach
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        getMilestones = mockk()
-        addMilestone = mockk(relaxed = true)
-        updateMilestone = mockk(relaxed = true)
-        deleteMilestone = mockk(relaxed = true)
+        milestoneRepository = mockk(relaxed = true)
         photoCleaner = mockk(relaxed = true)
         syncToFirestore = mockk(relaxed = true)
-        every { getMilestones() } returns flowOf(listOf(existing))
+        every { milestoneRepository.getMilestones() } returns flowOf(listOf(existing))
     }
 
     @AfterEach
     fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel() = MilestonesViewModel(
-        getMilestones, addMilestone, updateMilestone, deleteMilestone, photoCleaner, SyncedWrite(syncToFirestore),
+        milestoneRepository, photoCleaner, SyncedWrite(syncToFirestore),
     )
 
     @Test
@@ -77,8 +68,8 @@ class MilestonesViewModelTest {
         val moment = Milestone(id = 0, title = "New", date = LocalDate.of(2026, 6, 2))
         vm.onSave(moment)
         testDispatcher.scheduler.advanceUntilIdle()
-        coVerify { addMilestone(moment) }
-        coVerify(exactly = 0) { updateMilestone(any()) }
+        coVerify { milestoneRepository.addMilestone(moment) }
+        coVerify(exactly = 0) { milestoneRepository.updateMilestone(any()) }
     }
 
     @Test
@@ -88,7 +79,7 @@ class MilestonesViewModelTest {
         val updated = existing.copy(title = "Renamed", photoUri = photoUri)
         vm.onSave(updated)
         testDispatcher.scheduler.advanceUntilIdle()
-        coVerify { updateMilestone(updated) }
+        coVerify { milestoneRepository.updateMilestone(updated) }
         // Photo unchanged, so no cleanup.
         coVerify(exactly = 0) { photoCleaner.delete(photoUri) }
     }
@@ -109,7 +100,7 @@ class MilestonesViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
         vm.onDelete(1)
         testDispatcher.scheduler.advanceUntilIdle()
-        coVerify { deleteMilestone(1) }
+        coVerify { milestoneRepository.deleteMilestone(1) }
         coVerify { photoCleaner.delete(photoUri) }
     }
 }

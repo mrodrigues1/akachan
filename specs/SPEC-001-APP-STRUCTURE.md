@@ -22,7 +22,7 @@ Parents and caregivers of infants aged 0–12 months.
 |---|---|
 | **SOLID** | Single responsibility per class. Depend on abstractions (repository interfaces). Open for extension via sealed classes/interfaces. |
 | **KISS** | Flat package structure. No unnecessary abstractions. Prefer simple `when` expressions over complex inheritance. |
-| **DDD** | Domain models are plain Kotlin data classes with no framework dependencies. Business rules live in domain use cases, not in ViewModels or DAOs. |
+| **DDD** | Domain models are plain Kotlin data classes with no framework dependencies. Business rules live in domain use cases, not in ViewModels or DAOs. Plain CRUD has no business rules, so it needs no use case (ADR-0001). |
 | **Design Patterns** | Repository pattern for data access. Observer pattern via Kotlin Flows. Factory pattern for schedule generation. Strategy pattern for sleep algorithm modes. |
 
 ### 1.3 Anti-Goals (Avoiding Overengineering)
@@ -79,17 +79,19 @@ Parents and caregivers of infants aged 0–12 months.
 ### 3.2 Data Flow (Unidirectional)
 
 ```
-User Action → ViewModel → Use Case → Repository → Room/DataStore
-                ↑                                       │
-                └──── UI State (StateFlow) ◄── Flow ────┘
+User Action → ViewModel → [Use Case] → Repository → Room/DataStore
+                ↑                                        │
+                └──── UI State (StateFlow) ◄── Flow ─────┘
 ```
 
 1. User interacts with a Composable.
 2. Composable calls a ViewModel function.
-3. ViewModel delegates to a Use Case (in `viewModelScope`).
-4. Use Case calls Repository interface method.
+3. ViewModel calls a Use Case when one exists, otherwise the Repository interface directly (in `viewModelScope`).
+4. A Use Case exists only when it contains behaviour — a branch, computation, time math, validation, or orchestration across repositories/services (ADR-0001). Plain CRUD goes straight from ViewModel to the Repository interface; pass-through use cases are not written.
 5. Repository implementation reads/writes Room or DataStore.
-6. Room returns `Flow<T>` which propagates up through Use Case → ViewModel → `StateFlow` → Composable recomposes.
+6. Room returns `Flow<T>` which propagates up (through the Use Case, if any) → ViewModel → `StateFlow` → Composable recomposes.
+
+The repository interface (`com.babytracker.domain.repository.*`) is the enforced isolation seam: ViewModels never import `com.babytracker.data.*` or DAOs (see `LayerIsolationTest`).
 
 ### 3.3 State Management
 
@@ -99,8 +101,8 @@ Each screen ViewModel exposes a single `StateFlow<ScreenUiState>` using a `data 
 // Example pattern
 @HiltViewModel
 class BreastfeedingViewModel @Inject constructor(
-    private val startSession: StartBreastfeedingSessionUseCase,
-    private val getHistory: GetBreastfeedingHistoryUseCase,
+    private val repository: BreastfeedingRepository,          // plain CRUD: no use case
+    private val updateSession: UpdateBreastfeedingSessionUseCase, // behaviour: earns its use case
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BreastfeedingUiState())
@@ -143,21 +145,19 @@ com.babytracker/
 │   │   ├── SleepRepository.kt         # interface
 │   │   └── SettingsRepository.kt      # interface
 │   │
-│   └── usecase/
+│   └── usecase/                       # behaviour-only (ADR-0001): no pass-through CRUD relays
 │       ├── breastfeeding/
-│       │   ├── StartBreastfeedingSessionUseCase.kt
-│       │   ├── StopBreastfeedingSessionUseCase.kt
-│       │   └── GetBreastfeedingHistoryUseCase.kt
+│       │   ├── PauseBreastfeedingSessionUseCase.kt
+│       │   ├── UpdateBreastfeedingSessionUseCase.kt
+│       │   └── PredictNextFeedUseCase.kt
 │       │
 │       ├── sleep/
 │       │   ├── StartSleepRecordUseCase.kt
 │       │   ├── StopSleepRecordUseCase.kt
-│       │   ├── GetSleepHistoryUseCase.kt
 │       │   └── GenerateSleepScheduleUseCase.kt
 │       │
 │       └── baby/
-│           ├── SaveBabyProfileUseCase.kt
-│           └── GetBabyProfileUseCase.kt
+│           └── SaveBabyProfileUseCase.kt
 │
 ├── data/
 │   ├── local/
@@ -222,6 +222,7 @@ com.babytracker/
 - **Domain models are separate from Room entities** — entities have Room annotations; domain models are clean. Conversion is done via extension functions on the entity (`fun BreastfeedingEntity.toDomain(): BreastfeedingSession`), not via Mapper classes.
 - **One ViewModel per feature screen** — a single `SleepViewModel` can serve tracking, history, and schedule if they share state. Split only if complexity warrants it.
 - **Use Cases are classes, not interfaces** — each has a single `operator fun invoke()`. No interface abstraction on use cases unless there is a real second implementation.
+- **Use cases exist only when they have behaviour** (ADR-0001) — a branch, computation, time math, validation, or orchestration across repositories/services. For plain CRUD, ViewModels call the repository interface directly; pass-through use cases and their tautological tests are deleted, not maintained.
 
 ---
 
@@ -378,7 +379,7 @@ object Routes {
 
 ### 8.5 Test Conventions
 
-- Test files mirror source: `com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCaseTest`.
+- Test files mirror source: `com.babytracker.domain.usecase.sleep.GenerateSleepScheduleUseCaseTest`.
 - Naming: `fun methodName_condition_expectedResult()`.
 - Each test class has a `@BeforeEach` setup block, not `@Before`.
 - Use `Dispatchers.Unconfined` or `StandardTestDispatcher` in ViewModel tests via `@OptIn(ExperimentalCoroutinesApi::class)`.

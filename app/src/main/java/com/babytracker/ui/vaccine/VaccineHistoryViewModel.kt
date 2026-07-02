@@ -4,10 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.VaccineStatus
+import com.babytracker.domain.repository.VaccineRepository
 import com.babytracker.domain.usecase.vaccine.DeleteVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineScheduledUseCase
-import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
 import com.babytracker.domain.usecase.vaccine.RestoreVaccineRecordUseCase
 import com.babytracker.util.groupByDateDescending
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -41,7 +41,7 @@ data class VaccineHistoryUiState(
 
 @HiltViewModel
 class VaccineHistoryViewModel @Inject constructor(
-    observeRecords: ObserveVaccineRecordsUseCase,
+    vaccineRepository: VaccineRepository,
     private val markGivenUseCase: MarkVaccineAdministeredUseCase,
     private val markScheduledUseCase: MarkVaccineScheduledUseCase,
     private val deleteUseCase: DeleteVaccineRecordUseCase,
@@ -64,7 +64,7 @@ class VaccineHistoryViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<VaccineHistoryUiState> =
         retryTrigger.flatMapLatest {
-            combine(observeRecords(), _pendingDelete) { records, pending ->
+            combine(vaccineRepository.observeAll(), _pendingDelete) { records, pending ->
                 val visible = records.filterNot { it.id == pending?.id }
                 val toSchedule = visible
                     .filter { it.status == VaccineStatus.TO_SCHEDULE && it.scheduledDate != null }

@@ -4,8 +4,8 @@ import com.babytracker.domain.model.BottleFeed
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedType
-import com.babytracker.domain.usecase.bottlefeed.ObserveBottleFeedsUseCase
-import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
+import com.babytracker.domain.repository.BottleFeedRepository
+import com.babytracker.domain.repository.BreastfeedingRepository
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
@@ -23,8 +23,8 @@ class ObserveTodayFeedingSummaryUseCaseTest {
     private val zone = ZoneId.of("UTC")
     private val now = Instant.parse("2026-06-10T20:00:00Z")
 
-    private val getBreastfeeding = mockk<GetBreastfeedingHistoryUseCase>()
-    private val observeBottles = mockk<ObserveBottleFeedsUseCase>()
+    private val getBreastfeeding = mockk<BreastfeedingRepository>()
+    private val observeBottles = mockk<BottleFeedRepository>()
 
     private fun useCase() =
         ObserveTodayFeedingSummaryUseCase(getBreastfeeding, observeBottles, zone) { now }
@@ -37,8 +37,8 @@ class ObserveTodayFeedingSummaryUseCaseTest {
         val todaySession = BreastfeedingSession(1, Instant.parse("2026-06-10T15:00:00Z"), Instant.parse("2026-06-10T15:10:00Z"), BreastSide.LEFT)
         val yesterdaySession = BreastfeedingSession(2, Instant.parse("2026-06-09T15:00:00Z"), Instant.parse("2026-06-09T15:10:00Z"), BreastSide.RIGHT)
 
-        every { getBreastfeeding() } returns flowOf(listOf(todaySession, yesterdaySession))
-        every { observeBottles() } returns flowOf(listOf(todayBottleA, todayBottleB, yesterdayBottle))
+        every { getBreastfeeding.getAllSessions() } returns flowOf(listOf(todaySession, yesterdaySession))
+        every { observeBottles.getAll() } returns flowOf(listOf(todayBottleA, todayBottleB, yesterdayBottle))
 
         val summary = useCase()().first()
 
@@ -54,8 +54,8 @@ class ObserveTodayFeedingSummaryUseCaseTest {
         val yesterdayBottle = BottleFeed(1, "client-1", Instant.parse("2026-06-09T12:00:00Z"), 200, FeedType.FORMULA, createdAt = Instant.EPOCH)
         val yesterdaySession = BreastfeedingSession(1, Instant.parse("2026-06-09T15:00:00Z"), Instant.parse("2026-06-09T15:10:00Z"), BreastSide.RIGHT)
 
-        every { getBreastfeeding() } returns flowOf(listOf(yesterdaySession))
-        every { observeBottles() } returns flowOf(listOf(yesterdayBottle))
+        every { getBreastfeeding.getAllSessions() } returns flowOf(listOf(yesterdaySession))
+        every { observeBottles.getAll() } returns flowOf(listOf(yesterdayBottle))
 
         val summary = useCase()().first()
 
@@ -73,8 +73,8 @@ class ObserveTodayFeedingSummaryUseCaseTest {
         // 2026-06-10T03:00Z is 2026-06-09 23:00 local -> yesterday in NY.
         val earlyUtcYesterdayLocal = BottleFeed(2, "client-2", Instant.parse("2026-06-10T03:00:00Z"), 50, FeedType.FORMULA, createdAt = Instant.EPOCH)
 
-        every { getBreastfeeding() } returns flowOf(emptyList())
-        every { observeBottles() } returns flowOf(listOf(lateUtcStillTodayLocal, earlyUtcYesterdayLocal))
+        every { getBreastfeeding.getAllSessions() } returns flowOf(emptyList())
+        every { observeBottles.getAll() } returns flowOf(listOf(lateUtcStillTodayLocal, earlyUtcYesterdayLocal))
 
         val summary = ObserveTodayFeedingSummaryUseCase(getBreastfeeding, observeBottles, zoneNy) { now }().first()
 

@@ -5,10 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.domain.model.isOverdue
+import com.babytracker.domain.repository.VaccineRepository
 import com.babytracker.domain.usecase.vaccine.DeleteVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineScheduledUseCase
-import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
 import com.babytracker.domain.usecase.vaccine.RestoreVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.UndoMarkVaccineAdministeredUseCase
 import com.babytracker.util.daysUntil
@@ -79,7 +79,7 @@ data class VaccineDashboardUiState(
 
 @HiltViewModel
 class VaccineDashboardViewModel @Inject constructor(
-    observeRecords: ObserveVaccineRecordsUseCase,
+    vaccineRepository: VaccineRepository,
     private val markGivenUseCase: MarkVaccineAdministeredUseCase,
     private val markScheduledUseCase: MarkVaccineScheduledUseCase,
     private val undoMarkGivenUseCase: UndoMarkVaccineAdministeredUseCase,
@@ -114,7 +114,7 @@ class VaccineDashboardViewModel @Inject constructor(
     val uiState: StateFlow<VaccineDashboardUiState> =
         retryTrigger.flatMapLatest {
             combine(
-                observeRecords(), pendingMarkGiven, pendingDelete, pendingMarkScheduled,
+                vaccineRepository.observeAll(), pendingMarkGiven, pendingDelete, pendingMarkScheduled,
             ) { records, pendingMark, pendingDel, pendingSch ->
                 val instant = now()
                 val today = instant.atZone(zone).toLocalDate()

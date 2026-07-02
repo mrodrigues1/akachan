@@ -3,8 +3,8 @@ package com.babytracker.ui.settings
 import com.babytracker.domain.model.MeasurementSystem
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import io.mockk.coEvery
 import io.mockk.coJustRun
@@ -37,14 +37,14 @@ class SettingsViewModelTest {
     private val richNotificationsFlow = MutableStateFlow(true)
     private val partnerStashNotificationsFlow = MutableStateFlow(true)
     private val appModeFlow = MutableStateFlow(AppMode.NONE)
-    private lateinit var getBabyProfile: GetBabyProfileUseCase
+    private lateinit var babyRepository: BabyRepository
 
     @BeforeEach
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         settingsRepository = mockk()
-        getBabyProfile = mockk()
-        every { getBabyProfile() } returns flowOf(null)
+        babyRepository = mockk()
+        every { babyRepository.getBabyProfile() } returns flowOf(null)
         every { settingsRepository.getThemeConfig() } returns flowOf(ThemeConfig.SYSTEM)
         every { settingsRepository.getAutoUpdateEnabled() } returns flowOf(true)
         every { settingsRepository.getRichNotificationsEnabled() } returns richNotificationsFlow
@@ -56,7 +56,7 @@ class SettingsViewModelTest {
         every { settingsRepository.getMeasurementSystem() } returns flowOf(MeasurementSystem.METRIC)
 
         viewModel = SettingsViewModel(
-            getBabyProfile,
+            babyRepository,
             settingsRepository,
             mockk(),
         )

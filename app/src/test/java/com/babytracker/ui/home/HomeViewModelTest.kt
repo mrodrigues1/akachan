@@ -19,18 +19,18 @@ import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.model.BabyEventType
-import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
+import com.babytracker.domain.repository.BabyRepository
+import com.babytracker.domain.repository.BreastfeedingRepository
+import com.babytracker.domain.repository.FeatureToggleRepository
+import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
-import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.diaper.ObserveTodayDiaperSummaryUseCase
 import com.babytracker.domain.usecase.feeding.ObserveTodayFeedingSummaryUseCase
 import com.babytracker.domain.model.DoctorVisitSummary
 import com.babytracker.domain.model.VaccineSummary
-import com.babytracker.domain.usecase.features.GetEnabledFeaturesUseCase
 import com.babytracker.domain.usecase.doctorvisit.ObserveDoctorVisitSummaryUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineSummaryUseCase
-import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
@@ -61,9 +61,9 @@ import java.time.LocalDate
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
 
-    private lateinit var getBabyProfile: GetBabyProfileUseCase
-    private lateinit var getBreastfeedingHistory: GetBreastfeedingHistoryUseCase
-    private lateinit var getSleepHistory: GetSleepHistoryUseCase
+    private lateinit var babyRepository: BabyRepository
+    private lateinit var breastfeedingRepository: BreastfeedingRepository
+    private lateinit var sleepRepository: SleepRepository
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var pumpingRepository: PumpingRepository
@@ -72,7 +72,7 @@ class HomeViewModelTest {
     private lateinit var predictSleepWindow: PredictSleepWindowUseCase
     private lateinit var observeTodayFeedingSummary: ObserveTodayFeedingSummaryUseCase
     private lateinit var observeTodayDiaperSummary: ObserveTodayDiaperSummaryUseCase
-    private lateinit var getEnabledFeatures: GetEnabledFeaturesUseCase
+    private lateinit var featureToggleRepository: FeatureToggleRepository
     private lateinit var observeVaccineSummary: ObserveVaccineSummaryUseCase
     private lateinit var observeDoctorVisitSummary: ObserveDoctorVisitSummaryUseCase
     private lateinit var logBabyEvent: LogBabyEventUseCase
@@ -102,9 +102,9 @@ class HomeViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         collectorScope = CoroutineScope(testDispatcher)
-        getBabyProfile = mockk()
-        getBreastfeedingHistory = mockk()
-        getSleepHistory = mockk()
+        babyRepository = mockk()
+        breastfeedingRepository = mockk()
+        sleepRepository = mockk()
         syncToFirestore = mockk()
         settingsRepository = mockk()
         pumpingRepository = mockk()
@@ -113,14 +113,14 @@ class HomeViewModelTest {
         predictSleepWindow = mockk()
         observeTodayFeedingSummary = mockk()
         observeTodayDiaperSummary = mockk()
-        getEnabledFeatures = mockk()
+        featureToggleRepository = mockk()
         observeVaccineSummary = mockk()
         observeDoctorVisitSummary = mockk()
         logBabyEvent = mockk()
 
-        every { getBabyProfile() } returns flowOf(testBaby)
-        every { getBreastfeedingHistory() } returns flowOf(emptyList())
-        every { getSleepHistory() } returns flowOf(emptyList())
+        every { babyRepository.getBabyProfile() } returns flowOf(testBaby)
+        every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
+        every { sleepRepository.getAllRecords() } returns flowOf(emptyList())
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.NONE)
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         every { settingsRepository.getHomeTileOrder() } returns flowOf(HomeTile.DEFAULT_ORDER)
@@ -132,7 +132,7 @@ class HomeViewModelTest {
         every { observeTodayDiaperSummary() } returns flowOf(TodayDiaperSummary())
         every { observeVaccineSummary() } returns flowOf(VaccineSummary())
         every { observeDoctorVisitSummary() } returns flowOf(DoctorVisitSummary())
-        every { getEnabledFeatures() } returns flowOf(AppFeature.ALL)
+        every { featureToggleRepository.getEnabledFeatures() } returns flowOf(AppFeature.ALL)
         coJustRun { syncToFirestore(any()) }
         coJustRun { logBabyEvent(any()) }
     }
@@ -145,9 +145,9 @@ class HomeViewModelTest {
 
     private fun createViewModel(): HomeViewModel {
         val vm = HomeViewModel(
-            getBabyProfile,
-            getBreastfeedingHistory,
-            getSleepHistory,
+            babyRepository,
+            breastfeedingRepository,
+            sleepRepository,
             SyncedWrite(syncToFirestore),
             settingsRepository,
             pumpingRepository,
@@ -156,7 +156,7 @@ class HomeViewModelTest {
             predictSleepWindow,
             observeTodayFeedingSummary,
             observeTodayDiaperSummary,
-            getEnabledFeatures,
+            featureToggleRepository,
             observeVaccineSummary,
             observeDoctorVisitSummary,
             logBabyEvent,
@@ -167,7 +167,7 @@ class HomeViewModelTest {
 
     @Test
     fun activeSession_isNull_whenNoInProgressFeeding() = runTest {
-        every { getBreastfeedingHistory() } returns flowOf(listOf(completedSession))
+        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(completedSession))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertNull(viewModel.uiState.value.activeSession)
@@ -175,7 +175,7 @@ class HomeViewModelTest {
 
     @Test
     fun activeSession_isSet_whenInProgressFeedingExists() = runTest {
-        every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession, completedSession))
+        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(inProgressSession, completedSession))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertNotNull(viewModel.uiState.value.activeSession)
@@ -185,7 +185,7 @@ class HomeViewModelTest {
     @Test
     fun nextRecommendedSide_returnsOppositeOfLastCompletedSessionStartingSide_whenNoSwitch() = runTest {
         // completedSession started on RIGHT with no switch → recommend LEFT (the less-used side)
-        every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession, completedSession))
+        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(inProgressSession, completedSession))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(BreastSide.LEFT, viewModel.uiState.value.nextRecommendedSide)
@@ -193,7 +193,7 @@ class HomeViewModelTest {
 
     @Test
     fun nextRecommendedSide_isNull_whenNoCompletedSession() = runTest {
-        every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession))
+        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(inProgressSession))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertNull(viewModel.uiState.value.nextRecommendedSide)
@@ -210,7 +210,7 @@ class HomeViewModelTest {
             startingSide = BreastSide.RIGHT,
             switchTime = now.minusSeconds(170) // 19s on RIGHT before switch, then 19s on LEFT
         )
-        every { getBreastfeedingHistory() } returns flowOf(listOf(sessionWithSwitch))
+        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(sessionWithSwitch))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         // RIGHT used 130s, LEFT used 19s → LEFT was used less → recommend LEFT
@@ -219,7 +219,7 @@ class HomeViewModelTest {
 
     @Test
     fun lastSessionStartTime_isNull_whenHistoryIsEmpty() = runTest {
-        every { getBreastfeedingHistory() } returns flowOf(emptyList())
+        every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertNull(viewModel.uiState.value.lastSessionStartTime)
@@ -227,7 +227,7 @@ class HomeViewModelTest {
 
     @Test
     fun lastSessionStartTime_equalsActiveSessionStart_whenActiveSessionExists() = runTest {
-        every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession, completedSession))
+        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(inProgressSession, completedSession))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(inProgressSession.startTime, viewModel.uiState.value.lastSessionStartTime)
@@ -235,7 +235,7 @@ class HomeViewModelTest {
 
     @Test
     fun lastSessionStartTime_prefersActiveSession_evenWhenNotFirstInList() = runTest {
-        every { getBreastfeedingHistory() } returns flowOf(listOf(completedSession, inProgressSession))
+        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(completedSession, inProgressSession))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(inProgressSession.startTime, viewModel.uiState.value.lastSessionStartTime)
@@ -243,7 +243,7 @@ class HomeViewModelTest {
 
     @Test
     fun lastSessionStartTime_equalsMostRecentCompletedStart_whenNoActiveSession() = runTest {
-        every { getBreastfeedingHistory() } returns flowOf(listOf(completedSession))
+        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(completedSession))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(completedSession.startTime, viewModel.uiState.value.lastSessionStartTime)
@@ -257,7 +257,7 @@ class HomeViewModelTest {
             endTime = Instant.now().minusSeconds(1800),
             sleepType = SleepType.NIGHT_SLEEP,
         )
-        every { getSleepHistory() } returns flowOf(listOf(completedSleep))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(completedSleep))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertNull(viewModel.uiState.value.activeSleepRecord)
@@ -271,7 +271,7 @@ class HomeViewModelTest {
             endTime = null,
             sleepType = SleepType.NAP,
         )
-        every { getSleepHistory() } returns flowOf(listOf(inProgressSleep))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(inProgressSleep))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertNotNull(viewModel.uiState.value.activeSleepRecord)
@@ -342,7 +342,7 @@ class HomeViewModelTest {
             isOverdue = false,
             minutesUntil = 45,
         )
-        every { getBreastfeedingHistory() } returns flowOf(listOf(completedSession))
+        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(completedSession))
         every { predictNextFeed() } returns flowOf(prediction)
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -358,7 +358,7 @@ class HomeViewModelTest {
             isOverdue = false,
             minutesUntil = 45,
         )
-        every { getBreastfeedingHistory() } returns flowOf(listOf(inProgressSession, completedSession))
+        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(inProgressSession, completedSession))
         every { predictNextFeed() } returns flowOf(prediction)
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -367,7 +367,7 @@ class HomeViewModelTest {
 
     @Test
     fun lastSleepEndTime_isNull_whenNoCompletedSleepExists() = runTest {
-        every { getSleepHistory() } returns flowOf(emptyList())
+        every { sleepRepository.getAllRecords() } returns flowOf(emptyList())
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertNull(viewModel.uiState.value.lastSleepEndTime)
@@ -389,7 +389,7 @@ class HomeViewModelTest {
             endTime = laterEnd,
             sleepType = SleepType.NAP,
         )
-        every { getSleepHistory() } returns flowOf(listOf(newer, older))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(newer, older))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(laterEnd, viewModel.uiState.value.lastSleepEndTime)
@@ -414,7 +414,7 @@ class HomeViewModelTest {
             sleepType = SleepType.NIGHT_SLEEP,
         )
         // recordA appears first (later start_time), but endTimeA > endTimeB
-        every { getSleepHistory() } returns flowOf(listOf(recordA, recordB))
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(recordA, recordB))
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(endTimeA, viewModel.uiState.value.lastSleepEndTime)

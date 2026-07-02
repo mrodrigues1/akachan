@@ -9,7 +9,6 @@ import com.babytracker.domain.repository.FeedSettingsRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
-import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
@@ -39,7 +38,6 @@ class BreastfeedingActionReceiverTest {
     private lateinit var feedSettingsRepository: FeedSettingsRepository
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var switchSide: SwitchBreastfeedingSideUseCase
-    private lateinit var stopSession: StopBreastfeedingSessionUseCase
     private lateinit var pauseSession: PauseBreastfeedingSessionUseCase
     private lateinit var resumeSession: ResumeBreastfeedingSessionUseCase
     private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
@@ -59,7 +57,6 @@ class BreastfeedingActionReceiverTest {
         feedSettingsRepository = mockk()
         settingsRepository = mockk()
         switchSide = mockk()
-        stopSession = mockk()
         pauseSession = mockk()
         resumeSession = mockk()
         notificationCoordinator = mockk()
@@ -69,7 +66,6 @@ class BreastfeedingActionReceiverTest {
         receiver.feedSettingsRepository = feedSettingsRepository
         receiver.settingsRepository = settingsRepository
         receiver.switchSide = switchSide
-        receiver.stopSession = stopSession
         receiver.pauseSession = pauseSession
         receiver.resumeSession = resumeSession
         receiver.notificationCoordinator = notificationCoordinator
@@ -134,11 +130,11 @@ class BreastfeedingActionReceiverTest {
 
     @Test
     fun `ACTION_STOP calls stopSession and cancels scheduled alarms plus feeding-limit, switch-side, and active notifications`() = runTest {
-        coEvery { stopSession(activeSession) } returns Unit
+        coEvery { repository.updateSession(any()) } returns Unit
 
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_STOP, 42L))
 
-        coVerify { stopSession(activeSession) }
+        coVerify { repository.updateSession(match { it.id == activeSession.id && it.endTime != null }) }
         verify(exactly = 1) { notificationCoordinator.cancelScheduled() }
         verify(exactly = 1) { notificationCoordinator.cancelPostedSessionNotifications() }
         verify(exactly = 0) { notificationCoordinator.cancelAllSessionNotifications() }
@@ -149,7 +145,7 @@ class BreastfeedingActionReceiverTest {
     fun `ACTION_STOP ignores wrong session id without cancelling scheduled alarms`() = runTest {
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_STOP, 999L))
 
-        coVerify(exactly = 0) { stopSession(any()) }
+        coVerify(exactly = 0) { repository.updateSession(any()) }
         verify(exactly = 0) { notificationCoordinator.cancelScheduled() }
         verify(exactly = 1) { notificationCoordinator.cancelPostedSessionNotifications() }
         verify(exactly = 0) { notificationCoordinator.cancelAllSessionNotifications() }
@@ -228,7 +224,7 @@ class BreastfeedingActionReceiverTest {
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_DISMISS, 42L))
 
         coVerify(exactly = 0) { switchSide(any()) }
-        coVerify(exactly = 0) { stopSession(any()) }
+        coVerify(exactly = 0) { repository.updateSession(any()) }
         verify { NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID) }
         verify(exactly = 0) { NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID) }
     }

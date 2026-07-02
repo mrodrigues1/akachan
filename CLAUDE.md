@@ -229,13 +229,15 @@ At the start of any work, read `AI_TASK_PROGRESS.md` (repo root). Keep it update
 ## Code Patterns
 
 ### Use Cases
+Optional tier (ADR-0001): write a use case only when it contains behaviour — a branch, computation, time math, validation, or orchestration across repositories/services. For plain CRUD, ViewModels call the repository interface (`domain/repository/*`) directly; never scaffold pass-through `Get*/Observe*/Delete*UseCase` relays.
+
 Single-responsibility classes with `suspend operator fun invoke(...)`:
 
 ```kotlin
-class StartBreastfeedingSessionUseCase @Inject constructor(
+class UpdateBreastfeedingSessionUseCase @Inject constructor(
     private val repository: BreastfeedingRepository
 ) {
-    suspend operator fun invoke(side: BreastSide): Long { ... }
+    suspend operator fun invoke(session: BreastfeedingSession, newStart: Instant, newEnd: Instant?) { ... }
 }
 ```
 

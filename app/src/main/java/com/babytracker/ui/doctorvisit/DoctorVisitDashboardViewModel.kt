@@ -5,9 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.model.VisitQuestion
 import com.babytracker.domain.model.isUpcoming
+import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.domain.usecase.doctorvisit.AddVisitQuestionUseCase
-import com.babytracker.domain.usecase.doctorvisit.ObserveDoctorVisitsUseCase
-import com.babytracker.domain.usecase.doctorvisit.ObserveInboxQuestionsUseCase
 import com.babytracker.domain.usecase.doctorvisit.ToggleVisitQuestionAnsweredUseCase
 import com.babytracker.util.daysUntil
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -57,8 +56,7 @@ data class DoctorVisitDashboardUiState(
 
 @HiltViewModel
 class DoctorVisitDashboardViewModel @Inject constructor(
-    observeVisits: ObserveDoctorVisitsUseCase,
-    observeInbox: ObserveInboxQuestionsUseCase,
+    repository: DoctorVisitRepository,
     private val addQuestion: AddVisitQuestionUseCase,
     private val toggleAnswered: ToggleVisitQuestionAnsweredUseCase,
     private val now: () -> Instant,
@@ -78,8 +76,8 @@ class DoctorVisitDashboardViewModel @Inject constructor(
     val uiState: StateFlow<DoctorVisitDashboardUiState> =
         retryTrigger.flatMapLatest {
             combine(
-                observeVisits(),
-                observeInbox(),
+                repository.observeAllVisits(),
+                repository.observeInboxQuestions(),
                 draft,
                 lastAnswered,
             ) { visits, inbox, draftText, answered ->

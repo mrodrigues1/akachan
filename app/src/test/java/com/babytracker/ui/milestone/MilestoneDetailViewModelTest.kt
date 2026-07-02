@@ -3,9 +3,7 @@ package com.babytracker.ui.milestone
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.babytracker.domain.model.Milestone
-import com.babytracker.domain.usecase.milestone.DeleteMilestoneUseCase
-import com.babytracker.domain.usecase.milestone.GetMilestoneUseCase
-import com.babytracker.domain.usecase.milestone.UpdateMilestoneUseCase
+import com.babytracker.domain.repository.MilestoneRepository
 import com.babytracker.navigation.Routes
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
@@ -29,9 +27,7 @@ import java.time.LocalDate
 class MilestoneDetailViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private lateinit var getMilestone: GetMilestoneUseCase
-    private lateinit var updateMilestone: UpdateMilestoneUseCase
-    private lateinit var deleteMilestone: DeleteMilestoneUseCase
+    private lateinit var milestoneRepository: MilestoneRepository
     private lateinit var photoCleaner: MilestonePhotoCleaner
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
 
@@ -41,12 +37,10 @@ class MilestoneDetailViewModelTest {
     @BeforeEach
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        getMilestone = mockk()
-        updateMilestone = mockk(relaxed = true)
-        deleteMilestone = mockk(relaxed = true)
+        milestoneRepository = mockk(relaxed = true)
         photoCleaner = mockk(relaxed = true)
         syncToFirestore = mockk(relaxed = true)
-        every { getMilestone(1) } returns flowOf(moment)
+        every { milestoneRepository.getMilestone(1) } returns flowOf(moment)
     }
 
     @AfterEach
@@ -54,7 +48,7 @@ class MilestoneDetailViewModelTest {
 
     private fun viewModel() = MilestoneDetailViewModel(
         SavedStateHandle(mapOf(Routes.MILESTONE_DETAIL_ARG to "1")),
-        getMilestone, updateMilestone, deleteMilestone, photoCleaner, SyncedWrite(syncToFirestore),
+        milestoneRepository, photoCleaner, SyncedWrite(syncToFirestore),
     )
 
     @Test
@@ -74,7 +68,7 @@ class MilestoneDetailViewModelTest {
         var deleted = false
         vm.onDelete(onDeleted = { deleted = true })
         testDispatcher.scheduler.advanceUntilIdle()
-        coVerify { deleteMilestone(1) }
+        coVerify { milestoneRepository.deleteMilestone(1) }
         coVerify { photoCleaner.delete(photoUri) }
         assertTrue(deleted)
     }
@@ -87,7 +81,7 @@ class MilestoneDetailViewModelTest {
         var deleted = false
         vm.onDelete(onDeleted = { deleted = true })
         testDispatcher.scheduler.advanceUntilIdle()
-        coVerify { deleteMilestone(1) }
+        coVerify { milestoneRepository.deleteMilestone(1) }
         coVerify { syncToFirestore() }
         assertTrue(deleted)
     }
@@ -99,7 +93,7 @@ class MilestoneDetailViewModelTest {
         val updated = moment.copy(photoUri = "content://new")
         vm.onSave(updated)
         testDispatcher.scheduler.advanceUntilIdle()
-        coVerify { updateMilestone(updated) }
+        coVerify { milestoneRepository.updateMilestone(updated) }
         coVerify { photoCleaner.delete(photoUri) }
     }
 }

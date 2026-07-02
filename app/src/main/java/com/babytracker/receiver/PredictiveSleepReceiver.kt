@@ -6,8 +6,8 @@ import android.content.Intent
 import android.util.Log
 import com.babytracker.domain.model.RecommendationLifecycle
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepRecommendationRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
-import com.babytracker.domain.usecase.sleep.UpdateRecommendationLifecycleUseCase
 import com.babytracker.util.FireDecision
 import com.babytracker.util.decideFire
 import com.babytracker.util.showPredictiveSleepReminder
@@ -25,7 +25,7 @@ class PredictiveSleepReceiver : BroadcastReceiver() {
 
     @Inject lateinit var settingsRepository: SettingsRepository
     @Inject lateinit var sleepSettingsRepository: SleepSettingsRepository
-    @Inject lateinit var updateRecommendationLifecycle: UpdateRecommendationLifecycleUseCase
+    @Inject lateinit var sleepRecommendationRepository: SleepRecommendationRepository
 
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
@@ -66,7 +66,7 @@ class PredictiveSleepReceiver : BroadcastReceiver() {
                         showPredictiveSleepReminder(context = context, bestEstimateMs = bestEstimateMs)
                         if (recommendationId > 0L) {
                             runCatching {
-                                updateRecommendationLifecycle(recommendationId, RecommendationLifecycle.FIRED)
+                                sleepRecommendationRepository.updateLifecycle(recommendationId, RecommendationLifecycle.FIRED)
                             }
                         }
                     }

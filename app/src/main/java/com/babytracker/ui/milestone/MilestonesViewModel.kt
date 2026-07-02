@@ -3,10 +3,7 @@ package com.babytracker.ui.milestone
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.Milestone
-import com.babytracker.domain.usecase.milestone.AddMilestoneUseCase
-import com.babytracker.domain.usecase.milestone.DeleteMilestoneUseCase
-import com.babytracker.domain.usecase.milestone.GetMilestonesUseCase
-import com.babytracker.domain.usecase.milestone.UpdateMilestoneUseCase
+import com.babytracker.domain.repository.MilestoneRepository
 import com.babytracker.sharing.usecase.SyncedWrite
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,16 +21,13 @@ data class MilestonesUiState(
 
 @HiltViewModel
 class MilestonesViewModel @Inject constructor(
-    private val getMilestones: GetMilestonesUseCase,
-    private val addMilestone: AddMilestoneUseCase,
-    private val updateMilestone: UpdateMilestoneUseCase,
-    private val deleteMilestone: DeleteMilestoneUseCase,
+    private val milestoneRepository: MilestoneRepository,
     private val photoCleaner: MilestonePhotoCleaner,
     private val syncedWrite: SyncedWrite,
 ) : ViewModel() {
 
     val uiState: StateFlow<MilestonesUiState> =
-        getMilestones()
+        milestoneRepository.getMilestones()
             .map { MilestonesUiState(moments = it, isLoading = false) }
             .stateIn(
                 scope = viewModelScope,
@@ -45,16 +39,16 @@ class MilestonesViewModel @Inject constructor(
     // a coroutine), so read the currently persisted list once at action time instead of pinning the
     // entire milestone list in memory for the ViewModel's whole lifetime.
     private suspend fun existingPhotoUri(id: Long): String? =
-        getMilestones().first().firstOrNull { it.id == id }?.photoUri
+        milestoneRepository.getMilestones().first().firstOrNull { it.id == id }?.photoUri
 
     /** Adds a new moment ([Milestone.id] == 0) or updates an existing one. */
     fun onSave(milestone: Milestone) {
         viewModelScope.launch {
             val previousPhoto = if (milestone.id == 0L) null else existingPhotoUri(milestone.id)
             if (milestone.id == 0L) {
-                addMilestone(milestone)
+                milestoneRepository.addMilestone(milestone)
             } else {
-                updateMilestone(milestone)
+                milestoneRepository.updateMilestone(milestone)
             }
             // Clean up the replaced photo file only after the new record is committed.
             if (previousPhoto != null && previousPhoto != milestone.photoUri) {
@@ -67,7 +61,7 @@ class MilestonesViewModel @Inject constructor(
     fun onDelete(id: Long) {
         viewModelScope.launch {
             val photoUri = existingPhotoUri(id)
-            deleteMilestone(id)
+            milestoneRepository.deleteMilestone(id)
             photoCleaner.delete(photoUri)
             syncedWrite.sync()
         }

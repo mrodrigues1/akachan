@@ -8,9 +8,8 @@ import com.babytracker.R
 import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.PumpingSession
 import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.domain.usecase.pumping.DeletePumpingSessionUseCase
-import com.babytracker.domain.usecase.pumping.GetPumpingHistoryUseCase
 import com.babytracker.domain.usecase.pumping.PumpingEditError
 import com.babytracker.domain.usecase.pumping.UpdatePumpingSessionUseCase
 import com.babytracker.domain.usecase.pumping.validatePumpingEdit
@@ -59,9 +58,8 @@ data class PumpingHistoryUiState(
 
 @HiltViewModel
 class PumpingHistoryViewModel @Inject constructor(
-    getHistory: GetPumpingHistoryUseCase,
+    private val pumpingRepository: PumpingRepository,
     private val updateSession: UpdatePumpingSessionUseCase,
-    private val deleteSession: DeletePumpingSessionUseCase,
     settingsRepository: SettingsRepository,
     @ApplicationContext private val appContext: Context,
     private val now: () -> Instant,
@@ -70,7 +68,7 @@ class PumpingHistoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PumpingHistoryUiState())
     val uiState: StateFlow<PumpingHistoryUiState> = _uiState.asStateFlow()
 
-    val sessions: StateFlow<List<PumpingSession>> = getHistory()
+    val sessions: StateFlow<List<PumpingSession>> = pumpingRepository.getAllSessions()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     init {
@@ -153,7 +151,7 @@ class PumpingHistoryViewModel @Inject constructor(
         val sheet = _uiState.value.editSheet ?: return
         _uiState.value = _uiState.value.copy(editSheet = sheet.copy(isDeleting = true))
         viewModelScope.launch {
-            runCatching { deleteSession(sheet.original) }
+            runCatching { pumpingRepository.delete(sheet.original) }
                 .onSuccess { _uiState.value = _uiState.value.copy(editSheet = null) }
                 .onFailure {
                     _uiState.value = _uiState.value.copy(
@@ -173,7 +171,7 @@ class PumpingHistoryViewModel @Inject constructor(
         val session = _uiState.value.pendingDeleteSession ?: return
         _uiState.value = _uiState.value.copy(pendingDeleteSession = null)
         viewModelScope.launch {
-            runCatching { deleteSession(session) }
+            runCatching { pumpingRepository.delete(session) }
                 .onFailure {
                     _uiState.value = _uiState.value.copy(
                         error = appContext.getString(R.string.error_pumping_delete),

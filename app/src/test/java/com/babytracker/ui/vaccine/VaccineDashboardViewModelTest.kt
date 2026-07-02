@@ -3,10 +3,10 @@ package com.babytracker.ui.vaccine
 import app.cash.turbine.test
 import com.babytracker.domain.model.VaccineRecord
 import com.babytracker.domain.model.VaccineStatus
+import com.babytracker.domain.repository.VaccineRepository
 import com.babytracker.domain.usecase.vaccine.DeleteVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineAdministeredUseCase
 import com.babytracker.domain.usecase.vaccine.MarkVaccineScheduledUseCase
-import com.babytracker.domain.usecase.vaccine.ObserveVaccineRecordsUseCase
 import com.babytracker.domain.usecase.vaccine.RestoreVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.UndoMarkVaccineAdministeredUseCase
 import io.mockk.coVerify
@@ -32,7 +32,7 @@ import java.time.ZoneId
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class VaccineDashboardViewModelTest {
-    private val observeRecords = mockk<ObserveVaccineRecordsUseCase>()
+    private val vaccineRepository = mockk<VaccineRepository>()
     private val markGiven = mockk<MarkVaccineAdministeredUseCase>(relaxed = true)
     private val markScheduled = mockk<MarkVaccineScheduledUseCase>(relaxed = true)
     private val undoMarkGiven = mockk<UndoMarkVaccineAdministeredUseCase>(relaxed = true)
@@ -74,11 +74,11 @@ class VaccineDashboardViewModelTest {
     )
 
     private fun viewModel() =
-        VaccineDashboardViewModel(observeRecords, markGiven, markScheduled, undoMarkGiven, delete, restore, zone, now)
+        VaccineDashboardViewModel(vaccineRepository, markGiven, markScheduled, undoMarkGiven, delete, restore, zone, now)
 
     @Test
     fun `derives overdue hero, schedule order, and recently given`() = runTest {
-        every { observeRecords() } returns flowOf(
+        every { vaccineRepository.observeAll() } returns flowOf(
             listOf(
                 scheduled(1, offsetDays = 7),
                 scheduled(2, offsetDays = -3),
@@ -110,7 +110,7 @@ class VaccineDashboardViewModelTest {
 
     @Test
     fun `groups every upcoming vaccine on the soonest day into nextVaccines`() = runTest {
-        every { observeRecords() } returns flowOf(
+        every { vaccineRepository.observeAll() } returns flowOf(
             listOf(
                 scheduled(1, offsetDays = 7),
                 scheduled(2, offsetDays = 7),
@@ -134,7 +134,7 @@ class VaccineDashboardViewModelTest {
 
     @Test
     fun `nextVaccines holds a single record when the soonest day has one dose`() = runTest {
-        every { observeRecords() } returns flowOf(
+        every { vaccineRepository.observeAll() } returns flowOf(
             listOf(
                 scheduled(1, offsetDays = 3),
                 scheduled(2, offsetDays = 10),
@@ -161,7 +161,7 @@ class VaccineDashboardViewModelTest {
             scheduledDate = nowInstant.minusSeconds(3_600),
             createdAt = Instant.EPOCH,
         )
-        every { observeRecords() } returns flowOf(listOf(earlierToday))
+        every { vaccineRepository.observeAll() } returns flowOf(listOf(earlierToday))
         val vm = viewModel()
 
         vm.uiState.test {
@@ -178,7 +178,7 @@ class VaccineDashboardViewModelTest {
 
     @Test
     fun `first run flag set when nothing recorded`() = runTest {
-        every { observeRecords() } returns flowOf(emptyList())
+        every { vaccineRepository.observeAll() } returns flowOf(emptyList())
         val vm = viewModel()
 
         vm.uiState.test {
@@ -194,7 +194,7 @@ class VaccineDashboardViewModelTest {
     @Test
     fun `markGiven commits immediately, hides the row, and shows it as given`() = runTest {
         val record = scheduled(1, offsetDays = 7)
-        every { observeRecords() } returns flowOf(listOf(record))
+        every { vaccineRepository.observeAll() } returns flowOf(listOf(record))
         val vm = viewModel()
 
         vm.uiState.test {
@@ -218,7 +218,7 @@ class VaccineDashboardViewModelTest {
     @Test
     fun `undoMarkGiven reverts the committed write and reveals the row`() = runTest {
         val record = scheduled(1, offsetDays = 7)
-        every { observeRecords() } returns flowOf(listOf(record))
+        every { vaccineRepository.observeAll() } returns flowOf(listOf(record))
         val vm = viewModel()
 
         vm.uiState.test {
@@ -244,7 +244,7 @@ class VaccineDashboardViewModelTest {
     @Test
     fun `onMarkGivenConsumed closes the undo window without a second write`() = runTest {
         val record = scheduled(1, offsetDays = 7)
-        every { observeRecords() } returns flowOf(listOf(record))
+        every { vaccineRepository.observeAll() } returns flowOf(listOf(record))
         val vm = viewModel()
 
         vm.markGiven(record)
@@ -262,7 +262,7 @@ class VaccineDashboardViewModelTest {
         // second stayed pending and was lost if the screen closed before the snackbar resolved.
         val first = scheduled(1, offsetDays = 7)
         val second = scheduled(2, offsetDays = 7)
-        every { observeRecords() } returns flowOf(listOf(first, second))
+        every { vaccineRepository.observeAll() } returns flowOf(listOf(first, second))
         val vm = viewModel()
 
         vm.markGiven(first)
@@ -276,7 +276,7 @@ class VaccineDashboardViewModelTest {
     @Test
     fun `requestDelete commits immediately and optimistically hides the row`() = runTest {
         val record = scheduled(1, offsetDays = 7)
-        every { observeRecords() } returns flowOf(listOf(record))
+        every { vaccineRepository.observeAll() } returns flowOf(listOf(record))
         val vm = viewModel()
 
         vm.uiState.test {
@@ -298,7 +298,7 @@ class VaccineDashboardViewModelTest {
     @Test
     fun `onDeleteConsumed closes the undo window without a second delete`() = runTest {
         val record = scheduled(1, offsetDays = 7)
-        every { observeRecords() } returns flowOf(listOf(record))
+        every { vaccineRepository.observeAll() } returns flowOf(listOf(record))
         val vm = viewModel()
 
         vm.requestDelete(record)
@@ -312,7 +312,7 @@ class VaccineDashboardViewModelTest {
     @Test
     fun `undoDelete restores the deleted record`() = runTest {
         val record = scheduled(1, offsetDays = 7)
-        every { observeRecords() } returns flowOf(listOf(record))
+        every { vaccineRepository.observeAll() } returns flowOf(listOf(record))
         val vm = viewModel()
 
         vm.requestDelete(record)
@@ -325,7 +325,7 @@ class VaccineDashboardViewModelTest {
 
     @Test
     fun `to-schedule doses populate the toSchedule section and never the hero`() = runTest {
-        every { observeRecords() } returns flowOf(
+        every { vaccineRepository.observeAll() } returns flowOf(
             listOf(
                 toSchedule(1, offsetDays = 20),
                 toSchedule(2, offsetDays = 5),
@@ -349,7 +349,7 @@ class VaccineDashboardViewModelTest {
     @Test
     fun `markScheduled commits immediately and opens the undo window`() = runTest {
         val record = toSchedule(1, offsetDays = 20)
-        every { observeRecords() } returns flowOf(listOf(record))
+        every { vaccineRepository.observeAll() } returns flowOf(listOf(record))
         val vm = viewModel()
 
         vm.uiState.test {
@@ -370,7 +370,7 @@ class VaccineDashboardViewModelTest {
     @Test
     fun `undoMarkScheduled writes the original record back`() = runTest {
         val record = toSchedule(1, offsetDays = 20)
-        every { observeRecords() } returns flowOf(listOf(record))
+        every { vaccineRepository.observeAll() } returns flowOf(listOf(record))
         val vm = viewModel()
 
         vm.markScheduled(record)
@@ -383,7 +383,7 @@ class VaccineDashboardViewModelTest {
 
     @Test
     fun `surfaces an error state when the source flow throws`() = runTest {
-        every { observeRecords() } returns flow { throw IllegalStateException("boom") }
+        every { vaccineRepository.observeAll() } returns flow { throw IllegalStateException("boom") }
         val vm = viewModel()
 
         vm.uiState.test {
@@ -397,7 +397,7 @@ class VaccineDashboardViewModelTest {
 
     @Test
     fun `onRetry rebuilds the flow and clears the error`() = runTest {
-        every { observeRecords() } returnsMany listOf(
+        every { vaccineRepository.observeAll() } returnsMany listOf(
             flow { throw IllegalStateException("boom") },
             flowOf(emptyList()),
         )

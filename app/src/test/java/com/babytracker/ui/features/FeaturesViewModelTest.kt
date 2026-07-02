@@ -3,7 +3,7 @@ package com.babytracker.ui.features
 import app.cash.turbine.test
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.FeatureDomain
-import com.babytracker.domain.usecase.features.GetEnabledFeaturesUseCase
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.usecase.features.SetDomainEnabledUseCase
 import com.babytracker.domain.usecase.features.SetFeatureEnabledUseCase
 import io.mockk.coEvery
@@ -30,14 +30,14 @@ import org.junit.jupiter.api.Test
 class FeaturesViewModelTest {
 
     private val featuresFlow = MutableStateFlow(AppFeature.ALL)
-    private val getEnabled = mockk<GetEnabledFeaturesUseCase>()
+    private val featureToggleRepository = mockk<FeatureToggleRepository>()
     private val setFeature = mockk<SetFeatureEnabledUseCase>()
     private val setDomain = mockk<SetDomainEnabledUseCase>(relaxed = true)
 
     @BeforeEach
     fun setup() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
-        every { getEnabled() } returns featuresFlow
+        every { featureToggleRepository.getEnabledFeatures() } returns featuresFlow
     }
 
     @AfterEach
@@ -47,7 +47,7 @@ class FeaturesViewModelTest {
     // The real screen always subscribes while shown; mirror that with a background collector so the
     // tests that read uiState.value (rather than collecting via Turbine) observe live state.
     private fun TestScope.activeViewModel(): FeaturesViewModel {
-        val vm = FeaturesViewModel(getEnabled, setFeature, setDomain)
+        val vm = FeaturesViewModel(featureToggleRepository, setFeature, setDomain)
         // Collect on an unconfined dispatcher so the subscription is live immediately (backgroundScope's
         // default StandardTestDispatcher would not start collecting until the scheduler advances, and
         // these tests assert uiState.value synchronously after a toggle).

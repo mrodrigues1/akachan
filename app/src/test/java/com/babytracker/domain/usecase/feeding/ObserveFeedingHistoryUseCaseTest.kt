@@ -5,8 +5,8 @@ import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedEntry
 import com.babytracker.domain.model.FeedType
-import com.babytracker.domain.usecase.bottlefeed.ObserveBottleFeedsUseCase
-import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
+import com.babytracker.domain.repository.BottleFeedRepository
+import com.babytracker.domain.repository.BreastfeedingRepository
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
@@ -34,10 +34,10 @@ class ObserveFeedingHistoryUseCaseTest {
             endTime = Instant.ofEpochMilli(3_500),
             startingSide = BreastSide.LEFT,
         )
-        val getBreastfeeding = mockk<GetBreastfeedingHistoryUseCase>()
-        val observeBottles = mockk<ObserveBottleFeedsUseCase>()
-        every { getBreastfeeding() } returns flowOf(listOf(session))
-        every { observeBottles() } returns flowOf(listOf(bottle))
+        val getBreastfeeding = mockk<BreastfeedingRepository>()
+        val observeBottles = mockk<BottleFeedRepository>()
+        every { getBreastfeeding.getAllSessions() } returns flowOf(listOf(session))
+        every { observeBottles.getAll() } returns flowOf(listOf(bottle))
 
         val result = ObserveFeedingHistoryUseCase(getBreastfeeding, observeBottles)().first()
 

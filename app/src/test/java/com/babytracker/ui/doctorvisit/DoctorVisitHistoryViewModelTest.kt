@@ -3,7 +3,6 @@ package com.babytracker.ui.doctorvisit
 import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.domain.usecase.doctorvisit.DeleteDoctorVisitUseCase
-import com.babytracker.domain.usecase.doctorvisit.ObserveDoctorVisitsUseCase
 import com.babytracker.manager.DoctorVisitReminderScheduler
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -28,7 +27,6 @@ import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DoctorVisitHistoryViewModelTest {
-    private val observeVisits = mockk<ObserveDoctorVisitsUseCase>()
     private val repository = mockk<DoctorVisitRepository>(relaxed = true)
     private val deleteVisit = mockk<DeleteDoctorVisitUseCase>(relaxed = true)
     private val scheduler = mockk<DoctorVisitReminderScheduler>(relaxed = true)
@@ -41,7 +39,7 @@ class DoctorVisitHistoryViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun vm() = DoctorVisitHistoryViewModel(
-        observeVisits, repository, deleteVisit, scheduler,
+        repository, deleteVisit, scheduler,
     ) { now }
 
     private fun visit(id: Long, dateMs: Long) =
@@ -49,7 +47,7 @@ class DoctorVisitHistoryViewModelTest {
 
     @Test
     fun `partitions and orders upcoming asc and past desc with counts`() = runTest {
-        every { observeVisits() } returns flowOf(
+        every { repository.observeAllVisits() } returns flowOf(
             listOf(
                 visit(1, 500), // past
                 visit(2, 800), // past (more recent)
@@ -69,7 +67,7 @@ class DoctorVisitHistoryViewModelTest {
 
     @Test
     fun `delete records lastDeleted`() = runTest {
-        every { observeVisits() } returns flowOf(emptyList())
+        every { repository.observeAllVisits() } returns flowOf(emptyList())
         every { repository.observeAttachedQuestionCounts() } returns flowOf(emptyMap())
         val vm = vm()
         backgroundScope.launch { vm.uiState.collect {} }
@@ -81,7 +79,7 @@ class DoctorVisitHistoryViewModelTest {
 
     @Test
     fun `undo re-inserts captured visit with new id and re-arms reminder`() = runTest {
-        every { observeVisits() } returns flowOf(emptyList())
+        every { repository.observeAllVisits() } returns flowOf(emptyList())
         every { repository.observeAttachedQuestionCounts() } returns flowOf(emptyMap())
         coEvery { repository.insertVisit(any()) } returns 99
         val vm = vm()

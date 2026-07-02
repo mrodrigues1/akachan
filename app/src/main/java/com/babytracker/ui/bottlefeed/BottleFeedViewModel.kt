@@ -7,10 +7,10 @@ import com.babytracker.R
 import com.babytracker.domain.model.FeedType
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.bottlefeed.EditBottleFeedUseCase
 import com.babytracker.domain.usecase.bottlefeed.LogBottleFeedUseCase
-import com.babytracker.domain.usecase.inventory.GetInventoryUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +40,7 @@ data class BottleFeedUiState(
 class BottleFeedViewModel @Inject constructor(
     private val logBottleFeed: LogBottleFeedUseCase,
     private val editBottleFeed: EditBottleFeedUseCase,
-    private val getInventory: GetInventoryUseCase,
+    private val inventoryRepository: InventoryRepository,
     private val settingsRepository: SettingsRepository,
     @ApplicationContext private val appContext: Context,
     private val now: () -> Instant,
@@ -51,7 +51,7 @@ class BottleFeedViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            getInventory().collect { bags -> _uiState.update { it.copy(activeBags = bags) } }
+            inventoryRepository.getActiveBags().collect { bags -> _uiState.update { it.copy(activeBags = bags) } }
         }
         viewModelScope.launch {
             settingsRepository.getVolumeUnit().collect { unit -> _uiState.update { it.copy(volumeUnit = unit) } }

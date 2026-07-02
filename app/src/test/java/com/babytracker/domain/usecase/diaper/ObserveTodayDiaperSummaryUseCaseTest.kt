@@ -3,6 +3,7 @@ package com.babytracker.domain.usecase.diaper
 import app.cash.turbine.test
 import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.model.DiaperType
+import com.babytracker.domain.repository.DiaperRepository
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
@@ -19,11 +20,11 @@ class ObserveTodayDiaperSummaryUseCaseTest {
 
     @Test
     fun `counts only today and reports global last change`() = runTest {
-        val observe = mockk<ObserveDiaperChangesUseCase>()
+        val observe = mockk<DiaperRepository>()
         val todayMorning = ZonedDateTime.of(2026, 6, 16, 8, 0, 0, 0, zone).toInstant()
         val todayLater = ZonedDateTime.of(2026, 6, 16, 11, 0, 0, 0, zone).toInstant()
         val yesterday = ZonedDateTime.of(2026, 6, 15, 23, 0, 0, 0, zone).toInstant()
-        every { observe() } returns flowOf(
+        every { observe.observeAll() } returns flowOf(
             // observeAll is DESC; provide in that order
             listOf(
                 DiaperChange(id = 3, timestamp = todayLater, type = DiaperType.WET, createdAt = todayLater),
@@ -43,8 +44,8 @@ class ObserveTodayDiaperSummaryUseCaseTest {
 
     @Test
     fun `empty history yields zero count and null last change`() = runTest {
-        val observe = mockk<ObserveDiaperChangesUseCase>()
-        every { observe() } returns flowOf(emptyList<DiaperChange>())
+        val observe = mockk<DiaperRepository>()
+        every { observe.observeAll() } returns flowOf(emptyList<DiaperChange>())
         ObserveTodayDiaperSummaryUseCase(observe, zone) { now }().test {
             val summary = awaitItem()
             assertEquals(0, summary.count)

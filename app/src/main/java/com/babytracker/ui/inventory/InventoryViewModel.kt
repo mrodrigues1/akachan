@@ -8,10 +8,10 @@ import com.babytracker.domain.model.InventorySummary
 import com.babytracker.domain.model.MilkBag
 import com.babytracker.domain.model.MilkBagWithExpiration
 import com.babytracker.domain.model.VolumeUnit
+import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.inventory.AddMilkBagUseCase
 import com.babytracker.domain.usecase.inventory.DeleteMilkBagUseCase
-import com.babytracker.domain.usecase.inventory.GetInventorySummaryUseCase
 import com.babytracker.domain.usecase.inventory.MarkBagUsedUseCase
 import com.babytracker.domain.usecase.inventory.ObserveInventoryWithExpirationUseCase
 import com.babytracker.domain.usecase.inventory.UpdateMilkBagUseCase
@@ -54,7 +54,7 @@ data class EditBagSheetState(
 @HiltViewModel
 class InventoryViewModel @Inject constructor(
     observeInventory: ObserveInventoryWithExpirationUseCase,
-    getSummary: GetInventorySummaryUseCase,
+    inventoryRepository: InventoryRepository,
     private val addBag: AddMilkBagUseCase,
     private val updateBag: UpdateMilkBagUseCase,
     private val markUsed: MarkBagUsedUseCase,
@@ -73,7 +73,7 @@ class InventoryViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 observeInventory(currentDate),
-                getSummary(),
+                inventoryRepository.getSummary(),
                 settingsRepository.getVolumeUnit(),
             ) { bags, summary, unit ->
                 Triple(bags, summary, unit)

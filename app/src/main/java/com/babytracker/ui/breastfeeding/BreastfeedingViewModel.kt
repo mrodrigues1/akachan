@@ -10,15 +10,10 @@ import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.FeedSettingsRepository
-import com.babytracker.domain.usecase.breastfeeding.DeleteBreastfeedingSessionUseCase
-import com.babytracker.domain.usecase.breastfeeding.GetBreastfeedingHistoryUseCase
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
 import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
-import com.babytracker.domain.usecase.breastfeeding.SaveBreastfeedingEntryUseCase
 import com.babytracker.domain.usecase.breastfeeding.BreastfeedingEditError
-import com.babytracker.domain.usecase.breastfeeding.StartBreastfeedingSessionUseCase
-import com.babytracker.domain.usecase.breastfeeding.StopBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.domain.usecase.breastfeeding.UpdateBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.foldPause
@@ -105,15 +100,10 @@ private const val SUMMARY_TICK_MS = 60_000L
 @HiltViewModel
 class BreastfeedingViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
-    private val startSession: StartBreastfeedingSessionUseCase,
-    private val stopSession: StopBreastfeedingSessionUseCase,
     private val switchSide: SwitchBreastfeedingSideUseCase,
-    getHistory: GetBreastfeedingHistoryUseCase,
     private val pauseSession: PauseBreastfeedingSessionUseCase,
     private val resumeSession: ResumeBreastfeedingSessionUseCase,
     private val updateSession: UpdateBreastfeedingSessionUseCase,
-    private val deleteSession: DeleteBreastfeedingSessionUseCase,
-    private val saveBreastfeedingEntry: SaveBreastfeedingEntryUseCase,
     private val repository: BreastfeedingRepository,
     private val feedSettingsRepository: FeedSettingsRepository,
     private val notificationCoordinator: BreastfeedingSessionNotificationCoordinator,
@@ -124,7 +114,7 @@ class BreastfeedingViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(BreastfeedingUiState())
     val uiState: StateFlow<BreastfeedingUiState> = _uiState.asStateFlow()
 
-    val history: StateFlow<List<BreastfeedingSession>> = getHistory()
+    val history: StateFlow<List<BreastfeedingSession>> = repository.getAllSessions()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
@@ -180,7 +170,9 @@ class BreastfeedingViewModel @Inject constructor(
     fun onStartSession() {
         val side = _uiState.value.selectedSide ?: return
         viewModelScope.launch {
-            val result = runCatching { startSession(side) }
+            val result = runCatching {
+                repository.insertSession(BreastfeedingSession(startTime = Instant.now(), startingSide = side))
+            }
             if (result.isFailure) {
                 _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.error_bf_start))
                 return@launch
@@ -198,7 +190,7 @@ class BreastfeedingViewModel @Inject constructor(
     fun onStopSession() {
         val session = _uiState.value.activeSession ?: return
         viewModelScope.launch {
-            val result = runCatching { stopSession(session) }
+            val result = runCatching { repository.updateSession(session.copy(endTime = Instant.now())) }
             if (result.isFailure) {
                 _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.error_bf_stop))
                 return@launch
@@ -328,7 +320,7 @@ class BreastfeedingViewModel @Inject constructor(
      * to Firestore. Returns true on success so callers can update their own UI state.
      */
     private suspend fun deleteSessionInternal(session: BreastfeedingSession): Boolean {
-        val result = runCatching { deleteSession(session) }
+        val result = runCatching { repository.deleteSession(session) }
         if (result.isFailure) return false
         if (session.endTime == null) {
             notificationCoordinator.cancelAllSessionNotifications()
@@ -389,7 +381,9 @@ class BreastfeedingViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            saveBreastfeedingEntry(startInstant, endInstant, side)
+            repository.insertSession(
+                BreastfeedingSession(startTime = startInstant, endTime = endInstant, startingSide = side),
+            )
             _uiState.value = _uiState.value.copy(showManualEntrySheet = false, manualEntryError = null)
             syncedWrite.sync(SyncType.SESSIONS)
         }

@@ -9,12 +9,11 @@ import com.babytracker.domain.model.SleepPredictionTuning
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepSchedule
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.SettingsRepository
+import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
-import com.babytracker.domain.usecase.baby.GetBabyProfileUseCase
-import com.babytracker.domain.usecase.sleep.DeleteSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.GenerateSleepScheduleUseCase
-import com.babytracker.domain.usecase.sleep.GetSleepHistoryUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.domain.usecase.sleep.SaveSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.StartSleepRecordUseCase
@@ -117,10 +116,9 @@ data class SleepUiState(
 class SleepViewModel @Inject constructor(
     private val saveSleepEntry: SaveSleepEntryUseCase,
     private val updateSleepEntry: UpdateSleepEntryUseCase,
-    private val deleteSleepEntry: DeleteSleepEntryUseCase,
-    private val getSleepHistory: GetSleepHistoryUseCase,
+    private val sleepRepository: SleepRepository,
     private val generateSchedule: GenerateSleepScheduleUseCase,
-    private val getBabyProfile: GetBabyProfileUseCase,
+    private val babyRepository: BabyRepository,
     private val settingsRepository: SettingsRepository,
     private val sleepSettingsRepository: SleepSettingsRepository,
     private val startRecord: StartSleepRecordUseCase,
@@ -136,7 +134,7 @@ class SleepViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SleepUiState())
     val uiState: StateFlow<SleepUiState> = _uiState.asStateFlow()
 
-    val history: StateFlow<List<SleepRecord>> = getSleepHistory()
+    val history: StateFlow<List<SleepRecord>> = sleepRepository.getAllRecords()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val historyByDateDesc: StateFlow<List<Pair<LocalDate, List<SleepRecord>>>> = history
@@ -267,7 +265,7 @@ class SleepViewModel @Inject constructor(
         val record = _uiState.value.pendingDeleteRecord ?: return
         _uiState.value = _uiState.value.copy(pendingDeleteRecord = null)
         viewModelScope.launch {
-            deleteSleepEntry(record.id)
+            sleepRepository.deleteRecord(record.id)
             syncedWrite.sync(SyncType.SLEEP_RECORDS)
         }
     }
@@ -414,7 +412,7 @@ class SleepViewModel @Inject constructor(
     private fun loadSchedule() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            val baby = getBabyProfile().firstOrNull()
+            val baby = babyRepository.getBabyProfile().firstOrNull()
             if (baby != null) {
                 val schedule = generateSchedule(baby)
                 _uiState.value = _uiState.value.copy(schedule = schedule, isLoading = false)
