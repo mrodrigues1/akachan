@@ -508,7 +508,7 @@ private fun QuestionsSection(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QuestionCaptureRow(
+internal fun QuestionCaptureRow(
     draft: String,
     colors: DoctorVisitPalette,
     onDraftChange: (String) -> Unit,
