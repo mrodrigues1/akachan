@@ -4,37 +4,27 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import com.babytracker.domain.model.BreastSide
-import com.babytracker.domain.model.BreastfeedingActiveNotificationSettings
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
-import com.babytracker.domain.repository.FeedSettingsRepository
-import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.domain.repository.getBreastfeedingActiveNotificationSettings
-import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
-import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
-import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
+import com.babytracker.manager.BreastfeedingSessionController
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
-import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
-import com.babytracker.sharing.usecase.SyncedWrite
 import com.babytracker.util.NotificationHelper
 import com.babytracker.util.goAsyncWithTimeout
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
-import java.time.Instant
 import javax.inject.Inject
 
+/**
+ * Notification quick-action edge: validates the intent against the current active session and
+ * delegates to [BreastfeedingSessionController], which owns the actual session-control behaviour
+ * shared with the in-app buttons.
+ */
 @AndroidEntryPoint
 class BreastfeedingActionReceiver : BroadcastReceiver() {
 
     @Inject lateinit var repository: BreastfeedingRepository
-    @Inject lateinit var feedSettingsRepository: FeedSettingsRepository
-    @Inject lateinit var settingsRepository: SettingsRepository
-    @Inject lateinit var switchSide: SwitchBreastfeedingSideUseCase
-    @Inject lateinit var pauseSession: PauseBreastfeedingSessionUseCase
-    @Inject lateinit var resumeSession: ResumeBreastfeedingSessionUseCase
+    @Inject lateinit var sessionController: BreastfeedingSessionController
     @Inject lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
-    @Inject lateinit var syncedWrite: SyncedWrite
 
     companion object {
         const val ACTION = "com.babytracker.BREASTFEEDING_ACTION"
@@ -63,116 +53,35 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
 
         when (action) {
             ACTION_SWITCH -> handleSwitch(context, sessionId)
-            ACTION_PAUSE -> handlePause(sessionId)
-            ACTION_RESUME -> handleResume(sessionId)
+            ACTION_PAUSE -> activeSession(sessionId)?.let { sessionController.pause(it) }
+            ACTION_RESUME -> activeSession(sessionId)?.let { sessionController.resume(it) }
             ACTION_STOP -> handleStop(sessionId)
             ACTION_DISMISS -> NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
             ACTION_KEEP_GOING -> handleKeepGoing(context, sessionId)
-            ACTION_REFRESH_ACTIVE -> refreshActiveNotification(context, sessionId)
+            ACTION_REFRESH_ACTIVE -> refreshActiveNotification(sessionId)
         }
     }
 
     private suspend fun handleSwitch(context: Context, sessionId: Long) {
-        val session = repository.getActiveSession().first()
-        if (session?.id == sessionId) {
-            switchSide(session)
-            if (session.switchTime == null) {
-                notificationCoordinator.cancelPerBreastScheduled()
-                showSwitchedActiveNotification(context, session)
-            }
-            syncSessions()
-        }
+        activeSession(sessionId)?.let { sessionController.switchSide(it) }
         NotificationHelper.cancelNotification(context, NotificationHelper.SWITCH_SIDE_NOTIFICATION_ID)
     }
 
-    private suspend fun showSwitchedActiveNotification(context: Context, session: BreastfeedingSession) {
-        val settings = breastfeedingActiveNotificationSettings()
-        NotificationHelper.showBreastfeedingActive(
-            context = context,
-            sessionId = session.id,
-            currentSide = oppositeSide(session.startingSide),
-            sessionStartEpochMs = session.startTime.toEpochMilli(),
-            pausedDurationMs = session.pausedDurationMs,
-            richEnabled = settings.richNotificationsEnabled,
-            maxTotalMinutes = settings.maxTotalFeedMinutes,
-            canSwitchSides = false
-        )
-    }
-
-    private suspend fun handlePause(sessionId: Long) {
-        val session = repository.getActiveSession().first()
-        if (session?.id == sessionId && !session.isPaused) {
-            val pausedAt = Instant.now()
-            pauseSession(session)
-            notificationCoordinator.cancelScheduled()
-            notificationCoordinator.showPaused(session, pausedAt)
-            syncSessions()
-        }
-    }
-
-    private suspend fun handleResume(sessionId: Long) {
-        val session = repository.getActiveSession().first()
-        if (session?.id == sessionId && session.isPaused) {
-            val resumeInstant = Instant.now()
-            resumeSession(session)
-            val totalPausedMs = notificationCoordinator.rescheduleAfterResume(session, resumeInstant)
-            notificationCoordinator.showRunning(session, pausedDurationMs = totalPausedMs)
-            syncSessions()
-        }
-    }
-
     private suspend fun handleStop(sessionId: Long) {
-        val session = repository.getActiveSession().first()
-        if (session?.id == sessionId) {
-            repository.updateSession(session.copy(endTime = Instant.now()))
-            notificationCoordinator.cancelScheduled()
-            syncSessions()
-        }
+        activeSession(sessionId)?.let { sessionController.stop(it) }
         notificationCoordinator.cancelPostedSessionNotifications()
     }
 
     private suspend fun handleKeepGoing(context: Context, sessionId: Long) {
         NotificationHelper.cancelNotification(context, NotificationHelper.BREASTFEEDING_NOTIFICATION_ID)
-        val session = repository.getActiveSession().first()
-        if (session?.id == sessionId) {
-            notificationCoordinator.rearmAfterKeepGoing(session.id, currentSide(session))
-        }
+        activeSession(sessionId)?.let { notificationCoordinator.rearmAfterKeepGoing(it) }
     }
 
-    private suspend fun refreshActiveNotification(context: Context, sessionId: Long) {
-        val session = repository.getActiveSession().first()
-        if (session == null || session.id != sessionId || session.isPaused) return
-
-        val settings = breastfeedingActiveNotificationSettings()
-        NotificationHelper.showBreastfeedingActive(
-            context = context,
-            sessionId = session.id,
-            currentSide = currentSide(session),
-            sessionStartEpochMs = session.startTime.toEpochMilli(),
-            pausedDurationMs = session.pausedDurationMs,
-            richEnabled = settings.richNotificationsEnabled,
-            maxTotalMinutes = settings.maxTotalFeedMinutes,
-            canSwitchSides = session.switchTime == null
-        )
+    private suspend fun refreshActiveNotification(sessionId: Long) {
+        val session = activeSession(sessionId) ?: return
+        if (!session.isPaused) notificationCoordinator.showRunning(session)
     }
 
-    // Mirror BreastfeedingViewModel: push the session change to the partner snapshot so notification
-    // quick-actions reach the partner like in-app edits do. No-op unless this device is the sharing
-    // primary; best-effort so a sync failure never breaks the notification action.
-    private suspend fun syncSessions() {
-        syncedWrite.sync(SyncType.SESSIONS)
-    }
-
-    private suspend fun breastfeedingActiveNotificationSettings(): BreastfeedingActiveNotificationSettings =
-        feedSettingsRepository.getBreastfeedingActiveNotificationSettings(settingsRepository).first()
-
-    private fun currentSide(session: BreastfeedingSession): String =
-        if (session.switchTime != null) {
-            oppositeSide(session.startingSide)
-        } else {
-            session.startingSide.name
-        }
-
-    private fun oppositeSide(side: BreastSide): String =
-        if (side == BreastSide.LEFT) BreastSide.RIGHT.name else BreastSide.LEFT.name
+    private suspend fun activeSession(sessionId: Long): BreastfeedingSession? =
+        repository.getActiveSession().first()?.takeIf { it.id == sessionId }
 }

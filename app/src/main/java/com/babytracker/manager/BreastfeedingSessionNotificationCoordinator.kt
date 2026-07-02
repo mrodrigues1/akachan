@@ -144,14 +144,14 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
         return pausedSession.pausedDurationMs + currentPauseDurationMs
     }
 
-    suspend fun rearmAfterKeepGoing(sessionId: Long, currentSide: String) {
+    suspend fun rearmAfterKeepGoing(session: BreastfeedingSession) {
         val (maxPerBreastMinutes, maxTotalFeedMinutes) = scheduleMinutes()
         if (maxTotalFeedMinutes > 0) {
             notificationScheduler.scheduleMaxTotalTimeNotificationAt(
                 triggerTime = Instant.now().plusSeconds(600),
-                sessionId = sessionId,
+                sessionId = session.id,
                 maxTotalMinutes = maxTotalFeedMinutes,
-                currentSide = currentSide,
+                currentSide = currentSideName(session),
                 maxPerBreastMinutes = maxPerBreastMinutes
             )
         }

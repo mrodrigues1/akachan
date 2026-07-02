@@ -10,14 +10,12 @@ import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.FeedPrediction
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.FeedSettingsRepository
-import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.PredictNextFeedUseCase
-import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.BreastfeedingEditError
-import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.domain.usecase.breastfeeding.UpdateBreastfeedingSessionUseCase
 import com.babytracker.domain.usecase.breastfeeding.foldPause
 import com.babytracker.domain.usecase.breastfeeding.validateBreastfeedingEdit
+import com.babytracker.manager.BreastfeedingSessionController
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
 import com.babytracker.sharing.usecase.SyncedWrite
@@ -100,9 +98,7 @@ private const val SUMMARY_TICK_MS = 60_000L
 @HiltViewModel
 class BreastfeedingViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
-    private val switchSide: SwitchBreastfeedingSideUseCase,
-    private val pauseSession: PauseBreastfeedingSessionUseCase,
-    private val resumeSession: ResumeBreastfeedingSessionUseCase,
+    private val sessionController: BreastfeedingSessionController,
     private val updateSession: UpdateBreastfeedingSessionUseCase,
     private val repository: BreastfeedingRepository,
     private val feedSettingsRepository: FeedSettingsRepository,
@@ -190,14 +186,11 @@ class BreastfeedingViewModel @Inject constructor(
     fun onStopSession() {
         val session = _uiState.value.activeSession ?: return
         viewModelScope.launch {
-            val result = runCatching { repository.updateSession(session.copy(endTime = Instant.now())) }
-            if (result.isFailure) {
+            if (!sessionController.stop(session)) {
                 _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.error_bf_stop))
                 return@launch
             }
-            notificationCoordinator.cancelAllSessionNotifications()
             _uiState.value = _uiState.value.copy(selectedSide = null)
-            syncedWrite.sync(SyncType.SESSIONS)
         }
     }
 
@@ -207,37 +200,17 @@ class BreastfeedingViewModel @Inject constructor(
 
     fun onSwitchSide() {
         val session = _uiState.value.activeSession ?: return
-        viewModelScope.launch {
-            switchSide(session)
-            if (session.switchTime == null) {
-                notificationCoordinator.cancelPerBreastScheduled()
-                val switchedSession = session.copy(switchTime = Instant.now())
-                notificationCoordinator.showRunning(switchedSession)
-            }
-            syncedWrite.sync(SyncType.SESSIONS)
-        }
+        viewModelScope.launch { sessionController.switchSide(session) }
     }
 
     fun onPauseSession() {
         val session = _uiState.value.activeSession ?: return
-        viewModelScope.launch {
-            val pausedAt = Instant.now()
-            pauseSession(session)
-            notificationCoordinator.cancelScheduled()
-            notificationCoordinator.showPaused(session, pausedAt)
-            syncedWrite.sync(SyncType.SESSIONS)
-        }
+        viewModelScope.launch { sessionController.pause(session) }
     }
 
     fun onResumeSession() {
         val session = _uiState.value.activeSession ?: return
-        viewModelScope.launch {
-            val resumeInstant = Instant.now()
-            resumeSession(session)
-            val totalPausedMs = notificationCoordinator.rescheduleAfterResume(session, resumeInstant)
-            notificationCoordinator.showRunning(session, pausedDurationMs = totalPausedMs)
-            syncedWrite.sync(SyncType.SESSIONS)
-        }
+        viewModelScope.launch { sessionController.resume(session) }
     }
 
     fun onEditSessionClick(session: BreastfeedingSession) {
