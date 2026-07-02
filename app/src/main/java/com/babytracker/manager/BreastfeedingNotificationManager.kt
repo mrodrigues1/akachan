@@ -130,9 +130,14 @@ class BreastfeedingNotificationManager @Inject constructor(
         } else {
             true
         }
-        if (canScheduleExact) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, request.triggerTime.toEpochMilli(), pendingIntent)
-        } else {
+        try {
+            if (canScheduleExact) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, request.triggerTime.toEpochMilli(), pendingIntent)
+            } else {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, request.triggerTime.toEpochMilli(), pendingIntent)
+            }
+        } catch (e: SecurityException) {
+            Log.w(TAG, "SCHEDULE_EXACT_ALARM revoked; falling back to inexact", e)
             alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, request.triggerTime.toEpochMilli(), pendingIntent)
         }
     }

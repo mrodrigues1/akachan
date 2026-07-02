@@ -74,6 +74,17 @@ class BreastfeedingNotificationManagerTest {
     }
 
     @Test
+    fun `scheduleAlarm falls back to inexact alarm when exact scheduling throws SecurityException`() {
+        every {
+            alarmManager.setExactAndAllowWhileIdle(any(), any(), any<PendingIntent>())
+        } throws SecurityException("SCHEDULE_EXACT_ALARM revoked")
+
+        notificationManager.scheduleMaxTotalTimeNotification(Instant.now(), 30, 1L, "LEFT", 15)
+
+        verify(exactly = 1) { alarmManager.setAndAllowWhileIdle(any(), any(), any<PendingIntent>()) }
+    }
+
+    @Test
     fun `cancelAllScheduledNotifications cancels both alarms`() {
         notificationManager.cancelAllScheduledNotifications()
 

@@ -534,13 +534,22 @@ object NotificationHelper {
         } else {
             true
         }
-        if (canScheduleExact) {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                SystemClock.elapsedRealtime() + ACTIVE_REFRESH_INTERVAL_MS,
-                pendingIntent
-            )
-        } else {
+        try {
+            if (canScheduleExact) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                    SystemClock.elapsedRealtime() + ACTIVE_REFRESH_INTERVAL_MS,
+                    pendingIntent
+                )
+            } else {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                    SystemClock.elapsedRealtime() + ACTIVE_REFRESH_INTERVAL_MS,
+                    pendingIntent
+                )
+            }
+        } catch (e: SecurityException) {
+            Log.w(TAG, "SCHEDULE_EXACT_ALARM revoked; falling back to inexact refresh", e)
             alarmManager.setAndAllowWhileIdle(
                 AlarmManager.ELAPSED_REALTIME_WAKEUP,
                 SystemClock.elapsedRealtime() + ACTIVE_REFRESH_INTERVAL_MS,
