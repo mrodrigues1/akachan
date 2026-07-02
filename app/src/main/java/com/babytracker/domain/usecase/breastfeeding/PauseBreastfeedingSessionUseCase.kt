@@ -6,10 +6,11 @@ import java.time.Instant
 import javax.inject.Inject
 
 class PauseBreastfeedingSessionUseCase @Inject constructor(
-    private val repository: BreastfeedingRepository
+    private val repository: BreastfeedingRepository,
+    private val now: () -> Instant,
 ) {
     suspend operator fun invoke(session: BreastfeedingSession) {
         if (session.isPaused) return
-        repository.updateSession(session.copy(pausedAt = Instant.now()))
+        repository.updateSession(session.copy(pausedAt = now()))
     }
 }

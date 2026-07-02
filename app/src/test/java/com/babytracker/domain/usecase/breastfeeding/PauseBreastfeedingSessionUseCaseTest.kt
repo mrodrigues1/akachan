@@ -9,12 +9,13 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
 
 class PauseBreastfeedingSessionUseCaseTest {
+
+    private val now = Instant.parse("2026-01-15T10:00:00Z")
 
     private lateinit var repository: BreastfeedingRepository
     private lateinit var useCase: PauseBreastfeedingSessionUseCase
@@ -22,14 +23,14 @@ class PauseBreastfeedingSessionUseCaseTest {
     @BeforeEach
     fun setUp() {
         repository = mockk()
-        useCase = PauseBreastfeedingSessionUseCase(repository)
+        useCase = PauseBreastfeedingSessionUseCase(repository) { now }
     }
 
     @Test
     fun `invoke sets pausedAt to now on a running session`() = runTest {
         val session = BreastfeedingSession(
             id = 1L,
-            startTime = Instant.now().minusSeconds(300),
+            startTime = now.minusSeconds(300),
             startingSide = BreastSide.LEFT
         )
         val slot = slot<BreastfeedingSession>()
@@ -37,7 +38,7 @@ class PauseBreastfeedingSessionUseCaseTest {
 
         useCase(session)
 
-        assertNotNull(slot.captured.pausedAt)
+        assertEquals(now, slot.captured.pausedAt)
         coVerify(exactly = 1) { repository.updateSession(any()) }
     }
 
