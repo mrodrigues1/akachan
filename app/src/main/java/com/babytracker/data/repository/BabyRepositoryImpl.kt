@@ -39,7 +39,9 @@ class BabyRepositoryImpl @Inject constructor(
             allergies = prefs[Keys.ALLERGIES]
                 ?.split(",")
                 ?.filter { it.isNotBlank() }
-                ?.map { AllergyType.valueOf(it) }
+                // Unrecognised stored values (hand-edited/cross-version backup) fall back to
+                // OTHER instead of crashing the flow; the allergy's presence is safety-relevant.
+                ?.map { stored -> AllergyType.entries.find { it.name == stored } ?: AllergyType.OTHER }
                 ?: emptyList(),
             customAllergyNote = prefs[Keys.CUSTOM_ALLERGY_NOTE],
             sex = prefs[Keys.BABY_SEX].toBabySex(),

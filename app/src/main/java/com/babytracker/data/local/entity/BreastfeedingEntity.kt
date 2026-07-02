@@ -29,7 +29,7 @@ fun BreastfeedingEntity.toDomain(): BreastfeedingSession = BreastfeedingSession(
     id = id,
     startTime = Instant.ofEpochMilli(startTime),
     endTime = endTime?.let { Instant.ofEpochMilli(it) },
-    startingSide = BreastSide.valueOf(startingSide),
+    startingSide = BreastSide.entries.find { it.name == startingSide } ?: BreastSide.LEFT,
     switchTime = switchTime?.let { Instant.ofEpochMilli(it) },
     notes = notes,
     pausedAt = pausedAt?.let { Instant.ofEpochMilli(it) },

@@ -27,7 +27,7 @@ fun PumpingEntity.toDomain(): PumpingSession = PumpingSession(
     id = id,
     startTime = Instant.ofEpochMilli(startTime),
     endTime = endTime?.let { Instant.ofEpochMilli(it) },
-    breast = PumpingBreast.valueOf(breast),
+    breast = PumpingBreast.entries.find { it.name == breast } ?: PumpingBreast.BOTH,
     volumeMl = volumeMl,
     notes = notes,
     pausedAt = pausedAt?.let { Instant.ofEpochMilli(it) },

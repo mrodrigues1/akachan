@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BabySex
 import io.mockk.coEvery
@@ -46,11 +47,11 @@ class BabyRepositoryImplTest {
     @AfterEach
     fun tearDown() = unmockkAll()
 
-    private fun prefsWith(sexValue: String?): Preferences {
+    private fun prefsWith(sexValue: String? = null, allergiesValue: String? = null): Preferences {
         val prefs = mockk<Preferences>()
         every { prefs[nameKey] } returns "Leo"
         every { prefs[birthKey] } returns LocalDate.of(2026, 1, 1).toEpochDay()
-        every { prefs[allergiesKey] } returns null
+        every { prefs[allergiesKey] } returns allergiesValue
         every { prefs[customNoteKey] } returns null
         every { prefs[sexKey] } returns sexValue
         return prefs
@@ -75,6 +76,16 @@ class BabyRepositoryImplTest {
         every { dataStore.data } returns flowOf(prefsWith(sexValue = "NONBINARY_FUTURE_VALUE"))
 
         assertEquals(BabySex.UNSPECIFIED, repository.getBabyProfile().first()?.sex)
+    }
+
+    @Test
+    fun `getBabyProfile parses known allergies and falls back to OTHER for unrecognised ones`() = runTest {
+        every { dataStore.data } returns flowOf(prefsWith(allergiesValue = "CMPA,GARBAGE"))
+
+        assertEquals(
+            listOf(AllergyType.CMPA, AllergyType.OTHER),
+            repository.getBabyProfile().first()?.allergies,
+        )
     }
 
     @Test
