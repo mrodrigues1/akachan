@@ -231,9 +231,10 @@ class PredictiveSleepBootReceiverTest {
     }
 
     @Test
-    fun `shouldHandle accepts boot and time-set actions`() {
+    fun `shouldHandle accepts boot, time-set and timezone-change actions`() {
         assertTrue(receiver.shouldHandle("android.intent.action.BOOT_COMPLETED"))
         assertTrue(receiver.shouldHandle("android.intent.action.TIME_SET"))
+        assertTrue(receiver.shouldHandle("android.intent.action.TIMEZONE_CHANGED"))
     }
 
     @Test

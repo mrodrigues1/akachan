@@ -74,6 +74,7 @@ class PredictiveSleepBootReceiver : BroadcastReceiver() {
         private val HANDLED_ACTIONS = setOf(
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_TIME_CHANGED,
+            Intent.ACTION_TIMEZONE_CHANGED,
         )
     }
 }
