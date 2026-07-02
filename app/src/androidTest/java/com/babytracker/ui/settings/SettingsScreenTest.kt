@@ -47,6 +47,7 @@ class SettingsScreenTest {
             babyRepository = babyRepository,
             settingsRepository = settingsRepository,
             saveBabyProfile = SaveBabyProfileUseCase(babyRepository, mockk(relaxed = true)),
+            unregisterPartner = mockk(relaxed = true),
         )
     }
 
@@ -122,6 +123,7 @@ class SettingsScreenTest {
             babyRepository = babyRepo,
             settingsRepository = settingsRepo,
             saveBabyProfile = SaveBabyProfileUseCase(babyRepo, mockk(relaxed = true)),
+            unregisterPartner = mockk(relaxed = true),
         )
 
         composeRule.setContent {
@@ -141,6 +143,7 @@ class SettingsScreenTest {
             babyRepository = babyRepo,
             settingsRepository = settingsRepo,
             saveBabyProfile = SaveBabyProfileUseCase(babyRepo, mockk(relaxed = true)),
+            unregisterPartner = mockk(relaxed = true),
         )
 
         composeRule.setContent {
