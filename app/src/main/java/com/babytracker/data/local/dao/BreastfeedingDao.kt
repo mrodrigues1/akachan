@@ -57,9 +57,6 @@ abstract class BreastfeedingDao {
     @Delete
     abstract suspend fun deleteSession(entity: BreastfeedingEntity)
 
-    @Query("UPDATE breastfeeding_sessions SET end_time = :endTime WHERE id = :id")
-    abstract suspend fun markSessionEnded(id: Long, endTime: Long)
-
     @Transaction
     open suspend fun startSessionIfNone(entity: BreastfeedingEntity): Long? {
         if (getActiveSessionOnce() != null) return null
@@ -70,10 +67,21 @@ abstract class BreastfeedingDao {
         }
     }
 
+    /**
+     * Ends the active session, folding any open pause into paused_duration_ms so the trailing
+     * pause is not counted as feeding time on the closed session.
+     */
     @Transaction
     open suspend fun stopActiveSession(endTime: Long): Boolean {
         val active = getActiveSessionOnce() ?: return false
-        markSessionEnded(active.id, endTime)
+        val trailingPauseMs = active.pausedAt?.let { (endTime - it).coerceAtLeast(0L) } ?: 0L
+        updateSession(
+            active.copy(
+                endTime = endTime,
+                pausedAt = null,
+                pausedDurationMs = active.pausedDurationMs + trailingPauseMs,
+            ),
+        )
         return true
     }
 
