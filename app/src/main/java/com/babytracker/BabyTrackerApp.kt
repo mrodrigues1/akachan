@@ -20,6 +20,7 @@ import com.babytracker.manager.DoctorVisitReminderScheduler
 import com.babytracker.manager.FeatureSuppressionCoordinator
 import com.babytracker.manager.PredictiveFeedNotificationCoordinator
 import com.babytracker.manager.PredictiveSleepNotificationCoordinator
+import com.babytracker.manager.StaleSleepNotificationCanceller
 import com.babytracker.manager.StashExpirationScheduler
 import com.babytracker.manager.VaccineReminderScheduler
 import com.babytracker.ui.milestone.evictMilestoneBitmapCache
@@ -55,6 +56,7 @@ class BabyTrackerApp : Application(), Configuration.Provider {
     @Inject lateinit var predictiveCoordinator: Lazy<PredictiveFeedNotificationCoordinator>
     @Inject lateinit var predictiveSleepCoordinator: Lazy<PredictiveSleepNotificationCoordinator>
     @Inject lateinit var featureSuppressionCoordinator: Lazy<FeatureSuppressionCoordinator>
+    @Inject lateinit var staleSleepNotificationCanceller: Lazy<StaleSleepNotificationCanceller>
     @Inject lateinit var debugDataSeeder: Lazy<DebugDataSeeder>
     @Inject lateinit var widgetSyncManager: Lazy<WidgetSyncManager>
     @Inject lateinit var milkStashWidgetSyncManager: Lazy<MilkStashWidgetSyncManager>
@@ -85,6 +87,7 @@ class BabyTrackerApp : Application(), Configuration.Provider {
             predictiveCoordinator.get().start()
             predictiveSleepCoordinator.get().start()
             featureSuppressionCoordinator.get().start()
+            staleSleepNotificationCanceller.get().start()
             widgetSyncManager.get().start()
             milkStashWidgetSyncManager.get().start()
         }

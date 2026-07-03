@@ -10,6 +10,9 @@ interface SleepRepository {
     /** Observes records with startTime >= [since], newest first. Bounded alternative to [getAllRecords]. */
     fun getRecordsSinceFlow(since: Instant): Flow<List<SleepRecord>>
     fun observeLatestRecord(): Flow<SleepRecord?>
+
+    /** Emits the single active (in-progress) session, or null once it ends, is edited to ended, or is deleted. */
+    fun observeActiveRecord(): Flow<SleepRecord?>
     suspend fun getCompletedRecordsSince(since: Instant): List<SleepRecord>
     suspend fun getCompletedRecordsBetween(start: Instant, end: Instant): List<SleepRecord>
     suspend fun getRecentRecords(limit: Int): List<SleepRecord>
