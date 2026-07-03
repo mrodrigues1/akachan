@@ -120,12 +120,18 @@ class PumpingViewModel @Inject constructor(
 
     fun onPause() {
         val session = _uiState.value.activeSession ?: return
-        viewModelScope.launch { runCatching { pauseUseCase(session) } }
+        viewModelScope.launch {
+            runCatching { pauseUseCase(session) }
+                .onFailure { _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.error_pumping_pause)) }
+        }
     }
 
     fun onResume() {
         val session = _uiState.value.activeSession ?: return
-        viewModelScope.launch { runCatching { resumeUseCase(session) } }
+        viewModelScope.launch {
+            runCatching { resumeUseCase(session) }
+                .onFailure { _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.error_pumping_resume)) }
+        }
     }
 
     fun onStopTimer(volumeMl: Int?) {

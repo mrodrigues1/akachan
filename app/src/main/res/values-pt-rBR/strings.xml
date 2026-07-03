@@ -1007,6 +1007,8 @@
     <string name="error_bf_delete">Não foi possível excluir a sessão. Tente novamente.</string>
     <string name="error_pumping_start">Não foi possível iniciar a sessão.</string>
     <string name="error_pumping_stop">Não foi possível encerrar a sessão.</string>
+    <string name="error_pumping_pause">Não foi possível pausar a sessão.</string>
+    <string name="error_pumping_resume">Não foi possível retomar a sessão.</string>
     <string name="error_pumping_save_bag">Não foi possível salvar o saco</string>
     <string name="error_pumping_delete">Não foi possível excluir a sessão</string>
     <string name="error_feed_delete">Não foi possível excluir a mamada</string>

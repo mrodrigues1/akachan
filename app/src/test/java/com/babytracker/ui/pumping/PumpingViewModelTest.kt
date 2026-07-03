@@ -131,6 +131,42 @@ class PumpingViewModelTest {
     }
 
     @Test
+    fun `onPause sets error when pauseUseCase throws`() = runTest {
+        val session = PumpingSession(
+            id = 1L,
+            startTime = fixedNow.minusSeconds(300),
+            breast = PumpingBreast.BOTH,
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coEvery { pauseUseCase(session) } throws RuntimeException("db down")
+
+        viewModel.onPause()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `onResume sets error when resumeUseCase throws`() = runTest {
+        val session = PumpingSession(
+            id = 1L,
+            startTime = fixedNow.minusSeconds(300),
+            breast = PumpingBreast.BOTH,
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coEvery { resumeUseCase(session) } throws RuntimeException("db down")
+
+        viewModel.onResume()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.uiState.value.error)
+    }
+
+    @Test
     fun `onStopTimer calls stopUseCase and opens bagPrompt on success`() = runTest {
         val session = PumpingSession(
             id = 42L,

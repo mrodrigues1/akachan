@@ -992,6 +992,8 @@
     <string name="error_bf_delete">Could not delete session. Please try again.</string>
     <string name="error_pumping_start">Could not start session.</string>
     <string name="error_pumping_stop">Could not stop session.</string>
+    <string name="error_pumping_pause">Could not pause session.</string>
+    <string name="error_pumping_resume">Could not resume session.</string>
     <string name="error_pumping_save_bag">Could not save bag</string>
     <string name="error_pumping_delete">Could not delete session</string>
     <string name="error_feed_delete">Could not delete feed</string>
