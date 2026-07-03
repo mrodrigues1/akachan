@@ -3,12 +3,14 @@ package com.babytracker.manager
 import com.babytracker.util.PENDING_INTENT_IMMUTABLE_UPDATE
 
 import android.app.AlarmManager
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
 import com.babytracker.receiver.PredictiveFeedReceiver
+import com.babytracker.util.NotificationHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
 import javax.inject.Inject
@@ -45,6 +47,8 @@ class PredictiveFeedSchedulerImpl @Inject constructor(
 
     override fun cancelPredictiveReminder() {
         alarmManager.cancel(buildPendingIntent(Instant.EPOCH))
+        context.getSystemService(NotificationManager::class.java)
+            .cancel(NotificationHelper.PREDICTIVE_FEED_NOTIFICATION_ID)
     }
 
     private fun buildPendingIntent(predictedAt: Instant): PendingIntent {
