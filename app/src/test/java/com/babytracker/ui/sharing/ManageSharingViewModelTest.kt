@@ -13,6 +13,7 @@ import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -105,6 +106,16 @@ class ManageSharingViewModelTest {
 
         assertNotNull(viewModel.uiState.value.error)
         assertEquals(false, viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `startSharing does not map cancellation to an error`() = runTest {
+        coEvery { generateShareCodeUseCase() } throws CancellationException("navigated away")
+
+        val viewModel = createViewModel()
+        viewModel.startSharing()
+
+        assertNull(viewModel.uiState.value.error)
     }
 
     @Test

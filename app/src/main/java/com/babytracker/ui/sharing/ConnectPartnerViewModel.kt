@@ -9,6 +9,7 @@ import com.babytracker.sharing.usecase.ConnectAsPartnerUseCase
 import com.babytracker.widget.WidgetRefreshScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,6 +49,8 @@ class ConnectPartnerViewModel @Inject constructor(
                 // Best-effort: prime the widget cache now instead of waiting for the 15-min
                 // periodic worker. Failure here must not undo the successful connection.
                 runCatching { widgetRefreshScheduler.scheduleImmediateRefresh() }
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: IllegalStateException) {
                 _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_connect_code_missing)) }
             } catch (_: Exception) {

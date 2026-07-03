@@ -12,6 +12,7 @@ import com.babytracker.sharing.usecase.GenerateShareCodeUseCase
 import com.babytracker.sharing.usecase.RevokePartnerUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -61,6 +62,8 @@ class ManageSharingViewModel @Inject constructor(
             try {
                 val partners = service.getPartners(state.shareCode)
                 _uiState.update { it.copy(partners = partners, isLoading = false, error = null) }
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_sharing_load_partners)) }
             }
@@ -72,6 +75,8 @@ class ManageSharingViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 regenerateAndLoad()
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_sharing_enable)) }
             }
@@ -95,6 +100,8 @@ class ManageSharingViewModel @Inject constructor(
                 settingsRepository.clearShareCode()
                 settingsRepository.setAppMode(AppMode.NONE)
                 _uiState.update { it.copy(isLoading = false, partners = emptyList()) }
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_sharing_stop)) }
             }
@@ -109,6 +116,8 @@ class ManageSharingViewModel @Inject constructor(
                 if (oldCode != null) service.deleteShareDocument(oldCode)
                 settingsRepository.clearShareCode()
                 regenerateAndLoad()
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = appContext.getString(R.string.error_sharing_new_code)) }
             }
@@ -122,6 +131,8 @@ class ManageSharingViewModel @Inject constructor(
                 _uiState.update { state ->
                     state.copy(partners = state.partners.filter { it.uid != partnerUid })
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 _uiState.update { it.copy(error = appContext.getString(R.string.error_sharing_remove_partner)) }
             }

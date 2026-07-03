@@ -12,6 +12,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -108,6 +109,18 @@ class ConnectPartnerViewModelTest {
 
         assertTrue(viewModel.uiState.value.isConnected)
         assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `onConnect does not map cancellation to an error`() = runTest {
+        val code = "ABCD1234"
+        coEvery { connectAsPartnerUseCase(ShareCode(code)) } throws CancellationException("navigated away")
+        viewModel.onCodeChanged(code)
+
+        viewModel.onConnect()
+
+        assertNull(viewModel.uiState.value.error)
+        assertEquals(false, viewModel.uiState.value.isConnected)
     }
 
     @Test
