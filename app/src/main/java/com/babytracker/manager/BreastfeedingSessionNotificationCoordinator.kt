@@ -117,11 +117,18 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
         cancelPostedSessionNotifications()
     }
 
+    /**
+     * Reschedules the not-yet-due limit alarms after a resume, anchored on [pausedSession] (the
+     * pre-resume snapshot, still carrying `pausedAt`). Returns [resumedSession]'s already-folded
+     * `pausedDurationMs` — the value [ResumeBreastfeedingSessionUseCase] persisted, clamp and all —
+     * instead of recomputing it here, so this and the DB never independently derive the total.
+     */
     suspend fun rescheduleAfterResume(
         pausedSession: BreastfeedingSession,
-        resumeInstant: Instant = Instant.now()
+        resumedSession: BreastfeedingSession,
+        resumeInstant: Instant,
     ): Long {
-        val pausedAt = pausedSession.pausedAt ?: return pausedSession.pausedDurationMs
+        val pausedAt = pausedSession.pausedAt ?: return resumedSession.pausedDurationMs
         val (maxPerBreastMinutes, maxTotalFeedMinutes) = scheduleMinutes()
 
         if (maxPerBreastMinutes > 0) {
@@ -169,8 +176,7 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
             }
         }
 
-        val currentPauseDurationMs = Duration.between(pausedAt, resumeInstant).toMillis()
-        return pausedSession.pausedDurationMs + currentPauseDurationMs
+        return resumedSession.pausedDurationMs
     }
 
     /**

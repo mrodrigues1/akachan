@@ -9,13 +9,17 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneOffset
 
 class PauseBreastfeedingSessionUseCaseTest {
 
     private val now = Instant.parse("2026-01-15T10:00:00Z")
+    private val clock = Clock.fixed(now, ZoneOffset.UTC)
 
     private lateinit var repository: BreastfeedingRepository
     private lateinit var useCase: PauseBreastfeedingSessionUseCase
@@ -23,7 +27,7 @@ class PauseBreastfeedingSessionUseCaseTest {
     @BeforeEach
     fun setUp() {
         repository = mockk()
-        useCase = PauseBreastfeedingSessionUseCase(repository) { now }
+        useCase = PauseBreastfeedingSessionUseCase(repository, clock)
     }
 
     @Test
@@ -36,9 +40,10 @@ class PauseBreastfeedingSessionUseCaseTest {
         val slot = slot<BreastfeedingSession>()
         coJustRun { repository.updateSession(capture(slot)) }
 
-        useCase(session)
+        val result = useCase(session)
 
         assertEquals(now, slot.captured.pausedAt)
+        assertEquals(now, result.pausedAt)
         coVerify(exactly = 1) { repository.updateSession(any()) }
     }
 
@@ -46,13 +51,14 @@ class PauseBreastfeedingSessionUseCaseTest {
     fun `invoke does nothing when session is already paused`() = runTest {
         val session = BreastfeedingSession(
             id = 1L,
-            startTime = Instant.now().minusSeconds(300),
+            startTime = now.minusSeconds(300),
             startingSide = BreastSide.LEFT,
-            pausedAt = Instant.now().minusSeconds(60)
+            pausedAt = now.minusSeconds(60)
         )
 
-        useCase(session)
+        val result = useCase(session)
 
+        assertSame(session, result)
         coVerify(exactly = 0) { repository.updateSession(any()) }
     }
 
@@ -60,7 +66,7 @@ class PauseBreastfeedingSessionUseCaseTest {
     fun `invoke preserves existing pausedDurationMs when pausing`() = runTest {
         val session = BreastfeedingSession(
             id = 1L,
-            startTime = Instant.now().minusSeconds(600),
+            startTime = now.minusSeconds(600),
             startingSide = BreastSide.LEFT,
             pausedDurationMs = 30_000L
         )

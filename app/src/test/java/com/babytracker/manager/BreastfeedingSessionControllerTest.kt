@@ -19,8 +19,14 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 
 class BreastfeedingSessionControllerTest {
+
+    private val now = Instant.parse("2026-01-15T10:00:00Z")
+    private val clock = Clock.fixed(now, ZoneOffset.UTC)
 
     private lateinit var repository: BreastfeedingRepository
     private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
@@ -39,6 +45,7 @@ class BreastfeedingSessionControllerTest {
             resumeSessionUseCase = mockk<ResumeBreastfeedingSessionUseCase>(relaxed = true),
             notificationCoordinator = notificationCoordinator,
             syncedWrite = syncedWrite,
+            clock = clock,
         )
     }
 

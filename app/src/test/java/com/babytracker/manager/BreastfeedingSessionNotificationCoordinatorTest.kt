@@ -150,15 +150,31 @@ class BreastfeedingSessionNotificationCoordinatorTest {
     }
 
     @Test
-    fun `rescheduleAfterResume reschedules remaining alarms and returns total paused duration`() = runTest {
+    fun `rescheduleAfterResume reschedules remaining alarms and returns the resumed session's paused duration`() = runTest {
         val pausedSession = session.copy(pausedAt = Instant.parse("2026-04-24T10:05:00Z"))
         val resumeInstant = Instant.parse("2026-04-24T10:06:00Z")
+        // Mirrors what ResumeBreastfeedingSessionUseCase would have persisted (1 minute elapsed).
+        val resumedSession = pausedSession.copy(pausedAt = null, pausedDurationMs = 60_000L)
 
-        val totalPausedMs = coordinator.rescheduleAfterResume(pausedSession, resumeInstant)
+        val totalPausedMs = coordinator.rescheduleAfterResume(pausedSession, resumedSession, resumeInstant)
 
+        // Sourced from resumedSession, not recomputed from pausedAt/resumeInstant here.
         assertEquals(60_000L, totalPausedMs)
         verify { notificationScheduler.scheduleMaxPerBreastNotificationAt(any(), 42L, 15, "LEFT", 30) }
         verify { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any(), 42L, 30, "LEFT", 15) }
+    }
+
+    @Test
+    fun `rescheduleAfterResume returns resumedSession's pausedDurationMs even if it disagrees with a naive recompute`() = runTest {
+        val pausedSession = session.copy(pausedAt = Instant.parse("2026-04-24T10:05:00Z"))
+        val resumeInstant = Instant.parse("2026-04-24T10:06:00Z")
+        // A naive recompute here would yield 60_000L; assert the coordinator instead trusts the
+        // already-persisted (clamped) value from the use case, whatever it is.
+        val resumedSession = pausedSession.copy(pausedAt = null, pausedDurationMs = 12_345L)
+
+        val totalPausedMs = coordinator.rescheduleAfterResume(pausedSession, resumedSession, resumeInstant)
+
+        assertEquals(12_345L, totalPausedMs)
     }
 
     @Test
@@ -209,7 +225,7 @@ class BreastfeedingSessionNotificationCoordinatorTest {
         )
         val resumeInstant = Instant.parse("2026-04-24T10:16:00Z")
 
-        coordinator.rescheduleAfterResume(pausedSession, resumeInstant)
+        coordinator.rescheduleAfterResume(pausedSession, pausedSession.copy(pausedAt = null), resumeInstant)
 
         // 5 of the 15 per-breast minutes used on the new side -> 10 remaining from resume.
         verify {
@@ -232,7 +248,7 @@ class BreastfeedingSessionNotificationCoordinatorTest {
         )
         val resumeInstant = Instant.parse("2026-04-24T10:27:00Z")
 
-        coordinator.rescheduleAfterResume(pausedSession, resumeInstant)
+        coordinator.rescheduleAfterResume(pausedSession, pausedSession.copy(pausedAt = null), resumeInstant)
 
         verify(exactly = 0) { notificationScheduler.scheduleMaxPerBreastNotificationAt(any(), any(), any(), any(), any()) }
         verify { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any(), 42L, 30, "RIGHT", 15) }
@@ -246,7 +262,7 @@ class BreastfeedingSessionNotificationCoordinatorTest {
         )
         val resumeInstant = Instant.parse("2026-04-24T10:16:00Z")
 
-        coordinator.rescheduleAfterResume(pausedSession, resumeInstant)
+        coordinator.rescheduleAfterResume(pausedSession, pausedSession.copy(pausedAt = null), resumeInstant)
 
         // New breast has zero active time -> full 15 minutes from resume.
         verify {

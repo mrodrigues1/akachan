@@ -8,7 +8,7 @@ import com.babytracker.domain.usecase.breastfeeding.ResumeBreastfeedingSessionUs
 import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
 import com.babytracker.sharing.usecase.SyncedWrite
-import java.time.Instant
+import java.time.Clock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,6 +28,7 @@ class BreastfeedingSessionController @Inject constructor(
     private val resumeSessionUseCase: ResumeBreastfeedingSessionUseCase,
     private val notificationCoordinator: BreastfeedingSessionNotificationCoordinator,
     private val syncedWrite: SyncedWrite,
+    private val clock: Clock,
 ) {
 
     /**
@@ -37,7 +38,7 @@ class BreastfeedingSessionController @Inject constructor(
      * A notification failure does not fail the start; the session is still persisted and synced.
      */
     suspend fun start(side: BreastSide): BreastfeedingSession? {
-        val session = BreastfeedingSession(startTime = Instant.now(), startingSide = side)
+        val session = BreastfeedingSession(startTime = clock.instant(), startingSide = side)
         val id = repository.startSessionIfNone(session) ?: return null
         val created = session.copy(id = id)
         runCatching { notificationCoordinator.scheduleInitial(created) }
@@ -47,9 +48,8 @@ class BreastfeedingSessionController @Inject constructor(
     }
 
     suspend fun switchSide(session: BreastfeedingSession) {
-        switchSideUseCase(session)
+        val switched = switchSideUseCase(session)
         if (session.switchTime == null) {
-            val switched = session.copy(switchTime = Instant.now())
             notificationCoordinator.rearmPerBreastAfterSwitch(switched)
             notificationCoordinator.showRunning(switched)
         }
@@ -58,19 +58,18 @@ class BreastfeedingSessionController @Inject constructor(
 
     suspend fun pause(session: BreastfeedingSession) {
         if (session.isPaused) return
-        val pausedAt = Instant.now()
-        pauseSessionUseCase(session)
+        val paused = pauseSessionUseCase(session)
         notificationCoordinator.cancelScheduled()
-        notificationCoordinator.showPaused(session, pausedAt)
+        notificationCoordinator.showPaused(paused, checkNotNull(paused.pausedAt))
         syncedWrite.sync(SyncType.SESSIONS)
     }
 
     suspend fun resume(session: BreastfeedingSession) {
         if (!session.isPaused) return
-        val resumeInstant = Instant.now()
-        resumeSessionUseCase(session)
-        val totalPausedMs = notificationCoordinator.rescheduleAfterResume(session, resumeInstant)
-        notificationCoordinator.showRunning(session, pausedDurationMs = totalPausedMs)
+        val resumeInstant = clock.instant()
+        val resumed = resumeSessionUseCase(session)
+        val totalPausedMs = notificationCoordinator.rescheduleAfterResume(session, resumed, resumeInstant)
+        notificationCoordinator.showRunning(resumed, pausedDurationMs = totalPausedMs)
         syncedWrite.sync(SyncType.SESSIONS)
     }
 
@@ -82,7 +81,7 @@ class BreastfeedingSessionController @Inject constructor(
      * partner snapshot are left untouched.
      */
     suspend fun stop(): Boolean {
-        val stopped = runCatching { repository.stopActiveSession(Instant.now()) }.getOrDefault(false)
+        val stopped = runCatching { repository.stopActiveSession(clock.instant()) }.getOrDefault(false)
         if (!stopped) return false
         notificationCoordinator.cancelAllSessionNotifications()
         syncedWrite.sync(SyncType.SESSIONS)

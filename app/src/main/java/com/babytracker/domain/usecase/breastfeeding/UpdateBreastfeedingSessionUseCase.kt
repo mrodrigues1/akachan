@@ -2,12 +2,13 @@ package com.babytracker.domain.usecase.breastfeeding
 
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
+import java.time.Clock
 import java.time.Instant
 import javax.inject.Inject
 
 class UpdateBreastfeedingSessionUseCase @Inject constructor(
     private val repository: BreastfeedingRepository,
-    private val nowProvider: () -> Instant = Instant::now,
+    private val clock: Clock,
 ) {
     suspend operator fun invoke(
         session: BreastfeedingSession,
@@ -20,7 +21,7 @@ class UpdateBreastfeedingSessionUseCase @Inject constructor(
             startTime = newStart,
             endTime = newEnd,
             pausedDurationMs = newPausedDurationMs,
-            now = nowProvider(),
+            now = clock.instant(),
         )
         require(error == null) { "Invalid breastfeeding edit: $error" }
 

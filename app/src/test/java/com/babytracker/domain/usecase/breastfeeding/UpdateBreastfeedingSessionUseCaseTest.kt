@@ -13,7 +13,9 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneOffset
 
 class UpdateBreastfeedingSessionUseCaseTest {
 
@@ -38,7 +40,7 @@ class UpdateBreastfeedingSessionUseCaseTest {
     @BeforeEach
     fun setUp() {
         repository = mockk()
-        useCase = UpdateBreastfeedingSessionUseCase(repository) { now }
+        useCase = UpdateBreastfeedingSessionUseCase(repository, Clock.fixed(now, ZoneOffset.UTC))
     }
 
     @Test

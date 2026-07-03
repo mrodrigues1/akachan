@@ -2,15 +2,18 @@ package com.babytracker.domain.usecase.breastfeeding
 
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
-import java.time.Instant
+import java.time.Clock
 import javax.inject.Inject
 
 class PauseBreastfeedingSessionUseCase @Inject constructor(
     private val repository: BreastfeedingRepository,
-    private val now: () -> Instant,
+    private val clock: Clock,
 ) {
-    suspend operator fun invoke(session: BreastfeedingSession) {
-        if (session.isPaused) return
-        repository.updateSession(session.copy(pausedAt = now()))
+    /** Returns the persisted session, or [session] unchanged when it was already paused. */
+    suspend operator fun invoke(session: BreastfeedingSession): BreastfeedingSession {
+        if (session.isPaused) return session
+        val paused = session.copy(pausedAt = clock.instant())
+        repository.updateSession(paused)
+        return paused
     }
 }

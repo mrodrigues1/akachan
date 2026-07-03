@@ -39,11 +39,13 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -70,6 +72,7 @@ class BreastfeedingViewModelTest {
     private val activeSessionFlow = MutableStateFlow<BreastfeedingSession?>(null)
     private val maxPerBreastFlow = MutableStateFlow(15)
     private val maxTotalFlow = MutableStateFlow(30)
+    private val clock = Clock.fixed(Instant.parse("2026-01-15T10:00:00Z"), ZoneOffset.UTC)
 
     @BeforeEach
     fun setUp() {
@@ -105,8 +108,10 @@ class BreastfeedingViewModelTest {
         updateSession = mockk()
         coEvery { repository.insertSession(any()) } returns 1L
         coEvery { repository.startSessionIfNone(any()) } returns 1L
-        coJustRun { pauseSession(any()) }
-        coJustRun { resumeSession(any()) }
+        // Default fakes mirror the real use cases' persisted-session-return contract (AKACHAN-339):
+        // callers must receive a session carrying the mutation, not the untouched input.
+        coEvery { pauseSession(any()) } answers { firstArg<BreastfeedingSession>().copy(pausedAt = clock.instant()) }
+        coEvery { resumeSession(any()) } answers { firstArg<BreastfeedingSession>().copy(pausedAt = null) }
         coJustRun { syncToFirestore(any()) }
         coEvery { notificationCoordinator.scheduleInitial(any()) } returns Unit
         coEvery { notificationCoordinator.showRunning(any(), any()) } returns Unit
@@ -114,7 +119,7 @@ class BreastfeedingViewModelTest {
         coEvery { notificationCoordinator.rearmPerBreastAfterSwitch(any()) } returns Unit
         every { notificationCoordinator.cancelScheduled() } returns Unit
         every { notificationCoordinator.cancelAllSessionNotifications() } returns Unit
-        coEvery { notificationCoordinator.rescheduleAfterResume(any(), any()) } returns 0L
+        coEvery { notificationCoordinator.rescheduleAfterResume(any(), any(), any()) } returns 0L
 
         viewModel = createViewModel()
     }
@@ -135,6 +140,7 @@ class BreastfeedingViewModelTest {
             resumeSessionUseCase = resumeSession,
             notificationCoordinator = notificationCoordinator,
             syncedWrite = SyncedWrite(syncToFirestore),
+            clock = clock,
         ),
         updateSession,
         repository,
@@ -297,7 +303,8 @@ class BreastfeedingViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         verify { notificationCoordinator.cancelScheduled() }
-        coVerify { notificationCoordinator.showPaused(session, any()) }
+        // The controller passes the persisted (paused) session, not the pre-pause snapshot.
+        coVerify { notificationCoordinator.showPaused(match { it.id == session.id && it.pausedAt != null }, any()) }
     }
 
     @Test
@@ -314,8 +321,9 @@ class BreastfeedingViewModelTest {
         viewModel.onResumeSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { notificationCoordinator.rescheduleAfterResume(session, any()) }
-        coVerify { notificationCoordinator.showRunning(session, pausedDurationMs = any()) }
+        coVerify { notificationCoordinator.rescheduleAfterResume(session, any(), any()) }
+        // The controller passes the persisted (resumed) session, not the pre-resume snapshot.
+        coVerify { notificationCoordinator.showRunning(match { it.id == session.id && it.pausedAt == null }, pausedDurationMs = any()) }
     }
 
     @Test
@@ -333,8 +341,9 @@ class BreastfeedingViewModelTest {
         viewModel.onResumeSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { notificationCoordinator.rescheduleAfterResume(session, any()) }
-        coVerify { notificationCoordinator.showRunning(session, pausedDurationMs = any()) }
+        coVerify { notificationCoordinator.rescheduleAfterResume(session, any(), any()) }
+        // The controller passes the persisted (resumed) session, not the pre-resume snapshot.
+        coVerify { notificationCoordinator.showRunning(match { it.id == session.id && it.pausedAt == null }, pausedDurationMs = any()) }
     }
 
     @Test
@@ -346,7 +355,7 @@ class BreastfeedingViewModelTest {
         )
         activeSessionFlow.value = session
         testDispatcher.scheduler.advanceUntilIdle()
-        coJustRun { switchSide(session) }
+        coEvery { switchSide(session) } returns session.copy(switchTime = clock.instant())
 
         viewModel.onSwitchSide()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -370,7 +379,7 @@ class BreastfeedingViewModelTest {
         )
         activeSessionFlow.value = session
         testDispatcher.scheduler.advanceUntilIdle()
-        coJustRun { switchSide(session) }
+        coEvery { switchSide(session) } returns session.copy(switchTime = clock.instant())
 
         viewModel.onSwitchSide()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -413,7 +422,7 @@ class BreastfeedingViewModelTest {
         activeSessionFlow.value = session
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coJustRun { switchSide(session) }
+        coEvery { switchSide(session) } returns session.copy(switchTime = clock.instant())
 
         viewModel.onSwitchSide()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -542,7 +551,7 @@ class BreastfeedingViewModelTest {
         activeSessionFlow.value = session
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coJustRun { switchSide(session) }
+        coEvery { switchSide(session) } returns session.copy(switchTime = clock.instant())
 
         viewModel.onSwitchSide()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -568,7 +577,7 @@ class BreastfeedingViewModelTest {
         viewModel.onResumeSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify(exactly = 1) { notificationCoordinator.rescheduleAfterResume(session, any()) }
+        coVerify(exactly = 1) { notificationCoordinator.rescheduleAfterResume(session, any(), any()) }
     }
 
     @Test
@@ -964,7 +973,7 @@ class BreastfeedingViewModelTest {
             id = 1L, startTime = Instant.now().minusSeconds(300), startingSide = BreastSide.LEFT
         )
         activeSessionFlow.value = session
-        coJustRun { switchSide(session) }
+        coEvery { switchSide(session) } returns session.copy(switchTime = clock.instant())
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onSwitchSide()
