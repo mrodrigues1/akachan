@@ -20,20 +20,24 @@ class UpdateChecker @Inject constructor() {
         try {
             val url = URL("https://api.github.com/repos/mrodrigues1/akachan/releases/latest")
             val connection = url.openConnection() as HttpURLConnection
-            connection.apply {
-                requestMethod = "GET"
-                setRequestProperty("Accept", "application/vnd.github.v3+json")
-                connectTimeout = 5_000
-                readTimeout = 5_000
-            }
-            if (connection.responseCode != HttpURLConnection.HTTP_OK) return@withContext null
-            val json = JSONObject(connection.inputStream.bufferedReader().readText())
-            val tagName = json.getString("tag_name")
-            val releaseUrl = json.getString("html_url")
-            if (isNewerVersion(tagName, BuildConfig.VERSION_NAME)) {
-                UpdateInfo(versionName = tagName.trimStart('v'), releaseUrl = releaseUrl)
-            } else {
-                null
+            try {
+                connection.apply {
+                    requestMethod = "GET"
+                    setRequestProperty("Accept", "application/vnd.github.v3+json")
+                    connectTimeout = 5_000
+                    readTimeout = 5_000
+                }
+                if (connection.responseCode != HttpURLConnection.HTTP_OK) return@withContext null
+                val json = JSONObject(connection.inputStream.use { it.bufferedReader().readText() })
+                val tagName = json.getString("tag_name")
+                val releaseUrl = json.getString("html_url")
+                if (isNewerVersion(tagName, BuildConfig.VERSION_NAME)) {
+                    UpdateInfo(versionName = tagName.trimStart('v'), releaseUrl = releaseUrl)
+                } else {
+                    null
+                }
+            } finally {
+                connection.disconnect()
             }
         } catch (e: IOException) {
             Log.d(TAG, "Update check network failed", e)
