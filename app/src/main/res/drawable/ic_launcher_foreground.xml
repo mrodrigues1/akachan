@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
     android:drawable="@mipmap/ic_launcher_foreground"
-    android:inset="14dp" />
+    android:insetLeft="17dp"
+    android:insetTop="11dp"
+    android:insetRight="11dp"
+    android:insetBottom="17dp" />
