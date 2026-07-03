@@ -1,34 +1,17 @@
 # AGENTS.md — BabyTracker (Akachan)
 
-A native Android baby tracking app for parents of infants (0–12 months). Tracks breastfeeding sessions, sleep patterns, and allergies. Core tracking data is stored locally. An optional partner-sharing feature syncs a read-only snapshot to Firebase Firestore via anonymous Firebase Auth.
+A native Android baby tracking app for parents of infants (0–12 months). Tracks feeding (breast, bottle, pumping), sleep, diapers, growth, milestones, vaccines, doctor visits, and allergies. Core tracking data is stored locally. An optional partner-sharing feature syncs a read-only snapshot to Firebase Firestore via anonymous Firebase Auth.
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Build | Android Gradle Plugin 9.1.1, Gradle Version Catalog |
-| Language | Kotlin 2.3.20 |
-| UI | Jetpack Compose BOM 2026.03.00, Material 3 1.3.1, Activity Compose 1.9.3 |
-| AndroidX | Core KTX 1.15.0, Lifecycle 2.10.0 |
-| Navigation | Compose Navigation 2.9.8 |
-| DI | Hilt 2.59.2, Hilt Navigation Compose 1.2.0, Hilt Work 1.2.0, KSP 2.3.9 |
-| Async | Kotlin Coroutines 1.9.0 + Flow |
-| Local DB | Room 2.8.4 |
-| Preferences | DataStore 1.1.1 |
-| Sharing | Firebase BOM 33.7.0 (Firestore KTX, Auth KTX) |
-| Widgets | Glance 1.1.1 (appwidget + material3) |
-| Background work | WorkManager 2.11.0 |
-| Reorder | sh.calvin.reorderable 3.1.0 (drag-and-drop) |
-| Charting | Vico 3.1.0 (compose-m3, Material 3 themed charts) |
-| Serialization | Kotlinx Serialization JSON 1.8.1 |
-| Quality | ktlint-gradle 12.1.1, ktlint 1.3.1, detekt 1.23.8, Compose detekt rules 0.0.26 |
-| Coverage | Kover 0.9.1 |
-| SDK | Min SDK 26, Compile SDK 36, Target SDK 35, JVM 17 |
-| Testing | JUnit 5.10.3, JUnit 4.13.2, Android JUnit5 2.0.1, MockK 1.14.11, Turbine 1.2.0, Robolectric 4.15.1, Konsist 0.16.0, Compose UI Test, Espresso 3.7.0 |
+Single `:app` module. Kotlin + Jetpack Compose (Material 3), Hilt for DI (KSP — never KAPT), Room (schema JSONs exported to `app/schemas/`), DataStore Preferences, Compose Navigation, Coroutines + Flow, WorkManager, Glance home-screen widgets, Quick Settings tiles, Firebase Firestore + anonymous Auth (partner sharing only), Vico charts (compose-m3), sh.calvin.reorderable (drag-and-drop), Kotlinx Serialization JSON.
 
-> Authoritative versions: `gradle/libs.versions.toml`. Update this table whenever that file changes.
+- SDK: min 26, compile 36, target 35, JVM 17.
+- Tests: JUnit 5 + MockK + Turbine + Robolectric + Konsist (unit); JUnit 4 + Compose Test + Espresso (instrumented); Compose Preview Screenshot Testing.
+- Quality: ktlint + detekt (with Compose rules), Kover coverage gate.
+- Versions: `gradle/libs.versions.toml` is authoritative — versions are deliberately not duplicated here. Known pins: DataStore stays 1.1.1 and Kover stays 0.9.1 (newer versions break DataStore-rename tests and coverage reporting; only a full build catches it).
 
 ---
 
@@ -148,15 +131,12 @@ adb devices
 ### Before commit or PR
 
 ```bash
-# Auto-fix Kotlin formatting
-./gradlew ktlintFormat
-
-# Static analysis
-./gradlew detekt
-
-# Full local validation
+# Full local validation — also the only local check that catches missing
+# translations/plurals and release (R8/lint) issues
 ./gradlew build
 ```
+
+Formatting and static analysis run automatically in the pre-commit hook (`ktlintFormat` + `detekt`) — do not run them manually unless diagnosing a specific failure (see Code Quality).
 
 ### Targeted checks
 
@@ -167,6 +147,12 @@ adb devices
 # Release bundle validation
 ./gradlew bundleRelease
 ```
+
+### CI — what blocks a PR
+
+- `lint.yml`: `./gradlew ktlintCheck detekt`
+- `pr-checks.yml`: `./gradlew test :app:koverVerify` (≥60% line coverage) plus the full connected suite, sharded ×2 on an API 29 emulator
+- Android `lintDebug` is **not** run by CI — lint/resource/translation errors will not block a PR. Catch them locally with `./gradlew build`.
 
 If a validation command fails, read the failing output and fix the cause before rerunning the same command — rerunning without a fix wastes a full build. Do not guess validation commands; every test command needed is listed above.
 
@@ -248,6 +234,11 @@ When working on a new feature, pull `main` branch latest changes and create a ne
 - `chore/update-room-version`
 - `ci/add-android-test-coverage`
 
+### Pull Requests
+
+- Target `main`. PR titles follow the same Conventional Commits format as commit messages.
+- Merge strategy: rebase-merge, after CI is green.
+
 ---
 
 ## Task Progress File
@@ -302,11 +293,25 @@ fun BreastfeedingSession.toEntity(): BreastfeedingEntity = ...
 - Store as epoch milliseconds (Long) in Room and DataStore
 - Format via extension functions in `util/DateTimeExt.kt`
 
+### Room Migrations
+- The schema version and every migration live in `data/local/BabyTrackerDatabase.kt` — top-level `MIGRATION_X_Y` vals, registered via `.addMigrations(...)` in `di/DatabaseModule.kt`.
+- To change the schema: update the entity, bump `version` in the `@Database` annotation, add `MIGRATION_<old>_<new>`, register it in `DatabaseModule`, then build — the schema JSON is exported to `app/schemas/` automatically. Commit that JSON with the change.
+
 ---
 
 ## Domain
 
 Check `domain/model/` for pure Kotlin data classes.
+
+---
+
+## Localization (i18n)
+
+The app ships in English (`res/values/strings.xml`) and Brazilian Portuguese (`res/values-pt-rBR/strings.xml`).
+
+- Never hardcode user-facing strings in composables — every new string goes into **both** files.
+- Portuguese plurals need the `many` quantity in addition to `one`/`other`.
+- A missing translation or missing `many` plural fails only `./gradlew build` (lint) — unit tests and the pre-commit hook will not catch it.
 
 ---
 
@@ -376,6 +381,7 @@ Read specs before implementing new features — they define the intended behavio
 - Do not create BaseViewModel or BaseFragment
 - Do not wrap return values in `sealed class Result<T>` — let exceptions propagate or use nullable types
 - Do not add analytics SDKs or new remote API integrations beyond the existing Firebase sharing feature. Extend the partner-sharing feature only within `sharing/` and `di/SharingModule.kt`.
+- Do not assume `firestore.rules` deploys itself — CI does not deploy it. After editing rules: `cd firebase && npm test`, then `firebase deploy --only firestore:rules` from the repo root. Skipping the deploy silently breaks rule-gated features in production with `PERMISSION_DENIED`.
 - Do not use KAPT — KSP is configured for all annotation processing (Hilt, Room)
 - Do not access warning tokens (`WarningAmber`, `WarningContainerAmber`, `OnWarningContainerAmber` and their `*Dark` pairs) through `MaterialTheme.colorScheme` — they are extended, non-M3 semantics and ship as top-level `val`s in `ui/theme/Color.kt`. Import them by name.
 
@@ -383,8 +389,8 @@ Read specs before implementing new features — they define the intended behavio
 
 ## Code Quality
 
-- This project uses **ktlint** (via `ktlint-gradle` plugin v12.1.1) for Kotlin formatting and **detekt** (v1.23.6) for static analysis.
-- The detekt config lives at `config/detekt.yml` and is tuned for Jetpack Compose and MVI (Orbit).
+- This project uses **ktlint** for Kotlin formatting and **detekt** for static analysis (versions in `gradle/libs.versions.toml`).
+- The detekt config lives at `config/detekt.yml` and is tuned for Jetpack Compose and MVVM with StateFlow.
 - Formatting is delegated entirely to ktlint; detekt does not enforce formatting rules.
 - Use `Validation Commands` for the required before-commit formatting and static-analysis commands.
 - A pre-commit hook is available at `scripts/pre-commit`. Install it with: `cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit`

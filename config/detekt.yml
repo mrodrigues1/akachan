@@ -1,5 +1,5 @@
 # detekt configuration
-# Tuned for Android + Jetpack Compose + MVI (Orbit)
+# Tuned for Android + Jetpack Compose + MVVM (StateFlow)
 # Docs: https://detekt.dev/docs/rules/
 
 build:
