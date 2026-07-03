@@ -187,8 +187,27 @@ class FirestoreSharingService @Inject constructor(
             .delete().await()
     }
 
+    /**
+     * Firestore does not cascade-delete subcollections, so drain partners/feedOps/sleepOps
+     * before deleting the share document itself — otherwise their documents stay in Firestore
+     * forever, unreachable but billed, and resurface if the code is ever reused.
+     */
     suspend fun deleteShareDocument(code: String) {
+        drainSubcollection(partnersCollection(code))
+        drainSubcollection(shareDoc(code).collection(FEED_OPS))
+        drainSubcollection(shareDoc(code).collection(SLEEP_OPS))
         shareDoc(code).delete().await()
+    }
+
+    // Server-sourced like getFeedOps: a cache-first read could miss partner-written docs and
+    // leave orphans behind.
+    private suspend fun drainSubcollection(collection: CollectionReference) {
+        collection.get(Source.SERVER).await()
+            .documents.chunked(BATCH_LIMIT).forEach { chunk ->
+                val batch = firestore.batch()
+                chunk.forEach { batch.delete(it.reference) }
+                batch.commit().await()
+            }
     }
 
     /**
