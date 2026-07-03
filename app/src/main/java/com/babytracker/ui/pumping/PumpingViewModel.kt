@@ -160,6 +160,7 @@ class PumpingViewModel @Inject constructor(
         val validationError = when {
             volume == null || volume <= 0 -> appContext.getString(R.string.error_volume_required)
             !manual.endTime.isAfter(manual.startTime) -> appContext.getString(R.string.error_end_after_start)
+            manual.endTime.isAfter(now()) -> appContext.getString(R.string.error_end_future)
             else -> null
         }
         if (validationError != null) {

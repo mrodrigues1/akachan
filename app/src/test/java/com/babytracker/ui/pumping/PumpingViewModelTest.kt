@@ -365,6 +365,25 @@ class PumpingViewModelTest {
     }
 
     @Test
+    fun `onManualSave validation rejects endTime in the future`() = runTest {
+        viewModel.onModeChange(PumpingMode.MANUAL)
+        viewModel.onManualFieldChange { manual ->
+            manual.copy(
+                startTime = fixedNow.minusSeconds(600),
+                endTime = fixedNow.plusSeconds(60),
+                volumeMl = "100",
+            )
+        }
+
+        viewModel.onManualSave()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val error = viewModel.uiState.value.manual?.validationError
+        assertTrue(error != null)
+        coVerify(exactly = 0) { saveManual(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
     fun `onManualSave with valid data calls saveManual and opens bagPrompt`() = runTest {
         viewModel.onModeChange(PumpingMode.MANUAL)
         val start = fixedNow.minusSeconds(900)

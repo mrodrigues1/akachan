@@ -8,6 +8,7 @@ import javax.inject.Inject
 
 class SavePumpingSessionUseCase @Inject constructor(
     private val repository: PumpingRepository,
+    private val now: () -> Instant,
 ) {
     suspend operator fun invoke(
         startTime: Instant,
@@ -17,6 +18,8 @@ class SavePumpingSessionUseCase @Inject constructor(
         notes: String?,
     ): PumpingSession {
         require(endTime.isAfter(startTime)) { "End must be after start" }
+        // end > start, so end <= now also bounds start.
+        require(!endTime.isAfter(now())) { "End cannot be in the future" }
         require(volumeMl > 0) { "Volume must be greater than 0" }
         val session = PumpingSession(
             startTime = startTime,

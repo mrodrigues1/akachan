@@ -21,11 +21,12 @@ class SavePumpingSessionUseCaseTest {
 
     private val start = Instant.parse("2026-05-16T10:00:00Z")
     private val end = Instant.parse("2026-05-16T10:30:00Z")
+    private val fixedNow = Instant.parse("2026-05-16T12:00:00Z")
 
     @BeforeEach
     fun setup() {
         repository = mockk()
-        useCase = SavePumpingSessionUseCase(repository)
+        useCase = SavePumpingSessionUseCase(repository) { fixedNow }
     }
 
     @Test
@@ -101,6 +102,36 @@ class SavePumpingSessionUseCaseTest {
                     endTime = end,
                     breast = PumpingBreast.LEFT,
                     volumeMl = -5,
+                    notes = null,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun rejectsEndTimeInFuture() = runTest {
+        assertThrows<IllegalArgumentException> {
+            runBlocking {
+                useCase(
+                    startTime = fixedNow.minusSeconds(600),
+                    endTime = fixedNow.plusSeconds(60),
+                    breast = PumpingBreast.LEFT,
+                    volumeMl = 50,
+                    notes = null,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun rejectsSessionEntirelyInFuture() = runTest {
+        assertThrows<IllegalArgumentException> {
+            runBlocking {
+                useCase(
+                    startTime = fixedNow.plusSeconds(600),
+                    endTime = fixedNow.plusSeconds(1200),
+                    breast = PumpingBreast.LEFT,
+                    volumeMl = 50,
                     notes = null,
                 )
             }
