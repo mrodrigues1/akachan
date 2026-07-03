@@ -46,4 +46,4 @@ Breastfeeding · Pumping & milk inventory · Bottle feeding · Sleep · Diaper �
 
 ## Open gaps
 
-No ADRs exist yet (`docs/adr/`). If a decision recorded here needs deeper rationale, capture it via `/domain-modeling` rather than expanding this file inline.
+ADRs live in `docs/adr/` (first: ADR-0001, use cases only when they have behaviour). If a decision recorded here needs deeper rationale, capture it via `/domain-modeling` rather than expanding this file inline.
