@@ -55,7 +55,7 @@ class BreastfeedingSessionNotificationCoordinatorTest {
         every { notificationScheduler.cancelPerBreastNotification() } returns Unit
 
         mockkObject(NotificationHelper)
-        every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any(), any()) } returns Unit
+        every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Unit
         every { NotificationHelper.cancelNotification(any(), any()) } returns Unit
 
         coordinator = BreastfeedingSessionNotificationCoordinator(
@@ -296,6 +296,114 @@ class BreastfeedingSessionNotificationCoordinatorTest {
 
         coordinator.rearmAfterKeepGoing(session)
 
+        verify(exactly = 0) { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `restoreActiveSession re-posts running notification and re-arms future alarms`() = runTest {
+        val runningSession = session.copy(pausedDurationMs = 60_000L)
+        val now = Instant.parse("2026-04-24T10:05:00Z")
+
+        coordinator.restoreActiveSession(runningSession, now)
+
+        verify {
+            NotificationHelper.showBreastfeedingActive(
+                context = context,
+                sessionId = 42L,
+                currentSide = "LEFT",
+                sessionStartEpochMs = runningSession.startTime.toEpochMilli(),
+                pausedDurationMs = 60_000L,
+                richEnabled = false,
+                maxTotalMinutes = 30,
+                pausedAtEpochMs = null
+            )
+        }
+        verify {
+            notificationScheduler.scheduleMaxPerBreastNotificationAt(
+                triggerTime = Instant.parse("2026-04-24T10:16:00Z"),
+                sessionId = 42L,
+                maxPerBreastMinutes = 15,
+                currentSide = "LEFT",
+                maxTotalMinutes = 30
+            )
+        }
+        verify {
+            notificationScheduler.scheduleMaxTotalTimeNotificationAt(
+                triggerTime = Instant.parse("2026-04-24T10:31:00Z"),
+                sessionId = 42L,
+                maxTotalMinutes = 30,
+                currentSide = "LEFT",
+                maxPerBreastMinutes = 15
+            )
+        }
+    }
+
+    @Test
+    fun `restoreActiveSession anchors per-breast alarm on switch time without session-wide pauses`() = runTest {
+        val switchedSession = session.copy(
+            switchTime = Instant.parse("2026-04-24T10:10:00Z"),
+            pausedDurationMs = 120_000L
+        )
+        val now = Instant.parse("2026-04-24T10:12:00Z")
+
+        coordinator.restoreActiveSession(switchedSession, now)
+
+        verify {
+            notificationScheduler.scheduleMaxPerBreastNotificationAt(
+                triggerTime = Instant.parse("2026-04-24T10:25:00Z"),
+                sessionId = 42L,
+                maxPerBreastMinutes = 15,
+                currentSide = "RIGHT",
+                maxTotalMinutes = 30
+            )
+        }
+        verify {
+            notificationScheduler.scheduleMaxTotalTimeNotificationAt(
+                triggerTime = Instant.parse("2026-04-24T10:32:00Z"),
+                sessionId = 42L,
+                maxTotalMinutes = 30,
+                currentSide = "RIGHT",
+                maxPerBreastMinutes = 15
+            )
+        }
+    }
+
+    @Test
+    fun `restoreActiveSession skips alarms whose trigger has already passed`() = runTest {
+        val now = Instant.parse("2026-04-24T11:00:00Z")
+
+        coordinator.restoreActiveSession(session, now)
+
+        verify {
+            NotificationHelper.showBreastfeedingActive(
+                any(), any(), any(), any(), any(), any(), any(), any(), any()
+            )
+        }
+        verify(exactly = 0) { notificationScheduler.scheduleMaxPerBreastNotificationAt(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `restoreActiveSession posts paused notification only for paused session`() = runTest {
+        val pausedAt = Instant.parse("2026-04-24T10:07:00Z")
+        val pausedSession = session.copy(pausedAt = pausedAt)
+        val now = Instant.parse("2026-04-24T10:08:00Z")
+
+        coordinator.restoreActiveSession(pausedSession, now)
+
+        verify {
+            NotificationHelper.showBreastfeedingActive(
+                context = context,
+                sessionId = 42L,
+                currentSide = "LEFT",
+                sessionStartEpochMs = pausedSession.startTime.toEpochMilli(),
+                pausedDurationMs = 0L,
+                richEnabled = false,
+                maxTotalMinutes = 30,
+                pausedAtEpochMs = pausedAt.toEpochMilli()
+            )
+        }
+        verify(exactly = 0) { notificationScheduler.scheduleMaxPerBreastNotificationAt(any(), any(), any(), any(), any()) }
         verify(exactly = 0) { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any(), any(), any(), any(), any()) }
     }
 
