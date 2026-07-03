@@ -50,7 +50,9 @@ object NotificationHelper {
     private const val RC_NAP_REMINDER_TAP = 3002
     private const val TAG = "NotificationHelper"
     private const val SECONDS_PER_MINUTE = 60
-    private const val ACTIVE_REFRESH_INTERVAL_MS = 30_000L
+    private const val ACTIVE_REFRESH_STEPS = 20
+    private const val ACTIVE_REFRESH_MIN_INTERVAL_MS = 120_000L
+    private const val MS_PER_SECOND = 1_000L
     const val BREASTFEEDING_GROUP_KEY = "com.babytracker.notifications.breastfeeding"
     const val SLEEP_GROUP_KEY = "com.babytracker.notifications.sleep"
 
@@ -345,7 +347,7 @@ object NotificationHelper {
         )
 
         if (progress.isEnabled && !isPaused) {
-            scheduleBreastfeedingActiveRefresh(content.context, content.sessionId)
+            scheduleBreastfeedingActiveRefresh(content.context, content.sessionId, progress.max)
         }
     }
 
@@ -513,7 +515,7 @@ object NotificationHelper {
         PENDING_INTENT_IMMUTABLE_UPDATE
     )
 
-    private fun scheduleBreastfeedingActiveRefresh(context: Context, sessionId: Long) {
+    private fun scheduleBreastfeedingActiveRefresh(context: Context, sessionId: Long, maxProgressSeconds: Int) {
         val alarmManager = context.getSystemService(AlarmManager::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -525,33 +527,15 @@ object NotificationHelper {
             },
             PENDING_INTENT_IMMUTABLE_UPDATE
         )
-        val canScheduleExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            alarmManager.canScheduleExactAlarms()
-        } else {
-            true
-        }
-        try {
-            if (canScheduleExact) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                    SystemClock.elapsedRealtime() + ACTIVE_REFRESH_INTERVAL_MS,
-                    pendingIntent
-                )
-            } else {
-                alarmManager.setAndAllowWhileIdle(
-                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                    SystemClock.elapsedRealtime() + ACTIVE_REFRESH_INTERVAL_MS,
-                    pendingIntent
-                )
-            }
-        } catch (e: SecurityException) {
-            Log.w(TAG, "SCHEDULE_EXACT_ALARM revoked; falling back to inexact refresh", e)
-            alarmManager.setAndAllowWhileIdle(
-                AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                SystemClock.elapsedRealtime() + ACTIVE_REFRESH_INTERVAL_MS,
-                pendingIntent
-            )
-        }
+        // The refresh only advances the cosmetic progress bar — the elapsed timer ticks natively via
+        // the chronometer and the limit alerts have their own exact alarms. An inexact non-wakeup
+        // alarm at progress-bar granularity is enough: if the device sleeps, nobody sees the bar.
+        val intervalMs = maxOf(maxProgressSeconds * MS_PER_SECOND / ACTIVE_REFRESH_STEPS, ACTIVE_REFRESH_MIN_INTERVAL_MS)
+        alarmManager.set(
+            AlarmManager.ELAPSED_REALTIME,
+            SystemClock.elapsedRealtime() + intervalMs,
+            pendingIntent
+        )
     }
 
     private fun sleepActionPi(

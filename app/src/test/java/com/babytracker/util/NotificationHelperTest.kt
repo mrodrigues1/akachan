@@ -124,11 +124,11 @@ class NotificationHelperTest {
     }
 
     @Test
-    fun `active notification refresh interval is thirty seconds`() {
-        val field = NotificationHelper::class.java.getDeclaredField("ACTIVE_REFRESH_INTERVAL_MS")
+    fun `active notification refresh cadence is at least two minutes`() {
+        val field = NotificationHelper::class.java.getDeclaredField("ACTIVE_REFRESH_MIN_INTERVAL_MS")
         field.isAccessible = true
 
-        assertEquals(30_000L, field.getLong(NotificationHelper))
+        assertEquals(120_000L, field.getLong(NotificationHelper))
     }
 
     @Test
@@ -687,22 +687,22 @@ class NotificationHelperTest {
     // --- refresh alarm quality tests ---
 
     @Test
-    fun `scheduleBreastfeedingActiveRefresh guards exact alarm with canScheduleExactAlarms`() {
+    fun `scheduleBreastfeedingActiveRefresh uses inexact non-wakeup alarm`() {
         val source = notificationHelperSource()
         val body = Regex("fun scheduleBreastfeedingActiveRefresh[\\s\\S]*?private fun sleepActionPi")
             .find(source)?.value ?: error("scheduleBreastfeedingActiveRefresh body not found")
 
-        assertTrue(
-            body.contains("canScheduleExactAlarms()"),
-            "refresh alarm must check canScheduleExactAlarms() — on API 31+ exact alarms require explicit permission"
+        assertFalse(
+            body.contains("setExactAndAllowWhileIdle") || body.contains("setAndAllowWhileIdle"),
+            "refresh alarm must not use exact or allow-while-idle alarms — it only advances a cosmetic progress bar (AKACHAN-336)"
+        )
+        assertFalse(
+            body.contains("ELAPSED_REALTIME_WAKEUP"),
+            "refresh alarm must not wake the device — if it sleeps, nobody sees the bar"
         )
         assertTrue(
-            body.contains("setExactAndAllowWhileIdle"),
-            "refresh alarm must use setExactAndAllowWhileIdle when exact alarms are permitted"
-        )
-        assertTrue(
-            body.contains("setAndAllowWhileIdle"),
-            "refresh alarm must fall back to setAndAllowWhileIdle when exact alarms are not available"
+            body.contains("AlarmManager.ELAPSED_REALTIME"),
+            "refresh alarm must use an inexact non-wakeup ELAPSED_REALTIME alarm"
         )
     }
 
