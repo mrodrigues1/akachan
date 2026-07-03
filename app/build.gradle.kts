@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
     alias(libs.plugins.google.services)
     alias(libs.plugins.kover)
     alias(libs.plugins.android.junit5)
@@ -281,8 +282,8 @@ tasks.withType<Test> {
     jvmArgs("-XX:+UseG1GC", "-XX:MaxMetaspaceSize=512m")
 }
 
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
+room {
+    schemaDirectory("$projectDir/schemas")
 }
 
 kover {
