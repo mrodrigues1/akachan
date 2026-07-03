@@ -64,6 +64,23 @@ class BreastfeedingRepositoryImplTest {
     }
 
     @Test
+    fun observeLatestCompletedSessionMapsEntityToDomain() = runTest {
+        every { dao.observeLatestCompletedSession() } returns flowOf(entity)
+
+        val session = repository.observeLatestCompletedSession().first()
+
+        assertEquals(1L, session?.id)
+        assertEquals(Instant.ofEpochMilli(endEpoch), session?.endTime)
+    }
+
+    @Test
+    fun observeLatestCompletedSessionNullEntityReturnsNull() = runTest {
+        every { dao.observeLatestCompletedSession() } returns flowOf(null)
+
+        assertNull(repository.observeLatestCompletedSession().first())
+    }
+
+    @Test
     fun getActiveSessionNullEntityReturnsNull() = runTest {
         every { dao.getActiveSession() } returns flowOf(null)
 

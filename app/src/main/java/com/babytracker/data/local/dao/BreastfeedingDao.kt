@@ -24,6 +24,9 @@ abstract class BreastfeedingDao {
     @Query("SELECT * FROM breastfeeding_sessions ORDER BY start_time DESC LIMIT 1")
     abstract fun observeLatestSession(): Flow<BreastfeedingEntity?>
 
+    @Query("SELECT * FROM breastfeeding_sessions WHERE end_time IS NOT NULL ORDER BY end_time DESC LIMIT 1")
+    abstract fun observeLatestCompletedSession(): Flow<BreastfeedingEntity?>
+
     @Query("SELECT * FROM breastfeeding_sessions ORDER BY start_time DESC LIMIT 1")
     abstract suspend fun getLastSession(): BreastfeedingEntity?
 

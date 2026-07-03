@@ -51,7 +51,7 @@ import com.babytracker.data.local.entity.VisitQuestionEntity
         DoctorVisitEntity::class,
         VisitQuestionEntity::class,
     ],
-    version = 18,
+    version = 19,
     exportSchema = true,
 )
 abstract class BabyTrackerDatabase : RoomDatabase() {
@@ -522,6 +522,19 @@ val MIGRATION_17_18 = object : Migration(17, 18) {
         database.execSQL(
             "CREATE INDEX IF NOT EXISTS index_sleep_recommendations_lifecycle_generated_at " +
                 "ON sleep_recommendations(lifecycle, generated_at)",
+        )
+    }
+}
+
+// Adds a descending end_time index for BreastfeedingDao.observeLatestCompletedSession (WHERE
+// end_time IS NOT NULL ORDER BY end_time DESC LIMIT 1), collected whenever the breastfeeding
+// screen is visible — without it every sessions-table change rescans completed rows. Index-only
+// change, same reasoning as MIGRATION_15_16/17_18.
+val MIGRATION_18_19 = object : Migration(18, 19) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_breastfeeding_sessions_end_time " +
+                "ON breastfeeding_sessions(end_time DESC)",
         )
     }
 }

@@ -3,8 +3,10 @@ package com.babytracker.ui.breastfeeding
 import com.babytracker.ui.component.EmptyState
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -14,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,10 +66,10 @@ fun BreastfeedingHistoryScreen(
     modifier: Modifier = Modifier,
     viewModel: BreastfeedingViewModel = hiltViewModel(),
 ) {
-    val history by viewModel.history.collectAsStateWithLifecycle()
+    val historyWindow by viewModel.history.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val sortedGroups = remember(history) {
-        history.groupByDateDescending { it.startTime }
+    val sortedGroups = remember(historyWindow) {
+        historyWindow.sessions.groupByDateDescending { it.startTime }
             .map { (date, sessions) ->
                 val totalDuration = sessions
                     .mapNotNull { it.activeDuration }
@@ -102,7 +105,7 @@ fun BreastfeedingHistoryScreen(
             )
         }
     ) { padding ->
-        if (history.isEmpty()) {
+        if (historyWindow.sessions.isEmpty()) {
             EmptyState(
                 title = stringResource(R.string.breastfeeding_history_empty_title),
                 subtitle = stringResource(R.string.breastfeeding_history_empty_subtitle),
@@ -155,6 +158,21 @@ fun BreastfeedingHistoryScreen(
                             onEdit = { viewModel.onEditSessionClick(session) },
                             onDelete = { viewModel.onPendingDeleteSessionChanged(session) },
                         )
+                    }
+                }
+
+                if (historyWindow.hasMore) {
+                    item(key = "history_load_more") {
+                        // Keyed on size so it re-fires if the item stays composed after a page lands.
+                        LaunchedEffect(historyWindow.sessions.size) { viewModel.onLoadMoreHistory() }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        }
                     }
                 }
             }

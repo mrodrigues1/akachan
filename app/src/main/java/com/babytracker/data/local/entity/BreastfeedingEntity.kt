@@ -12,7 +12,11 @@ import java.time.Instant
     tableName = "breastfeeding_sessions",
     // Every query filters/sorts on start_time (history, latest/active LIMIT 1, range scans). Without
     // an index these are full table scans + in-memory sorts that grow with a year of feeds.
-    indices = [Index(value = ["start_time"], orders = [Index.Order.DESC])],
+    // end_time serves the always-observed latest-completed LIMIT 1 query the same way.
+    indices = [
+        Index(value = ["start_time"], orders = [Index.Order.DESC]),
+        Index(value = ["end_time"], orders = [Index.Order.DESC]),
+    ],
 )
 data class BreastfeedingEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

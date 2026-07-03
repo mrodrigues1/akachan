@@ -27,6 +27,7 @@ import io.mockk.unmockkAll
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -80,7 +81,8 @@ class BreastfeedingViewModelTest {
         syncToFirestore = mockk()
         predictNextFeed = mockk()
 
-        every { repository.getAllSessions() } returns flowOf(emptyList())
+        every { repository.getRecentSessionsFlow(any()) } returns flowOf(emptyList())
+        every { repository.observeLatestCompletedSession() } returns flowOf(null)
         every { repository.getActiveSession() } returns activeSessionFlow
         every { feedSettingsRepository.getMaxPerBreastMinutes() } returns maxPerBreastFlow
         every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns maxTotalFlow
@@ -432,7 +434,7 @@ class BreastfeedingViewModelTest {
     }
 
     @Test
-    fun `history flow is collected from use case`() = runTest {
+    fun `history window emits sessions from the bounded query`() = runTest {
         val historySessions = listOf(
             BreastfeedingSession(
                 id = 1L,
@@ -442,12 +444,62 @@ class BreastfeedingViewModelTest {
             )
         )
 
-        every { repository.getAllSessions() } returns flowOf(historySessions)
+        every { repository.getRecentSessionsFlow(any()) } returns flowOf(historySessions)
         viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
 
-        // Verify history StateFlow exists and has a value (may be empty initially due to timing)
-        assertNotNull(viewModel.history.value)
+        val window = viewModel.history.first { it.sessions.isNotEmpty() }
+        assertEquals(historySessions, window.sessions)
+        assertFalse(window.hasMore)
+    }
+
+    @Test
+    fun `history window flags hasMore and grows on load more`() = runTest {
+        // 51 rows: one past the first page of 50, so hasMore is derived without a count query.
+        val sessions = List(51) { i ->
+            BreastfeedingSession(
+                id = i + 1L,
+                startTime = Instant.now().minusSeconds(7200L + i),
+                endTime = Instant.now().minusSeconds(6900L + i),
+                startingSide = BreastSide.LEFT
+            )
+        }
+        every { repository.getRecentSessionsFlow(51) } returns flowOf(sessions)
+        every { repository.getRecentSessionsFlow(101) } returns flowOf(sessions)
+        viewModel = createViewModel()
+
+        val firstPage = viewModel.history.first { it.sessions.isNotEmpty() }
+        assertEquals(50, firstPage.sessions.size)
+        assertTrue(firstPage.hasMore)
+
+        // Second call arrives before the grown window emits: it must be ignored, otherwise the
+        // limit reaches 150 and the unstubbed getRecentSessionsFlow(151) fails this test.
+        viewModel.onLoadMoreHistory()
+        viewModel.onLoadMoreHistory()
+
+        val secondPage = viewModel.history.first { it.sessions.size == 51 }
+        assertFalse(secondPage.hasMore)
+    }
+
+    @Test
+    fun `onLoadMoreHistory is a no-op when the full history is already loaded`() = runTest {
+        val sessions = List(3) { i ->
+            BreastfeedingSession(
+                id = i + 1L,
+                startTime = Instant.now().minusSeconds(7200L + i),
+                endTime = Instant.now().minusSeconds(6900L + i),
+                startingSide = BreastSide.LEFT
+            )
+        }
+        every { repository.getRecentSessionsFlow(51) } returns flowOf(sessions)
+        viewModel = createViewModel()
+        viewModel.history.first { it.sessions.isNotEmpty() }
+
+        // Would query getRecentSessionsFlow(101) (unstubbed) if the guard let the limit grow.
+        viewModel.onLoadMoreHistory()
+
+        val window = viewModel.history.first { it.sessions.isNotEmpty() }
+        assertEquals(3, window.sessions.size)
+        assertFalse(window.hasMore)
     }
 
     @Test
@@ -574,25 +626,8 @@ class BreastfeedingViewModelTest {
     }
 
     @Test
-    fun `lastFeedingSummary is Empty when no sessions exist`() = runTest {
-        every { repository.getAllSessions() } returns flowOf(emptyList())
-        viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals(LastFeedingSummaryState.Empty, viewModel.uiState.value.lastFeedingSummary)
-    }
-
-    @Test
-    fun `lastFeedingSummary is Empty when all sessions are still in progress`() = runTest {
-        // Pre-create Instant values before mockkStatic to avoid InaccessibleObjectException
-        val startTime = Instant.ofEpochSecond(1744538400L) // 2026-04-13T10:00:00Z
-        val inProgress = BreastfeedingSession(
-            id = 1L,
-            startTime = startTime,
-            endTime = null,
-            startingSide = BreastSide.LEFT
-        )
-        every { repository.getAllSessions() } returns flowOf(listOf(inProgress))
+    fun `lastFeedingSummary is Empty when no completed session exists`() = runTest {
+        every { repository.observeLatestCompletedSession() } returns flowOf(null)
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -617,7 +652,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.LEFT,
                 switchTime = null
             )
-            every { repository.getAllSessions() } returns flowOf(listOf(session))
+            every { repository.observeLatestCompletedSession() } returns flowOf(session)
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -649,7 +684,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.LEFT,
                 switchTime = switchTime
             )
-            every { repository.getAllSessions() } returns flowOf(listOf(session))
+            every { repository.observeLatestCompletedSession() } returns flowOf(session)
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -681,7 +716,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.RIGHT,
                 switchTime = switchTime
             )
-            every { repository.getAllSessions() } returns flowOf(listOf(session))
+            every { repository.observeLatestCompletedSession() } returns flowOf(session)
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -712,7 +747,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.RIGHT,
                 switchTime = switchTime
             )
-            every { repository.getAllSessions() } returns flowOf(listOf(session))
+            every { repository.observeLatestCompletedSession() } returns flowOf(session)
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -741,7 +776,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.RIGHT,
                 switchTime = null
             )
-            every { repository.getAllSessions() } returns flowOf(listOf(session))
+            every { repository.observeLatestCompletedSession() } returns flowOf(session)
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -770,7 +805,7 @@ class BreastfeedingViewModelTest {
                 endTime = endTime,
                 startingSide = BreastSide.RIGHT
             )
-            every { repository.getAllSessions() } returns flowOf(listOf(session))
+            every { repository.observeLatestCompletedSession() } returns flowOf(session)
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -799,7 +834,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.LEFT,
                 switchTime = null
             )
-            every { repository.getAllSessions() } returns flowOf(listOf(session))
+            every { repository.observeLatestCompletedSession() } returns flowOf(session)
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -831,7 +866,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.LEFT,
                 switchTime = switchTime
             )
-            every { repository.getAllSessions() } returns flowOf(listOf(session))
+            every { repository.observeLatestCompletedSession() } returns flowOf(session)
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -860,7 +895,7 @@ class BreastfeedingViewModelTest {
                 startingSide = BreastSide.LEFT,
                 pausedDurationMs = Duration.ofMinutes(10).toMillis()
             )
-            every { repository.getAllSessions() } returns flowOf(listOf(session))
+            every { repository.observeLatestCompletedSession() } returns flowOf(session)
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -891,7 +926,7 @@ class BreastfeedingViewModelTest {
                 switchTime = switchTime,
                 pausedDurationMs = Duration.ofMinutes(10).toMillis()
             )
-            every { repository.getAllSessions() } returns flowOf(listOf(session))
+            every { repository.observeLatestCompletedSession() } returns flowOf(session)
             viewModel = createViewModel()
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -976,42 +1011,6 @@ class BreastfeedingViewModelTest {
     }
 
     @Test
-    fun `lastFeedingSummary picks the most recent completed session from history`() = runTest {
-        // Pre-create all Instant values before mockkStatic to avoid InaccessibleObjectException
-        val now = Instant.ofEpochSecond(1744545600L)          // 2026-04-13T12:00:00Z
-        val olderStart = Instant.ofEpochSecond(1744531200L)   // 2026-04-13T08:00:00Z
-        val olderEnd = Instant.ofEpochSecond(1744532400L)     // 2026-04-13T08:20:00Z
-        val newerStart = Instant.ofEpochSecond(1744538400L)   // 2026-04-13T10:00:00Z
-        val newerEnd = Instant.ofEpochSecond(1744540200L)     // 2026-04-13T10:30:00Z
-
-        mockkStatic(Instant::class)
-        try {
-            every { Instant.now() } returns now
-
-            val older = BreastfeedingSession(
-                id = 1L,
-                startTime = olderStart,
-                endTime = olderEnd,
-                startingSide = BreastSide.LEFT
-            )
-            val newer = BreastfeedingSession(
-                id = 2L,
-                startTime = newerStart,
-                endTime = newerEnd,
-                startingSide = BreastSide.RIGHT
-            )
-            every { repository.getAllSessions() } returns flowOf(listOf(older, newer))
-            viewModel = createViewModel()
-            testDispatcher.scheduler.advanceUntilIdle()
-
-            val summary = awaitLastFeedingSummaryPopulated()
-            assertEquals(2L, summary.lastSession.id)
-        } finally {
-            unmockkAll()
-        }
-    }
-
-    @Test
     fun `onAddEntryClick opens sheet with default times and side LEFT when no last feeding`() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -1035,7 +1034,7 @@ class BreastfeedingViewModelTest {
             startingSide = BreastSide.LEFT,
             switchTime = null,
         )
-        every { repository.getAllSessions() } returns flowOf(listOf(session))
+        every { repository.observeLatestCompletedSession() } returns flowOf(session)
         viewModel = createViewModel()
         awaitLastFeedingSummaryPopulated()
 

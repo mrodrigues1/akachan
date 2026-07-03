@@ -69,6 +69,34 @@ class BreastfeedingDaoTest {
     }
 
     @Test
+    fun observeLatestCompletedSessionReturnsNullWhenNoCompletedSessionExists() = runTest {
+        dao.insertSession(
+            BreastfeedingEntity(startTime = System.currentTimeMillis(), startingSide = "LEFT")
+        )
+
+        assertNull(dao.observeLatestCompletedSession().first())
+    }
+
+    @Test
+    fun observeLatestCompletedSessionPicksLatestEndTimeAndIgnoresActive() = runTest {
+        val now = System.currentTimeMillis()
+        // Newer completed session started earlier but ended later — end_time must win.
+        dao.insertSession(
+            BreastfeedingEntity(startTime = now - 10000, endTime = now - 5000, startingSide = "LEFT")
+        )
+        dao.insertSession(
+            BreastfeedingEntity(startTime = now - 20000, endTime = now - 1000, startingSide = "RIGHT")
+        )
+        dao.insertSession(
+            BreastfeedingEntity(startTime = now, startingSide = "LEFT")
+        )
+
+        val latest = dao.observeLatestCompletedSession().first()
+        assertEquals("RIGHT", latest?.startingSide)
+        assertEquals(now - 1000, latest?.endTime)
+    }
+
+    @Test
     fun updateSessionUpdatesEndTime() = runTest {
         val entity = BreastfeedingEntity(
             startTime = System.currentTimeMillis(),
