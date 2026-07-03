@@ -425,6 +425,19 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate17To18_roomSchemaValidationPasses() {
+        helper.createDatabase(TEST_DB, 17).use { db ->
+            db.execSQL(
+                "INSERT INTO sleep_recommendations (anchor_sleep_id, generated_at, recommendation_type," +
+                    " window_start, window_end, best_estimate, confidence, lifecycle, algorithm_version)" +
+                    " VALUES (1, 1000, 'NAP', 2000, 3000, 2500, 'HIGH', 'SCHEDULED', 'v1')",
+            )
+        }
+        // Throws if the migrated schema (incl. the new lifecycle+generated_at index) differs from entity schema 18.
+        helper.runMigrationsAndValidate(TEST_DB, 18, true, MIGRATION_17_18).close()
+    }
+
+    @Test
     fun migrate15To16_roomSchemaValidationPasses() {
         helper.createDatabase(TEST_DB, 15).use { db ->
             db.execSQL(

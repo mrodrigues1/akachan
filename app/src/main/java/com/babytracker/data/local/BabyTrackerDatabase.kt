@@ -51,7 +51,7 @@ import com.babytracker.data.local.entity.VisitQuestionEntity
         DoctorVisitEntity::class,
         VisitQuestionEntity::class,
     ],
-    version = 17,
+    version = 18,
     exportSchema = true,
 )
 abstract class BabyTrackerDatabase : RoomDatabase() {
@@ -510,6 +510,18 @@ val MIGRATION_16_17 = object : Migration(16, 17) {
         )
         database.execSQL(
             "CREATE UNIQUE INDEX IF NOT EXISTS index_sleep_records_client_id ON sleep_records(client_id)",
+        )
+    }
+}
+
+// Adds a composite index for SleepRecommendationDao.getLatestScheduled (WHERE lifecycle = 'SCHEDULED'
+// ORDER BY generated_at DESC LIMIT 1): the table grows one row per generated prediction, so the
+// query was a growing full scan — the same reasoning as MIGRATION_15_16. Index-only change.
+val MIGRATION_17_18 = object : Migration(17, 18) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_sleep_recommendations_lifecycle_generated_at " +
+                "ON sleep_recommendations(lifecycle, generated_at)",
         )
     }
 }

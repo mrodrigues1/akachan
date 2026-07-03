@@ -12,6 +12,7 @@ import androidx.room.PrimaryKey
         Index("anchor_sleep_id"),
         Index("recommendation_type"),
         Index(value = ["anchor_sleep_id", "recommendation_type", "algorithm_version"], unique = true),
+        Index(value = ["lifecycle", "generated_at"]),
     ],
 )
 data class SleepRecommendationEntity(
