@@ -7,14 +7,9 @@ import android.util.Log
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.util.NotificationHelper
+import com.babytracker.util.goAsyncWithTimeout
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import java.time.LocalTime
 import javax.inject.Inject
 
@@ -26,18 +21,7 @@ class NapReminderReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val triggerAtMs = intent.getLongExtra(EXTRA_TRIGGER_AT_MS, -1L)
-        val result = goAsync()
-        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
-            try {
-                withTimeout(10_000L) {
-                    handle(context, triggerAtMs)
-                }
-            } catch (e: TimeoutCancellationException) {
-                Log.e(TAG, "onReceive timed out", e)
-            } finally {
-                result.finish()
-            }
-        }
+        goAsyncWithTimeout(TAG) { handle(context, triggerAtMs) }
     }
 
     internal suspend fun handle(context: Context, triggerAtMs: Long) {
