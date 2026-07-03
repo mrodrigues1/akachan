@@ -9,29 +9,25 @@ import com.babytracker.domain.usecase.doctorvisit.AttachSnapshotToVisitUseCase
 import com.babytracker.domain.usecase.doctorvisit.EditDoctorVisitUseCase
 import com.babytracker.export.data.BackupFileWriter
 import com.babytracker.export.domain.usecase.GeneratePdfReportUseCase
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DoctorVisitViewModelTest {
@@ -43,11 +39,9 @@ class DoctorVisitViewModelTest {
     private val generatePdfReport = mockk<GeneratePdfReportUseCase>(relaxed = true)
     private val fileWriter = mockk<BackupFileWriter>(relaxed = true)
 
-    @BeforeEach
-    fun setup() = Dispatchers.setMain(StandardTestDispatcher())
-
-    @AfterEach
-    fun tearDown() = Dispatchers.resetMain()
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension()
 
     private fun vm() = DoctorVisitViewModel(
         repository, addQuestion,

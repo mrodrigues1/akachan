@@ -4,37 +4,35 @@ import app.cash.turbine.test
 import com.babytracker.domain.repository.VaccineSettingsRepository
 import com.babytracker.manager.NotificationPermissionChecker
 import com.babytracker.manager.VaccineReminderScheduler
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.RegisterExtension
 
 class VaccineSettingsViewModelTest {
     private val settings = mockk<VaccineSettingsRepository>(relaxed = true)
     private val scheduler = mockk<VaccineReminderScheduler>(relaxed = true)
     private val permissionChecker = mockk<NotificationPermissionChecker>(relaxed = true)
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(UnconfinedTestDispatcher())
+
     @BeforeEach
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         every { settings.getReminderEnabled() } returns flowOf(false)
         every { settings.getReminderLeadDays() } returns flowOf(7)
         every { settings.getToScheduleLeadDays() } returns flowOf(14)
         every { permissionChecker.areNotificationsEnabled() } returns true
     }
-
-    @AfterEach
-    fun tearDown() = Dispatchers.resetMain()
 
     private fun vm() = VaccineSettingsViewModel(settings, scheduler, permissionChecker)
 

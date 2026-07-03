@@ -7,24 +7,22 @@ import com.babytracker.sharing.domain.model.PartnerInfo
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.usecase.GenerateShareCodeUseCase
 import com.babytracker.sharing.usecase.RevokePartnerUseCase
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 class ManageSharingViewModelTest {
 
@@ -34,9 +32,12 @@ class ManageSharingViewModelTest {
     private lateinit var revokePartnerUseCase: RevokePartnerUseCase
     private lateinit var appContext: Context
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(UnconfinedTestDispatcher())
+
     @BeforeEach
     fun setup() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         settingsRepository = mockk()
         service = mockk()
         generateShareCodeUseCase = mockk()
@@ -44,11 +45,6 @@ class ManageSharingViewModelTest {
         appContext = mockk(relaxed = true)
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.NONE)
         every { settingsRepository.getShareCode() } returns flowOf(null)
-    }
-
-    @AfterEach
-    fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     private fun createViewModel() = ManageSharingViewModel(

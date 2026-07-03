@@ -5,40 +5,35 @@ import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.model.DiaperType
 import com.babytracker.domain.repository.DiaperRepository
 import com.babytracker.domain.usecase.diaper.DeleteDiaperChangeUseCase
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import org.junit.jupiter.api.extension.RegisterExtension
 
 class DiaperHistoryViewModelTest {
     private val zone = ZoneId.of("UTC")
     private val diaperRepository = mockk<DiaperRepository>()
     private val delete = mockk<DeleteDiaperChangeUseCase>()
 
-    @BeforeEach
-    fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
-
-    @AfterEach
-    fun tearDown() = Dispatchers.resetMain()
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(UnconfinedTestDispatcher())
 
     private fun change(id: Long, at: Instant) =
         DiaperChange(id = id, timestamp = at, type = DiaperType.WET, createdAt = at)

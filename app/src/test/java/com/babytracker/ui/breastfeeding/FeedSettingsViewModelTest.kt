@@ -4,28 +4,30 @@ import com.babytracker.domain.repository.FeedSettingsRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.breastfeeding.CountRecentValidIntervalsUseCase
 import com.babytracker.manager.NotificationPermissionChecker
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FeedSettingsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
     private lateinit var feedSettingsRepository: FeedSettingsRepository
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var countRecentValidIntervals: CountRecentValidIntervalsUseCase
@@ -41,7 +43,6 @@ class FeedSettingsViewModelTest {
 
     @BeforeEach
     fun setup() {
-        Dispatchers.setMain(testDispatcher)
         feedSettingsRepository = mockk(relaxed = true)
         settingsRepository = mockk(relaxed = true)
         countRecentValidIntervals = mockk()
@@ -53,11 +54,6 @@ class FeedSettingsViewModelTest {
         every { settingsRepository.getQuietHoursStartMinute() } returns quietHoursStartFlow
         every { settingsRepository.getQuietHoursEndMinute() } returns quietHoursEndFlow
         every { countRecentValidIntervals() } returns validIntervalCountFlow
-    }
-
-    @AfterEach
-    fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     private fun buildViewModel(): FeedSettingsViewModel =

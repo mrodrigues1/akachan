@@ -7,26 +7,28 @@ import com.babytracker.domain.repository.MilestoneRepository
 import com.babytracker.navigation.Routes
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
+import org.junit.jupiter.api.extension.RegisterExtension
 
 class MilestoneDetailViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
     private lateinit var milestoneRepository: MilestoneRepository
     private lateinit var photoCleaner: MilestonePhotoCleaner
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
@@ -36,15 +38,11 @@ class MilestoneDetailViewModelTest {
 
     @BeforeEach
     fun setup() {
-        Dispatchers.setMain(testDispatcher)
         milestoneRepository = mockk(relaxed = true)
         photoCleaner = mockk(relaxed = true)
         syncToFirestore = mockk(relaxed = true)
         every { milestoneRepository.getMilestone(1) } returns flowOf(moment)
     }
-
-    @AfterEach
-    fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel() = MilestoneDetailViewModel(
         SavedStateHandle(mapOf(Routes.MILESTONE_DETAIL_ARG to "1")),

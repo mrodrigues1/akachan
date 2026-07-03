@@ -7,20 +7,17 @@ import com.babytracker.domain.usecase.trends.GetDayRhythmTrendUseCase
 import com.babytracker.domain.usecase.trends.GetFeedingFrequencyTrendUseCase
 import com.babytracker.domain.usecase.trends.GetFeedingIntervalTrendUseCase
 import com.babytracker.domain.usecase.trends.GetSleepDurationTrendUseCase
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TrendsViewModelTest {
@@ -29,16 +26,16 @@ class TrendsViewModelTest {
     private val interval: GetFeedingIntervalTrendUseCase = mockk()
     private val rhythm: GetDayRhythmTrendUseCase = mockk()
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension()
+
     @BeforeEach
     fun setup() {
-        Dispatchers.setMain(StandardTestDispatcher())
         coEvery { sleep(any()) } returns emptyList()
         coEvery { interval(any()) } returns emptyList()
         coEvery { rhythm(any()) } returns emptyList()
     }
-
-    @AfterEach
-    fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel() = TrendsViewModel(frequency, sleep, interval, rhythm)
 

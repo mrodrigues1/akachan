@@ -7,32 +7,34 @@ import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.UnregisterPartnerUseCase
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var viewModel: SettingsViewModel
     private val richNotificationsFlow = MutableStateFlow(true)
@@ -43,7 +45,6 @@ class SettingsViewModelTest {
 
     @BeforeEach
     fun setup() {
-        Dispatchers.setMain(testDispatcher)
         settingsRepository = mockk()
         babyRepository = mockk()
         every { babyRepository.getBabyProfile() } returns flowOf(null)
@@ -66,11 +67,6 @@ class SettingsViewModelTest {
             mockk(),
             unregisterPartner,
         )
-    }
-
-    @AfterEach
-    fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     @Test

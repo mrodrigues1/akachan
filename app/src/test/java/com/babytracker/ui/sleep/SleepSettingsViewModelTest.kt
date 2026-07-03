@@ -4,30 +4,32 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.NotificationPermissionChecker
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SleepSettingsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
     private lateinit var sleepSettingsRepository: SleepSettingsRepository
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var napReminderScheduler: NapReminderScheduler
@@ -39,7 +41,6 @@ class SleepSettingsViewModelTest {
 
     @BeforeEach
     fun setup() {
-        Dispatchers.setMain(testDispatcher)
         sleepSettingsRepository = mockk(relaxed = true)
         settingsRepository = mockk(relaxed = true)
         napReminderScheduler = mockk(relaxed = true)
@@ -51,9 +52,6 @@ class SleepSettingsViewModelTest {
         every { settingsRepository.getQuietHoursEndMinute() } returns flowOf(480)
         permissionChecker = NotificationPermissionChecker { notificationsEnabledStub }
     }
-
-    @AfterEach
-    fun tearDown() = Dispatchers.resetMain()
 
     private fun buildViewModel() = SleepSettingsViewModel(
         sleepSettingsRepository,

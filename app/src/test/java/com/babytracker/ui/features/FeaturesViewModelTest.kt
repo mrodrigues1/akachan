@@ -6,25 +6,23 @@ import com.babytracker.domain.model.FeatureDomain
 import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.usecase.features.SetDomainEnabledUseCase
 import com.babytracker.domain.usecase.features.SetFeatureEnabledUseCase
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FeaturesViewModelTest {
@@ -34,14 +32,14 @@ class FeaturesViewModelTest {
     private val setFeature = mockk<SetFeatureEnabledUseCase>()
     private val setDomain = mockk<SetDomainEnabledUseCase>(relaxed = true)
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(UnconfinedTestDispatcher())
+
     @BeforeEach
     fun setup() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         every { featureToggleRepository.getEnabledFeatures() } returns featuresFlow
     }
-
-    @AfterEach
-    fun tearDown() = Dispatchers.resetMain()
 
     // uiState is now WhileSubscribed, so it only collects its upstream while it has a subscriber.
     // The real screen always subscribes while shown; mirror that with a background collector so the

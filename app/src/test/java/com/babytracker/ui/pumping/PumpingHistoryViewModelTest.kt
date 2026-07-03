@@ -8,20 +8,18 @@ import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.PumpingRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.pumping.UpdatePumpingSessionUseCase
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -30,6 +28,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PumpingHistoryViewModelTest {
@@ -41,6 +40,10 @@ class PumpingHistoryViewModelTest {
     private lateinit var viewModel: PumpingHistoryViewModel
 
     private val testDispatcher = StandardTestDispatcher()
+
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
     private val historyFlow = MutableStateFlow<List<PumpingSession>>(emptyList())
     private val fixedNow = Instant.ofEpochSecond(1_700_000_000L)
 
@@ -55,7 +58,6 @@ class PumpingHistoryViewModelTest {
 
     @BeforeEach
     fun setUp() {
-        Dispatchers.setMain(testDispatcher)
         pumpingRepository = mockk()
         updateSession = mockk()
         settingsRepository = mockk()
@@ -74,7 +76,6 @@ class PumpingHistoryViewModelTest {
 
     @AfterEach
     fun tearDown() {
-        Dispatchers.resetMain()
         unmockkAll()
     }
 

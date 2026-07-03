@@ -6,24 +6,21 @@ import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.domain.usecase.vaccine.AddVaccineRecordUseCase
 import com.babytracker.domain.usecase.vaccine.EditVaccineRecordUseCase
 import com.babytracker.R
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 class VaccineViewModelTest {
     private val add = mockk<AddVaccineRecordUseCase>()
@@ -31,11 +28,9 @@ class VaccineViewModelTest {
     private val appContext = mockk<Context>(relaxed = true)
     private val fixedNow = Instant.ofEpochMilli(50_000)
 
-    @BeforeEach
-    fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
-
-    @AfterEach
-    fun tearDown() = Dispatchers.resetMain()
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(UnconfinedTestDispatcher())
 
     private fun viewModel() = VaccineViewModel(add, edit, appContext) { fixedNow }
 

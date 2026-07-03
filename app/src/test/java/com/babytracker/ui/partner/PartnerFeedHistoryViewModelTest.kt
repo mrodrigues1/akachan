@@ -16,27 +16,25 @@ import com.babytracker.sharing.usecase.ObservePartnerDataUseCase
 import com.babytracker.sharing.usecase.ObservePartnerFeedHistoryUseCase
 import com.babytracker.sharing.usecase.PartnerAccessRevokedException
 import com.babytracker.sharing.usecase.PartnerDataFetchException
+import com.babytracker.testutil.MainDispatcherExtension
 import com.babytracker.widget.WidgetUpdater
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PartnerFeedHistoryViewModelTest {
@@ -48,9 +46,12 @@ class PartnerFeedHistoryViewModelTest {
     private val widgetUpdater = mockk<WidgetUpdater>()
     private val appContext = mockk<Context>()
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(UnconfinedTestDispatcher())
+
     @BeforeEach
     fun setup() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         every { observePartnerData() } returns flowOf(snapshot())
         coJustRun { deletePartnerFeed(any()) }
@@ -58,11 +59,6 @@ class PartnerFeedHistoryViewModelTest {
         every { appContext.getString(R.string.error_partner_load_failed) } returns "load-failed"
         every { appContext.getString(R.string.error_partner_delete_failed) } returns "delete-failed"
         every { appContext.getString(R.string.error_partner_access_revoked) } returns "access-revoked"
-    }
-
-    @AfterEach
-    fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     @Test

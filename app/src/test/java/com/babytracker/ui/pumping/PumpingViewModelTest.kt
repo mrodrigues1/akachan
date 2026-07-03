@@ -10,6 +10,7 @@ import com.babytracker.domain.usecase.pumping.ResumePumpingSessionUseCase
 import com.babytracker.domain.usecase.pumping.SavePumpingSessionUseCase
 import com.babytracker.domain.usecase.pumping.StartPumpingSessionUseCase
 import com.babytracker.domain.usecase.pumping.StopPumpingSessionUseCase
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
@@ -17,13 +18,10 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -32,6 +30,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PumpingViewModelTest {
@@ -48,12 +47,15 @@ class PumpingViewModelTest {
     private lateinit var viewModel: PumpingViewModel
     private val testDispatcher = StandardTestDispatcher()
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
+
     private val activeSessionFlow = MutableStateFlow<PumpingSession?>(null)
     private val fixedNow = Instant.ofEpochSecond(1_700_000_000L)
 
     @BeforeEach
     fun setUp() {
-        Dispatchers.setMain(testDispatcher)
 
         repository = mockk()
         startUseCase = mockk()
@@ -71,7 +73,6 @@ class PumpingViewModelTest {
 
     @AfterEach
     fun tearDown() {
-        Dispatchers.resetMain()
         unmockkAll()
     }
 

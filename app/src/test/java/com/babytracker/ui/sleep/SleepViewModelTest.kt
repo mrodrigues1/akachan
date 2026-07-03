@@ -20,6 +20,7 @@ import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.SleepNotificationScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
+import com.babytracker.testutil.MainDispatcherExtension
 import com.babytracker.util.formatTime12h
 import io.mockk.coEvery
 import io.mockk.coJustRun
@@ -28,16 +29,12 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import app.cash.turbine.test
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -49,6 +46,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.util.TimeZone
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SleepViewModelTest {
@@ -71,9 +69,12 @@ class SleepViewModelTest {
     private lateinit var viewModel: SleepViewModel
     private val testDispatcher = StandardTestDispatcher()
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
+
     @BeforeEach
     fun setUp() {
-        Dispatchers.setMain(testDispatcher)
         saveSleepEntry = mockk()
         updateSleepEntry = mockk()
         sleepRepository = mockk()
@@ -106,11 +107,6 @@ class SleepViewModelTest {
         coJustRun { syncToFirestore(any()) }
         coJustRun { sleepNotificationScheduler.show(any(), any(), any()) }
         every { sleepNotificationScheduler.cancel() } returns Unit
-    }
-
-    @AfterEach
-    fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     private fun createViewModel() = SleepViewModel(

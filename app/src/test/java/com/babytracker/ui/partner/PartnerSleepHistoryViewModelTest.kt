@@ -8,25 +8,23 @@ import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.usecase.ObservePartnerDataUseCase
 import com.babytracker.sharing.usecase.ObservePartnerSleepHistoryUseCase
+import com.babytracker.testutil.MainDispatcherExtension
 import com.babytracker.widget.WidgetUpdater
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PartnerSleepHistoryViewModelTest {
@@ -36,6 +34,10 @@ class PartnerSleepHistoryViewModelTest {
     private val appContext: Context = mockk()
     private val testDispatcher = StandardTestDispatcher()
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
+
     private fun row(clientId: String, author: SleepAuthor) = SleepSnapshot(
         id = 0, startTime = 1_000L, endTime = 2_000L, sleepType = "NAP", notes = null,
         clientId = clientId, startedBy = author.name,
@@ -43,7 +45,6 @@ class PartnerSleepHistoryViewModelTest {
 
     @BeforeEach
     fun setUp() {
-        Dispatchers.setMain(testDispatcher)
         every { appContext.getString(any()) } returns "error"
         every { observePartnerData() } returns flowOf(
             ShareSnapshot(
@@ -53,11 +54,6 @@ class PartnerSleepHistoryViewModelTest {
                 sleepRecords = emptyList(),
             ),
         )
-    }
-
-    @AfterEach
-    fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     @Test

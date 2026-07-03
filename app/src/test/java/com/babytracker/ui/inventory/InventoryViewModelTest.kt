@@ -14,6 +14,7 @@ import com.babytracker.domain.usecase.inventory.DeleteMilkBagUseCase
 import com.babytracker.domain.usecase.inventory.MarkBagUsedUseCase
 import com.babytracker.domain.usecase.inventory.ObserveInventoryWithExpirationUseCase
 import com.babytracker.domain.usecase.inventory.UpdateMilkBagUseCase
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
@@ -21,15 +22,12 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -39,6 +37,7 @@ import org.junit.jupiter.api.Test
 import java.io.IOException
 import java.time.Instant
 import java.time.LocalDate
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class InventoryViewModelTest {
@@ -54,6 +53,10 @@ class InventoryViewModelTest {
     private lateinit var viewModel: InventoryViewModel
 
     private val testDispatcher = StandardTestDispatcher()
+
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
     private val bagsFlow = MutableStateFlow<List<MilkBagWithExpiration>>(emptyList())
     private val summaryFlow = MutableStateFlow(InventorySummary.Empty)
     private val fixedNow = Instant.ofEpochSecond(1_700_000_000L)
@@ -67,7 +70,6 @@ class InventoryViewModelTest {
 
     @BeforeEach
     fun setUp() {
-        Dispatchers.setMain(testDispatcher)
         observeInventory = mockk()
         inventoryRepository = mockk()
         addBag = mockk()
@@ -101,7 +103,6 @@ class InventoryViewModelTest {
 
     @AfterEach
     fun tearDown() {
-        Dispatchers.resetMain()
         unmockkAll()
     }
 

@@ -12,23 +12,21 @@ import com.babytracker.domain.usecase.bottlefeed.DeleteBottleFeedUseCase
 import com.babytracker.domain.usecase.feeding.ObserveFeedingHistoryUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coVerify
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.time.ZoneId
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FeedingHistoryViewModelTest {
@@ -39,15 +37,13 @@ class FeedingHistoryViewModelTest {
     private val appContext = mockk<Context>()
     private val dispatcher = StandardTestDispatcher()
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(dispatcher)
+
     @BeforeEach
     fun setup() {
-        Dispatchers.setMain(dispatcher)
         every { appContext.getString(R.string.error_feed_delete) } returns "Could not delete feed"
-    }
-
-    @AfterEach
-    fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     @Test

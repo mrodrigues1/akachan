@@ -7,19 +7,16 @@ import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BabySex
 import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.usecase.baby.SaveBabyProfileUseCase
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -28,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.io.IOException
 import java.time.LocalDate
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class OnboardingViewModelTest {
@@ -38,9 +36,12 @@ class OnboardingViewModelTest {
     private lateinit var viewModel: OnboardingViewModel
     private val testDispatcher = StandardTestDispatcher()
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
+
     @BeforeEach
     fun setUp() {
-        Dispatchers.setMain(testDispatcher)
         saveBabyProfile = mockk()
         featureToggleRepository = mockk(relaxed = true)
         appContext = mockk {
@@ -49,11 +50,6 @@ class OnboardingViewModelTest {
             every { getString(R.string.error_due_date_before_birth) } returns "Due date can't be before the birth date."
         }
         viewModel = OnboardingViewModel(saveBabyProfile, featureToggleRepository, appContext)
-    }
-
-    @AfterEach
-    fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     /** WELCOME -> NAME -> (named) so the wizard can advance past the name gate. */

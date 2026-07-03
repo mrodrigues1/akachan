@@ -27,6 +27,7 @@ import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
@@ -34,20 +35,18 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTileOrderTest {
@@ -70,6 +69,10 @@ class HomeViewModelTileOrderTest {
     private lateinit var viewModel: HomeViewModel
     private val testDispatcher = StandardTestDispatcher()
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
+
     // uiState is a WhileSubscribed StateFlow; subscribe on this testDispatcher-backed scope so
     // advanceUntilIdle() populates uiState.value (previously guaranteed by SharingStarted.Eagerly).
     private lateinit var collectorScope: CoroutineScope
@@ -78,7 +81,6 @@ class HomeViewModelTileOrderTest {
 
     @BeforeEach
     fun setUp() {
-        Dispatchers.setMain(testDispatcher)
         collectorScope = CoroutineScope(testDispatcher)
         babyRepository = mockk()
         breastfeedingRepository = mockk()
@@ -118,7 +120,6 @@ class HomeViewModelTileOrderTest {
     @AfterEach
     fun tearDown() {
         collectorScope.cancel()
-        Dispatchers.resetMain()
     }
 
     private fun createViewModel(): HomeViewModel {

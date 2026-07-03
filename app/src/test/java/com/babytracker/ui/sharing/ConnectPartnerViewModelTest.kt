@@ -4,6 +4,7 @@ import android.content.Context
 import com.babytracker.R
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.usecase.ConnectAsPartnerUseCase
+import com.babytracker.testutil.MainDispatcherExtension
 import com.babytracker.widget.WidgetRefreshScheduler
 import io.mockk.coEvery
 import io.mockk.coJustRun
@@ -11,18 +12,15 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.RegisterExtension
 
 class ConnectPartnerViewModelTest {
 
@@ -31,9 +29,12 @@ class ConnectPartnerViewModelTest {
     private lateinit var appContext: Context
     private lateinit var viewModel: ConnectPartnerViewModel
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(UnconfinedTestDispatcher())
+
     @BeforeEach
     fun setup() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         connectAsPartnerUseCase = mockk()
         widgetRefreshScheduler = mockk(relaxUnitFun = true)
         appContext = mockk(relaxed = true)
@@ -42,11 +43,6 @@ class ConnectPartnerViewModelTest {
         every { appContext.getString(R.string.error_connect_failed) } returns
             "Couldn't connect. Check your connection."
         viewModel = ConnectPartnerViewModel(connectAsPartnerUseCase, widgetRefreshScheduler, appContext)
-    }
-
-    @AfterEach
-    fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     @Test

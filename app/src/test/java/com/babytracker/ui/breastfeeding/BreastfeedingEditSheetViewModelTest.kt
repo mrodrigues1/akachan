@@ -16,32 +16,34 @@ import com.babytracker.manager.BreastfeedingSessionController
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BreastfeedingEditSheetViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
 
     private lateinit var switchSide: SwitchBreastfeedingSideUseCase
     private lateinit var pauseSession: PauseBreastfeedingSessionUseCase
@@ -63,7 +65,6 @@ class BreastfeedingEditSheetViewModelTest {
 
     @BeforeEach
     fun setUp() {
-        Dispatchers.setMain(testDispatcher)
         switchSide = mockk()
         pauseSession = mockk()
         resumeSession = mockk()
@@ -83,11 +84,6 @@ class BreastfeedingEditSheetViewModelTest {
         appContext = mockk(relaxed = true)
         every { appContext.getString(R.string.error_bf_end_after_start) } returns "End time must be after start time"
         every { appContext.getString(R.string.error_bf_delete) } returns "Could not delete session. Please try again."
-    }
-
-    @AfterEach
-    fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     private fun viewModel() = BreastfeedingViewModel(

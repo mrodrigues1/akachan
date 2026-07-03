@@ -11,19 +11,16 @@ import com.babytracker.sharing.domain.model.MilkBagSnapshot
 import com.babytracker.sharing.usecase.EditPartnerFeedUseCase
 import com.babytracker.sharing.usecase.LogPartnerFeedUseCase
 import com.babytracker.sharing.usecase.PartnerAccessRevokedException
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -31,6 +28,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PartnerBottleFeedViewModelTest {
@@ -40,21 +38,19 @@ class PartnerBottleFeedViewModelTest {
     private val settingsRepository = mockk<SettingsRepository>()
     private val appContext = mockk<Context>()
     private val dispatcher = StandardTestDispatcher()
+
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(dispatcher)
     private val now = Instant.ofEpochMilli(10_000)
 
     @BeforeEach
     fun setup() {
-        Dispatchers.setMain(dispatcher)
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         coEvery { logPartnerFeed(any(), any(), any(), any(), any()) } returns "entry-1"
         coJustRun { editPartnerFeed(any(), any(), any(), any(), any()) }
         every { appContext.getString(R.string.error_volume_positive) } returns "Enter a volume greater than 0"
         every { appContext.getString(R.string.error_could_not_save) } returns "Could not save"
-    }
-
-    @AfterEach
-    fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     private fun viewModel() = PartnerBottleFeedViewModel(

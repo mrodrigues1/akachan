@@ -15,6 +15,7 @@ import com.babytracker.manager.BreastfeedingSessionController
 import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
@@ -24,14 +25,11 @@ import io.mockk.mockkStatic
 import io.mockk.slot
 import io.mockk.unmockkAll
 import io.mockk.verify
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -45,6 +43,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BreastfeedingViewModelTest {
@@ -63,13 +62,16 @@ class BreastfeedingViewModelTest {
     private lateinit var viewModel: BreastfeedingViewModel
     private val testDispatcher = StandardTestDispatcher()
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
+
     private val activeSessionFlow = MutableStateFlow<BreastfeedingSession?>(null)
     private val maxPerBreastFlow = MutableStateFlow(15)
     private val maxTotalFlow = MutableStateFlow(30)
 
     @BeforeEach
     fun setUp() {
-        Dispatchers.setMain(testDispatcher)
 
         switchSide = mockk()
         repository = mockk()
@@ -116,7 +118,6 @@ class BreastfeedingViewModelTest {
 
     @AfterEach
     fun tearDown() {
-        Dispatchers.resetMain()
         unmockkAll()
     }
 

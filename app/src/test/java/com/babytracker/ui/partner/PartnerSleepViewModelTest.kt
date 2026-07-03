@@ -13,21 +13,19 @@ import com.babytracker.sharing.usecase.PartnerAccessRevokedException
 import com.babytracker.sharing.usecase.StartPartnerSleepUseCase
 import com.babytracker.sharing.usecase.StopPartnerSleepUseCase
 import com.babytracker.sharing.usecase.UpdatePartnerSleepUseCase
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -38,6 +36,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.io.IOException
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PartnerSleepViewModelTest {
@@ -50,13 +49,16 @@ class PartnerSleepViewModelTest {
     private val now = Instant.parse("2026-06-01T12:00:00Z")
     private val testDispatcher = StandardTestDispatcher()
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
+
     private fun buildViewModel() = PartnerSleepViewModel(
         startSleep, stopSleep, updateSleep, service, settingsRepository, appContext, { now },
     )
 
     @BeforeEach
     fun setUp() {
-        Dispatchers.setMain(testDispatcher)
         // observeSleepOps is a top-level extension function on the service.
         mockkStatic("com.babytracker.sharing.data.firebase.FirestoreSharingServiceKt")
         // No share code -> the observe loop returns early; pending ops stay empty in these tests.
@@ -69,7 +71,6 @@ class PartnerSleepViewModelTest {
 
     @AfterEach
     fun tearDown() {
-        Dispatchers.resetMain()
         unmockkAll()
     }
 

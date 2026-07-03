@@ -9,22 +9,20 @@ import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.bottlefeed.EditBottleFeedUseCase
 import com.babytracker.domain.usecase.bottlefeed.LogBottleFeedUseCase
 import com.babytracker.domain.repository.InventoryRepository
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BottleFeedViewModelTest {
@@ -36,17 +34,17 @@ class BottleFeedViewModelTest {
     private val appContext = mockk<Context>()
     private val dispatcher = StandardTestDispatcher()
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(dispatcher)
+
     @BeforeEach
     fun setup() {
-        Dispatchers.setMain(dispatcher)
         every { inventoryRepository.getActiveBags() } returns flowOf(emptyList())
         every { settings.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         every { appContext.getString(R.string.error_volume_positive) } returns "Enter a volume greater than 0"
         every { appContext.getString(R.string.error_could_not_save) } returns "Could not save"
     }
-
-    @AfterEach
-    fun tearDown() = Dispatchers.resetMain()
 
     private fun vm() = BottleFeedViewModel(log, edit, inventoryRepository, settings, appContext) { Instant.ofEpochMilli(10_000) }
 

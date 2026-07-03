@@ -5,22 +5,19 @@ import com.babytracker.domain.model.DiaperChange
 import com.babytracker.domain.model.DiaperType
 import com.babytracker.domain.usecase.diaper.EditDiaperChangeUseCase
 import com.babytracker.domain.usecase.diaper.LogDiaperChangeUseCase
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 class DiaperViewModelTest {
     private val log = mockk<LogDiaperChangeUseCase>()
@@ -28,11 +25,9 @@ class DiaperViewModelTest {
     private val appContext = mockk<Context>(relaxed = true)
     private val fixedNow = Instant.ofEpochMilli(50_000)
 
-    @BeforeEach
-    fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
-
-    @AfterEach
-    fun tearDown() = Dispatchers.resetMain()
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(UnconfinedTestDispatcher())
 
     private fun viewModel() = DiaperViewModel(log, edit, appContext) { fixedNow }
 

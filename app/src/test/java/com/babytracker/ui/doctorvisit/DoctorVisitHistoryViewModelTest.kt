@@ -4,26 +4,22 @@ import com.babytracker.domain.model.DoctorVisit
 import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.domain.usecase.doctorvisit.DeleteDoctorVisitUseCase
 import com.babytracker.manager.DoctorVisitReminderScheduler
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DoctorVisitHistoryViewModelTest {
@@ -32,11 +28,9 @@ class DoctorVisitHistoryViewModelTest {
     private val scheduler = mockk<DoctorVisitReminderScheduler>(relaxed = true)
     private val now = Instant.ofEpochMilli(1_000)
 
-    @BeforeEach
-    fun setup() = Dispatchers.setMain(StandardTestDispatcher())
-
-    @AfterEach
-    fun tearDown() = Dispatchers.resetMain()
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension()
 
     private fun vm() = DoctorVisitHistoryViewModel(
         repository, deleteVisit, scheduler,

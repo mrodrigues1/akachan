@@ -11,21 +11,18 @@ import com.babytracker.sharing.usecase.ObservePartnerDataUseCase
 import com.babytracker.sharing.usecase.ObservePartnerFeedHistoryUseCase
 import com.babytracker.sharing.usecase.PartnerAccessRevokedException
 import com.babytracker.sharing.usecase.PartnerDataFetchException
+import com.babytracker.testutil.MainDispatcherExtension
 import com.babytracker.widget.WidgetUpdater
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -33,6 +30,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PartnerDashboardViewModelTest {
@@ -43,9 +41,12 @@ class PartnerDashboardViewModelTest {
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var appContext: Context
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(UnconfinedTestDispatcher())
+
     @BeforeEach
     fun setup() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
         observePartnerData = mockk()
         observePartnerFeedHistory = mockk()
         widgetUpdater = mockk { coJustRun { updateAll() } }
@@ -57,11 +58,6 @@ class PartnerDashboardViewModelTest {
                 "We couldn't check just now. Showing the last shared update."
         }
         coEvery { observePartnerFeedHistory(any()) } returns flowOf(MergedFeedHistory(emptyList()))
-    }
-
-    @AfterEach
-    fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     private fun makeSnapshot() = ShareSnapshot(

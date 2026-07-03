@@ -12,26 +12,28 @@ import com.babytracker.domain.usecase.growth.UpdateGrowthMeasurementUseCase
 import com.babytracker.domain.usecase.growth.GetGrowthChartDataUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 class GrowthViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
     private lateinit var getGrowthChartData: GetGrowthChartDataUseCase
     private lateinit var addGrowthMeasurement: AddGrowthMeasurementUseCase
     private lateinit var updateGrowthMeasurement: UpdateGrowthMeasurementUseCase
@@ -52,7 +54,6 @@ class GrowthViewModelTest {
 
     @BeforeEach
     fun setup() {
-        Dispatchers.setMain(testDispatcher)
         getGrowthChartData = mockk()
         addGrowthMeasurement = mockk(relaxed = true)
         updateGrowthMeasurement = mockk(relaxed = true)
@@ -64,9 +65,6 @@ class GrowthViewModelTest {
         every { getGrowthChartData(GrowthType.LENGTH) } returns flowOf(chart(GrowthType.LENGTH))
         every { getGrowthChartData(GrowthType.HEAD_CIRC) } returns flowOf(chart(GrowthType.HEAD_CIRC, isSexSpecified = false))
     }
-
-    @AfterEach
-    fun tearDown() = Dispatchers.resetMain()
 
     private fun viewModel() = GrowthViewModel(
         getGrowthChartData,

@@ -4,23 +4,22 @@ import android.content.Context
 import com.babytracker.R
 import com.babytracker.domain.repository.InventorySettingsRepository
 import com.babytracker.manager.StashExpirationScheduler
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
 import io.mockk.verify
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class InventorySettingsViewModelTest {
@@ -30,6 +29,10 @@ class InventorySettingsViewModelTest {
     private lateinit var appContext: Context
 
     private val testDispatcher = StandardTestDispatcher()
+
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
     private val enabled = MutableStateFlow(false)
     private val days = MutableStateFlow(4)
     private val notifEnabled = MutableStateFlow(false)
@@ -37,7 +40,6 @@ class InventorySettingsViewModelTest {
 
     @BeforeEach
     fun setUp() {
-        Dispatchers.setMain(testDispatcher)
         settings = mockk(relaxed = true)
         scheduler = mockk(relaxed = true)
         every { settings.getExpirationEnabled() } returns enabled
@@ -51,7 +53,6 @@ class InventorySettingsViewModelTest {
 
     @AfterEach
     fun tearDown() {
-        Dispatchers.resetMain()
         unmockkAll()
     }
 

@@ -22,21 +22,17 @@ import com.babytracker.export.domain.usecase.ImportBackupUseCase
 import com.babytracker.export.domain.usecase.ValidateBackupUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
+import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
@@ -45,6 +41,7 @@ import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.time.Instant
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DataExportViewModelTest {
@@ -87,9 +84,12 @@ class DataExportViewModelTest {
         }
     }
 
+    @JvmField
+    @RegisterExtension
+    val mainDispatcherExtension = MainDispatcherExtension()
+
     @BeforeEach
     fun setup() {
-        Dispatchers.setMain(StandardTestDispatcher())
         every { settingsRepository.isImportInProgress() } returns flowOf(false)
         every { breastfeedingRepository.getActiveSession() } returns flowOf(null)
         every { pumpingRepository.getActiveSession() } returns flowOf(null)
@@ -101,9 +101,6 @@ class DataExportViewModelTest {
             sleepRepository, SyncedWrite(syncToFirestore), appContext,
         )
     }
-
-    @AfterEach
-    fun tearDown() = Dispatchers.resetMain()
 
     @Test
     fun `exportJsonTo writes durable backup and reports success`() = runTest {
