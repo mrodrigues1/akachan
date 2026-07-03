@@ -67,6 +67,23 @@ class EditPartnerFeedUseCaseTest {
     }
 
     @Test
+    fun `edit rejects notes longer than the rules bound`() = runTest {
+        assertThrows<IllegalArgumentException> {
+            runBlocking {
+                useCase(
+                    partnerEntry(clientId = "entry-1"),
+                    Instant.parse("2026-06-01T09:00:00Z"),
+                    125,
+                    FeedType.FORMULA,
+                    "x".repeat(PARTNER_NOTES_MAX_LENGTH + 1),
+                )
+            }
+        }
+
+        coVerify(exactly = 0) { service.signInAnonymously() }
+    }
+
+    @Test
     fun `edit refuses owner entry`() = runTest {
         assertThrows<IllegalArgumentException> {
             runBlocking {

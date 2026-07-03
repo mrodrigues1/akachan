@@ -77,6 +77,13 @@ class UpdatePartnerSleepUseCaseTest {
     }
 
     @Test
+    fun `notes longer than the rules bound are rejected`() {
+        assertThrows<IllegalArgumentException> {
+            runBlocking { useCase("cid", start, end, SleepType.NAP, "x".repeat(PARTNER_NOTES_MAX_LENGTH + 1)) }
+        }
+    }
+
+    @Test
     fun `blank clientId is rejected`() {
         assertThrows<IllegalArgumentException> {
             runBlocking { useCase("", start, end, SleepType.NAP, null) }

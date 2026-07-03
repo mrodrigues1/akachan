@@ -23,6 +23,7 @@ class EditPartnerFeedUseCase @Inject constructor(
         require(entry.author == FeedAuthor.PARTNER.name) { "Only partner-authored entries can be edited" }
         require(entry.clientId.isNotEmpty()) { "Entry has no clientId" }
         requireValidFeedInput(volumeMl, timestamp, now())
+        requireValidNotes(notes)
 
         submitFeedOp { authorUid ->
             FeedOp(

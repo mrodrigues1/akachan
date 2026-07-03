@@ -20,6 +20,7 @@ class LogPartnerFeedUseCase @Inject constructor(
         notes: String?,
     ): String {
         requireValidFeedInput(volumeMl, timestamp, now())
+        requireValidNotes(notes)
 
         val entryClientId = UUID.randomUUID().toString()
         submitFeedOp { authorUid ->

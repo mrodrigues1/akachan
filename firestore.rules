@@ -26,7 +26,7 @@ service cloud.firestore {
                 && op.timestampMs is int
                 && op.volumeMl is int && op.volumeMl > 0 && op.volumeMl <= 5000
                 && op.type is string
-                && (!('notes' in op) || op.notes is string)))
+                && (!('notes' in op) || (op.notes is string && op.notes.size() <= 2000))))
         && (op.action == 'create' || !('consumedBagId' in op))
         && (!('consumedBagId' in op) || op.consumedBagId is int);
     }
@@ -47,7 +47,7 @@ service cloud.firestore {
         && (!('startTimeMs' in op) || op.startTimeMs is int)
         && (!('endTimeMs' in op) || op.endTimeMs is int)
         && (!('sleepType' in op) || op.sleepType in ['nap', 'night_sleep'])
-        && (!('notes' in op) || op.notes is string)
+        && (!('notes' in op) || (op.notes is string && op.notes.size() <= 2000))
         // per-action required fields
         && (op.action != 'start' || (('startTimeMs' in op) && ('sleepType' in op)))
         && (op.action != 'stop' || ('endTimeMs' in op))

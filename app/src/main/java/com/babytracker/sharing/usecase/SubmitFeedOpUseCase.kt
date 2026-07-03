@@ -51,3 +51,12 @@ internal fun requireValidFeedInput(
     require(volumeMl > 0) { "Volume must be greater than 0" }
     require(!timestamp.isAfter(now)) { "Feed time cannot be in the future" }
 }
+
+/** Mirrors the `op.notes.size() <= 2000` bound in firestore.rules (feed and sleep ops). */
+internal const val PARTNER_NOTES_MAX_LENGTH = 2000
+
+internal fun requireValidNotes(notes: String?) {
+    require((notes?.length ?: 0) <= PARTNER_NOTES_MAX_LENGTH) {
+        "Notes cannot exceed $PARTNER_NOTES_MAX_LENGTH characters"
+    }
+}

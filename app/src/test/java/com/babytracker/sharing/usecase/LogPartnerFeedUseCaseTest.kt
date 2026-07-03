@@ -109,6 +109,23 @@ class LogPartnerFeedUseCaseTest {
     }
 
     @Test
+    fun `log rejects notes longer than the rules bound`() = runTest {
+        assertThrows<IllegalArgumentException> {
+            runBlocking {
+                useCase(
+                    Instant.parse("2026-06-01T09:00:00Z"),
+                    110,
+                    FeedType.FORMULA,
+                    null,
+                    "x".repeat(PARTNER_NOTES_MAX_LENGTH + 1),
+                )
+            }
+        }
+
+        coVerify(exactly = 0) { service.signInAnonymously() }
+    }
+
+    @Test
     fun `permission denied write clears partner state and throws revoked`() = runTest {
         val denied = FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
         coEvery { service.writeFeedOp(any(), any(), any()) } throws denied
