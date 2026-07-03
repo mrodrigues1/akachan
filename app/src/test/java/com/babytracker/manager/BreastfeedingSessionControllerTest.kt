@@ -9,6 +9,7 @@ import com.babytracker.domain.usecase.breastfeeding.SwitchBreastfeedingSideUseCa
 import com.babytracker.sharing.usecase.SyncedWrite
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
@@ -29,6 +30,9 @@ class BreastfeedingSessionControllerTest {
     private val clock = Clock.fixed(now, ZoneOffset.UTC)
 
     private lateinit var repository: BreastfeedingRepository
+    private lateinit var switchSideUseCase: SwitchBreastfeedingSideUseCase
+    private lateinit var pauseSessionUseCase: PauseBreastfeedingSessionUseCase
+    private lateinit var resumeSessionUseCase: ResumeBreastfeedingSessionUseCase
     private lateinit var notificationCoordinator: BreastfeedingSessionNotificationCoordinator
     private lateinit var syncedWrite: SyncedWrite
     private lateinit var controller: BreastfeedingSessionController
@@ -36,18 +40,34 @@ class BreastfeedingSessionControllerTest {
     @BeforeEach
     fun setup() {
         repository = mockk(relaxed = true)
+        switchSideUseCase = mockk(relaxed = true)
+        pauseSessionUseCase = mockk(relaxed = true)
+        resumeSessionUseCase = mockk(relaxed = true)
         notificationCoordinator = mockk(relaxed = true)
         syncedWrite = mockk(relaxed = true)
         controller = BreastfeedingSessionController(
             repository = repository,
-            switchSideUseCase = mockk<SwitchBreastfeedingSideUseCase>(relaxed = true),
-            pauseSessionUseCase = mockk<PauseBreastfeedingSessionUseCase>(relaxed = true),
-            resumeSessionUseCase = mockk<ResumeBreastfeedingSessionUseCase>(relaxed = true),
+            switchSideUseCase = switchSideUseCase,
+            pauseSessionUseCase = pauseSessionUseCase,
+            resumeSessionUseCase = resumeSessionUseCase,
             notificationCoordinator = notificationCoordinator,
             syncedWrite = syncedWrite,
             clock = clock,
         )
     }
+
+    private fun session(
+        switchTime: Instant? = null,
+        pausedAt: Instant? = null,
+        pausedDurationMs: Long = 0L,
+    ) = BreastfeedingSession(
+        id = 5L,
+        startTime = now.minusSeconds(600),
+        startingSide = BreastSide.LEFT,
+        switchTime = switchTime,
+        pausedAt = pausedAt,
+        pausedDurationMs = pausedDurationMs,
+    )
 
     @Test
     fun `start persists via startSessionIfNone, schedules, shows, and syncs`() = runTest {
@@ -123,6 +143,105 @@ class BreastfeedingSessionControllerTest {
 
         assertFalse(stopped)
         coVerify(exactly = 0) { notificationCoordinator.cancelAllSessionNotifications() }
+        coVerify(exactly = 0) { syncedWrite.sync(any()) }
+    }
+
+    @Test
+    fun `switchSide on a fresh switch re-arms the per-breast alarm, shows running, and syncs`() = runTest {
+        val input = session()
+        val switched = input.copy(switchTime = now)
+        coEvery { switchSideUseCase(input) } returns switched
+
+        controller.switchSide(input)
+
+        coVerify(exactly = 1) { notificationCoordinator.rearmPerBreastAfterSwitch(switched) }
+        coVerify(exactly = 1) { notificationCoordinator.showRunning(switched, any()) }
+        coVerify(exactly = 0) { notificationCoordinator.showPaused(any(), any()) }
+        coVerify(exactly = 1) { syncedWrite.sync(any()) }
+    }
+
+    @Test
+    fun `switchSide on an already-switched session skips notifications but still syncs`() = runTest {
+        val input = session(switchTime = now.minusSeconds(300))
+        coEvery { switchSideUseCase(input) } returns input
+
+        controller.switchSide(input)
+
+        coVerify(exactly = 0) { notificationCoordinator.rearmPerBreastAfterSwitch(any()) }
+        coVerify(exactly = 0) { notificationCoordinator.showRunning(any(), any()) }
+        coVerify(exactly = 0) { notificationCoordinator.showPaused(any(), any()) }
+        coVerify(exactly = 1) { syncedWrite.sync(any()) }
+    }
+
+    @Test
+    fun `switchSide while paused re-posts the paused notification, never a running one`() = runTest {
+        val pausedAt = now.minusSeconds(60)
+        val input = session(pausedAt = pausedAt)
+        val switched = input.copy(switchTime = now)
+        coEvery { switchSideUseCase(input) } returns switched
+
+        controller.switchSide(input)
+
+        coVerify(exactly = 1) { notificationCoordinator.rearmPerBreastAfterSwitch(switched) }
+        coVerify(exactly = 1) { notificationCoordinator.showPaused(switched, pausedAt) }
+        coVerify(exactly = 0) { notificationCoordinator.showRunning(any(), any()) }
+        coVerify(exactly = 1) { syncedWrite.sync(any()) }
+    }
+
+    @Test
+    fun `pause cancels scheduled alarms before showing the paused notification, then syncs`() = runTest {
+        val input = session()
+        val paused = input.copy(pausedAt = now)
+        coEvery { pauseSessionUseCase(input) } returns paused
+
+        controller.pause(input)
+
+        coVerifyOrder {
+            notificationCoordinator.cancelScheduled()
+            notificationCoordinator.showPaused(paused, now)
+        }
+        coVerify(exactly = 1) { syncedWrite.sync(any()) }
+    }
+
+    @Test
+    fun `pause on an already-paused session is a no-op`() = runTest {
+        val input = session(pausedAt = now.minusSeconds(60))
+
+        controller.pause(input)
+
+        coVerify(exactly = 0) { pauseSessionUseCase(any()) }
+        coVerify(exactly = 0) { notificationCoordinator.cancelScheduled() }
+        coVerify(exactly = 0) { notificationCoordinator.showPaused(any(), any()) }
+        coVerify(exactly = 0) { syncedWrite.sync(any()) }
+    }
+
+    @Test
+    fun `resume reschedules alarms before showing running with the coordinator-returned paused total`() = runTest {
+        val input = session(pausedAt = now.minusSeconds(120))
+        val resumed = input.copy(pausedAt = null, pausedDurationMs = 120_000L)
+        coEvery { resumeSessionUseCase(input) } returns resumed
+        // Distinct from resumed.pausedDurationMs to prove the controller forwards the coordinator's
+        // return value instead of recomputing it.
+        coEvery { notificationCoordinator.rescheduleAfterResume(input, resumed, now) } returns 300_000L
+
+        controller.resume(input)
+
+        coVerifyOrder {
+            notificationCoordinator.rescheduleAfterResume(input, resumed, now)
+            notificationCoordinator.showRunning(resumed, pausedDurationMs = 300_000L)
+        }
+        coVerify(exactly = 1) { syncedWrite.sync(any()) }
+    }
+
+    @Test
+    fun `resume on a session that is not paused is a no-op`() = runTest {
+        val input = session()
+
+        controller.resume(input)
+
+        coVerify(exactly = 0) { resumeSessionUseCase(any()) }
+        coVerify(exactly = 0) { notificationCoordinator.rescheduleAfterResume(any(), any(), any()) }
+        coVerify(exactly = 0) { notificationCoordinator.showRunning(any(), any()) }
         coVerify(exactly = 0) { syncedWrite.sync(any()) }
     }
 }
