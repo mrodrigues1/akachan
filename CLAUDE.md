@@ -99,28 +99,29 @@ Run commands from the repo root. On Windows PowerShell, use `.\gradlew.bat` if `
 
 ### Gradle rules — read before running any build
 
-1. **Always pass `--no-daemon`, and run Gradle with the Bash sandbox disabled.** The sandboxed Bash tool kills the persistent daemon the moment the test JVM forks — the build dies with `Gradle build daemon has been stopped: stop command received`. That is a harness kill, **not** a test failure. `--no-daemon` also guarantees no daemon is left behind for the next session.
+1. **Run Gradle with the Bash sandbox disabled — the daemon is then safe and fast.** The sandboxed Bash tool kills the daemon the moment the test JVM forks — the build dies with `Gradle build daemon has been stopped: stop command received`. That is a harness kill, **not** a test failure. Unsandboxed, the daemon survives and reuse roughly halves iteration time (measured: single-class test 5 s warm daemon vs 11 s `--no-daemon`). Use `--no-daemon` only if forced to run sandboxed, or for a one-off build that must leave nothing running. One idle daemon left behind is normal — Gradle reuses it and it expires after 3 h idle.
 2. **Never run two Gradle builds concurrently.** A second invocation stops the first one's daemon (same "stop command received" error). Before starting a build, be sure no earlier one is still running. `./gradlew --status` lists daemons; `./gradlew --stop` cleans up stale ones.
 3. **Set the tool timeout to 10 minutes (600000 ms) up front and wait for the result.** Never kill a running build to retry it with a bigger timeout — the first run was likely fine, and the retry collides with it (rule 2). If a run can exceed 10 min (full connected suite, `build`), run it in the background and wait for the completion notification.
 4. **Don't trust exit codes through pipes.** `./gradlew ... | tail` reports tail's exit code (always 0) even when the build failed. Append `; echo "EXIT:${PIPESTATUS[0]}"` in bash, or read the `BUILD SUCCESSFUL` / `BUILD FAILED` line.
 
 ### Running tests — one command per test type
 
-| Test type | Source | Command (all get `--no-daemon`) |
-|-----------|--------|---------------------------------|
-| Unit — full suite, dev loop | `app/src/test/` | `./gradlew :app:testDebugUnitTest -PfastTests --no-daemon` |
-| Unit — full suite, pre-commit | `app/src/test/` | `./gradlew :app:testDebugUnitTest --no-daemon` |
-| Unit — single class | | `./gradlew :app:testDebugUnitTest --tests "com.babytracker.util.VolumeExtTest" --no-daemon` |
-| Instrumented — full suite | `app/src/androidTest/` | `./gradlew :app:connectedDebugAndroidTest --no-daemon` (emulator required — see below) |
+| Test type | Source | Command |
+|-----------|--------|---------|
+| Unit — full suite, dev loop | `app/src/test/` | `./gradlew :app:testDebugUnitTest -PfastTests` |
+| Unit — full suite, pre-commit | `app/src/test/` | `./gradlew :app:testDebugUnitTest` |
+| Unit — single class | | `./gradlew :app:testDebugUnitTest --tests "com.babytracker.util.VolumeExtTest"` |
+| Instrumented — full suite | `app/src/androidTest/` | `./gradlew :app:connectedDebugAndroidTest` (emulator required — see below) |
 | Instrumented — single class | | add `-Pandroid.testInstrumentationRunnerArguments.class=com.babytracker.ui.vaccine.VaccineSheetTest` |
 | Instrumented — single method | | same property with `#methodName` appended to the class FQN |
-| Screenshot — validate | `app/src/screenshotTest/` | `./gradlew :app:validateDebugScreenshotTest --no-daemon` |
-| Screenshot — record new goldens | | `./gradlew :app:updateDebugScreenshotTest --no-daemon` |
+| Screenshot — validate | `app/src/screenshotTest/` | `./gradlew :app:validateDebugScreenshotTest` |
+| Screenshot — record new goldens | | `./gradlew :app:updateDebugScreenshotTest` |
 | Firestore rules | `firebase/` | `cd firebase && npm test` — see `firebase/README.md` (incl. the leaked-JVM-on-port-8080 fix) |
-| Coverage gate | | `./gradlew :app:koverVerify --no-daemon` (CI enforces ≥60% line coverage) |
+| Coverage gate | | `./gradlew :app:koverVerify` (CI enforces ≥60% line coverage) |
 
 - `-PfastTests` skips the Konsist architecture tests (tagged `architecture`) — the slowest part of the unit suite. Use it in dev loops; drop it for the pre-commit run. CI runs the full suite (`./gradlew test :app:koverVerify`).
-- Durations with a warm cache: single unit class ~20 s; screenshot suite ~35 s; single instrumented class ~1–3 min (includes install); full unit suite several minutes. The full connected suite is long — CI shards it in two; locally run only the classes you touched.
+- Measured durations (warm daemon + cache): single unit class ~5 s; full unit suite with `-PfastTests` ~1 m 20 s; screenshot suite ~35 s; single instrumented class ~1–3 min (includes install). The full connected suite is long — CI shards it in two; locally run only the classes you touched.
+- Do not add `maxParallelForks` to the unit test task — measured slower (1 m 47 s with 4 forks vs 1 m 17 s single fork; per-fork Robolectric/MockK-agent init outweighs the parallelism at this suite size).
 
 ### Emulator (instrumented tests)
 
@@ -141,30 +142,30 @@ adb devices
 
 ```bash
 # Build validation when production code, resources, manifests, DI, Room, or Gradle files changed
-./gradlew build --no-daemon
+./gradlew build
 ```
 
 ### Before commit or PR
 
 ```bash
 # Auto-fix Kotlin formatting
-./gradlew ktlintFormat --no-daemon
+./gradlew ktlintFormat
 
 # Static analysis
-./gradlew detekt --no-daemon
+./gradlew detekt
 
 # Full local validation
-./gradlew build --no-daemon
+./gradlew build
 ```
 
 ### Targeted checks
 
 ```bash
 # Formatting check only (only lints .kts — use ktlintFormat to validate .kt files)
-./gradlew ktlintCheck --no-daemon
+./gradlew ktlintCheck
 
 # Release bundle validation
-./gradlew bundleRelease --no-daemon
+./gradlew bundleRelease
 ```
 
 If a validation command fails, read the failing output and fix the cause before rerunning the same command — rerunning without a fix wastes a full build. Do not guess validation commands; every test command needed is listed above.
@@ -315,7 +316,7 @@ Use `Validation Commands` for all test, build, formatting, and static-analysis c
 
 Create tests for new features, bug fixes, and edge cases. You do not need to follow strict TDD (test-first); writing tests after the implementation is acceptable. All tests must pass before creating a PR.
 
-**Do not run the full test suite after every task.** After each task, run only the tests related to changed code (e.g., `./gradlew :app:testDebugUnitTest --tests "com.babytracker.foo.BarTest" --no-daemon`). Run the full suite (`./gradlew :app:testDebugUnitTest --no-daemon`) only before committing.
+**Do not run the full test suite after every task.** After each task, run only the tests related to changed code (e.g., `./gradlew :app:testDebugUnitTest --tests "com.babytracker.foo.BarTest"`). Run the full suite (`./gradlew :app:testDebugUnitTest`) only before committing.
 
 After the feature is complete, run all tests. If there are any broken tests, fix them and re-run until all pass.
 
