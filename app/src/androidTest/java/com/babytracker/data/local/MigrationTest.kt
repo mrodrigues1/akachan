@@ -438,6 +438,18 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate18To19_roomSchemaValidationPasses() {
+        helper.createDatabase(TEST_DB, 18).use { db ->
+            db.execSQL(
+                "INSERT INTO breastfeeding_sessions (start_time, end_time, starting_side, paused_duration_ms)" +
+                    " VALUES (1000, 2000, 'LEFT', 0)",
+            )
+        }
+        // Throws if the migrated schema (incl. the new end_time index) differs from entity schema 19.
+        helper.runMigrationsAndValidate(TEST_DB, 19, true, MIGRATION_18_19).close()
+    }
+
+    @Test
     fun migrate15To16_roomSchemaValidationPasses() {
         helper.createDatabase(TEST_DB, 15).use { db ->
             db.execSQL(

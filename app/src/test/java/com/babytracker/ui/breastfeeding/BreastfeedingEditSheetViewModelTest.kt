@@ -75,7 +75,8 @@ class BreastfeedingEditSheetViewModelTest {
         syncToFirestore = mockk()
 
         predictNextFeed = mockk()
-        every { repository.getAllSessions() } returns flowOf(emptyList())
+        every { repository.getRecentSessionsFlow(any()) } returns flowOf(emptyList())
+        every { repository.observeLatestCompletedSession() } returns flowOf(null)
         every { repository.getActiveSession() } returns MutableStateFlow(null)
         every { feedSettingsRepository.getMaxPerBreastMinutes() } returns flowOf(0)
         every { feedSettingsRepository.getMaxTotalFeedMinutes() } returns flowOf(0)

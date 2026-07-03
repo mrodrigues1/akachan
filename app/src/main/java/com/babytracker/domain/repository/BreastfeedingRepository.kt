@@ -10,6 +10,9 @@ interface BreastfeedingRepository {
     /** Observes the [limit] most recent sessions, newest first. Bounded alternative to [getAllSessions]. */
     fun getRecentSessionsFlow(limit: Int): Flow<List<BreastfeedingSession>>
     fun observeLatestSession(): Flow<BreastfeedingSession?>
+
+    /** Observes the most recently ended completed session, or null if none exist. */
+    fun observeLatestCompletedSession(): Flow<BreastfeedingSession?>
     fun getActiveSession(): Flow<BreastfeedingSession?>
     suspend fun getLastSession(): BreastfeedingSession?
     suspend fun getRecentSessions(limit: Int): List<BreastfeedingSession>

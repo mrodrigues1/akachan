@@ -21,6 +21,7 @@ import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
 import com.babytracker.sharing.usecase.SyncedWrite
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -92,9 +94,17 @@ data class BreastfeedingUiState(
     val manualEntryDurationPreview: Duration? = null,
 )
 
+/** Windowed slice of the session history, newest first. */
+data class HistoryWindow(
+    val sessions: List<BreastfeedingSession> = emptyList(),
+    val hasMore: Boolean = false,
+)
+
 private const val MANUAL_ENTRY_DEFAULT_MINUTES = 15L
 private const val SUMMARY_TICK_MS = 60_000L
+private const val HISTORY_PAGE_SIZE = 50
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class BreastfeedingViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
@@ -110,8 +120,25 @@ class BreastfeedingViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(BreastfeedingUiState())
     val uiState: StateFlow<BreastfeedingUiState> = _uiState.asStateFlow()
 
-    val history: StateFlow<List<BreastfeedingSession>> = repository.getAllSessions()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val historyLimit = MutableStateFlow(HISTORY_PAGE_SIZE)
+
+    // Bounded window instead of getAllSessions(): queries one row past the limit so hasMore
+    // never needs a separate count query.
+    val history: StateFlow<HistoryWindow> = historyLimit
+        .flatMapLatest { limit ->
+            repository.getRecentSessionsFlow(limit + 1).map { sessions ->
+                HistoryWindow(sessions = sessions.take(limit), hasMore = sessions.size > limit)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HistoryWindow())
+
+    fun onLoadMoreHistory() {
+        val window = history.value
+        // Ignore repeats until the previously requested window has emitted: the load-more
+        // sentinel can leave and re-enter composition before Room delivers the bigger page.
+        if (!window.hasMore || window.sessions.size < historyLimit.value) return
+        historyLimit.value += HISTORY_PAGE_SIZE
+    }
 
     init {
         viewModelScope.launch {
@@ -133,11 +160,7 @@ class BreastfeedingViewModel @Inject constructor(
 
         viewModelScope.launch {
             combine(
-                history.map { sessions ->
-                    // Single pass, no intermediate filtered list: pick the latest non-null endTime
-                    // (sessions with a null endTime sort to Instant.MIN and are dropped by takeIf).
-                    sessions.maxByOrNull { it.endTime ?: Instant.MIN }?.takeIf { it.endTime != null }
-                }.distinctUntilChanged(),
+                repository.observeLatestCompletedSession().distinctUntilChanged(),
                 tickerFlow(SUMMARY_TICK_MS)
             ) { lastSession, _ ->
                 buildLastFeedingSummary(lastSession)
