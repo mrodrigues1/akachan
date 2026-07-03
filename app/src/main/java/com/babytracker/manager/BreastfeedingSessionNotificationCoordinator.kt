@@ -81,8 +81,24 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
         )
     }
 
-    fun cancelPerBreastScheduled() {
+    /**
+     * Cancels the first breast's limit alarm and arms one for the breast just switched to,
+     * anchored at [switchedSession]'s switchTime. Skipped while paused — [rescheduleAfterResume]
+     * arms it on resume instead.
+     */
+    suspend fun rearmPerBreastAfterSwitch(switchedSession: BreastfeedingSession) {
         notificationScheduler.cancelPerBreastNotification()
+        val switchTime = switchedSession.switchTime ?: return
+        if (switchedSession.pausedAt != null) return
+        val (maxPerBreastMinutes, maxTotalFeedMinutes) = scheduleMinutes()
+        if (maxPerBreastMinutes <= 0) return
+        notificationScheduler.scheduleMaxPerBreastNotificationAt(
+            triggerTime = switchTime.plusSeconds(maxPerBreastMinutes * 60L),
+            sessionId = switchedSession.id,
+            maxPerBreastMinutes = maxPerBreastMinutes,
+            currentSide = currentSideName(switchedSession),
+            maxTotalMinutes = maxTotalFeedMinutes
+        )
     }
 
     fun cancelScheduled() {
@@ -109,16 +125,29 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
         val (maxPerBreastMinutes, maxTotalFeedMinutes) = scheduleMinutes()
 
         if (maxPerBreastMinutes > 0) {
-            val adjustedTrigger = pausedSession.startTime
-                .plusSeconds(maxPerBreastMinutes * 60L)
-                .plusMillis(pausedSession.pausedDurationMs)
-            val remaining = Duration.between(pausedAt, adjustedTrigger)
+            // After a switch the alarm is anchored on switchTime, so pre-switch pauses are
+            // excluded by dropping pausedDurationMs (it is session-wide, not per side).
+            // ponytail: closed pauses after the switch aren't tracked per side, so the alarm can
+            // fire early on the second breast after repeated pause/resume; add a per-side pause
+            // ledger if that ever matters.
+            val switchTime = pausedSession.switchTime
+            val adjustedTrigger = if (switchTime != null) {
+                switchTime.plusSeconds(maxPerBreastMinutes * 60L)
+            } else {
+                pausedSession.startTime
+                    .plusSeconds(maxPerBreastMinutes * 60L)
+                    .plusMillis(pausedSession.pausedDurationMs)
+            }
+            // A switch while paused means the new breast hasn't been fed yet — count from the
+            // switch, not from the pause start.
+            val effectivePausedAt = switchTime?.let { maxOf(pausedAt, it) } ?: pausedAt
+            val remaining = Duration.between(effectivePausedAt, adjustedTrigger)
             if (!remaining.isNegative && !remaining.isZero) {
                 notificationScheduler.scheduleMaxPerBreastNotificationAt(
                     triggerTime = resumeInstant.plus(remaining),
                     sessionId = pausedSession.id,
                     maxPerBreastMinutes = maxPerBreastMinutes,
-                    currentSide = pausedSession.startingSide.name,
+                    currentSide = currentSideName(pausedSession),
                     maxTotalMinutes = maxTotalFeedMinutes
                 )
             }
@@ -134,7 +163,7 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
                     triggerTime = resumeInstant.plus(remaining),
                     sessionId = pausedSession.id,
                     maxTotalMinutes = maxTotalFeedMinutes,
-                    currentSide = pausedSession.startingSide.name,
+                    currentSide = currentSideName(pausedSession),
                     maxPerBreastMinutes = maxPerBreastMinutes
                 )
             }

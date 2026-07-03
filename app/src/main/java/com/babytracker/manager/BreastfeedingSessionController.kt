@@ -31,8 +31,9 @@ class BreastfeedingSessionController @Inject constructor(
     suspend fun switchSide(session: BreastfeedingSession) {
         switchSideUseCase(session)
         if (session.switchTime == null) {
-            notificationCoordinator.cancelPerBreastScheduled()
-            notificationCoordinator.showRunning(session.copy(switchTime = Instant.now()))
+            val switched = session.copy(switchTime = Instant.now())
+            notificationCoordinator.rearmPerBreastAfterSwitch(switched)
+            notificationCoordinator.showRunning(switched)
         }
         syncedWrite.sync(SyncType.SESSIONS)
     }

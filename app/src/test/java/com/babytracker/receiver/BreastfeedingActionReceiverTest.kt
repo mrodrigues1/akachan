@@ -70,7 +70,7 @@ class BreastfeedingActionReceiverTest {
         coEvery { syncToFirestore(any()) } returns Unit
         coEvery { pauseSession(any()) } returns Unit
         coEvery { resumeSession(any()) } returns Unit
-        every { notificationCoordinator.cancelPerBreastScheduled() } returns Unit
+        coEvery { notificationCoordinator.rearmPerBreastAfterSwitch(any()) } returns Unit
         every { notificationCoordinator.cancelScheduled() } returns Unit
         every { notificationCoordinator.cancelPostedSessionNotifications() } returns Unit
         every { notificationCoordinator.cancelAllSessionNotifications() } returns Unit
@@ -92,7 +92,7 @@ class BreastfeedingActionReceiverTest {
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_SWITCH, 42L))
 
         coVerify { switchSide(activeSession) }
-        verify { notificationCoordinator.cancelPerBreastScheduled() }
+        coVerify { notificationCoordinator.rearmPerBreastAfterSwitch(match { it.switchTime != null }) }
         coVerify {
             notificationCoordinator.showRunning(
                 match { it.id == 42L && it.switchTime != null },
