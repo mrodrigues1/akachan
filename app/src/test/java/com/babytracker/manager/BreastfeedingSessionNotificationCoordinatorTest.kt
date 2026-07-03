@@ -52,6 +52,7 @@ class BreastfeedingSessionNotificationCoordinatorTest {
         every { notificationScheduler.scheduleMaxPerBreastNotificationAt(any(), any(), any(), any(), any()) } returns Unit
         every { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any(), any(), any(), any(), any()) } returns Unit
         every { notificationScheduler.cancelAllScheduledNotifications() } returns Unit
+        every { notificationScheduler.cancelPerBreastNotification() } returns Unit
 
         mockkObject(NotificationHelper)
         every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any(), any()) } returns Unit
@@ -158,6 +159,105 @@ class BreastfeedingSessionNotificationCoordinatorTest {
         assertEquals(60_000L, totalPausedMs)
         verify { notificationScheduler.scheduleMaxPerBreastNotificationAt(any(), 42L, 15, "LEFT", 30) }
         verify { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any(), 42L, 30, "LEFT", 15) }
+    }
+
+    @Test
+    fun `rearmPerBreastAfterSwitch cancels first-breast alarm and arms new side from switch time`() = runTest {
+        val switched = session.copy(switchTime = Instant.parse("2026-04-24T10:10:00Z"))
+
+        coordinator.rearmPerBreastAfterSwitch(switched)
+
+        verify { notificationScheduler.cancelPerBreastNotification() }
+        verify {
+            notificationScheduler.scheduleMaxPerBreastNotificationAt(
+                triggerTime = Instant.parse("2026-04-24T10:25:00Z"),
+                sessionId = 42L,
+                maxPerBreastMinutes = 15,
+                currentSide = "RIGHT",
+                maxTotalMinutes = 30
+            )
+        }
+    }
+
+    @Test
+    fun `rearmPerBreastAfterSwitch only cancels while paused`() = runTest {
+        val switched = session.copy(
+            switchTime = Instant.parse("2026-04-24T10:10:00Z"),
+            pausedAt = Instant.parse("2026-04-24T10:05:00Z")
+        )
+
+        coordinator.rearmPerBreastAfterSwitch(switched)
+
+        verify { notificationScheduler.cancelPerBreastNotification() }
+        verify(exactly = 0) { notificationScheduler.scheduleMaxPerBreastNotificationAt(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `rearmPerBreastAfterSwitch skips scheduling when maxPerBreastMinutes is zero`() = runTest {
+        every { feedSettingsRepository.getMaxPerBreastMinutes() } returns flowOf(0)
+
+        coordinator.rearmPerBreastAfterSwitch(session.copy(switchTime = Instant.parse("2026-04-24T10:10:00Z")))
+
+        verify(exactly = 0) { notificationScheduler.scheduleMaxPerBreastNotificationAt(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `rescheduleAfterResume anchors per-breast alarm on switch time with new side`() = runTest {
+        val pausedSession = session.copy(
+            switchTime = Instant.parse("2026-04-24T10:10:00Z"),
+            pausedAt = Instant.parse("2026-04-24T10:15:00Z")
+        )
+        val resumeInstant = Instant.parse("2026-04-24T10:16:00Z")
+
+        coordinator.rescheduleAfterResume(pausedSession, resumeInstant)
+
+        // 5 of the 15 per-breast minutes used on the new side -> 10 remaining from resume.
+        verify {
+            notificationScheduler.scheduleMaxPerBreastNotificationAt(
+                triggerTime = Instant.parse("2026-04-24T10:26:00Z"),
+                sessionId = 42L,
+                maxPerBreastMinutes = 15,
+                currentSide = "RIGHT",
+                maxTotalMinutes = 30
+            )
+        }
+        verify { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any(), 42L, 30, "RIGHT", 15) }
+    }
+
+    @Test
+    fun `rescheduleAfterResume skips per-breast alarm when switched session is past its limit`() = runTest {
+        val pausedSession = session.copy(
+            switchTime = Instant.parse("2026-04-24T10:10:00Z"),
+            pausedAt = Instant.parse("2026-04-24T10:26:00Z")
+        )
+        val resumeInstant = Instant.parse("2026-04-24T10:27:00Z")
+
+        coordinator.rescheduleAfterResume(pausedSession, resumeInstant)
+
+        verify(exactly = 0) { notificationScheduler.scheduleMaxPerBreastNotificationAt(any(), any(), any(), any(), any()) }
+        verify { notificationScheduler.scheduleMaxTotalTimeNotificationAt(any(), 42L, 30, "RIGHT", 15) }
+    }
+
+    @Test
+    fun `rescheduleAfterResume arms full per-breast window when switch happened while paused`() = runTest {
+        val pausedSession = session.copy(
+            pausedAt = Instant.parse("2026-04-24T10:05:00Z"),
+            switchTime = Instant.parse("2026-04-24T10:06:00Z")
+        )
+        val resumeInstant = Instant.parse("2026-04-24T10:16:00Z")
+
+        coordinator.rescheduleAfterResume(pausedSession, resumeInstant)
+
+        // New breast has zero active time -> full 15 minutes from resume.
+        verify {
+            notificationScheduler.scheduleMaxPerBreastNotificationAt(
+                triggerTime = Instant.parse("2026-04-24T10:31:00Z"),
+                sessionId = 42L,
+                maxPerBreastMinutes = 15,
+                currentSide = "RIGHT",
+                maxTotalMinutes = 30
+            )
+        }
     }
 
     @Test
