@@ -10,7 +10,8 @@ class StopSleepRecordUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(sessionId: Long): SleepRecord? {
         val record = repository.getActiveRecord()?.takeIf { it.id == sessionId } ?: return null
-        repository.updateRecord(record.copy(endTime = Instant.now()))
-        return record
+        val stopped = record.copy(endTime = Instant.now())
+        repository.updateRecord(stopped)
+        return stopped
     }
 }
