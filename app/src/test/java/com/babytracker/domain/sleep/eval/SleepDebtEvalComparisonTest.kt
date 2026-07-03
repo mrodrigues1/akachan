@@ -168,7 +168,7 @@ class SleepDebtEvalComparisonTest {
     // --- Harness helpers ---
 
     private val neutralDebtProvider: SleepDebtFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral }
-    private val neutralCircadian: CircadianFactorProvider = { _, _, _, _, _ -> SleepPredictionFactor.Neutral }
+    private val neutralCircadian: CircadianFactorProvider = { _, _, _, _ -> SleepPredictionFactor.Neutral }
     private val neutralNapBudget: NapBudgetFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral }
 
     // Phase 6: a factor is demonstrated against a prior-leaning blend (an as-yet-unknown baby, where

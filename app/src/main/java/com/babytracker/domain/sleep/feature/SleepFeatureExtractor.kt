@@ -284,7 +284,10 @@ class SleepFeatureExtractor(
         }
         val observedDays = inLookback
             .flatMap { interval ->
-                val start = Instant.ofEpochMilli(interval.startMillis).atZone(interval.zone()).toLocalDate()
+                // Clamp to the lookback start like the numerator: days before it contribute no sleep
+                // time, so counting them would deflate the average.
+                val clampedStartMillis = maxOf(interval.startMillis, lookbackStartMillis)
+                val start = Instant.ofEpochMilli(clampedStartMillis).atZone(interval.zone()).toLocalDate()
                 val end = Instant.ofEpochMilli(interval.endMillis!!).atZone(interval.zone()).toLocalDate()
                 generateSequence(start) { if (it < end) it.plusDays(1) else null }.toList()
             }

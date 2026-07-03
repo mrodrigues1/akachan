@@ -16,13 +16,12 @@ object CircadianBiasFactor {
         nextType: SleepType,
         currentMinuteOfDay: Int?,
         candidateMinuteOfDay: Int?,
-        napCountToday: Int,
     ): SleepPredictionFactor {
         if (ageInWeeks < SleepPredictionTuning.CIRCADIAN_MIN_AGE_WEEKS) {
             return SleepPredictionFactor.Neutral
         }
         if (currentMinuteOfDay == null || candidateMinuteOfDay == null) return SleepPredictionFactor.Neutral
-        if (nextType == SleepType.NAP || napCountToday < 0) return SleepPredictionFactor.Neutral
+        if (nextType == SleepType.NAP) return SleepPredictionFactor.Neutral
 
         val targetMinute = bedtimeMidpointMinute(ageInWeeks)
         val diffMinutes = shortestSignedMinuteDiff(from = candidateMinuteOfDay, to = targetMinute)

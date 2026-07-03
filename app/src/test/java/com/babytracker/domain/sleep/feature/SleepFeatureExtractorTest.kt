@@ -35,7 +35,7 @@ class SleepFeatureExtractorTest {
         assertTrue(SleepPredictionTuning.MIN_COMPLETED_INTERVALS > 0)
         assertTrue(SleepPredictionTuning.LOOKBACK_DAYS > 0)
         assertTrue(SleepPredictionTuning.MAX_NAP_DURATION_HOURS > 0)
-        assertTrue(SleepPredictionTuning.HALF_WINDOW_MINUTES > 0)
+        assertTrue(SleepPredictionTuning.EVAL_SCORE_HALF_WINDOW_MINUTES > 0)
         assertEquals("sleep-pred-phase6-personalization-rebalance-1", SleepPredictionTuning.ALGORITHM_VERSION)
     }
 

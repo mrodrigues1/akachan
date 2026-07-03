@@ -23,7 +23,7 @@ object SleepWindowPredictor {
         features: SleepFeatures,
         ageInWeeks: Int,
         now: Instant,
-        circadianFactorProvider: CircadianFactorProvider = { _, _, _, _, _ -> SleepPredictionFactor.Neutral },
+        circadianFactorProvider: CircadianFactorProvider = { _, _, _, _ -> SleepPredictionFactor.Neutral },
         sleepDebtFactorProvider: SleepDebtFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral },
         napBudgetFactorProvider: NapBudgetFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral },
     ): SleepPredictionState {
@@ -78,7 +78,6 @@ object SleepWindowPredictor {
             nextType,
             features.currentMinuteOfDay,
             candidateMinute,
-            metrics.napCountToday,
         )
         val sleepDebtFactor = sleepDebtFactorProvider(
             metrics.sleepLast24hMillis,
@@ -100,8 +99,9 @@ object SleepWindowPredictor {
         // nap-budget) are trusted to shift the displayed center, so a legitimate later shift must be
         // able to keep the window valid; gating on the pre-factor end would force Overdue for a window
         // the factors moved later. A negative (earlier) shift still surfaces Overdue here because it
-        // pulls windowEnd earlier. The shift is clamped below the staleness gap, so a bounded later
-        // shift can never revive a far-stale anchor.
+        // pulls windowEnd earlier. The shift is clamped to at most the staleness gap
+        // (MAX_TOTAL_FACTOR_SHIFT_MINUTES equals OVERDUE_GRACE_MINUTES), so a maximal later shift
+        // can only consume the grace period, never revive an anchor already past it.
         if (isStaleWindow(now, windowEnd)) {
             return SleepPredictionState.Overdue
         }
@@ -301,7 +301,7 @@ object SleepWindowPredictor {
         val intervals = recent.zipWithNext { a, b -> a.startMillis - b.startMillis }.filter { it > 0 }
         val medianIntervalMillis = median(intervals) ?: return false
         val predictedNextFeed = Instant.ofEpochMilli(lastFeed.startMillis + medianIntervalMillis)
-        val toleranceMillis = Duration.ofMinutes(30).toMillis()
+        val toleranceMillis = Duration.ofMinutes(SleepPredictionTuning.FEED_DUE_TOLERANCE_MINUTES).toMillis()
         val predictedMillis = predictedNextFeed.toEpochMilli()
         val windowStartMillis = windowStart.toEpochMilli()
         val windowEndMillis = windowEnd.toEpochMilli()

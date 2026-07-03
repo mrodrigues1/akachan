@@ -18,7 +18,7 @@ class CircadianBiasEvalComparisonTest {
     private val baseNow = Instant.parse("2024-06-30T12:00:00Z")
     private val baby = Baby(name = "Test Baby", birthDate = LocalDate.of(2024, 2, 14))
 
-    private val neutralCircadian: CircadianFactorProvider = { _, _, _, _, _ -> SleepPredictionFactor.Neutral }
+    private val neutralCircadian: CircadianFactorProvider = { _, _, _, _ -> SleepPredictionFactor.Neutral }
     private val neutralSleepDebt: SleepDebtFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral }
     private val neutralNapBudget: NapBudgetFactorProvider = { _, _, _ -> SleepPredictionFactor.Neutral }
 
@@ -190,7 +190,7 @@ class CircadianBiasEvalComparisonTest {
                 features = features,
                 ageInWeeks = ageInWeeks,
                 now = now,
-                circadianFactorProvider = { _, _, _, _, _ -> SleepPredictionFactor.Neutral },
+                circadianFactorProvider = { _, _, _, _ -> SleepPredictionFactor.Neutral },
             )
         }
         val circadianHarness = SleepEvalHarness(zone) { features, ageInWeeks, now ->

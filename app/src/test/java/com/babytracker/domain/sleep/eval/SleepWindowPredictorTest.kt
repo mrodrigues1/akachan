@@ -359,7 +359,7 @@ class SleepWindowPredictorTest {
             ),
             ageInWeeks,
             baseNow,
-            circadianFactorProvider = { _, _, _, _, _ -> SleepPredictionFactor.Neutral },
+            circadianFactorProvider = { _, _, _, _ -> SleepPredictionFactor.Neutral },
         )
 
         val window = (result as SleepPredictionState.Window).window
@@ -570,7 +570,7 @@ class SleepWindowPredictorTest {
             features(metrics = metrics, currentMinuteOfDay = 18 * 60),
             ageInWeeks,
             baseNow,
-            circadianFactorProvider = { _, _, _, _, _ ->
+            circadianFactorProvider = { _, _, _, _ ->
                 SleepPredictionFactor(Duration.ofMinutes(SleepPredictionTuning.CIRCADIAN_MAX_SHIFT_MINUTES))
             },
         )
@@ -600,7 +600,7 @@ class SleepWindowPredictorTest {
             ageInWeeks,
             baseNow,
             // Sum is +60 min, clamped to MAX_TOTAL_FACTOR_SHIFT_MINUTES (45) — a legitimate later shift.
-            circadianFactorProvider = { _, _, _, _, _ ->
+            circadianFactorProvider = { _, _, _, _ ->
                 SleepPredictionFactor(Duration.ofMinutes(SleepPredictionTuning.CIRCADIAN_MAX_SHIFT_MINUTES))
             },
             sleepDebtFactorProvider = { _, _, _ ->
@@ -634,7 +634,7 @@ class SleepWindowPredictorTest {
             features(metrics = metrics, currentMinuteOfDay = 18 * 60),
             ageInWeeks,
             baseNow,
-            circadianFactorProvider = { _, _, _, _, _ ->
+            circadianFactorProvider = { _, _, _, _ ->
                 SleepPredictionFactor(Duration.ofMinutes(-SleepPredictionTuning.CIRCADIAN_MAX_SHIFT_MINUTES))
             },
         )

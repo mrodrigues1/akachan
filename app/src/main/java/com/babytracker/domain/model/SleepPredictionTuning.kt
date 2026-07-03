@@ -17,7 +17,8 @@ object SleepPredictionTuning {
 
     const val MIN_HALF_WINDOW_MINUTES = 15L    // floor for dynamic window
     const val MAX_HALF_WINDOW_MINUTES = 60L    // ceiling for dynamic window
-    const val HALF_WINDOW_MINUTES = MIN_HALF_WINDOW_MINUTES  // kept for eval harness score threshold
+    // Tolerance around the sleep window inside which a predicted next feed counts as "feed due".
+    const val FEED_DUE_TOLERANCE_MINUTES = 30L
     // Type-specific intervals at which qualityC saturates to 1.0. Lowered 14 → 10 (Phase 6, AKA-154)
     // so logged data reaches full weight sooner — bedtime (~1 interval/day) personalizes in ~10 days
     // instead of two weeks. Eval-swept; {8,10,12} were equivalent on the data-rich cohorts, 10 keeps
@@ -45,6 +46,7 @@ object SleepPredictionTuning {
     const val OVERDUE_GRACE_MINUTES = 45L
     const val CUE_LED_MAX_AGE_WEEKS = 6
     const val EVAL_MIN_ANCHORS = 20
+    const val EVAL_SCORE_HALF_WINDOW_MINUTES = MIN_HALF_WINDOW_MINUTES  // eval-harness score threshold only
     const val EVAL_MIN_SCORED = 20
     const val EVAL_MIN_MAE_GAIN_MIN = 5
     const val EVAL_MAX_REGRESSION = 0
@@ -64,7 +66,10 @@ object SleepPredictionTuning {
     const val SLEEP_DEBT_MIN_HOURS = 1L
     const val NAP_BUDGET_MAX_SHIFT_MINUTES = 20L
     const val NAP_BUDGET_MINUTES_PER_NAP = 10L
-    const val MAX_TOTAL_FACTOR_SHIFT_MINUTES = 45L  // ceiling on summed factor shift; below MAX_HALF_WINDOW_MINUTES
+    // Ceiling on the summed factor shift; below MAX_HALF_WINDOW_MINUTES. Deliberately equal to
+    // OVERDUE_GRACE_MINUTES: a maximal later shift can at most consume the overdue grace period,
+    // never revive a window that is already past grace.
+    const val MAX_TOTAL_FACTOR_SHIFT_MINUTES = 45L
     const val MIN_QUALIFIED_TZ_PROVENANCE_RATE = 0.5f
     const val HIGH_CONFIDENCE_QUALITY_C_THRESHOLD = 0.8f
     const val DISRUPTION_LOOKBACK_HOURS = 48L

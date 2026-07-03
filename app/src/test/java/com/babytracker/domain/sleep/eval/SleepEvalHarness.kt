@@ -101,7 +101,7 @@ class SleepEvalHarness(
                 val inWindow = actualMillis in
                     windowState.window.windowStart.toEpochMilli()..windowState.window.windowEnd.toEpochMilli()
                 val hardMissThresholdMillis =
-                    (SleepPredictionTuning.HALF_WINDOW_MINUTES + SleepPredictionTuning.OVERDUE_GRACE_MINUTES) * 60_000L
+                    (SleepPredictionTuning.EVAL_SCORE_HALF_WINDOW_MINUTES + SleepPredictionTuning.OVERDUE_GRACE_MINUTES) * 60_000L
                 AnchorScore(errorMillis, inWindow, errorMillis > hardMissThresholdMillis)
             }
             anchors += EvalAnchor(segmentKey, wakeInstant, predictedState, score)

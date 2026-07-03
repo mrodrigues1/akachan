@@ -199,7 +199,7 @@ class PersonalizedWakeEvalComparisonTest {
             (1.0 - 0.6 * qualityC) * agePriorMidpointMillis + 0.6 * qualityC * babyWakeP50Millis!!
             ).toLong()
         val bestEstimate = Instant.ofEpochMilli(lastWakeMillis!! + wakeTargetMillis)
-        val halfWindow = Duration.ofMinutes(SleepPredictionTuning.HALF_WINDOW_MINUTES)
+        val halfWindow = Duration.ofMinutes(SleepPredictionTuning.EVAL_SCORE_HALF_WINDOW_MINUTES)
         val windowStart = bestEstimate.minus(halfWindow)
         val windowEnd = bestEstimate.plus(halfWindow)
         if (now.isAfter(windowEnd.plus(Duration.ofMinutes(SleepPredictionTuning.OVERDUE_GRACE_MINUTES)))) {

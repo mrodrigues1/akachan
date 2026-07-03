@@ -14,11 +14,10 @@ data class SleepPredictionFactor(
 }
 
 typealias CircadianFactorProvider = (
-    Int,
-    SleepType,
-    Int?,
-    Int?,
-    Int,
+    Int,       // ageInWeeks
+    SleepType, // nextType
+    Int?,      // currentMinuteOfDay
+    Int?,      // candidateMinuteOfDay
 ) -> SleepPredictionFactor
 
 typealias SleepDebtFactorProvider = (

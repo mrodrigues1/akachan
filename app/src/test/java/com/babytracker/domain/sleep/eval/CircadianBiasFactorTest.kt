@@ -16,9 +16,7 @@ class CircadianBiasFactorTest {
             ageInWeeks = SleepPredictionTuning.CUE_LED_MAX_AGE_WEEKS - 1,
             nextType = SleepType.NIGHT_SLEEP,
             currentMinuteOfDay = 18 * 60,
-            candidateMinuteOfDay = 17 * 60,
-            napCountToday = 0,
-        )
+            candidateMinuteOfDay = 17 * 60,        )
 
         assertEquals(SleepPredictionFactor.Neutral, factor)
     }
@@ -29,9 +27,7 @@ class CircadianBiasFactorTest {
             ageInWeeks = 20,
             nextType = SleepType.NIGHT_SLEEP,
             currentMinuteOfDay = 18 * 60,
-            candidateMinuteOfDay = 16 * 60,
-            napCountToday = 2,
-        )
+            candidateMinuteOfDay = 16 * 60,        )
 
         assertTrue(factor.adjustment > Duration.ZERO)
         assertTrue(factor.adjustment <= Duration.ofMinutes(SleepPredictionTuning.CIRCADIAN_MAX_SHIFT_MINUTES))
@@ -44,9 +40,7 @@ class CircadianBiasFactorTest {
             ageInWeeks = 20,
             nextType = SleepType.NIGHT_SLEEP,
             currentMinuteOfDay = 22 * 60,
-            candidateMinuteOfDay = 23 * 60,
-            napCountToday = 2,
-        )
+            candidateMinuteOfDay = 23 * 60,        )
 
         assertTrue(factor.adjustment < Duration.ZERO)
     }
@@ -58,16 +52,12 @@ class CircadianBiasFactorTest {
             ageInWeeks = 20,
             nextType = SleepType.NIGHT_SLEEP,
             currentMinuteOfDay = 16 * 60,
-            candidateMinuteOfDay = 16 * 60,
-            napCountToday = 2,
-        )
+            candidateMinuteOfDay = 16 * 60,        )
         val earlierPull = CircadianBiasFactor.adjustment(
             ageInWeeks = 20,
             nextType = SleepType.NIGHT_SLEEP,
             currentMinuteOfDay = 23 * 60,
-            candidateMinuteOfDay = 23 * 60,
-            napCountToday = 2,
-        )
+            candidateMinuteOfDay = 23 * 60,        )
 
         assertTrue(
             laterPush.adjustment > Duration.ZERO &&
@@ -89,9 +79,7 @@ class CircadianBiasFactorTest {
             ageInWeeks = 20,
             nextType = SleepType.NIGHT_SLEEP,
             currentMinuteOfDay = 19 * 60,
-            candidateMinuteOfDay = 19 * 60 + 25,
-            napCountToday = 2,
-        )
+            candidateMinuteOfDay = 19 * 60 + 25,        )
 
         assertEquals(SleepPredictionFactor.Neutral, factor)
     }
@@ -102,16 +90,12 @@ class CircadianBiasFactorTest {
             ageInWeeks = 8,
             nextType = SleepType.NIGHT_SLEEP,
             currentMinuteOfDay = 18 * 60,
-            candidateMinuteOfDay = 16 * 60,
-            napCountToday = 2,
-        )
+            candidateMinuteOfDay = 16 * 60,        )
         val twelveWeeks = CircadianBiasFactor.adjustment(
             ageInWeeks = 12,
             nextType = SleepType.NIGHT_SLEEP,
             currentMinuteOfDay = 18 * 60,
-            candidateMinuteOfDay = 16 * 60,
-            napCountToday = 2,
-        )
+            candidateMinuteOfDay = 16 * 60,        )
 
         assertTrue(eightWeeks.adjustment < twelveWeeks.adjustment)
     }
@@ -122,9 +106,7 @@ class CircadianBiasFactorTest {
             ageInWeeks = 20,
             nextType = SleepType.NAP,
             currentMinuteOfDay = 10 * 60,
-            candidateMinuteOfDay = 12 * 60,
-            napCountToday = 0,
-        )
+            candidateMinuteOfDay = 12 * 60,        )
 
         assertEquals(SleepPredictionFactor.Neutral, factor)
     }

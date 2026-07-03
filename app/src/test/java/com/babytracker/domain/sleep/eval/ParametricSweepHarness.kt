@@ -97,7 +97,7 @@ private fun sweepBuildWindow(
     val halfWindow = Duration.ofMillis(dynamicHalfWindowMillis(metrics, nextType))
     val candidateMinute = candidateMinuteOfDay(features.currentMinuteOfDay, Duration.between(now, bestEstimate))
     val factors = listOf(
-        circadian(ageInWeeks, nextType, features.currentMinuteOfDay, candidateMinute, metrics.napCountToday),
+        circadian(ageInWeeks, nextType, features.currentMinuteOfDay, candidateMinute),
         sleepDebt(metrics.sleepLast24hMillis, metrics.avgDailySleepMillis, ageInWeeks),
         napBudget(metrics.napCountToday, ageInWeeks, nextType),
     )
