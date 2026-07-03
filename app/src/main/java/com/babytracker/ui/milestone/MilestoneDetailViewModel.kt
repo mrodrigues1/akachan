@@ -30,15 +30,8 @@ class MilestoneDetailViewModel @Inject constructor(
 
     private val milestoneId: Long = savedStateHandle.get<String>(Routes.MILESTONE_DETAIL_ARG)?.toLongOrNull() ?: 0L
 
-    private val milestone: StateFlow<Milestone?> =
-        milestoneRepository.getMilestone(milestoneId).stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = null,
-        )
-
     val uiState: StateFlow<MilestoneDetailUiState> =
-        milestone
+        milestoneRepository.getMilestone(milestoneId)
             .map { MilestoneDetailUiState(milestone = it, isLoading = false) }
             .stateIn(
                 scope = viewModelScope,
@@ -47,7 +40,7 @@ class MilestoneDetailViewModel @Inject constructor(
             )
 
     fun onSave(updated: Milestone) {
-        val previousPhoto = milestone.value?.photoUri
+        val previousPhoto = uiState.value.milestone?.photoUri
         viewModelScope.launch {
             milestoneRepository.updateMilestone(updated)
             if (previousPhoto != null && previousPhoto != updated.photoUri) {
@@ -59,7 +52,7 @@ class MilestoneDetailViewModel @Inject constructor(
 
     /** Deletes the moment and invokes [onDeleted] once removal is committed. */
     fun onDelete(onDeleted: () -> Unit) {
-        val photoUri = milestone.value?.photoUri
+        val photoUri = uiState.value.milestone?.photoUri
         viewModelScope.launch {
             milestoneRepository.deleteMilestone(milestoneId)
             // Photo cleanup is best-effort: once the moment is gone from the database, a failure

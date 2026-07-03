@@ -13,6 +13,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -62,6 +63,7 @@ class MilestoneDetailViewModelTest {
     @Test
     fun `onDelete removes the moment, its photo, and signals completion`() = runTest {
         val vm = viewModel()
+        backgroundScope.launch { vm.uiState.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
         var deleted = false
         vm.onDelete(onDeleted = { deleted = true })
@@ -75,6 +77,7 @@ class MilestoneDetailViewModelTest {
     fun `onDelete still syncs and signals completion when photo cleanup fails`() = runTest {
         coEvery { photoCleaner.delete(photoUri) } throws RuntimeException("disk error")
         val vm = viewModel()
+        backgroundScope.launch { vm.uiState.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
         var deleted = false
         vm.onDelete(onDeleted = { deleted = true })
@@ -87,6 +90,7 @@ class MilestoneDetailViewModelTest {
     @Test
     fun `onSave cleans up the replaced photo`() = runTest {
         val vm = viewModel()
+        backgroundScope.launch { vm.uiState.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
         val updated = moment.copy(photoUri = "content://new")
         vm.onSave(updated)
