@@ -4,10 +4,12 @@ import app.cash.turbine.test
 import com.babytracker.data.local.dao.InventorySummaryRow
 import com.babytracker.data.local.dao.MilkBagDao
 import com.babytracker.data.local.entity.MilkBagEntity
+import com.babytracker.domain.model.MilkBag
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -68,6 +70,78 @@ class InventoryRepositoryImplTest {
             assertEquals(Instant.ofEpochMilli(100L), summary.oldestBagDate)
             awaitComplete()
         }
+    }
+
+    @Test
+    fun `currentSummary returns first summary emission`() = runTest {
+        every { dao.getActiveSummary() } returns flowOf(
+            InventorySummaryRow(totalMl = 240, bagCount = 3, oldestBagDateMs = 100L),
+            InventorySummaryRow(totalMl = 0, bagCount = 0, oldestBagDateMs = null),
+        )
+
+        val summary = repository.currentSummary()
+
+        assertEquals(240, summary.totalMl)
+        assertEquals(3, summary.bagCount)
+        assertEquals(Instant.ofEpochMilli(100L), summary.oldestBagDate)
+    }
+
+    @Test
+    fun `insert forwards toEntity to dao`() = runTest {
+        val captured = slot<MilkBagEntity>()
+        coEvery { dao.insert(capture(captured)) } returns 42L
+
+        val id = repository.insert(
+            MilkBag(
+                collectionDate = Instant.ofEpochMilli(500L),
+                volumeMl = 120,
+                sourceSessionId = 7L,
+                notes = "Top shelf",
+                createdAt = Instant.ofEpochMilli(600L),
+            ),
+        )
+
+        assertEquals(42L, id)
+        assertEquals(500L, captured.captured.collectionDate)
+        assertEquals(120, captured.captured.volumeMl)
+        assertEquals(7L, captured.captured.sourceSessionId)
+        assertEquals("Top shelf", captured.captured.notes)
+        assertEquals(600L, captured.captured.createdAt)
+    }
+
+    @Test
+    fun `update forwards toEntity to dao`() = runTest {
+        val captured = slot<MilkBagEntity>()
+        coEvery { dao.update(capture(captured)) } returns Unit
+
+        repository.update(
+            MilkBag(
+                id = 3L,
+                collectionDate = Instant.ofEpochMilli(500L),
+                volumeMl = 90,
+                usedAt = Instant.ofEpochMilli(900L),
+                createdAt = Instant.ofEpochMilli(600L),
+            ),
+        )
+
+        assertEquals(3L, captured.captured.id)
+        assertEquals(90, captured.captured.volumeMl)
+        assertEquals(900L, captured.captured.usedAt)
+        assertNull(captured.captured.sourceSessionId)
+    }
+
+    @Test
+    fun `delete forwards toEntity to dao`() = runTest {
+        repository.delete(
+            MilkBag(
+                id = 5L,
+                collectionDate = Instant.ofEpochMilli(500L),
+                volumeMl = 60,
+                createdAt = Instant.ofEpochMilli(600L),
+            ),
+        )
+
+        coVerify(exactly = 1) { dao.delete(match { it.id == 5L && it.volumeMl == 60 }) }
     }
 
     @Test
