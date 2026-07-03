@@ -26,8 +26,6 @@ import com.babytracker.ui.theme.PrimaryPinkDark
 import com.babytracker.ui.theme.SecondaryBlueDark
 import com.babytracker.ui.theme.WarningAmber
 import com.babytracker.ui.theme.WarningAmberDark
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 object NotificationHelper {
     const val BREASTFEEDING_CHANNEL_ID = "breastfeeding_notifications"
@@ -381,9 +379,7 @@ object NotificationHelper {
         richEnabled: Boolean
     ) {
         val typeLabel = context.getString(if (sleepType == "NIGHT_SLEEP") R.string.notif_sleep_type_night else R.string.notif_sleep_type_nap)
-        val startFormatted = java.time.Instant.ofEpochMilli(startTimeEpochMs)
-            .atZone(ZoneId.systemDefault())
-            .format(DateTimeFormatter.ofPattern("h:mm a"))
+        val startFormatted = java.time.Instant.ofEpochMilli(startTimeEpochMs).formatClockTime12h()
         val title = context.getString(R.string.notif_title_sleep_active)
         val body = context.getString(R.string.notif_body_sleep_active, typeLabel, startFormatted)
         val tapPi = mainActivityPendingIntent(context)
