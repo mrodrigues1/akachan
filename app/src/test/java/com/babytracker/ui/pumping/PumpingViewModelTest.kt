@@ -131,6 +131,72 @@ class PumpingViewModelTest {
     }
 
     @Test
+    fun `onPause calls pauseUseCase with active session`() = runTest {
+        val session = PumpingSession(
+            id = 1L,
+            startTime = fixedNow.minusSeconds(300),
+            breast = PumpingBreast.BOTH,
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coJustRun { pauseUseCase(session) }
+
+        viewModel.onPause()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { pauseUseCase(session) }
+        assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `onPause does nothing without active session`() = runTest {
+        viewModel.onPause()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { pauseUseCase(any()) }
+    }
+
+    @Test
+    fun `onResume calls resumeUseCase with active session`() = runTest {
+        val session = PumpingSession(
+            id = 1L,
+            startTime = fixedNow.minusSeconds(300),
+            breast = PumpingBreast.BOTH,
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coJustRun { resumeUseCase(session) }
+
+        viewModel.onResume()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { resumeUseCase(session) }
+        assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `onErrorDismissed clears error state`() = runTest {
+        val session = PumpingSession(
+            id = 1L,
+            startTime = fixedNow.minusSeconds(300),
+            breast = PumpingBreast.BOTH,
+        )
+        activeSessionFlow.value = session
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coEvery { pauseUseCase(session) } throws RuntimeException("db down")
+        viewModel.onPause()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull(viewModel.uiState.value.error)
+
+        viewModel.onErrorDismissed()
+
+        assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
     fun `onPause sets error when pauseUseCase throws`() = runTest {
         val session = PumpingSession(
             id = 1L,
