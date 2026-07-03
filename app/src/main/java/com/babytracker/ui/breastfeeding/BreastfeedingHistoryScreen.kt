@@ -33,7 +33,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -50,6 +49,8 @@ import com.babytracker.ui.component.DeleteConfirmationDialog
 import com.babytracker.ui.component.EditDeleteOverflowMenu
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.HistoryDayHeader
+import com.babytracker.ui.theme.FeedHistoryRowContainer
+import com.babytracker.ui.theme.FeedHistoryRowContainerDark
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.Pink200
 import com.babytracker.ui.theme.Pink900
@@ -208,7 +209,7 @@ internal fun FeedHistoryCard(
     // Mirror the diaper history row: a soft, desaturated pink tint rather than the vivid primaryContainer
     // fill, with the text in the section accent — deep pink in light, light pink in dark — for contrast.
     val isDark = LocalDarkTheme.current
-    val rowContainer = if (isDark) Color(0xFF4A2A38) else Color(0xFFFCE4EC)
+    val rowContainer = if (isDark) FeedHistoryRowContainerDark else FeedHistoryRowContainer
     val rowText = if (isDark) Pink200 else Pink900
     HistoryCard(
         title = if (isLeft) {
