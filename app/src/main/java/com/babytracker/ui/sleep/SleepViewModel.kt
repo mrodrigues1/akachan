@@ -12,15 +12,11 @@ import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
-import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.usecase.sleep.GenerateSleepScheduleUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.domain.usecase.sleep.SaveSleepEntryUseCase
-import com.babytracker.domain.usecase.sleep.StartSleepRecordUseCase
-import com.babytracker.domain.usecase.sleep.StopSleepRecordUseCase
 import com.babytracker.domain.usecase.sleep.UpdateSleepEntryUseCase
-import com.babytracker.manager.NapReminderScheduler
-import com.babytracker.manager.SleepNotificationScheduler
+import com.babytracker.manager.SleepSessionController
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
 import com.babytracker.sharing.usecase.SyncedWrite
 import com.babytracker.domain.model.BabyEventType
@@ -39,7 +35,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -120,11 +115,7 @@ class SleepViewModel @Inject constructor(
     private val generateSchedule: GenerateSleepScheduleUseCase,
     private val babyRepository: BabyRepository,
     private val settingsRepository: SettingsRepository,
-    private val sleepSettingsRepository: SleepSettingsRepository,
-    private val startRecord: StartSleepRecordUseCase,
-    private val stopRecord: StopSleepRecordUseCase,
-    private val sleepNotificationScheduler: SleepNotificationScheduler,
-    private val napReminderScheduler: NapReminderScheduler,
+    private val sleepSessionController: SleepSessionController,
     private val syncedWrite: SyncedWrite,
     private val predictSleepWindow: PredictSleepWindowUseCase,
     private val logBabyEvent: LogBabyEventUseCase,
@@ -186,39 +177,14 @@ class SleepViewModel @Inject constructor(
 
     fun onStartRecord(sleepType: SleepType) {
         viewModelScope.launch {
-            napReminderScheduler.cancel()
-            val record = startRecord(sleepType)
-            sleepNotificationScheduler.show(record.id, record.sleepType, record.startTime)
-            syncedWrite.sync(SyncType.SLEEP_RECORDS)
+            sleepSessionController.start(sleepType)
         }
     }
 
     fun onStopRecord() {
         val session = activeSleepSession.value ?: return
         viewModelScope.launch {
-            val stoppedRecord = stopRecord(session.id)
-            sleepNotificationScheduler.cancel()
-            if (stoppedRecord != null) {
-                when (stoppedRecord.sleepType) {
-                    SleepType.NIGHT_SLEEP -> {
-                        val endTime = stoppedRecord.endTime
-                        if (endTime != null) {
-                            val zone = ZoneId.systemDefault()
-                            if (endTime.atZone(zone).toLocalDate() == LocalDate.now()) {
-                                settingsRepository.setWakeTime(endTime.atZone(zone).toLocalTime())
-                            }
-                        }
-                    }
-                    SleepType.NAP -> {
-                        val enabled = sleepSettingsRepository.getNapReminderEnabled().first()
-                        if (enabled) {
-                            val delayMinutes = sleepSettingsRepository.getNapReminderDelayMinutes().first()
-                            napReminderScheduler.schedule(Instant.now(), delayMinutes)
-                        }
-                    }
-                }
-            }
-            syncedWrite.sync(SyncType.SLEEP_RECORDS)
+            sleepSessionController.stop(session.id)
         }
     }
 
