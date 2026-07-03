@@ -3,12 +3,11 @@ package com.babytracker.domain.usecase.sleep
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SleepRepository
+import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
-import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -37,7 +36,7 @@ class StopSleepRecordUseCaseTest {
     @Test
     fun invokeMatchingInProgressUpdatesWithNonNullEndTime() = runTest {
         val slot = slot<SleepRecord>()
-        every { repository.getAllRecords() } returns flowOf(listOf(inProgressRecord))
+        coEvery { repository.getActiveRecord() } returns inProgressRecord
         coJustRun { repository.updateRecord(capture(slot)) }
 
         useCase(10L)
@@ -48,7 +47,7 @@ class StopSleepRecordUseCaseTest {
     @Test
     fun invokeMatchingInProgressPreservesOtherFields() = runTest {
         val slot = slot<SleepRecord>()
-        every { repository.getAllRecords() } returns flowOf(listOf(inProgressRecord))
+        coEvery { repository.getActiveRecord() } returns inProgressRecord
         coJustRun { repository.updateRecord(capture(slot)) }
 
         useCase(10L)
@@ -61,7 +60,7 @@ class StopSleepRecordUseCaseTest {
 
     @Test
     fun invokeWrongIdDoesNotCallUpdate() = runTest {
-        every { repository.getAllRecords() } returns flowOf(listOf(inProgressRecord))
+        coEvery { repository.getActiveRecord() } returns inProgressRecord
 
         useCase(999L)
 
@@ -70,8 +69,8 @@ class StopSleepRecordUseCaseTest {
 
     @Test
     fun invokeRecordAlreadyStoppedDoesNotCallUpdate() = runTest {
-        val stopped = inProgressRecord.copy(endTime = Instant.now())
-        every { repository.getAllRecords() } returns flowOf(listOf(stopped))
+        // A stopped record is no longer the active record.
+        coEvery { repository.getActiveRecord() } returns null
 
         useCase(10L)
 
@@ -79,8 +78,8 @@ class StopSleepRecordUseCaseTest {
     }
 
     @Test
-    fun invokeEmptyRecordListDoesNotCallUpdate() = runTest {
-        every { repository.getAllRecords() } returns flowOf(emptyList())
+    fun invokeNoActiveRecordDoesNotCallUpdate() = runTest {
+        coEvery { repository.getActiveRecord() } returns null
 
         useCase(10L)
 
@@ -88,13 +87,12 @@ class StopSleepRecordUseCaseTest {
     }
 
     @Test
-    fun invokeMultipleRecordsUpdatesOnlyMatchingOne() = runTest {
+    fun invokeActiveRecordWithDifferentIdDoesNotCallUpdate() = runTest {
         val other = SleepRecord(id = 20L, startTime = Instant.now(), sleepType = SleepType.NIGHT_SLEEP)
-        every { repository.getAllRecords() } returns flowOf(listOf(inProgressRecord, other))
-        coJustRun { repository.updateRecord(any()) }
+        coEvery { repository.getActiveRecord() } returns other
 
         useCase(10L)
 
-        coVerify(exactly = 1) { repository.updateRecord(any()) }
+        coVerify(exactly = 0) { repository.updateRecord(any()) }
     }
 }

@@ -78,7 +78,7 @@ class CountRecentValidIntervalsUseCaseTest {
         val activeSession = session(start = now.minusSeconds(10 * 60), end = null)
         val sessions = listOf(activeSession) + completed
 
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(PredictionTuning.LOOKBACK_LIMIT) } returns flowOf(sessions)
 
         useCase().test {
             val count = awaitItem()
@@ -98,7 +98,7 @@ class CountRecentValidIntervalsUseCaseTest {
         val staleAnchor = now.minusSeconds(24L * 3600)
         val sessions = buildEvenlySpacedSessions(count = 6, intervalMinutes = 120, anchor = staleAnchor)
 
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(PredictionTuning.LOOKBACK_LIMIT) } returns flowOf(sessions)
 
         useCase().test {
             val count = awaitItem()
@@ -117,7 +117,7 @@ class CountRecentValidIntervalsUseCaseTest {
         val starts = (0 until 6).map { mostRecent.minusSeconds(it.toLong() * 120 * 60) }
         val sessions = starts.map { completedSession(it) }
 
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(PredictionTuning.LOOKBACK_LIMIT) } returns flowOf(sessions)
 
         useCase().test {
             val count = awaitItem()
@@ -134,7 +134,7 @@ class CountRecentValidIntervalsUseCaseTest {
         // PredictNextFeedUseCase would return null (below min), but count must return 2.
         val sessions = buildEvenlySpacedSessions(count = 3, intervalMinutes = 120)
 
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(PredictionTuning.LOOKBACK_LIMIT) } returns flowOf(sessions)
 
         useCase().test {
             val count = awaitItem()
@@ -145,7 +145,7 @@ class CountRecentValidIntervalsUseCaseTest {
 
     @Test
     fun `returns zero when no sessions are present`() = runTest {
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
+        every { breastfeedingRepository.getRecentSessionsFlow(PredictionTuning.LOOKBACK_LIMIT) } returns flowOf(emptyList())
 
         useCase().test {
             val count = awaitItem()
@@ -173,7 +173,7 @@ class CountRecentValidIntervalsUseCaseTest {
         val starts = (0 until 10).map { anchor.minusSeconds(it.toLong() * 120 * 60) }
         val sessions = starts.map { completedSession(it) }
 
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(PredictionTuning.LOOKBACK_LIMIT) } returns flowOf(sessions)
 
         useCase().test {
             val count = awaitItem()
@@ -190,7 +190,7 @@ class CountRecentValidIntervalsUseCaseTest {
 
         val sessions = buildEvenlySpacedSessions(count = 6, intervalMinutes = 120)
 
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(PredictionTuning.LOOKBACK_LIMIT) } returns flowOf(sessions)
 
         useCase().test {
             val count = awaitItem()
@@ -209,7 +209,7 @@ class CountRecentValidIntervalsUseCaseTest {
         val starts = (0 until 11).map { mostRecentStart.minusSeconds(it.toLong() * 120 * 60) }
         val sessions = starts.map { completedSession(it) }
 
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(PredictionTuning.LOOKBACK_LIMIT) } returns flowOf(sessions)
 
         useCase().test {
             val count = awaitItem()
@@ -229,7 +229,7 @@ class CountRecentValidIntervalsUseCaseTest {
         val s5 = s4.minusSeconds(480 * 60) // exceeds cap
         val sessions = listOf(s1, s2, s3, s4, s5).map { completedSession(it) }
 
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(sessions)
+        every { breastfeedingRepository.getRecentSessionsFlow(PredictionTuning.LOOKBACK_LIMIT) } returns flowOf(sessions)
 
         useCase().test {
             val count = awaitItem()

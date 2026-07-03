@@ -65,6 +65,18 @@ class SleepRepositoryImplTest {
     }
 
     @Test
+    fun getRecordsSinceFlowPassesEpochMsAndMapsToDomain() = runTest {
+        val slot = slot<Long>()
+        every { dao.getRecordsSinceFlow(capture(slot)) } returns flowOf(listOf(entity))
+
+        val records = repository.getRecordsSinceFlow(Instant.ofEpochMilli(1_000_000L)).first()
+
+        assertEquals(1_000_000L, slot.captured)
+        assertEquals(1L, records[0].id)
+        assertEquals(Instant.ofEpochMilli(startEpoch), records[0].startTime)
+    }
+
+    @Test
     fun getCompletedRecordsSincePassesEpochMsToDao() = runTest {
         val since = Instant.ofEpochMilli(1_000_000L)
         val slot = slot<Long>()

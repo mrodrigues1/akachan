@@ -3,6 +3,7 @@ package com.babytracker.domain.usecase.sleep
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.BabyEvent
 import com.babytracker.domain.model.BreastfeedingSession
+import com.babytracker.domain.model.PredictionTuning
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepPredictionTuning
 import com.babytracker.domain.model.SleepRecord
@@ -43,14 +44,17 @@ class PredictSleepWindowUseCase @Inject constructor(
     private val zoneIdProvider: Provider<ZoneId>,
 ) {
     operator fun invoke(): Flow<SleepPredictionState> = flow {
-        // Query-level cutoff, frozen at flow start. It only ever trails the real lookback bound, so
-        // the query over-fetches; the fresh per-evaluation bound is applied in predictForBaby().
-        val disruptionCutoff = Instant.now(clock)
-            .minus(Duration.ofHours(SleepPredictionTuning.DISRUPTION_LOOKBACK_HOURS))
+        // Query-level cutoffs, frozen at flow start. They only ever trail the real lookback bounds,
+        // so the queries over-fetch; the fresh per-evaluation bounds are applied in predictForBaby().
+        val flowStart = Instant.now(clock)
+        val disruptionCutoff = flowStart.minus(Duration.ofHours(SleepPredictionTuning.DISRUPTION_LOOKBACK_HOURS))
+        val recordsCutoff = flowStart.minus(Duration.ofDays(SleepPredictionTuning.LOOKBACK_DAYS))
         emitAll(
             combine(
-                sleepRepository.getAllRecords(),
-                breastfeedingRepository.getAllSessions(),
+                sleepRepository.getRecordsSinceFlow(recordsCutoff),
+                // The predictor only reads feeds within the freshness horizon (hours), so the
+                // LOOKBACK_LIMIT most recent sessions are more than enough.
+                breastfeedingRepository.getRecentSessionsFlow(PredictionTuning.LOOKBACK_LIMIT),
                 babyRepository.getBabyProfile(),
                 babyEventRepository.getEventsSince(disruptionCutoff),
                 // Several states are functions of wall-clock time (Window -> Overdue after

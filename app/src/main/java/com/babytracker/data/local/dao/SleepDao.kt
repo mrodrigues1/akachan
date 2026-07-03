@@ -20,6 +20,9 @@ abstract class SleepDao {
     @Query("SELECT * FROM sleep_records ORDER BY start_time DESC LIMIT :limit")
     abstract suspend fun getRecentRecords(limit: Int): List<SleepEntity>
 
+    @Query("SELECT * FROM sleep_records WHERE start_time >= :sinceMillis ORDER BY start_time DESC")
+    abstract fun getRecordsSinceFlow(sinceMillis: Long): Flow<List<SleepEntity>>
+
     @Query("SELECT * FROM sleep_records ORDER BY start_time DESC, id DESC LIMIT 1")
     abstract fun observeLatestRecord(): Flow<SleepEntity?>
 

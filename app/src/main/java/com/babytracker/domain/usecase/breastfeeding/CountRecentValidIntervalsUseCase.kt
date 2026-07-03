@@ -7,7 +7,6 @@ import com.babytracker.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import java.time.ZoneId
 import javax.inject.Inject
 
@@ -17,8 +16,7 @@ class CountRecentValidIntervalsUseCase @Inject constructor(
     private val zoneId: ZoneId,
 ) {
     operator fun invoke(): Flow<Int> = combine(
-        breastfeedingRepository.getAllSessions()
-            .map { it.take(PredictionTuning.LOOKBACK_LIMIT) },
+        breastfeedingRepository.getRecentSessionsFlow(PredictionTuning.LOOKBACK_LIMIT),
         settingsRepository.getQuietHoursStartMinute(),
         settingsRepository.getQuietHoursEndMinute(),
     ) { sessions, qhStart, qhEnd ->
