@@ -678,7 +678,7 @@ internal fun SleepEntryCard(
     } else {
         record.startTime.formatTime12h()
     }
-    // Mirror SPEC-007's feed badge: attribute partner-started sessions on the primary app too.
+    // Mirror the partner feed badge (ADR-0003 op-inbox): attribute partner-started sessions on the primary app too.
     val subtitle = if (record.startedBy == SleepAuthor.PARTNER) {
         "$timeSubtitle · ${stringResource(R.string.sleep_author_partner_badge)}"
     } else {

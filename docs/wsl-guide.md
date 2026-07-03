@@ -1,3 +1,7 @@
+# WSL Development Guide
+
+Environment notes for developing Akachan from Linux/WSL2 (the primary environment is Windows-native). Formerly `specs/SPEC-006-WSL-GUIDE.md`.
+
 ### Linux / WSL
 
 The system image ships only a JRE (`java`) — no `javac`. Hilt's annotation processor (`hiltJavaCompileDebug`) requires a full JDK. Gradle downloads one automatically to `~/.gradle/jdks/`. Additionally, the Hilt toolchain property cannot be serialized by the Gradle configuration cache under this setup, so config cache must be disabled on Linux/WSL.

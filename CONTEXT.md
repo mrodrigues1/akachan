@@ -35,7 +35,7 @@ Breastfeeding · Pumping & milk inventory · Bottle feeding · Sleep · Diaper �
 - Domain models: `app/src/main/java/com/babytracker/domain/model/`
 - Export-specific models: `app/src/main/java/com/babytracker/export/domain/model/`
 - Partner-sharing sync models: `app/src/main/java/com/babytracker/sharing/domain/model/`
-- Feature specs: `specs/SPEC-*.md`
+- Feature specs: `docs/superpowers/specs/` (dated files); architecture decisions: `docs/adr/`
 
 ## Naming conventions to preserve
 

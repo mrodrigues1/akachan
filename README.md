@@ -156,7 +156,7 @@ Firestore-bound data must use snapshot models from `sharing/domain/model`. Do no
 
 ## Notifications
 
-Notifications use `AlarmManager`/WorkManager, dedicated schedulers, and action receivers — per-domain managers cover active feed/sleep sessions, predictive feed/sleep reminders, nap reminders, stash expiration, vaccine and doctor-visit reminders (see `SPEC-004` and `manager/`).
+Notifications use `AlarmManager`/WorkManager, dedicated schedulers, and action receivers — per-domain managers cover active feed/sleep sessions, predictive feed/sleep reminders, nap reminders, stash expiration, vaccine and doctor-visit reminders (see `docs/adr/0005` and `manager/`).
 
 Required Android permissions include `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`, and `USE_EXACT_ALARM`.
 
