@@ -32,7 +32,8 @@ Data Layer     Repository Impls → Room DAOs / DataStore
 - `app/src/androidTest`: Instrumentation, Room in-memory DB, and Compose UI tests.
 - `gradle/libs.versions.toml`: Authoritative dependency versions.
 - `config/detekt.yml`: Detekt rules tuned for this app.
-- `specs/` + `docs/superpowers/specs/`: product and architecture specs — early core specs in the former, post-May-2026 feature specs (dated filenames) in the latter. Read the relevant spec before feature work.
+- `docs/superpowers/specs/`: feature specs since ~May 2026 (dated filenames — search by feature keyword). Read the relevant spec before feature work.
+- `docs/adr/`: architectural decision records — the retired early core specs (`specs/SPEC-00x`, in git history) were distilled into ADRs 0001–0005.
 
 ## Common tasks
 - Find a feature's files: `docs/AI_FEATURE_MAP.md` (screens, ViewModels, repositories, entities, routes per feature).

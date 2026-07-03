@@ -5,7 +5,7 @@
 ## Sources
 
 - **Codebase**: [github.com/mrodrigues1/akachan](https://github.com/mrodrigues1/akachan) — Android, Kotlin, Jetpack Compose + Material 3
-- **Design spec**: `specs/SPEC-001-APP-STRUCTURE.md` (within repo)
+- **Design spec**: `DESIGN.md` + `docs/adr/` (within repo; the former `specs/SPEC-001-APP-STRUCTURE.md` was retired into ADRs)
 - **Section icon spec**: `specs/SPEC-008-SECTION-ICON-STYLE-SYSTEM.md` (custom section icon rules)
 - **No Figma link provided** — design system derived entirely from codebase analysis
 

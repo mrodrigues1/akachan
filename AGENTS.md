@@ -17,7 +17,7 @@ Single `:app` module. Kotlin + Jetpack Compose (Material 3), Hilt for DI (KSP �
 
 ## Architecture
 
-**Key principles (from `specs/SPEC-001-APP-STRUCTURE.md`):**
+**Key principles (recorded in `docs/adr/` — ADR-0004 for the architecture shape):**
 - SOLID: depend on abstractions (repository interfaces), single-responsibility use cases
 - KISS: flat packages, no mapper classes, no base classes, no sealed `Result<>` wrappers
 - DDD: domain models are pure Kotlin data classes — zero framework imports
@@ -381,12 +381,10 @@ All repository and service implementations are `@Singleton` scoped.
 
 ---
 
-## Specifications
+## Specifications & decisions
 
-Two homes — read the relevant spec before feature work; they define intended behaviour and non-goals:
-
-- `specs/SPEC-00x` — the early core specs: app structure (SPEC-001, as amended by ADR-0001), onboarding, theme, notification architecture, partner sharing, partner bottle feeds.
-- `docs/superpowers/specs/` — the de-facto specs for everything shipped since ~May 2026 (vaccines, doctor visits, diaper, growth/milestones, pumping/inventory, widgets, tiles, export, trends, sleep prediction, i18n, …). Dated filenames — search by feature keyword.
+- `docs/adr/` — architectural decision records. The early core specs (app structure, notifications, sharing, partner writes) were retired into ADRs 0001–0005; the originals are in git history (`specs/SPEC-00x`, removed 2026-07).
+- `docs/superpowers/specs/` — the de-facto specs for everything shipped since ~May 2026 (vaccines, doctor visits, diaper, growth/milestones, pumping/inventory, widgets, tiles, export, trends, sleep prediction, i18n, …). Dated filenames — search by feature keyword. Read the relevant spec before feature work; they define intended behaviour and non-goals.
 
 ---
 
