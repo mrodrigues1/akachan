@@ -32,8 +32,8 @@ data class BreastfeedingSession(
 
     /**
      * Which breast to offer next, or null while the session is in progress: the side that was used
-     * less last time. Pause time is subtracted via [sideDurationsUntil], so a paused feed doesn't
-     * inflate the side it happened on.
+     * less last time. Pause time is subtracted via [sideDurationsUntil], but attribution is
+     * per-session, not per-side — see the ceiling comment there for how that can skew the pick.
      */
     fun recommendedNextSide(): BreastSide? {
         val end = endTime ?: return null
@@ -49,6 +49,10 @@ data class BreastfeedingSession(
         }
     }
 
+    // ponytail: pausedDurationMs is session-wide, so the whole pause is charged to the second
+    // side (or the only side) — a pause taken before the switch over-counts the first side and
+    // under-counts the second, skewing recommendedNextSide(). Split into firstSide/secondSide
+    // paused ms folded at resume based on switchTime if pause-before-switch becomes a real pattern.
     fun sideDurationsUntil(until: Instant): Pair<Duration, Duration?> {
         val effectiveUntil = endTime ?: until
         val pausedDuration = Duration.ofMillis(pausedDurationMs)
