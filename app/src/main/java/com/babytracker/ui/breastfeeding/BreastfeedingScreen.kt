@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -49,13 +48,10 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -70,12 +66,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -117,10 +110,6 @@ import com.babytracker.util.formatTime12h
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 
 private val EaseOutQuart = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
@@ -241,14 +230,20 @@ fun BreastfeedingScreen(
                 if (session != null) {
                     ActiveSessionContent(
                         session = session,
-                        uiState = uiState,
-                        viewModel = viewModel,
+                        maxTotalFeedMinutes = uiState.maxTotalFeedMinutes,
+                        currentSide = uiState.currentSide,
+                        onSwitchSide = viewModel::onSwitchSide,
                     )
                 } else {
                     IdleSessionContent(
-                        uiState = uiState,
-                        viewModel = viewModel,
+                        lastFeedingSummary = uiState.lastFeedingSummary,
+                        selectedSide = uiState.selectedSide,
+                        nextFeedPrediction = uiState.nextFeedPrediction,
+                        onSideSelected = viewModel::onSideSelected,
                         onStartSession = ::onStartSessionWithPermission,
+                        onEditSession = viewModel::onEditSessionClick,
+                        onDeleteSession = viewModel::onPendingDeleteSessionChanged,
+                        onAddEntryClick = viewModel::onAddEntryClick,
                     )
                 }
             }
@@ -274,97 +269,37 @@ fun BreastfeedingScreen(
     }
 
     if (uiState.showManualEntrySheet) {
-        ModalBottomSheet(
-            onDismissRequest = viewModel::onDismissManualEntry,
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        ) {
-            AddFeedEntrySheetContent(
-                uiState = uiState,
-                onDateChanged = { viewModel.onManualEntryChanged(date = it) },
-                onTimeChanged = { target, time ->
-                    when (target) {
-                        FeedTimePickerTarget.ENTRY_START -> viewModel.onManualEntryChanged(startTime = time)
-                        FeedTimePickerTarget.ENTRY_END -> viewModel.onManualEntryChanged(endTime = time)
-                    }
-                },
-                onSave = viewModel::onSaveManualEntry,
-            )
-        }
+        AddFeedEntrySheet(
+            uiState = uiState,
+            onDismiss = viewModel::onDismissManualEntry,
+            onDateChanged = { viewModel.onManualEntryChanged(date = it) },
+            onTimeChanged = { target, time ->
+                when (target) {
+                    FeedTimePickerTarget.ENTRY_START -> viewModel.onManualEntryChanged(startTime = time)
+                    FeedTimePickerTarget.ENTRY_END -> viewModel.onManualEntryChanged(endTime = time)
+                }
+            },
+            onSave = viewModel::onSaveManualEntry,
+        )
     }
 
     if (showStopConfirmation) {
-        ModalBottomSheet(
-            onDismissRequest = { showStopConfirmation = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            shape = MaterialTheme.shapes.large,
-            containerColor = MaterialTheme.colorScheme.surface,
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .padding(top = 8.dp, bottom = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Stop,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(32.dp),
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = stringResource(R.string.breastfeeding_stop_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.breastfeeding_stop_message),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(
-                    onClick = {
-                        showStopConfirmation = false
-                        viewModel.onStopSession()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.extraLarge,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError,
-                    ),
-                ) {
-                    Text(
-                        stringResource(R.string.breastfeeding_stop_confirm),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                TextButton(
-                    onClick = { showStopConfirmation = false },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.extraLarge,
-                ) {
-                    Text(
-                        stringResource(R.string.breastfeeding_stop_dismiss),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-            }
-        }
+        StopSessionConfirmationSheet(
+            onConfirm = {
+                showStopConfirmation = false
+                viewModel.onStopSession()
+            },
+            onDismiss = { showStopConfirmation = false },
+        )
     }
 }
 
 @Composable
 private fun ActiveSessionContent(
     session: BreastfeedingSession,
-    uiState: BreastfeedingUiState,
-    viewModel: BreastfeedingViewModel,
+    maxTotalFeedMinutes: Int,
+    currentSide: BreastSide?,
+    onSwitchSide: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -376,8 +311,9 @@ private fun ActiveSessionContent(
 
         FeedingSessionHero(
             session = session,
-            uiState = uiState,
-            onSwitchSide = viewModel::onSwitchSide,
+            maxTotalFeedMinutes = maxTotalFeedMinutes,
+            currentSide = currentSide,
+            onSwitchSide = onSwitchSide,
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -387,7 +323,8 @@ private fun ActiveSessionContent(
 @Composable
 private fun FeedingSessionHero(
     session: BreastfeedingSession,
-    uiState: BreastfeedingUiState,
+    maxTotalFeedMinutes: Int,
+    currentSide: BreastSide?,
     onSwitchSide: () -> Unit,
 ) {
     var sideDurations by remember(
@@ -436,8 +373,8 @@ private fun FeedingSessionHero(
             startTimeMillis = session.startTime.toEpochMilli() + session.pausedDurationMs,
             isRunning = !session.isPaused,
             frozenElapsedSeconds = frozenElapsedSeconds,
-            maxDurationSeconds = if (uiState.maxTotalFeedMinutes > 0) {
-                uiState.maxTotalFeedMinutes * 60
+            maxDurationSeconds = if (maxTotalFeedMinutes > 0) {
+                maxTotalFeedMinutes * 60
             } else {
                 0
             },
@@ -450,7 +387,7 @@ private fun FeedingSessionHero(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             listOf(BreastSide.LEFT, BreastSide.RIGHT).forEach { side ->
-                val isCurrentSide = side == (uiState.currentSide ?: session.startingSide)
+                val isCurrentSide = side == (currentSide ?: session.startingSide)
                 val duration = if (side == session.startingSide) {
                     sideDurations.first
                 } else {
@@ -721,17 +658,15 @@ private fun ActiveSessionBottomBar(
 
 @Composable
 private fun IdleSessionContent(
-    uiState: BreastfeedingUiState,
-    viewModel: BreastfeedingViewModel,
+    lastFeedingSummary: LastFeedingSummaryState,
+    selectedSide: BreastSide?,
+    nextFeedPrediction: FeedPrediction?,
+    onSideSelected: (BreastSide) -> Unit,
     onStartSession: () -> Unit,
+    onEditSession: (BreastfeedingSession) -> Unit,
+    onDeleteSession: (BreastfeedingSession) -> Unit,
+    onAddEntryClick: () -> Unit,
 ) {
-    val summary = uiState.lastFeedingSummary
-    LaunchedEffect(summary, uiState.selectedSide) {
-        if (summary is LastFeedingSummaryState.Populated && uiState.selectedSide == null) {
-            viewModel.onSideSelected(summary.nextRecommendedSide)
-        }
-    }
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -749,35 +684,35 @@ private fun IdleSessionContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         SideSelector(
-            selectedSide = uiState.selectedSide,
-            onSideSelected = viewModel::onSideSelected,
+            selectedSide = selectedSide,
+            onSideSelected = onSideSelected,
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
             onClick = onStartSession,
-            enabled = uiState.selectedSide != null,
+            enabled = selectedSide != null,
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.extraLarge,
         ) {
             Text(stringResource(R.string.breastfeeding_start_session), style = MaterialTheme.typography.labelLarge)
         }
 
-        if (summary is LastFeedingSummaryState.Populated) {
+        if (lastFeedingSummary is LastFeedingSummaryState.Populated) {
             Spacer(modifier = Modifier.height(24.dp))
             LastFeedingSummaryCard(
-                summary = summary,
-                prediction = uiState.nextFeedPrediction,
-                onEditSession = viewModel::onEditSessionClick,
-                onDeleteSession = viewModel::onPendingDeleteSessionChanged,
+                summary = lastFeedingSummary,
+                prediction = nextFeedPrediction,
+                onEditSession = onEditSession,
+                onDeleteSession = onDeleteSession,
             )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
         OutlinedButton(
-            onClick = viewModel::onAddEntryClick,
+            onClick = onAddEntryClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 48.dp),
@@ -990,280 +925,6 @@ private fun LastFeedSideRow(
             )
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun AddFeedEntrySheetContent(
-    uiState: BreastfeedingUiState,
-    onDateChanged: (LocalDate) -> Unit,
-    onTimeChanged: (FeedTimePickerTarget, LocalTime) -> Unit,
-    onSave: (BreastSide) -> Unit,
-) {
-    val timeFormatter = remember { DateTimeFormatter.ofPattern("h:mm a").withLocale(java.util.Locale.getDefault()) }
-    val dateFormatter = remember { DateTimeFormatter.ofPattern("EEE, MMM d").withLocale(java.util.Locale.getDefault()) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var activePicker by remember { mutableStateOf<FeedTimePickerTarget?>(null) }
-    var selectedSide by remember { mutableStateOf(uiState.manualEntrySide) }
-    val changeDateDescription = stringResource(R.string.change_date)
-    val changeStartTimeDescription = stringResource(R.string.change_start_time)
-    val changeEndTimeDescription = stringResource(R.string.change_end_time)
-
-    activePicker?.let { target ->
-        val initial = when (target) {
-            FeedTimePickerTarget.ENTRY_START -> uiState.manualEntryStartTime
-            FeedTimePickerTarget.ENTRY_END -> uiState.manualEntryEndTime
-        }
-        FeedTimePickerDialog(
-            initialTime = initial,
-            onConfirm = {
-                onTimeChanged(target, it)
-                activePicker = null
-            },
-            onDismiss = { activePicker = null },
-        )
-    }
-
-    if (showDatePicker) {
-        val initialMillis = uiState.manualEntryDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    val millis = datePickerState.selectedDateMillis ?: return@TextButton
-                    val picked = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
-                    onDateChanged(picked)
-                    showDatePicker = false
-                }) { Text(stringResource(R.string.ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel)) }
-            },
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .imePadding()
-            .padding(horizontal = 16.dp)
-            .padding(top = 8.dp)
-            .padding(bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Text(
-            text = stringResource(R.string.breastfeeding_add_title),
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.semantics { heading() },
-        )
-
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = stringResource(R.string.label_date),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            OutlinedCard(
-                onClick = { showDatePicker = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .semantics { contentDescription = changeDateDescription },
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-            ) {
-                Text(
-                    text = uiState.manualEntryDate.format(dateFormatter),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                )
-            }
-        }
-
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = stringResource(R.string.breastfeeding_starting_side),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            SideSelector(
-                selectedSide = selectedSide,
-                onSideSelected = { selectedSide = it },
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.label_start_time),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                OutlinedCard(
-                    onClick = { activePicker = FeedTimePickerTarget.ENTRY_START },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 48.dp)
-                        .semantics { contentDescription = changeStartTimeDescription },
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                ) {
-                    Text(
-                        text = uiState.manualEntryStartTime.format(timeFormatter),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                    )
-                }
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.label_end_time),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                OutlinedCard(
-                    onClick = { activePicker = FeedTimePickerTarget.ENTRY_END },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 48.dp)
-                        .semantics { contentDescription = changeEndTimeDescription },
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                ) {
-                    Text(
-                        text = uiState.manualEntryEndTime.format(timeFormatter),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                    )
-                }
-            }
-        }
-
-        val canSave = uiState.manualEntryDurationPreview != null && uiState.manualEntryError == null
-
-        when {
-            uiState.manualEntryError != null -> {
-                Card(
-                    shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                    ),
-                ) {
-                    Text(
-                        text = stringResource(R.string.breastfeeding_manual_error, uiState.manualEntryError.orEmpty()),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                    )
-                }
-            }
-            uiState.manualEntryDurationPreview == null -> {
-                Card(
-                    shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    ),
-                ) {
-                    Text(
-                        text = stringResource(R.string.breastfeeding_manual_pick_times),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                    )
-                }
-            }
-            else -> {
-                Card(
-                    shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    ),
-                ) {
-                    Text(
-                        text = stringResource(
-                            R.string.breastfeeding_manual_duration,
-                            uiState.manualEntryDurationPreview.formatDuration(),
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                    )
-                }
-            }
-        }
-
-        Button(
-            onClick = { onSave(selectedSide) },
-            enabled = canSave,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 52.dp),
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-            ),
-        ) {
-            Text(
-                stringResource(R.string.breastfeeding_manual_save, stringResource(selectedSide.labelRes())),
-                style = MaterialTheme.typography.titleSmall,
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun FeedTimePickerDialog(
-    initialTime: LocalTime,
-    onConfirm: (LocalTime) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val context = LocalContext.current
-    val timePickerState = rememberTimePickerState(
-        initialHour = initialTime.hour,
-        initialMinute = initialTime.minute,
-        is24Hour = android.text.format.DateFormat.is24HourFormat(context),
-    )
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                onConfirm(LocalTime.of(timePickerState.hour, timePickerState.minute))
-            }) { Text(stringResource(R.string.ok)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-        },
-        text = { TimePicker(state = timePickerState) },
-    )
 }
 
 internal enum class StartSessionAction {
