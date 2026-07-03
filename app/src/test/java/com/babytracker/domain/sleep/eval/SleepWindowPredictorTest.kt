@@ -244,6 +244,61 @@ class SleepWindowPredictorTest {
     }
 
     @Test
+    fun `resolveNextSleepType returns NAP when nap budget is spent but the clock is far from bedtime`() {
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        ).copy(lastSleepType = SleepType.NAP, napCountToday = 2, medianBedtimeMinuteOfDay = 19 * 60 + 30)
+        assertEquals(
+            SleepType.NAP,
+            SleepWindowPredictor.resolveNextSleepType(metrics, ageInWeeks, currentMinuteOfDay = 11 * 60),
+            "A front-loaded nap day at 11:00 must not anchor bedtime on an early-afternoon wake",
+        )
+    }
+
+    @Test
+    fun `resolveNextSleepType returns NIGHT_SLEEP when nap budget is spent near bedtime`() {
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        ).copy(lastSleepType = SleepType.NAP, napCountToday = 2, medianBedtimeMinuteOfDay = 19 * 60 + 30)
+        assertEquals(
+            SleepType.NIGHT_SLEEP,
+            SleepWindowPredictor.resolveNextSleepType(metrics, ageInWeeks, currentMinuteOfDay = 18 * 60),
+        )
+    }
+
+    @Test
+    fun `resolveNextSleepType gates the spent nap budget on the prior bedtime when none is learned`() {
+        // 20w prior bedtime window 19:00-20:00 → midpoint 19:30; reachable ahead = 6h (MAX_PLAUSIBLE_WAKE_INTERVAL).
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        ).copy(lastSleepType = SleepType.NAP, napCountToday = 2, medianBedtimeMinuteOfDay = null)
+        assertEquals(
+            SleepType.NAP,
+            SleepWindowPredictor.resolveNextSleepType(metrics, ageInWeeks, currentMinuteOfDay = 11 * 60),
+        )
+        assertEquals(
+            SleepType.NIGHT_SLEEP,
+            SleepWindowPredictor.resolveNextSleepType(metrics, ageInWeeks, currentMinuteOfDay = 18 * 60),
+        )
+    }
+
+    @Test
+    fun `resolveNextSleepType returns NIGHT_SLEEP after NIGHT_SLEEP when the clock is inside the bedtime window`() {
+        val metrics = sufficientMetrics(
+            lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),
+            medianIntervalMillis = Duration.ofMinutes(90).toMillis(),
+        ).copy(lastSleepType = SleepType.NIGHT_SLEEP, napCountToday = 0, medianBedtimeMinuteOfDay = 19 * 60 + 30)
+        assertEquals(
+            SleepType.NIGHT_SLEEP,
+            SleepWindowPredictor.resolveNextSleepType(metrics, ageInWeeks, currentMinuteOfDay = 20 * 60),
+            "An edited night record ending in the evening must keep bedtime priors, not nap priors",
+        )
+    }
+
+    @Test
     fun `resolveNextSleepType returns NAP after midnight when napCountToday resets to zero`() {
         val metrics = sufficientMetrics(
             lastWakeMillis = baseNow.minusSeconds(3600).toEpochMilli(),

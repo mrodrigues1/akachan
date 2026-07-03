@@ -169,21 +169,64 @@ object SleepWindowPredictor {
         ageInWeeks: Int,
         currentMinuteOfDay: Int? = null,
     ): SleepType = when (metrics.lastSleepType) {
-        SleepType.NIGHT_SLEEP -> SleepType.NAP
-        SleepType.NAP -> {
-            val expected = SleepAgePriors.getScheduledNapCount(ageInWeeks)
-            if (metrics.napCountToday >= expected) {
-                SleepType.NIGHT_SLEEP
-            } else if (isWithinLearnedBedtimeCutoff(currentMinuteOfDay, metrics.medianBedtimeMinuteOfDay, ageInWeeks)) {
+        // A completed night sleep normally hands off to the first nap, but when the clock is still
+        // near bedtime (false-start night sleep, record edited to end in the evening) the upcoming
+        // sleep is bedtime again — nap priors would target far too short a wake window.
+        SleepType.NIGHT_SLEEP ->
+            if (isWithinBedtimeCutoff(currentMinuteOfDay, bedtimeMinuteOrPrior(metrics, ageInWeeks), ageInWeeks)) {
                 SleepType.NIGHT_SLEEP
             } else {
                 SleepType.NAP
+            }
+        SleepType.NAP -> {
+            val expected = SleepAgePriors.getScheduledNapCount(ageInWeeks)
+            when {
+                // A spent nap budget only means bedtime-next when bedtime is plausibly the next
+                // sleep from here: a front-loaded nap day (two naps done by 11:00) must not anchor
+                // "bedtime" on an early-afternoon wake.
+                metrics.napCountToday >= expected ->
+                    if (isBedtimeReachable(currentMinuteOfDay, bedtimeMinuteOrPrior(metrics, ageInWeeks), ageInWeeks)) {
+                        SleepType.NIGHT_SLEEP
+                    } else {
+                        SleepType.NAP
+                    }
+                // Skipped-nap routing stays learned-only: without observed bedtimes a missing nap
+                // is not evidence for an early night.
+                isWithinBedtimeCutoff(currentMinuteOfDay, metrics.medianBedtimeMinuteOfDay, ageInWeeks) ->
+                    SleepType.NIGHT_SLEEP
+                else -> SleepType.NAP
             }
         }
         null -> SleepType.NAP
     }
 
-    private fun isWithinLearnedBedtimeCutoff(
+    /** Learned median bedtime when available, else the age-prior bedtime-window midpoint (priors never wrap midnight). */
+    private fun bedtimeMinuteOrPrior(metrics: SleepMetrics, ageInWeeks: Int): Int =
+        metrics.medianBedtimeMinuteOfDay ?: SleepAgePriors.getBedtimeWindow(ageInWeeks).let {
+            (it.start.toSecondOfDay() + it.endInclusive.toSecondOfDay()) / 2 / 60
+        }
+
+    /**
+     * Whether bedtime is plausibly the next sleep from [currentMinuteOfDay]: it lies within the
+     * longest believable wake stretch ahead (MAX_PLAUSIBLE_WAKE_INTERVAL_HOURS — predictions are
+     * made at wake time, naturally a full wake-window before bedtime), or is at most one nap
+     * wake-window behind. A null clock (eval/test callers) keeps the count-based switch.
+     */
+    private fun isBedtimeReachable(
+        currentMinuteOfDay: Int?,
+        bedtimeMinuteOfDay: Int,
+        ageInWeeks: Int,
+    ): Boolean {
+        if (currentMinuteOfDay == null) return true
+        val reachAheadMinutes = Duration.ofHours(SleepPredictionTuning.MAX_PLAUSIBLE_WAKE_INTERVAL_HOURS).toMinutes().toInt()
+        val graceBehindMinutes = SleepAgePriors.getNapWakeWindowMidpoint(ageInWeeks).toMinutes().toInt()
+        val minutesUntilBedtime = (bedtimeMinuteOfDay - currentMinuteOfDay + MINUTES_PER_DAY) % MINUTES_PER_DAY
+        val minutesSinceBedtime = (currentMinuteOfDay - bedtimeMinuteOfDay + MINUTES_PER_DAY) % MINUTES_PER_DAY
+        return minutesUntilBedtime <= reachAheadMinutes || minutesSinceBedtime <= graceBehindMinutes
+    }
+
+    /** Whether [currentMinuteOfDay] is within one nap wake-window of bedtime, either side. */
+    private fun isWithinBedtimeCutoff(
         currentMinuteOfDay: Int?,
         bedtimeMinuteOfDay: Int?,
         ageInWeeks: Int,
