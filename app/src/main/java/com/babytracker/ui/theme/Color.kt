@@ -138,6 +138,17 @@ val OnMilestonePurpleDark = Purple900
 val BottleFeedGreen = Color(0xFF388E3C)      // Material Green 700 — light scheme
 val BottleFeedGreenDark = Color(0xFF81C784)  // Material Green 300 — brighter on dark surfaces
 
+// ─── Feed history row tint (extended, non-M3) ────────────────
+// Soft, desaturated pink row background for breastfeeding/bottle/pumping history cards —
+// deliberately softer than PrimaryContainerPink so it doesn't compete with the vivid
+// M3 primaryContainer badge in the same row. Content color reuses the existing Pink900
+// (light) / Pink200 (dark) semantic tokens directly — no new content token needed.
+// Accessed as top-level vals, NOT via colorScheme. Consumed by FeedHistoryCard
+// (BreastfeedingHistoryScreen), PumpingHistoryContent (PumpingHistoryScreen), and
+// BottleFeedHistoryCard/BreastfeedingFeedHistoryCard (UnifiedFeedingHistoryScreen).
+val FeedHistoryRowContainer = Color(0xFFFCE4EC)     // no scale equivalent — light scheme
+val FeedHistoryRowContainerDark = Color(0xFF4A2A38) // no scale equivalent — dark scheme
+
 // ─── Raw palette — Growth / Teal ─────────────────────────────
 // Extended (non-M3) accent. Teal conveys growth/vitality and stays clear of the
 // forest-green Success/Tertiary token. Scale semantics match Pink/Blue/Green

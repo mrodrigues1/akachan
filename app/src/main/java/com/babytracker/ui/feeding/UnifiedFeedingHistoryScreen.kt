@@ -33,7 +33,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -61,6 +60,8 @@ import com.babytracker.ui.component.DeleteConfirmationDialog
 import com.babytracker.ui.component.EditDeleteOverflowMenu
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.HistoryDayHeader
+import com.babytracker.ui.theme.FeedHistoryRowContainer
+import com.babytracker.ui.theme.FeedHistoryRowContainerDark
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.Pink200
 import com.babytracker.ui.theme.Pink900
@@ -300,7 +301,7 @@ internal fun BottleFeedHistoryCard(
         badgeColor = MaterialTheme.colorScheme.primaryContainer,
         badgeContent = { BottleFeedIcon(modifier = Modifier.size(34.dp)) },
         containerColor = if (editable) {
-            if (isDark) Color(0xFF4A2A38) else Color(0xFFFCE4EC)
+            if (isDark) FeedHistoryRowContainerDark else FeedHistoryRowContainer
         } else {
             MaterialTheme.colorScheme.surface
         },
@@ -337,7 +338,7 @@ internal fun BreastfeedingFeedHistoryCard(
         trailing = session.activeDuration?.formatDuration() ?: stringResource(R.string.label_in_progress),
         badgeColor = MaterialTheme.colorScheme.primaryContainer,
         badgeContent = { BreastfeedingIcon(modifier = Modifier.size(34.dp)) },
-        containerColor = if (isDark) Color(0xFF4A2A38) else Color(0xFFFCE4EC),
+        containerColor = if (isDark) FeedHistoryRowContainerDark else FeedHistoryRowContainer,
         titleColor = rowText,
         subtitleColor = rowText.copy(alpha = 0.7f),
         trailingColor = rowText,
