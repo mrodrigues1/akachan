@@ -10,13 +10,17 @@ import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneOffset
 
 class ResumeBreastfeedingSessionUseCaseTest {
 
     private val now = Instant.parse("2026-01-15T10:00:00Z")
+    private val clock = Clock.fixed(now, ZoneOffset.UTC)
 
     private lateinit var repository: BreastfeedingRepository
     private lateinit var useCase: ResumeBreastfeedingSessionUseCase
@@ -24,7 +28,7 @@ class ResumeBreastfeedingSessionUseCaseTest {
     @BeforeEach
     fun setUp() {
         repository = mockk()
-        useCase = ResumeBreastfeedingSessionUseCase(repository) { now }
+        useCase = ResumeBreastfeedingSessionUseCase(repository, clock)
     }
 
     @Test
@@ -35,8 +39,9 @@ class ResumeBreastfeedingSessionUseCaseTest {
             startingSide = BreastSide.LEFT
         )
 
-        useCase(session)
+        val result = useCase(session)
 
+        assertSame(session, result)
         coVerify(exactly = 0) { repository.updateSession(any()) }
     }
 
@@ -68,9 +73,10 @@ class ResumeBreastfeedingSessionUseCaseTest {
         val slot = slot<BreastfeedingSession>()
         coJustRun { repository.updateSession(capture(slot)) }
 
-        useCase(session)
+        val result = useCase(session)
 
         assertEquals(40_000L, slot.captured.pausedDurationMs)
+        assertEquals(40_000L, result.pausedDurationMs)
     }
 
     @Test
@@ -85,9 +91,11 @@ class ResumeBreastfeedingSessionUseCaseTest {
         val slot = slot<BreastfeedingSession>()
         coJustRun { repository.updateSession(capture(slot)) }
 
-        useCase(session)
+        val result = useCase(session)
 
         assertEquals(10_000L, slot.captured.pausedDurationMs)
         assertNull(slot.captured.pausedAt)
+        assertEquals(10_000L, result.pausedDurationMs)
+        assertNull(result.pausedAt)
     }
 }

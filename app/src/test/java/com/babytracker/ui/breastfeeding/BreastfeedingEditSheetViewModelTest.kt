@@ -33,7 +33,9 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneOffset
 import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -87,6 +89,8 @@ class BreastfeedingEditSheetViewModelTest {
         every { appContext.getString(R.string.error_bf_delete) } returns "Could not delete session. Please try again."
     }
 
+    private val clock = Clock.fixed(Instant.parse("2026-01-15T10:00:00Z"), ZoneOffset.UTC)
+
     private fun viewModel() = BreastfeedingViewModel(
         appContext,
         BreastfeedingSessionController(
@@ -96,6 +100,7 @@ class BreastfeedingEditSheetViewModelTest {
             resumeSessionUseCase = resumeSession,
             notificationCoordinator = notificationCoordinator,
             syncedWrite = SyncedWrite(syncToFirestore),
+            clock = clock,
         ),
         updateSession, repository, feedSettingsRepository,
         notificationCoordinator, SyncedWrite(syncToFirestore), predictNextFeed,

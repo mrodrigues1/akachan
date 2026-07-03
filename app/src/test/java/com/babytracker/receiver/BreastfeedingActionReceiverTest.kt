@@ -25,9 +25,13 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneOffset
 
 class BreastfeedingActionReceiverTest {
+
+    private val clock = Clock.fixed(Instant.parse("2026-01-15T10:00:00Z"), ZoneOffset.UTC)
 
     private lateinit var repository: BreastfeedingRepository
     private lateinit var switchSide: SwitchBreastfeedingSideUseCase
@@ -64,19 +68,21 @@ class BreastfeedingActionReceiverTest {
             resumeSessionUseCase = resumeSession,
             notificationCoordinator = notificationCoordinator,
             syncedWrite = SyncedWrite(syncToFirestore),
+            clock = clock,
         )
 
         coEvery { repository.getActiveSession() } returns flowOf(activeSession)
         coEvery { syncToFirestore(any()) } returns Unit
-        coEvery { pauseSession(any()) } returns Unit
-        coEvery { resumeSession(any()) } returns Unit
+        // Default fakes mirror the real use cases' persisted-session-return contract (AKACHAN-339).
+        coEvery { pauseSession(any()) } answers { firstArg<BreastfeedingSession>().copy(pausedAt = clock.instant()) }
+        coEvery { resumeSession(any()) } answers { firstArg<BreastfeedingSession>().copy(pausedAt = null) }
         coEvery { notificationCoordinator.rearmPerBreastAfterSwitch(any()) } returns Unit
         every { notificationCoordinator.cancelScheduled() } returns Unit
         every { notificationCoordinator.cancelPostedSessionNotifications() } returns Unit
         every { notificationCoordinator.cancelAllSessionNotifications() } returns Unit
         coEvery { notificationCoordinator.showPaused(any(), any()) } returns Unit
         coEvery { notificationCoordinator.showRunning(any(), any()) } returns Unit
-        coEvery { notificationCoordinator.rescheduleAfterResume(any(), any()) } returns 60_000L
+        coEvery { notificationCoordinator.rescheduleAfterResume(any(), any(), any()) } returns 60_000L
         coEvery { notificationCoordinator.rearmAfterKeepGoing(any()) } returns Unit
         mockkObject(NotificationHelper)
         every { NotificationHelper.cancelNotification(any(), any()) } returns Unit
@@ -87,7 +93,7 @@ class BreastfeedingActionReceiverTest {
 
     @Test
     fun `ACTION_SWITCH calls switchSide, refreshes active notification with new side, and cancels switch-side notification`() = runTest {
-        coEvery { switchSide(activeSession) } returns Unit
+        coEvery { switchSide(activeSession) } returns activeSession.copy(switchTime = clock.instant())
 
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_SWITCH, 42L))
 
@@ -108,7 +114,7 @@ class BreastfeedingActionReceiverTest {
     fun `ACTION_SWITCH does not refresh notification when already switched`() = runTest {
         val alreadySwitchedSession = activeSession.copy(switchTime = Instant.now().minusSeconds(60))
         coEvery { repository.getActiveSession() } returns flowOf(alreadySwitchedSession)
-        coEvery { switchSide(alreadySwitchedSession) } returns Unit
+        coEvery { switchSide(alreadySwitchedSession) } returns alreadySwitchedSession
 
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_SWITCH, 42L))
 
@@ -143,7 +149,8 @@ class BreastfeedingActionReceiverTest {
 
         coVerify { pauseSession(activeSession) }
         verify { notificationCoordinator.cancelScheduled() }
-        coVerify { notificationCoordinator.showPaused(activeSession, any()) }
+        // The receiver's controller passes the persisted (paused) session, not the pre-pause one.
+        coVerify { notificationCoordinator.showPaused(match { it.id == activeSession.id && it.pausedAt != null }, any()) }
         coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
     }
 
@@ -173,13 +180,19 @@ class BreastfeedingActionReceiverTest {
     fun `ACTION_RESUME resumes paused session reschedules alarms and shows running notification`() = runTest {
         val pausedSession = activeSession.copy(pausedAt = Instant.now().minusSeconds(30))
         coEvery { repository.getActiveSession() } returns flowOf(pausedSession)
-        coEvery { notificationCoordinator.rescheduleAfterResume(pausedSession, any()) } returns 30_000L
+        coEvery { notificationCoordinator.rescheduleAfterResume(pausedSession, any(), any()) } returns 30_000L
 
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_RESUME, 42L))
 
         coVerify { resumeSession(pausedSession) }
-        coVerify { notificationCoordinator.rescheduleAfterResume(pausedSession, any()) }
-        coVerify { notificationCoordinator.showRunning(pausedSession, pausedDurationMs = 30_000L) }
+        coVerify { notificationCoordinator.rescheduleAfterResume(pausedSession, any(), any()) }
+        // The receiver's controller passes the persisted (resumed) session, not the pre-resume one.
+        coVerify {
+            notificationCoordinator.showRunning(
+                match { it.id == pausedSession.id && it.pausedAt == null },
+                pausedDurationMs = 30_000L
+            )
+        }
         coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
     }
 
@@ -191,7 +204,7 @@ class BreastfeedingActionReceiverTest {
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_RESUME, 999L))
 
         coVerify(exactly = 0) { resumeSession(any()) }
-        coVerify(exactly = 0) { notificationCoordinator.rescheduleAfterResume(any(), any()) }
+        coVerify(exactly = 0) { notificationCoordinator.rescheduleAfterResume(any(), any(), any()) }
         coVerify(exactly = 0) { notificationCoordinator.showRunning(any(), any()) }
     }
 
@@ -200,7 +213,7 @@ class BreastfeedingActionReceiverTest {
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_RESUME, 42L))
 
         coVerify(exactly = 0) { resumeSession(any()) }
-        coVerify(exactly = 0) { notificationCoordinator.rescheduleAfterResume(any(), any()) }
+        coVerify(exactly = 0) { notificationCoordinator.rescheduleAfterResume(any(), any(), any()) }
         coVerify(exactly = 0) { notificationCoordinator.showRunning(any(), any()) }
     }
 
