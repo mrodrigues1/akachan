@@ -97,43 +97,77 @@ sed -n '120,220p' path/to/file
 
 Run commands from the repo root. On Windows PowerShell, use `.\gradlew.bat` if `./gradlew` does not execute.
 
-### Default checks
+### Gradle rules — read before running any build
+
+1. **Always pass `--no-daemon`, and run Gradle with the Bash sandbox disabled.** The sandboxed Bash tool kills the persistent daemon the moment the test JVM forks — the build dies with `Gradle build daemon has been stopped: stop command received`. That is a harness kill, **not** a test failure. `--no-daemon` also guarantees no daemon is left behind for the next session.
+2. **Never run two Gradle builds concurrently.** A second invocation stops the first one's daemon (same "stop command received" error). Before starting a build, be sure no earlier one is still running. `./gradlew --status` lists daemons; `./gradlew --stop` cleans up stale ones.
+3. **Set the tool timeout to 10 minutes (600000 ms) up front and wait for the result.** Never kill a running build to retry it with a bigger timeout — the first run was likely fine, and the retry collides with it (rule 2). If a run can exceed 10 min (full connected suite, `build`), run it in the background and wait for the completion notification.
+4. **Don't trust exit codes through pipes.** `./gradlew ... | tail` reports tail's exit code (always 0) even when the build failed. Append `; echo "EXIT:${PIPESTATUS[0]}"` in bash, or read the `BUILD SUCCESSFUL` / `BUILD FAILED` line.
+
+### Running tests — one command per test type
+
+| Test type | Source | Command (all get `--no-daemon`) |
+|-----------|--------|---------------------------------|
+| Unit — full suite, dev loop | `app/src/test/` | `./gradlew :app:testDebugUnitTest -PfastTests --no-daemon` |
+| Unit — full suite, pre-commit | `app/src/test/` | `./gradlew :app:testDebugUnitTest --no-daemon` |
+| Unit — single class | | `./gradlew :app:testDebugUnitTest --tests "com.babytracker.util.VolumeExtTest" --no-daemon` |
+| Instrumented — full suite | `app/src/androidTest/` | `./gradlew :app:connectedDebugAndroidTest --no-daemon` (emulator required — see below) |
+| Instrumented — single class | | add `-Pandroid.testInstrumentationRunnerArguments.class=com.babytracker.ui.vaccine.VaccineSheetTest` |
+| Instrumented — single method | | same property with `#methodName` appended to the class FQN |
+| Screenshot — validate | `app/src/screenshotTest/` | `./gradlew :app:validateDebugScreenshotTest --no-daemon` |
+| Screenshot — record new goldens | | `./gradlew :app:updateDebugScreenshotTest --no-daemon` |
+| Firestore rules | `firebase/` | `cd firebase && npm test` — see `firebase/README.md` (incl. the leaked-JVM-on-port-8080 fix) |
+| Coverage gate | | `./gradlew :app:koverVerify --no-daemon` (CI enforces ≥60% line coverage) |
+
+- `-PfastTests` skips the Konsist architecture tests (tagged `architecture`) — the slowest part of the unit suite. Use it in dev loops; drop it for the pre-commit run. CI runs the full suite (`./gradlew test :app:koverVerify`).
+- Durations with a warm cache: single unit class ~20 s; screenshot suite ~35 s; single instrumented class ~1–3 min (includes install); full unit suite several minutes. The full connected suite is long — CI shards it in two; locally run only the classes you touched.
+
+### Emulator (instrumented tests)
+
+An emulator is usually already running — **never claim "no device available" without checking first**:
 
 ```bash
-# Fast validation for most Kotlin changes
-./gradlew test
+adb devices
+```
 
+`adb` is on the Windows user PATH and in `~/.bashrc`. If a stale shell still can't find it, use the full path: `C:/Users/mathe/AppData/Local/Android/Sdk/platform-tools/adb.exe` (from `sdk.dir` in `local.properties`). When passing device paths like `/sdcard/...` in git bash, prefix the command with `MSYS_NO_PATHCONV=1`.
+
+### Known flakes — verify in isolation before chasing
+
+- **Full unit suite:** a *different, unrelated* class fails each run with `Dispatchers.Main was accessed when the test dispatcher was unset` or `UncaughtExceptionsBeforeTest` — main-dispatcher pollution bleeding across classes in the shared JVM fork. Re-run the named class alone with `--tests`; if green, it is pre-existing pollution, not your change.
+- **Instrumented:** `Activity never becomes requested state "[DESTROYED]"` — emulator teardown flake. Re-run the single method in isolation; if green, it was a flake.
+
+### Build validation
+
+```bash
 # Build validation when production code, resources, manifests, DI, Room, or Gradle files changed
-./gradlew build
+./gradlew build --no-daemon
 ```
 
 ### Before commit or PR
 
 ```bash
 # Auto-fix Kotlin formatting
-./gradlew ktlintFormat
+./gradlew ktlintFormat --no-daemon
 
 # Static analysis
-./gradlew detekt
+./gradlew detekt --no-daemon
 
 # Full local validation
-./gradlew build
+./gradlew build --no-daemon
 ```
 
 ### Targeted checks
 
 ```bash
-# Formatting check only
-./gradlew ktlintCheck
-
-# Instrumentation/UI tests; requires emulator or device
-./gradlew connectedAndroidTest
+# Formatting check only (only lints .kts — use ktlintFormat to validate .kt files)
+./gradlew ktlintCheck --no-daemon
 
 # Release bundle validation
-./gradlew bundleRelease
+./gradlew bundleRelease --no-daemon
 ```
 
-If a validation command fails, fix the issue and rerun the same command until it passes. Do not guess validation commands.
+If a validation command fails, read the failing output and fix the cause before rerunning the same command — rerunning without a fix wastes a full build. Do not guess validation commands; every test command needed is listed above.
 
 ---
 
@@ -281,7 +315,7 @@ Use `Validation Commands` for all test, build, formatting, and static-analysis c
 
 Create tests for new features, bug fixes, and edge cases. You do not need to follow strict TDD (test-first); writing tests after the implementation is acceptable. All tests must pass before creating a PR.
 
-**Do not run the full test suite after every task.** After each task, run only the tests related to changed code (e.g., `./gradlew test --tests "com.example.foo.BarTest"`). Run the full suite (`./gradlew test`) only before committing.
+**Do not run the full test suite after every task.** After each task, run only the tests related to changed code (e.g., `./gradlew :app:testDebugUnitTest --tests "com.babytracker.foo.BarTest" --no-daemon`). Run the full suite (`./gradlew :app:testDebugUnitTest --no-daemon`) only before committing.
 
 After the feature is complete, run all tests. If there are any broken tests, fix them and re-run until all pass.
 
