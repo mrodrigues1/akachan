@@ -1,5 +1,6 @@
 package com.babytracker.manager
 
+import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.usecase.breastfeeding.PauseBreastfeedingSessionUseCase
@@ -12,11 +13,12 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Single owner of the running-session control operations (switch, pause, resume, stop): persists
+ * Single owner of the session control operations (start, switch, pause, resume, stop): persists
  * the change, keeps session notifications in step, and pushes the result to the partner snapshot.
- * Called from both [com.babytracker.ui.breastfeeding.BreastfeedingViewModel] (in-app buttons) and
- * [com.babytracker.receiver.BreastfeedingActionReceiver] (notification quick-actions), which used
- * to carry diverging copies of this choreography.
+ * Called from [com.babytracker.ui.breastfeeding.BreastfeedingViewModel] (in-app buttons),
+ * [com.babytracker.receiver.BreastfeedingActionReceiver] (notification quick-actions), and
+ * [com.babytracker.tile.TileToggleHandler] (quick-settings tile), which used to carry diverging
+ * copies of this choreography.
  */
 @Singleton
 class BreastfeedingSessionController @Inject constructor(
@@ -27,6 +29,22 @@ class BreastfeedingSessionController @Inject constructor(
     private val notificationCoordinator: BreastfeedingSessionNotificationCoordinator,
     private val syncedWrite: SyncedWrite,
 ) {
+
+    /**
+     * Starts a new session for [side] via [BreastfeedingRepository.startSessionIfNone], which
+     * guards against a concurrent start with a DB-level unique-active-session constraint. Returns
+     * null without side effects when a session was already active — a benign race, not an error.
+     * A notification failure does not fail the start; the session is still persisted and synced.
+     */
+    suspend fun start(side: BreastSide): BreastfeedingSession? {
+        val session = BreastfeedingSession(startTime = Instant.now(), startingSide = side)
+        val id = repository.startSessionIfNone(session) ?: return null
+        val created = session.copy(id = id)
+        runCatching { notificationCoordinator.scheduleInitial(created) }
+        runCatching { notificationCoordinator.showRunning(created) }
+        syncedWrite.sync(SyncType.SESSIONS)
+        return created
+    }
 
     suspend fun switchSide(session: BreastfeedingSession) {
         switchSideUseCase(session)
@@ -57,25 +75,15 @@ class BreastfeedingSessionController @Inject constructor(
     }
 
     /**
-     * Ends the session, folding any open pause into [BreastfeedingSession.pausedDurationMs] so the
-     * trailing pause is not counted as feeding time. Returns false when persisting the end time
-     * failed, in which case notifications and the partner snapshot are left untouched.
+     * Ends the active session atomically: the DAO re-reads the active row inside a transaction
+     * and folds any open pause into its paused duration so the trailing pause is not counted as
+     * feeding time (AKACHAN-333) — no caller snapshot is trusted for the write. Returns false
+     * when there is no active session or persisting failed, in which case notifications and the
+     * partner snapshot are left untouched.
      */
-    suspend fun stop(session: BreastfeedingSession): Boolean {
-        val endTime = Instant.now()
-        val trailingPauseMs = session.pausedAt
-            ?.let { (endTime.toEpochMilli() - it.toEpochMilli()).coerceAtLeast(0L) }
-            ?: 0L
-        val result = runCatching {
-            repository.updateSession(
-                session.copy(
-                    endTime = endTime,
-                    pausedAt = null,
-                    pausedDurationMs = session.pausedDurationMs + trailingPauseMs,
-                ),
-            )
-        }
-        if (result.isFailure) return false
+    suspend fun stop(): Boolean {
+        val stopped = runCatching { repository.stopActiveSession(Instant.now()) }.getOrDefault(false)
+        if (!stopped) return false
         notificationCoordinator.cancelAllSessionNotifications()
         syncedWrite.sync(SyncType.SESSIONS)
         return true

@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -189,27 +188,17 @@ class BreastfeedingViewModel @Inject constructor(
     fun onStartSession() {
         val side = _uiState.value.selectedSide ?: return
         viewModelScope.launch {
-            val result = runCatching {
-                repository.insertSession(BreastfeedingSession(startTime = Instant.now(), startingSide = side))
-            }
+            val result = runCatching { sessionController.start(side) }
             if (result.isFailure) {
                 _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.error_bf_start))
-                return@launch
             }
-            repository.getActiveSession()
-                .first { it != null }
-                ?.let { session ->
-                    notificationCoordinator.scheduleInitial(session)
-                    notificationCoordinator.showRunning(session)
-                }
-            syncedWrite.sync(SyncType.SESSIONS)
         }
     }
 
     fun onStopSession() {
-        val session = _uiState.value.activeSession ?: return
+        _uiState.value.activeSession ?: return
         viewModelScope.launch {
-            if (!sessionController.stop(session)) {
+            if (!sessionController.stop()) {
                 _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.error_bf_stop))
                 return@launch
             }

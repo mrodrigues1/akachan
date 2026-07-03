@@ -68,7 +68,9 @@ class BreastfeedingActionReceiver : BroadcastReceiver() {
     }
 
     private suspend fun handleStop(sessionId: Long) {
-        activeSession(sessionId)?.let { sessionController.stop(it) }
+        // The id check only validates the intent still targets the active session; the stop
+        // itself re-reads the active row atomically inside the controller/DAO.
+        if (activeSession(sessionId) != null) sessionController.stop()
         notificationCoordinator.cancelPostedSessionNotifications()
     }
 

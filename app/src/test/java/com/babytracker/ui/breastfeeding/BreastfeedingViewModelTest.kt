@@ -104,6 +104,7 @@ class BreastfeedingViewModelTest {
         resumeSession = mockk()
         updateSession = mockk()
         coEvery { repository.insertSession(any()) } returns 1L
+        coEvery { repository.startSessionIfNone(any()) } returns 1L
         coJustRun { pauseSession(any()) }
         coJustRun { resumeSession(any()) }
         coJustRun { syncToFirestore(any()) }
@@ -196,49 +197,54 @@ class BreastfeedingViewModelTest {
         viewModel.onStartSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify(exactly = 0) { repository.insertSession(any()) }
+        coVerify(exactly = 0) { repository.startSessionIfNone(any()) }
     }
 
     @Test
     fun `onStartSession starts session when side is selected`() = runTest {
         viewModel.onSideSelected(BreastSide.LEFT)
 
-        val session = BreastfeedingSession(
-            id = 1L,
-            startTime = Instant.now(),
-            startingSide = BreastSide.LEFT
-        )
-
-        coEvery { repository.insertSession(any()) } answers {
-            activeSessionFlow.value = session
-            1L
-        }
-
         viewModel.onStartSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify(exactly = 1) { repository.insertSession(match { it.startingSide == BreastSide.LEFT }) }
+        coVerify(exactly = 1) { repository.startSessionIfNone(match { it.startingSide == BreastSide.LEFT }) }
     }
 
     @Test
     fun `onStartSession posts active notification with starting side`() = runTest {
         viewModel.onSideSelected(BreastSide.LEFT)
-        val session = BreastfeedingSession(
-            id = 1L,
-            startTime = Instant.now(),
-            startingSide = BreastSide.LEFT
-        )
-        coEvery { repository.insertSession(any()) } answers {
-            activeSessionFlow.value = session
-            1L
-        }
+        coEvery { repository.startSessionIfNone(any()) } returns 1L
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onStartSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { notificationCoordinator.scheduleInitial(session) }
-        coVerify { notificationCoordinator.showRunning(session) }
+        coVerify { notificationCoordinator.scheduleInitial(match { it.id == 1L && it.startingSide == BreastSide.LEFT }) }
+        coVerify { notificationCoordinator.showRunning(match { it.id == 1L && it.startingSide == BreastSide.LEFT }) }
+    }
+
+    @Test
+    fun `onStartSession surfaces error when controller start throws`() = runTest {
+        viewModel.onSideSelected(BreastSide.LEFT)
+        coEvery { repository.startSessionIfNone(any()) } throws RuntimeException("db write failed")
+
+        viewModel.onStartSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("Could not start session. Please try again.", viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `onStartSession does not surface error when a session is already active`() = runTest {
+        viewModel.onSideSelected(BreastSide.LEFT)
+        coEvery { repository.startSessionIfNone(any()) } returns null
+
+        viewModel.onStartSession()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.error)
+        coVerify(exactly = 0) { notificationCoordinator.scheduleInitial(any()) }
+        coVerify(exactly = 0) { notificationCoordinator.showRunning(any()) }
     }
 
     @Test
@@ -250,7 +256,7 @@ class BreastfeedingViewModelTest {
         )
         activeSessionFlow.value = session
         testDispatcher.scheduler.advanceUntilIdle()
-        coJustRun { repository.updateSession(any()) }
+        coEvery { repository.stopActiveSession(any()) } returns true
 
         viewModel.onStopSession()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -267,7 +273,7 @@ class BreastfeedingViewModelTest {
         )
         activeSessionFlow.value = session
         testDispatcher.scheduler.advanceUntilIdle()
-        coEvery { repository.updateSession(any()) } throws RuntimeException("db down")
+        coEvery { repository.stopActiveSession(any()) } throws RuntimeException("db down")
 
         viewModel.onStopSession()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -382,7 +388,7 @@ class BreastfeedingViewModelTest {
         activeSessionFlow.value = session
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coJustRun { repository.updateSession(any()) }
+        coEvery { repository.stopActiveSession(any()) } returns true
         // Just verify the method can be called without error.
 
         // Just verify the method can be called without error
@@ -394,7 +400,7 @@ class BreastfeedingViewModelTest {
         viewModel.onStopSession()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify(exactly = 0) { repository.updateSession(any()) }
+        coVerify(exactly = 0) { repository.stopActiveSession(any()) }
     }
 
     @Test
@@ -505,17 +511,7 @@ class BreastfeedingViewModelTest {
     @Test
     fun `onStartSession schedules notifications only once even when session is updated later`() = runTest {
         viewModel.onSideSelected(BreastSide.LEFT)
-
-        val session = BreastfeedingSession(
-            id = 1L,
-            startTime = Instant.now(),
-            startingSide = BreastSide.LEFT
-        )
-
-        coEvery { repository.insertSession(any()) } answers {
-            activeSessionFlow.value = session
-            1L
-        }
+        coEvery { repository.startSessionIfNone(any()) } returns 1L
 
         // Let the init-block combine emit once so _uiState.maxPerBreastMinutes/maxTotalFeedMinutes
         // are populated before onStartSession reads them inside scheduleNotifications.
@@ -525,15 +521,15 @@ class BreastfeedingViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Simulate a session update (e.g., pause) that triggers a new DB emission
-        val updatedSession = session.copy(pausedAt = Instant.now())
-        activeSessionFlow.value = updatedSession
+        val startedSession = BreastfeedingSession(id = 1L, startTime = Instant.now(), startingSide = BreastSide.LEFT)
+        activeSessionFlow.value = startedSession.copy(pausedAt = Instant.now())
         testDispatcher.scheduler.advanceUntilIdle()
 
         // scheduleMaxPerBreastNotification must be called exactly once — on session start —
         // and NOT again when the session update (pause) emits from the repository Flow.
         // The persistent-collect bug caused it to reschedule on every update, which meant
         // cancelling alarms on pause had no lasting effect.
-        coVerify(exactly = 1) { notificationCoordinator.scheduleInitial(session) }
+        coVerify(exactly = 1) { notificationCoordinator.scheduleInitial(match { it.id == 1L }) }
     }
 
     @Test
@@ -941,13 +937,8 @@ class BreastfeedingViewModelTest {
     @Test
     fun `onStartSession triggers session sync`() = runTest {
         viewModel.onSideSelected(BreastSide.LEFT)
-        val session = BreastfeedingSession(
-            id = 1L, startTime = Instant.now(), startingSide = BreastSide.LEFT
-        )
-        coEvery { repository.insertSession(any()) } answers {
-            activeSessionFlow.value = session
-            1L
-        }
+        coEvery { repository.startSessionIfNone(any()) } returns 1L
+
         viewModel.onStartSession()
         testDispatcher.scheduler.advanceUntilIdle()
         coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
@@ -959,7 +950,7 @@ class BreastfeedingViewModelTest {
             id = 1L, startTime = Instant.now().minusSeconds(300), startingSide = BreastSide.LEFT
         )
         activeSessionFlow.value = session
-        coJustRun { repository.updateSession(any()) }
+        coEvery { repository.stopActiveSession(any()) } returns true
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onStopSession()

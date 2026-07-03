@@ -21,5 +21,10 @@ interface BreastfeedingRepository {
     suspend fun updateSession(session: BreastfeedingSession)
     suspend fun deleteSession(session: BreastfeedingSession)
     suspend fun startSessionIfNone(session: BreastfeedingSession): Long?
+
+    /**
+     * Atomically ends the active session: re-reads the active row inside a transaction and folds
+     * any open pause into its paused duration. Returns false when no session is active.
+     */
     suspend fun stopActiveSession(endTime: Instant): Boolean
 }
