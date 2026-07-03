@@ -28,7 +28,7 @@ Parents and caregivers of infants aged 0–12 months.
 ### 1.3 Anti-Goals (Avoiding Overengineering)
 
 - No multi-module Gradle setup — single module is sufficient for this app size.
-- No network layer, API clients, or remote sync.
+- No network layer or API clients beyond the optional Firebase partner-sharing feature (shipped after this spec — see SPEC-005/SPEC-007). The anti-goal stands for anything else.
 - No Mapper classes — use extension functions on entities/domain models directly.
 - No base classes (BaseViewModel, BaseFragment) — Compose doesn't need them.
 - No `sealed class Result<T>` wrapper unless a use case genuinely has multiple outcome types.

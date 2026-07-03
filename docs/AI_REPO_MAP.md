@@ -32,11 +32,12 @@ Data Layer     Repository Impls → Room DAOs / DataStore
 - `app/src/androidTest`: Instrumentation, Room in-memory DB, and Compose UI tests.
 - `gradle/libs.versions.toml`: Authoritative dependency versions.
 - `config/detekt.yml`: Detekt rules tuned for this app.
-- `specs/`: Product and architecture specs. Read relevant specs before feature work.
+- `specs/` + `docs/superpowers/specs/`: product and architecture specs — early core specs in the former, post-May-2026 feature specs (dated filenames) in the latter. Read the relevant spec before feature work.
 
 ## Common tasks
+- Find a feature's files: `docs/AI_FEATURE_MAP.md` (screens, ViewModels, repositories, entities, routes per feature).
 - Add screen: check `app/src/main/java/com/babytracker/navigation`, the relevant `ui/<feature>` package, and the established ViewModel plus `*UiState` pattern.
-- Add DB field: update Entity, DAO queries if needed, Room migration, repository conversion functions, and tests.
+- Add DB field: update Entity, DAO queries if needed, Room migration, repository conversion functions, and tests — then follow `docs/AI_DATA_CHANGE_CHECKLIST.md` for the backup/CSV/partner-sync ripple.
 - Add use case: put a single-responsibility class under `domain/usecase/<feature>` and inject the repository interface.
 - Add repository behavior: update the domain repository interface, implementation in `data/repository`, DI binding if a new implementation is introduced, and tests.
 - Add notification behavior: check `manager/`, `receiver/`, `util/NotificationHelper.kt`, manifest receivers, and scheduler DI bindings.

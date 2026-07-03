@@ -1,51 +1,31 @@
 # Akachan
 
-Akachan is a native Android baby tracker for parents of infants. It tracks breastfeeding sessions, sleep records, allergies, and baby profile data locally. An optional partner-sharing mode syncs a read-only snapshot to Firebase Firestore so a second device can view current feeding and sleep data.
-
-Current app version: `1.25.0` (`versionCode` 42).
+Akachan is a native Android baby tracker for parents of infants (0–12 months). It tracks feeding (breast, bottle, pumping), a frozen milk stash, sleep, diapers, growth, milestones, vaccines, doctor visits, and allergies — all stored locally. An optional partner-sharing mode syncs data to Firebase Firestore so a second device can follow along and log feeds and sleep.
 
 ## Features
 
-- Breastfeeding tracking with start, stop, side switch, pause, resume, active timer, and history.
-- Breastfeeding notifications for active sessions, per-breast timing, total-feed limits, pause/resume, and stop actions.
-- Sleep tracking with active sleep records, history, sleep limit notifications, and schedule generation.
-- Baby profile onboarding with name, birth date, and allergy settings.
-- Settings for feed timing limits, app preferences, sharing setup, and debug-only design system preview.
-- Partner sharing with anonymous Firebase Auth, 8-character share codes, Firestore snapshots, partner management, and a read-only partner dashboard.
-- Material 3 Compose UI with the custom Akachan theme, light/dark support, and one-handed primary flows.
+- Breastfeeding sessions with timers, side switching, pause/resume, and next-feed prediction.
+- Bottle feeds, pumping sessions, and a milk-stash inventory with expiration reminders.
+- Sleep tracking with schedule generation, sleep-window prediction, and reminders.
+- Diaper changes, growth measurements with WHO percentile charts, and milestones with photos.
+- Vaccine records (scheduled → administered lifecycle) and doctor visits with a question inbox.
+- Trends dashboard, home-screen widgets (Glance), and Quick Settings tiles for feed/sleep.
+- Data backup/restore (JSON), CSV export, and a PDF report.
+- Partner sharing via anonymous Firebase Auth and 8-character share codes: partner dashboard, partner-logged bottle feeds, and shared sleep control.
+- Localized in English and Brazilian Portuguese. Material 3 Compose UI with the custom Akachan theme, light/dark support, and one-handed primary flows.
 
 ## Tech Stack
 
-| Layer | Technology |
-| --- | --- |
-| Language | Kotlin 2.3.20 |
-| UI | Jetpack Compose BOM 2026.03.00, Material 3 |
-| Navigation | Compose Navigation 2.9.7 |
-| Dependency injection | Hilt 2.59 with KSP 2.3.6 |
-| Async | Kotlin Coroutines 1.9.0 and Flow |
-| Local database | Room 2.8.4 |
-| Preferences | DataStore 1.1.1 |
-| Sharing | Firebase BOM 33.7.0, Firestore KTX, Auth KTX |
-| Testing | JUnit 5, MockK, Turbine, Compose UI Test |
-| Quality | ktlint, detekt, Kover |
+Kotlin, Jetpack Compose (Material 3), Hilt (KSP), Room, DataStore, Coroutines/Flow, WorkManager, Glance, Firebase (Firestore + anonymous Auth, sharing only), Vico charts, Kotlinx Serialization.
 
-Authoritative dependency versions live in `gradle/libs.versions.toml`.
+Authoritative dependency versions live in `gradle/libs.versions.toml`. App version lives in `app/build.gradle.kts`.
 
 ## Requirements
 
 - JDK 17
-- Android SDK 35
-- Android Studio compatible with AGP 9.1.0
+- Android SDK (compileSdk 36, minSdk 26, targetSdk 35)
+- Android Studio compatible with AGP 9.1
 - Firebase `google-services.json` in `app/` for partner sharing builds
-
-SDK targets:
-
-| Setting | Value |
-| --- | --- |
-| `compileSdk` | 35 |
-| `minSdk` | 26 |
-| `targetSdk` | 35 |
-| JVM toolchain | 17 |
 
 ## Setup
 
@@ -93,11 +73,10 @@ Instrumentation tests:
 ./gradlew connectedAndroidTest
 ```
 
-Formatting and static analysis:
+Formatting and static analysis (also run by the pre-commit hook):
 
 ```bash
 ./gradlew ktlintFormat
-./gradlew ktlintCheck
 ./gradlew detekt
 ```
 
@@ -112,16 +91,16 @@ Coverage verification uses Kover with a 60 percent minimum line coverage rule:
 Akachan uses a single-module clean architecture with unidirectional data flow:
 
 ```text
-Compose screens -> ViewModels -> Use cases -> Repositories -> Room/DataStore/Firebase
-       ^                                                         |
-       +---------------- StateFlow / Flow updates ---------------+
+Compose screens -> ViewModels -> (use cases, where behaviour exists) -> Repositories -> Room/DataStore/Firebase
+       ^                                                                    |
+       +------------------------ StateFlow / Flow updates -----------------+
 ```
 
 Core rules:
 
 - Domain models are pure Kotlin data classes.
 - Repository interfaces live in `domain/repository`; implementations live in `data/repository`.
-- Use cases are single-purpose classes with `operator fun invoke`.
+- Use cases are single-purpose classes with `operator fun invoke`, written only when they contain behaviour (ADR-0001) — plain CRUD calls repositories directly from ViewModels.
 - Entity/domain conversions are extension functions. No mapper classes.
 - No base ViewModel, base Fragment, or sealed `Result<T>` wrappers for normal use-case returns.
 - Firebase access stays inside the sharing layer and `di/SharingModule.kt`.
@@ -136,45 +115,24 @@ app/src/main/java/com/babytracker/
 |-- di/                  # Hilt modules
 |-- domain/              # Models, repository interfaces, use cases
 |-- data/                # Room, DataStore-backed repositories
-|-- manager/             # AlarmManager notification schedulers/coordinators
+|-- manager/             # Notification schedulers/coordinators, session controllers
 |-- receiver/            # BroadcastReceivers for notification actions
 |-- sharing/             # Firebase partner sharing feature
+|-- export/              # Backup export/import, CSV, PDF report
+|-- tile/                # Quick Settings tiles
+|-- widget/              # Glance home-screen widgets
 |-- ui/                  # Compose screens, ViewModels, reusable components, theme
-`-- util/                # Date/time, Flow, notification, update helpers
+|-- util/                # Date/time, Flow, notification, update helpers
+`-- debug/               # Debug-build data seeding
 ```
 
-Important routes:
-
-- `onboarding`
-- `home`
-- `breastfeeding`
-- `breastfeeding/history`
-- `sleep`
-- `sleep/history`
-- `sleep/schedule`
-- `settings`
-- `design_system/preview`
-- `connect_partner`
-- `partner_dashboard`
-- `manage_sharing`
+Routes live in `navigation/Routes.kt`; a per-feature map of screens, ViewModels, and data classes is in `docs/AI_FEATURE_MAP.md`.
 
 ## Data Storage
 
-Local Room database: `baby_tracker_db`
-
-- `breastfeeding_sessions`
-  - `start_time`, `end_time`, `starting_side`, `switch_time`, `notes`
-  - `paused_at`, `paused_duration_ms`
-- `sleep_records`
-  - `start_time`, `end_time`, `sleep_type`, `notes`
-
-DataStore preferences:
-
-- Baby name and birth date
-- Allergies
-- Onboarding state
-- Breastfeeding timing limits
-- Sharing mode and share metadata
+- Local Room database `baby_tracker_db` — one table per tracked domain (feeds, sleep, pumping, milk bags, diapers, growth, milestones, vaccines, doctor visits, baby profile). Versioned schema JSONs live in `app/schemas/`.
+- DataStore preferences — baby profile details, onboarding state, feature toggles, per-feature settings, sharing metadata.
+- Changing the persisted model ripples into backup, CSV, and partner sync — see `docs/AI_DATA_CHANGE_CHECKLIST.md`.
 
 ## Partner Sharing
 
@@ -185,35 +143,31 @@ Primary device flow:
 1. Anonymous Firebase sign-in.
 2. Generate an 8-character uppercase share code.
 3. Write `ShareSnapshot` to `shares/{shareCode}`.
-4. Sync recent baby, breastfeeding, and sleep data after meaningful tracking actions.
+4. Sync tracked data after meaningful tracking actions.
 
 Partner device flow:
 
 1. Enter share code.
 2. Anonymous Firebase sign-in.
 3. Register partner UID in `shares/{shareCode}/partners/{uid}`.
-4. Read `ShareSnapshot` and show `PartnerDashboardScreen` in read-only mode.
+4. Read `ShareSnapshot` and show the partner dashboard; partner-logged feeds and sleep write back as ops that the owner device applies.
 
-Firestore-bound data must use snapshot models from `sharing/domain/model`. Do not write Room entities directly to Firestore.
+Firestore-bound data must use snapshot models from `sharing/domain/model`. Do not write Room entities directly to Firestore. Firestore security rules live in `firestore.rules` and deploy manually — see `firebase/README.md`.
 
 ## Notifications
 
-Breastfeeding and sleep notifications use `AlarmManager`, dedicated schedulers, and action receivers.
-
-- `BreastfeedingSessionNotificationCoordinator` manages active breastfeeding notification lifecycle.
-- `BreastfeedingNotificationManager` schedules max-total and per-breast alarms.
-- `SleepNotificationManager` schedules sleep limit alarms.
-- `NotificationHelper` builds themed notification layouts and action intents.
+Notifications use `AlarmManager`/WorkManager, dedicated schedulers, and action receivers — per-domain managers cover active feed/sleep sessions, predictive feed/sleep reminders, nap reminders, stash expiration, vaccine and doctor-visit reminders (see `SPEC-004` and `manager/`).
 
 Required Android permissions include `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`, and `USE_EXACT_ALARM`.
 
 ## Specs And Docs
 
-- `AGENTS.md` and `CLAUDE.md`: project working instructions and architecture summary.
+- `AGENTS.md`: canonical working instructions (CLAUDE.md and QWEN.md import it).
 - `PRODUCT.md`: product principles and target user context.
-- `DESIGN.md`: design direction.
-- `specs/`: detailed feature specs, including app structure and partner sharing.
-- `docs/`: design system and planning notes.
+- `DESIGN.md`: the design system (palettes, typography, components).
+- `CONTEXT.md`: domain glossary; `docs/adr/`: architecture decision records.
+- `specs/` and `docs/superpowers/specs/`: feature specs (early core specs in the former, later features in the latter).
+- `docs/AI_REPO_MAP.md`, `docs/AI_FEATURE_MAP.md`, `docs/AI_DATA_CHANGE_CHECKLIST.md`: agent navigation maps.
 
 ## License
 
