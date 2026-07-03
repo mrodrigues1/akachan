@@ -173,6 +173,53 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
         return pausedSession.pausedDurationMs + currentPauseDurationMs
     }
 
+    /**
+     * Re-posts the active-session notification and re-arms the not-yet-due limit alarms after a
+     * reboot (or wall-clock change) wiped them. A paused session gets only the paused
+     * notification — its alarms are re-armed by [rescheduleAfterResume] on resume, matching the
+     * pause flow.
+     */
+    suspend fun restoreActiveSession(session: BreastfeedingSession, now: Instant = Instant.now()) {
+        val pausedAt = session.pausedAt
+        if (pausedAt != null) {
+            showPaused(session, pausedAt)
+            return
+        }
+        showRunning(session)
+        val (maxPerBreastMinutes, maxTotalFeedMinutes) = scheduleMinutes()
+        // ponytail: triggers already in the past are skipped — a reboot spanning the exact
+        // trigger moment loses that one reminder rather than re-nagging late.
+        if (maxPerBreastMinutes > 0) {
+            // Same anchoring as rescheduleAfterResume: switchTime after a switch (session-wide
+            // pausedDurationMs excluded), startTime + pausedDurationMs otherwise.
+            val trigger = (session.switchTime ?: session.startTime.plusMillis(session.pausedDurationMs))
+                .plusSeconds(maxPerBreastMinutes * 60L)
+            if (trigger.isAfter(now)) {
+                notificationScheduler.scheduleMaxPerBreastNotificationAt(
+                    triggerTime = trigger,
+                    sessionId = session.id,
+                    maxPerBreastMinutes = maxPerBreastMinutes,
+                    currentSide = currentSideName(session),
+                    maxTotalMinutes = maxTotalFeedMinutes
+                )
+            }
+        }
+        if (maxTotalFeedMinutes > 0) {
+            val trigger = session.startTime
+                .plusSeconds(maxTotalFeedMinutes * 60L)
+                .plusMillis(session.pausedDurationMs)
+            if (trigger.isAfter(now)) {
+                notificationScheduler.scheduleMaxTotalTimeNotificationAt(
+                    triggerTime = trigger,
+                    sessionId = session.id,
+                    maxTotalMinutes = maxTotalFeedMinutes,
+                    currentSide = currentSideName(session),
+                    maxPerBreastMinutes = maxPerBreastMinutes
+                )
+            }
+        }
+    }
+
     suspend fun rearmAfterKeepGoing(session: BreastfeedingSession) {
         val (maxPerBreastMinutes, maxTotalFeedMinutes) = scheduleMinutes()
         if (maxTotalFeedMinutes > 0) {
