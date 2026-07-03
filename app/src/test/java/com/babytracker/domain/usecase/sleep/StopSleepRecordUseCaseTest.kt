@@ -45,6 +45,18 @@ class StopSleepRecordUseCaseTest {
     }
 
     @Test
+    fun invokeMatchingInProgressReturnsStoppedRecordMatchingPersistedRecord() = runTest {
+        val slot = slot<SleepRecord>()
+        coEvery { repository.getActiveRecord() } returns inProgressRecord
+        coJustRun { repository.updateRecord(capture(slot)) }
+
+        val result = useCase(10L)
+
+        assertNotNull(result?.endTime)
+        assertEquals(slot.captured, result)
+    }
+
+    @Test
     fun invokeMatchingInProgressPreservesOtherFields() = runTest {
         val slot = slot<SleepRecord>()
         coEvery { repository.getActiveRecord() } returns inProgressRecord
