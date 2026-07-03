@@ -23,6 +23,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -300,8 +301,11 @@ class ActiveSessionInvariantMigrationTest {
 /**
  * Verifies the mixed-path invariant: inserting an active row directly via the
  * DAO, then attempting a second active insert through the repository, does NOT
- * create a duplicate active row. The repository catches [SQLiteConstraintException]
- * and returns the existing row's id instead.
+ * create a duplicate active row. Breastfeeding's sole guarded start path is
+ * [BreastfeedingRepositoryImpl.startSessionIfNone] (AKACHAN-338 made
+ * `insertSession` a plain passthrough since its only caller is manual entry,
+ * which always inserts completed sessions); sleep still guards `insertRecord`
+ * directly.
  */
 @RunWith(AndroidJUnit4::class)
 class MixedPathInvariantTest {
@@ -336,19 +340,19 @@ class MixedPathInvariantTest {
     }
 
     @Test
-    fun breastfeeding_daoInsertActiveRow_thenRepoInsert_doesNotCreateDuplicate() = runBlocking {
-        // Insert an active row directly via DAO (bypasses repository constraint handling).
+    fun breastfeeding_daoInsertActiveRow_thenRepoStartSessionIfNone_doesNotCreateDuplicate() = runBlocking {
+        // Insert an active row directly via DAO (bypasses the repository's guarded start path).
         val firstId = breastfeedingDao.insertSession(
             BreastfeedingEntity(startTime = 1_000L, startingSide = "LEFT"),
         )
 
-        // Attempt a second active insert via repository — must return the first row's id.
-        val secondId = breastfeedingRepo.insertSession(
+        // Attempt a second active insert via the guarded repository path — must not insert.
+        val secondId = breastfeedingRepo.startSessionIfNone(
             BreastfeedingSession(startTime = Instant.ofEpochMilli(2_000L), startingSide = BreastSide.LEFT),
         )
 
-        // The repository must have returned the existing row's id, not a new one.
-        assertEquals(firstId, secondId)
+        // No new row was created.
+        assertNull(secondId)
 
         // Only one active row must exist.
         assertNotNull(breastfeedingDao.getActiveSessionOnce())
