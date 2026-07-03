@@ -1,7 +1,10 @@
 package com.babytracker.ui.settings
 
+import android.app.AlarmManager
 import android.content.ClipData
 import android.content.Intent
+import android.os.Build
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -74,8 +77,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.babytracker.BuildConfig
 import com.babytracker.R
 import com.babytracker.domain.model.AllergyType
@@ -393,6 +400,7 @@ fun SettingsScreen(
                     checked = uiState.partnerStashNotificationsEnabled,
                     onCheckedChange = { viewModel.onPartnerStashNotificationsToggled(it) },
                 )
+                ExactAlarmRow()
             }
 
             if (uiState.appMode != null && uiState.appMode != AppMode.PARTNER) {
@@ -551,6 +559,39 @@ fun SettingsScreen(
             }
         }
     }
+}
+
+// Android 12+ can deny/revoke SCHEDULE_EXACT_ALARM; the schedulers then silently fall back to
+// inexact delivery. Shown only while the grant is missing; re-checked on resume so the row
+// disappears after the user returns from the system screen.
+@Composable
+private fun ExactAlarmRow() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+    val context = LocalContext.current
+    val alarmManager = remember(context) { context.getSystemService(AlarmManager::class.java) }
+    var canScheduleExact by remember { mutableStateOf(alarmManager.canScheduleExactAlarms()) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            canScheduleExact = alarmManager.canScheduleExactAlarms()
+        }
+    }
+    if (canScheduleExact) return
+    SettingsRow(
+        label = stringResource(R.string.settings_exact_alarm),
+        value = stringResource(R.string.settings_exact_alarm_desc),
+        actionLabel = stringResource(R.string.settings_exact_alarm_action),
+        onClick = {
+            runCatching {
+                context.startActivity(
+                    Intent(
+                        Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                        "package:${context.packageName}".toUri(),
+                    ),
+                )
+            }
+        },
+    )
 }
 
 @Composable

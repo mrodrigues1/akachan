@@ -729,6 +729,9 @@
     <string name="settings_auto_update">Auto-update</string>
     <string name="settings_notifications_section">Notifications</string>
     <string name="settings_rich_notifications">Rich notifications</string>
+    <string name="settings_exact_alarm">Exact reminder timing</string>
+    <string name="settings_exact_alarm_desc">Reminders may arrive late. Allow exact alarms for on-time delivery.</string>
+    <string name="settings_exact_alarm_action">Allow</string>
     <string name="settings_partner_stash_use">Partner stash use</string>
     <string name="settings_partner_access">Partner Access</string>
     <string name="settings_partner_sharing">Partner Sharing</string>

@@ -740,6 +740,9 @@
     <string name="settings_auto_update">Atualização automática</string>
     <string name="settings_notifications_section">Notificações</string>
     <string name="settings_rich_notifications">Notificações avançadas</string>
+    <string name="settings_exact_alarm">Horário exato dos lembretes</string>
+    <string name="settings_exact_alarm_desc">Os lembretes podem atrasar. Permita alarmes exatos para receber na hora certa.</string>
+    <string name="settings_exact_alarm_action">Permitir</string>
     <string name="settings_partner_stash_use">Uso do estoque pelo parceiro</string>
     <string name="settings_partner_access">Acesso de parceiro</string>
     <string name="settings_partner_sharing">Compartilhamento com parceiro</string>
