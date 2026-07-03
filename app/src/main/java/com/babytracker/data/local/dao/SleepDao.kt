@@ -41,6 +41,9 @@ abstract class SleepDao {
     @Query("SELECT * FROM sleep_records WHERE end_time IS NULL ORDER BY start_time DESC, id DESC LIMIT 1")
     abstract suspend fun getActiveRecordOnce(): SleepEntity?
 
+    @Query("SELECT * FROM sleep_records WHERE end_time IS NULL ORDER BY start_time DESC, id DESC LIMIT 1")
+    abstract fun observeActiveRecord(): Flow<SleepEntity?>
+
     @Query("SELECT * FROM sleep_records ORDER BY start_time ASC")
     abstract suspend fun getAllRecordsOnce(): List<SleepEntity>
 
