@@ -180,40 +180,10 @@ class BreastfeedingRepositoryImplTest {
     }
 
     @Test
-    fun insertSessionActiveConstraintViolationReturnsExistingId() = runTest {
-        val activeSession = BreastfeedingSession(
-            startTime = Instant.ofEpochMilli(startEpoch),
-            startingSide = BreastSide.LEFT
-        )
-        val existingEntity = entity.copy(endTime = null, id = 42L)
-        coEvery { dao.insertSession(any()) } throws SQLiteConstraintException("UNIQUE constraint failed")
-        coEvery { dao.getActiveSessionOnce() } returns existingEntity
-
-        val id = repository.insertSession(activeSession)
-
-        assertEquals(42L, id)
-    }
-
-    @Test
-    fun insertSessionActiveConstraintViolationNoActiveRowRethrows() = runTest {
-        val activeSession = BreastfeedingSession(
-            startTime = Instant.ofEpochMilli(startEpoch),
-            startingSide = BreastSide.LEFT
-        )
-        coEvery { dao.insertSession(any()) } throws SQLiteConstraintException("UNIQUE constraint failed")
-        coEvery { dao.getActiveSessionOnce() } returns null
-
-        var thrown: SQLiteConstraintException? = null
-        try {
-            repository.insertSession(activeSession)
-        } catch (e: SQLiteConstraintException) {
-            thrown = e
-        }
-        assertNotNull(thrown)
-    }
-
-    @Test
-    fun insertSessionCompletedConstraintViolationAlwaysRethrows() = runTest {
+    fun insertSessionConstraintViolationRethrows() = runTest {
+        // insertSession is only reachable from manual entry (always a completed session) now that
+        // BreastfeedingSessionController.start owns live-session starts via startSessionIfNone —
+        // no active-session fallback is needed here; the constraint exception just propagates.
         val completedSession = BreastfeedingSession(
             startTime = Instant.ofEpochMilli(startEpoch),
             endTime = Instant.ofEpochMilli(endEpoch),

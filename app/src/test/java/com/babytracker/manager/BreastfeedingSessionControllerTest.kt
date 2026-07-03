@@ -14,11 +14,11 @@ import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.time.Instant
 
 class BreastfeedingSessionControllerTest {
 
@@ -43,58 +43,76 @@ class BreastfeedingSessionControllerTest {
     }
 
     @Test
-    fun `stop while paused folds trailing pause and clears pausedAt`() = runTest {
-        val pausedAt = Instant.now().minusSeconds(120)
-        val session = BreastfeedingSession(
-            id = 1L,
-            startTime = pausedAt.minusSeconds(600),
-            startingSide = BreastSide.LEFT,
-            pausedAt = pausedAt,
-            pausedDurationMs = 30_000L,
-        )
+    fun `start persists via startSessionIfNone, schedules, shows, and syncs`() = runTest {
         val saved = slot<BreastfeedingSession>()
-        coEvery { repository.updateSession(capture(saved)) } returns Unit
+        coEvery { repository.startSessionIfNone(capture(saved)) } returns 5L
 
-        val stopped = controller.stop(session)
+        val session = controller.start(BreastSide.LEFT)
 
-        assertTrue(stopped)
-        assertNull(saved.captured.pausedAt)
-        val trailingMs = saved.captured.pausedDurationMs - 30_000L
-        val elapsedSincePauseMs = Instant.now().toEpochMilli() - pausedAt.toEpochMilli()
-        assertTrue(trailingMs in 120_000L..elapsedSincePauseMs) {
-            "expected trailing pause >= 120s, was ${trailingMs}ms"
-        }
-        assertEquals(saved.captured.endTime!!.toEpochMilli() - pausedAt.toEpochMilli(), trailingMs)
+        assertNotNull(session)
+        assertEquals(5L, session?.id)
+        assertEquals(BreastSide.LEFT, session?.startingSide)
+        assertEquals(BreastSide.LEFT, saved.captured.startingSide)
+        coVerify { notificationCoordinator.scheduleInitial(match { it.id == 5L }) }
+        coVerify { notificationCoordinator.showRunning(match { it.id == 5L }) }
+        coVerify { syncedWrite.sync(any()) }
     }
 
     @Test
-    fun `stop while running keeps pausedDurationMs untouched`() = runTest {
-        val session = BreastfeedingSession(
-            id = 1L,
-            startTime = Instant.now().minusSeconds(600),
-            startingSide = BreastSide.LEFT,
-            pausedDurationMs = 30_000L,
-        )
-        val saved = slot<BreastfeedingSession>()
-        coEvery { repository.updateSession(capture(saved)) } returns Unit
+    fun `start returns null and skips side effects when a session is already active`() = runTest {
+        coEvery { repository.startSessionIfNone(any()) } returns null
 
-        val stopped = controller.stop(session)
+        val session = controller.start(BreastSide.LEFT)
+
+        assertNull(session)
+        coVerify(exactly = 0) { notificationCoordinator.scheduleInitial(any()) }
+        coVerify(exactly = 0) { notificationCoordinator.showRunning(any()) }
+        coVerify(exactly = 0) { syncedWrite.sync(any()) }
+    }
+
+    @Test
+    fun `start still returns the session and syncs when notifications throw`() = runTest {
+        coEvery { repository.startSessionIfNone(any()) } returns 5L
+        coEvery { notificationCoordinator.scheduleInitial(any()) } throws RuntimeException("scheduler dead")
+
+        val session = controller.start(BreastSide.RIGHT)
+
+        assertNotNull(session)
+        assertEquals(5L, session?.id)
+        coVerify { syncedWrite.sync(any()) }
+    }
+
+    // Pause-folding on stop is DAO behaviour (atomic @Transaction re-read); it is covered by the
+    // instrumented BreastfeedingDaoTest. Here we only verify the delegation choreography.
+
+    @Test
+    fun `stop delegates to atomic repository stop, cancels notifications, and syncs`() = runTest {
+        coEvery { repository.stopActiveSession(any()) } returns true
+
+        val stopped = controller.stop()
 
         assertTrue(stopped)
-        assertNull(saved.captured.pausedAt)
-        assertEquals(30_000L, saved.captured.pausedDurationMs)
+        coVerify(exactly = 1) { repository.stopActiveSession(any()) }
+        coVerify(exactly = 1) { notificationCoordinator.cancelAllSessionNotifications() }
+        coVerify(exactly = 1) { syncedWrite.sync(any()) }
+    }
+
+    @Test
+    fun `stop returns false and skips side effects when no session is active`() = runTest {
+        coEvery { repository.stopActiveSession(any()) } returns false
+
+        val stopped = controller.stop()
+
+        assertFalse(stopped)
+        coVerify(exactly = 0) { notificationCoordinator.cancelAllSessionNotifications() }
+        coVerify(exactly = 0) { syncedWrite.sync(any()) }
     }
 
     @Test
     fun `stop returns false and skips side effects when persist fails`() = runTest {
-        val session = BreastfeedingSession(
-            id = 1L,
-            startTime = Instant.now().minusSeconds(600),
-            startingSide = BreastSide.LEFT,
-        )
-        coEvery { repository.updateSession(any()) } throws RuntimeException("db gone")
+        coEvery { repository.stopActiveSession(any()) } throws RuntimeException("db gone")
 
-        val stopped = controller.stop(session)
+        val stopped = controller.stop()
 
         assertFalse(stopped)
         coVerify(exactly = 0) { notificationCoordinator.cancelAllSessionNotifications() }

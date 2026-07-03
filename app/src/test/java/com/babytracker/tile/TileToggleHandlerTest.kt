@@ -6,7 +6,7 @@ import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SleepRepository
-import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
+import com.babytracker.manager.BreastfeedingSessionController
 import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.SleepNotificationScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
@@ -37,7 +37,7 @@ class TileToggleHandlerTest {
 
     private lateinit var breastfeedingRepository: BreastfeedingRepository
     private lateinit var sleepRepository: SleepRepository
-    private lateinit var breastfeedingNotifications: BreastfeedingSessionNotificationCoordinator
+    private lateinit var sessionController: BreastfeedingSessionController
     private lateinit var sleepNotificationScheduler: SleepNotificationScheduler
     private lateinit var napReminderScheduler: NapReminderScheduler
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
@@ -72,7 +72,7 @@ class TileToggleHandlerTest {
     fun setup() {
         breastfeedingRepository = mockk()
         sleepRepository = mockk()
-        breastfeedingNotifications = mockk(relaxed = true)
+        sessionController = mockk()
         sleepNotificationScheduler = mockk(relaxed = true)
         napReminderScheduler = mockk(relaxed = true)
         syncToFirestore = mockk(relaxed = true)
@@ -83,7 +83,7 @@ class TileToggleHandlerTest {
     private fun buildHandler(clock: Clock) = TileToggleHandler(
         breastfeedingRepository = breastfeedingRepository,
         sleepRepository = sleepRepository,
-        breastfeedingNotifications = breastfeedingNotifications,
+        sessionController = sessionController,
         sleepNotificationScheduler = sleepNotificationScheduler,
         napReminderScheduler = napReminderScheduler,
         syncedWrite = SyncedWrite(syncToFirestore),
@@ -96,7 +96,7 @@ class TileToggleHandlerTest {
     @Test
     fun feedStopReturnsChanged() = runTest {
         every { breastfeedingRepository.getActiveSession() } returns flowOf(activeSession)
-        coEvery { breastfeedingRepository.stopActiveSession(fixedNow) } returns true
+        coEvery { sessionController.stop() } returns true
 
         val result = handler.toggleFeed()
 
@@ -104,34 +104,37 @@ class TileToggleHandlerTest {
     }
 
     @Test
-    fun feedStopCancelsScheduledAndPostedNotifications() = runTest {
+    fun feedStopDelegatesToSessionController() = runTest {
         every { breastfeedingRepository.getActiveSession() } returns flowOf(activeSession)
-        coEvery { breastfeedingRepository.stopActiveSession(fixedNow) } returns true
+        coEvery { sessionController.stop() } returns true
 
         handler.toggleFeed()
 
-        verify { breastfeedingNotifications.cancelScheduled() }
-        verify { breastfeedingNotifications.cancelPostedSessionNotifications() }
-    }
-
-    @Test
-    fun feedStopRequestsFirestoreSessionSync() = runTest {
-        every { breastfeedingRepository.getActiveSession() } returns flowOf(activeSession)
-        coEvery { breastfeedingRepository.stopActiveSession(fixedNow) } returns true
-
-        handler.toggleFeed()
-
-        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+        // controller.stop() ends the session atomically (the DAO re-reads the active row and
+        // folds any open pause) and cancels both scheduled and posted notifications — the tile
+        // no longer needs to replicate that choreography itself.
+        coVerify(exactly = 1) { sessionController.stop() }
     }
 
     @Test
     fun feedStopUpdatesWidget() = runTest {
         every { breastfeedingRepository.getActiveSession() } returns flowOf(activeSession)
-        coEvery { breastfeedingRepository.stopActiveSession(fixedNow) } returns true
+        coEvery { sessionController.stop() } returns true
 
         handler.toggleFeed()
 
         coVerify(exactly = 1) { widgetUpdater.updateAll() }
+    }
+
+    @Test
+    fun feedStopReturnsNoOpWhenControllerReportsFailure() = runTest {
+        every { breastfeedingRepository.getActiveSession() } returns flowOf(activeSession)
+        coEvery { sessionController.stop() } returns false
+
+        val result = handler.toggleFeed()
+
+        assertEquals(TileToggleResult.NO_OP, result)
+        coVerify(exactly = 0) { widgetUpdater.updateAll() }
     }
 
     // ── Feed start ─────────────────────────────────────────────────────────────
@@ -140,12 +143,12 @@ class TileToggleHandlerTest {
     fun feedStartWithNoLastSessionUsesLeftSide() = runTest {
         every { breastfeedingRepository.getActiveSession() } returns flowOf(null)
         coEvery { breastfeedingRepository.getLastSession() } returns null
-        val captured = slot<BreastfeedingSession>()
-        coEvery { breastfeedingRepository.startSessionIfNone(capture(captured)) } returns 1L
+        val captured = slot<BreastSide>()
+        coEvery { sessionController.start(capture(captured)) } returns activeSession
 
         handler.toggleFeed()
 
-        assertEquals(BreastSide.LEFT, captured.captured.startingSide)
+        assertEquals(BreastSide.LEFT, captured.captured)
     }
 
     @Test
@@ -157,19 +160,19 @@ class TileToggleHandlerTest {
         )
         every { breastfeedingRepository.getActiveSession() } returns flowOf(null)
         coEvery { breastfeedingRepository.getLastSession() } returns lastSession
-        val captured = slot<BreastfeedingSession>()
-        coEvery { breastfeedingRepository.startSessionIfNone(capture(captured)) } returns 2L
+        val captured = slot<BreastSide>()
+        coEvery { sessionController.start(capture(captured)) } returns activeSession
 
         handler.toggleFeed()
 
-        assertEquals(BreastSide.RIGHT, captured.captured.startingSide)
+        assertEquals(BreastSide.RIGHT, captured.captured)
     }
 
     @Test
     fun feedStartReturnsChanged() = runTest {
         every { breastfeedingRepository.getActiveSession() } returns flowOf(null)
         coEvery { breastfeedingRepository.getLastSession() } returns null
-        coEvery { breastfeedingRepository.startSessionIfNone(any()) } returns 1L
+        coEvery { sessionController.start(any()) } returns activeSession
 
         val result = handler.toggleFeed()
 
@@ -177,33 +180,24 @@ class TileToggleHandlerTest {
     }
 
     @Test
-    fun feedStartSchedulesAndShowsNotifications() = runTest {
+    fun feedStartDelegatesToSessionController() = runTest {
         every { breastfeedingRepository.getActiveSession() } returns flowOf(null)
         coEvery { breastfeedingRepository.getLastSession() } returns null
-        coEvery { breastfeedingRepository.startSessionIfNone(any()) } returns 1L
+        coEvery { sessionController.start(any()) } returns activeSession
 
         handler.toggleFeed()
 
-        coVerify { breastfeedingNotifications.scheduleInitial(any()) }
-        coVerify { breastfeedingNotifications.showRunning(any()) }
-    }
-
-    @Test
-    fun feedStartRequestsFirestoreSessionSync() = runTest {
-        every { breastfeedingRepository.getActiveSession() } returns flowOf(null)
-        coEvery { breastfeedingRepository.getLastSession() } returns null
-        coEvery { breastfeedingRepository.startSessionIfNone(any()) } returns 1L
-
-        handler.toggleFeed()
-
-        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
+        // controller.start() owns scheduling the limit alarms, showing the running notification,
+        // and syncing to Firestore — the tile only decides which side to start and updates the
+        // widget on success.
+        coVerify(exactly = 1) { sessionController.start(any()) }
     }
 
     @Test
     fun feedStartUpdatesWidget() = runTest {
         every { breastfeedingRepository.getActiveSession() } returns flowOf(null)
         coEvery { breastfeedingRepository.getLastSession() } returns null
-        coEvery { breastfeedingRepository.startSessionIfNone(any()) } returns 1L
+        coEvery { sessionController.start(any()) } returns activeSession
 
         handler.toggleFeed()
 
@@ -213,10 +207,10 @@ class TileToggleHandlerTest {
     // ── Feed no-op ─────────────────────────────────────────────────────────────
 
     @Test
-    fun feedNoOpWhenStartSessionIfNoneReturnsNull() = runTest {
+    fun feedNoOpWhenControllerStartReturnsNull() = runTest {
         every { breastfeedingRepository.getActiveSession() } returns flowOf(null)
         coEvery { breastfeedingRepository.getLastSession() } returns null
-        coEvery { breastfeedingRepository.startSessionIfNone(any()) } returns null
+        coEvery { sessionController.start(any()) } returns null
 
         val result = handler.toggleFeed()
 
@@ -227,13 +221,10 @@ class TileToggleHandlerTest {
     fun feedNoOpDoesNotCallSideEffects() = runTest {
         every { breastfeedingRepository.getActiveSession() } returns flowOf(null)
         coEvery { breastfeedingRepository.getLastSession() } returns null
-        coEvery { breastfeedingRepository.startSessionIfNone(any()) } returns null
+        coEvery { sessionController.start(any()) } returns null
 
         handler.toggleFeed()
 
-        coVerify(exactly = 0) { breastfeedingNotifications.scheduleInitial(any()) }
-        coVerify(exactly = 0) { breastfeedingNotifications.showRunning(any()) }
-        coVerify(exactly = 0) { syncToFirestore(any()) }
         coVerify(exactly = 0) { widgetUpdater.updateAll() }
     }
 
@@ -256,8 +247,6 @@ class TileToggleHandlerTest {
 
         handler.toggleFeed()
 
-        coVerify(exactly = 0) { breastfeedingNotifications.scheduleInitial(any()) }
-        coVerify(exactly = 0) { syncToFirestore(any()) }
         coVerify(exactly = 0) { widgetUpdater.updateAll() }
     }
 
@@ -267,7 +256,7 @@ class TileToggleHandlerTest {
     fun feedWidgetFailureAfterMutationStillReturnsChanged() = runTest {
         every { breastfeedingRepository.getActiveSession() } returns flowOf(null)
         coEvery { breastfeedingRepository.getLastSession() } returns null
-        coEvery { breastfeedingRepository.startSessionIfNone(any()) } returns 1L
+        coEvery { sessionController.start(any()) } returns activeSession
         coEvery { widgetUpdater.updateAll() } throws RuntimeException("widget unavailable")
 
         val result = handler.toggleFeed()
@@ -487,7 +476,7 @@ class TileToggleHandlerTest {
 
         every { breastfeedingRepository.getActiveSession() } returns flowOf(null)
         coEvery { breastfeedingRepository.getLastSession() } returns null
-        coEvery { breastfeedingRepository.startSessionIfNone(any()) } coAnswers {
+        coEvery { sessionController.start(any()) } coAnswers {
             val index = ++callCount
             if (index == 1) {
                 callOrder.add("first-entered")
@@ -496,7 +485,7 @@ class TileToggleHandlerTest {
             } else {
                 callOrder.add("second-entered")
             }
-            index.toLong()
+            activeSession.copy(id = index.toLong())
         }
 
         val job1 = launch { handler.toggleFeed() }

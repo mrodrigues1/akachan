@@ -1,11 +1,10 @@
 package com.babytracker.tile
 
-import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SleepRepository
-import com.babytracker.manager.BreastfeedingSessionNotificationCoordinator
+import com.babytracker.manager.BreastfeedingSessionController
 import com.babytracker.manager.NapReminderScheduler
 import com.babytracker.manager.SleepNotificationScheduler
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
@@ -29,7 +28,7 @@ enum class TileToggleResult {
 class TileToggleHandler @Inject constructor(
     private val breastfeedingRepository: BreastfeedingRepository,
     private val sleepRepository: SleepRepository,
-    private val breastfeedingNotifications: BreastfeedingSessionNotificationCoordinator,
+    private val sessionController: BreastfeedingSessionController,
     private val sleepNotificationScheduler: SleepNotificationScheduler,
     private val napReminderScheduler: NapReminderScheduler,
     private val syncedWrite: SyncedWrite,
@@ -40,27 +39,12 @@ class TileToggleHandler @Inject constructor(
 
     suspend fun toggleFeed(): TileToggleResult = mutex.withLock {
         runCatching {
-            val now = clock.instant()
             val active = breastfeedingRepository.getActiveSession().first()
             val changed = if (active != null) {
-                val stopped = breastfeedingRepository.stopActiveSession(now)
-                if (stopped) {
-                    breastfeedingNotifications.cancelScheduled()
-                    breastfeedingNotifications.cancelPostedSessionNotifications()
-                    syncedWrite.sync(SyncType.SESSIONS)
-                }
-                stopped
+                sessionController.stop()
             } else {
                 val side = alternateSide(breastfeedingRepository.getLastSession())
-                val session = BreastfeedingSession(startTime = now, startingSide = side)
-                val id = breastfeedingRepository.startSessionIfNone(session)
-                if (id != null) {
-                    val created = session.copy(id = id)
-                    runCatching { breastfeedingNotifications.scheduleInitial(created) }
-                    runCatching { breastfeedingNotifications.showRunning(created) }
-                    syncedWrite.sync(SyncType.SESSIONS)
-                }
-                id != null
+                sessionController.start(side) != null
             }
             if (changed) runCatching { widgetUpdater.updateAll() }
             if (changed) TileToggleResult.CHANGED else TileToggleResult.NO_OP

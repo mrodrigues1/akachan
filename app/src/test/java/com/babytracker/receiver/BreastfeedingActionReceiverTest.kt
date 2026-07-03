@@ -117,11 +117,11 @@ class BreastfeedingActionReceiverTest {
 
     @Test
     fun `ACTION_STOP stops session, cancels all session notifications, and syncs`() = runTest {
-        coEvery { repository.updateSession(any()) } returns Unit
+        coEvery { repository.stopActiveSession(any()) } returns true
 
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_STOP, 42L))
 
-        coVerify { repository.updateSession(match { it.id == activeSession.id && it.endTime != null }) }
+        coVerify(exactly = 1) { repository.stopActiveSession(any()) }
         verify(exactly = 1) { notificationCoordinator.cancelAllSessionNotifications() }
         verify(exactly = 1) { notificationCoordinator.cancelPostedSessionNotifications() }
         coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SESSIONS) }
@@ -131,7 +131,7 @@ class BreastfeedingActionReceiverTest {
     fun `ACTION_STOP ignores wrong session id but still clears posted notifications`() = runTest {
         receiver.handle(context, intent(BreastfeedingActionReceiver.ACTION_STOP, 999L))
 
-        coVerify(exactly = 0) { repository.updateSession(any()) }
+        coVerify(exactly = 0) { repository.stopActiveSession(any()) }
         verify(exactly = 0) { notificationCoordinator.cancelAllSessionNotifications() }
         verify(exactly = 1) { notificationCoordinator.cancelPostedSessionNotifications() }
         coVerify(exactly = 0) { syncToFirestore(any()) }

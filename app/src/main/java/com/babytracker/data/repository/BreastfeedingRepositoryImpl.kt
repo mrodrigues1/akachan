@@ -1,6 +1,5 @@
 package com.babytracker.data.repository
 
-import android.database.sqlite.SQLiteConstraintException
 import com.babytracker.data.local.dao.BreastfeedingDao
 import com.babytracker.data.local.entity.toDomain
 import com.babytracker.data.local.entity.toEntity
@@ -44,15 +43,7 @@ class BreastfeedingRepositoryImpl @Inject constructor(
         dao.getCompletedSessionsBetween(start.toEpochMilli(), end.toEpochMilli()).map { it.toDomain() }
 
     override suspend fun insertSession(session: BreastfeedingSession): Long =
-        try {
-            dao.insertSession(session.toEntity())
-        } catch (e: SQLiteConstraintException) {
-            if (session.endTime == null) {
-                dao.getActiveSessionOnce()?.id ?: throw e
-            } else {
-                throw e
-            }
-        }
+        dao.insertSession(session.toEntity())
 
     override suspend fun updateSession(session: BreastfeedingSession) =
         dao.updateSession(session.toEntity())
