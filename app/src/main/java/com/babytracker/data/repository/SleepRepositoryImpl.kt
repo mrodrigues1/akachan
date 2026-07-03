@@ -54,16 +54,8 @@ class SleepRepositoryImpl @Inject constructor(
             }
         }
 
-    // Identity is set once, at insert, and preserved across every edit: re-deriving clientId/startedBy
-    // on update would corrupt the unique client_id index (two edited rows both '') and lose attribution.
     override suspend fun updateRecord(record: SleepRecord) {
-        val existing = dao.getById(record.id)
-        val toSave = if (existing != null) {
-            record.toEntity().copy(clientId = existing.clientId, startedBy = existing.startedBy)
-        } else {
-            record.withClientId().toEntity()
-        }
-        dao.updateRecord(toSave)
+        dao.updateRecordPreservingIdentity(record.withClientId().toEntity())
     }
 
     override suspend fun deleteRecord(id: Long) =

@@ -75,6 +75,21 @@ abstract class SleepDao {
         }
     }
 
+    // Identity (clientId/startedBy) is set once at insert and preserved across every edit:
+    // re-deriving it on update would corrupt the unique client_id index and lose attribution.
+    // Local edits and partner-sync application reach this concurrently, so the identity read
+    // and the write must share one transaction or the slower writer clobbers the faster one.
+    @Transaction
+    open suspend fun updateRecordPreservingIdentity(entity: SleepEntity) {
+        val existing = getById(entity.id)
+        val toSave = if (existing != null) {
+            entity.copy(clientId = existing.clientId, startedBy = existing.startedBy)
+        } else {
+            entity
+        }
+        updateRecord(toSave)
+    }
+
     @Transaction
     open suspend fun stopActiveRecord(endTime: Long): Boolean {
         val active = getActiveRecordOnce() ?: return false
