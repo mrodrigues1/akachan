@@ -1,20 +1,14 @@
 package com.babytracker.tile
 
-import com.babytracker.domain.model.SleepRecord
-import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.manager.BreastfeedingSessionController
-import com.babytracker.manager.NapReminderScheduler
-import com.babytracker.manager.SleepNotificationScheduler
-import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
-import com.babytracker.sharing.usecase.SyncedWrite
+import com.babytracker.manager.SleepSessionController
 import com.babytracker.widget.WidgetUpdater
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Clock
-import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,9 +23,7 @@ class TileToggleHandler @Inject constructor(
     private val breastfeedingRepository: BreastfeedingRepository,
     private val sleepRepository: SleepRepository,
     private val sessionController: BreastfeedingSessionController,
-    private val sleepNotificationScheduler: SleepNotificationScheduler,
-    private val napReminderScheduler: NapReminderScheduler,
-    private val syncedWrite: SyncedWrite,
+    private val sleepSessionController: SleepSessionController,
     private val widgetUpdater: WidgetUpdater,
     private val clock: Clock,
 ) {
@@ -58,42 +50,17 @@ class TileToggleHandler @Inject constructor(
             val now = clock.instant()
             val latest = sleepRepository.getLatestRecord()
             val changed = if (latest?.isInProgress == true) {
-                stopSleepRecord(latest, now)
+                // The get-latest-then-stop check above only decides which branch to take; the
+                // actual stop is id-guarded by the controller's use case, so a race that clears
+                // the active record between the two calls just yields a no-op, not a bad write.
+                sleepSessionController.stop(latest.id) != null
             } else {
-                startSleepRecord(now)
+                sleepSessionController.start(sleepTypeFor(now, clock.zone)) != null
             }
             if (changed) runCatching { widgetUpdater.updateAll() }
             if (changed) TileToggleResult.CHANGED else TileToggleResult.NO_OP
         }.getOrElse {
             TileToggleResult.FAILED
         }
-    }
-
-    private suspend fun stopSleepRecord(latest: SleepRecord, now: Instant): Boolean {
-        val stopped = sleepRepository.stopActiveRecord(now)
-        if (stopped) {
-            sleepNotificationScheduler.cancel()
-            if (latest.sleepType == SleepType.NAP) {
-                runCatching { napReminderScheduler.scheduleIfEnabled(now) }
-            }
-            syncedWrite.sync(SyncType.SLEEP_RECORDS)
-        }
-        return stopped
-    }
-
-    private suspend fun startSleepRecord(now: Instant): Boolean {
-        val record = SleepRecord(
-            startTime = now,
-            sleepType = sleepTypeFor(now, clock.zone),
-            timezoneId = clock.zone.id,
-        )
-        val id = sleepRepository.startRecordIfNone(record)
-        if (id != null) {
-            val created = record.copy(id = id)
-            runCatching { napReminderScheduler.cancel() }
-            runCatching { sleepNotificationScheduler.show(created.id, created.sleepType, created.startTime) }
-            syncedWrite.sync(SyncType.SLEEP_RECORDS)
-        }
-        return id != null
     }
 }

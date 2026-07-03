@@ -7,17 +7,13 @@ import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.manager.BreastfeedingSessionController
-import com.babytracker.manager.NapReminderScheduler
-import com.babytracker.manager.SleepNotificationScheduler
-import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
-import com.babytracker.sharing.usecase.SyncedWrite
+import com.babytracker.manager.SleepSessionController
 import com.babytracker.widget.WidgetUpdater
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -38,9 +34,7 @@ class TileToggleHandlerTest {
     private lateinit var breastfeedingRepository: BreastfeedingRepository
     private lateinit var sleepRepository: SleepRepository
     private lateinit var sessionController: BreastfeedingSessionController
-    private lateinit var sleepNotificationScheduler: SleepNotificationScheduler
-    private lateinit var napReminderScheduler: NapReminderScheduler
-    private lateinit var syncToFirestore: SyncToFirestoreUseCase
+    private lateinit var sleepSessionController: SleepSessionController
     private lateinit var widgetUpdater: WidgetUpdater
     private lateinit var handler: TileToggleHandler
 
@@ -73,9 +67,7 @@ class TileToggleHandlerTest {
         breastfeedingRepository = mockk()
         sleepRepository = mockk()
         sessionController = mockk()
-        sleepNotificationScheduler = mockk(relaxed = true)
-        napReminderScheduler = mockk(relaxed = true)
-        syncToFirestore = mockk(relaxed = true)
+        sleepSessionController = mockk()
         widgetUpdater = mockk(relaxed = true)
         handler = buildHandler(Clock.fixed(fixedNow, zone))
     }
@@ -84,9 +76,7 @@ class TileToggleHandlerTest {
         breastfeedingRepository = breastfeedingRepository,
         sleepRepository = sleepRepository,
         sessionController = sessionController,
-        sleepNotificationScheduler = sleepNotificationScheduler,
-        napReminderScheduler = napReminderScheduler,
-        syncedWrite = SyncedWrite(syncToFirestore),
+        sleepSessionController = sleepSessionController,
         widgetUpdater = widgetUpdater,
         clock = clock,
     )
@@ -264,12 +254,12 @@ class TileToggleHandlerTest {
         assertEquals(TileToggleResult.CHANGED, result)
     }
 
-    // ── Sleep stop NAP ─────────────────────────────────────────────────────────
+    // ── Sleep stop ─────────────────────────────────────────────────────────────
 
     @Test
-    fun sleepStopNapReturnsChanged() = runTest {
+    fun sleepStopReturnsChanged() = runTest {
         coEvery { sleepRepository.getLatestRecord() } returns napRecord
-        coEvery { sleepRepository.stopActiveRecord(fixedNow) } returns true
+        coEvery { sleepSessionController.stop(napRecord.id) } returns napRecord.copy(endTime = fixedNow)
 
         val result = handler.toggleSleep()
 
@@ -277,56 +267,51 @@ class TileToggleHandlerTest {
     }
 
     @Test
-    fun sleepStopCancelsSleepNotification() = runTest {
+    fun sleepStopDelegatesToSleepSessionController() = runTest {
         coEvery { sleepRepository.getLatestRecord() } returns napRecord
-        coEvery { sleepRepository.stopActiveRecord(fixedNow) } returns true
+        coEvery { sleepSessionController.stop(napRecord.id) } returns napRecord.copy(endTime = fixedNow)
 
         handler.toggleSleep()
 
-        verify { sleepNotificationScheduler.cancel() }
-    }
-
-    @Test
-    fun sleepStopNapCallsScheduleNapReminderIfEnabled() = runTest {
-        coEvery { sleepRepository.getLatestRecord() } returns napRecord
-        coEvery { sleepRepository.stopActiveRecord(fixedNow) } returns true
-
-        handler.toggleSleep()
-
-        coVerify { napReminderScheduler.scheduleIfEnabled(fixedNow) }
-    }
-
-    @Test
-    fun sleepStopRequestsFirestoreSleepSync() = runTest {
-        coEvery { sleepRepository.getLatestRecord() } returns napRecord
-        coEvery { sleepRepository.stopActiveRecord(fixedNow) } returns true
-
-        handler.toggleSleep()
-
-        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
+        // controller.stop() owns cancelling the sleep notification, re-arming the nap reminder
+        // (subject to the feature gate and the enabled/delay settings), propagating a night-sleep
+        // end into the wake-time setting, and syncing to Firestore — the tile only decides which
+        // record to stop and updates the widget on success.
+        coVerify(exactly = 1) { sleepSessionController.stop(napRecord.id) }
     }
 
     @Test
     fun sleepStopUpdatesWidget() = runTest {
         coEvery { sleepRepository.getLatestRecord() } returns napRecord
-        coEvery { sleepRepository.stopActiveRecord(fixedNow) } returns true
+        coEvery { sleepSessionController.stop(napRecord.id) } returns napRecord.copy(endTime = fixedNow)
 
         handler.toggleSleep()
 
         coVerify(exactly = 1) { widgetUpdater.updateAll() }
     }
 
-    // ── Sleep stop NIGHT_SLEEP ─────────────────────────────────────────────────
+    @Test
+    fun sleepStopReturnsNoOpWhenControllerReturnsNull() = runTest {
+        // The id-guarded use case inside the controller re-reads the active record; a race that
+        // clears it between the tile's getLatestRecord() check and the controller call surfaces
+        // here as a null return, which the tile treats as a no-op rather than a failure.
+        coEvery { sleepRepository.getLatestRecord() } returns napRecord
+        coEvery { sleepSessionController.stop(napRecord.id) } returns null
+
+        val result = handler.toggleSleep()
+
+        assertEquals(TileToggleResult.NO_OP, result)
+        coVerify(exactly = 0) { widgetUpdater.updateAll() }
+    }
 
     @Test
-    fun sleepStopNightSleepDoesNotCallScheduleNapReminderIfEnabled() = runTest {
+    fun sleepStopWithNightSleepDelegatesToSleepSessionController() = runTest {
         coEvery { sleepRepository.getLatestRecord() } returns nightRecord
-        coEvery { sleepRepository.stopActiveRecord(fixedNow) } returns true
+        coEvery { sleepSessionController.stop(nightRecord.id) } returns nightRecord.copy(endTime = fixedNow)
 
         handler.toggleSleep()
 
-        coVerify(exactly = 0) { napReminderScheduler.scheduleIfEnabled(any()) }
-        verify { sleepNotificationScheduler.cancel() }
+        coVerify(exactly = 1) { sleepSessionController.stop(nightRecord.id) }
     }
 
     // ── Sleep start at evening (NIGHT_SLEEP) ───────────────────────────────────
@@ -339,12 +324,13 @@ class TileToggleHandlerTest {
             .toInstant()
         val eveningHandler = buildHandler(Clock.fixed(eveningInstant, zone))
         coEvery { sleepRepository.getLatestRecord() } returns null
-        val captured = slot<SleepRecord>()
-        coEvery { sleepRepository.startRecordIfNone(capture(captured)) } returns 1L
+        val captured = slot<SleepType>()
+        coEvery { sleepSessionController.start(capture(captured)) } returns
+            nightRecord.copy(startTime = eveningInstant)
 
         eveningHandler.toggleSleep()
 
-        assertEquals(SleepType.NIGHT_SLEEP, captured.captured.sleepType)
+        assertEquals(SleepType.NIGHT_SLEEP, captured.captured)
     }
 
     @Test
@@ -355,7 +341,7 @@ class TileToggleHandlerTest {
             .toInstant()
         val eveningHandler = buildHandler(Clock.fixed(eveningInstant, zone))
         coEvery { sleepRepository.getLatestRecord() } returns null
-        coEvery { sleepRepository.startRecordIfNone(any()) } returns 1L
+        coEvery { sleepSessionController.start(any()) } returns nightRecord.copy(startTime = eveningInstant)
 
         val result = eveningHandler.toggleSleep()
 
@@ -363,34 +349,20 @@ class TileToggleHandlerTest {
     }
 
     @Test
-    fun sleepStartAt19CancelsNapReminderAndShowsSleepNotification() = runTest {
+    fun sleepStartAt19DelegatesToSleepSessionController() = runTest {
         val eveningInstant = LocalDate.of(2024, 6, 15)
             .atTime(LocalTime.of(19, 0))
             .atZone(zone)
             .toInstant()
         val eveningHandler = buildHandler(Clock.fixed(eveningInstant, zone))
         coEvery { sleepRepository.getLatestRecord() } returns null
-        coEvery { sleepRepository.startRecordIfNone(any()) } returns 1L
+        coEvery { sleepSessionController.start(any()) } returns nightRecord.copy(startTime = eveningInstant)
 
         eveningHandler.toggleSleep()
 
-        verify { napReminderScheduler.cancel() }
-        coVerify { sleepNotificationScheduler.show(any(), any(), any()) }
-    }
-
-    @Test
-    fun sleepStartAt19RequestsFirestoreSleepSync() = runTest {
-        val eveningInstant = LocalDate.of(2024, 6, 15)
-            .atTime(LocalTime.of(19, 0))
-            .atZone(zone)
-            .toInstant()
-        val eveningHandler = buildHandler(Clock.fixed(eveningInstant, zone))
-        coEvery { sleepRepository.getLatestRecord() } returns null
-        coEvery { sleepRepository.startRecordIfNone(any()) } returns 1L
-
-        eveningHandler.toggleSleep()
-
-        coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
+        // controller.start() owns cancelling the pending nap reminder, persisting the record,
+        // showing the sleep notification, and syncing to Firestore.
+        coVerify(exactly = 1) { sleepSessionController.start(SleepType.NIGHT_SLEEP) }
     }
 
     // ── Sleep start at midday (NAP) ────────────────────────────────────────────
@@ -398,20 +370,20 @@ class TileToggleHandlerTest {
     @Test
     fun sleepStartAtMiddayReceivesNapType() = runTest {
         coEvery { sleepRepository.getLatestRecord() } returns null
-        val captured = slot<SleepRecord>()
-        coEvery { sleepRepository.startRecordIfNone(capture(captured)) } returns 1L
+        val captured = slot<SleepType>()
+        coEvery { sleepSessionController.start(capture(captured)) } returns napRecord.copy(startTime = fixedNow)
 
         handler.toggleSleep()
 
-        assertEquals(SleepType.NAP, captured.captured.sleepType)
+        assertEquals(SleepType.NAP, captured.captured)
     }
 
     // ── Sleep no-op ────────────────────────────────────────────────────────────
 
     @Test
-    fun sleepNoOpWhenStartRecordIfNoneReturnsNull() = runTest {
+    fun sleepNoOpWhenControllerStartReturnsNull() = runTest {
         coEvery { sleepRepository.getLatestRecord() } returns null
-        coEvery { sleepRepository.startRecordIfNone(any()) } returns null
+        coEvery { sleepSessionController.start(any()) } returns null
 
         val result = handler.toggleSleep()
 
@@ -421,12 +393,10 @@ class TileToggleHandlerTest {
     @Test
     fun sleepNoOpDoesNotCallSideEffects() = runTest {
         coEvery { sleepRepository.getLatestRecord() } returns null
-        coEvery { sleepRepository.startRecordIfNone(any()) } returns null
+        coEvery { sleepSessionController.start(any()) } returns null
 
         handler.toggleSleep()
 
-        coVerify(exactly = 0) { sleepNotificationScheduler.show(any(), any(), any()) }
-        coVerify(exactly = 0) { syncToFirestore(any()) }
         coVerify(exactly = 0) { widgetUpdater.updateAll() }
     }
 
@@ -447,8 +417,6 @@ class TileToggleHandlerTest {
 
         handler.toggleSleep()
 
-        coVerify(exactly = 0) { sleepNotificationScheduler.show(any(), any(), any()) }
-        coVerify(exactly = 0) { syncToFirestore(any()) }
         coVerify(exactly = 0) { widgetUpdater.updateAll() }
     }
 
@@ -457,7 +425,7 @@ class TileToggleHandlerTest {
     @Test
     fun sleepWidgetFailureAfterMutationStillReturnsChanged() = runTest {
         coEvery { sleepRepository.getLatestRecord() } returns null
-        coEvery { sleepRepository.startRecordIfNone(any()) } returns 1L
+        coEvery { sleepSessionController.start(any()) } returns napRecord.copy(startTime = fixedNow)
         coEvery { widgetUpdater.updateAll() } throws RuntimeException("widget unavailable")
 
         val result = handler.toggleSleep()
