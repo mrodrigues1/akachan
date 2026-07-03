@@ -56,11 +56,24 @@ class BreastfeedingSessionController @Inject constructor(
     }
 
     /**
-     * Ends the session. Returns false when persisting the end time failed, in which case
-     * notifications and the partner snapshot are left untouched.
+     * Ends the session, folding any open pause into [BreastfeedingSession.pausedDurationMs] so the
+     * trailing pause is not counted as feeding time. Returns false when persisting the end time
+     * failed, in which case notifications and the partner snapshot are left untouched.
      */
     suspend fun stop(session: BreastfeedingSession): Boolean {
-        val result = runCatching { repository.updateSession(session.copy(endTime = Instant.now())) }
+        val endTime = Instant.now()
+        val trailingPauseMs = session.pausedAt
+            ?.let { (endTime.toEpochMilli() - it.toEpochMilli()).coerceAtLeast(0L) }
+            ?: 0L
+        val result = runCatching {
+            repository.updateSession(
+                session.copy(
+                    endTime = endTime,
+                    pausedAt = null,
+                    pausedDurationMs = session.pausedDurationMs + trailingPauseMs,
+                ),
+            )
+        }
         if (result.isFailure) return false
         notificationCoordinator.cancelAllSessionNotifications()
         syncedWrite.sync(SyncType.SESSIONS)

@@ -134,6 +134,29 @@ class BreastfeedingDaoTest {
     }
 
     @Test
+    fun stopActiveSessionFoldsOpenPauseIntoPausedDuration() = runTest {
+        val start = System.currentTimeMillis()
+        val pausedAt = start + 60_000L
+        dao.insertSession(
+            BreastfeedingEntity(
+                startTime = start,
+                startingSide = "LEFT",
+                pausedAt = pausedAt,
+                pausedDurationMs = 30_000L,
+            )
+        )
+        val endTime = pausedAt + 120_000L
+
+        val stopped = dao.stopActiveSession(endTime)
+
+        assertTrue(stopped)
+        val session = dao.getAllSessions().first()[0]
+        assertEquals(endTime, session.endTime)
+        assertNull(session.pausedAt)
+        assertEquals(30_000L + 120_000L, session.pausedDurationMs)
+    }
+
+    @Test
     fun stopActiveSessionReturnsFalseWhenNoActiveSession() = runTest {
         val stopped = dao.stopActiveSession(System.currentTimeMillis())
 
