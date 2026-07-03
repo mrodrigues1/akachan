@@ -51,7 +51,13 @@ class BreastfeedingSessionController @Inject constructor(
         val switched = switchSideUseCase(session)
         if (session.switchTime == null) {
             notificationCoordinator.rearmPerBreastAfterSwitch(switched)
-            notificationCoordinator.showRunning(switched)
+            // Switch is reachable while paused; keep the paused notification instead of resuming it.
+            val pausedAt = switched.pausedAt
+            if (pausedAt != null) {
+                notificationCoordinator.showPaused(switched, pausedAt)
+            } else {
+                notificationCoordinator.showRunning(switched)
+            }
         }
         syncedWrite.sync(SyncType.SESSIONS)
     }
