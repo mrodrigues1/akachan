@@ -1,6 +1,7 @@
 package com.babytracker.export.di
 
 import com.babytracker.BuildConfig
+import com.babytracker.data.local.DB_VERSION
 import com.babytracker.export.data.BackupImporterImpl
 import com.babytracker.export.data.BackupSourceImpl
 import com.babytracker.export.data.PdfReportGenerator
@@ -45,8 +46,8 @@ abstract class ExportModule {
         @Singleton
         fun provideExportMetadata(): ExportMetadata = ExportMetadata(
             appVersion = BuildConfig.VERSION_NAME,
-            // Must equal BabyTrackerDatabase's @Database(version = ...); diagnostics-only field.
-            roomSchemaVersion = 11,
+            // Diagnostics-only field stamped into backups; not gated on import.
+            roomSchemaVersion = DB_VERSION,
         )
     }
 }

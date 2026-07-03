@@ -33,6 +33,8 @@ import com.babytracker.data.local.entity.SleepRecommendationFeedbackEntity
 import com.babytracker.data.local.entity.VaccineEntity
 import com.babytracker.data.local.entity.VisitQuestionEntity
 
+const val DB_VERSION = 19
+
 @Database(
     entities = [
         BreastfeedingEntity::class,
@@ -51,7 +53,7 @@ import com.babytracker.data.local.entity.VisitQuestionEntity
         DoctorVisitEntity::class,
         VisitQuestionEntity::class,
     ],
-    version = 19,
+    version = DB_VERSION,
     exportSchema = true,
 )
 abstract class BabyTrackerDatabase : RoomDatabase() {

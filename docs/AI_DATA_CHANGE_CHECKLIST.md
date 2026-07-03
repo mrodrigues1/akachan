@@ -6,9 +6,9 @@ Everything to touch when the persisted data model changes. AGENTS.md covers the 
 
 | Constant | File | Value |
 |----------|------|-------|
-| `@Database(version = …)` | `data/local/BabyTrackerDatabase.kt` | 19 |
+| `DB_VERSION` (used by `@Database`) | `data/local/BabyTrackerDatabase.kt` | 19 |
 | `CURRENT_BACKUP_FORMAT_VERSION` | `export/domain/model/BackupData.kt` | 6 |
-| `ExportMetadata.roomSchemaVersion` | `export/di/ExportModule.kt` | ⚠ stale (11) — diagnostics-only, not gated on import, but its comment claims it must equal the DB version |
+| `ExportMetadata.roomSchemaVersion` | `export/di/ExportModule.kt` | derives from `DB_VERSION` — diagnostics-only, not gated on import |
 
 There is no Firestore snapshot schema version — snapshots degrade via per-field defaults. Only op payloads are schema-gated (by `firestore.rules`).
 
