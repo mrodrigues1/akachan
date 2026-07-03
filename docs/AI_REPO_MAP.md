@@ -20,8 +20,12 @@ Data Layer     Repository Impls → Room DAOs / DataStore
 - `app/src/main/java/com/babytracker/di`: Hilt modules for database, DataStore, repositories, notifications, and sharing.
 - `app/src/main/java/com/babytracker/manager`: Notification scheduler interfaces and implementations.
 - `app/src/main/java/com/babytracker/receiver`: Broadcast receivers for notification actions and alarm triggers.
+- `app/src/main/java/com/babytracker/tile`: Quick Settings tiles for feed and sleep (start/stop from the shade).
+- `app/src/main/java/com/babytracker/widget`: Glance home-screen widgets (baby status, milk stash) and their refresh/sync plumbing.
 - `app/src/main/java/com/babytracker/sharing`: Partner sharing domain, Firebase service, repository, and use cases.
+- `app/src/main/java/com/babytracker/export`: Backup export/import and PDF report generation.
 - `app/src/main/java/com/babytracker/util`: Date/time, Flow, notification, and update-checking helpers.
+- `app/src/main/java/com/babytracker/debug`: Debug-build data seeding.
 
 ## Tests and config
 - `app/src/test`: Unit tests with JUnit 5, MockK, Turbine, and coroutine test utilities.
@@ -38,7 +42,7 @@ Data Layer     Repository Impls → Room DAOs / DataStore
 - Add notification behavior: check `manager/`, `receiver/`, `util/NotificationHelper.kt`, manifest receivers, and scheduler DI bindings.
 - Add partner sharing behavior: keep Firebase-specific work inside `sharing/` and `di/SharingModule.kt`.
 - Change Home tiles or their reorder behavior: the `HomeTile` enum (`domain/model/HomeTile.kt`) is the canonical tile set, `DEFAULT_ORDER`, and serialize/`reconcile` logic; tile rendering lives in `ui/home/HomeTileContent.kt` and `ui/home/HomeScreen.kt`; drag/accessibility reorder state in `ui/home/HomeViewModel.kt`; the order persists via `getHomeTileOrder`/`setHomeTileOrder`/`clearHomeTileOrder` on `SettingsRepository` (DataStore-backed, comma-joined tile names).
-- Update dependencies: edit `gradle/libs.versions.toml`, then update `CLAUDE.md` and `AGENTS.md` tech stack tables if versions changed.
+- Update dependencies: edit `gradle/libs.versions.toml` — it is authoritative; AGENTS.md deliberately lists no versions. Keep the DataStore 1.1.1 and Kover 0.9.1 pins (newer versions break tests/coverage).
 
 ## Do not inspect unless needed
 - `build/`
