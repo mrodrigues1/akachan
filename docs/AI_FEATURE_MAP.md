@@ -2,7 +2,7 @@
 
 Per-feature jump table. Paths are under `app/src/main/java/com/babytracker/`. Layering: `ui/<feature>/` → `domain/repository/*` + `domain/usecase/<feature>/` → `data/repository/*Impl` → `data/local/` (Room, `BabyTrackerDatabase`).
 
-Feature design docs: `docs/superpowers/specs/` for everything from ~May 2026 on (dated files — search by feature keyword). Architecture decisions: `docs/adr/` (the retired early specs were distilled into ADRs 0001–0005).
+Feature design docs: `docs/superpowers/specs/`. Architecture decisions: `docs/adr/` (the retired early specs were distilled into ADRs 0001–0005).
 
 ## Features
 
