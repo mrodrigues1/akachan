@@ -2,7 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace Firestore + anonymous Firebase Auth in the partner-sharing feature with Supabase (Postgres + GoTrue + Realtime), with no behaviour regression and zero `com.google.firebase` dependencies at the end.
+**Goal:** Replace Firestore + anonymous Firebase Auth in the partner-sharing feature with Supabase (Postgres + GoTrue **Google OAuth** + Realtime), with no behaviour regression (other than the deliberate addition of a Google sign-in gate) and zero `com.google.firebase` dependencies at the end.
+
+> **Auth changed 2026-07-06:** anonymous auth is dropped in favour of **Google Sign-In** (native Android Credential Manager → Supabase `signInWith(IDToken)`). This is not a silent swap. Anonymous `signInAnonymously()` was contextless and re-called on every sharing operation (11 sites). Google sign-in is **interactive** (needs an Activity + user choice), so it runs **once** behind a UI gate and the persisted GoTrue session is reused everywhere. Concretely: one new interactive `signInWithGoogle(context): String`, one non-interactive `currentUserId(): String` that replaces all 11 `signInAnonymously()` calls, a "Sign in with Google" gate on the two sharing entry screens, and the credentials/googleid deps + Google OAuth client setup. Affected tasks: 1 (provider config), 2 (deps + `GOOGLE_WEB_CLIENT_ID`), 3 (rewritten), 8 (call-site swap), 9 (config files).
 
 > **Reconciled 2026-06-29**, **re-synced 2026-07-06** against `origin/main` (this docs branch had fallen 100+ commits behind main's sharing surface). Drift folded in on 2026-07-06: sleep-prediction now syncs a **semantic** payload (`reasons` as `SleepReason` maps + `feedDue` boolean, no localized strings — AKA-302), a new `UnregisterPartnerUseCase` injects the service (**15** cutover sites now — AKA-325), partner-op `notes` are bounded to **2000** chars (AKA-327), `deleteShareDocument` manually drains subcollections before delete (AKA-326; Supabase `on delete cascade` replaces this), and the tracker write-then-sync seam is now `SyncedWrite` (AKA-297). The plan targets the *current* surface, not the 2026-06-17 one.
 
@@ -14,12 +16,13 @@
 
 - One PR per task; each task = one Linear issue (AKA-165 … AKA-173) and is independently shippable.
 - **The Firebase seam has no interface.** `SupabaseSharingService` must mirror the full `FirestoreSharingService` surface — member functions **and** the extension functions in the same file — method-name-for-method-name, so cutover is a concrete-type swap at each call site (13 use cases + `PartnerSleepViewModel` + `ManageSharingViewModel` = 15 sites). Do **not** add a repository interface (single implementation; project rule).
+- **Auth is Google, interactive-once — not per-call.** The 11 sites that call `service.signInAnonymously()` today (`GenerateShareCodeUseCase`, `ConnectAsPartnerUseCase`, `FetchPartnerDataUseCase`, `ObservePartnerDataUseCase`, `ObservePartnerFeedHistoryUseCase`, `ObservePartnerSleepHistoryUseCase`, `SubmitFeedOpUseCase`, `SubmitSleepOpUseCase`, `UnregisterPartnerUseCase`, `PartnerSleepViewModel`, `ObservePartnerSleepHistoryUseCase`) switch to the **non-interactive** `currentUserId()`. Interactive `signInWithGoogle(context)` is called **only** from the sign-in gate on the sharing screens — never inside a flow or an op submit. `currentUserId()` throws when there is no session; that surfaces as "sign in to share", not a crash. GoTrue persists + auto-refreshes the session, so the one-time sign-in survives process death like the old anonymous session did.
 - **Firebase exception types leaked** into `usecase/PartnerAccessError.kt`, `usecase/FetchPartnerDataUseCase.kt`, `usecase/SubmitFeedOpUseCase.kt`, `usecase/SubmitSleepOpUseCase.kt`. The "partner access revoked" path keys on `FirebaseFirestoreException.Code.PERMISSION_DENIED`; cutover (Task 8) must re-express this as a Supabase RLS-denied check (Postgrest `RestException` / HTTP 401|403) behind a backend-agnostic predicate.
 - No Mapper classes — use extension functions on snapshot/row types (project rule).
 - No `sealed class Result<T>` wrappers, no BaseViewModel/BaseFragment, no KAPT (KSP only), no multi-module.
 - DateTime: `java.time.Instant`; store epoch millis (`Long`) — same convention as today.
 - Firebase deps remain in the build until AKA-173; only the cutover task (AKA-172) swaps the injected service type.
-- Secrets (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) come from `local.properties` / CI secrets via `BuildConfig`; never commit them.
+- Secrets (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `GOOGLE_WEB_CLIENT_ID`) come from `local.properties` / CI secrets via `BuildConfig`; never commit them.
 - Snapshots are ephemeral — no historical data migration. Existing Firebase share codes are abandoned at cutover.
 - Run `./gradlew test --tests "<changed test>"` per task; full `./gradlew build` before each PR. ktlint/detekt run via the pre-commit hook.
 - Source of truth for table columns: the `*Snapshot` models in `sharing/domain/model/ShareSnapshot.kt` and `FeedOp.kt`/`SleepOp.kt` (fields enumerated in Task 1). Current Room schema is **v17** — the outbox migration in Task 7 targets **v17 → v18**.
@@ -60,11 +63,16 @@ All child tables `references shares(code) on delete cascade`.
 
 - [ ] **Step 1: Install + init Supabase CLI**
 
-Run: `supabase init` (creates `supabase/config.toml`). In `config.toml` enable anonymous sign-ins:
+Run: `supabase init` (creates `supabase/config.toml`). In `config.toml` enable the **Google** external provider (not anonymous sign-ins):
 ```toml
-[auth]
-enable_anonymous_sign_ins = true
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret    = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+# Native Credential Manager sends a hashed nonce in the ID token; keep the check on.
+skip_nonce_check = false
 ```
+The `client_id` is the Google Cloud OAuth **Web** client id (same value the app passes to Credential Manager as `serverClientId` / `GOOGLE_WEB_CLIENT_ID`). Provide the env vars for the local stack via `supabase/.env` (git-ignored). Step 5 sets the same id + secret in the Cloud project's Auth → Google provider.
 
 - [ ] **Step 2: Write `0001_schema.sql`**
 
@@ -168,7 +176,7 @@ Expected: migrations apply with no error; `supabase status` shows the stack up.
 
 - [ ] **Step 5: Create the Cloud project**
 
-Via the Supabase dashboard: create project, link with `supabase link`, `supabase db push`. Record URL + anon key in your password manager / CI secrets (do **not** commit). Enable anonymous sign-ins in Auth settings.
+Via the Supabase dashboard: create project, link with `supabase link`, `supabase db push`. Record URL + anon key in your password manager / CI secrets (do **not** commit). In Auth → Providers, enable **Google** and paste the Google Cloud OAuth **Web** client id + secret. (One-time Google Cloud setup: create an OAuth **Web** client — its id/secret feed Supabase + `GOOGLE_WEB_CLIENT_ID` — **and** an **Android** OAuth client bound to the app package name + debug/release SHA-1, so Credential Manager will mint an ID token on-device.)
 
 - [ ] **Step 6: Commit**
 
@@ -200,6 +208,8 @@ In `gradle/libs.versions.toml` add (use the current supabase-kt BOM):
 [versions]
 supabase = "3.x.x"   # pin to latest stable supabase-kt BOM
 ktorClient = "3.x.x" # matching ktor version per supabase-kt docs
+androidxCredentials = "1.x.x"  # pin to latest stable
+googleid = "1.x.x"             # com.google.android.libraries.identity.googleid
 
 [libraries]
 supabase-bom       = { group = "io.github.jan-tennert.supabase", name = "bom", version.ref = "supabase" }
@@ -207,6 +217,9 @@ supabase-auth      = { group = "io.github.jan-tennert.supabase", name = "auth-kt
 supabase-postgrest = { group = "io.github.jan-tennert.supabase", name = "postgrest-kt" }
 supabase-realtime  = { group = "io.github.jan-tennert.supabase", name = "realtime-kt" }
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktorClient" }
+androidx-credentials              = { group = "androidx.credentials", name = "credentials", version.ref = "androidxCredentials" }
+androidx-credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "androidxCredentials" }
+googleid                          = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 ```
 
 - [ ] **Step 2: Add deps + BuildConfig in `app/build.gradle.kts`**
@@ -217,12 +230,16 @@ implementation(libs.supabase.auth)
 implementation(libs.supabase.postgrest)
 implementation(libs.supabase.realtime)
 implementation(libs.ktor.client.okhttp)
+implementation(libs.androidx.credentials)
+implementation(libs.androidx.credentials.play.services)
+implementation(libs.googleid)
 ```
 In `android { defaultConfig { } }`, read keys from `local.properties` and expose:
 ```kotlin
 val props = gradleLocalProperties(rootDir, providers)
 buildConfigField("String", "SUPABASE_URL", "\"${props.getProperty("supabase.url", "")}\"")
 buildConfigField("String", "SUPABASE_ANON_KEY", "\"${props.getProperty("supabase.anonKey", "")}\"")
+buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${props.getProperty("google.webClientId", "")}\"")
 ```
 Ensure `buildFeatures { buildConfig = true }`.
 
@@ -274,19 +291,27 @@ git commit -m "feat(sharing): add supabase-kt deps and Hilt client provider [AKA
 
 ---
 
-### Task 3: Supabase anonymous authentication — AKA-167
+### Task 3: Supabase Google authentication + sign-in gate — AKA-167
 
-Implement anonymous sign-in returning the user id. Identity primitive for every later task.
+Implement **interactive** Google sign-in (native Credential Manager → Supabase `signInWith(IDToken)`) plus the **non-interactive** `currentUserId()` the rest of the migration depends on, and add the "Sign in with Google" gate to the two sharing entry screens. This is the identity primitive for every later task.
+
+> **Why two methods (not a like-for-like `signInAnonymously`):** anonymous sign-in was silent and re-called on every sharing op (11 sites). Google sign-in needs an Activity + user choice, so it runs **once**; the persisted GoTrue session is reused. `signInWithGoogle(context)` is called only from the UI gate; everything else calls `currentUserId()` (Tasks 4–8).
 
 **Files:**
-- Create: `app/src/main/java/com/babytracker/sharing/data/supabase/SupabaseSharingService.kt` (auth method only for now)
+- Create: `app/src/main/java/com/babytracker/sharing/data/supabase/SupabaseSharingService.kt` (auth methods only for now)
 - Create: `app/src/test/java/com/babytracker/sharing/data/supabase/SupabaseSharingServiceAuthTest.kt`
+- Modify: `app/src/main/java/com/babytracker/ui/sharing/ManageSharingViewModel.kt`, `ManageSharingScreen.kt`, `ConnectPartnerViewModel.kt`, `ConnectPartnerScreen.kt` (add the sign-in gate + state)
+- Modify: `res/values/strings.xml`, `res/values-pt-rBR/strings.xml` ("Sign in with Google" label + sign-in-required / error strings — both locales, pt-BR plural rules N/A here)
 
 **Interfaces:**
-- Consumes: `SupabaseClient` (Task 2).
-- Produces: `suspend fun signInAnonymously(): String` — returns the Supabase user id, throws on failure. Same contract as `FirestoreSharingService.signInAnonymously()`.
+- Consumes: `SupabaseClient` (Task 2), `BuildConfig.GOOGLE_WEB_CLIENT_ID`.
+- Produces:
+  - `suspend fun signInWithGoogle(activityContext: Context): String` — launches Credential Manager, exchanges the Google ID token for a GoTrue session, returns the Supabase user id. Throws `GetCredentialException` (no account / user cancel) and auth failures to the caller.
+  - `suspend fun currentUserId(): String` — non-interactive; awaits session init, returns `auth.currentUserOrNull()?.id` or throws `IllegalStateException("Not signed in")`. **This replaces every `signInAnonymously()` call at cutover (Task 8).**
+  - `fun isSignedIn(): Boolean` / `fun observeSignedIn(): Flow<Boolean>` (off `auth.sessionStatus`) so the UI gate can show signed-in vs signed-out.
+  - `suspend fun signOut()` — for the "stop sharing" affordance.
 
-- [ ] **Step 1: Failing test**
+- [ ] **Step 1: `currentUserId` unit test** (mockable without an Activity)
 
 ```kotlin
 class SupabaseSharingServiceAuthTest {
@@ -295,20 +320,19 @@ class SupabaseSharingServiceAuthTest {
     private val service = SupabaseSharingService(client)
 
     @Test
-    fun `signInAnonymously returns user id`() = runTest {
-        coEvery { auth.signInAnonymously() } just Runs
+    fun `currentUserId returns id from the persisted session`() = runTest {
         every { auth.currentUserOrNull() } returns UserInfo(id = "uid-123", aud = "")
-        assertEquals("uid-123", service.signInAnonymously())
+        assertEquals("uid-123", service.currentUserId())
     }
 
     @Test
-    fun `signInAnonymously throws when no user`() = runTest {
-        coEvery { auth.signInAnonymously() } just Runs
+    fun `currentUserId throws when not signed in`() = runTest {
         every { auth.currentUserOrNull() } returns null
-        assertThrows<IllegalStateException> { service.signInAnonymously() }
+        assertThrows<IllegalStateException> { service.currentUserId() }
     }
 }
 ```
+> `signInWithGoogle` drives Android Credential Manager, which needs a real Activity — it is **not** unit-testable with MockK. Cover it in the Task 8 end-to-end run (real device/emulator) or a thin instrumented test; the unit test scope here is `currentUserId` + `isSignedIn`.
 
 - [ ] **Step 2: Run → FAIL** (`SupabaseSharingService` undefined).
 
@@ -321,20 +345,48 @@ class SupabaseSharingService @Inject constructor(
 ) {
     private val auth get() = client.pluginManager.getPlugin(Auth)
 
-    suspend fun signInAnonymously(): String {
-        auth.signInAnonymously()
-        return checkNotNull(auth.currentUserOrNull()?.id) { "Anonymous sign-in returned no user" }
+    suspend fun signInWithGoogle(activityContext: Context): String {
+        val rawNonce = generateNonce()                 // random string
+        val hashedNonce = sha256Hex(rawNonce)          // sent inside the Google ID token
+        val googleIdOption = GetGoogleIdOption.Builder()
+            .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+            .setNonce(hashedNonce)
+            .setFilterByAuthorizedAccounts(false)
+            .build()
+        val request = GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build()
+        val credential = CredentialManager.create(activityContext)
+            .getCredential(activityContext, request).credential
+        val googleToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
+
+        auth.signInWith(IDToken) {
+            idToken = googleToken
+            provider = Google
+            nonce = rawNonce                            // GoTrue verifies hash(rawNonce) == token nonce
+        }
+        return currentUserId()
     }
+
+    suspend fun currentUserId(): String {
+        auth.awaitInitialization()
+        return checkNotNull(auth.currentUserOrNull()?.id) { "Not signed in" }
+    }
+
+    fun isSignedIn(): Boolean = auth.currentUserOrNull() != null
+    fun observeSignedIn(): Flow<Boolean> =
+        auth.sessionStatus.map { it is SessionStatus.Authenticated }
+    suspend fun signOut() = auth.signOut()
 }
 ```
 
 - [ ] **Step 4: Run → PASS.**
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Sign-in gate in the UI** — in `ManageSharingViewModel`/`ConnectPartnerViewModel`, expose `isSignedIn` (from `observeSignedIn()`) in the UiState and a `fun signIn(context: Context)` that calls `service.signInWithGoogle(context)` inside `runCatching` (surface cancel/error as a UiState message, not a crash). In the screens, when signed out, render a "Sign in with Google" button (passing `LocalContext.current`) that gates the existing "Generate share code" / "Connect" actions. Generate/Connect stay disabled until `isSignedIn`.
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add app/src/main/java/com/babytracker/sharing/data/supabase/SupabaseSharingService.kt app/src/test/java/com/babytracker/sharing/data/supabase/SupabaseSharingServiceAuthTest.kt
-git commit -m "feat(sharing): add Supabase anonymous sign-in [AKA-167]"
+git add app/src/main/java/com/babytracker/sharing/data/supabase/ app/src/test/java/com/babytracker/sharing/data/supabase/ app/src/main/java/com/babytracker/ui/sharing/ app/src/main/res/values*/strings.xml
+git commit -m "feat(sharing): add Supabase Google sign-in and UI gate [AKA-167]"
 ```
 
 ---
@@ -628,10 +680,10 @@ git commit -m "feat(sharing): add offline op outbox (feed + sleep) with WorkMana
 
 ### Task 8: Cutover — swap the injected service everywhere + abstract leaked errors — AKA-172
 
-**There is no binding to flip** (no `SharingRepository`). Cutover is a concrete-type swap at every injection site, plus re-expressing the leaked Firebase exception handling against Supabase. Firebase code stays physically present for one-revert rollback. This is the largest task — consider splitting the error-abstraction prep into its own commit within the PR.
+**There is no binding to flip** (no `SharingRepository`). Cutover is a concrete-type swap at every injection site, plus re-expressing the leaked Firebase exception handling against Supabase, plus swapping every `signInAnonymously()` call to the non-interactive `currentUserId()` (Google sign-in already happens at the UI gate from Task 3). Firebase code stays physically present for one-revert rollback. This is the largest task — consider splitting the error-abstraction prep into its own commit within the PR.
 
 **Files:**
-- Modify (swap `FirestoreSharingService` → `SupabaseSharingService` in the constructor + fix imports of the moved extension functions): the 13 use cases that inject it — `ConnectAsPartnerUseCase`, `FetchPartnerDataUseCase`, `GenerateShareCodeUseCase`, `ObservePartnerDataUseCase`, `ObservePartnerFeedHistoryUseCase`, `ObservePartnerSleepHistoryUseCase`, `ProcessFeedOpsUseCase`, `ProcessSleepOpsUseCase`, `RevokePartnerUseCase`, `SubmitFeedOpUseCase`, `SubmitSleepOpUseCase`, `SyncToFirestoreUseCase`, `UnregisterPartnerUseCase` (AKA-325 — calls the already-mirrored `revokePartner`/`signInAnonymously`, no new service method) — plus `ui/partner/PartnerSleepViewModel.kt` and `ui/sharing/ManageSharingViewModel.kt`. (`SettingsViewModel` injects `UnregisterPartnerUseCase`, not the service, so it needs no swap.)
+- Modify (swap `FirestoreSharingService` → `SupabaseSharingService` in the constructor + fix imports of the moved extension functions): the 13 use cases that inject it — `ConnectAsPartnerUseCase`, `FetchPartnerDataUseCase`, `GenerateShareCodeUseCase`, `ObservePartnerDataUseCase`, `ObservePartnerFeedHistoryUseCase`, `ObservePartnerSleepHistoryUseCase`, `ProcessFeedOpsUseCase`, `ProcessSleepOpsUseCase`, `RevokePartnerUseCase`, `SubmitFeedOpUseCase`, `SubmitSleepOpUseCase`, `SyncToFirestoreUseCase`, `UnregisterPartnerUseCase` (AKA-325 — calls `revokePartner` with `currentUserId()`, no new service method) — plus `ui/partner/PartnerSleepViewModel.kt` and `ui/sharing/ManageSharingViewModel.kt`. (`SettingsViewModel` injects `UnregisterPartnerUseCase`, not the service, so it needs no swap.) `ManageSharingViewModel`/`ConnectPartnerViewModel` already gained the interactive `signInWithGoogle` gate in Task 3.
 - Modify (abstract leaked Firebase exceptions): `usecase/PartnerAccessError.kt` (`isPermissionDenied` keys on `FirebaseFirestoreException.Code.PERMISSION_DENIED`), `usecase/FetchPartnerDataUseCase.kt` (catches `FirebaseException`), `usecase/SubmitFeedOpUseCase.kt`, `usecase/SubmitSleepOpUseCase.kt` (catch `FirebaseFirestoreException`). Replace with a backend-neutral `Throwable.isRlsDeniedError()` checking the Supabase Postgrest error (`RestException` / HTTP 401|403).
 - Relocate `SnapshotEmission` / `ConnectionEmission` out of the Firebase file to a backend-neutral location (they're returned by the live observers).
 - Modify/replace integration + mapping tests → Supabase equivalents: `FirestoreSharingServiceBottleFeedRoundTripTest`, `FirestoreSharingServiceInventoryRoundTripTest`, `FirestoreSnapshotMappingTest`, `FirestoreSnapshotDoctorVisitTest`, `DiaperFirestoreMappingTest`, and the `SyncToFirestore*` use-case tests (`SyncToFirestoreUseCaseTest`, `SyncToFirestoreUseCaseInventoryTest`, `SyncToFirestoreDiapersTest`, `SyncToFirestoreDoctorVisitTest`).
@@ -643,7 +695,7 @@ git commit -m "feat(sharing): add offline op outbox (feed + sleep) with WorkMana
 
 - [ ] **Step 1: Abstract the leaked errors first** — introduce `Throwable.isRlsDeniedError()` (Supabase) and point `PartnerAccessError.isPermissionDenied`, the two `SubmitOp` catches, and `FetchPartnerDataUseCase` at it. (Doing this before the swap keeps each file compiling.)
 
-- [ ] **Step 2: Swap the injected service** at all 15 sites: change the constructor param type and the imports (the sleep-op / live-observer extension functions move from `com.babytracker.sharing.data.firebase.*` to `...data.supabase.*`). Method names are identical, so call bodies are unchanged.
+- [ ] **Step 2: Swap the injected service** at all 15 sites: change the constructor param type and the imports (the sleep-op / live-observer extension functions move from `com.babytracker.sharing.data.firebase.*` to `...data.supabase.*`). Method names are identical **except auth**: replace each `service.signInAnonymously()` (the 11 call sites — `GenerateShareCodeUseCase`, `ConnectAsPartnerUseCase`, `FetchPartnerDataUseCase`, `ObservePartnerDataUseCase`, `ObservePartnerFeedHistoryUseCase`, `ObservePartnerSleepHistoryUseCase`, `SubmitFeedOpUseCase`, `SubmitSleepOpUseCase`, `UnregisterPartnerUseCase`, `PartnerSleepViewModel`) with `service.currentUserId()`. Same `String` return, so the surrounding code is unchanged; the only behavioural difference is that an unauthenticated caller now throws `IllegalStateException("Not signed in")` instead of silently creating an anonymous user — the UI gate (Task 3) guarantees a session exists before these run.
 
 - [ ] **Step 3: Re-point integration tests** from Firebase emulator (port 8080) to local Supabase (`supabase start`). Update CI to boot Supabase before tests (resolves the `firebase-emulator-jvm-leak` orphaned-java issue — it goes away).
 
@@ -691,7 +743,7 @@ fun `supabase imports restricted to sharing package and DI provider`() {
 }
 ```
 
-- [ ] **Step 4: Update docs** — rewrite SPEC-005 Firebase sections as Supabase; update CLAUDE.md tech-stack table + DI module list + the "What NOT to Do" Firebase line; AGENTS.md; AI_REPO_MAP sharing description.
+- [ ] **Step 4: Update docs** — rewrite SPEC-005 Firebase sections as Supabase and note **sharing now requires Google sign-in** (was anonymous); update CLAUDE.md tech-stack table (Supabase + Google Sign-In via Credential Manager, drop anonymous-auth wording) + DI module list + the "What NOT to Do" Firebase line; AGENTS.md; AI_REPO_MAP sharing description.
 
 - [ ] **Step 5: Verify**
 
@@ -708,8 +760,9 @@ git commit -m "feat(sharing): remove Firebase and finalize Supabase migration [A
 
 ## Self-Review
 
+- **2026-07-06 auth change (anonymous → Google):** the identity primitive is now **Google Sign-In** (native Credential Manager → `signInWith(IDToken)`), not anonymous. Because Google sign-in is interactive (needs an Activity + user choice) it can't be re-called on every op like `signInAnonymously()` was — it splits into a one-time `signInWithGoogle(context)` at a UI gate + a non-interactive `currentUserId()` reused everywhere. Folded into: Global Constraints (auth-pattern + `GOOGLE_WEB_CLIENT_ID`), Task 1 (`config.toml` Google provider + Cloud OAuth clients), Task 2 (credentials/googleid deps + build field), Task 3 (rewritten: two auth methods + sign-in gate on both sharing screens + strings), Task 8 (11 `signInAnonymously()` → `currentUserId()` swaps), Task 9 (`google-services.json` still deleted — Credential Manager needs only the Web client id; docs note the sign-in requirement). RLS is unchanged — `auth.uid()` is populated identically for a Google session.
 - **2026-07-06 re-sync (against `origin/main`):** this docs branch had drifted ~100 commits behind main. Folded in: `sleep_prediction` is now a **semantic** payload — `reasons jsonb` (discriminated `SleepReason` maps) + `feed_due boolean`, no localized strings; `feed_prompt` dropped (AKA-302, Tasks 1/4/8); a new **`UnregisterPartnerUseCase`** injects the service → **15** cutover sites, up from 14 (AKA-325, Tasks intro/8); partner-op `notes` bounded to **2000** chars → `*_notes_chk` CHECKs (AKA-327, Task 1); `deleteShareDocument`'s manual subcollection drain is **not** ported — Supabase `on delete cascade` covers it (AKA-326, Task 4); tracker write-then-sync is now the `SyncedWrite` seam (`SyncSharedSnapshot.kt` deleted) — owner snapshot syncs stay re-pushed-in-full so still need no outbox, and Task 7's op outbox is unchanged (AKA-297).
 - **2026-06-29 reconciliation:** the plan was realigned to the then-current `feat/firebase-to-supabase-migration` HEAD. Drift folded in: no `SharingRepository` interface (cutover = concrete-type swap, Task 8); leaked Firebase exception types abstracted (Task 8); new `sleep_ops` inbox + `diapers`/`doctor_visits` tables + `sessions.paused_at_ms` / `sleep_records.client_id,started_by` columns (Tasks 1/4/5); live `observeSnapshot`/`observePartnerConnected` streams with the `fromCache` gap (Task 6); outbox covers feed **and** sleep ops at DB v17→v18, kept distinct from the existing owner-side `PartnerOpDrainWorker` (Task 7).
 - **Spec coverage:** §3 decisions → Tasks 1/2/7/8-9; §4 mapping table → Tasks 3–7; §5 schema (incl. growth, milestones, diapers, doctor visits) → Task 1; §6 RLS (incl. sleep_ops) → Task 1; §7 components → Tasks 2–7; §8 build/config → Tasks 2 & 9; §9 testing → every task's test step + Task 8; §10 cutover → Task 8; §11 breakdown → Tasks 1–9; §12 risks (offline, RLS, realtime auth, `fromCache`) → Tasks 7, 1+8, 6. No uncovered section.
 - **Placeholder scan:** version pins in Task 2 are marked to resolve against the current supabase-kt BOM at execution time (genuine external lookup, not a hidden TODO); all code steps carry real code. Mapping/CRUD/RLS use one concrete representative + an explicit "repeat per type/table" instruction keyed to the Task 1 column contract — DRY, not a placeholder.
-- **Type consistency:** row names (`SessionRow`, `FeedOpRow`, `SleepOpRow`, `DiaperRow`, `DoctorVisitRow`, …) and conversion fns (`toRow`/`toSnapshot`/`toFeedOp`/`toSleepOp`/`toPartnerInfo`) are used consistently across Tasks 4–8; `signInAnonymously(): String`, `fetchSnapshot(code): ShareSnapshot`, and the feed/sleep-op + live-observer stream signatures mirror the current `FirestoreSharingService` surface (members + extension functions) that cutover swaps against.
+- **Type consistency:** row names (`SessionRow`, `FeedOpRow`, `SleepOpRow`, `DiaperRow`, `DoctorVisitRow`, …) and conversion fns (`toRow`/`toSnapshot`/`toFeedOp`/`toSleepOp`/`toPartnerInfo`) are used consistently across Tasks 4–8; `currentUserId(): String` (replacing `signInAnonymously()`), `signInWithGoogle(context): String`, `fetchSnapshot(code): ShareSnapshot`, and the feed/sleep-op + live-observer stream signatures mirror the current `FirestoreSharingService` surface (members + extension functions) that cutover swaps against.
