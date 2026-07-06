@@ -74,58 +74,50 @@ re-shareable in seconds).
 
 ## 5. Postgres schema (normalized)
 
-All tables in schema `public`. Primary key of a share is the 8-char share code.
+All tables in schema `public`. Primary key of a share is the 8-char share code;
+every child table `references shares(code) on delete cascade`. Columns are
+derived 1:1 from the `*Snapshot` models in `sharing/domain/model/ShareSnapshot.kt`
+plus `FeedOp.kt` / `SleepOp.kt`. **15 tables** (the original 2026-06-17 draft
+listed 10 — `diapers`, `doctor_visits`, and `sleep_ops` were added as those
+features shipped; `sleep_prediction` became a semantic payload):
 
 ```
-shares
-  code           text primary key            -- 8-char uppercase share code
-  owner_uid      text not null               -- Supabase auth user id of primary
-  created_at     timestamptz not null default now()
-  last_sync_at   timestamptz
-
-baby
-  code           text primary key references shares(code) on delete cascade
-  ... typed columns mirroring BabySnapshot ...
-
-sessions            -- breastfeeding; one row per SessionSnapshot
-  code           text references shares(code) on delete cascade
-  client_id      text                        -- stable id from snapshot
-  ... typed columns ...
-  primary key (code, client_id)
-
-sleep_records       -- one row per SleepSnapshot (same shape pattern)
-sleep_prediction    -- one row per share (nullable fields)
-bottle_feeds        -- one row per BottleFeedSnapshot
-milk_bags           -- one row per MilkBagSnapshot
-inventory           -- one row per share (totalMl, bagCount, updatedAtMs)
-growth              -- one row per GrowthSnapshot (type, takenAtMs, valueCanonical, notes)
-milestones          -- one row per MilestoneSnapshot (title, dateEpochDay, timeMinuteOfDay, note)
-                    --   NB: milestone photos stay on-device, never synced
-
-partners
-  code           text references shares(code) on delete cascade
-  uid            text not null               -- partner auth user id
-  connected_at   timestamptz not null default now()
-  primary key (code, uid)
-
-feed_ops
-  op_id          text primary key
-  code           text references shares(code) on delete cascade
-  author_uid     text not null
-  action         text not null               -- create | update | delete
-  entry_client_id text not null
-  created_at_ms  bigint not null
-  timestamp_ms   bigint
-  volume_ml      int
-  type           text
-  notes          text
-  consumed_bag_id bigint
+shares            code pk, owner_uid, created_at, last_sync_at
+baby              code pk → shares; name, birth_date_ms, allergies text[]
+sessions          (code, id) pk; start_time, end_time, starting_side, switch_time,
+                  paused_duration_ms, notes, paused_at_ms      -- paused_at_ms null = running
+sleep_records     (code, id) pk; start_time, end_time, sleep_type, notes,
+                  client_id, started_by                        -- SPEC-008 partner sleep
+sleep_prediction  code pk → shares; state_label, window_start, window_end,
+                  best_estimate, confidence, reasons jsonb, feed_due bool, generated_at
+                  -- semantic payload (AKA-302): reasons = discriminated SleepReason maps
+                  --   (each {type, ...params}), NOT localized strings; no feed_prompt text.
+                  --   Each device resolves reasons to text in its own locale at the UI edge.
+bottle_feeds      id identity pk, code → shares; timestamp, volume_ml, type,
+                  client_id, author, notes                     -- surrogate id: owner feeds
+                  --   default client_id '' and would collide on (code, client_id); sync is
+                  --   delete-by-code + insert so the DB assigns id, client_id stays a column.
+milk_bags         (code, id) pk; collection_date_ms, volume_ml, notes
+inventory         code pk → shares; total_ml, bag_count, updated_at_ms
+growth            (code, type, taken_at_ms) pk; value_canonical, notes
+milestones        (code, title, date_epoch_day) pk; time_minute_of_day, note
+                  -- milestone photos stay on-device, never synced
+diapers           id identity pk, code → shares; timestamp, type, notes   -- surrogate id
+doctor_visits     (code, date) pk; provider_name    -- only date + providerName sync;
+                  --   questions / clinical notes stay local, never in the partner snapshot
+partners          (code, uid) pk; connected_at
+feed_ops          op_id pk, code → shares; author_uid, action, entry_client_id,
+                  created_at_ms, timestamp_ms, volume_ml, type, notes, consumed_bag_id
+                  -- action ∈ create | update | delete
+sleep_ops         op_id pk, code → shares; author_uid, action, entry_client_id,
+                  created_at_ms, start_time_ms, end_time_ms, sleep_type, notes
+                  -- SPEC-008; action ∈ start | stop | update; write-once (an edit is a
+                  --   new 'update' row, not a mutation of a prior op)
 ```
 
-Exact columns of each snapshot table are derived 1:1 from the existing
-`*Snapshot` domain models in `sharing/domain/model/`. Each `sync*` call replaces
-the rows for that share + section (delete-by-code then insert, or upsert keyed on
-the natural key) inside a single Postgrest call where possible.
+Each `sync*` call replaces the rows for that share + section (delete-by-code then
+insert, or upsert keyed on the natural key) inside a single Postgrest call where
+possible.
 
 ### Domain ↔ row conversion
 
@@ -146,17 +138,21 @@ RLS policies replicate the current rules. Anonymous users are authenticated
 | `shares` read | any authed user | `SELECT` allowed to any authenticated role (share code is the capability) |
 | `shares` create | `request.resource.owner.uid == auth.uid` | `INSERT` with `owner_uid = auth.uid()` |
 | `shares` update/delete | `auth.uid == resource.owner.uid` | `UPDATE`/`DELETE` where `owner_uid = auth.uid()` |
-| snapshot tables (baby/sessions/…) | governed via parent doc owner | `INSERT/UPDATE/DELETE` where the parent `shares.owner_uid = auth.uid()`; `SELECT` to any authed user |
+| snapshot tables (baby/sessions/sleep_records/sleep_prediction/bottle_feeds/milk_bags/inventory/growth/milestones/diapers/doctor_visits) | governed via parent doc owner | `INSERT/UPDATE/DELETE` where the parent `shares.owner_uid = auth.uid()`; `SELECT` to any authed user |
 | `partners` create | `auth.uid == partnerUid` & share exists | `INSERT` where `uid = auth.uid()` and share exists |
 | `partners` read/delete | partner self or owner | `uid = auth.uid()` OR caller owns the share |
 | `feed_ops` read | owner, or connected partner reading own | owner of share, OR (connected partner AND `author_uid = auth.uid()`) |
 | `feed_ops` create/update | connected partner, `authorUid == auth.uid`, valid payload | same predicate; field validation enforced by a `CHECK` constraint / trigger mirroring `isValidFeedOp` |
 | `feed_ops` delete | owner or author | owner of share OR `author_uid = auth.uid()` |
+| `sleep_ops` read/create/delete | same owner/connected-partner-own shape as `feed_ops`; **no update** (write-once — an edit is a new `update` row) | identical predicates to `feed_ops` for read/insert/delete; field validation mirrors `isValidSleepOp` |
 
 `isOwner` / `isConnectedPartner` become SQL helper functions (`security definer`)
-to avoid recursive RLS evaluation. The `isValidFeedOp` field validation
-(action enum, volume range 1..5000, key whitelist) becomes table `CHECK`
-constraints plus a trigger for cross-field rules.
+to avoid recursive RLS evaluation. The `isValidFeedOp` / `isValidSleepOp` field
+validation (action enum, feed `volume_ml` range 1..5000, `entry_client_id` /
+`notes` length bounds — 64 / 2000 chars) becomes table `CHECK` constraints plus a
+trigger for cross-field rules (feed: `delete` omits volume/type, `consumed_bag_id`
+only on `create`; sleep: `start` carries `start_time_ms`, `stop` carries
+`end_time_ms`).
 
 ---
 
