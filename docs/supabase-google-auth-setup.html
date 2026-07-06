@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supabase + Google Auth — Setup Tutorial (Akachan)</title>
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --panel: #ffffff;
+    --ink: #1a1c1f;
+    --muted: #5b6470;
+    --line: #e4e7ec;
+    --brand: #3ecf8e;      /* supabase green */
+    --brand-ink: #0b3d2c;
+    --google: #4285f4;
+    --accent: #6c5ce7;
+    --warn-bg: #fff7ed;
+    --warn-line: #fdba74;
+    --warn-ink: #9a3412;
+    --tip-bg: #eefaf4;
+    --tip-line: #86e3bf;
+    --tip-ink: #0b6b47;
+    --code-bg: #0f1420;
+    --code-ink: #e7edf5;
+    --shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --panel: #161b22; --ink: #e7edf5; --muted: #9aa4b2;
+      --line: #232a34; --warn-bg: #2a1c0f; --warn-line: #7c4a1e; --warn-ink: #fbbf77;
+      --tip-bg: #0f2620; --tip-line: #1f5a44; --tip-ink: #7ee2b8;
+      --code-bg: #0a0e16; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+      --brand-ink: #b9f4d8;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1117; --panel: #161b22; --ink: #e7edf5; --muted: #9aa4b2;
+    --line: #232a34; --warn-bg: #2a1c0f; --warn-line: #7c4a1e; --warn-ink: #fbbf77;
+    --tip-bg: #0f2620; --tip-line: #1f5a44; --tip-ink: #7ee2b8;
+    --code-bg: #0a0e16; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+    --brand-ink: #b9f4d8;
+  }
+  :root[data-theme="light"] {
+    --bg: #f7f8fa; --panel: #ffffff; --ink: #1a1c1f; --muted: #5b6470; --line: #e4e7ec;
+    --warn-bg: #fff7ed; --warn-line: #fdba74; --warn-ink: #9a3412;
+    --tip-bg: #eefaf4; --tip-line: #86e3bf; --tip-ink: #0b6b47;
+    --code-bg: #0f1420; --brand-ink: #0b3d2c;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 22px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Hero */
+  header.hero {
+    background:
+      radial-gradient(1200px 400px at 15% -10%, rgba(62,207,142,.20), transparent 60%),
+      radial-gradient(900px 380px at 90% -20%, rgba(66,133,244,.20), transparent 55%);
+    border-bottom: 1px solid var(--line);
+  }
+  .hero-inner { padding: 54px 0 40px; }
+  .kicker {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--brand-ink); background: rgba(62,207,142,.16);
+    border: 1px solid rgba(62,207,142,.35); padding: 5px 12px; border-radius: 999px;
+  }
+  h1 { font-size: clamp(28px, 4.4vw, 44px); line-height: 1.1; margin: 18px 0 12px; letter-spacing: -.02em; }
+  .lede { font-size: 18px; color: var(--muted); max-width: 720px; margin: 0; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+  .chip {
+    font-size: 13px; color: var(--muted); background: var(--panel);
+    border: 1px solid var(--line); padding: 6px 12px; border-radius: 999px;
+  }
+  .chip b { color: var(--ink); }
+
+  /* Layout with sticky TOC */
+  .layout { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 40px; padding: 40px 0 80px; align-items: start; }
+  .layout > main, nav.toc { min-width: 0; }
+  @media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); gap: 8px; } nav.toc { position: static !important; } }
+  nav.toc {
+    position: sticky; top: 20px; font-size: 14px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px 16px; box-shadow: var(--shadow);
+  }
+  nav.toc h4 { margin: 4px 6px 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+  nav.toc li { margin: 1px 0; }
+  nav.toc a {
+    display: flex; gap: 10px; align-items: baseline; color: var(--ink);
+    padding: 7px 8px; border-radius: 9px; counter-increment: toc;
+  }
+  nav.toc a::before {
+    content: counter(toc); font-variant-numeric: tabular-nums; font-weight: 700;
+    color: var(--muted); min-width: 18px; text-align: right; font-size: 13px;
+  }
+  nav.toc a:hover { background: rgba(108,92,231,.10); text-decoration: none; }
+  nav.toc .part { margin: 12px 6px 4px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--brand-ink); }
+
+  /* Sections */
+  section { scroll-margin-top: 18px; margin-bottom: 34px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 26px 28px; overflow: hidden;
+  }
+  .sec-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+  .num {
+    flex: none; width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center;
+    font-weight: 800; font-size: 18px; color: #fff;
+    background: linear-gradient(135deg, var(--brand), #24a06f);
+  }
+  .sec-head.google .num { background: linear-gradient(135deg, var(--google), #2b64c4); }
+  .sec-head.app .num { background: linear-gradient(135deg, var(--accent), #4a37b8); }
+  h2 { font-size: 23px; margin: 0; letter-spacing: -.01em; }
+  h3 { font-size: 17px; margin: 26px 0 8px; }
+  .sub { color: var(--muted); margin: 2px 0 18px; }
+
+  ol.steps { counter-reset: step; list-style: none; margin: 8px 0 0; padding: 0; }
+  ol.steps > li {
+    position: relative; padding: 0 0 20px 44px; margin: 0;
+    border-left: 2px solid var(--line); margin-left: 15px;
+  }
+  ol.steps > li:last-child { border-left: 2px solid transparent; padding-bottom: 0; }
+  ol.steps > li::before {
+    counter-increment: step; content: counter(step);
+    position: absolute; left: -15px; top: -2px; width: 28px; height: 28px;
+    background: var(--panel); border: 2px solid var(--brand); color: var(--brand-ink);
+    border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 13px;
+  }
+  .google ol.steps > li::before { border-color: var(--google); color: var(--google); }
+  .app ol.steps > li::before { border-color: var(--accent); color: var(--accent); }
+  ol.steps > li b { font-weight: 700; }
+  ol.steps .st-title { font-weight: 700; display: block; margin-bottom: 2px; }
+
+  /* Path / nav breadcrumb */
+  .path {
+    display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    font-size: 13.5px; background: rgba(108,92,231,.08); border: 1px solid var(--line);
+    padding: 4px 10px; border-radius: 8px; margin: 4px 0;
+  }
+  .path span { color: var(--muted); }
+  .path b { color: var(--ink); font-weight: 700; }
+  .path .arrow { color: var(--muted); opacity: .6; }
+
+  code { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 13.5px; }
+  :not(pre) > code {
+    background: rgba(108,92,231,.12); color: var(--ink); padding: 1.5px 6px; border-radius: 6px;
+    border: 1px solid var(--line); white-space: nowrap;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink); border-radius: 10px;
+    padding: 14px 16px; overflow-x: auto; margin: 12px 0; font-size: 13px; line-height: 1.6;
+    border: 1px solid rgba(255,255,255,.06);
+  }
+  pre code { color: inherit; white-space: pre; }
+  .cmt { color: #7f8ea3; }
+  .grn { color: #6ee7b7; }
+  .blu { color: #7cc4ff; }
+
+  .callout { border-radius: 11px; padding: 13px 16px 13px 44px; margin: 14px 0; position: relative; font-size: 14.5px; }
+  .callout::before { position: absolute; left: 14px; top: 12px; font-size: 17px; }
+  .warn { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); }
+  .warn::before { content: "⚠️"; }
+  .tip  { background: var(--tip-bg); border: 1px solid var(--tip-line); color: var(--tip-ink); }
+  .tip::before { content: "💡"; }
+  .note { background: rgba(108,92,231,.07); border: 1px solid var(--line); color: var(--ink); }
+  .note::before { content: "📌"; }
+  .callout b { color: inherit; }
+
+  .btn-link {
+    display: inline-flex; align-items: center; gap: 7px; font-weight: 600; font-size: 14px;
+    background: var(--panel); border: 1px solid var(--line); padding: 7px 13px; border-radius: 9px;
+    margin: 6px 8px 6px 0; box-shadow: var(--shadow); color: var(--ink);
+  }
+  .btn-link:hover { text-decoration: none; border-color: var(--accent); }
+  .btn-link .ext { color: var(--muted); font-size: 12px; }
+
+  .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 14px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 700; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; }
+  td, td code { overflow-wrap: anywhere; }
+  td code { font-size: 12.5px; white-space: normal; }
+
+  .shot {
+    border: 1px dashed var(--line); border-radius: 10px; padding: 12px 14px; margin: 12px 0;
+    background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(108,92,231,.03) 10px, rgba(108,92,231,.03) 20px);
+    font-size: 13.5px; color: var(--muted);
+  }
+  .shot b { color: var(--ink); }
+  .shot::before { content: "🖼️ What you'll see  "; font-weight: 700; color: var(--ink); }
+
+  .flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 6px 0 22px; }
+  @media (max-width: 680px) { .flow { grid-template-columns: 1fr; } }
+  .flow .box { background: var(--panel); border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px; box-shadow: var(--shadow); }
+  .flow .box .n { font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .flow .box .t { font-weight: 700; margin-top: 3px; }
+  .flow .box .d { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+  footer { border-top: 1px solid var(--line); padding: 26px 0 60px; color: var(--muted); font-size: 14px; }
+
+  .toggle {
+    position: fixed; right: 16px; bottom: 16px; z-index: 20;
+    background: var(--panel); border: 1px solid var(--line); color: var(--ink);
+    border-radius: 999px; padding: 9px 14px; font-size: 13px; cursor: pointer; box-shadow: var(--shadow);
+  }
+  .done-list { list-style: none; padding: 0; margin: 10px 0 0; }
+  .done-list li { padding: 6px 0 6px 30px; position: relative; border-bottom: 1px solid var(--line); }
+  .done-list li:last-child { border-bottom: 0; }
+  .done-list li::before { content: "✓"; position: absolute; left: 4px; top: 6px; color: var(--brand); font-weight: 800; }
+  .done-list code { font-size: 12.5px; }
+
+  /* Narrow phones */
+  @media (max-width: 560px) {
+    .wrap { padding: 0 14px; }
+    .hero-inner { padding: 36px 0 28px; }
+    .layout { padding: 24px 0 56px; }
+    .card { padding: 18px 16px; }
+    .sec-head { gap: 10px; }
+    .num { width: 34px; height: 34px; font-size: 15px; }
+    h2 { font-size: 20px; }
+    ol.steps > li { padding-left: 34px; margin-left: 13px; }
+    ol.steps > li::before { width: 24px; height: 24px; left: -13px; }
+    pre { font-size: 12px; }
+    :not(pre) > code { white-space: normal; overflow-wrap: anywhere; }
+    .toggle { padding: 7px 11px; font-size: 12px; right: 10px; bottom: 10px; }
+  }
+</style>
+</head>
+
+<button class="toggle" onclick="(function(){var r=document.documentElement;var d=r.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');r.setAttribute('data-theme', d==='dark'?'light':'dark');})()">🌓 Toggle theme</button>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <span class="kicker">● Akachan · Partner-Sharing Backend</span>
+    <h1>Set up Supabase + Google Sign-In</h1>
+    <p class="lede">A complete, click-by-click guide to standing up the Supabase backend and Google
+      authentication that the partner-sharing feature needs. No prior experience assumed — every screen,
+      button, and link is spelled out.</p>
+    <div class="meta-row">
+      <span class="chip">⏱️ About <b>45–60 min</b></span>
+      <span class="chip">💳 Cost <b>$0 (free tiers)</b></span>
+      <span class="chip">📦 App id <b>com.babytracker</b></span>
+      <span class="chip">🔗 Based on the <b>Firebase → Supabase migration design</b></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<div class="layout">
+
+  <!-- ============ TOC ============ -->
+  <nav class="toc">
+    <h4>On this page</h4>
+    <div class="part">Before you start</div>
+    <ol>
+      <li><a href="#overview">The big picture</a></li>
+      <li><a href="#accounts">Create your accounts</a></li>
+    </ol>
+    <div class="part">Part A · Supabase</div>
+    <ol style="counter-reset: toc 2">
+      <li><a href="#project">Create the project</a></li>
+      <li><a href="#keys">Grab URL &amp; anon key</a></li>
+      <li><a href="#schema">Create the database schema</a></li>
+      <li><a href="#migrations">SQL migration files</a></li>
+      <li><a href="#callback">Find your callback URL</a></li>
+    </ol>
+    <div class="part">Part B · Google Auth</div>
+    <ol style="counter-reset: toc 7">
+      <li><a href="#gcp">Google Cloud project</a></li>
+      <li><a href="#consent">OAuth consent screen</a></li>
+      <li><a href="#web-client">Web OAuth client</a></li>
+      <li><a href="#sha">Get your SHA‑1 keys</a></li>
+      <li><a href="#android-client">Android OAuth client</a></li>
+      <li><a href="#enable-google">Enable Google in Supabase</a></li>
+    </ol>
+    <div class="part">Part C · Wire it up</div>
+    <ol style="counter-reset: toc 13">
+      <li><a href="#local-props">Add keys to the app</a></li>
+      <li><a href="#verify">Build &amp; verify</a></li>
+      <li><a href="#trouble">Troubleshooting</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============ MAIN ============ -->
+  <main>
+
+  <!-- 1 overview -->
+  <section id="overview"><div class="card">
+    <div class="sec-head"><div class="num">1</div><h2>The big picture</h2></div>
+    <p class="sub">Read this once so the rest makes sense — then you'll know <em>why</em> each step exists.</p>
+
+    <p>The app's <b>partner-sharing</b> feature (the read-only baby dashboard you share with your
+      partner) is moving off Firebase and onto <b>Supabase</b>. Two separate services need to be
+      configured, and they reference each other:</p>
+
+    <div class="flow">
+      <div class="box"><div class="n">Supabase</div><div class="t">The backend</div><div class="d">Postgres database that stores the shared snapshot + the login system (GoTrue).</div></div>
+      <div class="box"><div class="n">Google Cloud</div><div class="t">The identity provider</div><div class="d">Issues the "Sign in with Google" credentials your app and Supabase both trust.</div></div>
+      <div class="box"><div class="n">The app</div><div class="t">com.babytracker</div><div class="d">Reads 3 secret values at build time to talk to both of the above.</div></div>
+    </div>
+
+    <p>They form a small loop, which is why the order below matters:</p>
+    <ul>
+      <li>Google gives you a <b>Web client ID + secret</b> → you paste those <b>into Supabase</b>.</li>
+      <li>Supabase gives you a <b>callback URL</b> → you paste that <b>into the Google Web client</b>.</li>
+      <li>The app needs three values at the end: <code>SUPABASE_URL</code>, <code>SUPABASE_ANON_KEY</code>, and <code>GOOGLE_WEB_CLIENT_ID</code>.</li>
+    </ul>
+
+    <div class="callout note">This guide covers only the <b>one-time console/dashboard setup</b> — the part
+      that isn't code. Writing the Kotlin (the Supabase client, the sign-in flow) is separate developer work
+      tracked in the migration plan. When you finish here, a developer has everything they need to wire the app up.</div>
+  </div></section>
+
+  <!-- 2 accounts -->
+  <section id="accounts"><div class="card">
+    <div class="sec-head"><div class="num">2</div><h2>Create your accounts</h2></div>
+    <p class="sub">Two free accounts. If you already have them, skip to Part A.</p>
+    <ol class="steps">
+      <li><span class="st-title">Sign up for Supabase</span>
+        Go to the dashboard and sign in — signing in with your GitHub or Google account is the fastest.
+        <div><a class="btn-link" href="https://supabase.com/dashboard" target="_blank" rel="noopener">Open Supabase Dashboard <span class="ext">↗</span></a></div>
+      </li>
+      <li><span class="st-title">Make sure you can reach Google Cloud Console</span>
+        Use any Google account. The first time you may be asked to accept the Terms of Service.
+        <div><a class="btn-link" href="https://console.cloud.google.com/" target="_blank" rel="noopener">Open Google Cloud Console <span class="ext">↗</span></a></div>
+      </li>
+    </ol>
+    <div class="callout tip">Use a Google account you're comfortable being the <b>owner</b> of this project long-term
+      (it controls the OAuth credentials). A personal account is fine for development.</div>
+  </div></section>
+
+  <!-- ============ PART A ============ -->
+
+  <!-- 3 project -->
+  <section id="project"><div class="card">
+    <div class="sec-head"><div class="num">A1</div><h2>Create the Supabase project</h2></div>
+    <p class="sub">This provisions a dedicated Postgres database in the cloud.</p>
+    <ol class="steps">
+      <li><span class="st-title">Click "New project"</span>
+        From the dashboard, pick your organization (Supabase creates a default one for you), then press
+        <b>New project</b>.
+        <div class="path"><b>Dashboard</b><span class="arrow">→</span><b>New project</b></div>
+      </li>
+      <li><span class="st-title">Fill in the form</span>
+        <ul>
+          <li><b>Name:</b> <code>akachan-sharing</code> (anything you like).</li>
+          <li><b>Database Password:</b> click <b>Generate a password</b> and <b>save it in your password manager</b>. You'll rarely need it, but it can't be recovered — only reset.</li>
+          <li><b>Region:</b> pick the one closest to your users (e.g. <em>South America (São Paulo)</em> or <em>East US</em>).</li>
+          <li><b>Plan:</b> <b>Free</b> is plenty for this feature.</li>
+        </ul>
+      </li>
+      <li><span class="st-title">Press "Create new project" and wait</span>
+        Provisioning takes ~2 minutes. The dashboard shows a "Setting up project" spinner.
+        <div class="shot">A green "Project is ready" state, and a left sidebar with icons for
+          <b>Table Editor</b>, <b>SQL Editor</b>, <b>Authentication</b>, <b>Realtime</b>, and <b>Project Settings</b> (gear).</div>
+      </li>
+    </ol>
+  </div></section>
+
+  <!-- 4 keys -->
+  <section id="keys"><div class="card">
+    <div class="sec-head"><div class="num">A2</div><h2>Grab the URL &amp; anon key</h2></div>
+    <p class="sub">Two of the three values the app needs. Copy them somewhere safe now.</p>
+    <ol class="steps">
+      <li><span class="st-title">Open the API settings</span>
+        <div class="path"><b>Project Settings</b> <span>(gear, bottom-left)</span><span class="arrow">→</span><b>API</b></div>
+        <div><a class="btn-link" href="https://supabase.com/dashboard/project/_/settings/api" target="_blank" rel="noopener">Jump to API settings <span class="ext">↗</span></a></div>
+      </li>
+      <li><span class="st-title">Copy the Project URL</span>
+        Under <b>Project URL</b>. It looks like:
+        <pre><code>https://abcdefghijklmnop.supabase.co</code></pre>
+        This becomes <code>SUPABASE_URL</code>.
+      </li>
+      <li><span class="st-title">Copy the anon / public API key</span>
+        Under <b>Project API keys</b>, copy the key labelled <b><code>anon</code> <code>public</code></b>
+        (a long <code>eyJ...</code> string). This becomes <code>SUPABASE_ANON_KEY</code>.
+        <div class="callout warn">Copy the <b>anon public</b> key — <b>never</b> the <code>service_role</code>
+          <b>secret</b> key. The service_role key bypasses all security rules; it must never ship in an app.</div>
+      </li>
+    </ol>
+    <div class="callout tip">Paste both into a scratch note for now. In <a href="#local-props">Part C</a> they go into
+      <code>local.properties</code>, which is git-ignored and never committed.</div>
+  </div></section>
+
+  <!-- 5 schema -->
+  <section id="schema"><div class="card">
+    <div class="sec-head"><div class="num">A3</div><h2>Create the database schema</h2></div>
+    <p class="sub">The 15 tables + security rules that hold the shared snapshot.</p>
+
+    <p>The migration defines <b>15 normalized tables</b> (<code>shares</code>, <code>baby</code>,
+      <code>sessions</code>, <code>sleep_records</code>, <code>bottle_feeds</code>, <code>feed_ops</code>,
+      <code>sleep_ops</code>, and so on) plus <b>Row Level Security (RLS)</b> policies that replace the old
+      <code>firestore.rules</code>. The exact SQL lives in the repo under
+      <code>supabase/migrations/</code> (authored as part of migration issue&nbsp;1).</p>
+
+    <h3>The click-by-click part: how to run SQL</h3>
+    <ol class="steps">
+      <li><span class="st-title">Open the SQL Editor</span>
+        <div class="path"><b>SQL Editor</b> <span>(left sidebar)</span><span class="arrow">→</span><b>New query</b></div>
+      </li>
+      <li><span class="st-title">Paste the migration SQL</span>
+        Open the project's <code>supabase/migrations/*.sql</code> file(s), copy the contents, and paste
+        into the editor. Run each migration file <b>in filename order</b> (they're timestamp-prefixed).
+      </li>
+      <li><span class="st-title">Press "Run" (▶)</span> or <code>Ctrl/Cmd + Enter</code>. You should see
+        <b>Success. No rows returned</b> for a schema script.
+      </li>
+      <li><span class="st-title">Confirm the tables exist</span>
+        <div class="path"><b>Table Editor</b> <span>(left sidebar)</span></div>
+        <div class="shot">All 15 tables listed in the <code>public</code> schema, with a 🔒 <b>RLS enabled</b>
+          badge on each one.</div>
+      </li>
+    </ol>
+
+    <div class="callout warn"><b>RLS must stay ON for every table.</b> If any table shows "RLS disabled",
+      its data is world-readable/writable. The migration SQL enables it — don't turn it off.</div>
+    <div class="callout note">Prefer the command line? With the Supabase CLI you can run
+      <code>supabase link</code> then <code>supabase db push</code> to apply all migrations at once —
+      but the SQL Editor above needs no install and is the beginner path. The same local CLI stack
+      (<code>supabase start</code>) is what tests/CI use in place of the old Firebase emulator.</div>
+  </div></section>
+
+  <!-- migrations -->
+  <section id="migrations"><div class="card">
+    <div class="sec-head"><div class="num">A4</div><h2>Understanding the SQL migration files</h2></div>
+    <p class="sub">What you're actually pasting in the step above — where the files live, how they're named, and what's inside each one.</p>
+
+    <p>A <b>migration</b> is a single <code>.sql</code> file that moves the database forward one step. Instead of
+      clicking tables into existence by hand, the whole schema is defined as version-controlled SQL that any
+      environment — your Cloud project, a teammate's, the local CI stack — can replay to reach an identical state.
+      They live in the repo at <code>supabase/migrations/</code> and are applied <b>in filename order</b>.</p>
+
+    <h3>Naming &amp; layout</h3>
+    <p>Each file is prefixed with a UTC timestamp so they sort chronologically and never run out of order.
+      Supabase records which have already run (in an internal <code>supabase_migrations.schema_migrations</code>
+      table), so replaying is safe — applied files are skipped.</p>
+    <pre><code>supabase/
+├─ config.toml                          <span class="cmt"># local stack config; enables the Google provider</span>
+└─ migrations/
+   ├─ <span class="grn">20260617090000</span>_init_schema.sql      <span class="cmt"># the 15 tables (design §5)</span>
+   └─ <span class="grn">20260617090100</span>_rls_policies.sql     <span class="cmt"># RLS + helpers + CHECK constraints (design §6)</span></code></pre>
+    <div class="callout note">Splitting <b>schema</b> and <b>security</b> into two files is a convention, not a
+      requirement — one combined file works too. Keeping them separate makes the RLS review (the highest-risk
+      part of this migration) easy to read in isolation.</div>
+
+    <h3>What each file is responsible for</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>File</th><th>Contains</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>init_schema.sql</code></td>
+          <td>The 15 normalized tables from design §5 — <code>shares</code> (parent, keyed on the 8-char share
+            code) and its children (<code>baby</code>, <code>sessions</code>, <code>sleep_records</code>,
+            <code>bottle_feeds</code>, <code>milk_bags</code>, <code>inventory</code>, <code>growth</code>,
+            <code>milestones</code>, <code>diapers</code>, <code>doctor_visits</code>, <code>partners</code>,
+            <code>feed_ops</code>, <code>sleep_ops</code>, <code>sleep_prediction</code>), each
+            <code>references shares(code) on delete cascade</code>.</td>
+        </tr>
+        <tr>
+          <td><code>rls_policies.sql</code></td>
+          <td>Turns on Row Level Security for every table, defines the <code>security definer</code> helper
+            functions (<code>is_share_owner</code>, <code>is_connected_partner</code>) that replace Firestore's
+            <code>isOwner</code>/<code>isConnectedPartner</code>, the per-table <code>SELECT/INSERT/UPDATE/DELETE</code>
+            policies, and the <code>CHECK</code> constraints that mirror <code>isValidFeedOp</code>/<code>isValidSleepOp</code>
+            (action enum, <code>volume_ml</code> 1–5000, length bounds).</td>
+        </tr>
+      </tbody>
+    </table></div>
+
+    <h3>A representative slice</h3>
+    <p>You don't author these by hand from this tutorial — that's migration issue&nbsp;1 in the plan. But seeing the
+      <b>shape</b> makes the "paste and Run" step above concrete. One parent, one child, one ops table, and the
+      security that guards them:</p>
+    <pre><code><span class="cmt">-- init_schema.sql (excerpt) — the design's §5 tables</span>
+<span class="blu">create table</span> shares (
+  code          <span class="blu">text primary key</span>,
+  owner_uid     <span class="blu">uuid not null</span>,
+  created_at    <span class="blu">timestamptz not null default</span> now(),
+  last_sync_at  <span class="blu">timestamptz</span>
+);
+
+<span class="blu">create table</span> baby (
+  code          <span class="blu">text primary key references</span> shares(code) <span class="blu">on delete cascade</span>,
+  name          <span class="blu">text</span>,
+  birth_date_ms <span class="blu">bigint</span>,
+  allergies     <span class="blu">text[]</span>
+);
+
+<span class="blu">create table</span> feed_ops (
+  op_id           <span class="blu">text primary key</span>,
+  code            <span class="blu">text not null references</span> shares(code) <span class="blu">on delete cascade</span>,
+  author_uid      <span class="blu">uuid not null</span>,
+  action          <span class="blu">text not null check</span> (action <span class="blu">in</span> (<span class="grn">'create'</span>, <span class="grn">'update'</span>, <span class="grn">'delete'</span>)),
+  volume_ml       <span class="blu">int check</span> (volume_ml <span class="blu">between</span> 1 <span class="blu">and</span> 5000),   <span class="cmt">-- mirrors isValidFeedOp</span>
+  notes           <span class="blu">text check</span> (char_length(notes) &lt;= 2000)
+);
+
+<span class="cmt">-- rls_policies.sql (excerpt) — the design's §6 rules as RLS</span>
+<span class="blu">alter table</span> shares  <span class="blu">enable row level security</span>;
+<span class="blu">alter table</span> baby    <span class="blu">enable row level security</span>;
+
+<span class="cmt">-- security definer helper avoids recursive RLS evaluation</span>
+<span class="blu">create function</span> is_share_owner(share_code text) <span class="blu">returns boolean</span>
+  <span class="blu">language</span> sql <span class="blu">security definer stable as</span> $$
+    <span class="blu">select exists</span> (<span class="blu">select</span> 1 <span class="blu">from</span> shares
+                  <span class="blu">where</span> code = share_code <span class="blu">and</span> owner_uid = auth.uid());
+  $$;
+
+<span class="cmt">-- any signed-in user may read a share (the code is the capability)</span>
+<span class="blu">create policy</span> shares_read  <span class="blu">on</span> shares <span class="blu">for select to</span> authenticated <span class="blu">using</span> (<span class="blu">true</span>);
+<span class="blu">create policy</span> shares_write <span class="blu">on</span> shares <span class="blu">for all to</span> authenticated
+  <span class="blu">using</span> (owner_uid = auth.uid()) <span class="blu">with check</span> (owner_uid = auth.uid());
+
+<span class="cmt">-- child rows: readable by any authed user, writable only by the share owner</span>
+<span class="blu">create policy</span> baby_read  <span class="blu">on</span> baby <span class="blu">for select to</span> authenticated <span class="blu">using</span> (<span class="blu">true</span>);
+<span class="blu">create policy</span> baby_write <span class="blu">on</span> baby <span class="blu">for all to</span> authenticated
+  <span class="blu">using</span> (is_share_owner(code)) <span class="blu">with check</span> (is_share_owner(code));</code></pre>
+    <div class="callout note">This is the <b>pattern</b>, not the whole file — the real migration repeats the
+      child-table shape across all 15 tables and adds the connected-partner predicates for
+      <code>feed_ops</code>/<code>sleep_ops</code> (design §6). Copy the actual files from the repo; treat the
+      above as a map for reading them.</div>
+
+    <h3>Working with migrations from the CLI <span class="sub" style="display:inline">(optional, for developers)</span></h3>
+    <ol class="steps">
+      <li><span class="st-title">Create a new migration</span>
+        <pre><code><span class="grn">supabase</span> migration new add_some_table   <span class="cmt"># creates a timestamped empty .sql file</span></code></pre>
+        Write your SQL into the generated file.
+      </li>
+      <li><span class="st-title">Test it locally first</span>
+        <pre><code><span class="grn">supabase</span> start          <span class="cmt"># boots the local Postgres/Auth stack in Docker</span>
+<span class="grn">supabase</span> db reset       <span class="cmt"># wipes + replays every migration from scratch</span></code></pre>
+        A clean <code>db reset</code> proves the migrations apply in order on an empty database.
+      </li>
+      <li><span class="st-title">Push to the Cloud project</span>
+        <pre><code><span class="grn">supabase</span> link --project-ref <span class="blu">&lt;your-project-ref&gt;</span>
+<span class="grn">supabase</span> db push        <span class="cmt"># applies any not-yet-run migrations to the remote DB</span></code></pre>
+        This is the CLI equivalent of pasting into the SQL Editor in step A3 — either path works.
+      </li>
+    </ol>
+    <div class="callout warn"><b>Never edit a migration that's already been applied.</b> Once a file has run on
+      any shared database, change it by adding a <em>new</em> migration on top. Editing an applied file makes
+      environments silently diverge — the local <code>db reset</code> sees the new SQL, but the Cloud project
+      already skipped that filename and never re-runs it.</div>
+  </div></section>
+
+  <!-- callback -->
+  <section id="callback"><div class="card">
+    <div class="sec-head"><div class="num">A5</div><h2>Find your callback URL</h2></div>
+    <p class="sub">You'll paste this into Google in the next part — so keep this tab open.</p>
+    <ol class="steps">
+      <li><span class="st-title">Open Authentication → Providers</span>
+        <div class="path"><b>Authentication</b><span class="arrow">→</span><b>Sign In / Providers</b><span class="arrow">→</span><b>Google</b></div>
+      </li>
+      <li><span class="st-title">Note the "Callback URL (for OAuth)"</span>
+        Expand the Google provider. It shows a read-only field like:
+        <pre><code>https://<span class="blu">&lt;your-project-ref&gt;</span>.supabase.co/auth/v1/callback</code></pre>
+        <b>Copy it.</b> You'll add it as an <em>Authorized redirect URI</em> on the Google Web client in step B3.
+      </li>
+    </ol>
+    <div class="callout note">Leave this Google provider panel open — you'll come back to it in
+      <a href="#enable-google">step B6</a> to flip it on and paste the client ID + secret.</div>
+  </div></section>
+
+  <!-- ============ PART B ============ -->
+
+  <!-- 7 gcp -->
+  <section id="gcp"><div class="card">
+    <div class="sec-head google"><div class="num">B1</div><h2>Create a Google Cloud project</h2></div>
+    <p class="sub">A container for your OAuth credentials.</p>
+    <ol class="steps">
+      <li><span class="st-title">Open the project picker</span>
+        At the very top of the Google Cloud Console, click the project dropdown (left of the search bar),
+        then <b>New Project</b>.
+        <div><a class="btn-link" href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener">New Google Cloud project <span class="ext">↗</span></a></div>
+      </li>
+      <li><span class="st-title">Name it and create</span>
+        e.g. <code>Akachan</code>. Leave organization/location as default. Click <b>Create</b>, then wait
+        for the notification and <b>select the new project</b> from the picker.
+      </li>
+    </ol>
+    <div class="callout warn">Double-check the project name in the top bar is <b>your new project</b> before
+      continuing. Creating credentials in the wrong project is the #1 confusion here.</div>
+  </div></section>
+
+  <!-- 8 consent -->
+  <section id="consent"><div class="card">
+    <div class="sec-head google"><div class="num">B2</div><h2>Configure the OAuth consent screen</h2></div>
+    <p class="sub">The permission dialog users see. Google won't let you create clients until this exists.</p>
+    <ol class="steps">
+      <li><span class="st-title">Open the Google Auth Platform / OAuth overview</span>
+        <div class="path"><b>APIs &amp; Services</b><span class="arrow">→</span><b>OAuth consent screen</b></div>
+        <div><a class="btn-link" href="https://console.cloud.google.com/auth/overview" target="_blank" rel="noopener">Open OAuth consent screen <span class="ext">↗</span></a></div>
+        If prompted, click <b>Get started</b> / <b>Configure consent screen</b>.
+      </li>
+      <li><span class="st-title">App information</span>
+        <ul>
+          <li><b>App name:</b> <code>Akachan</code> (this is shown to users on the login sheet).</li>
+          <li><b>User support email:</b> your email.</li>
+        </ul>
+      </li>
+      <li><span class="st-title">Audience: External</span>
+        Choose <b>External</b> (unless you have a Google Workspace org and only org users will sign in).
+      </li>
+      <li><span class="st-title">Contact info &amp; finish</span>
+        Add your email as the developer contact, agree to the policy, and <b>Save</b>.
+      </li>
+      <li><span class="st-title">Add yourself as a Test user</span>
+        While the app is in <b>Testing</b> mode, only listed test users can sign in.
+        <div class="path"><b>Audience</b><span class="arrow">→</span><b>Test users</b><span class="arrow">→</span><b>+ Add users</b></div>
+        Add every Google account you'll test sign-in with (yours and your partner's).
+      </li>
+    </ol>
+    <div class="callout tip">You do <b>not</b> need to "Publish" the app or pass Google verification for
+      development and testing — Testing mode with listed test users works fully. Publish later, before a
+      public release, if strangers will use sharing.</div>
+  </div></section>
+
+  <!-- 9 web client -->
+  <section id="web-client"><div class="card">
+    <div class="sec-head google"><div class="num">B3</div><h2>Create the Web OAuth client</h2></div>
+    <p class="sub">This is the one Supabase uses. Its ID also becomes <code>GOOGLE_WEB_CLIENT_ID</code> in the app.</p>
+    <div class="callout note">Why "Web" for an Android app? The native Android Credential Manager flow signs in
+      against a <b>Web</b> client (the <code>serverClientId</code>), and Supabase's GoTrue verifies that same
+      Web client. The separate <b>Android</b> client in step B5 is what lets the on-device account picker
+      trust your app. You need <b>both</b>.</div>
+    <ol class="steps">
+      <li><span class="st-title">Go to Credentials → Create</span>
+        <div class="path"><b>APIs &amp; Services</b><span class="arrow">→</span><b>Credentials</b><span class="arrow">→</span><b>+ Create Credentials</b><span class="arrow">→</span><b>OAuth client ID</b></div>
+        <div><a class="btn-link" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Open Credentials <span class="ext">↗</span></a></div>
+      </li>
+      <li><span class="st-title">Application type: Web application</span>
+        Name it <code>Akachan Web (Supabase)</code>.
+      </li>
+      <li><span class="st-title">Add the Authorized redirect URI</span>
+        Under <b>Authorized redirect URIs</b>, click <b>+ Add URI</b> and paste the Supabase
+        <b>callback URL</b> you copied in <a href="#callback">step A5</a>:
+        <pre><code>https://<span class="blu">&lt;your-project-ref&gt;</span>.supabase.co/auth/v1/callback</code></pre>
+      </li>
+      <li><span class="st-title">Create &amp; copy both values</span>
+        Press <b>Create</b>. A dialog shows your <b>Client ID</b> and <b>Client secret</b>.
+        <ul>
+          <li><b>Client ID</b> (ends in <code>.apps.googleusercontent.com</code>) → this is your <code>GOOGLE_WEB_CLIENT_ID</code> <em>and</em> goes into Supabase.</li>
+          <li><b>Client secret</b> → goes into Supabase only.</li>
+        </ul>
+        <div class="callout warn">Save both now. You can re-open the client to see the ID later, but treat the
+          <b>secret</b> like a password — it goes into Supabase and nowhere near the app or git.</div>
+      </li>
+    </ol>
+  </div></section>
+
+  <!-- 10 sha -->
+  <section id="sha"><div class="card">
+    <div class="sec-head google"><div class="num">B4</div><h2>Get your app's SHA‑1 fingerprints</h2></div>
+    <p class="sub">The Android OAuth client is tied to your signing keys. You need the SHA‑1 of each.</p>
+
+    <p>You need the SHA‑1 for the <b>debug</b> keystore (for development builds) and, before release, the
+      <b>release</b> keystore too. The easiest way — run this from the project root:</p>
+    <pre><code><span class="cmt"># From C:\Users\mathe\StudioProjects\akachan</span>
+<span class="grn">./gradlew</span> signingReport</code></pre>
+    <p>Look for the <code>debug</code> variant block and copy the <b>SHA1</b> line:</p>
+    <pre><code>Variant: debug
+Config: debug
+Store: ...\.android\debug.keystore
+Alias: AndroidDebugKey
+<span class="grn">SHA1: A1:B2:C3:D4:...:FF</span>   <span class="cmt">← copy this</span>
+SHA-256: ...</code></pre>
+
+    <div class="callout note">Alternative with <code>keytool</code> (if you prefer, or CI without Gradle):
+      <pre style="margin:8px 0 0"><code>keytool -list -v -alias androiddebugkey \
+  -keystore ~/.android/debug.keystore \
+  -storepass android -keypass android</code></pre>
+    </div>
+    <div class="callout warn"><b>Release SHA‑1 matters too.</b> The debug SHA‑1 only signs your local dev
+      builds. Any build signed with a different key (Play App Signing, a CI keystore, a release keystore)
+      needs its <b>own</b> SHA‑1 added to the Android client, or Google sign-in fails <em>silently</em> on
+      that build. If you use Google Play App Signing, grab the SHA‑1 from
+      <b>Play Console → your app → Setup → App integrity</b> and add it too.</div>
+  </div></section>
+
+  <!-- 11 android client -->
+  <section id="android-client"><div class="card">
+    <div class="sec-head google"><div class="num">B5</div><h2>Create the Android OAuth client</h2></div>
+    <p class="sub">This lets the on-device account picker return a token for <code>com.babytracker</code>.</p>
+    <ol class="steps">
+      <li><span class="st-title">Credentials → Create → OAuth client ID</span>
+        Same place as before, but this time choose <b>Application type: Android</b>.
+        <div class="path"><b>Credentials</b><span class="arrow">→</span><b>+ Create Credentials</b><span class="arrow">→</span><b>OAuth client ID</b><span class="arrow">→</span><b>Android</b></div>
+      </li>
+      <li><span class="st-title">Package name</span>
+        Enter exactly:
+        <pre><code>com.babytracker</code></pre>
+        <span class="sub" style="display:block">(This is the app's <code>applicationId</code> — verified in <code>app/build.gradle.kts</code>.)</span>
+      </li>
+      <li><span class="st-title">SHA‑1 certificate fingerprint</span>
+        Paste the <b>debug SHA‑1</b> from step B4. Name the client <code>Akachan Android (debug)</code>.
+      </li>
+      <li><span class="st-title">Create</span> — press Create. There's no secret for Android clients; the
+        package + SHA‑1 pair <em>is</em> the credential.
+      </li>
+      <li><span class="st-title">Repeat for release</span>
+        When you have a release/Play signing SHA‑1, create a <b>second</b> Android client (same package,
+        release SHA‑1) named <code>Akachan Android (release)</code>. You can add it later.
+      </li>
+    </ol>
+    <div class="callout tip">You now have <b>three</b> OAuth clients: one <b>Web</b> (B3) and one or two
+      <b>Android</b> (B5). That's expected and correct.</div>
+  </div></section>
+
+  <!-- 12 enable google -->
+  <section id="enable-google"><div class="card">
+    <div class="sec-head google"><div class="num">B6</div><h2>Enable Google in Supabase</h2></div>
+    <p class="sub">Close the loop: hand the Web client's ID + secret back to Supabase.</p>
+    <ol class="steps">
+      <li><span class="st-title">Return to the Google provider panel</span>
+        The one from <a href="#callback">step A5</a>.
+        <div class="path"><b>Authentication</b><span class="arrow">→</span><b>Sign In / Providers</b><span class="arrow">→</span><b>Google</b></div>
+      </li>
+      <li><span class="st-title">Toggle "Enable Sign in with Google" ON</span></li>
+      <li><span class="st-title">Paste the Web client credentials</span>
+        <ul>
+          <li><b>Client IDs:</b> paste the <b>Web</b> client ID from step B3 (the <code>.apps.googleusercontent.com</code> one).</li>
+          <li><b>Client Secret (for OAuth):</b> paste the Web client secret from step B3.</li>
+        </ul>
+      </li>
+      <li><span class="st-title">Save</span>
+        Press <b>Save</b> at the bottom of the Google panel.
+      </li>
+    </ol>
+    <div class="callout note">Because the native app uses the ID-token flow, Supabase mainly needs the <b>Web
+      client ID</b> registered here to trust tokens minted for it. Adding the secret enables the standard
+      web redirect flow too — harmless to include and future-proof. If Supabase shows a
+      <b>"Skip nonce check"</b> option, leave it at its default unless a developer instructs otherwise;
+      the app's token request and GoTrue must agree on nonce handling.</div>
+  </div></section>
+
+  <!-- ============ PART C ============ -->
+
+  <!-- 13 local props -->
+  <section id="local-props"><div class="card">
+    <div class="sec-head app"><div class="num">C1</div><h2>Add the three keys to the app</h2></div>
+    <p class="sub">All the console work pays off here — three values into one git-ignored file.</p>
+
+    <p>Open (or create) <code>local.properties</code> in the project root and add these three lines
+      alongside the existing <code>sdk.dir=...</code>:</p>
+    <pre><code><span class="cmt"># local.properties — never commit this file (already in .gitignore)</span>
+SUPABASE_URL=<span class="blu">https://your-project-ref.supabase.co</span>
+SUPABASE_ANON_KEY=<span class="blu">eyJhbGciOi...your-anon-public-key</span>
+GOOGLE_WEB_CLIENT_ID=<span class="blu">1234567890-abc...apps.googleusercontent.com</span></code></pre>
+
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>Key</th><th>Where it came from</th></tr></thead>
+      <tbody>
+        <tr><td><code>SUPABASE_URL</code></td><td>Step A2 — Project URL</td></tr>
+        <tr><td><code>SUPABASE_ANON_KEY</code></td><td>Step A2 — anon <b>public</b> key</td></tr>
+        <tr><td><code>GOOGLE_WEB_CLIENT_ID</code></td><td>Step B3 — the <b>Web</b> client ID</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="callout warn"><b>Never commit these.</b> <code>local.properties</code> is git-ignored on
+      purpose. The Gradle build reads them and injects them as <code>BuildConfig</code> fields at compile
+      time. For CI, the same three values are provided as encrypted secrets — not checked into the repo.</div>
+    <div class="callout note">The Android OAuth client (B5) has <b>no value</b> to paste anywhere — its whole
+      job is the package + SHA‑1 registration you already did. Only the <b>Web</b> client ID reaches the app.</div>
+  </div></section>
+
+  <!-- 14 verify -->
+  <section id="verify"><div class="card">
+    <div class="sec-head app"><div class="num">C2</div><h2>Build &amp; verify</h2></div>
+    <p class="sub">Confirm the plumbing before you rely on it.</p>
+    <ol class="steps">
+      <li><span class="st-title">Build the app</span>
+        <pre><code><span class="grn">./gradlew</span> build</code></pre>
+        A green <code>BUILD SUCCESSFUL</code> means the three keys were found and injected. A failure
+        mentioning a missing <code>BuildConfig</code> field or a null property means a key is missing or
+        misspelled in <code>local.properties</code>.
+      </li>
+      <li><span class="st-title">Test sign-in on a real device or emulator with Play Services</span>
+        Run the app, open the sharing screen, and tap <b>Sign in with Google</b>. The native account
+        picker should appear and, after you choose an account, return you signed-in.
+      </li>
+      <li><span class="st-title">Confirm the user landed in Supabase</span>
+        <div class="path"><b>Supabase</b><span class="arrow">→</span><b>Authentication</b><span class="arrow">→</span><b>Users</b></div>
+        <div class="shot">Your Google account listed as a new user, with provider <b>google</b>. That means
+          the whole loop — app → Google → Supabase — works end to end.</div>
+      </li>
+    </ol>
+    <h3>✅ You're done when</h3>
+    <ul class="done-list">
+      <li>Supabase project exists and all 15 tables show <b>RLS enabled</b></li>
+      <li>Google Cloud has <b>1 Web</b> client + <b>1–2 Android</b> clients</li>
+      <li>Supabase Google provider is <b>enabled</b> with the Web client ID + secret</li>
+      <li><code>local.properties</code> has all three keys and <code>./gradlew build</code> passes</li>
+      <li>A test sign-in creates a user under <b>Authentication → Users</b></li>
+    </ul>
+  </div></section>
+
+  <!-- 15 troubleshooting -->
+  <section id="trouble"><div class="card">
+    <div class="sec-head app"><div class="num">C3</div><h2>Troubleshooting</h2></div>
+    <p class="sub">The traps people actually hit, and the fix for each.</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>Symptom</th><th>Cause &amp; fix</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Account picker opens then <b>closes instantly</b>, no error, not signed in</td>
+          <td>The build's <b>SHA‑1 isn't registered</b> on an Android OAuth client (B5), or the package name
+            doesn't match <code>com.babytracker</code>. Re-run <code>./gradlew signingReport</code>, confirm the
+            SHA‑1, and check the Android client. Release builds need the <b>release</b> SHA‑1.</td>
+        </tr>
+        <tr>
+          <td><code>Error 400: redirect_uri_mismatch</code></td>
+          <td>The Supabase <b>callback URL</b> isn't in the Web client's <b>Authorized redirect URIs</b> (B3),
+            or has a typo. Re-copy it from step A5 exactly.</td>
+        </tr>
+        <tr>
+          <td>Sign-in works but Supabase rejects it / <code>invalid nonce</code></td>
+          <td>Nonce handling mismatch between the app's token request and GoTrue. Check the "Skip nonce check"
+            setting on the Supabase Google provider against how the app requests the token.</td>
+        </tr>
+        <tr>
+          <td>Only <b>you</b> can sign in; others get "access blocked"</td>
+          <td>App is in <b>Testing</b> mode and they aren't <b>test users</b>. Add them under the OAuth consent
+            screen → Audience → Test users (B2), or publish the consent screen.</td>
+        </tr>
+        <tr>
+          <td><code>PERMISSION_DENIED</code> / can't read or write data after login</td>
+          <td>An RLS policy is missing or a table has RLS off. Re-check the schema step (A3): every table needs
+            RLS enabled and the migration's policies applied.</td>
+        </tr>
+        <tr>
+          <td><code>BUILD FAILED</code> — null/missing BuildConfig field</td>
+          <td>A key is missing or misspelled in <code>local.properties</code>. Names are case-sensitive:
+            <code>SUPABASE_URL</code>, <code>SUPABASE_ANON_KEY</code>, <code>GOOGLE_WEB_CLIENT_ID</code>.</td>
+        </tr>
+      </tbody>
+    </table></div>
+
+    <h3>Official references</h3>
+    <div>
+      <a class="btn-link" href="https://supabase.com/docs/guides/auth/social-login/auth-google?platform=android" target="_blank" rel="noopener">Supabase · Google sign-in on Android <span class="ext">↗</span></a>
+      <a class="btn-link" href="https://supabase.com/docs/guides/auth/row-level-security" target="_blank" rel="noopener">Supabase · Row Level Security <span class="ext">↗</span></a>
+      <a class="btn-link" href="https://developer.android.com/identity/sign-in/credential-manager-siwg" target="_blank" rel="noopener">Android · Sign in with Google (Credential Manager) <span class="ext">↗</span></a>
+      <a class="btn-link" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud · Credentials <span class="ext">↗</span></a>
+    </div>
+  </div></section>
+
+  <footer>
+    Akachan · partner-sharing backend setup. Grounded in
+    <code>docs/superpowers/specs/2026-06-17-firebase-to-supabase-migration-design.md</code> (§8, §11 issues 1–3).
+    This covers the one-time console setup only; the Kotlin integration is separate developer work.
+  </footer>
+
+  </main>
+</div>
+</div>
+</body>
+</html>
