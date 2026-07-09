@@ -65,4 +65,27 @@ class SleepTodayStatsTest {
         assertEquals(Duration.ZERO, stats.nightSleep)
         assertEquals(Duration.ofHours(1), stats.totalSleep)
     }
+
+    @Test
+    fun `totalSleep merges overlapping records instead of double-counting`() {
+        // Legacy/bypassed-validation data: two records for today genuinely overlap. The real
+        // elapsed span is 09:00-11:00 (2h), not the naive 1h + 1.5h = 2h30m sum.
+        val first = record(1, "2026-04-06T09:00:00Z", "2026-04-06T10:00:00Z")
+        val overlapping = record(2, "2026-04-06T09:30:00Z", "2026-04-06T11:00:00Z", SleepType.NAP)
+
+        val stats = sleepTodayStats(listOf(first, overlapping), today, zone)
+
+        assertEquals(Duration.ofHours(2), stats.totalSleep)
+    }
+
+    @Test
+    fun `nightSleep merges overlapping night sleep records instead of double-counting`() {
+        val first = record(1, "2026-04-05T20:00:00Z", "2026-04-06T02:00:00Z", SleepType.NIGHT_SLEEP)
+        val overlapping = record(2, "2026-04-06T01:00:00Z", "2026-04-06T05:00:00Z", SleepType.NIGHT_SLEEP)
+
+        val stats = sleepTodayStats(listOf(first, overlapping), today, zone)
+
+        // Real elapsed span is 2026-04-05T20:00 to 2026-04-06T05:00 = 9h, not the naive 6h + 4h = 10h.
+        assertEquals(Duration.ofHours(9), stats.nightSleep)
+    }
 }

@@ -28,6 +28,7 @@ import com.babytracker.util.durationBetween
 import com.babytracker.util.formatElapsedShort
 import com.babytracker.util.formatTime12h
 import com.babytracker.util.groupByDateDescending
+import com.babytracker.util.sumMergingOverlaps
 import com.babytracker.util.tickerFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -61,6 +62,9 @@ sealed class LastSleepSummaryState {
     ) : LastSleepSummaryState()
 }
 
+/** This record's (start, end) span, or `null` while it is still in progress. */
+internal fun SleepRecord.toInterval(): Pair<Instant, Instant>? = endTime?.let { startTime to it }
+
 /** Today's completed-sleep rollup for the tracking screen: list, totals, and nap count. */
 data class SleepTodayStats(
     val entries: List<SleepRecord> = emptyList(),
@@ -80,14 +84,13 @@ internal fun sleepTodayStats(records: List<SleepRecord>, today: LocalDate, zone:
         .sortedByDescending { it.startTime }
     return SleepTodayStats(
         entries = entries,
-        totalSleep = entries
-            .mapNotNull { record -> record.endTime?.let { Duration.between(record.startTime, it) } }
-            .fold(Duration.ZERO) { acc, d -> acc + d },
+        totalSleep = sumMergingOverlaps(entries.mapNotNull { it.toInterval() }),
         napCount = entries.count { it.sleepType == SleepType.NAP },
-        nightSleep = records
-            .filter { it.sleepType == SleepType.NIGHT_SLEEP && it.endTime?.atZone(zone)?.toLocalDate() == today }
-            .mapNotNull { record -> record.endTime?.let { Duration.between(record.startTime, it) } }
-            .fold(Duration.ZERO) { acc, d -> acc + d },
+        nightSleep = sumMergingOverlaps(
+            records
+                .filter { it.sleepType == SleepType.NIGHT_SLEEP && it.endTime?.atZone(zone)?.toLocalDate() == today }
+                .mapNotNull { it.toInterval() }
+        ),
     )
 }
 
@@ -410,5 +413,5 @@ class SleepViewModel @Inject constructor(
 internal fun SleepEntryError.messageRes(): Int = when (this) {
     SleepEntryError.END_BEFORE_START -> R.string.error_sleep_end_after_start
     SleepEntryError.DURATION_TOO_LONG -> R.string.error_sleep_duration_too_long
-    SleepEntryError.NIGHT_SLEEP_OVERLAP -> R.string.error_sleep_night_overlap
+    SleepEntryError.OVERLAP -> R.string.error_sleep_overlap
 }

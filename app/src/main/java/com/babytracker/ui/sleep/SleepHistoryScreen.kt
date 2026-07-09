@@ -42,6 +42,7 @@ import com.babytracker.R
 import com.babytracker.ui.component.HistoryDayHeader
 import com.babytracker.ui.component.SleepIcon
 import com.babytracker.util.formatDuration
+import com.babytracker.util.sumMergingOverlaps
 import com.babytracker.util.toRelativeLabel
 import java.time.Duration
 import java.time.LocalTime
@@ -154,10 +155,7 @@ fun SleepHistoryScreen(
             // per data change.
             val totalsByDate = remember(groupedByDateDesc) {
                 groupedByDateDesc.associate { (date, records) ->
-                    date to records
-                        .filter { it.endTime != null }
-                        .mapNotNull { record -> record.endTime?.let { end -> Duration.between(record.startTime, end) } }
-                        .fold(Duration.ZERO) { acc, d -> acc + d }
+                    date to sumMergingOverlaps(records.mapNotNull { it.toInterval() })
                 }
             }
             LazyColumn(

@@ -88,8 +88,8 @@ class SleepViewModelTest {
             "End time needs to be after start time. Adjust one time to save this sleep."
         every { appContext.getString(R.string.error_sleep_duration_too_long) } returns
             "Sleep duration is too long for this sleep type. Adjust one time to save this sleep."
-        every { appContext.getString(R.string.error_sleep_night_overlap) } returns
-            "Night sleep overlaps with an existing record. Adjust the times to save this sleep."
+        every { appContext.getString(R.string.error_sleep_overlap) } returns
+            "This sleep overlaps with an existing record. Adjust the times to save this sleep."
 
         every { sleepRepository.getAllRecords() } returns flowOf(emptyList())
         every { settingsRepository.getWakeTime() } returns flowOf(null)
@@ -166,7 +166,7 @@ class SleepViewModelTest {
         // Simulates the use case's defense-in-depth guard tripping on a fresh read (e.g. a
         // concurrent write) after the VM's own pre-check already passed.
         coEvery { saveSleepEntry(any(), any(), any()) } throws
-            IllegalArgumentException("NIGHT_SLEEP_OVERLAP")
+            IllegalArgumentException("OVERLAP")
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -179,7 +179,7 @@ class SleepViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(
-            "Night sleep overlaps with an existing record. Adjust the times to save this sleep.",
+            "This sleep overlaps with an existing record. Adjust the times to save this sleep.",
             viewModel.uiState.value.entryError,
         )
         assertEquals(true, viewModel.uiState.value.showEntrySheet)
@@ -988,7 +988,7 @@ class SleepViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(
-            "Night sleep overlaps with an existing record. Adjust the times to save this sleep.",
+            "This sleep overlaps with an existing record. Adjust the times to save this sleep.",
             viewModel.uiState.value.entryError,
         )
         coVerify(exactly = 0) { saveSleepEntry(any(), any(), any()) }

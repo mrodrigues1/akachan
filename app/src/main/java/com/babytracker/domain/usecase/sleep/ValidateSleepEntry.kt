@@ -17,8 +17,8 @@ fun maxSleepDurationFor(type: SleepType): Duration = when (type) {
  * `null` when adding a new entry. [now] estimates the end of an in-progress overlap candidate
  * (a record with a null endTime).
  *
- * Only night-vs-night overlap is checked for now (matching prior behavior exactly) — extending
- * to all sleep-type combinations is a separate follow-up (issue #748).
+ * Overlap is checked against every existing record regardless of either record's sleep type —
+ * any two sleep records overlapping in time are invalid, not just two night sleeps (issue #748).
  */
 fun validateSleepEntry(
     startTime: Instant,
@@ -30,14 +30,11 @@ fun validateSleepEntry(
 ): SleepEntryError? {
     if (!endTime.isAfter(startTime)) return SleepEntryError.END_BEFORE_START
     if (Duration.between(startTime, endTime) > maxSleepDurationFor(type)) return SleepEntryError.DURATION_TOO_LONG
-    if (type == SleepType.NIGHT_SLEEP) {
-        val overlaps = existingRecords.any { existing ->
-            existing.sleepType == SleepType.NIGHT_SLEEP &&
-                existing.id != excludingId &&
-                startTime.isBefore(existing.endTime ?: now) &&
-                endTime.isAfter(existing.startTime)
-        }
-        if (overlaps) return SleepEntryError.NIGHT_SLEEP_OVERLAP
+    val overlaps = existingRecords.any { existing ->
+        existing.id != excludingId &&
+            startTime.isBefore(existing.endTime ?: now) &&
+            endTime.isAfter(existing.startTime)
     }
+    if (overlaps) return SleepEntryError.OVERLAP
     return null
 }

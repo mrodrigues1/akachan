@@ -1023,7 +1023,7 @@
     <string name="error_bf_session_shorter_pauses">Session is shorter than recorded pauses</string>
     <string name="error_sleep_end_after_start">End time needs to be after start time. Adjust one time to save this sleep.</string>
     <string name="error_sleep_duration_too_long">Sleep duration is too long for this sleep type. Adjust one time to save this sleep.</string>
-    <string name="error_sleep_night_overlap">Night sleep overlaps with an existing record. Adjust the times to save this sleep.</string>
+    <string name="error_sleep_overlap">This sleep overlaps with an existing record. Adjust the times to save this sleep.</string>
     <string name="error_min_one_day">Must be at least 1 day</string>
     <string name="msg_saved_locally">Saved locally. Partner sync may update later.</string>
     <string name="msg_backup_saved">Backup saved</string>
