@@ -15,6 +15,10 @@ data class SleepRecord(
     val clientId: String = "",
     val startedBy: SleepAuthor = SleepAuthor.OWNER,
 ) {
+    init {
+        require(endTime == null || endTime.isAfter(startTime)) { "endTime must be after startTime" }
+    }
+
     val duration: Duration?
         get() = endTime?.let { Duration.between(startTime, it) }
 

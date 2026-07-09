@@ -27,7 +27,7 @@ class UpdatePartnerSleepUseCase @Inject constructor(
         require(!startTime.isAfter(now())) { "Sleep start cannot be in the future" }
         if (endTime != null) {
             require(!endTime.isAfter(now())) { "Sleep end cannot be in the future" }
-            require(!endTime.isBefore(startTime)) { "Sleep end cannot be before start" }
+            require(endTime.isAfter(startTime)) { "Sleep end must be after start" }
         }
         requireValidNotes(notes)
         submitSleepOp { authorUid ->

@@ -1,5 +1,7 @@
 package com.babytracker.sharing.usecase
 
+import com.babytracker.data.local.entity.toDomain
+import com.babytracker.data.local.entity.toEntity
 import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
@@ -109,14 +111,27 @@ class ApplySleepOpUseCaseTest {
     }
 
     @Test
-    fun `stop clamps an end before start up to the start time`() = runTest {
+    fun `stop clamps an end before start up to just after the start time`() = runTest {
         coEvery { repository.getByClientId("c1") } returns record(endTime = null)
         val slot = slot<SleepRecord>()
         coEvery { repository.updateRecord(capture(slot)) } returns Unit
 
         useCase(stopOp(endMs = past.minusSeconds(60).toEpochMilli()))
 
-        assertEquals(past, slot.captured.endTime)
+        assertEquals(past.plusMillis(1), slot.captured.endTime)
+    }
+
+    @Test
+    fun `clamped stop end survives Room's millisecond-precision round-trip`() = runTest {
+        coEvery { repository.getByClientId("c1") } returns record(endTime = null)
+        val slot = slot<SleepRecord>()
+        coEvery { repository.updateRecord(capture(slot)) } returns Unit
+
+        useCase(stopOp(endMs = past.minusSeconds(60).toEpochMilli()))
+
+        val roundTripped = slot.captured.toEntity().toDomain()
+        assertEquals(slot.captured.endTime, roundTripped.endTime)
+        assertTrue(roundTripped.endTime!!.isAfter(roundTripped.startTime))
     }
 
     @Test
@@ -167,6 +182,12 @@ class ApplySleepOpUseCaseTest {
     @Test
     fun `update with end before start is dropped`() = runTest {
         val op = updateOp().copy(endTimeMs = past.minusSeconds(60).toEpochMilli())
+        assertFalse(useCase(op).roomChanged)
+    }
+
+    @Test
+    fun `update with end equal to start is dropped`() = runTest {
+        val op = updateOp().copy(endTimeMs = past.toEpochMilli())
         assertFalse(useCase(op).roomChanged)
     }
 }
