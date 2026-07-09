@@ -73,8 +73,9 @@ class ApplySleepOpUseCase internal constructor(
             ?: return drop(op, "stop missing/future endTime")
         val existing = repository.getByClientId(op.entryClientId) ?: return drop(op, "stop target missing")
         if (existing.endTime != null) return unchanged() // already ended
-        // Clamp so a stale-clock stop never produces a negative duration.
-        val clampedEnd = if (endTime.isBefore(existing.startTime)) existing.startTime else endTime
+        // Clamp so a stale-clock stop never produces a negative or zero duration. Persistence rounds to
+        // milliseconds (Instant.toEpochMilli()), so the bump must survive that round-trip.
+        val clampedEnd = if (!endTime.isAfter(existing.startTime)) existing.startTime.plusMillis(1) else endTime
         repository.updateRecord(existing.copy(endTime = clampedEnd))
         return SleepOpApplyResult(true, PartnerSleepNotification(SleepNotifyKind.STOPPED, existing.sleepType))
     }
@@ -99,13 +100,14 @@ class ApplySleepOpUseCase internal constructor(
     private data class ValidTimes(val startTime: Instant, val endTime: Instant?, val sleepType: SleepType)
 
     // Shared by START and UPDATE: both require a non-future startTime + valid sleepType, and an
-    // optional endTime that, if present, is not in the future and not before startTime.
+    // optional endTime that, if present, is not in the future and is strictly after startTime
+    // (SleepRecord's invariant rejects endTime <= startTime).
     private fun validatedTimes(op: SleepOp): ValidTimes? {
         val startTime = op.startTimeMs?.let(Instant::ofEpochMilli) ?: return null
         val sleepType = op.sleepType?.toSleepTypeOrNull() ?: return null
         if (startTime.isAfter(now())) return null
         val endTime = op.endTimeMs?.let(Instant::ofEpochMilli)
-        if (endTime != null && (endTime.isAfter(now()) || endTime.isBefore(startTime))) return null
+        if (endTime != null && (endTime.isAfter(now()) || !endTime.isAfter(startTime))) return null
         return ValidTimes(startTime, endTime, sleepType)
     }
 

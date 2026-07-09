@@ -39,4 +39,30 @@ class SleepEntityTest {
 
         assertEquals(SleepAuthor.OWNER, entity.toDomain().startedBy)
     }
+
+    @Test
+    fun `toDomain nulls out a genuinely inverted endTime instead of crashing`() {
+        val entity = SleepEntity(
+            id = 1,
+            startTime = 2_000,
+            endTime = 1_000,
+            sleepType = "NAP",
+            clientId = "client-1",
+        )
+
+        assertEquals(null, entity.toDomain().endTime)
+    }
+
+    @Test
+    fun `toDomain nudges a zero-duration completed row instead of surfacing it as active`() {
+        val entity = SleepEntity(
+            id = 1,
+            startTime = 2_000,
+            endTime = 2_000,
+            sleepType = "NAP",
+            clientId = "client-1",
+        )
+
+        assertEquals(Instant.ofEpochMilli(2_001), entity.toDomain().endTime)
+    }
 }

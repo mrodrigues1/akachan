@@ -70,6 +70,13 @@ class UpdatePartnerSleepUseCaseTest {
     }
 
     @Test
+    fun `end equal to start is rejected`() {
+        assertThrows<IllegalArgumentException> {
+            runBlocking { useCase("cid", start, start, SleepType.NAP, null) }
+        }
+    }
+
+    @Test
     fun `future end is rejected`() {
         assertThrows<IllegalArgumentException> {
             runBlocking { useCase("cid", start, now.plusSeconds(60), SleepType.NAP, null) }

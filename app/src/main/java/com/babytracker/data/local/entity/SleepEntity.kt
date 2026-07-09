@@ -34,11 +34,15 @@ data class SleepEntity(
     @ColumnInfo(name = "started_by", defaultValue = "'OWNER'") val startedBy: String = SleepAuthor.OWNER.name,
 )
 
-// Lenient enum parsing: one corrupt row must not crash every sleep list it appears in.
+// Lenient enum/invariant parsing: one corrupt row must not crash every sleep list it appears in.
+// A zero-duration row (end == start) was valid under the pre-invariant rules, so it stays completed
+// with its end nudged 1ms later rather than being nulled into a phantom active session; only a
+// genuinely inverted row (end < start), which has no sensible repair, becomes in-progress.
 fun SleepEntity.toDomain(): SleepRecord = SleepRecord(
     id = id,
     startTime = Instant.ofEpochMilli(startTime),
-    endTime = endTime?.let { Instant.ofEpochMilli(it) },
+    endTime = endTime?.let { if (it == startTime) startTime + 1 else it.takeIf { end -> end > startTime } }
+        ?.let { Instant.ofEpochMilli(it) },
     sleepType = sleepType.toSleepTypeSafe(),
     notes = notes,
     timezoneId = timezoneId,
