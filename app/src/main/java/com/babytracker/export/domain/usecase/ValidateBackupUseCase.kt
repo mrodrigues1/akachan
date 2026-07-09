@@ -9,6 +9,7 @@ import com.babytracker.domain.model.PumpingBreast
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VaccineStatus
 import com.babytracker.domain.model.toSleepTypeOrNull
+import com.babytracker.domain.model.toSleepTypeWithLegacyLabelOrNull
 import com.babytracker.domain.model.toVaccineStatusOrNull
 import com.babytracker.domain.model.toVaccineStatusSafe
 import com.babytracker.export.domain.BackupTooNewException
@@ -70,7 +71,9 @@ class ValidateBackupUseCase @Inject constructor(
     private fun canonicalizeContent(data: BackupData): BackupData =
         data.copy(
             sleep = data.sleep.map { backup ->
-                backup.copy(sleepType = backup.sleepType.toSleepTypeOrNull()?.name ?: backup.sleepType)
+                backup.copy(
+                    sleepType = backup.sleepType.toSleepTypeWithLegacyLabelOrNull()?.name ?: backup.sleepType,
+                )
             },
         )
 
