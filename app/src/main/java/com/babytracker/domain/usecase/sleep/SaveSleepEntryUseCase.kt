@@ -15,7 +15,12 @@ class SaveSleepEntryUseCase @Inject constructor(
         endTime: Instant,
         type: SleepType
     ): Long {
-        require(endTime > startTime) { "endTime must be after startTime" }
+        val now = Instant.now()
+        val active = repository.getActiveRecord()
+        val nearby = repository.getCompletedRecordsBetween(startTime, endTime)
+        val existingRecords = if (active != null) nearby + active else nearby
+        val error = validateSleepEntry(startTime, endTime, type, existingRecords, now)
+        require(error == null) { error?.name.orEmpty() }
         return repository.insertRecord(
             SleepRecord(
                 startTime = startTime,

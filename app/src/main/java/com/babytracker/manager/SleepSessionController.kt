@@ -5,6 +5,7 @@ import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.StopSleepRecordUseCase
+import com.babytracker.domain.usecase.sleep.shouldUpdateWakeTimeFor
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
 import com.babytracker.sharing.usecase.SyncedWrite
 import java.time.Clock
@@ -75,9 +76,23 @@ class SleepSessionController @Inject constructor(
     private suspend fun propagateWakeTime(stopped: SleepRecord) {
         val endTime = stopped.endTime ?: return
         val zone = ZoneId.systemDefault()
-        val endedAt = endTime.atZone(zone)
-        if (endedAt.toLocalDate() == LocalDate.now(zone)) {
-            settingsRepository.setWakeTime(endedAt.toLocalTime())
+        val today = LocalDate.now(zone)
+        val startOfToday = today.atStartOfDay(zone).toInstant()
+        val startOfTomorrow = today.plusDays(1).atStartOfDay(zone).toInstant()
+        // Between (not since) startOfToday: a manually logged night sleep that started yesterday
+        // and ended after midnight would be missed by a start-time-bounded query, letting an
+        // earlier-ending record incorrectly win the "latest end today" comparison below.
+        val candidates = sleepRepository.getCompletedRecordsBetween(startOfToday, startOfTomorrow)
+        val shouldUpdate = shouldUpdateWakeTimeFor(
+            endTime = endTime,
+            sleepType = stopped.sleepType,
+            existingRecords = candidates,
+            zone = zone,
+            today = today,
+            excludingId = stopped.id,
+        )
+        if (shouldUpdate) {
+            settingsRepository.setWakeTime(endTime.atZone(zone).toLocalTime())
         }
     }
 }

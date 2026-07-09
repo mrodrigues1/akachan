@@ -84,6 +84,12 @@ class SleepViewModelTest {
         every { appContext.getString(eq(R.string.sleep_ended_at), *anyVararg()) } answers {
             "Ended at ${secondArg<Array<Any?>>()[0]}"
         }
+        every { appContext.getString(R.string.error_sleep_end_after_start) } returns
+            "End time needs to be after start time. Adjust one time to save this sleep."
+        every { appContext.getString(R.string.error_sleep_duration_too_long) } returns
+            "Sleep duration is too long for this sleep type. Adjust one time to save this sleep."
+        every { appContext.getString(R.string.error_sleep_night_overlap) } returns
+            "Night sleep overlaps with an existing record. Adjust the times to save this sleep."
 
         every { sleepRepository.getAllRecords() } returns flowOf(emptyList())
         every { settingsRepository.getWakeTime() } returns flowOf(null)
@@ -153,6 +159,32 @@ class SleepViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { syncToFirestore(SyncToFirestoreUseCase.SyncType.SLEEP_RECORDS) }
+    }
+
+    @Test
+    fun `onSaveEntry surfaces the use case's own validation failure instead of crashing`() = runTest {
+        // Simulates the use case's defense-in-depth guard tripping on a fresh read (e.g. a
+        // concurrent write) after the VM's own pre-check already passed.
+        coEvery { saveSleepEntry(any(), any(), any()) } throws
+            IllegalArgumentException("NIGHT_SLEEP_OVERLAP")
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAddEntryClick()
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START)
+        viewModel.onConfirmTimePicker(LocalTime.of(20, 0))
+        viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
+        viewModel.onConfirmTimePicker(LocalTime.of(22, 0))
+        viewModel.onSaveEntry()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "Night sleep overlaps with an existing record. Adjust the times to save this sleep.",
+            viewModel.uiState.value.entryError,
+        )
+        assertEquals(true, viewModel.uiState.value.showEntrySheet)
+        coVerify(exactly = 0) { syncToFirestore(any()) }
+        coVerify(exactly = 0) { settingsRepository.setWakeTime(any()) }
     }
 
     @Test

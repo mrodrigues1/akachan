@@ -1,11 +1,11 @@
 package com.babytracker.ui.sleep
 
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.babytracker.R
 import com.babytracker.domain.model.SleepPredictionState
-import com.babytracker.domain.model.SleepPredictionTuning
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepSchedule
 import com.babytracker.domain.model.SleepType
@@ -15,7 +15,10 @@ import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.GenerateSleepScheduleUseCase
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.domain.usecase.sleep.SaveSleepEntryUseCase
+import com.babytracker.domain.usecase.sleep.SleepEntryError
 import com.babytracker.domain.usecase.sleep.UpdateSleepEntryUseCase
+import com.babytracker.domain.usecase.sleep.shouldUpdateWakeTimeFor
+import com.babytracker.domain.usecase.sleep.validateSleepEntry
 import com.babytracker.manager.SleepSessionController
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
 import com.babytracker.sharing.usecase.SyncedWrite
@@ -256,61 +259,54 @@ class SleepViewModel @Inject constructor(
         val endDate = if (state.entryEndTime.isBefore(state.entryStartTime)) startDate.plusDays(1) else startDate
         val startInstant = state.entryStartTime.atDate(startDate).atZone(zone).toInstant()
         val endInstant = state.entryEndTime.atDate(endDate).atZone(zone).toInstant()
-        if (endInstant <= startInstant) {
-            _uiState.value = state.copy(
-                entryError = "End time needs to be after start time. Adjust one time to save this sleep."
-            )
+        val error = validateSleepEntry(
+            startTime = startInstant,
+            endTime = endInstant,
+            type = state.entryType,
+            existingRecords = history.value,
+            now = Instant.now(),
+            excludingId = editingRecord?.id,
+        )
+        if (error != null) {
+            _uiState.value = state.copy(entryError = appContext.getString(error.messageRes()))
             return
-        }
-        val duration = Duration.between(startInstant, endInstant)
-        if (duration > maxDurationFor(state.entryType)) {
-            _uiState.value = state.copy(
-                entryError = "Sleep duration is too long for this sleep type. Adjust one time to save this sleep."
-            )
-            return
-        }
-        if (state.entryType == SleepType.NIGHT_SLEEP) {
-            val now = Instant.now()
-            val hasOverlap = history.value.any { existing ->
-                if (existing.sleepType != SleepType.NIGHT_SLEEP) return@any false
-                if (editingRecord != null && existing.id == editingRecord.id) return@any false
-                val existingEnd = existing.endTime ?: now
-                startInstant < existingEnd && endInstant > existing.startTime
-            }
-            if (hasOverlap) {
-                _uiState.value = state.copy(
-                    entryError = "Night sleep overlaps with an existing record. Adjust the times to save this sleep."
-                )
-                return
-            }
         }
         viewModelScope.launch {
-            if (editingRecord != null) {
-                updateSleepEntry(
-                    id = editingRecord.id,
-                    startTime = startInstant,
-                    endTime = endInstant,
-                    type = state.entryType,
-                    timezoneId = zone.id,
-                )
-            } else {
-                saveSleepEntry(startInstant, endInstant, state.entryType)
-            }
-            if (state.entryType == SleepType.NIGHT_SLEEP) {
-                val sysZone = ZoneId.systemDefault()
-                if (endInstant.atZone(sysZone).toLocalDate() == LocalDate.now()) {
-                    val latestOtherEnd = history.value
-                        .filter { r ->
-                            r.sleepType == SleepType.NIGHT_SLEEP &&
-                                r.endTime?.atZone(sysZone)?.toLocalDate() == LocalDate.now() &&
-                                (editingRecord == null || r.id != editingRecord.id)
-                        }
-                        .mapNotNull { it.endTime }
-                        .maxOrNull()
-                    if (latestOtherEnd == null || endInstant >= latestOtherEnd) {
-                        settingsRepository.setWakeTime(endInstant.atZone(sysZone).toLocalTime())
-                    }
+            try {
+                if (editingRecord != null) {
+                    updateSleepEntry(
+                        id = editingRecord.id,
+                        startTime = startInstant,
+                        endTime = endInstant,
+                        type = state.entryType,
+                        timezoneId = zone.id,
+                    )
+                } else {
+                    saveSleepEntry(startInstant, endInstant, state.entryType)
                 }
+            } catch (e: IllegalArgumentException) {
+                // The use case re-validates against a fresh read as a safety net (defense-in-depth
+                // against a race with a concurrent write); this VM-level check already passed
+                // against a slightly older snapshot, so a fresh failure here is rare but must not
+                // crash the screen — surface it the same way a pre-save validation failure would.
+                val mappedError = SleepEntryError.entries.find { it.name == e.message }
+                _uiState.value = _uiState.value.copy(
+                    entryError = mappedError?.let { appContext.getString(it.messageRes()) }
+                        ?: appContext.getString(R.string.sleep_entry_pick_times),
+                )
+                return@launch
+            }
+            val sysZone = ZoneId.systemDefault()
+            if (shouldUpdateWakeTimeFor(
+                    endTime = endInstant,
+                    sleepType = state.entryType,
+                    existingRecords = history.value,
+                    zone = sysZone,
+                    today = LocalDate.now(sysZone),
+                    excludingId = editingRecord?.id,
+                )
+            ) {
+                settingsRepository.setWakeTime(endInstant.atZone(sysZone).toLocalTime())
             }
             _uiState.value = _uiState.value.copy(showEntrySheet = false, entryError = null, editingRecord = null)
             syncedWrite.sync(SyncType.SLEEP_RECORDS)
@@ -405,12 +401,14 @@ class SleepViewModel @Inject constructor(
             ?.let { runCatching { ZoneId.of(it) }.getOrNull() }
             ?: ZoneId.systemDefault()
 
-    private fun maxDurationFor(type: SleepType): Duration = when (type) {
-        SleepType.NAP -> Duration.ofHours(SleepPredictionTuning.MAX_NAP_DURATION_HOURS)
-        SleepType.NIGHT_SLEEP -> Duration.ofHours(SleepPredictionTuning.MAX_NIGHT_SLEEP_DURATION_HOURS)
-    }
-
     private companion object {
         const val LAST_SLEEP_TICK_MS = 60_000L
     }
+}
+
+@StringRes
+internal fun SleepEntryError.messageRes(): Int = when (this) {
+    SleepEntryError.END_BEFORE_START -> R.string.error_sleep_end_after_start
+    SleepEntryError.DURATION_TOO_LONG -> R.string.error_sleep_duration_too_long
+    SleepEntryError.NIGHT_SLEEP_OVERLAP -> R.string.error_sleep_night_overlap
 }

@@ -39,6 +39,7 @@ class SleepActionReceiverTest {
     @BeforeEach
     fun setup() {
         sleepRepository = mockk()
+        coEvery { sleepRepository.getCompletedRecordsBetween(any(), any()) } returns emptyList()
         stopSleepRecordUseCase = mockk()
         sleepNotificationScheduler = mockk(relaxed = true)
         napReminderScheduler = mockk(relaxed = true)
