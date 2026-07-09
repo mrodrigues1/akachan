@@ -38,49 +38,6 @@ Read `docs/AI_REPO_MAP.md` first. Use it to identify the minimum files needed.
 
 ---
 
-## Search Efficiency
-
-Minimize token usage. Search first, read second. Never scan the whole repo.
-
-### Preferred commands
-
-Find content:
-
-```bash
-rg "SymbolName"
-rg "functionName\(" -g "*.kt"
-rg -l "SymbolName"
-
-findstr /S /N /I "SymbolName" *.kt
-```
-
-Find files:
-
-```bash
-rg --files | rg "Dashboard|Partner"
-
-dir /S /B *Dashboard*
-where /R . *Dashboard*
-```
-
-Read only relevant sections (never whole large files):
-
-```bash
-powershell -Command "Get-Content path\to\file.kt | Select-Object -Skip 120 -First 100"
-
-sed -n '120,220p' path/to/file
-```
-
-### Rules
-
-- Prefer "rg"; fallback to native Windows commands ("findstr", "dir", "where", PowerShell).
-- Read files in small chunks only (±50–100 lines around matches).
-- Narrow searches to relevant folders/file types.
-- Avoid scanning unrelated modules, generated files, "build/", ".gradle/", lockfiles.
-- Make the smallest reasonable change.
-
----
-
 ## Validation Commands
 
 Run commands from the repo root. On Windows PowerShell, use `.\gradlew.bat` if `./gradlew` does not execute.
