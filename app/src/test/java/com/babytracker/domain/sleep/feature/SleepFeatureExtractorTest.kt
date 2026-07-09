@@ -45,7 +45,9 @@ class SleepFeatureExtractorTest {
             sleepRecord(6.0, 5.0),
             sleepRecord(4.5, 3.5),
             sleepRecord(4.0, 3.0),
-            sleepRecord(2.0, 2.0),
+            // A 9.5h NAP exceeds MAX_NAP_DURATION_HOURS (4h), so SleepInterval.from drops it as
+            // implausible — SleepRecord itself now rejects zero/negative-duration records outright.
+            sleepRecord(10.0, 0.5),
         )
 
         val intervals = extractor.buildSleepIntervals(records)

@@ -16,7 +16,7 @@ import com.babytracker.data.local.entity.VisitQuestionEntity
 import com.babytracker.export.domain.BackupImporter
 import com.babytracker.export.domain.ImportCounts
 import com.babytracker.export.domain.model.BackupData
-import com.babytracker.domain.model.toSleepTypeOrNull
+import com.babytracker.domain.model.toSleepTypeWithLegacyLabelOrNull
 import com.babytracker.manager.DoctorVisitReminderScheduler
 import com.babytracker.manager.VaccineReminderScheduler
 import java.util.UUID
@@ -199,7 +199,7 @@ class BackupImporterImpl @Inject constructor(
             val entity = SleepEntity(
                 startTime = s.startTime,
                 endTime = s.endTime,
-                sleepType = s.sleepType.toSleepTypeOrNull()?.name ?: s.sleepType,
+                sleepType = s.sleepType.toSleepTypeWithLegacyLabelOrNull()?.name ?: s.sleepType,
                 notes = s.notes,
                 timezoneId = s.timezoneId,
             )
