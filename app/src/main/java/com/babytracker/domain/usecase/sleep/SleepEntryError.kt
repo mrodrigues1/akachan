@@ -4,5 +4,5 @@ package com.babytracker.domain.usecase.sleep
 enum class SleepEntryError {
     END_BEFORE_START,
     DURATION_TOO_LONG,
-    NIGHT_SLEEP_OVERLAP,
+    OVERLAP,
 }

@@ -129,4 +129,24 @@ class SaveSleepEntryUseCaseTest {
         assertTrue(thrown is IllegalArgumentException)
         coVerify(exactly = 0) { repository.insertRecord(any()) }
     }
+
+    @Test
+    fun `invoke throws when a new nap overlaps an existing nap`() = runTest {
+        // Regression coverage for issue #748: getCompletedRecordsBetween returns candidates of
+        // every sleep type, so a nap-over-nap must be rejected the same as a night-vs-night one.
+        val start = Instant.parse("2026-04-08T13:30:00Z")
+        val end = Instant.parse("2026-04-08T14:30:00Z")
+        val existingNap = SleepRecord(
+            id = 3L,
+            startTime = Instant.parse("2026-04-08T13:00:00Z"),
+            endTime = Instant.parse("2026-04-08T14:00:00Z"),
+            sleepType = SleepType.NAP,
+        )
+        coEvery { repository.getCompletedRecordsBetween(start, end) } returns listOf(existingNap)
+
+        val thrown = runCatching { useCase(start, end, SleepType.NAP) }.exceptionOrNull()
+
+        assertTrue(thrown is IllegalArgumentException)
+        coVerify(exactly = 0) { repository.insertRecord(any()) }
+    }
 }

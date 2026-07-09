@@ -139,6 +139,32 @@ fun Duration.formatElapsedCompact(context: Context): String {
 }
 
 /**
+ * Sums the elapsed time covered by [intervals] (start, end), merging any intervals that overlap or
+ * touch (one starts at or before another's end) before summing, so time covered by more than one
+ * interval is counted once instead of double-counted. Used for daily/day-header sleep totals, where
+ * two records can genuinely overlap (e.g. legacy data, or an insert path that bypasses validation).
+ * Returns [Duration.ZERO] for an empty list.
+ */
+fun sumMergingOverlaps(intervals: List<Pair<Instant, Instant>>): Duration {
+    if (intervals.isEmpty()) return Duration.ZERO
+    val sorted = intervals.sortedBy { it.first }
+    var total = Duration.ZERO
+    var clusterStart = sorted.first().first
+    var clusterEnd = sorted.first().second
+    for (index in 1 until sorted.size) {
+        val (start, end) = sorted[index]
+        if (start.isAfter(clusterEnd)) {
+            total += Duration.between(clusterStart, clusterEnd)
+            clusterStart = start
+            clusterEnd = end
+        } else if (end.isAfter(clusterEnd)) {
+            clusterEnd = end
+        }
+    }
+    return total + Duration.between(clusterStart, clusterEnd)
+}
+
+/**
  * Group items by the local calendar day (in [zone]) of [instantOf], newest day first, with each
  * day's items sorted newest-first too. Shared by the history screens that show a reverse-chronological
  * day-sectioned list.

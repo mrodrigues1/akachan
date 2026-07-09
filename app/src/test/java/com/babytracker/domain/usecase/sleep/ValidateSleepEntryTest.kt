@@ -71,16 +71,32 @@ class ValidateSleepEntryTest {
     }
 
     @Test
-    fun `does not check overlap for naps`() {
+    fun `returns overlap error for a nap fully inside an existing night sleep`() {
         val existingNight = SleepRecord(
             id = 1L,
             startTime = Instant.parse("2026-04-09T00:00:00Z"),
             endTime = Instant.parse("2026-04-09T06:00:00Z"),
             sleepType = SleepType.NIGHT_SLEEP,
         )
-        // Overlapping window, but as a NAP it is exempt from the night-overlap rule.
+        // Overlapping window: a nap fully contained within an existing night sleep must be rejected.
         val start = Instant.parse("2026-04-09T02:00:00Z")
         val end = Instant.parse("2026-04-09T03:00:00Z")
+
+        val result = validateSleepEntry(start, end, SleepType.NAP, listOf(existingNight), now)
+
+        assertEquals(SleepEntryError.OVERLAP, result)
+    }
+
+    @Test
+    fun `returns null for a nap that does not overlap an existing night sleep`() {
+        val existingNight = SleepRecord(
+            id = 1L,
+            startTime = Instant.parse("2026-04-09T00:00:00Z"),
+            endTime = Instant.parse("2026-04-09T06:00:00Z"),
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        val start = Instant.parse("2026-04-09T07:00:00Z")
+        val end = Instant.parse("2026-04-09T08:00:00Z")
 
         val result = validateSleepEntry(start, end, SleepType.NAP, listOf(existingNight), now)
 
@@ -88,7 +104,56 @@ class ValidateSleepEntryTest {
     }
 
     @Test
-    fun `returns NIGHT_SLEEP_OVERLAP when a new night sleep overlaps a completed one`() {
+    fun `returns overlap error for a nap overlapping another nap`() {
+        val existingNap = SleepRecord(
+            id = 2L,
+            startTime = Instant.parse("2026-04-09T13:00:00Z"),
+            endTime = Instant.parse("2026-04-09T14:00:00Z"),
+            sleepType = SleepType.NAP,
+        )
+        val start = Instant.parse("2026-04-09T13:30:00Z")
+        val end = Instant.parse("2026-04-09T15:00:00Z")
+
+        val result = validateSleepEntry(start, end, SleepType.NAP, listOf(existingNap), now)
+
+        assertEquals(SleepEntryError.OVERLAP, result)
+    }
+
+    @Test
+    fun `returns null for two naps that do not overlap`() {
+        val existingNap = SleepRecord(
+            id = 2L,
+            startTime = Instant.parse("2026-04-09T13:00:00Z"),
+            endTime = Instant.parse("2026-04-09T14:00:00Z"),
+            sleepType = SleepType.NAP,
+        )
+        val start = Instant.parse("2026-04-09T14:00:00Z")
+        val end = Instant.parse("2026-04-09T15:00:00Z")
+
+        val result = validateSleepEntry(start, end, SleepType.NAP, listOf(existingNap), now)
+
+        assertNull(result)
+    }
+
+    @Test
+    fun `returns overlap error for a nap overlapping an in-progress session`() {
+        val active = SleepRecord(
+            id = 4L,
+            startTime = Instant.parse("2026-04-09T11:30:00Z"),
+            endTime = null,
+            sleepType = SleepType.NAP,
+        )
+        // Starts before `now` (the in-progress record's presumed end) so it overlaps.
+        val start = now.minusSeconds(1800)
+        val end = now.plusSeconds(1800)
+
+        val result = validateSleepEntry(start, end, SleepType.NAP, listOf(active), now)
+
+        assertEquals(SleepEntryError.OVERLAP, result)
+    }
+
+    @Test
+    fun `returns OVERLAP when a new night sleep overlaps a completed one`() {
         val existing = SleepRecord(
             id = 1L,
             startTime = Instant.parse("2026-04-08T22:00:00Z"),
@@ -100,11 +165,11 @@ class ValidateSleepEntryTest {
 
         val result = validateSleepEntry(start, end, SleepType.NIGHT_SLEEP, listOf(existing), now)
 
-        assertEquals(SleepEntryError.NIGHT_SLEEP_OVERLAP, result)
+        assertEquals(SleepEntryError.OVERLAP, result)
     }
 
     @Test
-    fun `returns NIGHT_SLEEP_OVERLAP against an in-progress record using now as its end`() {
+    fun `returns OVERLAP against an in-progress record using now as its end`() {
         val active = SleepRecord(
             id = 1L,
             startTime = Instant.parse("2026-04-09T10:00:00Z"),
@@ -117,7 +182,7 @@ class ValidateSleepEntryTest {
 
         val result = validateSleepEntry(start, end, SleepType.NIGHT_SLEEP, listOf(active), now)
 
-        assertEquals(SleepEntryError.NIGHT_SLEEP_OVERLAP, result)
+        assertEquals(SleepEntryError.OVERLAP, result)
     }
 
     @Test
@@ -153,7 +218,7 @@ class ValidateSleepEntryTest {
     }
 
     @Test
-    fun `does not check overlap against naps even when night sleep is being validated`() {
+    fun `returns overlap error for a night sleep overlapping an existing nap`() {
         val nap = SleepRecord(
             id = 3L,
             startTime = Instant.parse("2026-04-09T02:00:00Z"),
@@ -161,6 +226,22 @@ class ValidateSleepEntryTest {
             sleepType = SleepType.NAP,
         )
         val start = Instant.parse("2026-04-09T02:30:00Z")
+        val end = Instant.parse("2026-04-09T04:00:00Z")
+
+        val result = validateSleepEntry(start, end, SleepType.NIGHT_SLEEP, listOf(nap), now)
+
+        assertEquals(SleepEntryError.OVERLAP, result)
+    }
+
+    @Test
+    fun `returns null for a night sleep that does not overlap an existing nap`() {
+        val nap = SleepRecord(
+            id = 3L,
+            startTime = Instant.parse("2026-04-09T02:00:00Z"),
+            endTime = Instant.parse("2026-04-09T03:00:00Z"),
+            sleepType = SleepType.NAP,
+        )
+        val start = Instant.parse("2026-04-09T03:00:00Z")
         val end = Instant.parse("2026-04-09T04:00:00Z")
 
         val result = validateSleepEntry(start, end, SleepType.NIGHT_SLEEP, listOf(nap), now)
