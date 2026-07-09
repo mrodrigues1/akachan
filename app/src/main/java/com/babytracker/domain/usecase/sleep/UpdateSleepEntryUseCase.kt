@@ -16,7 +16,12 @@ class UpdateSleepEntryUseCase @Inject constructor(
         type: SleepType,
         timezoneId: String? = null,
     ) {
-        require(endTime > startTime) { "endTime must be after startTime" }
+        val now = Instant.now()
+        val active = repository.getActiveRecord()
+        val nearby = repository.getCompletedRecordsBetween(startTime, endTime)
+        val existingRecords = if (active != null) nearby + active else nearby
+        val error = validateSleepEntry(startTime, endTime, type, existingRecords, now, excludingId = id)
+        require(error == null) { error?.name.orEmpty() }
         repository.updateRecord(
             SleepRecord(
                 id = id,

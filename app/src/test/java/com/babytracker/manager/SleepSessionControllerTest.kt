@@ -190,6 +190,83 @@ class SleepSessionControllerTest {
     }
 
     @Test
+    fun `stop with NIGHT_SLEEP does not overwrite wake time when a later night sleep already ended today`() = runTest {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now(zone)
+        val earlierEnd = today.atTime(4, 0).atZone(zone).toInstant()
+        val stopped = SleepRecord(
+            id = 7L,
+            startTime = earlierEnd.minusSeconds(3600),
+            endTime = earlierEnd,
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        val laterManualEntry = SleepRecord(
+            id = 8L,
+            startTime = today.atTime(5, 0).atZone(zone).toInstant(),
+            endTime = today.atTime(8, 0).atZone(zone).toInstant(),
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        coEvery { stopSleepRecordUseCase(7L) } returns stopped
+        coEvery { sleepRepository.getCompletedRecordsBetween(any(), any()) } returns listOf(laterManualEntry)
+
+        controller.stop(7L)
+
+        coVerify(exactly = 0) { settingsRepository.setWakeTime(any()) }
+    }
+
+    @Test
+    fun `stop does not overwrite wake time when a later cross-midnight night sleep already ended today`() = runTest {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now(zone)
+        val earlierEnd = today.atTime(4, 0).atZone(zone).toInstant()
+        val stopped = SleepRecord(
+            id = 7L,
+            startTime = earlierEnd.minusSeconds(3600),
+            endTime = earlierEnd,
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        // Started yesterday evening, ended after midnight today — a start-time-bounded query
+        // (e.g. "since startOfToday") would miss this record entirely.
+        val crossMidnightEntry = SleepRecord(
+            id = 8L,
+            startTime = today.minusDays(1).atTime(22, 0).atZone(zone).toInstant(),
+            endTime = today.atTime(8, 0).atZone(zone).toInstant(),
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        coEvery { stopSleepRecordUseCase(7L) } returns stopped
+        coEvery { sleepRepository.getCompletedRecordsBetween(any(), any()) } returns listOf(crossMidnightEntry)
+
+        controller.stop(7L)
+
+        coVerify(exactly = 0) { settingsRepository.setWakeTime(any()) }
+    }
+
+    @Test
+    fun `stop with NIGHT_SLEEP updates wake time when it is the latest night sleep ending today`() = runTest {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now(zone)
+        val latestEnd = today.atTime(8, 0).atZone(zone).toInstant()
+        val stopped = SleepRecord(
+            id = 7L,
+            startTime = latestEnd.minusSeconds(3600),
+            endTime = latestEnd,
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        val earlierManualEntry = SleepRecord(
+            id = 8L,
+            startTime = today.atTime(0, 0).atZone(zone).toInstant(),
+            endTime = today.atTime(4, 0).atZone(zone).toInstant(),
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        coEvery { stopSleepRecordUseCase(7L) } returns stopped
+        coEvery { sleepRepository.getCompletedRecordsBetween(any(), any()) } returns listOf(earlierManualEntry)
+
+        controller.stop(7L)
+
+        coVerify { settingsRepository.setWakeTime(latestEnd.atZone(zone).toLocalTime()) }
+    }
+
+    @Test
     fun `stop still returns the record and syncs when the notification cancel throws`() = runTest {
         val stopped = SleepRecord(
             id = 6L, startTime = now.minusSeconds(1800), endTime = now, sleepType = SleepType.NAP

@@ -1036,6 +1036,9 @@
     <string name="error_bf_end_future">O horário de fim não pode ser no futuro</string>
     <string name="error_bf_end_after_start">O fim deve ser após o início</string>
     <string name="error_bf_session_shorter_pauses">A sessão é mais curta que as pausas registradas</string>
+    <string name="error_sleep_end_after_start">O horário de término precisa ser depois do horário de início. Ajuste um dos horários para salvar este sono.</string>
+    <string name="error_sleep_duration_too_long">A duração do sono é longa demais para este tipo de sono. Ajuste um dos horários para salvar este sono.</string>
+    <string name="error_sleep_night_overlap">O sono noturno se sobrepõe a um registro existente. Ajuste os horários para salvar este sono.</string>
     <string name="error_min_one_day">Deve ser pelo menos 1 dia</string>
     <string name="msg_saved_locally">Salvo localmente. A sincronização com o parceiro pode atualizar depois.</string>
     <string name="msg_backup_saved">Backup salvo</string>

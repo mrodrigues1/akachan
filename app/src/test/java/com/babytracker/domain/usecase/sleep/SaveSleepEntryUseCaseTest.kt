@@ -9,8 +9,10 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 
@@ -23,6 +25,8 @@ class SaveSleepEntryUseCaseTest {
     fun setUp() {
         repository = mockk()
         useCase = SaveSleepEntryUseCase(repository)
+        coEvery { repository.getActiveRecord() } returns null
+        coEvery { repository.getCompletedRecordsBetween(any(), any()) } returns emptyList()
     }
 
     @Test
@@ -67,5 +71,62 @@ class SaveSleepEntryUseCaseTest {
         )
 
         coVerify(exactly = 1) { repository.insertRecord(any()) }
+    }
+
+    @Test
+    fun `invoke throws and skips insert when endTime is not after startTime`() = runTest {
+        val start = Instant.parse("2026-04-08T09:30:00Z")
+
+        val thrown = runCatching { useCase(start, start, SleepType.NAP) }.exceptionOrNull()
+
+        assertTrue(thrown is IllegalArgumentException)
+        coVerify(exactly = 0) { repository.insertRecord(any()) }
+    }
+
+    @Test
+    fun `invoke throws when nap duration exceeds the max nap duration`() = runTest {
+        val start = Instant.parse("2026-04-08T09:00:00Z")
+        val end = start.plus(Duration.ofHours(5))
+
+        val thrown = runCatching { useCase(start, end, SleepType.NAP) }.exceptionOrNull()
+
+        assertTrue(thrown is IllegalArgumentException)
+        coVerify(exactly = 0) { repository.insertRecord(any()) }
+    }
+
+    @Test
+    fun `invoke throws when a new night sleep overlaps an existing completed night sleep`() = runTest {
+        val start = Instant.parse("2026-04-08T21:00:00Z")
+        val end = Instant.parse("2026-04-09T05:00:00Z")
+        val existing = SleepRecord(
+            id = 1L,
+            startTime = Instant.parse("2026-04-08T20:00:00Z"),
+            endTime = Instant.parse("2026-04-09T02:00:00Z"),
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        coEvery { repository.getCompletedRecordsBetween(start, end) } returns listOf(existing)
+
+        val thrown = runCatching { useCase(start, end, SleepType.NIGHT_SLEEP) }.exceptionOrNull()
+
+        assertTrue(thrown is IllegalArgumentException)
+        coVerify(exactly = 0) { repository.insertRecord(any()) }
+    }
+
+    @Test
+    fun `invoke throws when a new night sleep overlaps the active in-progress record`() = runTest {
+        val start = Instant.parse("2026-04-08T21:00:00Z")
+        val end = Instant.parse("2026-04-09T05:00:00Z")
+        val active = SleepRecord(
+            id = 2L,
+            startTime = Instant.parse("2026-04-08T22:00:00Z"),
+            endTime = null,
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        coEvery { repository.getActiveRecord() } returns active
+
+        val thrown = runCatching { useCase(start, end, SleepType.NIGHT_SLEEP) }.exceptionOrNull()
+
+        assertTrue(thrown is IllegalArgumentException)
+        coVerify(exactly = 0) { repository.insertRecord(any()) }
     }
 }
