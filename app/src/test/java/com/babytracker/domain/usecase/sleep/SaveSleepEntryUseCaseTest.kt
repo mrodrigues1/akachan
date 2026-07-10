@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -20,11 +21,12 @@ class SaveSleepEntryUseCaseTest {
 
     private lateinit var repository: SleepRepository
     private lateinit var useCase: SaveSleepEntryUseCase
+    private val clock: Clock = Clock.systemDefaultZone()
 
     @BeforeEach
     fun setUp() {
         repository = mockk()
-        useCase = SaveSleepEntryUseCase(repository)
+        useCase = SaveSleepEntryUseCase(repository, clock)
         coEvery { repository.getActiveRecord() } returns null
         coEvery { repository.getCompletedRecordsBetween(any(), any()) } returns emptyList()
     }

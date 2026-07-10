@@ -11,11 +11,11 @@ import com.babytracker.domain.repository.BreastfeedingRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.sleep.prior.SleepAgePriors
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
@@ -23,15 +23,16 @@ import kotlinx.coroutines.flow.first
 class GenerateSleepScheduleUseCase @Inject constructor(
     private val sleepRepository: SleepRepository,
     private val breastfeedingRepository: BreastfeedingRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val clock: Clock,
 ) {
     suspend operator fun invoke(
         baby: Baby
     ): SleepSchedule {
-        val ageInWeeks = ChronoUnit.WEEKS.between(baby.birthDate, LocalDate.now()).toInt()
+        val ageInWeeks = ChronoUnit.WEEKS.between(baby.birthDate, LocalDate.now(clock)).toInt()
         val mode = if (ageInWeeks < 16) ScheduleMode.DEMAND_DRIVEN else ScheduleMode.CLOCK_ALIGNED
 
-        val sevenDaysAgo = Instant.now().minus(7, ChronoUnit.DAYS)
+        val sevenDaysAgo = clock.instant().minus(7, ChronoUnit.DAYS)
         val recentRecords = sleepRepository.getCompletedRecordsSince(sevenDaysAgo)
         val lastFeedSession = breastfeedingRepository.getLastSession()
 
@@ -238,7 +239,7 @@ class GenerateSleepScheduleUseCase @Inject constructor(
         val completedRecords = recentRecords.filter { it.duration != null }
         if (completedRecords.isEmpty()) return null
 
-        val zone = ZoneId.systemDefault()
+        val zone = clock.zone
         val dailySleep = completedRecords
             .groupBy { it.startTime.atZone(zone).toLocalDate() }
             .map { (_, records) ->
@@ -260,7 +261,7 @@ class GenerateSleepScheduleUseCase @Inject constructor(
             return null
         }
 
-        val zone = ZoneId.systemDefault()
+        val zone = clock.zone
         val dailyNapCounts = completedRecords
             .filter { it.sleepType == SleepType.NAP }
             .groupBy { it.startTime.atZone(zone).toLocalDate() }
@@ -305,8 +306,8 @@ class GenerateSleepScheduleUseCase @Inject constructor(
     // --- Today's Naps ---
 
     private fun getTodayNaps(recentRecords: List<SleepRecord>): List<SleepRecord> {
-        val today = LocalDate.now()
-        val zone = ZoneId.systemDefault()
+        val zone = clock.zone
+        val today = LocalDate.now(clock)
         return recentRecords
             .filter { it.sleepType == SleepType.NAP }
             .filter { it.startTime.atZone(zone).toLocalDate() == today }

@@ -14,6 +14,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.time.Clock
 import java.time.Instant
 
 // Regression for #758. Editing a sleep entry must keep the stored clientId. UpdateSleepEntryUseCase
@@ -49,7 +50,7 @@ class SleepEditPreservesClientIdTest {
         assertTrue("insert should mint a real clientId", originalClientId.isNotBlank())
 
         // Edit via the production call site, which constructs a SleepRecord with a fresh-UUID default.
-        UpdateSleepEntryUseCase(repository)(
+        UpdateSleepEntryUseCase(repository, Clock.systemDefaultZone())(
             id = id,
             startTime = start,
             endTime = start.plusSeconds(1200),
