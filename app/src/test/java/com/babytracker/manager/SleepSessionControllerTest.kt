@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.ZoneOffset
 
 class SleepSessionControllerTest {
@@ -159,8 +158,8 @@ class SleepSessionControllerTest {
 
     @Test
     fun `stop with NIGHT_SLEEP ended today sets wake time`() = runTest {
-        val zone = ZoneId.systemDefault()
-        val todayEnd = LocalDate.now(zone).atTime(6, 30).atZone(zone).toInstant()
+        val zone = clock.zone
+        val todayEnd = LocalDate.now(clock).atTime(6, 30).atZone(zone).toInstant()
         val stopped = SleepRecord(
             id = 4L, startTime = todayEnd.minusSeconds(28800), endTime = todayEnd, sleepType = SleepType.NIGHT_SLEEP
         )
@@ -174,8 +173,8 @@ class SleepSessionControllerTest {
 
     @Test
     fun `stop with NIGHT_SLEEP ended on another day does not set wake time`() = runTest {
-        val zone = ZoneId.systemDefault()
-        val yesterdayEnd = LocalDate.now(zone).minusDays(1).atTime(6, 30).atZone(zone).toInstant()
+        val zone = clock.zone
+        val yesterdayEnd = LocalDate.now(clock).minusDays(1).atTime(6, 30).atZone(zone).toInstant()
         val stopped = SleepRecord(
             id = 5L,
             startTime = yesterdayEnd.minusSeconds(28800),
@@ -191,8 +190,8 @@ class SleepSessionControllerTest {
 
     @Test
     fun `stop with NIGHT_SLEEP does not overwrite wake time when a later night sleep already ended today`() = runTest {
-        val zone = ZoneId.systemDefault()
-        val today = LocalDate.now(zone)
+        val zone = clock.zone
+        val today = LocalDate.now(clock)
         val earlierEnd = today.atTime(4, 0).atZone(zone).toInstant()
         val stopped = SleepRecord(
             id = 7L,
@@ -216,8 +215,8 @@ class SleepSessionControllerTest {
 
     @Test
     fun `stop does not overwrite wake time when a later cross-midnight night sleep already ended today`() = runTest {
-        val zone = ZoneId.systemDefault()
-        val today = LocalDate.now(zone)
+        val zone = clock.zone
+        val today = LocalDate.now(clock)
         val earlierEnd = today.atTime(4, 0).atZone(zone).toInstant()
         val stopped = SleepRecord(
             id = 7L,
@@ -243,8 +242,8 @@ class SleepSessionControllerTest {
 
     @Test
     fun `stop with NIGHT_SLEEP updates wake time when it is the latest night sleep ending today`() = runTest {
-        val zone = ZoneId.systemDefault()
-        val today = LocalDate.now(zone)
+        val zone = clock.zone
+        val today = LocalDate.now(clock)
         val latestEnd = today.atTime(8, 0).atZone(zone).toInstant()
         val stopped = SleepRecord(
             id = 7L,

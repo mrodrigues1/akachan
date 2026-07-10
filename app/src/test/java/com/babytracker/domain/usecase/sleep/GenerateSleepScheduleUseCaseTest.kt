@@ -14,6 +14,7 @@ import com.babytracker.domain.sleep.prior.SleepAgePriors
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -24,10 +25,12 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 
 class GenerateSleepScheduleUseCaseTest {
@@ -42,7 +45,12 @@ class GenerateSleepScheduleUseCaseTest {
         sleepRepository = mockk()
         breastfeedingRepository = mockk()
         settingsRepository = mockk()
-        useCase = GenerateSleepScheduleUseCase(sleepRepository, breastfeedingRepository, settingsRepository)
+        useCase = GenerateSleepScheduleUseCase(
+            sleepRepository,
+            breastfeedingRepository,
+            settingsRepository,
+            Clock.systemDefaultZone(),
+        )
     }
 
     private fun babyOfAge(weeks: Int): Baby = Baby(
@@ -419,6 +427,36 @@ class GenerateSleepScheduleUseCaseTest {
             val schedule = useCase(babyOfAge(20))
             assertTrue(schedule.napTimes[0].startTime >= LocalTime.of(7, 0))
             assertTrue(schedule.napTimes[0].startTime < LocalTime.of(11, 0))
+        }
+    }
+
+    @Nested
+    inner class ClockDeterminismTests {
+        // Fixed just before midnight UTC so a real-clock read (LocalDate.now()/Instant.now()) taken
+        // moments later in the test run could land on the next calendar day — the whole point of
+        // injecting Clock is that age-in-weeks and the 7-day lookback cutoff never drift with it.
+        private val fixedNow = Instant.parse("2026-03-15T23:30:00Z")
+        private val fixedClock = Clock.fixed(fixedNow, ZoneOffset.UTC)
+
+        @Test
+        fun `age in weeks and the 7-day lookback cutoff are computed from the injected clock`() = runTest {
+            val fixedUseCase = GenerateSleepScheduleUseCase(
+                sleepRepository,
+                breastfeedingRepository,
+                settingsRepository,
+                fixedClock,
+            )
+            // Exactly 13 weeks (91 days) before 2026-03-15 in UTC.
+            val baby = Baby(name = "Test Baby", birthDate = LocalDate.of(2025, 12, 14))
+            val cutoff = slot<Instant>()
+            coEvery { sleepRepository.getCompletedRecordsSince(capture(cutoff)) } returns emptyList()
+            coEvery { breastfeedingRepository.getLastSession() } returns null
+            every { settingsRepository.getWakeTime() } returns flowOf(null)
+
+            val schedule = fixedUseCase(baby)
+
+            assertEquals(13, schedule.ageInWeeks)
+            assertEquals(fixedNow.minus(7, ChronoUnit.DAYS), cutoff.captured)
         }
     }
 

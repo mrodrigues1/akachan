@@ -3,11 +3,13 @@ package com.babytracker.domain.usecase.sleep
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SleepRepository
+import java.time.Clock
 import java.time.Instant
 import javax.inject.Inject
 
 class UpdateSleepEntryUseCase @Inject constructor(
-    private val repository: SleepRepository
+    private val repository: SleepRepository,
+    private val clock: Clock,
 ) {
     suspend operator fun invoke(
         id: Long,
@@ -16,7 +18,7 @@ class UpdateSleepEntryUseCase @Inject constructor(
         type: SleepType,
         timezoneId: String? = null,
     ) {
-        val now = Instant.now()
+        val now = clock.instant()
         val active = repository.getActiveRecord()
         val nearby = repository.getCompletedRecordsBetween(startTime, endTime)
         val existingRecords = if (active != null) nearby + active else nearby

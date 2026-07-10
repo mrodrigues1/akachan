@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Clock
 import java.time.Instant
 
 class UpdateSleepEntryUseCaseTest {
@@ -23,7 +24,7 @@ class UpdateSleepEntryUseCaseTest {
     @BeforeEach
     fun setUp() {
         repository = mockk()
-        useCase = UpdateSleepEntryUseCase(repository)
+        useCase = UpdateSleepEntryUseCase(repository, Clock.systemDefaultZone())
         coEvery { repository.getActiveRecord() } returns null
         coEvery { repository.getCompletedRecordsBetween(any(), any()) } returns emptyList()
     }

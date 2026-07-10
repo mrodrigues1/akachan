@@ -10,7 +10,6 @@ import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
 import com.babytracker.sharing.usecase.SyncedWrite
 import java.time.Clock
 import java.time.LocalDate
-import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -75,8 +74,8 @@ class SleepSessionController @Inject constructor(
 
     private suspend fun propagateWakeTime(stopped: SleepRecord) {
         val endTime = stopped.endTime ?: return
-        val zone = ZoneId.systemDefault()
-        val today = LocalDate.now(zone)
+        val zone = clock.zone
+        val today = LocalDate.now(clock)
         val startOfToday = today.atStartOfDay(zone).toInstant()
         val startOfTomorrow = today.plusDays(1).atStartOfDay(zone).toInstant()
         // Between (not since) startOfToday: a manually logged night sleep that started yesterday

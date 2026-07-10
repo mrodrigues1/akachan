@@ -13,16 +13,21 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneOffset
 
 class StopSleepRecordUseCaseTest {
 
     private lateinit var repository: SleepRepository
     private lateinit var useCase: StopSleepRecordUseCase
 
+    private val fixedNow = Instant.parse("2026-06-06T10:00:00Z")
+    private val clock = Clock.fixed(fixedNow, ZoneOffset.UTC)
+
     private val inProgressRecord = SleepRecord(
         id = 10L,
-        startTime = Instant.now().minusSeconds(600),
+        startTime = fixedNow.minusSeconds(600),
         sleepType = SleepType.NAP,
         notes = "test note"
     )
@@ -30,7 +35,7 @@ class StopSleepRecordUseCaseTest {
     @BeforeEach
     fun setUp() {
         repository = mockk()
-        useCase = StopSleepRecordUseCase(repository)
+        useCase = StopSleepRecordUseCase(repository, clock)
     }
 
     @Test
