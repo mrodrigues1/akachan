@@ -87,7 +87,7 @@ fun SleepRecord.toSnapshot(): SleepSnapshot = SleepSnapshot(
 fun SleepPredictionState.toSnapshot(generatedAt: Long): SleepPredictionSnapshot? =
     when (this) {
         is SleepPredictionState.Window -> SleepPredictionSnapshot(
-            stateLabel = "WINDOW",
+            stateLabel = PredictionStateLabel.WINDOW,
             windowStart = window.windowStart.toEpochMilli(),
             windowEnd = window.windowEnd.toEpochMilli(),
             bestEstimate = window.bestEstimate.toEpochMilli(),
@@ -97,14 +97,14 @@ fun SleepPredictionState.toSnapshot(generatedAt: Long): SleepPredictionSnapshot?
             generatedAt = generatedAt,
         )
         is SleepPredictionState.NeedMoreData ->
-            SleepPredictionSnapshot(stateLabel = "NEED_MORE_DATA", generatedAt = generatedAt)
+            SleepPredictionSnapshot(stateLabel = PredictionStateLabel.NEED_MORE_DATA, generatedAt = generatedAt)
         SleepPredictionState.CueLed ->
-            SleepPredictionSnapshot(stateLabel = "CUE_LED", generatedAt = generatedAt)
+            SleepPredictionSnapshot(stateLabel = PredictionStateLabel.CUE_LED, generatedAt = generatedAt)
         SleepPredictionState.CurrentlySleeping ->
-            SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt)
+            SleepPredictionSnapshot(stateLabel = PredictionStateLabel.CURRENTLY_SLEEPING, generatedAt = generatedAt)
         SleepPredictionState.AfterActiveFeed ->
-            SleepPredictionSnapshot(stateLabel = "AFTER_ACTIVE_FEED", generatedAt = generatedAt)
+            SleepPredictionSnapshot(stateLabel = PredictionStateLabel.AFTER_ACTIVE_FEED, generatedAt = generatedAt)
         SleepPredictionState.Overdue ->
-            SleepPredictionSnapshot(stateLabel = "OVERDUE", generatedAt = generatedAt)
+            SleepPredictionSnapshot(stateLabel = PredictionStateLabel.OVERDUE, generatedAt = generatedAt)
         is SleepPredictionState.Unavailable -> null
     }

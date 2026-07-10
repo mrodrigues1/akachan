@@ -8,6 +8,7 @@ import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.GrowthSnapshot
 import com.babytracker.sharing.domain.model.MilestoneSnapshot
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
+import com.babytracker.sharing.domain.model.PredictionStateLabel
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepOp
@@ -307,9 +308,42 @@ class FirestoreSnapshotMappingTest {
     }
 
     @Test
+    fun `prediction stateLabel serializes to exactly the wire literal each enum value has always had`() {
+        // WIRE CONTRACT: PredictionStateLabel.name must equal the literal the producer emitted
+        // before the enum existed — bytes on the wire are unchanged.
+        val expectedWireLiterals = mapOf(
+            PredictionStateLabel.WINDOW to "WINDOW",
+            PredictionStateLabel.NEED_MORE_DATA to "NEED_MORE_DATA",
+            PredictionStateLabel.CUE_LED to "CUE_LED",
+            PredictionStateLabel.CURRENTLY_SLEEPING to "CURRENTLY_SLEEPING",
+            PredictionStateLabel.AFTER_ACTIVE_FEED to "AFTER_ACTIVE_FEED",
+            PredictionStateLabel.OVERDUE to "OVERDUE",
+        )
+
+        expectedWireLiterals.forEach { (label, wireLiteral) ->
+            val prediction = SleepPredictionSnapshot(stateLabel = label, generatedAt = 42L)
+            assertEquals(wireLiteral, predictionToMap(prediction)["stateLabel"])
+        }
+    }
+
+    @Test
+    fun `prediction map with an unrecognized wire stateLabel reads back as UNAVAILABLE`() {
+        val map = mapOf("stateLabel" to "FROM_A_NEWER_APP_VERSION", "generatedAt" to 42L)
+
+        assertEquals(PredictionStateLabel.UNAVAILABLE, mapToPrediction(map).stateLabel)
+    }
+
+    @Test
+    fun `prediction map missing stateLabel reads back as UNAVAILABLE`() {
+        val map = mapOf<String, Any?>("generatedAt" to 42L)
+
+        assertEquals(PredictionStateLabel.UNAVAILABLE, mapToPrediction(map).stateLabel)
+    }
+
+    @Test
     fun `prediction round-trips every reason variant and feedDue through the map`() {
         val prediction = SleepPredictionSnapshot(
-            stateLabel = "WINDOW",
+            stateLabel = PredictionStateLabel.WINDOW,
             windowStart = 1_000L,
             windowEnd = 2_000L,
             bestEstimate = 1_500L,

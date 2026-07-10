@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
 import com.babytracker.domain.model.SleepType
+import com.babytracker.sharing.domain.model.PredictionStateLabel
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.ui.home.EaseOutQuart
 import com.babytracker.util.formatElapsedAgo
@@ -248,13 +249,17 @@ private fun SleepPredictionSnapshot.toVariant(
     hasActiveFeeding: Boolean,
 ): PredictionVariant? =
     when (stateLabel) {
-        "WINDOW" -> if (isStale(now)) PredictionVariant.OVERDUE else PredictionVariant.WINDOW
-        "OVERDUE" -> PredictionVariant.OVERDUE
-        "CURRENTLY_SLEEPING" -> if (hasActiveSleep) PredictionVariant.CURRENTLY_SLEEPING else null
-        "AFTER_ACTIVE_FEED" -> if (hasActiveFeeding) PredictionVariant.AFTER_ACTIVE_FEED else null
-        "NEED_MORE_DATA" -> PredictionVariant.NEED_MORE_DATA
-        "CUE_LED" -> PredictionVariant.CUE_LED
-        else -> null
+        PredictionStateLabel.WINDOW -> if (isStale(now)) PredictionVariant.OVERDUE else PredictionVariant.WINDOW
+        PredictionStateLabel.OVERDUE -> PredictionVariant.OVERDUE
+        PredictionStateLabel.CURRENTLY_SLEEPING ->
+            if (hasActiveSleep) PredictionVariant.CURRENTLY_SLEEPING else null
+        PredictionStateLabel.AFTER_ACTIVE_FEED ->
+            if (hasActiveFeeding) PredictionVariant.AFTER_ACTIVE_FEED else null
+        PredictionStateLabel.NEED_MORE_DATA -> PredictionVariant.NEED_MORE_DATA
+        PredictionStateLabel.CUE_LED -> PredictionVariant.CUE_LED
+        // UNAVAILABLE is never produced locally; it is the read-side fallback for a wire value this
+        // build doesn't recognize. Hidden — same as the old string `when`'s accidental fall-through.
+        PredictionStateLabel.UNAVAILABLE -> null
     }
 
 private fun SleepPredictionSnapshot.isStale(now: Instant): Boolean {

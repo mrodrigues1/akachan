@@ -22,6 +22,7 @@ import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.SharedSleepPredictionStream
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.AppMode
+import com.babytracker.sharing.domain.model.PredictionStateLabel
 import com.babytracker.sharing.domain.model.ShareCode
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
@@ -208,7 +209,7 @@ class SyncToFirestoreUseCaseTest {
         useCase(SyncType.FULL)
 
         val prediction = snapshot.captured.sleepPrediction
-        assertEquals("WINDOW", prediction?.stateLabel)
+        assertEquals(PredictionStateLabel.WINDOW, prediction?.stateLabel)
         assertEquals("HIGH", prediction?.confidence)
         assertEquals(fixedNow.toEpochMilli(), prediction?.generatedAt)
     }
@@ -236,7 +237,7 @@ class SyncToFirestoreUseCaseTest {
 
         useCase(SyncType.SESSIONS)
 
-        assertEquals("AFTER_ACTIVE_FEED", prediction.captured.stateLabel)
+        assertEquals(PredictionStateLabel.AFTER_ACTIVE_FEED, prediction.captured.stateLabel)
         assertEquals(fixedNow.toEpochMilli(), prediction.captured.generatedAt)
     }
 
@@ -263,7 +264,7 @@ class SyncToFirestoreUseCaseTest {
 
         useCase(SyncType.SLEEP_RECORDS)
 
-        assertEquals("CURRENTLY_SLEEPING", prediction.captured.stateLabel)
+        assertEquals(PredictionStateLabel.CURRENTLY_SLEEPING, prediction.captured.stateLabel)
         // The prediction must come from the shared, already-hot stream — not a freshly cold-started
         // PredictSleepWindowUseCase pipeline — on every sleep-record sync (issue #764).
         coVerify(exactly = 1) { sharedSleepPrediction.observe() }
@@ -284,12 +285,12 @@ class SyncToFirestoreUseCaseTest {
         coEvery { service.syncSleepRecords(any(), any(), capture(prediction)) } just Runs
 
         useCase(SyncType.SLEEP_RECORDS)
-        assertEquals("CURRENTLY_SLEEPING", prediction.captured.stateLabel)
+        assertEquals(PredictionStateLabel.CURRENTLY_SLEEPING, prediction.captured.stateLabel)
 
         // The shared pipeline recomputes off the write and updates its cache; the next sync picks it up.
         shared.value = SleepPredictionState.AfterActiveFeed
         useCase(SyncType.SLEEP_RECORDS)
-        assertEquals("AFTER_ACTIVE_FEED", prediction.captured.stateLabel)
+        assertEquals(PredictionStateLabel.AFTER_ACTIVE_FEED, prediction.captured.stateLabel)
     }
 
     @Test

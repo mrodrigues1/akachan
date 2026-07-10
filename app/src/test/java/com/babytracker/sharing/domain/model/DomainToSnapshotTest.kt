@@ -38,7 +38,9 @@ class DomainToSnapshotTest {
 
         val snapshot = state.toSnapshot(generatedAt = generatedAt)
 
-        assertEquals("WINDOW", snapshot?.stateLabel)
+        assertEquals(PredictionStateLabel.WINDOW, snapshot?.stateLabel)
+        // WIRE CONTRACT: the enum's .name is the literal the wire has always carried.
+        assertEquals("WINDOW", snapshot?.stateLabel?.name)
         assertEquals(1_000L, snapshot?.windowStart)
         assertEquals(2_000L, snapshot?.windowEnd)
         assertEquals(1_500L, snapshot?.bestEstimate)
@@ -62,7 +64,8 @@ class DomainToSnapshotTest {
 
         val snapshot = state.toSnapshot(generatedAt)
 
-        assertEquals("NEED_MORE_DATA", snapshot?.stateLabel)
+        assertEquals(PredictionStateLabel.NEED_MORE_DATA, snapshot?.stateLabel)
+        assertEquals("NEED_MORE_DATA", snapshot?.stateLabel?.name)
         assertNull(snapshot?.windowStart)
         assertNull(snapshot?.bestEstimate)
         assertNull(snapshot?.confidence)
@@ -71,28 +74,30 @@ class DomainToSnapshotTest {
 
     @Test
     fun `CueLed maps label`() {
-        assertEquals("CUE_LED", SleepPredictionState.CueLed.toSnapshot(generatedAt)?.stateLabel)
+        val stateLabel = SleepPredictionState.CueLed.toSnapshot(generatedAt)?.stateLabel
+        assertEquals(PredictionStateLabel.CUE_LED, stateLabel)
+        assertEquals("CUE_LED", stateLabel?.name)
     }
 
     @Test
     fun `CurrentlySleeping maps label`() {
-        assertEquals(
-            "CURRENTLY_SLEEPING",
-            SleepPredictionState.CurrentlySleeping.toSnapshot(generatedAt)?.stateLabel,
-        )
+        val stateLabel = SleepPredictionState.CurrentlySleeping.toSnapshot(generatedAt)?.stateLabel
+        assertEquals(PredictionStateLabel.CURRENTLY_SLEEPING, stateLabel)
+        assertEquals("CURRENTLY_SLEEPING", stateLabel?.name)
     }
 
     @Test
     fun `AfterActiveFeed maps label`() {
-        assertEquals(
-            "AFTER_ACTIVE_FEED",
-            SleepPredictionState.AfterActiveFeed.toSnapshot(generatedAt)?.stateLabel,
-        )
+        val stateLabel = SleepPredictionState.AfterActiveFeed.toSnapshot(generatedAt)?.stateLabel
+        assertEquals(PredictionStateLabel.AFTER_ACTIVE_FEED, stateLabel)
+        assertEquals("AFTER_ACTIVE_FEED", stateLabel?.name)
     }
 
     @Test
     fun `Overdue maps label`() {
-        assertEquals("OVERDUE", SleepPredictionState.Overdue.toSnapshot(generatedAt)?.stateLabel)
+        val stateLabel = SleepPredictionState.Overdue.toSnapshot(generatedAt)?.stateLabel
+        assertEquals(PredictionStateLabel.OVERDUE, stateLabel)
+        assertEquals("OVERDUE", stateLabel?.name)
     }
 
     @Test
