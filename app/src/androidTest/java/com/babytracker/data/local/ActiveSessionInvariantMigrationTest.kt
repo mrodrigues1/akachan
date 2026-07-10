@@ -375,7 +375,7 @@ class MixedPathInvariantTest {
         assertEquals(firstId, secondId)
 
         // Only one active row must exist.
-        assertNotNull(sleepDao.getActiveRecord())
-        assertEquals(firstId, sleepDao.getActiveRecord()?.id)
+        assertNotNull(sleepDao.getActiveRecordOnce())
+        assertEquals(firstId, sleepDao.getActiveRecordOnce()?.id)
     }
 }

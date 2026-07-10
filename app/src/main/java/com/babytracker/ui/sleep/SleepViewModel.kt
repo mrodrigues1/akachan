@@ -36,7 +36,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -127,10 +129,25 @@ class SleepViewModel @Inject constructor(
     val uiState: StateFlow<SleepUiState> = _uiState.asStateFlow()
 
     // One shared, subscription-scoped observer: the derived flows below all fan out from this, so a
-    // single getAllRecords() Room observer runs while any of them is collected and detaches 5s after
-    // the screen stops. No eager init collector keeps it hot for the ViewModel's whole backstack life.
-    private val history: StateFlow<List<SleepRecord>> = sleepRepository.getAllRecords()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), emptyList())
+    // single Room observer runs while any of them is collected and detaches 5s after the screen stops.
+    // Bounded to the window from the start of yesterday to now instead of the unbounded getAllRecords():
+    // the tracking screen only reads today's completed sleeps, last night's night sleep (which starts
+    // yesterday), the active session, and the latest completed record — all within this window — so a
+    // sleep write no longer re-maps and re-emits the whole ~2-3k-row history. getRecentOrActiveRecordsFlow
+    // also keeps any still-open record regardless of age (so a stuck/forgotten active sleep stays
+    // visible and stoppable, and lastSleepSummary stays Empty mid-session) and any record that ended in
+    // the window even if it started earlier (so the completed record left behind when such a sleep is
+    // stopped keeps its summary). `since` is recomputed on each (re)subscription (the flow{} defers it
+    // to collection time), and WhileSubscribed(5s) re-anchors whenever the screen is left and reopened;
+    // the today/yesterday filters in sleepTodayStats and buildLastSleepSummary are re-derived per emission.
+    // onSaveEntry deliberately still validates against a full getAllRecords().first() read — overlap
+    // must be checked against all history.
+    // ponytail: a tracking screen held continuously subscribed across midnight keeps yesterday's lower
+    // bound until the next re-subscription, widening the window by the extra day's rows. Accepted for the
+    // same reason as HomeViewModel — re-anchoring per rollover needs a midnight ticker we don't build.
+    private val history: StateFlow<List<SleepRecord>> =
+        flow { emitAll(sleepRepository.getRecentOrActiveRecordsFlow(startOfYesterdayInstant())) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), emptyList())
 
     val activeSleepSession: StateFlow<SleepRecord?> = history
         .map { records -> records.find { it.isInProgress } }
@@ -377,6 +394,10 @@ class SleepViewModel @Inject constructor(
         record.timezoneId
             ?.let { runCatching { ZoneId.of(it) }.getOrNull() }
             ?: ZoneId.systemDefault()
+
+    /** Start of the local calendar day before today — the lower bound of the bounded history window. */
+    private fun startOfYesterdayInstant(zone: ZoneId = ZoneId.systemDefault()): Instant =
+        LocalDate.now(zone).minusDays(1).atStartOfDay(zone).toInstant()
 
     private companion object {
         const val TAG = "SleepViewModel"

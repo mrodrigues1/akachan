@@ -23,6 +23,9 @@ class SleepRepositoryImpl @Inject constructor(
     override fun getRecordsSinceFlow(since: Instant): Flow<List<SleepRecord>> =
         dao.getRecordsSinceFlow(since.toEpochMilli()).mapList { it.toDomain() }
 
+    override fun getRecentOrActiveRecordsFlow(since: Instant): Flow<List<SleepRecord>> =
+        dao.getRecentOrActiveRecordsFlow(since.toEpochMilli()).mapList { it.toDomain() }
+
     override fun observeLatestRecord(): Flow<SleepRecord?> =
         dao.observeLatestRecord().map { it?.toDomain() }
 
@@ -54,7 +57,7 @@ class SleepRepositoryImpl @Inject constructor(
             dao.insertRecord(record.withClientId().toEntity())
         } catch (e: SQLiteConstraintException) {
             if (record.endTime == null) {
-                dao.getActiveRecord()?.id ?: throw e
+                dao.getActiveRecordOnce()?.id ?: throw e
             } else {
                 throw e
             }

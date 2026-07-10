@@ -87,7 +87,10 @@ class SleepViewModelTest {
         every { appContext.getString(R.string.error_sleep_overlap) } returns
             "This sleep overlaps with an existing record. Adjust the times to save this sleep."
 
+        // getAllRecords() backs onSaveEntry's overlap validation; getRecentOrActiveRecordsFlow() backs
+        // the subscription-scoped `history` observer that drives activeSleepSession/todayStats/lastSleepSummary.
         every { sleepRepository.getAllRecords() } returns flowOf(emptyList())
+        every { sleepRepository.getRecentOrActiveRecordsFlow(any()) } returns flowOf(emptyList())
         every { settingsRepository.getWakeTime() } returns flowOf(null)
         every { sharedSleepPrediction.observe() } returns flowOf(SleepPredictionState.Unavailable("test"))
         coJustRun { syncToFirestore(any()) }
@@ -108,7 +111,7 @@ class SleepViewModelTest {
     @Test
     fun `does not observe sleep records until a consumer subscribes`() = runTest {
         val attachCount = AtomicInteger(0)
-        every { sleepRepository.getAllRecords() } returns flow {
+        every { sleepRepository.getRecentOrActiveRecordsFlow(any()) } returns flow {
             attachCount.incrementAndGet()
             emit(emptyList())
         }
@@ -140,7 +143,7 @@ class SleepViewModelTest {
         val inProgress = SleepRecord(
             id = 1L, startTime = Instant.now().minusSeconds(300), sleepType = SleepType.NAP
         )
-        every { sleepRepository.getAllRecords() } returns flowOf(listOf(inProgress))
+        every { sleepRepository.getRecentOrActiveRecordsFlow(any()) } returns flowOf(listOf(inProgress))
         coEvery { sleepSessionController.stop(1L) } returns null
         viewModel = createViewModel()
 
@@ -262,7 +265,7 @@ class SleepViewModelTest {
             endTime = Instant.now(),
             sleepType = SleepType.NAP,
         )
-        every { sleepRepository.getAllRecords() } returns flowOf(listOf(completed))
+        every { sleepRepository.getRecentOrActiveRecordsFlow(any()) } returns flowOf(listOf(completed))
         viewModel = createViewModel()
 
         viewModel.activeSleepSession.test {
@@ -280,7 +283,7 @@ class SleepViewModelTest {
             endTime = null,
             sleepType = SleepType.NIGHT_SLEEP,
         )
-        every { sleepRepository.getAllRecords() } returns flowOf(listOf(inProgress))
+        every { sleepRepository.getRecentOrActiveRecordsFlow(any()) } returns flowOf(listOf(inProgress))
         viewModel = createViewModel()
 
         viewModel.activeSleepSession.test {
@@ -307,7 +310,7 @@ class SleepViewModelTest {
             endTime = null,
             sleepType = SleepType.NIGHT_SLEEP,
         )
-        every { sleepRepository.getAllRecords() } returns flowOf(listOf(completed, inProgress))
+        every { sleepRepository.getRecentOrActiveRecordsFlow(any()) } returns flowOf(listOf(completed, inProgress))
         viewModel = createViewModel()
 
         viewModel.activeSleepSession.test {
@@ -328,7 +331,7 @@ class SleepViewModelTest {
         )
         val completed = inProgress.copy(endTime = Instant.now())
         val historyFlow = MutableStateFlow(listOf(inProgress))
-        every { sleepRepository.getAllRecords() } returns historyFlow
+        every { sleepRepository.getRecentOrActiveRecordsFlow(any()) } returns historyFlow
         viewModel = createViewModel()
 
         viewModel.activeSleepSession.test {
@@ -359,7 +362,7 @@ class SleepViewModelTest {
             endTime = latestEnd,
             sleepType = SleepType.NAP,
         )
-        every { sleepRepository.getAllRecords() } returns flowOf(listOf(older, latest))
+        every { sleepRepository.getRecentOrActiveRecordsFlow(any()) } returns flowOf(listOf(older, latest))
         viewModel = createViewModel()
 
         val job = launch { viewModel.lastSleepSummary.collect {} }
@@ -376,6 +379,37 @@ class SleepViewModelTest {
     }
 
     @Test
+    fun `activeSleepSession surfaces an open record that started before the bounded window`() = runTest {
+        // A stuck/forgotten active sleep whose start predates the since-yesterday window: its start is
+        // out of range, but getRecentOrActiveRecordsFlow's `end_time IS NULL` clause still returns it,
+        // so it must remain visible and stoppable. Regression guard for the bounded-query change (#750).
+        val oldActive = SleepRecord(
+            id = 42L,
+            startTime = Instant.now().minusSeconds(3 * 24 * 3600),
+            endTime = null,
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        every { sleepRepository.getRecentOrActiveRecordsFlow(any()) } returns flowOf(listOf(oldActive))
+        coEvery { sleepSessionController.stop(42L) } returns null
+        viewModel = createViewModel()
+
+        val job = launch { viewModel.activeSleepSession.collect {} }
+        val summaryJob = launch { viewModel.lastSleepSummary.collect {} }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(42L, viewModel.activeSleepSession.value?.id)
+        // A completed summary must not show while a session is genuinely in progress.
+        assertEquals(LastSleepSummaryState.Empty, viewModel.lastSleepSummary.value)
+
+        viewModel.onStopRecord()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify(exactly = 1) { sleepSessionController.stop(42L) }
+
+        job.cancel()
+        summaryJob.cancel()
+    }
+
+    @Test
     fun `lastSleepSummary is empty while a sleep session is active`() = runTest {
         val completed = SleepRecord(
             id = 1L,
@@ -389,7 +423,7 @@ class SleepViewModelTest {
             endTime = null,
             sleepType = SleepType.NIGHT_SLEEP,
         )
-        every { sleepRepository.getAllRecords() } returns flowOf(listOf(completed, inProgress))
+        every { sleepRepository.getRecentOrActiveRecordsFlow(any()) } returns flowOf(listOf(completed, inProgress))
         viewModel = createViewModel()
 
         val job = launch { viewModel.lastSleepSummary.collect {} }
@@ -1016,5 +1050,65 @@ class SleepViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { settingsRepository.setWakeTime(LocalTime.of(8, 0)) }
+    }
+
+    // --- Bounded-window / day-rollover correctness for sleepTodayStats (issue #750) ---
+    // The tracking screen feeds off a since-yesterday window, then narrows to "today" per emission via
+    // this pure function. These pin that the narrowing stays correct for an arbitrary `today` — i.e. it
+    // keeps producing exactly today's stats after a midnight rollover without depending on the window's
+    // fixed lower bound.
+
+    @Test
+    fun `sleepTodayStats narrows a since-yesterday window to today only`() {
+        val zone = ZoneId.of("UTC")
+        val today = LocalDate.of(2026, 7, 10)
+        val yesterday = today.minusDays(1)
+        // A yesterday nap that sits inside the bounded window but must NOT count toward today.
+        val yesterdayNap = SleepRecord(
+            id = 1L,
+            startTime = yesterday.atTime(14, 0).atZone(zone).toInstant(),
+            endTime = yesterday.atTime(15, 0).atZone(zone).toInstant(),
+            sleepType = SleepType.NAP,
+        )
+        val todayNapA = SleepRecord(
+            id = 2L,
+            startTime = today.atTime(9, 0).atZone(zone).toInstant(),
+            endTime = today.atTime(10, 0).atZone(zone).toInstant(),
+            sleepType = SleepType.NAP,
+        )
+        val todayNapB = SleepRecord(
+            id = 3L,
+            startTime = today.atTime(13, 0).atZone(zone).toInstant(),
+            endTime = today.atTime(13, 30).atZone(zone).toInstant(),
+            sleepType = SleepType.NAP,
+        )
+
+        val stats = sleepTodayStats(listOf(todayNapB, todayNapA, yesterdayNap), today, zone)
+
+        assertEquals(listOf(3L, 2L), stats.entries.map { it.id })
+        assertEquals(2, stats.napCount)
+        assertEquals(java.time.Duration.ofMinutes(90), stats.totalSleep)
+    }
+
+    @Test
+    fun `sleepTodayStats counts a cross-midnight night sleep that started yesterday and ended today`() {
+        val zone = ZoneId.of("UTC")
+        val today = LocalDate.of(2026, 7, 10)
+        val yesterday = today.minusDays(1)
+        // Started before yesterday-midnight, ended today: within the since-yesterday window, and its
+        // night-sleep total must land on today via the end-date filter even though its start is yesterday.
+        val crossMidnight = SleepRecord(
+            id = 1L,
+            startTime = yesterday.atTime(23, 0).atZone(zone).toInstant(),
+            endTime = today.atTime(6, 0).atZone(zone).toInstant(),
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+
+        val stats = sleepTodayStats(listOf(crossMidnight), today, zone)
+
+        // It started yesterday, so it is not one of "today's entries"...
+        assertTrue(stats.entries.isEmpty())
+        // ...but its 7h span counts toward last night's sleep, which ended today.
+        assertEquals(java.time.Duration.ofHours(7), stats.nightSleep)
     }
 }
