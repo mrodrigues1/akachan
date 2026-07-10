@@ -403,14 +403,13 @@ object NotificationHelper {
                 .setUsesChronometer(true)
                 .setWhen(startTimeEpochMs)
                 .setCustomContentView(
-                    buildCollapsedView(
+                    buildChronometerCollapsedView(
                         context = context,
                         layoutRes = R.layout.notification_collapsed_sleep,
                         title = title,
                         body = body,
-                        progress = 0,
-                        maxProgress = 1,
-                        showProgress = false,
+                        chronometerBaseElapsedMs = chronometerBase,
+                        chronometerRunning = true,
                         titleIconRes = R.drawable.ic_sleep_section,
                     )
                 )
