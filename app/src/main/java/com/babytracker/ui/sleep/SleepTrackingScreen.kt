@@ -1,5 +1,11 @@
 package com.babytracker.ui.sleep
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -76,6 +82,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
@@ -113,6 +120,29 @@ fun SleepTrackingScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val activeSleepSession by viewModel.activeSleepSession.collectAsStateWithLifecycle()
     val todayStats by viewModel.todayStats.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var notificationPermissionGranted by remember { mutableStateOf(isNotificationPermissionGranted(context)) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        notificationPermissionGranted = granted
+    }
+
+    fun onStartRecordWithPermission(sleepType: SleepType) {
+        when (
+            resolveStartSleepAction(
+                shouldRequestNotificationPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
+                notificationPermissionGranted = notificationPermissionGranted,
+            )
+        ) {
+            StartSleepAction.RequestPermissionAndStart -> {
+                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                viewModel.onStartRecord(sleepType)
+            }
+            StartSleepAction.StartOnly -> viewModel.onStartRecord(sleepType)
+        }
+    }
 
     uiState.activeTimePicker?.let { target ->
         val initial = when (target) {
@@ -197,8 +227,8 @@ fun SleepTrackingScreen(
                     )
                 } else {
                     SleepQuickStartRow(
-                        onStartNap = { viewModel.onStartRecord(SleepType.NAP) },
-                        onStartNightSleep = { viewModel.onStartRecord(SleepType.NIGHT_SLEEP) }
+                        onStartNap = { onStartRecordWithPermission(SleepType.NAP) },
+                        onStartNightSleep = { onStartRecordWithPermission(SleepType.NIGHT_SLEEP) }
                     )
                 }
             }
@@ -982,6 +1012,27 @@ internal fun AddSleepEntrySheetContent(
 
         Spacer(modifier = Modifier.height(8.dp))
     }
+}
+
+private fun isNotificationPermissionGranted(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
+    return ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.POST_NOTIFICATIONS,
+    ) == PackageManager.PERMISSION_GRANTED
+}
+
+internal enum class StartSleepAction {
+    StartOnly,
+    RequestPermissionAndStart,
+}
+
+internal fun resolveStartSleepAction(
+    shouldRequestNotificationPermission: Boolean,
+    notificationPermissionGranted: Boolean,
+): StartSleepAction = when {
+    shouldRequestNotificationPermission && !notificationPermissionGranted -> StartSleepAction.RequestPermissionAndStart
+    else -> StartSleepAction.StartOnly
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
