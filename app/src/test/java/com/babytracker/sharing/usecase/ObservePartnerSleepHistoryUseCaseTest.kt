@@ -5,7 +5,7 @@ import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
-import com.babytracker.sharing.data.firebase.observeSleepOps
+import com.babytracker.sharing.data.firebase.SharedSleepOpStream
 import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.SleepOpAction
 import com.babytracker.sharing.domain.model.SleepSnapshot
@@ -13,7 +13,6 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -26,15 +25,14 @@ import java.time.Instant
 
 class ObservePartnerSleepHistoryUseCaseTest {
     private val service: FirestoreSharingService = mockk()
+    private val sharedSleepOps: SharedSleepOpStream = mockk()
     private val settingsRepository: SettingsRepository = mockk()
     private val now = Instant.ofEpochMilli(100_000)
     private lateinit var useCase: ObservePartnerSleepHistoryUseCase
 
     @BeforeEach
     fun setUp() {
-        // observeSleepOps is a top-level extension function on the service.
-        mockkStatic("com.babytracker.sharing.data.firebase.FirestoreSharingServiceKt")
-        useCase = ObservePartnerSleepHistoryUseCase(service, settingsRepository) { now }
+        useCase = ObservePartnerSleepHistoryUseCase(service, sharedSleepOps, settingsRepository) { now }
         every { settingsRepository.getShareCode() } returns flowOf("CODE1234")
         coEvery { service.signInAnonymously() } returns "uid"
     }
@@ -51,7 +49,7 @@ class ObservePartnerSleepHistoryUseCaseTest {
             clientId = "cid", startedBy = SleepAuthor.PARTNER,
         )
         val edit = SleepOp("op-1", SleepOpAction.UPDATE, "cid", "uid", now.toEpochMilli(), 91_000L, 94_000L, SleepType.NIGHT_SLEEP, "x")
-        coEvery { service.observeSleepOps("CODE1234", "uid") } returns flowOf(listOf(edit))
+        every { sharedSleepOps.observe("CODE1234", "uid") } returns flowOf(listOf(edit))
 
         val merged = useCase(flowOf(listOf(record))).first()
 
