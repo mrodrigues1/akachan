@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.babytracker.util.durationBetween
 import com.babytracker.util.formatElapsedAgo
@@ -146,14 +147,16 @@ class BreastfeedingViewModel @Inject constructor(
                 feedSettingsRepository.getMaxPerBreastMinutes(),
                 feedSettingsRepository.getMaxTotalFeedMinutes()
             ) { session, maxPerBreast, maxTotal ->
-                _uiState.value.copy(
-                    activeSession = session,
-                    maxPerBreastMinutes = maxPerBreast,
-                    maxTotalFeedMinutes = maxTotal,
-                    currentSide = session?.currentSide(),
-                )
-            }.collect { newState ->
-                _uiState.value = newState
+                Triple(session, maxPerBreast, maxTotal)
+            }.collect { (session, maxPerBreast, maxTotal) ->
+                _uiState.update {
+                    it.copy(
+                        activeSession = session,
+                        maxPerBreastMinutes = maxPerBreast,
+                        maxTotalFeedMinutes = maxTotal,
+                        currentSide = session?.currentSide(),
+                    )
+                }
             }
         }
 
@@ -164,25 +167,27 @@ class BreastfeedingViewModel @Inject constructor(
             ) { lastSession, _ ->
                 buildLastFeedingSummary(lastSession)
             }.collect { summary ->
-                val autoSide = if (summary is LastFeedingSummaryState.Populated && _uiState.value.selectedSide == null) {
-                    summary.nextRecommendedSide
-                } else {
-                    _uiState.value.selectedSide
+                _uiState.update { state ->
+                    val autoSide = if (summary is LastFeedingSummaryState.Populated && state.selectedSide == null) {
+                        summary.nextRecommendedSide
+                    } else {
+                        state.selectedSide
+                    }
+                    state.copy(lastFeedingSummary = summary, selectedSide = autoSide)
                 }
-                _uiState.value = _uiState.value.copy(lastFeedingSummary = summary, selectedSide = autoSide)
             }
         }
 
         viewModelScope.launch {
             predictNextFeed().collect { prediction ->
-                _uiState.value = _uiState.value.copy(nextFeedPrediction = prediction)
+                _uiState.update { it.copy(nextFeedPrediction = prediction) }
             }
         }
 
     }
 
     fun onSideSelected(side: BreastSide) {
-        _uiState.value = _uiState.value.copy(selectedSide = side)
+        _uiState.update { it.copy(selectedSide = side) }
     }
 
     fun onStartSession() {
@@ -190,7 +195,7 @@ class BreastfeedingViewModel @Inject constructor(
         viewModelScope.launch {
             val result = runCatching { sessionController.start(side) }
             if (result.isFailure) {
-                _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.error_bf_start))
+                _uiState.update { it.copy(error = appContext.getString(R.string.error_bf_start)) }
             }
         }
     }
@@ -199,15 +204,15 @@ class BreastfeedingViewModel @Inject constructor(
         _uiState.value.activeSession ?: return
         viewModelScope.launch {
             if (!sessionController.stop()) {
-                _uiState.value = _uiState.value.copy(error = appContext.getString(R.string.error_bf_stop))
+                _uiState.update { it.copy(error = appContext.getString(R.string.error_bf_stop)) }
                 return@launch
             }
-            _uiState.value = _uiState.value.copy(selectedSide = null)
+            _uiState.update { it.copy(selectedSide = null) }
         }
     }
 
     fun onErrorDismissed() {
-        _uiState.value = _uiState.value.copy(error = null)
+        _uiState.update { it.copy(error = null) }
     }
 
     fun onSwitchSide() {
@@ -232,7 +237,7 @@ class BreastfeedingViewModel @Inject constructor(
             editedEnd = session.endTime,
             validationError = null,
         )
-        _uiState.value = _uiState.value.copy(editSheet = state)
+        _uiState.update { it.copy(editSheet = state) }
     }
 
     fun onEditTimeChanged(newStart: Instant, newEnd: Instant?) {
@@ -244,17 +249,19 @@ class BreastfeedingViewModel @Inject constructor(
             pausedDurationMs = projectedPausedMs,
             now = Instant.now(),
         )
-        _uiState.value = _uiState.value.copy(
-            editSheet = current.copy(
-                editedStart = newStart,
-                editedEnd = newEnd,
-                validationError = error?.let { appContext.getString(it.messageRes()) },
+        _uiState.update { state ->
+            state.copy(
+                editSheet = current.copy(
+                    editedStart = newStart,
+                    editedEnd = newEnd,
+                    validationError = error?.let { appContext.getString(it.messageRes()) },
+                )
             )
-        )
+        }
     }
 
     fun onEditDismiss() {
-        _uiState.value = _uiState.value.copy(editSheet = null)
+        _uiState.update { it.copy(editSheet = null) }
     }
 
     fun onEditSave() {
@@ -262,39 +269,41 @@ class BreastfeedingViewModel @Inject constructor(
         if (!current.canSave) return
         val wasInProgress = current.original.endTime == null
         val nowHasEnd = current.editedEnd != null
-        _uiState.value = _uiState.value.copy(editSheet = current.copy(isSaving = true))
+        _uiState.update { it.copy(editSheet = current.copy(isSaving = true)) }
         viewModelScope.launch {
             val result = runCatching {
                 updateSession(current.original, current.editedStart, current.editedEnd)
             }
             if (result.isFailure) {
-                _uiState.value = _uiState.value.copy(
-                    editSheet = current.copy(isSaving = false),
-                    error = appContext.getString(R.string.error_bf_save),
-                )
+                _uiState.update {
+                    it.copy(
+                        editSheet = current.copy(isSaving = false),
+                        error = appContext.getString(R.string.error_bf_save),
+                    )
+                }
                 return@launch
             }
             if (wasInProgress && nowHasEnd) {
                 notificationCoordinator.cancelAllSessionNotifications()
             }
-            _uiState.value = _uiState.value.copy(editSheet = null)
+            _uiState.update { it.copy(editSheet = null) }
             syncedWrite.sync(SyncType.SESSIONS)
         }
     }
 
     /** Sets the session pending card-level delete confirmation, or clears it when null. */
     fun onPendingDeleteSessionChanged(session: BreastfeedingSession?) {
-        _uiState.value = _uiState.value.copy(pendingDeleteSession = session)
+        _uiState.update { it.copy(pendingDeleteSession = session) }
     }
 
     fun onConfirmDeleteSession() {
         val session = _uiState.value.pendingDeleteSession ?: return
-        _uiState.value = _uiState.value.copy(pendingDeleteSession = null)
+        _uiState.update { it.copy(pendingDeleteSession = null) }
         viewModelScope.launch {
             if (!deleteSessionInternal(session)) {
-                _uiState.value = _uiState.value.copy(
-                    error = appContext.getString(R.string.error_bf_delete),
-                )
+                _uiState.update {
+                    it.copy(error = appContext.getString(R.string.error_bf_delete))
+                }
             }
         }
     }
@@ -319,19 +328,21 @@ class BreastfeedingViewModel @Inject constructor(
         val start = end.minusMinutes(MANUAL_ENTRY_DEFAULT_MINUTES)
         val summary = _uiState.value.lastFeedingSummary
         val recommendedSide = (summary as? LastFeedingSummaryState.Populated)?.nextRecommendedSide ?: BreastSide.LEFT
-        _uiState.value = _uiState.value.copy(
-            showManualEntrySheet = true,
-            manualEntryDate = LocalDate.now(),
-            manualEntryStartTime = start,
-            manualEntryEndTime = end,
-            manualEntrySide = recommendedSide,
-            manualEntryError = null,
-            manualEntryDurationPreview = durationBetween(start, end, LocalDate.now()),
-        )
+        _uiState.update {
+            it.copy(
+                showManualEntrySheet = true,
+                manualEntryDate = LocalDate.now(),
+                manualEntryStartTime = start,
+                manualEntryEndTime = end,
+                manualEntrySide = recommendedSide,
+                manualEntryError = null,
+                manualEntryDurationPreview = durationBetween(start, end, LocalDate.now()),
+            )
+        }
     }
 
     fun onDismissManualEntry() {
-        _uiState.value = _uiState.value.copy(showManualEntrySheet = false, manualEntryError = null)
+        _uiState.update { it.copy(showManualEntrySheet = false, manualEntryError = null) }
     }
 
     /**
@@ -344,13 +355,15 @@ class BreastfeedingViewModel @Inject constructor(
         startTime: LocalTime = _uiState.value.manualEntryStartTime,
         endTime: LocalTime = _uiState.value.manualEntryEndTime,
     ) {
-        _uiState.value = _uiState.value.copy(
-            manualEntryDate = date,
-            manualEntryStartTime = startTime,
-            manualEntryEndTime = endTime,
-            manualEntryError = null,
-            manualEntryDurationPreview = durationBetween(startTime, endTime, date),
-        )
+        _uiState.update {
+            it.copy(
+                manualEntryDate = date,
+                manualEntryStartTime = startTime,
+                manualEntryEndTime = endTime,
+                manualEntryError = null,
+                manualEntryDurationPreview = durationBetween(startTime, endTime, date),
+            )
+        }
     }
 
     fun onSaveManualEntry(side: BreastSide) {
@@ -362,7 +375,7 @@ class BreastfeedingViewModel @Inject constructor(
             startInstant = state.manualEntryStartTime.atDate(state.manualEntryDate.minusDays(1)).atZone(zone).toInstant()
         }
         if (endInstant <= startInstant) {
-            _uiState.value = state.copy(manualEntryError = appContext.getString(R.string.error_bf_end_after_start))
+            _uiState.update { it.copy(manualEntryError = appContext.getString(R.string.error_bf_end_after_start)) }
             return
         }
         viewModelScope.launch {
@@ -372,10 +385,10 @@ class BreastfeedingViewModel @Inject constructor(
                 )
             }
             if (result.isFailure) {
-                _uiState.value = _uiState.value.copy(manualEntryError = appContext.getString(R.string.error_bf_save))
+                _uiState.update { it.copy(manualEntryError = appContext.getString(R.string.error_bf_save)) }
                 return@launch
             }
-            _uiState.value = _uiState.value.copy(showManualEntrySheet = false, manualEntryError = null)
+            _uiState.update { it.copy(showManualEntrySheet = false, manualEntryError = null) }
             syncedWrite.sync(SyncType.SESSIONS)
         }
     }
