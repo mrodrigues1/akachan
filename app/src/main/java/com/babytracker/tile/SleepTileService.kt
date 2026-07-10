@@ -1,11 +1,12 @@
 package com.babytracker.tile
 
 import android.content.Intent
+import com.babytracker.util.NotificationTapRequestCodes
 
 class SleepTileService : BaseBabyTileService() {
 
     override val baseLabel: String = "Sleep"
-    override val activityRequestCode: Int = 80_002
+    override val activityRequestCode: Int = NotificationTapRequestCodes.TILE_SLEEP
 
     override suspend fun resolveState(entryPoint: TileEntryPoint): TileRenderState =
         TileStateResolver(

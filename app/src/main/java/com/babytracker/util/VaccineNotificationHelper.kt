@@ -25,7 +25,6 @@ import java.util.Locale
 object VaccineNotificationHelper {
     const val CHANNEL_ID = "vaccine_reminders"
     const val NOTIFICATION_ID = 1011
-    private const val RC_TAP = 3005
     private const val TAG = "VaccineNotification"
 
     fun createChannel(context: Context) {
@@ -71,7 +70,7 @@ object VaccineNotificationHelper {
     private fun tapPendingIntent(context: Context): PendingIntent =
         PendingIntent.getActivity(
             context,
-            RC_TAP,
+            NotificationTapRequestCodes.VACCINE,
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 putExtra(NotificationHelper.EXTRA_NAV_ROUTE, Routes.VACCINE_HISTORY)

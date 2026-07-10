@@ -36,7 +36,6 @@ object NotificationHelper {
     const val BREASTFEEDING_ACTIVE_NOTIFICATION_ID = 1004
     const val BREASTFEEDING_GROUP_SUMMARY_NOTIFICATION_ID = 1005
     const val NAP_REMINDER_NOTIFICATION_ID = 1007
-    private const val RC_MAIN_TAP = 0
     private const val RC_SWITCH_NOW = 2001
     private const val RC_BF_DISMISS = 2002
     private const val RC_STOP_SESSION = 2003
@@ -47,7 +46,6 @@ object NotificationHelper {
     private const val RC_PAUSE_BF_ACTIVE = 2008
     private const val RC_RESUME_BF_ACTIVE = 2009
     private const val RC_SWITCH_BF_ACTIVE = 2010
-    private const val RC_NAP_REMINDER_TAP = 3002
     private const val TAG = "NotificationHelper"
     private const val SECONDS_PER_MINUTE = 60
     private const val ACTIVE_REFRESH_STEPS = 20
@@ -486,7 +484,7 @@ object NotificationHelper {
     private fun napReminderTapPendingIntent(context: Context): PendingIntent =
         PendingIntent.getActivity(
             context,
-            RC_NAP_REMINDER_TAP,
+            NotificationTapRequestCodes.NAP_REMINDER,
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 putExtra(EXTRA_NAV_ROUTE, Routes.SLEEP_TRACKING)
@@ -496,7 +494,7 @@ object NotificationHelper {
 
     private fun mainActivityPendingIntent(context: Context): PendingIntent =
         PendingIntent.getActivity(
-            context, RC_MAIN_TAP,
+            context, NotificationTapRequestCodes.MAIN,
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             },

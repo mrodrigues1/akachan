@@ -1,11 +1,12 @@
 package com.babytracker.tile
 
 import android.content.Intent
+import com.babytracker.util.NotificationTapRequestCodes
 
 class FeedTileService : BaseBabyTileService() {
 
     override val baseLabel: String = "Feed"
-    override val activityRequestCode: Int = 80_001
+    override val activityRequestCode: Int = NotificationTapRequestCodes.TILE_FEED
 
     override suspend fun resolveState(entryPoint: TileEntryPoint): TileRenderState =
         TileStateResolver(

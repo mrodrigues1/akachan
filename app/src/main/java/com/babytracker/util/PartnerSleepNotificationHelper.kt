@@ -22,8 +22,13 @@ import com.babytracker.ui.theme.Purple700
  */
 object PartnerSleepNotificationHelper {
     const val PARTNER_SLEEP_CHANNEL_ID = "partner_sleep_notifications"
+
+    // NOTE: this notification ID (passed to NotificationManager.notify) also collides with
+    // VaccineNotificationHelper.NOTIFICATION_ID (both 1011) — a separate collision domain from the
+    // PendingIntent tap request codes this file fixes (#745). Left as-is: renumbering it safely
+    // needs a channel-aware upgrade migration to cancel any already-posted legacy notification,
+    // which is out of scope here. Tracked for a follow-up issue.
     const val PARTNER_SLEEP_NOTIFICATION_ID = 1011
-    private const val RC_PARTNER_SLEEP_TAP = 3005
 
     fun createPartnerSleepNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -71,7 +76,7 @@ object PartnerSleepNotificationHelper {
     private fun tapPendingIntent(context: Context): PendingIntent =
         PendingIntent.getActivity(
             context,
-            RC_PARTNER_SLEEP_TAP,
+            NotificationTapRequestCodes.PARTNER_SLEEP,
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 putExtra(NotificationHelper.EXTRA_NAV_ROUTE, Routes.SLEEP_TRACKING)
