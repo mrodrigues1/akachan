@@ -73,9 +73,11 @@ class SleepRepositoryImpl @Inject constructor(
     override suspend fun stopActiveRecord(endTime: Instant): Boolean =
         dao.stopActiveRecord(endTime.toEpochMilli())
 
-    // Safety net for insert paths that don't mint their own (manual entry, tile, debug seed): a blank
-    // clientId would violate the unique index on the second such row. Records that already carry one
-    // (e.g. a partner-attributed session) are left untouched.
+    // Legacy-only safety net: every freshly constructed SleepRecord now mints its own clientId
+    // (domain default matches the entity), so a blank only reaches here from a legacy pre-SPEC-008
+    // row read out of Room and written back. Minting one keeps the unique index safe if that ever
+    // happens. Records that already carry a clientId (partner-attributed, or the normal minted
+    // default) are left untouched.
     private fun SleepRecord.withClientId(): SleepRecord =
         if (clientId.isBlank()) copy(clientId = UUID.randomUUID().toString()) else this
 }
