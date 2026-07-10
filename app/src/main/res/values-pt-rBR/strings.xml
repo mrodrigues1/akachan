@@ -813,7 +813,7 @@
     <string name="inventory_title">Estoque de leite</string>
     <string name="inventory_settings_cd">Configurações do estoque</string>
     <string name="inventory_settings_title">Configurações do estoque</string>
-    <string name="inventory_add_bag_cd">Adicionar saco</string>
+    <string name="inventory_add_bag">Adicionar saco</string>
     <string name="inventory_edit_bag_title">Editar saco de leite</string>
     <string name="inventory_empty_title">Nenhum saco no seu estoque ainda</string>
     <string name="inventory_empty_subtitle">Toque em + para adicionar um saco manualmente</string>

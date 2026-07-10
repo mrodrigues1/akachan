@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,7 +29,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -123,11 +126,7 @@ fun InventoryScreen(
                 ),
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(onClick = viewModel::onAddBagClicked) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.inventory_add_bag_cd))
-            }
-        },
+        bottomBar = { AddBagBar(onAddBag = viewModel::onAddBagClicked) },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         InventoryContent(
@@ -171,6 +170,44 @@ fun InventoryScreen(
             onDismiss = viewModel::onDismissDelete,
             onConfirm = viewModel::onConfirmDelete,
         )
+    }
+}
+
+/**
+ * Persistent bottom Add bar, mirroring the doctor visit / vaccine dashboard pattern: a full-width
+ * labelled CTA in the natural thumb zone instead of a small icon-only FAB overlapping the list.
+ * Inventory has no extended domain palette, so the accent is the M3 tertiary (the milk/pumping
+ * family this screen already uses for its oldest-bag highlight).
+ */
+@Composable
+private fun AddBagBar(onAddBag: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.navigationBarsPadding(),
+    ) {
+        Column {
+            // Hairline detaches the persistent CTA from content scrolling underneath it.
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Button(
+                onClick = onAddBag,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .heightIn(min = 52.dp),
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    contentColor = MaterialTheme.colorScheme.onTertiary,
+                ),
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.size(8.dp))
+                Text(
+                    text = stringResource(R.string.inventory_add_bag),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        }
     }
 }
 
