@@ -11,6 +11,7 @@ import com.babytracker.domain.usecase.trends.GetDayRhythmTrendUseCase
 import com.babytracker.domain.usecase.trends.GetFeedingFrequencyTrendUseCase
 import com.babytracker.domain.usecase.trends.GetFeedingIntervalTrendUseCase
 import com.babytracker.domain.usecase.trends.GetSleepDurationTrendUseCase
+import com.babytracker.domain.usecase.trends.LoadTrendFeedInstantsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -40,6 +41,7 @@ fun TrendsUiState.isEmptyOverall(): Boolean =
 
 @HiltViewModel
 class TrendsViewModel @Inject constructor(
+    private val loadTrendFeedInstants: LoadTrendFeedInstantsUseCase,
     private val getFeedingFrequencyTrend: GetFeedingFrequencyTrendUseCase,
     private val getSleepDurationTrend: GetSleepDurationTrendUseCase,
     private val getFeedingIntervalTrend: GetFeedingIntervalTrendUseCase,
@@ -58,14 +60,17 @@ class TrendsViewModel @Inject constructor(
                 // animates in place instead of blanking to a skeleton between every tap. The
                 // skeleton then only ever shows on the true first load (when data is still empty).
                 _uiState.update { it.copy(range = range, isLoading = true) }
-                // Run the four trend computations concurrently instead of serially; each use case
-                // does its own CPU work on Dispatchers.Default. collectLatest cancels these children
-                // if the range changes again. Wall-clock is now the slowest trend, not their sum.
+                // Run the trend computations concurrently instead of serially; each use case does
+                // its own CPU work on Dispatchers.Default. collectLatest cancels these children if
+                // the range changes again. The shared feed dataset is fetched ONCE (the three feed
+                // trends used to fetch the same window independently); the sleep trend runs while
+                // that fetch is in flight.
                 coroutineScope {
-                    val frequency = async { getFeedingFrequencyTrend(range) }
                     val sleep = async { getSleepDurationTrend(range) }
-                    val interval = async { getFeedingIntervalTrend(range) }
-                    val rhythm = async { getDayRhythmTrend(range) }
+                    val feeds = loadTrendFeedInstants(range)
+                    val frequency = async { getFeedingFrequencyTrend(range, feeds) }
+                    val interval = async { getFeedingIntervalTrend(range, feeds) }
+                    val rhythm = async { getDayRhythmTrend(range, feeds) }
                     _uiState.update {
                         it.copy(
                             range = range,

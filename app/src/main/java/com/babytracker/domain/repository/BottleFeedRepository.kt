@@ -8,7 +8,9 @@ import java.time.Instant
 interface BottleFeedRepository {
     /** Observes the newest [limit] feeds, newest first. */
     fun getRecentFlow(limit: Int): Flow<List<BottleFeed>>
-    fun getSince(start: Instant): Flow<List<BottleFeed>>
+
+    /** One-shot read of feeds with timestamp >= [start], newest first. */
+    suspend fun getSinceOnce(start: Instant): List<BottleFeed>
 
     /** The [limit] most recent feeds, newest first. Bounded one-shot read for sync. */
     suspend fun getRecent(limit: Int): List<BottleFeed>
