@@ -100,9 +100,9 @@ import com.babytracker.ui.component.NapIcon
 import com.babytracker.ui.component.SleepIcon
 import com.babytracker.ui.component.labelRes
 import com.babytracker.ui.home.ActiveStatusBadge
-import com.babytracker.ui.home.EaseOutQuart
 import com.babytracker.ui.home.HomeTileStatusText
 import com.babytracker.ui.home.HomeTrackerTile
+import com.babytracker.ui.sleep.EaseOutQuart
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
 import com.babytracker.ui.theme.OnWarningContainerAmberDark

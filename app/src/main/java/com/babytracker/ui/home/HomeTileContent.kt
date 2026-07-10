@@ -70,6 +70,7 @@ import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.ui.component.BreastfeedingIcon
 import com.babytracker.ui.component.SleepIcon
 import com.babytracker.ui.component.labelRes
+import com.babytracker.ui.sleep.EaseOutQuart
 import com.babytracker.ui.sleep.SleepPredictionCard
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyStaggeredGridState
