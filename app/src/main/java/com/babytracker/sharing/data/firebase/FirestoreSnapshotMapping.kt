@@ -15,6 +15,7 @@ import com.babytracker.sharing.domain.model.FeedOpAction
 import com.babytracker.sharing.domain.model.GrowthSnapshot
 import com.babytracker.sharing.domain.model.MilestoneSnapshot
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
+import com.babytracker.sharing.domain.model.PredictionStateLabel
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepOp
@@ -82,7 +83,7 @@ internal fun milestoneToMap(milestone: MilestoneSnapshot): Map<String, Any?> = m
 )
 
 internal fun predictionToMap(prediction: SleepPredictionSnapshot): Map<String, Any?> = mapOf(
-    "stateLabel" to prediction.stateLabel,
+    "stateLabel" to prediction.stateLabel.name,
     "windowStart" to prediction.windowStart,
     "windowEnd" to prediction.windowEnd,
     "bestEstimate" to prediction.bestEstimate,
@@ -233,8 +234,14 @@ internal fun mapToMilestone(map: Map<*, *>): MilestoneSnapshot = MilestoneSnapsh
     note = map["note"] as? String,
 )
 
+/** Parse-by-name; a value the current build doesn't recognize (missing/older/newer) reads as UNAVAILABLE. */
+private fun Map<*, *>.stateLabelField(): PredictionStateLabel =
+    (this["stateLabel"] as? String)?.let { raw ->
+        PredictionStateLabel.entries.firstOrNull { it.name == raw }
+    } ?: PredictionStateLabel.UNAVAILABLE
+
 internal fun mapToPrediction(map: Map<*, *>): SleepPredictionSnapshot = SleepPredictionSnapshot(
-    stateLabel = map["stateLabel"] as? String ?: "UNAVAILABLE",
+    stateLabel = map.stateLabelField(),
     windowStart = (map["windowStart"] as? Number)?.toLong(),
     windowEnd = (map["windowEnd"] as? Number)?.toLong(),
     bestEstimate = (map["bestEstimate"] as? Number)?.toLong(),

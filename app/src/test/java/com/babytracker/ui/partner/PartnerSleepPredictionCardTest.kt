@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepType
+import com.babytracker.sharing.domain.model.PredictionStateLabel
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import org.junit.Rule
 import org.junit.Test
@@ -48,7 +49,7 @@ class PartnerSleepPredictionCardTest {
     fun `window state renders header reasons and feed prompt`() {
         setCard(
             SleepPredictionSnapshot(
-                stateLabel = "WINDOW",
+                stateLabel = PredictionStateLabel.WINDOW,
                 windowStart = now.plusSeconds(20 * 60).toEpochMilli(),
                 windowEnd = now.plusSeconds(50 * 60).toEpochMilli(),
                 bestEstimate = now.plusSeconds(35 * 60).toEpochMilli(),
@@ -78,7 +79,7 @@ class PartnerSleepPredictionCardTest {
     fun `window high confidence is announced`() {
         setCard(
             SleepPredictionSnapshot(
-                stateLabel = "WINDOW",
+                stateLabel = PredictionStateLabel.WINDOW,
                 windowStart = now.plusSeconds(20 * 60).toEpochMilli(),
                 windowEnd = now.plusSeconds(50 * 60).toEpochMilli(),
                 bestEstimate = now.plusSeconds(35 * 60).toEpochMilli(),
@@ -94,7 +95,7 @@ class PartnerSleepPredictionCardTest {
     fun `stale window renders as overdue`() {
         setCard(
             SleepPredictionSnapshot(
-                stateLabel = "WINDOW",
+                stateLabel = PredictionStateLabel.WINDOW,
                 windowStart = now.minusSeconds(120 * 60).toEpochMilli(),
                 windowEnd = now.minusSeconds(60 * 60).toEpochMilli(),
                 bestEstimate = now.minusSeconds(90 * 60).toEpochMilli(),
@@ -110,7 +111,7 @@ class PartnerSleepPredictionCardTest {
     @Test
     fun `currently sleeping without type renders type neutral copy`() {
         setCard(
-            SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt),
+            SleepPredictionSnapshot(stateLabel = PredictionStateLabel.CURRENTLY_SLEEPING, generatedAt = generatedAt),
             hasActiveSleep = true,
         )
 
@@ -121,7 +122,7 @@ class PartnerSleepPredictionCardTest {
     @Test
     fun `currently sleeping renders nap copy for active nap`() {
         setCard(
-            SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt),
+            SleepPredictionSnapshot(stateLabel = PredictionStateLabel.CURRENTLY_SLEEPING, generatedAt = generatedAt),
             activeSleepType = SleepType.NAP,
             hasActiveSleep = true,
         )
@@ -132,7 +133,7 @@ class PartnerSleepPredictionCardTest {
     @Test
     fun `currently sleeping renders night sleep copy for active night sleep`() {
         setCard(
-            SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt),
+            SleepPredictionSnapshot(stateLabel = PredictionStateLabel.CURRENTLY_SLEEPING, generatedAt = generatedAt),
             activeSleepType = SleepType.NIGHT_SLEEP,
             hasActiveSleep = true,
         )
@@ -143,7 +144,7 @@ class PartnerSleepPredictionCardTest {
     @Test
     fun `stale currently sleeping is hidden when no active sleep`() {
         setCard(
-            SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt),
+            SleepPredictionSnapshot(stateLabel = PredictionStateLabel.CURRENTLY_SLEEPING, generatedAt = generatedAt),
             hasActiveSleep = false,
         )
 
@@ -155,7 +156,7 @@ class PartnerSleepPredictionCardTest {
     @Test
     fun `after active feed renders copy while feed is active`() {
         setCard(
-            SleepPredictionSnapshot(stateLabel = "AFTER_ACTIVE_FEED", generatedAt = generatedAt),
+            SleepPredictionSnapshot(stateLabel = PredictionStateLabel.AFTER_ACTIVE_FEED, generatedAt = generatedAt),
             hasActiveFeeding = true,
         )
 
@@ -169,7 +170,7 @@ class PartnerSleepPredictionCardTest {
     @Test
     fun `stale after active feed is hidden when no active feeding`() {
         setCard(
-            SleepPredictionSnapshot(stateLabel = "AFTER_ACTIVE_FEED", generatedAt = generatedAt),
+            SleepPredictionSnapshot(stateLabel = PredictionStateLabel.AFTER_ACTIVE_FEED, generatedAt = generatedAt),
             hasActiveFeeding = false,
         )
 
@@ -179,7 +180,7 @@ class PartnerSleepPredictionCardTest {
 
     @Test
     fun `need more data renders copy`() {
-        setCard(SleepPredictionSnapshot(stateLabel = "NEED_MORE_DATA", generatedAt = generatedAt))
+        setCard(SleepPredictionSnapshot(stateLabel = PredictionStateLabel.NEED_MORE_DATA, generatedAt = generatedAt))
 
         composeRule.onNodeWithText(
             "Not enough logged data yet for a prediction",
@@ -189,12 +190,20 @@ class PartnerSleepPredictionCardTest {
 
     @Test
     fun `cue led renders copy`() {
-        setCard(SleepPredictionSnapshot(stateLabel = "CUE_LED", generatedAt = generatedAt))
+        setCard(SleepPredictionSnapshot(stateLabel = PredictionStateLabel.CUE_LED, generatedAt = generatedAt))
 
         composeRule.onNodeWithText(
             "Too early for predictions. Watch for cues",
             useUnmergedTree = true,
         ).assertIsDisplayed()
+    }
+
+    @Test
+    fun `UNAVAILABLE state renders nothing`() {
+        setCard(SleepPredictionSnapshot(stateLabel = PredictionStateLabel.UNAVAILABLE, generatedAt = generatedAt))
+
+        composeRule.onNodeWithText("Estimated", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithText("SLEEP PREDICTION", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
