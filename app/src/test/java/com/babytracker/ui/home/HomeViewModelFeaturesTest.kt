@@ -1,5 +1,6 @@
 package com.babytracker.ui.home
 
+import androidx.lifecycle.viewModelScope
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.Baby
 import com.babytracker.domain.model.InventorySummary
@@ -72,6 +73,7 @@ class HomeViewModelFeaturesTest {
     // uiState is a WhileSubscribed StateFlow; subscribe on this testDispatcher-backed scope so
     // advanceUntilIdle() populates uiState.value (previously guaranteed by SharingStarted.Eagerly).
     private lateinit var collectorScope: CoroutineScope
+    private val createdViewModels = mutableListOf<HomeViewModel>()
 
     @BeforeEach
     fun setUp() {
@@ -113,6 +115,11 @@ class HomeViewModelFeaturesTest {
 
     @AfterEach
     fun tearDown() {
+        // Cancel each ViewModel's scope while Dispatchers.Main is still the test dispatcher: the
+        // flowOn(Default) baseState producer otherwise outlives the test and dispatches into Main
+        // after resetMain(), failing a LATER test with UncaughtExceptionsBeforeTest (#788).
+        createdViewModels.forEach { it.viewModelScope.cancel() }
+        createdViewModels.clear()
         collectorScope.cancel()
     }
 
@@ -135,6 +142,7 @@ class HomeViewModelFeaturesTest {
             logBabyEvent,
         )
         collectorScope.launch { vm.uiState.collect {} }
+        createdViewModels += vm
         return vm
     }
 
