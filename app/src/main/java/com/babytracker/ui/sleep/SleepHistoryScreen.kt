@@ -3,10 +3,12 @@ package com.babytracker.ui.sleep
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -16,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,6 +31,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -55,7 +59,8 @@ fun SleepHistoryScreen(
     viewModel: SleepHistoryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val groupedByDateDesc by viewModel.historyByDateDesc.collectAsStateWithLifecycle()
+    val historyWindow by viewModel.historyByDateDesc.collectAsStateWithLifecycle()
+    val groupedByDateDesc = historyWindow.days
 
     uiState.activeTimePicker?.let { target ->
         val initial = when (target) {
@@ -215,6 +220,21 @@ fun SleepHistoryScreen(
                             )
                         } else {
                             SleepEntryCard(record = record, tinted = true)
+                        }
+                    }
+                }
+
+                if (historyWindow.hasMore) {
+                    item(key = "history_load_more") {
+                        // Keyed on size so it re-fires if the item stays composed after a page lands.
+                        LaunchedEffect(historyWindow.recordCount) { viewModel.onLoadMoreHistory() }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
                         }
                     }
                 }

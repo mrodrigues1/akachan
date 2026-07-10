@@ -32,6 +32,9 @@ interface SleepRepository {
     suspend fun getCompletedRecordsSince(since: Instant): List<SleepRecord>
     suspend fun getCompletedRecordsBetween(start: Instant, end: Instant): List<SleepRecord>
     suspend fun getRecentRecords(limit: Int): List<SleepRecord>
+
+    /** Observes the newest [limit] records, newest first. Bounded alternative to [getAllRecords]. */
+    fun getRecentRecordsFlow(limit: Int): Flow<List<SleepRecord>>
     suspend fun getLatestRecord(): SleepRecord?
     suspend fun getByClientId(clientId: String): SleepRecord?
     suspend fun getActiveRecord(): SleepRecord?

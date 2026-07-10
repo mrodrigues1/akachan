@@ -19,11 +19,13 @@ import com.babytracker.util.durationBetween
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -37,8 +39,8 @@ import javax.inject.Inject
 
 /**
  * Groups already-start-DESC sleep records by the local calendar day of their start time in a single
- * pass, preserving encounter order. [SleepRepository.getAllRecords] is ordered `start_time DESC`, so
- * days come out newest-first and each day's records newest-first with no sort and no second retained
+ * pass, preserving encounter order. [SleepRepository.getRecentRecordsFlow] is ordered `start_time DESC`,
+ * so days come out newest-first and each day's records newest-first with no sort and no second retained
  * copy — contrast [com.babytracker.util.groupByDateDescending], which allocates a sorted map plus a
  * per-day re-sort. Cross-midnight records group under their START date's day, matching prior behaviour.
  */
@@ -58,6 +60,14 @@ internal fun List<SleepRecord>.groupByStartDatePreservingOrder(
     return grouped
 }
 
+/** Windowed slice of the history grouped by day, newest first. */
+data class SleepHistoryWindow(
+    val days: List<Pair<LocalDate, List<SleepRecord>>> = emptyList(),
+    val hasMore: Boolean = false,
+) {
+    val recordCount: Int get() = days.sumOf { it.second.size }
+}
+
 /** History-screen state: the imperative edit-sheet, picker, and delete fields. */
 data class SleepHistoryUiState(
     val showEntrySheet: Boolean = false,
@@ -72,6 +82,7 @@ data class SleepHistoryUiState(
     val activeTimePicker: SleepTimePickerTarget? = null,
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class SleepHistoryViewModel @Inject constructor(
     private val saveSleepEntry: SaveSleepEntryUseCase,
@@ -85,14 +96,34 @@ class SleepHistoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SleepHistoryUiState())
     val uiState: StateFlow<SleepHistoryUiState> = _uiState.asStateFlow()
 
-    // The grouped list is the only retained representation of history; it fans out directly from the
+    private val historyLimit = MutableStateFlow(HISTORY_PAGE_SIZE)
+
+    // The grouped window is the only retained representation of history; it fans out directly from the
     // Room flow (no second flat StateFlow) and is subscription-scoped so the observer detaches when the
-    // history screen leaves the foreground.
-    val historyByDateDesc: StateFlow<List<Pair<LocalDate, List<SleepRecord>>>> =
-        sleepRepository.getAllRecords()
-            .map { records -> records.groupByStartDatePreservingOrder() }
-            .flowOn(Dispatchers.Default)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), emptyList())
+    // history screen leaves the foreground. Bounded window instead of getAllRecords(): queries one row
+    // past the limit so hasMore never needs a separate count query.
+    val historyByDateDesc: StateFlow<SleepHistoryWindow> = historyLimit
+        .flatMapLatest { limit ->
+            sleepRepository.getRecentRecordsFlow(limit + 1)
+                .map { records ->
+                    SleepHistoryWindow(
+                        days = records.take(limit).groupByStartDatePreservingOrder(),
+                        hasMore = records.size > limit,
+                    )
+                }
+                // On the inner flow (not the outer flatMapLatest chain) so each page's channel closes
+                // with its upstream instead of keeping one never-completing Default producer alive.
+                .flowOn(Dispatchers.Default)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), SleepHistoryWindow())
+
+    fun onLoadMoreHistory() {
+        val window = historyByDateDesc.value
+        // Ignore repeats until the previously requested window has emitted: the load-more
+        // sentinel can leave and re-enter composition before Room delivers the bigger page.
+        if (!window.hasMore || window.recordCount < historyLimit.value) return
+        historyLimit.value += HISTORY_PAGE_SIZE
+    }
 
     fun onEditRecord(record: SleepRecord) {
         val zone = zoneForEditing(record)
@@ -242,5 +273,6 @@ class SleepHistoryViewModel @Inject constructor(
 
     private companion object {
         const val SUBSCRIPTION_TIMEOUT_MS = 5_000L
+        const val HISTORY_PAGE_SIZE = 50
     }
 }
