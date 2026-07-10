@@ -6,13 +6,12 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
-import android.util.Log
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.receiver.NapReminderReceiver
 import com.babytracker.receiver.NapReminderReceiver.Companion.EXTRA_TRIGGER_AT_MS
+import com.babytracker.util.setExactWithFallback
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import java.time.Instant
@@ -32,18 +31,7 @@ class NapReminderManager @Inject constructor(
         val triggerAtMs = napEndTime.plusSeconds(delayMinutes.toLong() * 60).toEpochMilli()
         val pi = buildPendingIntent(triggerAtMs)
         alarmManager.cancel(pi)
-        val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-            alarmManager.canScheduleExactAlarms()
-        try {
-            if (canExact) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs, pi)
-            } else {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs, pi)
-            }
-        } catch (e: SecurityException) {
-            Log.w(TAG, "SCHEDULE_EXACT_ALARM permission revoked; falling back to inexact", e)
-            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs, pi)
-        }
+        alarmManager.setExactWithFallback(AlarmManager.RTC_WAKEUP, triggerAtMs, pi, TAG)
     }
 
     override fun cancel() {

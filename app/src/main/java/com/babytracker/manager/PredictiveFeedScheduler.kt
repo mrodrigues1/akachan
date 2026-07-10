@@ -7,10 +7,9 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
-import android.util.Log
 import com.babytracker.receiver.PredictiveFeedReceiver
 import com.babytracker.util.NotificationHelper
+import com.babytracker.util.setExactWithFallback
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
 import javax.inject.Inject
@@ -32,17 +31,7 @@ class PredictiveFeedSchedulerImpl @Inject constructor(
     ) {
         val pi = buildPendingIntent(predictedAt)
         alarmManager.cancel(pi)
-        val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
-        try {
-            if (canExact) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime.toEpochMilli(), pi)
-            } else {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime.toEpochMilli(), pi)
-            }
-        } catch (e: SecurityException) {
-            Log.w(TAG, "SCHEDULE_EXACT_ALARM revoked; falling back to inexact", e)
-            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime.toEpochMilli(), pi)
-        }
+        alarmManager.setExactWithFallback(AlarmManager.RTC_WAKEUP, triggerTime.toEpochMilli(), pi, TAG)
     }
 
     override fun cancelPredictiveReminder() {

@@ -6,9 +6,9 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.util.Log
 import com.babytracker.receiver.BreastfeedingNotificationReceiver
+import com.babytracker.util.setExactWithFallback
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
 import javax.inject.Inject
@@ -125,21 +125,7 @@ class BreastfeedingNotificationManager @Inject constructor(
             PENDING_INTENT_IMMUTABLE_UPDATE
         )
         alarmManager.cancel(pendingIntent)
-        val canScheduleExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            alarmManager.canScheduleExactAlarms()
-        } else {
-            true
-        }
-        try {
-            if (canScheduleExact) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, request.triggerTime.toEpochMilli(), pendingIntent)
-            } else {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, request.triggerTime.toEpochMilli(), pendingIntent)
-            }
-        } catch (e: SecurityException) {
-            Log.w(TAG, "SCHEDULE_EXACT_ALARM revoked; falling back to inexact", e)
-            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, request.triggerTime.toEpochMilli(), pendingIntent)
-        }
+        alarmManager.setExactWithFallback(AlarmManager.RTC_WAKEUP, request.triggerTime.toEpochMilli(), pendingIntent, TAG)
     }
 
     private data class AlarmRequest(
