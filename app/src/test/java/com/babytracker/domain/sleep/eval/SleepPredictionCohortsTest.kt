@@ -65,22 +65,22 @@ class SleepPredictionCohortsTest {
 
             val tolerance = Duration.ofMinutes(6).toMillis()
             assertTrue(
-                metrics.napWakeP50Millis != null &&
-                    Math.abs(metrics.napWakeP50Millis - Duration.ofMinutes(cohort.params.napWakeMin).toMillis()) <= tolerance,
-                "[$tag] napWakeP50 must be ~${cohort.params.napWakeMin} min; got ${metrics.napWakeP50Millis?.div(60_000)}",
+                metrics.napStats.p50Millis != null &&
+                    Math.abs(metrics.napStats.p50Millis - Duration.ofMinutes(cohort.params.napWakeMin).toMillis()) <= tolerance,
+                "[$tag] napWakeP50 must be ~${cohort.params.napWakeMin} min; got ${metrics.napStats.p50Millis?.div(60_000)}",
             )
             assertTrue(
-                metrics.bedtimeWakeP50Millis != null &&
-                    Math.abs(metrics.bedtimeWakeP50Millis - Duration.ofMinutes(cohort.params.bedtimeWakeMin).toMillis()) <= tolerance,
-                "[$tag] bedtimeWakeP50 must be ~${cohort.params.bedtimeWakeMin} min; got ${metrics.bedtimeWakeP50Millis?.div(60_000)}",
+                metrics.bedtimeStats.p50Millis != null &&
+                    Math.abs(metrics.bedtimeStats.p50Millis - Duration.ofMinutes(cohort.params.bedtimeWakeMin).toMillis()) <= tolerance,
+                "[$tag] bedtimeWakeP50 must be ~${cohort.params.bedtimeWakeMin} min; got ${metrics.bedtimeStats.p50Millis?.div(60_000)}",
             )
 
             // Personalizes strongly: bedtime is the slower type (~1 interval/day), still near saturation.
-            val bedtimeC = metrics.bedtimeWakeIntervalCount.toFloat() /
+            val bedtimeC = metrics.bedtimeStats.count.toFloat() /
                 SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS
             assertTrue(
                 bedtimeC >= 0.85f,
-                "[$tag] bedtime qualityC must be >= 0.85 (got $bedtimeC; ${metrics.bedtimeWakeIntervalCount} intervals)",
+                "[$tag] bedtime qualityC must be >= 0.85 (got $bedtimeC; ${metrics.bedtimeStats.count} intervals)",
             )
         }
     }

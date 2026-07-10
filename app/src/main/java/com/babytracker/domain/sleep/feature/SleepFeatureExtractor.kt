@@ -82,14 +82,18 @@ class SleepFeatureExtractor(
                 it.sleepType == SleepType.NAP && Instant.ofEpochMilli(it.startMillis).atZone(it.zone()).toLocalDate() == today
             },
             medianBedtimeMinuteOfDay = circularMedian(nightSleeps.map { startMinuteOfDay(it) }),
-            napWakeIntervalCount = napIntervals.size,
-            napWakeP25Millis = napQuartiles?.first,
-            napWakeP50Millis = napQuartiles?.second ?: median(napIntervals),
-            napWakeP75Millis = napQuartiles?.third,
-            bedtimeWakeIntervalCount = bedtimeIntervals.size,
-            bedtimeWakeP25Millis = bedtimeQuartiles?.first,
-            bedtimeWakeP50Millis = bedtimeQuartiles?.second ?: median(bedtimeIntervals),
-            bedtimeWakeP75Millis = bedtimeQuartiles?.third,
+            napStats = WakeIntervalStats(
+                count = napIntervals.size,
+                p25Millis = napQuartiles?.p25,
+                p50Millis = napQuartiles?.p50 ?: median(napIntervals),
+                p75Millis = napQuartiles?.p75,
+            ),
+            bedtimeStats = WakeIntervalStats(
+                count = bedtimeIntervals.size,
+                p25Millis = bedtimeQuartiles?.p25,
+                p50Millis = bedtimeQuartiles?.p50 ?: median(bedtimeIntervals),
+                p75Millis = bedtimeQuartiles?.p75,
+            ),
             avgDailySleepMillis = avgDailySleepMillis(completed),
         )
     }
@@ -260,7 +264,7 @@ class SleepFeatureExtractor(
             .groupBy({ it.first }, { it.second })
     }
 
-    private fun quartiles(values: List<Long>): Triple<Long, Long, Long>? {
+    private fun quartiles(values: List<Long>): Quartiles? {
         if (values.size < 4) return null
         val sorted = values.sorted()
         val p50 = median(sorted) ?: return null
@@ -268,11 +272,13 @@ class SleepFeatureExtractor(
         val upper = sorted.takeLast(sorted.size / 2)
         val p25 = median(lower) ?: return null
         val p75 = median(upper) ?: return null
-        return Triple(p25, p50, p75)
+        return Quartiles(p25, p50, p75)
     }
 
+    private data class Quartiles(val p25: Long, val p50: Long, val p75: Long)
+
     private fun iqr(values: List<Long>): Long? =
-        quartiles(values)?.let { (p25, _, p75) -> p75 - p25 }
+        quartiles(values)?.let { it.p75 - it.p25 }
 
     private fun avgDailySleepMillis(completed: List<SleepInterval>): Long? {
         val lookbackStartMillis = nowMillis - Duration.ofDays(SleepPredictionTuning.LOOKBACK_DAYS).toMillis()
@@ -299,16 +305,8 @@ class SleepFeatureExtractor(
     }
 
     private fun isTypeAwareStable(metrics: SleepMetrics, ceilingMillis: Long): Boolean {
-        val napIqr = if (metrics.napWakeP25Millis != null && metrics.napWakeP75Millis != null) {
-            metrics.napWakeP75Millis - metrics.napWakeP25Millis
-        } else {
-            null
-        }
-        val bedtimeIqr = if (metrics.bedtimeWakeP25Millis != null && metrics.bedtimeWakeP75Millis != null) {
-            metrics.bedtimeWakeP75Millis - metrics.bedtimeWakeP25Millis
-        } else {
-            null
-        }
+        val napIqr = metrics.napStats.iqrMillis
+        val bedtimeIqr = metrics.bedtimeStats.iqrMillis
         return napIqr != null && bedtimeIqr != null && napIqr <= ceilingMillis && bedtimeIqr <= ceilingMillis
     }
 

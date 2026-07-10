@@ -9,6 +9,7 @@ import com.babytracker.domain.sleep.feature.BreastfeedInterval
 import com.babytracker.domain.sleep.feature.EvidenceQuality
 import com.babytracker.domain.sleep.feature.SleepFeatures
 import com.babytracker.domain.sleep.feature.SleepMetrics
+import com.babytracker.domain.sleep.feature.WakeIntervalStats
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -49,14 +50,18 @@ class SleepWindowPredictorTest {
         sleepLast24hMillis = Duration.ofHours(4).toMillis(),
         napCountToday = 1,    // < expectedNaps(20w)=2 → nextType=NAP
         medianBedtimeMinuteOfDay = null,
-        napWakeIntervalCount = napWakeIntervalCount,
-        napWakeP25Millis = napWakeP25Millis,
-        napWakeP50Millis = napWakeP50Millis,
-        napWakeP75Millis = napWakeP75Millis,
-        bedtimeWakeIntervalCount = bedtimeWakeIntervalCount,
-        bedtimeWakeP25Millis = bedtimeWakeP25Millis,
-        bedtimeWakeP50Millis = bedtimeWakeP50Millis,
-        bedtimeWakeP75Millis = bedtimeWakeP75Millis,
+        napStats = WakeIntervalStats(
+            count = napWakeIntervalCount,
+            p25Millis = napWakeP25Millis,
+            p50Millis = napWakeP50Millis,
+            p75Millis = napWakeP75Millis,
+        ),
+        bedtimeStats = WakeIntervalStats(
+            count = bedtimeWakeIntervalCount,
+            p25Millis = bedtimeWakeP25Millis,
+            p50Millis = bedtimeWakeP50Millis,
+            p75Millis = bedtimeWakeP75Millis,
+        ),
     )
 
     private fun features(
