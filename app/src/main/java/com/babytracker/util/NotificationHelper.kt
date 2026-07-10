@@ -36,6 +36,12 @@ object NotificationHelper {
     const val BREASTFEEDING_ACTIVE_NOTIFICATION_ID = 1004
     const val BREASTFEEDING_GROUP_SUMMARY_NOTIFICATION_ID = 1005
     const val NAP_REMINDER_NOTIFICATION_ID = 1007
+
+    // Notification IDs share one NotificationManager.notify namespace app-wide; same ID = tray
+    // replacement (#772: vaccine and partner-sleep both used 1011). IDs claimed outside this file:
+    //   1006/1008 predictive feed/sleep (below), 1009/1010 StashNotificationHelper,
+    //   1011 VaccineNotificationHelper, 1012 PartnerSleepNotificationHelper,
+    //   1021 DoctorVisitNotificationHelper. Claim a new unique ID before posting a notification.
     private const val RC_SWITCH_NOW = 2001
     private const val RC_BF_DISMISS = 2002
     private const val RC_STOP_SESSION = 2003
