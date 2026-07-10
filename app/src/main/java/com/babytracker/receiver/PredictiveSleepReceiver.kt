@@ -4,7 +4,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.RecommendationLifecycle
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRecommendationRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
@@ -23,6 +25,7 @@ class PredictiveSleepReceiver : BroadcastReceiver() {
     @Inject lateinit var settingsRepository: SettingsRepository
     @Inject lateinit var sleepSettingsRepository: SleepSettingsRepository
     @Inject lateinit var sleepRecommendationRepository: SleepRecommendationRepository
+    @Inject lateinit var featureToggleRepository: FeatureToggleRepository
 
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
@@ -38,36 +41,39 @@ class PredictiveSleepReceiver : BroadcastReceiver() {
             return
         }
         val recommendationId = intent.getLongExtra(EXTRA_RECOMMENDATION_ID, 0L)
-        // Re-read feature flag and quiet hours at fire time to handle inexact-alarm delivery
-        // that may land inside a quiet window scheduled after the alarm was set.
-        goAsyncWithTimeout(TAG) {
-            val enabled = sleepSettingsRepository.getPredictiveSleepEnabled().first()
-            if (!enabled) {
-                Log.d(TAG, "Feature disabled at fire time; dropping")
-                return@goAsyncWithTimeout
-            }
-            val quietStart = settingsRepository.getQuietHoursStartMinute().first()
-            val quietEnd = settingsRepository.getQuietHoursEndMinute().first()
-            val decision = decideFire(
-                now = Instant.now(),
-                bestEstimate = Instant.ofEpochMilli(bestEstimateMs),
-                quietStartMinute = quietStart,
-                quietEndMinute = quietEnd,
-            )
-            when (decision) {
-                FireDecision.Stale -> Log.i(TAG, "Prediction stale; dropping fire")
-                FireDecision.QuietHours -> Log.d(TAG, "Fire time inside quiet hours; suppressing notification")
-                FireDecision.Fire -> {
-                    try {
-                        showPredictiveSleepReminder(context = context, bestEstimateMs = bestEstimateMs)
-                        if (recommendationId > 0L) {
-                            runCatching {
-                                sleepRecommendationRepository.updateLifecycle(recommendationId, RecommendationLifecycle.FIRED)
-                            }
+        goAsyncWithTimeout(TAG) { handle(context, bestEstimateMs, recommendationId) }
+    }
+
+    // Re-read feature flag and quiet hours at fire time to handle inexact-alarm delivery
+    // that may land inside a quiet window scheduled after the alarm was set.
+    internal suspend fun handle(context: Context, bestEstimateMs: Long, recommendationId: Long) {
+        val enabled = sleepSettingsRepository.getPredictiveSleepEnabled().first()
+        val sleepFeatureEnabled = AppFeature.SLEEP in featureToggleRepository.getEnabledFeatures().first()
+        if (!enabled || !sleepFeatureEnabled) {
+            Log.d(TAG, "Feature disabled at fire time; dropping")
+            return
+        }
+        val quietStart = settingsRepository.getQuietHoursStartMinute().first()
+        val quietEnd = settingsRepository.getQuietHoursEndMinute().first()
+        val decision = decideFire(
+            now = Instant.now(),
+            bestEstimate = Instant.ofEpochMilli(bestEstimateMs),
+            quietStartMinute = quietStart,
+            quietEndMinute = quietEnd,
+        )
+        when (decision) {
+            FireDecision.Stale -> Log.i(TAG, "Prediction stale; dropping fire")
+            FireDecision.QuietHours -> Log.d(TAG, "Fire time inside quiet hours; suppressing notification")
+            FireDecision.Fire -> {
+                try {
+                    showPredictiveSleepReminder(context = context, bestEstimateMs = bestEstimateMs)
+                    if (recommendationId > 0L) {
+                        runCatching {
+                            sleepRecommendationRepository.updateLifecycle(recommendationId, RecommendationLifecycle.FIRED)
                         }
-                    } catch (e: SecurityException) {
-                        Log.w(TAG, "POST_NOTIFICATIONS denied; skipping reminder", e)
                     }
+                } catch (e: SecurityException) {
+                    Log.w(TAG, "POST_NOTIFICATIONS denied; skipping reminder", e)
                 }
             }
         }

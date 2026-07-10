@@ -1,10 +1,12 @@
 package com.babytracker.receiver
 
 import android.content.Context
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.SleepWindow
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRecommendationRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
@@ -33,6 +35,7 @@ class PredictiveSleepBootReceiverTest {
     private lateinit var scheduler: PredictiveSleepScheduler
     private lateinit var sleepRepository: SleepRepository
     private lateinit var recommendationRepository: SleepRecommendationRepository
+    private lateinit var featureToggleRepository: FeatureToggleRepository
     private lateinit var context: Context
     private lateinit var receiver: PredictiveSleepBootReceiver
 
@@ -46,6 +49,8 @@ class PredictiveSleepBootReceiverTest {
         coEvery { sleepRepository.getLatestRecord() } returns null
         recommendationRepository = mockk(relaxed = true)
         coEvery { recommendationRepository.getLatestScheduledRecommendation() } returns null
+        featureToggleRepository = mockk()
+        every { featureToggleRepository.getEnabledFeatures() } returns flowOf(AppFeature.ALL)
         context = mockk(relaxed = true)
         receiver = PredictiveSleepBootReceiver().apply {
             settingsRepository = settings
@@ -54,6 +59,7 @@ class PredictiveSleepBootReceiverTest {
             this.scheduler = this@PredictiveSleepBootReceiverTest.scheduler
             this.sleepRepository = this@PredictiveSleepBootReceiverTest.sleepRepository
             sleepRecommendationRepository = this@PredictiveSleepBootReceiverTest.recommendationRepository
+            this.featureToggleRepository = this@PredictiveSleepBootReceiverTest.featureToggleRepository
         }
         every { sleepSettings.getPredictiveSleepLeadMinutes() } returns flowOf(15)
         every { settings.getQuietHoursStartMinute() } returns flowOf(0)
@@ -89,6 +95,53 @@ class PredictiveSleepBootReceiverTest {
         receiver.handle(context)
 
         verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any(), any()) }
+    }
+
+    @Test
+    fun `does not reschedule when SLEEP app feature is disabled even if predictive setting is enabled`() = runTest {
+        val bestEstimate = Instant.now().plusSeconds(3600)
+        val window = SleepPredictionState.Window(
+            SleepWindow(
+                windowStart = bestEstimate.minusSeconds(900),
+                windowEnd = bestEstimate.plusSeconds(900),
+                bestEstimate = bestEstimate,
+                sleepType = SleepType.NAP,
+                confidence = Confidence.HIGH,
+                reasons = emptyList(),
+                feedDue = false,
+            )
+        )
+        every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { useCase() } returns flowOf(window)
+        every { featureToggleRepository.getEnabledFeatures() } returns flowOf(emptySet())
+
+        receiver.handle(context)
+
+        verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any(), any()) }
+        verify(exactly = 0) { scheduler.cancelPredictiveReminder() }
+    }
+
+    @Test
+    fun `reschedules when predictive setting enabled and SLEEP feature enabled`() = runTest {
+        val bestEstimate = Instant.now().plusSeconds(3600)
+        val window = SleepPredictionState.Window(
+            SleepWindow(
+                windowStart = bestEstimate.minusSeconds(900),
+                windowEnd = bestEstimate.plusSeconds(900),
+                bestEstimate = bestEstimate,
+                sleepType = SleepType.NAP,
+                confidence = Confidence.HIGH,
+                reasons = emptyList(),
+                feedDue = false,
+            )
+        )
+        every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(true)
+        every { useCase() } returns flowOf(window)
+        every { featureToggleRepository.getEnabledFeatures() } returns flowOf(setOf(AppFeature.SLEEP))
+
+        receiver.handle(context)
+
+        verify(exactly = 1) { scheduler.schedulePredictiveReminderAt(any(), bestEstimate, any()) }
     }
 
     @Test
