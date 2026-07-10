@@ -16,7 +16,7 @@ import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.CreateSleepRecommendationFeedbackUseCase
 import com.babytracker.domain.usecase.sleep.PersistSleepRecommendationUseCase
 import com.babytracker.domain.usecase.sleep.SharedSleepPredictionStream
-import com.babytracker.domain.usecase.sleep.SleepRecommendationUseCases
+import com.babytracker.domain.usecase.sleep.SupersedeSleepRecommendationUseCase
 import com.babytracker.domain.repository.SleepRecommendationRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -243,11 +243,7 @@ class PredictiveSleepNotificationCoordinatorTest {
             stateFlow = MutableStateFlow(windowState(bestEstimate)),
             enabledFlow = MutableStateFlow(true),
             leadFlow = MutableStateFlow(15),
-            recommendation = SleepRecommendationUseCases(
-                persist = persist,
-                repository = mockk(relaxed = true),
-                createFeedback = mockk(relaxed = true),
-            ),
+            persistRecommendation = persist,
         )
         coordinator.start()
         advanceTimeBy(300)
@@ -260,17 +256,15 @@ class PredictiveSleepNotificationCoordinatorTest {
         val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
         coEvery { persist(any(), any()) } returns 42L
         val updateLifecycle = mockk<SleepRecommendationRepository>(relaxed = true)
+        val supersede = SupersedeSleepRecommendationUseCase(updateLifecycle, mockk(relaxed = true))
         val bestEstimate = Instant.now().plusSeconds(3600)
 
         val coordinator = buildCoordinator(
             stateFlow = MutableStateFlow(windowState(bestEstimate)),
             enabledFlow = MutableStateFlow(true),
             leadFlow = MutableStateFlow(15),
-            recommendation = SleepRecommendationUseCases(
-                persist = persist,
-                repository = updateLifecycle,
-                createFeedback = mockk(relaxed = true),
-            ),
+            persistRecommendation = persist,
+            supersedeRecommendation = supersede,
         )
         coordinator.start()
         advanceTimeBy(300)
@@ -283,6 +277,7 @@ class PredictiveSleepNotificationCoordinatorTest {
         val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
         coEvery { persist(any(), any()) } returns 55L
         val updateLifecycle = mockk<SleepRecommendationRepository>(relaxed = true)
+        val supersede = SupersedeSleepRecommendationUseCase(updateLifecycle, mockk(relaxed = true))
         val bestEstimate = Instant.now().plusSeconds(3600)
         val enabled = MutableStateFlow(true)
 
@@ -290,11 +285,8 @@ class PredictiveSleepNotificationCoordinatorTest {
             stateFlow = MutableStateFlow(windowState(bestEstimate)),
             enabledFlow = enabled,
             leadFlow = MutableStateFlow(15),
-            recommendation = SleepRecommendationUseCases(
-                persist = persist,
-                repository = updateLifecycle,
-                createFeedback = mockk(relaxed = true),
-            ),
+            persistRecommendation = persist,
+            supersedeRecommendation = supersede,
         )
         coordinator.start()
         advanceTimeBy(300)
@@ -318,11 +310,8 @@ class PredictiveSleepNotificationCoordinatorTest {
             leadFlow = MutableStateFlow(60),
             quietStartFlow = MutableStateFlow(0),
             quietEndFlow = MutableStateFlow(1439),
-            recommendation = SleepRecommendationUseCases(
-                persist = persist,
-                repository = mockk(relaxed = true),
-                createFeedback = createFeedback,
-            ),
+            persistRecommendation = persist,
+            createFeedback = createFeedback,
         )
         coordinator.start()
         advanceTimeBy(300)
@@ -344,11 +333,8 @@ class PredictiveSleepNotificationCoordinatorTest {
             leadFlow = MutableStateFlow(60),
             quietStartFlow = MutableStateFlow(0),
             quietEndFlow = MutableStateFlow(1439),
-            recommendation = SleepRecommendationUseCases(
-                persist = persist,
-                repository = mockk(relaxed = true),
-                createFeedback = createFeedback,
-            ),
+            persistRecommendation = persist,
+            createFeedback = createFeedback,
         )
         coordinator.start()
         advanceTimeBy(300)
@@ -383,11 +369,8 @@ class PredictiveSleepNotificationCoordinatorTest {
             quietStartFlow = MutableStateFlow(0),
             quietEndFlow = MutableStateFlow(1439),
             sleepRepository = customSleepRepo,
-            recommendation = SleepRecommendationUseCases(
-                persist = persist,
-                repository = mockk(relaxed = true),
-                createFeedback = createFeedback,
-            ),
+            persistRecommendation = persist,
+            createFeedback = createFeedback,
         )
         coordinator.start()
         advanceTimeBy(300)
@@ -423,11 +406,8 @@ class PredictiveSleepNotificationCoordinatorTest {
             enabledFlow = MutableStateFlow(true),
             leadFlow = leadFlow,
             sleepRepository = customSleepRepo,
-            recommendation = SleepRecommendationUseCases(
-                persist = persist,
-                repository = mockk(relaxed = true),
-                createFeedback = createFeedback,
-            ),
+            persistRecommendation = persist,
+            createFeedback = createFeedback,
         )
         coordinator.start()
         advanceTimeBy(300) // first reconcile: alarm scheduled, window state set
@@ -452,7 +432,13 @@ class PredictiveSleepNotificationCoordinatorTest {
         quietStartFlow: MutableStateFlow<Int> = MutableStateFlow(0),
         quietEndFlow: MutableStateFlow<Int> = MutableStateFlow(0),
         sleepRepository: SleepRepository = defaultSleepRepository(),
-        recommendation: SleepRecommendationUseCases = defaultRecommendationUseCases(),
+        persistRecommendation: PersistSleepRecommendationUseCase = mockk(relaxed = true),
+        // Not forwarded to the coordinator directly (it has no createFeedback param) — only used to
+        // build the default supersedeRecommendation below, so tests that override just this still
+        // exercise the real supersede/markScheduled/recordFeedback delegation.
+        createFeedback: CreateSleepRecommendationFeedbackUseCase = mockk(relaxed = true),
+        supersedeRecommendation: SupersedeSleepRecommendationUseCase =
+            SupersedeSleepRecommendationUseCase(mockk(relaxed = true), createFeedback),
         featuresFlow: MutableStateFlow<Set<AppFeature>> = MutableStateFlow(AppFeature.ALL),
     ): PredictiveSleepNotificationCoordinator {
         val sharedSleepPrediction = mockk<SharedSleepPredictionStream>().also {
@@ -475,17 +461,11 @@ class PredictiveSleepNotificationCoordinatorTest {
             sleepSettingsRepository = sleepSettings,
             scheduler = scheduler,
             sleepRepository = sleepRepository,
-            recommendation = recommendation,
+            persistRecommendation = persistRecommendation,
+            supersedeRecommendation = supersedeRecommendation,
             featureToggleRepository = featureToggle,
             applicationScope = backgroundScope,
         )
-    }
-
-    private fun defaultRecommendationUseCases(): SleepRecommendationUseCases {
-        val persist = mockk<PersistSleepRecommendationUseCase>(relaxed = true)
-        val update = mockk<SleepRecommendationRepository>(relaxed = true)
-        val feedback = mockk<CreateSleepRecommendationFeedbackUseCase>(relaxed = true)
-        return SleepRecommendationUseCases(persist, update, feedback)
     }
 
     private fun defaultSleepRepository(): SleepRepository {
