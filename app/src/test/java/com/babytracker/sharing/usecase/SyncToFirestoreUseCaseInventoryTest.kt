@@ -11,7 +11,7 @@ import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRepository
-import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
+import com.babytracker.domain.usecase.sleep.SharedSleepPredictionStream
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
@@ -43,7 +43,7 @@ class SyncToFirestoreUseCaseInventoryTest {
     private val sleepRepository: SleepRepository = mockk()
     private val inventoryRepository: InventoryRepository = mockk()
     private val bottleFeedRepository: BottleFeedRepository = mockk()
-    private val predictSleepWindow: PredictSleepWindowUseCase = mockk()
+    private val sharedSleepPrediction: SharedSleepPredictionStream = mockk()
     private val fixedNow = Instant.parse("2026-05-16T10:00:00Z")
 
     private val shareCode = ShareCode("ABCD1234")
@@ -62,7 +62,7 @@ class SyncToFirestoreUseCaseInventoryTest {
                 inventoryRepository,
                 bottleFeedRepository,
                 mockk { coEvery { getRecent(any()) } returns emptyList() },
-                predictSleepWindow,
+                sharedSleepPrediction,
                 mockk { every { getAllMeasurements() } returns flowOf(emptyList()) },
                 mockk { every { getMilestones() } returns flowOf(emptyList()) },
                 mockk { coEvery { getRecentVisits(any()) } returns emptyList() },
