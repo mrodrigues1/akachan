@@ -24,6 +24,7 @@ import com.babytracker.widget.WidgetUpdater
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
 import org.junit.Test
@@ -70,6 +71,7 @@ class PartnerSleepHistoryScreenTest {
             stopSleep = mockk<StopPartnerSleepUseCase>(),
             updateSleep = mockk<UpdatePartnerSleepUseCase>(),
             service = mockk(relaxed = true),
+            sharedSleepOps = mockk { every { observe(any(), any()) } returns emptyFlow() },
             settingsRepository = settings,
             appContext = appContext,
             now = Instant::now,

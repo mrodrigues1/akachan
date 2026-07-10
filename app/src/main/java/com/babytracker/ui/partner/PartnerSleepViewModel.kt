@@ -9,7 +9,7 @@ import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
-import com.babytracker.sharing.data.firebase.observeSleepOps
+import com.babytracker.sharing.data.firebase.SharedSleepOpStream
 import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.domain.model.mergeActiveSleep
@@ -23,17 +23,14 @@ import com.babytracker.sharing.usecase.StopPartnerSleepUseCase
 import com.babytracker.sharing.usecase.UpdatePartnerSleepUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
 import javax.inject.Inject
-import kotlin.math.min
 
 /** Editor state for a partner-owned sleep session (active or completed). */
 data class PartnerSleepEditorState(
@@ -75,6 +72,7 @@ class PartnerSleepViewModel @Inject constructor(
     private val stopSleep: StopPartnerSleepUseCase,
     private val updateSleep: UpdatePartnerSleepUseCase,
     private val service: FirestoreSharingService,
+    private val sharedSleepOps: SharedSleepOpStream,
     private val settingsRepository: SettingsRepository,
     @ApplicationContext private val appContext: Context,
     private val now: () -> Instant,
@@ -95,22 +93,17 @@ class PartnerSleepViewModel @Inject constructor(
             val codeValue = settingsRepository.getShareCode().first() ?: return@launch
             runCatching {
                 val uid = service.signInAnonymously()
-                service.observeSleepOps(codeValue, authorUid = uid)
-                    .retryWhen { cause, attempt ->
-                        // A transient Firestore listener error must not kill the stream for good: the
-                        // optimistic active overlay would freeze. Re-subscribe with capped backoff;
-                        // trackedOps survives so a consumed op keeps overlaying until the snapshot converges.
-                        Log.w(TAG, "own sleep op listener error (attempt $attempt); retrying", cause)
-                        delay(min(RETRY_BASE_MS * (attempt + 1), RETRY_MAX_MS))
-                        true
-                    }
+                // Retry/backoff and de-duplication across the dashboard + history screens now live in
+                // the shared upstream; this collector just threads emissions into the reconcile. When
+                // no view model is subscribed the shared stream detaches the Firestore listener.
+                sharedSleepOps.observe(codeValue, uid)
                     .collect { ops ->
                         liveOps = ops
                         recomputeActive()
                     }
             }.onFailure { t ->
-                // Sign-in itself failed (or something outside retryWhen's reach did) — the pending-ops
-                // overlay never starts. No UI surface for this today; log so it isn't invisible.
+                // Sign-in itself failed (the shared stream retries listener errors on its own) — the
+                // pending-ops overlay never starts. No UI surface for this today; log so it isn't invisible.
                 Log.w(TAG, "sign-in for own sleep op listener failed; pending-ops overlay will not start", t)
             }
         }
@@ -259,7 +252,5 @@ class PartnerSleepViewModel @Inject constructor(
 
     private companion object {
         const val TAG = "PartnerSleepVM"
-        const val RETRY_BASE_MS = 5_000L
-        const val RETRY_MAX_MS = 60_000L
     }
 }

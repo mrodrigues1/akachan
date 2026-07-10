@@ -4,7 +4,7 @@ import com.babytracker.BuildConfig
 import com.babytracker.debug.DebugSeedConfig
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
-import com.babytracker.sharing.data.firebase.observeSleepOps
+import com.babytracker.sharing.data.firebase.SharedSleepOpStream
 import com.babytracker.sharing.domain.model.MergedSleepHistory
 import com.babytracker.sharing.domain.model.Reconciled
 import com.babytracker.sharing.domain.model.ShareCode
@@ -33,6 +33,7 @@ import javax.inject.Inject
  */
 class ObservePartnerSleepHistoryUseCase @Inject constructor(
     private val service: FirestoreSharingService,
+    private val sharedSleepOps: SharedSleepOpStream,
     private val settingsRepository: SettingsRepository,
     private val now: () -> Instant = Instant::now,
 ) {
@@ -44,7 +45,7 @@ class ObservePartnerSleepHistoryUseCase @Inject constructor(
         return flow {
             val uid = service.signInAnonymously()
             emitAll(
-                combine(snapshotRecords, service.observeSleepOps(code.value, authorUid = uid)) { records, ops ->
+                combine(snapshotRecords, sharedSleepOps.observe(code.value, uid)) { records, ops ->
                     records to ops
                 }.scan(ReconcileState()) { state, (records, liveOps) ->
                     val reconciled = reconcilePendingOps(

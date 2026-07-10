@@ -32,6 +32,7 @@ import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.export.domain.model.BackupData
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
+import com.babytracker.sharing.data.firebase.SharedSleepOpStream
 import com.babytracker.sharing.data.firebase.deleteSleepOps
 import com.babytracker.sharing.data.firebase.observePartnerConnected
 import com.babytracker.sharing.data.firebase.observeSleepOps
@@ -127,6 +128,7 @@ class PartnerDashboardScreenTest {
             stopSleep = StopPartnerSleepUseCase(submitSleepOp),
             updateSleep = UpdatePartnerSleepUseCase(submitSleepOp),
             service = fakeSharing(null).service,
+            sharedSleepOps = mockk { every { observe(any(), any()) } returns emptyFlow() },
             settingsRepository = FakePartnerSettingsRepository(),
             appContext = appContext,
             now = Instant::now,

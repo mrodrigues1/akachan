@@ -5,7 +5,7 @@ import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
-import com.babytracker.sharing.data.firebase.observeSleepOps
+import com.babytracker.sharing.data.firebase.SharedSleepOpStream
 import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.SleepOpAction
 import com.babytracker.sharing.domain.model.SleepSnapshot
@@ -18,10 +18,8 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -44,6 +42,7 @@ class PartnerSleepViewModelTest {
     private val stopSleep: StopPartnerSleepUseCase = mockk()
     private val updateSleep: UpdatePartnerSleepUseCase = mockk()
     private val service: FirestoreSharingService = mockk(relaxed = true)
+    private val sharedSleepOps: SharedSleepOpStream = mockk()
     private val settingsRepository: SettingsRepository = mockk()
     private val appContext: Context = mockk()
     private val now = Instant.parse("2026-06-01T12:00:00Z")
@@ -54,13 +53,11 @@ class PartnerSleepViewModelTest {
     val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
 
     private fun buildViewModel() = PartnerSleepViewModel(
-        startSleep, stopSleep, updateSleep, service, settingsRepository, appContext, { now },
+        startSleep, stopSleep, updateSleep, service, sharedSleepOps, settingsRepository, appContext, { now },
     )
 
     @BeforeEach
     fun setUp() {
-        // observeSleepOps is a top-level extension function on the service.
-        mockkStatic("com.babytracker.sharing.data.firebase.FirestoreSharingServiceKt")
         // No share code -> the observe loop returns early; pending ops stay empty in these tests.
         every { settingsRepository.getShareCode() } returns flowOf(null)
         every { appContext.getString(any()) } returns "error"
@@ -168,27 +165,22 @@ class PartnerSleepViewModelTest {
     }
 
     @Test
-    fun `op listener resubscribes after a transient error`() = runTest {
+    fun `an emitted START op surfaces the optimistic active session`() = runTest {
         val startOp = SleepOp(
             opId = "op-1", action = SleepOpAction.START, entryClientId = "active-cid",
             authorUid = "uid", createdAtMs = now.toEpochMilli(), startTimeMs = now.toEpochMilli(), sleepType = SleepType.NAP,
         )
-        var attempts = 0
         every { settingsRepository.getShareCode() } returns flowOf("CODE")
         coEvery { service.signInAnonymously() } returns "uid"
-        // First subscription blows up; retryWhen must re-subscribe and pick up the op.
-        every { service.observeSleepOps("CODE", "uid") } returns flow {
-            attempts++
-            if (attempts == 1) throw IOException("listener boom")
-            emit(listOf(startOp))
-        }
+        // Retry/backoff is now the shared stream's concern; the VM just threads its emissions.
+        every { sharedSleepOps.observe("CODE", "uid") } returns flowOf(listOf(startOp))
 
         val vm = buildViewModel()
         vm.onSleepRecordsAvailable(emptyList())
         advanceUntilIdle()
 
-        assertTrue(attempts >= 2)
-        assertNotNull(vm.uiState.value.active) // the optimistic START surfaced after re-subscribe
+        assertNotNull(vm.uiState.value.active) // the optimistic START surfaced
+        assertEquals("active-cid", vm.uiState.value.active?.clientId)
     }
 
     @Test
@@ -200,7 +192,7 @@ class PartnerSleepViewModelTest {
         every { settingsRepository.getShareCode() } returns flowOf("CODE")
         coEvery { service.signInAnonymously() } returns "uid"
         // START op present, then consumed (empty) — BEFORE the snapshot has the session.
-        every { service.observeSleepOps("CODE", "uid") } returns flowOf(listOf(startOp), emptyList())
+        every { sharedSleepOps.observe("CODE", "uid") } returns flowOf(listOf(startOp), emptyList())
 
         val vm = buildViewModel()
         vm.onSleepRecordsAvailable(emptyList()) // snapshot still has no active session
@@ -224,7 +216,7 @@ class PartnerSleepViewModelTest {
         )
         every { settingsRepository.getShareCode() } returns flowOf("CODE")
         coEvery { service.signInAnonymously() } returns "uid"
-        every { service.observeSleepOps("CODE", "uid") } returns flowOf(listOf(startOp, stopOp))
+        every { sharedSleepOps.observe("CODE", "uid") } returns flowOf(listOf(startOp, stopOp))
 
         val vm = buildViewModel()
         vm.onSleepRecordsAvailable(emptyList()) // primary hasn't published the session yet
