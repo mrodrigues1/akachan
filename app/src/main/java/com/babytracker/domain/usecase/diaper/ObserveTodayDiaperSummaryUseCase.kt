@@ -14,11 +14,18 @@ class ObserveTodayDiaperSummaryUseCase @Inject constructor(
     private val now: () -> Instant,
 ) {
     operator fun invoke(): Flow<TodayDiaperSummary> =
-        diaperRepository.observeAll().map { changes ->
+        diaperRepository.observeRecent(TODAY_SUMMARY_LIMIT).map { changes ->
             val today = now().atZone(zone).toLocalDate()
             TodayDiaperSummary(
                 count = changes.count { it.timestamp.atZone(zone).toLocalDate() == today },
-                lastChangeAt = changes.maxByOrNull { it.timestamp }?.timestamp,
+                // observeRecent is timestamp DESC, so the first row is the newest change overall.
+                lastChangeAt = changes.firstOrNull()?.timestamp,
             )
         }
+
+    private companion object {
+        // ponytail: bounds the scan to the newest 100 rows; a single day with >100 changes would
+        // undercount — real-world rate is ~8-10/day, so the ceiling is theoretical.
+        const val TODAY_SUMMARY_LIMIT = 100
+    }
 }

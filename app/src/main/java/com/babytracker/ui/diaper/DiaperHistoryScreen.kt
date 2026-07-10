@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -74,7 +75,8 @@ fun DiaperHistoryScreen(
     historyViewModel: DiaperHistoryViewModel = hiltViewModel(),
     editViewModel: DiaperViewModel = hiltViewModel(),
 ) {
-    val grouped by historyViewModel.historyByDateDesc.collectAsStateWithLifecycle()
+    val historyWindow by historyViewModel.historyByDateDesc.collectAsStateWithLifecycle()
+    val grouped = historyWindow.days
     val editState by editViewModel.uiState.collectAsStateWithLifecycle()
     val pendingDelete by historyViewModel.pendingDelete.collectAsStateWithLifecycle()
     var showEditSheet by remember { mutableStateOf(false) }
@@ -181,6 +183,21 @@ fun DiaperHistoryScreen(
                             },
                             onDelete = { historyViewModel.onDeleteRequest(change) },
                         )
+                    }
+                }
+
+                if (historyWindow.hasMore) {
+                    item(key = "history_load_more") {
+                        // Keyed on size so it re-fires if the item stays composed after a page lands.
+                        LaunchedEffect(historyWindow.changeCount) { historyViewModel.onLoadMoreHistory() }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        }
                     }
                 }
             }

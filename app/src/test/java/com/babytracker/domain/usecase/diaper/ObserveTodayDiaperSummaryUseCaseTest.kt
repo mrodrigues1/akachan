@@ -24,8 +24,8 @@ class ObserveTodayDiaperSummaryUseCaseTest {
         val todayMorning = ZonedDateTime.of(2026, 6, 16, 8, 0, 0, 0, zone).toInstant()
         val todayLater = ZonedDateTime.of(2026, 6, 16, 11, 0, 0, 0, zone).toInstant()
         val yesterday = ZonedDateTime.of(2026, 6, 15, 23, 0, 0, 0, zone).toInstant()
-        every { observe.observeAll() } returns flowOf(
-            // observeAll is DESC; provide in that order
+        every { observe.observeRecent(any()) } returns flowOf(
+            // observeRecent is DESC; provide in that order
             listOf(
                 DiaperChange(id = 3, timestamp = todayLater, type = DiaperType.WET, createdAt = todayLater),
                 DiaperChange(id = 2, timestamp = todayMorning, type = DiaperType.DIRTY, createdAt = todayMorning),
@@ -45,7 +45,7 @@ class ObserveTodayDiaperSummaryUseCaseTest {
     @Test
     fun `empty history yields zero count and null last change`() = runTest {
         val observe = mockk<DiaperRepository>()
-        every { observe.observeAll() } returns flowOf(emptyList<DiaperChange>())
+        every { observe.observeRecent(any()) } returns flowOf(emptyList<DiaperChange>())
         ObserveTodayDiaperSummaryUseCase(observe, zone) { now }().test {
             val summary = awaitItem()
             assertEquals(0, summary.count)
