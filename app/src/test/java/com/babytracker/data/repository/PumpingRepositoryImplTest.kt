@@ -29,15 +29,15 @@ class PumpingRepositoryImplTest {
     }
 
     @Test
-    fun `getAllSessions maps rows to domain sessions in dao order`() = runTest {
-        every { dao.getAllSessions() } returns flowOf(
+    fun `getRecentSessionsFlow maps rows to domain sessions in dao order`() = runTest {
+        every { dao.getRecentSessionsFlow(2) } returns flowOf(
             listOf(
                 PumpingEntity(id = 2, startTime = 2_000L, endTime = 2_500L, breast = "RIGHT", volumeMl = 90),
                 PumpingEntity(id = 1, startTime = 1_000L, endTime = 1_500L, breast = "LEFT", volumeMl = 60),
             ),
         )
 
-        repository.getAllSessions().test {
+        repository.getRecentSessionsFlow(2).test {
             val sessions = awaitItem()
             assertEquals(listOf(2L, 1L), sessions.map { it.id })
             assertEquals(PumpingBreast.RIGHT, sessions[0].breast)

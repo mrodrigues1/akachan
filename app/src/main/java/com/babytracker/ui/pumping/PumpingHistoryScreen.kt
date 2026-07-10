@@ -8,12 +8,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,6 +67,7 @@ fun PumpingHistoryScreen(
     viewModel: PumpingHistoryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val historyWindow by viewModel.history.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(state.error) {
@@ -91,8 +95,10 @@ fun PumpingHistoryScreen(
     ) { padding ->
         PumpingHistoryContent(
             state = state,
+            window = historyWindow,
             onEditClicked = viewModel::onEditClicked,
             onDeleteClicked = viewModel::onPendingDeleteSessionChanged,
+            onLoadMore = viewModel::onLoadMoreHistory,
             contentPadding = PaddingValues(
                 top = padding.calculateTopPadding() + 8.dp,
                 bottom = padding.calculateBottomPadding() + 8.dp,
@@ -127,7 +133,9 @@ internal fun PumpingHistoryContent(
     state: PumpingHistoryUiState,
     onEditClicked: (PumpingSession) -> Unit,
     modifier: Modifier = Modifier,
+    window: PumpingHistoryWindow = PumpingHistoryWindow(),
     onDeleteClicked: (PumpingSession) -> Unit = {},
+    onLoadMore: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
 ) {
     // Mirror the breastfeeding history: a soft, desaturated pink row tint with the text in the section
@@ -136,7 +144,7 @@ internal fun PumpingHistoryContent(
     val rowText = if (isDark) Pink200 else Pink900
     val rowContainer = if (isDark) FeedHistoryRowContainerDark else FeedHistoryRowContainer
     Box(modifier = modifier.fillMaxSize()) {
-        if (state.sessions.isEmpty()) {
+        if (window.sessions.isEmpty()) {
             EmptyState(
                 title = stringResource(R.string.pumping_history_empty_title),
                 subtitle = stringResource(R.string.breastfeeding_history_empty_subtitle),
@@ -147,8 +155,8 @@ internal fun PumpingHistoryContent(
             return@Box
         }
 
-        val sortedGroups = remember(state.sessions) {
-            state.sessions.groupByDateDescending { it.startTime }
+        val sortedGroups = remember(window.sessions) {
+            window.sessions.groupByDateDescending { it.startTime }
         }
 
         LazyColumn(
@@ -190,6 +198,21 @@ internal fun PumpingHistoryContent(
                             )
                         },
                     )
+                }
+            }
+
+            if (window.hasMore) {
+                item(key = "history_load_more") {
+                    // Keyed on size so it re-fires if the item stays composed after a page lands.
+                    LaunchedEffect(window.sessions.size) { onLoadMore() }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    }
                 }
             }
         }

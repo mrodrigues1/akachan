@@ -15,11 +15,13 @@ import com.babytracker.domain.usecase.pumping.UpdatePumpingSessionUseCase
 import com.babytracker.domain.usecase.pumping.validatePumpingEdit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -49,13 +51,21 @@ data class EditPumpingSheetState(
 }
 
 data class PumpingHistoryUiState(
-    val sessions: List<PumpingSession> = emptyList(),
     val editSheet: EditPumpingSheetState? = null,
     val pendingDeleteSession: PumpingSession? = null,
     val error: String? = null,
     val volumeUnit: VolumeUnit = VolumeUnit.ML,
 )
 
+/** Windowed slice of the session history, newest first. */
+data class PumpingHistoryWindow(
+    val sessions: List<PumpingSession> = emptyList(),
+    val hasMore: Boolean = false,
+)
+
+private const val HISTORY_PAGE_SIZE = 50
+
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class PumpingHistoryViewModel @Inject constructor(
     private val pumpingRepository: PumpingRepository,
@@ -68,15 +78,31 @@ class PumpingHistoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PumpingHistoryUiState())
     val uiState: StateFlow<PumpingHistoryUiState> = _uiState.asStateFlow()
 
-    val sessions: StateFlow<List<PumpingSession>> = pumpingRepository.getAllSessions()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val historyLimit = MutableStateFlow(HISTORY_PAGE_SIZE)
+
+    // Bounded window instead of getAllSessions(): queries one row past the limit so hasMore
+    // never needs a separate count query.
+    val history: StateFlow<PumpingHistoryWindow> = historyLimit
+        .flatMapLatest { limit ->
+            pumpingRepository.getRecentSessionsFlow(limit + 1).map { sessions ->
+                PumpingHistoryWindow(sessions = sessions.take(limit), hasMore = sessions.size > limit)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PumpingHistoryWindow())
+
+    fun onLoadMoreHistory() {
+        val window = history.value
+        // Ignore repeats until the previously requested window has emitted: the load-more
+        // sentinel can leave and re-enter composition before Room delivers the bigger page.
+        if (!window.hasMore || window.sessions.size < historyLimit.value) return
+        historyLimit.value += HISTORY_PAGE_SIZE
+    }
 
     init {
         viewModelScope.launch {
-            combine(sessions, settingsRepository.getVolumeUnit()) { list, unit -> list to unit }
-                .collect { (list, unit) ->
-                    _uiState.value = _uiState.value.copy(sessions = list, volumeUnit = unit)
-                }
+            settingsRepository.getVolumeUnit().collect { unit ->
+                _uiState.value = _uiState.value.copy(volumeUnit = unit)
+            }
         }
     }
 
