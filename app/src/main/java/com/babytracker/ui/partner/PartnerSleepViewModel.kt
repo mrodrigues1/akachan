@@ -7,16 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.babytracker.R
 import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepType
-import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.sharing.data.firebase.FirestoreSharingService
-import com.babytracker.sharing.data.firebase.SharedSleepOpStream
-import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.SleepSnapshot
-import com.babytracker.sharing.domain.model.mergeActiveSleep
-import com.babytracker.sharing.domain.model.mergeSleepHistory
-import com.babytracker.sharing.domain.model.reconcilePendingOps
-import com.babytracker.sharing.domain.model.sleepActiveReflected
-import com.babytracker.sharing.domain.model.sleepHistoryReflected
+import com.babytracker.sharing.usecase.ObservePartnerActiveSleepUseCase
 import com.babytracker.sharing.usecase.PartnerAccessRevokedException
 import com.babytracker.sharing.usecase.StartPartnerSleepUseCase
 import com.babytracker.sharing.usecase.StopPartnerSleepUseCase
@@ -26,7 +18,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -63,91 +57,62 @@ data class PartnerSleepUiState(
 
 /**
  * Partner-side sleep controls for the dashboard: start a nap / night sleep, stop the active session
- * (shared — whoever started it), and edit the partner's OWN sessions. The active session shown is
- * the authoritative snapshot overlaid with the partner's own pending ops (optimistic feedback).
+ * (shared — whoever started it), and edit the partner's OWN sessions. The reconcile/merge pipeline that
+ * resolves the active session and history overlays lives in [ObservePartnerActiveSleepUseCase]; this
+ * view model just collects it into [uiState] and owns the UI-only concerns (busy/error/editor/revoked)
+ * and the start/stop/edit action handlers.
  */
 @HiltViewModel
 class PartnerSleepViewModel @Inject constructor(
     private val startSleep: StartPartnerSleepUseCase,
     private val stopSleep: StopPartnerSleepUseCase,
     private val updateSleep: UpdatePartnerSleepUseCase,
-    private val service: FirestoreSharingService,
-    private val sharedSleepOps: SharedSleepOpStream,
-    private val settingsRepository: SettingsRepository,
+    private val observeActiveSleep: ObservePartnerActiveSleepUseCase,
     @ApplicationContext private val appContext: Context,
-    private val now: () -> Instant,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PartnerSleepUiState())
     val uiState: StateFlow<PartnerSleepUiState> = _uiState.asStateFlow()
 
-    private var snapshotRecords: List<SleepSnapshot> = emptyList()
-    private var liveOps: List<SleepOp> = emptyList()
-    private var trackedOps: List<SleepOp> = emptyList()
-    // Separate tracked state for the history overlay: its STOP-reflected rule differs from the active
-    // overlay's (see sleepHistoryReflected), so it must reconcile independently.
-    private var trackedHistoryOps: List<SleepOp> = emptyList()
+    // The authoritative snapshot sleep records, pushed in by the dashboard so the active merge stays
+    // current. Feeds the use case's reconcile stream; the history screen never pushes (edit-only there).
+    private val snapshotRecords = MutableStateFlow<List<SleepSnapshot>>(emptyList())
 
     init {
+        // Subscription-scoped: run the reconcile collection only while uiState has a collector, so a
+        // backstacked dashboard releases its share of the shared sleep-op listener (which then detaches
+        // once no view model is subscribed). collectLatest cancels the inner collect when the last
+        // collector leaves and restarts it when one returns.
         viewModelScope.launch {
-            val codeValue = settingsRepository.getShareCode().first() ?: return@launch
-            runCatching {
-                val uid = service.signInAnonymously()
-                // Retry/backoff and de-duplication across the dashboard + history screens now live in
-                // the shared upstream; this collector just threads emissions into the reconcile. When
-                // no view model is subscribed the shared stream detaches the Firestore listener.
-                sharedSleepOps.observe(codeValue, uid)
-                    .collect { ops ->
-                        liveOps = ops
-                        recomputeActive()
+            _uiState.subscriptionCount
+                .map { it > 0 }
+                .distinctUntilChanged()
+                .collectLatest { hasSubscribers ->
+                    if (!hasSubscribers) return@collectLatest
+                    runCatching {
+                        observeActiveSleep(snapshotRecords).collect { active ->
+                            _uiState.update {
+                                it.copy(
+                                    active = active.active,
+                                    lastCompleted = active.lastCompleted,
+                                    mostRecent = active.mostRecent,
+                                    stopping = active.stopping,
+                                    canEditActive = active.canEditActive,
+                                )
+                            }
+                        }
+                    }.onFailure { t ->
+                        // Sign-in itself failed (the shared stream retries listener errors on its own) —
+                        // the pending-ops overlay never starts. No UI surface today; log so it isn't invisible.
+                        Log.w(TAG, "sign-in for own sleep op listener failed; pending-ops overlay will not start", t)
                     }
-            }.onFailure { t ->
-                // Sign-in itself failed (the shared stream retries listener errors on its own) — the
-                // pending-ops overlay never starts. No UI surface for this today; log so it isn't invisible.
-                Log.w(TAG, "sign-in for own sleep op listener failed; pending-ops overlay will not start", t)
-            }
+                }
         }
     }
 
     /** Fed the latest snapshot sleep records by the dashboard so the active merge stays current. */
     fun onSleepRecordsAvailable(records: List<SleepSnapshot>) {
-        snapshotRecords = records
-        recomputeActive()
-    }
-
-    private fun recomputeActive() {
-        val reconciled = reconcilePendingOps(
-            isReflected = { sleepActiveReflected(it, snapshotRecords) },
-            liveOps = liveOps,
-            tracked = trackedOps,
-            nowMs = now().toEpochMilli(),
-        )
-        trackedOps = reconciled.nextTracked
-        val snapshotActive = snapshotRecords.firstOrNull { it.endTime == null }
-        val merged = mergeActiveSleep(snapshotActive, reconciled.effectiveOps, now().toEpochMilli())
-        val session = merged.session
-
-        val reconciledHistory = reconcilePendingOps(
-            isReflected = { sleepHistoryReflected(it, snapshotRecords) },
-            liveOps = liveOps,
-            tracked = trackedHistoryOps,
-            nowMs = now().toEpochMilli(),
-        )
-        trackedHistoryOps = reconciledHistory.nextTracked
-        val historyEntries =
-            mergeSleepHistory(snapshotRecords, reconciledHistory.effectiveOps, now().toEpochMilli()).entries
-
-        _uiState.update {
-            it.copy(
-                active = session,
-                lastCompleted = historyEntries.firstOrNull { entry -> entry.endTime != null },
-                mostRecent = historyEntries.firstOrNull(),
-                stopping = merged.stopping,
-                canEditActive = session != null &&
-                    session.startedBy == SleepAuthor.PARTNER &&
-                    session.clientId.isNotEmpty(),
-            )
-        }
+        snapshotRecords.value = records
     }
 
     fun onStartNap() = start(SleepType.NAP)

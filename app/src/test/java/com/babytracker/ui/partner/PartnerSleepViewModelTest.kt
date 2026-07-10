@@ -3,13 +3,10 @@ package com.babytracker.ui.partner
 import android.content.Context
 import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepType
-import com.babytracker.domain.repository.SettingsRepository
-import com.babytracker.sharing.data.firebase.FirestoreSharingService
-import com.babytracker.sharing.data.firebase.SharedSleepOpStream
-import com.babytracker.sharing.domain.model.SleepOp
-import com.babytracker.sharing.domain.model.SleepOpAction
 import com.babytracker.sharing.domain.model.SleepSnapshot
+import com.babytracker.sharing.usecase.ObservePartnerActiveSleepUseCase
 import com.babytracker.sharing.usecase.PartnerAccessRevokedException
+import com.babytracker.sharing.usecase.PartnerActiveSleep
 import com.babytracker.sharing.usecase.StartPartnerSleepUseCase
 import com.babytracker.sharing.usecase.StopPartnerSleepUseCase
 import com.babytracker.sharing.usecase.UpdatePartnerSleepUseCase
@@ -18,13 +15,12 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.unmockkAll
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -41,34 +37,30 @@ class PartnerSleepViewModelTest {
     private val startSleep: StartPartnerSleepUseCase = mockk()
     private val stopSleep: StopPartnerSleepUseCase = mockk()
     private val updateSleep: UpdatePartnerSleepUseCase = mockk()
-    private val service: FirestoreSharingService = mockk(relaxed = true)
-    private val sharedSleepOps: SharedSleepOpStream = mockk()
-    private val settingsRepository: SettingsRepository = mockk()
+    private val observeActiveSleep: ObservePartnerActiveSleepUseCase = mockk()
     private val appContext: Context = mockk()
     private val now = Instant.parse("2026-06-01T12:00:00Z")
     private val testDispatcher = StandardTestDispatcher()
+
+    // The reconcile/merge pipeline now lives in ObservePartnerActiveSleepUseCase (tested separately);
+    // the view model just mirrors its emissions, so tests drive the active state through this flow.
+    private val activeFlow = MutableStateFlow(PartnerActiveSleep())
 
     @JvmField
     @RegisterExtension
     val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
 
     private fun buildViewModel() = PartnerSleepViewModel(
-        startSleep, stopSleep, updateSleep, service, sharedSleepOps, settingsRepository, appContext, { now },
+        startSleep, stopSleep, updateSleep, observeActiveSleep, appContext,
     )
 
     @BeforeEach
     fun setUp() {
-        // No share code -> the observe loop returns early; pending ops stay empty in these tests.
-        every { settingsRepository.getShareCode() } returns flowOf(null)
+        coEvery { observeActiveSleep(any()) } returns activeFlow
         every { appContext.getString(any()) } returns "error"
         coEvery { startSleep(any()) } returns "new-cid"
         coEvery { stopSleep(any()) } returns Unit
         coEvery { updateSleep(any(), any(), any(), any(), any()) } returns Unit
-    }
-
-    @AfterEach
-    fun tearDown() {
-        unmockkAll()
     }
 
     private fun partnerActive(clientId: String = "p-cid") = SleepSnapshot(
@@ -84,7 +76,7 @@ class PartnerSleepViewModelTest {
     @Test
     fun `onStartNap starts a nap when idle`() = runTest {
         val vm = buildViewModel()
-        vm.onSleepRecordsAvailable(emptyList())
+        advanceUntilIdle()
 
         vm.onStartNap()
         advanceUntilIdle()
@@ -95,6 +87,8 @@ class PartnerSleepViewModelTest {
     @Test
     fun `onStartNightSleep starts night sleep when idle`() = runTest {
         val vm = buildViewModel()
+        advanceUntilIdle()
+
         vm.onStartNightSleep()
         advanceUntilIdle()
 
@@ -103,8 +97,10 @@ class PartnerSleepViewModelTest {
 
     @Test
     fun `start is ignored when a session is already active`() = runTest {
+        activeFlow.value = PartnerActiveSleep(active = ownerActive())
         val vm = buildViewModel()
-        vm.onSleepRecordsAvailable(listOf(ownerActive()))
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
 
         vm.onStartNap()
         advanceUntilIdle()
@@ -114,8 +110,10 @@ class PartnerSleepViewModelTest {
 
     @Test
     fun `onStop stops the active session by its clientId`() = runTest {
+        activeFlow.value = PartnerActiveSleep(active = partnerActive("active-cid"))
         val vm = buildViewModel()
-        vm.onSleepRecordsAvailable(listOf(partnerActive("active-cid")))
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
 
         vm.onStop()
         advanceUntilIdle()
@@ -124,25 +122,48 @@ class PartnerSleepViewModelTest {
     }
 
     @Test
-    fun `canEditActive is true for a partner session, false for an owner session`() = runTest {
+    fun `canEditActive mirrors the use case output`() = runTest {
         val vm = buildViewModel()
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
 
-        vm.onSleepRecordsAvailable(listOf(partnerActive()))
+        activeFlow.value = PartnerActiveSleep(active = partnerActive(), canEditActive = true)
+        advanceUntilIdle()
         assertTrue(vm.uiState.value.canEditActive)
 
-        vm.onSleepRecordsAvailable(listOf(ownerActive()))
+        activeFlow.value = PartnerActiveSleep(active = ownerActive(), canEditActive = false)
+        advanceUntilIdle()
         assertFalse(vm.uiState.value.canEditActive)
+    }
+
+    @Test
+    fun `active, lastCompleted and mostRecent mirror the use case output`() = runTest {
+        val active = partnerActive("p-cid")
+        val completed = partnerActive("c-cid").copy(endTime = now.toEpochMilli())
+        activeFlow.value = PartnerActiveSleep(active = active, lastCompleted = completed, mostRecent = active, stopping = true)
+        val vm = buildViewModel()
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(active, vm.uiState.value.active)
+        assertEquals(completed, vm.uiState.value.lastCompleted)
+        assertEquals(active, vm.uiState.value.mostRecent)
+        assertTrue(vm.uiState.value.stopping)
     }
 
     @Test
     fun `onEditActive opens the editor only for a partner session`() = runTest {
         val vm = buildViewModel()
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
 
-        vm.onSleepRecordsAvailable(listOf(ownerActive()))
+        activeFlow.value = PartnerActiveSleep(active = ownerActive())
+        advanceUntilIdle()
         vm.onEditActive()
         assertNull(vm.uiState.value.editor)
 
-        vm.onSleepRecordsAvailable(listOf(partnerActive("edit-cid")))
+        activeFlow.value = PartnerActiveSleep(active = partnerActive("edit-cid"))
+        advanceUntilIdle()
         vm.onEditActive()
         assertNotNull(vm.uiState.value.editor)
         assertEquals("edit-cid", vm.uiState.value.editor?.clientId)
@@ -150,8 +171,10 @@ class PartnerSleepViewModelTest {
 
     @Test
     fun `onConfirmEdit submits the edited fields and closes the editor`() = runTest {
+        activeFlow.value = PartnerActiveSleep(active = partnerActive("edit-cid"))
         val vm = buildViewModel()
-        vm.onSleepRecordsAvailable(listOf(partnerActive("edit-cid")))
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
         vm.onEditActive()
         vm.onEditorTypeChange(SleepType.NIGHT_SLEEP)
 
@@ -165,75 +188,10 @@ class PartnerSleepViewModelTest {
     }
 
     @Test
-    fun `an emitted START op surfaces the optimistic active session`() = runTest {
-        val startOp = SleepOp(
-            opId = "op-1", action = SleepOpAction.START, entryClientId = "active-cid",
-            authorUid = "uid", createdAtMs = now.toEpochMilli(), startTimeMs = now.toEpochMilli(), sleepType = SleepType.NAP,
-        )
-        every { settingsRepository.getShareCode() } returns flowOf("CODE")
-        coEvery { service.signInAnonymously() } returns "uid"
-        // Retry/backoff is now the shared stream's concern; the VM just threads its emissions.
-        every { sharedSleepOps.observe("CODE", "uid") } returns flowOf(listOf(startOp))
-
-        val vm = buildViewModel()
-        vm.onSleepRecordsAvailable(emptyList())
-        advanceUntilIdle()
-
-        assertNotNull(vm.uiState.value.active) // the optimistic START surfaced
-        assertEquals("active-cid", vm.uiState.value.active?.clientId)
-    }
-
-    @Test
-    fun `a consumed START overlay is retained until the snapshot shows the session`() = runTest {
-        val startOp = SleepOp(
-            opId = "op-1", action = SleepOpAction.START, entryClientId = "p-cid",
-            authorUid = "uid", createdAtMs = now.toEpochMilli(), startTimeMs = now.toEpochMilli(), sleepType = SleepType.NAP,
-        )
-        every { settingsRepository.getShareCode() } returns flowOf("CODE")
-        coEvery { service.signInAnonymously() } returns "uid"
-        // START op present, then consumed (empty) — BEFORE the snapshot has the session.
-        every { sharedSleepOps.observe("CODE", "uid") } returns flowOf(listOf(startOp), emptyList())
-
-        val vm = buildViewModel()
-        vm.onSleepRecordsAvailable(emptyList()) // snapshot still has no active session
-        advanceUntilIdle()
-
-        // The just-started session is retained optimistically instead of vanishing on op-consume.
-        assertNotNull(vm.uiState.value.active)
-        assertEquals("p-cid", vm.uiState.value.active?.clientId)
-    }
-
-    @Test
-    fun `a stopped session the primary has not yet published shows as the last completed sleep`() = runTest {
-        val t = now.toEpochMilli()
-        val startOp = SleepOp(
-            opId = "op-start", action = SleepOpAction.START, entryClientId = "c",
-            authorUid = "uid", createdAtMs = t - 1_000, startTimeMs = t - 1_000, sleepType = SleepType.NAP,
-        )
-        val stopOp = SleepOp(
-            opId = "op-stop", action = SleepOpAction.STOP, entryClientId = "c",
-            authorUid = "uid", createdAtMs = t, endTimeMs = t,
-        )
-        every { settingsRepository.getShareCode() } returns flowOf("CODE")
-        coEvery { service.signInAnonymously() } returns "uid"
-        every { sharedSleepOps.observe("CODE", "uid") } returns flowOf(listOf(startOp, stopOp))
-
-        val vm = buildViewModel()
-        vm.onSleepRecordsAvailable(emptyList()) // primary hasn't published the session yet
-        advanceUntilIdle()
-
-        assertNull(vm.uiState.value.active) // no longer active (start then stop)
-        val completed = vm.uiState.value.lastCompleted
-        assertNotNull(completed)
-        assertEquals("c", completed?.clientId)
-        assertEquals(t, completed?.endTime)
-        assertEquals("c", vm.uiState.value.mostRecent?.clientId)
-    }
-
-    @Test
     fun `revoked access surfaces an accessRevoked event`() = runTest {
         coEvery { startSleep(any()) } throws PartnerAccessRevokedException("revoked")
         val vm = buildViewModel()
+        advanceUntilIdle()
 
         vm.onStartNap()
         advanceUntilIdle()
@@ -245,6 +203,7 @@ class PartnerSleepViewModelTest {
     fun `failed start surfaces a startStopError and clears busy`() = runTest {
         coEvery { startSleep(any()) } throws IOException("offline")
         val vm = buildViewModel()
+        advanceUntilIdle()
 
         vm.onStartNap()
         advanceUntilIdle()
@@ -257,8 +216,10 @@ class PartnerSleepViewModelTest {
     @Test
     fun `failed stop surfaces a startStopError and clears busy`() = runTest {
         coEvery { stopSleep(any()) } throws IOException("offline")
+        activeFlow.value = PartnerActiveSleep(active = partnerActive("active-cid"))
         val vm = buildViewModel()
-        vm.onSleepRecordsAvailable(listOf(partnerActive("active-cid")))
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
 
         vm.onStop()
         advanceUntilIdle()
@@ -271,6 +232,7 @@ class PartnerSleepViewModelTest {
     fun `startStopError clears on the next start attempt`() = runTest {
         coEvery { startSleep(any()) } throws IOException("offline") andThen "new-cid"
         val vm = buildViewModel()
+        advanceUntilIdle()
 
         vm.onStartNap()
         advanceUntilIdle()
