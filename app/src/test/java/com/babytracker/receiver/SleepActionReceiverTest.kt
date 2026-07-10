@@ -21,7 +21,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
-import java.time.ZoneId
 import java.time.ZoneOffset
 
 class SleepActionReceiverTest {
@@ -121,7 +120,9 @@ class SleepActionReceiverTest {
     fun `ACTION_STOP with NIGHT_SLEEP ended today sets the wake time`() = runTest {
         // AKACHAN-354: unlike the old hand-rolled receiver choreography, the shared controller
         // propagates a night-sleep end into the wake-time setting on this notification-driven path too.
-        val now = Instant.now()
+        // "Today" is derived from the controller's injected clock (issue #762), so the record must
+        // end on the fixed clock's date rather than the real wall-clock date.
+        val now = clock.instant()
         val nightRecord = SleepRecord(
             id = 99L, startTime = now.minusSeconds(28800), endTime = now, sleepType = SleepType.NIGHT_SLEEP
         )
@@ -129,7 +130,7 @@ class SleepActionReceiverTest {
 
         receiver.handle(buildStopIntent())
 
-        val expectedWakeTime = now.atZone(ZoneId.systemDefault()).toLocalTime()
+        val expectedWakeTime = now.atZone(clock.zone).toLocalTime()
         coVerify { settingsRepository.setWakeTime(expectedWakeTime) }
     }
 
