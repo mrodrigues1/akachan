@@ -54,7 +54,7 @@ class DiaperHistoryScreenTest {
     )
 
     private fun setScreen(changes: List<DiaperChange>) {
-        val diaperRepository = mockk<DiaperRepository> { every { observeAll() } returns flowOf(changes) }
+        val diaperRepository = mockk<DiaperRepository> { every { observeRecent(any()) } returns flowOf(changes) }
         val delete = mockk<DeleteDiaperChangeUseCase>().also { coEvery { it.invoke(any()) } just Runs }
         val log = mockk<LogDiaperChangeUseCase>(relaxed = true)
         val edit = mockk<EditDiaperChangeUseCase>(relaxed = true)

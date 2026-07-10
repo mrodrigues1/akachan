@@ -42,21 +42,51 @@ class DiaperHistoryViewModelTest {
     fun `groups by day descending`() = runTest {
         val day16 = ZonedDateTime.of(2026, 6, 16, 8, 0, 0, 0, zone).toInstant()
         val day15 = ZonedDateTime.of(2026, 6, 15, 9, 0, 0, 0, zone).toInstant()
-        every { diaperRepository.observeAll() } returns flowOf(listOf(change(2, day16), change(1, day15)))
+        every { diaperRepository.observeRecent(any()) } returns flowOf(listOf(change(2, day16), change(1, day15)))
         val vm = DiaperHistoryViewModel(diaperRepository, delete, zone)
         vm.historyByDateDesc.test {
             // stateIn emits its initial empty value first; skip past it to the mapped value.
-            var groups = awaitItem()
-            if (groups.isEmpty()) groups = awaitItem()
-            assertEquals(2, groups.size)
-            assertEquals(LocalDate.of(2026, 6, 16), groups.first().first)
+            var window = awaitItem()
+            if (window.days.isEmpty()) window = awaitItem()
+            assertEquals(2, window.days.size)
+            assertEquals(LocalDate.of(2026, 6, 16), window.days.first().first)
+            assertFalse(window.hasMore)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `history window flags hasMore and grows on load more`() = runTest {
+        val base = ZonedDateTime.of(2026, 6, 16, 8, 0, 0, 0, zone).toInstant()
+        // 51 rows: one past the first page of 50, so hasMore is derived without a count query.
+        val changes = List(51) { i -> change(i + 1L, base.minusSeconds(3_600L * i)) }
+        every { diaperRepository.observeRecent(51) } returns flowOf(changes)
+        every { diaperRepository.observeRecent(101) } returns flowOf(changes)
+        val vm = DiaperHistoryViewModel(diaperRepository, delete, zone)
+
+        vm.historyByDateDesc.test {
+            var window = awaitItem()
+            while (window.changeCount < 50) {
+                window = awaitItem()
+            }
+            assertTrue(window.hasMore)
+
+            // Second call arrives before the grown window emits: it must be ignored, otherwise the
+            // limit reaches 150 and the unstubbed observeRecent(151) fails this test.
+            vm.onLoadMoreHistory()
+            vm.onLoadMoreHistory()
+
+            while (window.changeCount != 51) {
+                window = awaitItem()
+            }
+            assertFalse(window.hasMore)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
     fun `delete request then confirm deletes and clears pending`() = runTest {
-        every { diaperRepository.observeAll() } returns flowOf(emptyList())
+        every { diaperRepository.observeRecent(any()) } returns flowOf(emptyList())
         coEvery { delete(7) } just Runs
         val vm = DiaperHistoryViewModel(diaperRepository, delete, zone)
         val c = change(7, Instant.ofEpochMilli(1_000))
@@ -71,7 +101,7 @@ class DiaperHistoryViewModelTest {
 
     @Test
     fun `cancel clears pending without deleting`() = runTest {
-        every { diaperRepository.observeAll() } returns flowOf(emptyList())
+        every { diaperRepository.observeRecent(any()) } returns flowOf(emptyList())
         val vm = DiaperHistoryViewModel(diaperRepository, delete, zone)
 
         vm.onDeleteRequest(change(7, Instant.ofEpochMilli(1_000)))
@@ -83,7 +113,7 @@ class DiaperHistoryViewModelTest {
 
     @Test
     fun `confirm delete failure sets deleteError and consume clears it`() = runTest {
-        every { diaperRepository.observeAll() } returns flowOf(emptyList())
+        every { diaperRepository.observeRecent(any()) } returns flowOf(emptyList())
         coEvery { delete(7) } throws RuntimeException("db write failed")
         val vm = DiaperHistoryViewModel(diaperRepository, delete, zone)
 

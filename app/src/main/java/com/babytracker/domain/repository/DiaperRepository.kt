@@ -5,7 +5,8 @@ import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
 interface DiaperRepository {
-    fun observeAll(): Flow<List<DiaperChange>>
+    /** Observes the newest [limit] changes, newest first. */
+    fun observeRecent(limit: Int): Flow<List<DiaperChange>>
 
     /** The [limit] most recent diaper changes, newest first. Bounded one-shot read for sync. */
     suspend fun getRecent(limit: Int): List<DiaperChange>

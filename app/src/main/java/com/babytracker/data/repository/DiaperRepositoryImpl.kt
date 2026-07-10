@@ -14,8 +14,8 @@ import javax.inject.Singleton
 class DiaperRepositoryImpl @Inject constructor(
     private val dao: DiaperDao,
 ) : DiaperRepository {
-    override fun observeAll(): Flow<List<DiaperChange>> =
-        dao.observeAll().mapList { it.toDomain() }
+    override fun observeRecent(limit: Int): Flow<List<DiaperChange>> =
+        dao.observeRecent(limit).mapList { it.toDomain() }
 
     override suspend fun getRecent(limit: Int): List<DiaperChange> =
         dao.getRecent(limit).map { it.toDomain() }

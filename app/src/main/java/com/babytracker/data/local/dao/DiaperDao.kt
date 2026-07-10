@@ -9,8 +9,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DiaperDao {
-    @Query("SELECT * FROM diaper_changes ORDER BY timestamp DESC")
-    fun observeAll(): Flow<List<DiaperEntity>>
+    @Query("SELECT * FROM diaper_changes ORDER BY timestamp DESC LIMIT :limit")
+    fun observeRecent(limit: Int): Flow<List<DiaperEntity>>
 
     @Query("SELECT * FROM diaper_changes ORDER BY timestamp DESC LIMIT :limit")
     suspend fun getRecent(limit: Int): List<DiaperEntity>

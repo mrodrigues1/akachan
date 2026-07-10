@@ -36,8 +36,9 @@ class DiaperDaoTest {
         dao.insert(DiaperEntity(timestamp = 300, type = "DIRTY", createdAt = 300))
         dao.insert(DiaperEntity(timestamp = 200, type = "BOTH", createdAt = 200))
 
-        val all = dao.observeAll().first()
+        val all = dao.observeRecent(10).first()
         assertEquals(listOf(300L, 200L, 100L), all.map { it.timestamp })
+        assertEquals(listOf(300L, 200L), dao.observeRecent(2).first().map { it.timestamp })
         assertEquals(1, dao.getBetween(150, 250).size)
         assertEquals(listOf(100L, 200L, 300L), dao.getAllOnce().map { it.timestamp })
     }
@@ -46,8 +47,8 @@ class DiaperDaoTest {
     fun updateAndDelete() = runTest {
         val id = dao.insert(DiaperEntity(timestamp = 100, type = "WET", createdAt = 100))
         dao.update(DiaperEntity(id = id, timestamp = 100, type = "BOTH", createdAt = 100))
-        assertEquals("BOTH", dao.observeAll().first().single().type)
+        assertEquals("BOTH", dao.observeRecent(10).first().single().type)
         assertEquals(1, dao.deleteById(id))
-        assertEquals(0, dao.observeAll().first().size)
+        assertEquals(0, dao.observeRecent(10).first().size)
     }
 }

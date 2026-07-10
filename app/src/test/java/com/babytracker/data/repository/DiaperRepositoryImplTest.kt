@@ -28,11 +28,11 @@ class DiaperRepositoryImplTest {
     }
 
     @Test
-    fun `observeAll maps entities to domain`() = runTest {
-        every { dao.observeAll() } returns flowOf(
+    fun `observeRecent maps entities to domain`() = runTest {
+        every { dao.observeRecent(1) } returns flowOf(
             listOf(DiaperEntity(id = 1, timestamp = 10, type = "WET", notes = null, createdAt = 5)),
         )
-        repository.observeAll().test {
+        repository.observeRecent(1).test {
             val list = awaitItem()
             assertEquals(1, list.size)
             assertEquals(DiaperType.WET, list.first().type)
