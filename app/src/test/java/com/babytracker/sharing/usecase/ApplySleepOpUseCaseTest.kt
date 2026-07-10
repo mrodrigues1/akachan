@@ -33,6 +33,9 @@ class ApplySleepOpUseCaseTest {
     fun setUp() {
         repository = mockk(relaxed = true)
         useCase = ApplySleepOpUseCase(repository) { now }
+        coEvery { repository.inTransaction<Any?>(any()) } coAnswers { firstArg<suspend () -> Any?>().invoke() }
+        coEvery { repository.getActiveRecord() } returns null
+        coEvery { repository.getCompletedRecordsBetween(any(), any()) } returns emptyList()
     }
 
     private fun startOp(clientId: String = "c1", startMs: Long = past.toEpochMilli(), type: SleepType? = SleepType.NAP) =
@@ -178,6 +181,51 @@ class ApplySleepOpUseCaseTest {
     fun `update with a missing target is dropped`() = runTest {
         coEvery { repository.getByClientId("c1") } returns null
         assertFalse(useCase(updateOp()).roomChanged)
+    }
+
+    @Test
+    fun `start overlapping a completed record is dropped`() = runTest {
+        // Regression for #774: the open session spans startTime→ongoing, so a completed record
+        // covering that span makes the START invalid.
+        coEvery { repository.getByClientId("c1") } returns null
+        coEvery { repository.getCompletedRecordsBetween(any(), any()) } returns listOf(
+            record(clientId = "other", endTime = past.plusSeconds(300)).copy(id = 9),
+        )
+
+        val result = useCase(startOp())
+
+        assertFalse(result.roomChanged)
+        coVerify(exactly = 0) { repository.insertRecord(any()) }
+    }
+
+    @Test
+    fun `update overlapping another record is dropped`() = runTest {
+        // Regression for #774: partner UPDATE ops previously bypassed overlap validation.
+        coEvery { repository.getByClientId("c1") } returns record(author = SleepAuthor.PARTNER)
+        coEvery { repository.getCompletedRecordsBetween(any(), any()) } returns listOf(
+            record(clientId = "other", endTime = past.plusSeconds(300)).copy(id = 9),
+        )
+
+        val result = useCase(updateOp())
+
+        assertFalse(result.roomChanged)
+        assertNull(result.notification)
+        coVerify(exactly = 0) { repository.updateRecord(any()) }
+    }
+
+    @Test
+    fun `update overlapping only the record being edited is applied`() = runTest {
+        // The edited record itself is excluded from the overlap check (excludingId).
+        coEvery { repository.getByClientId("c1") } returns record(endTime = past.plusSeconds(300))
+        coEvery { repository.getCompletedRecordsBetween(any(), any()) } returns listOf(
+            record(endTime = past.plusSeconds(300)),
+        )
+        coEvery { repository.updateRecord(any()) } returns Unit
+
+        val result = useCase(updateOp().copy(endTimeMs = past.plusSeconds(400).toEpochMilli()))
+
+        assertTrue(result.roomChanged)
+        coVerify(exactly = 1) { repository.updateRecord(any()) }
     }
 
     @Test
