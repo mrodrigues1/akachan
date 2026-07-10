@@ -21,12 +21,30 @@ import com.babytracker.ui.theme.Purple700
 object PartnerSleepNotificationHelper {
     const val PARTNER_SLEEP_CHANNEL_ID = "partner_sleep_notifications"
 
-    // NOTE: this notification ID (passed to NotificationManager.notify) also collides with
-    // VaccineNotificationHelper.NOTIFICATION_ID (both 1011) — a separate collision domain from the
-    // PendingIntent tap request codes this file fixes (#745). Left as-is: renumbering it safely
-    // needs a channel-aware upgrade migration to cancel any already-posted legacy notification,
-    // which is out of scope here. Tracked for a follow-up issue.
-    const val PARTNER_SLEEP_NOTIFICATION_ID = 1011
+    // Was 1011, which collided with VaccineNotificationHelper.NOTIFICATION_ID (#772). A partner-
+    // sleep notification lingering under 1011 from a pre-#772 release is migrated away by
+    // [cancelLegacyCollidingNotification] at app startup.
+    const val PARTNER_SLEEP_NOTIFICATION_ID = 1012
+    private const val LEGACY_SHARED_NOTIFICATION_ID = 1011
+
+    /**
+     * One-shot upgrade migration (#772): cancels a partner-sleep notification still posted under
+     * the pre-#772 shared ID 1011 — channel-checked so a live vaccine reminder under the same ID
+     * survives. Call once at app startup, before any notification producer runs.
+     *
+     * ponytail: check-then-cancel is not atomic — a vaccine reminder posting 1011 in the
+     * microsecond window between the check and the cancel would be erased. Accepted: the window
+     * exists once, at the first launch after upgrade, and only while a legacy partner-sleep
+     * notification is still in the tray.
+     */
+    fun cancelLegacyCollidingNotification(context: Context) {
+        val manager = context.getSystemService(NotificationManager::class.java)
+        val legacyIsOurs = manager.activeNotifications.any {
+            it.id == LEGACY_SHARED_NOTIFICATION_ID &&
+                it.notification.channelId == PARTNER_SLEEP_CHANNEL_ID
+        }
+        if (legacyIsOurs) manager.cancel(LEGACY_SHARED_NOTIFICATION_ID)
+    }
 
     fun createPartnerSleepNotificationChannel(context: Context) {
         createNotificationChannel(

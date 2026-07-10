@@ -84,6 +84,9 @@ class BabyTrackerApp : Application(), Configuration.Provider {
         // they're off the cold-start critical path. Channels are created before any coordinator starts.
         appScope.launch {
             createNotificationChannels()
+            // #772 upgrade migration — must run before coordinators can post partner-sleep
+            // notifications under the new ID.
+            PartnerSleepNotificationHelper.cancelLegacyCollidingNotification(this@BabyTrackerApp)
             predictiveCoordinator.get().start()
             predictiveSleepCoordinator.get().start()
             featureSuppressionCoordinator.get().start()
