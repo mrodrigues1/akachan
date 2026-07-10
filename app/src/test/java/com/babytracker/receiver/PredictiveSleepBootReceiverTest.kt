@@ -1,9 +1,11 @@
 package com.babytracker.receiver
 
 import android.content.Context
+import android.content.Intent
 import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.Confidence
 import com.babytracker.domain.model.SleepPredictionState
+import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.SleepWindow
 import com.babytracker.domain.repository.FeatureToggleRepository
@@ -14,8 +16,10 @@ import com.babytracker.domain.repository.SleepRecommendationSnapshot
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.manager.PredictiveSleepScheduler
+import com.babytracker.manager.SleepNotificationScheduler
 import com.babytracker.util.PREDICTION_MAX_STALE_MINUTES
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -36,6 +40,7 @@ class PredictiveSleepBootReceiverTest {
     private lateinit var sleepRepository: SleepRepository
     private lateinit var recommendationRepository: SleepRecommendationRepository
     private lateinit var featureToggleRepository: FeatureToggleRepository
+    private lateinit var sleepNotificationScheduler: SleepNotificationScheduler
     private lateinit var context: Context
     private lateinit var receiver: PredictiveSleepBootReceiver
 
@@ -47,10 +52,12 @@ class PredictiveSleepBootReceiverTest {
         scheduler = mockk(relaxed = true)
         sleepRepository = mockk(relaxed = true)
         coEvery { sleepRepository.getLatestRecord() } returns null
+        coEvery { sleepRepository.getActiveRecord() } returns null
         recommendationRepository = mockk(relaxed = true)
         coEvery { recommendationRepository.getLatestScheduledRecommendation() } returns null
         featureToggleRepository = mockk()
         every { featureToggleRepository.getEnabledFeatures() } returns flowOf(AppFeature.ALL)
+        sleepNotificationScheduler = mockk(relaxed = true)
         context = mockk(relaxed = true)
         receiver = PredictiveSleepBootReceiver().apply {
             settingsRepository = settings
@@ -60,6 +67,7 @@ class PredictiveSleepBootReceiverTest {
             this.sleepRepository = this@PredictiveSleepBootReceiverTest.sleepRepository
             sleepRecommendationRepository = this@PredictiveSleepBootReceiverTest.recommendationRepository
             this.featureToggleRepository = this@PredictiveSleepBootReceiverTest.featureToggleRepository
+            this.sleepNotificationScheduler = this@PredictiveSleepBootReceiverTest.sleepNotificationScheduler
         }
         every { sleepSettings.getPredictiveSleepLeadMinutes() } returns flowOf(15)
         every { settings.getQuietHoursStartMinute() } returns flowOf(0)
@@ -95,6 +103,65 @@ class PredictiveSleepBootReceiverTest {
         receiver.handle(context)
 
         verify(exactly = 0) { scheduler.schedulePredictiveReminderAt(any(), any(), any()) }
+    }
+
+    @Test
+    fun `restores active sleep notification when a session is in progress and SLEEP feature enabled`() = runTest {
+        val startTime = Instant.now().minusSeconds(1800)
+        val active = SleepRecord(id = 11L, startTime = startTime, sleepType = SleepType.NIGHT_SLEEP)
+        every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(false)
+        coEvery { sleepRepository.getActiveRecord() } returns active
+
+        receiver.handle(context)
+
+        coVerify(exactly = 1) { sleepNotificationScheduler.show(11L, SleepType.NIGHT_SLEEP, startTime) }
+    }
+
+    @Test
+    fun `does not restore a notification when no sleep record is active`() = runTest {
+        every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(false)
+        coEvery { sleepRepository.getActiveRecord() } returns null
+
+        receiver.handle(context)
+
+        coVerify(exactly = 0) { sleepNotificationScheduler.show(any(), any(), any()) }
+    }
+
+    @Test
+    fun `does not restore notification when SLEEP feature is disabled even if a session is active`() = runTest {
+        val active = SleepRecord(id = 11L, startTime = Instant.now().minusSeconds(1800), sleepType = SleepType.NIGHT_SLEEP)
+        every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(false)
+        every { featureToggleRepository.getEnabledFeatures() } returns flowOf(emptySet())
+        coEvery { sleepRepository.getActiveRecord() } returns active
+
+        receiver.handle(context)
+
+        coVerify(exactly = 0) { sleepNotificationScheduler.show(any(), any(), any()) }
+    }
+
+    @Test
+    fun `restores notification even when predictive-sleep setting is disabled (not gated on the predictive toggle)`() = runTest {
+        val startTime = Instant.now().minusSeconds(1800)
+        val active = SleepRecord(id = 11L, startTime = startTime, sleepType = SleepType.NAP)
+        every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(false)
+        every { featureToggleRepository.getEnabledFeatures() } returns flowOf(setOf(AppFeature.SLEEP))
+        coEvery { sleepRepository.getActiveRecord() } returns active
+
+        receiver.handle(context)
+
+        coVerify(exactly = 1) { sleepNotificationScheduler.show(11L, SleepType.NAP, startTime) }
+    }
+
+    @Test
+    fun `does not restore notification on TIME_SET or TIMEZONE_CHANGED, only on BOOT_COMPLETED`() = runTest {
+        val active = SleepRecord(id = 11L, startTime = Instant.now().minusSeconds(1800), sleepType = SleepType.NIGHT_SLEEP)
+        every { sleepSettings.getPredictiveSleepEnabled() } returns flowOf(false)
+        coEvery { sleepRepository.getActiveRecord() } returns active
+
+        receiver.handle(context, Intent.ACTION_TIME_CHANGED)
+        receiver.handle(context, Intent.ACTION_TIMEZONE_CHANGED)
+
+        coVerify(exactly = 0) { sleepNotificationScheduler.show(any(), any(), any()) }
     }
 
     @Test
