@@ -155,13 +155,26 @@ class SleepRepositoryImplTest {
 
     @Test
     fun insertRecordMintsClientIdWhenBlank() = runTest {
-        val record = SleepRecord(startTime = Instant.now(), sleepType = SleepType.NAP)
+        // A blank clientId only reaches the repository from a legacy row; the mint keeps it unique.
+        val record = SleepRecord(startTime = Instant.now(), sleepType = SleepType.NAP, clientId = "")
         val slot = slot<SleepEntity>()
         coEvery { dao.insertRecord(capture(slot)) } returns 1L
 
         repository.insertRecord(record)
 
         assertEquals(true, slot.captured.clientId.isNotBlank())
+    }
+
+    @Test
+    fun insertRecordDefaultClientIdIsAlreadyMinted() = runTest {
+        // The domain default now mints its own UUID, so nothing blank ever reaches the mint path.
+        val record = SleepRecord(startTime = Instant.now(), sleepType = SleepType.NAP)
+        val slot = slot<SleepEntity>()
+        coEvery { dao.insertRecord(capture(slot)) } returns 1L
+
+        repository.insertRecord(record)
+
+        assertEquals(record.clientId, slot.captured.clientId)
     }
 
     @Test
@@ -203,6 +216,7 @@ class SleepRepositoryImplTest {
             startTime = Instant.ofEpochMilli(startEpoch),
             endTime = Instant.ofEpochMilli(endEpoch),
             sleepType = SleepType.NAP,
+            clientId = "",
         )
         val slot = slot<SleepEntity>()
         coJustRun { dao.updateRecordPreservingIdentity(capture(slot)) }

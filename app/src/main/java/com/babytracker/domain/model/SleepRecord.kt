@@ -2,6 +2,7 @@ package com.babytracker.domain.model
 
 import java.time.Duration
 import java.time.Instant
+import java.util.UUID
 
 data class SleepRecord(
     val id: Long = 0,
@@ -10,9 +11,12 @@ data class SleepRecord(
     val sleepType: SleepType,
     val notes: String? = null,
     val timezoneId: String? = null,
-    // Stable cross-device identity (UUID). Minted on insert; preserved across edits. Default blank
-    // so edit/preview call sites compile — the repository mints a real UUID for blank inserts.
-    val clientId: String = "",
+    // Stable cross-device identity (UUID). Every freshly constructed record mints its own, matching
+    // the SleepEntity default, so two separate records can never collide on the unique client_id
+    // index and a blank clientId can now only mean a legacy (pre-SPEC-008) row read from Room. Edits
+    // preserve the stored id (SleepDao.updateRecordPreservingIdentity), so the default never
+    // overwrites it. Partner-authored records pass op.entryClientId explicitly.
+    val clientId: String = UUID.randomUUID().toString(),
     val startedBy: SleepAuthor = SleepAuthor.OWNER,
 ) {
     init {
