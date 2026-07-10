@@ -56,7 +56,7 @@ class BreastfeedingBootReceiverTest {
 
         receiver.handle(context)
 
-        coVerify(exactly = 1) { coordinator.restoreActiveSession(session, any()) }
+        coVerify(exactly = 1) { coordinator.restoreActiveSession(session) }
     }
 
     @Test
@@ -65,7 +65,7 @@ class BreastfeedingBootReceiverTest {
 
         receiver.handle(context)
 
-        coVerify(exactly = 0) { coordinator.restoreActiveSession(any(), any()) }
+        coVerify(exactly = 0) { coordinator.restoreActiveSession(any()) }
     }
 
     @Test

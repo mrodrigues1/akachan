@@ -11,6 +11,7 @@ import com.babytracker.util.NotificationHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
@@ -21,7 +22,8 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val feedSettingsRepository: FeedSettingsRepository,
     private val settingsRepository: SettingsRepository,
-    private val notificationScheduler: NotificationScheduler
+    private val notificationScheduler: NotificationScheduler,
+    private val clock: Clock,
 ) {
 
     suspend fun scheduleInitial(session: BreastfeedingSession) {
@@ -185,7 +187,8 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
      * notification — its alarms are re-armed by [rescheduleAfterResume] on resume, matching the
      * pause flow.
      */
-    suspend fun restoreActiveSession(session: BreastfeedingSession, now: Instant = Instant.now()) {
+    suspend fun restoreActiveSession(session: BreastfeedingSession) {
+        val now = clock.instant()
         val pausedAt = session.pausedAt
         if (pausedAt != null) {
             showPaused(session, pausedAt)
@@ -230,7 +233,7 @@ class BreastfeedingSessionNotificationCoordinator @Inject constructor(
         val (maxPerBreastMinutes, maxTotalFeedMinutes) = scheduleMinutes()
         if (maxTotalFeedMinutes > 0) {
             notificationScheduler.scheduleMaxTotalTimeNotificationAt(
-                triggerTime = Instant.now().plusSeconds(600),
+                triggerTime = clock.instant().plusSeconds(600),
                 sessionId = session.id,
                 maxTotalMinutes = maxTotalFeedMinutes,
                 currentSide = currentSideName(session),
