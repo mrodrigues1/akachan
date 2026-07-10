@@ -16,7 +16,12 @@ class ObserveTodayFeedingSummaryUseCase @Inject constructor(
     private val now: () -> Instant,
 ) {
     operator fun invoke(): Flow<TodayFeedingSummary> =
-        combine(breastfeedingRepository.getAllSessions(), bottleFeedRepository.getAll()) { sessions, bottles ->
+        combine(
+            // ponytail: the newest 100 rows per source bound the scan; a single day with >100
+            // feeds would undercount — real-world rate is ~8-12/day, so the ceiling is theoretical.
+            breastfeedingRepository.getRecentSessionsFlow(TODAY_SUMMARY_LIMIT),
+            bottleFeedRepository.getRecentFlow(TODAY_SUMMARY_LIMIT),
+        ) { sessions, bottles ->
             val today = now().atZone(zone).toLocalDate()
             val todayBottles = bottles.filter { it.timestamp.atZone(zone).toLocalDate() == today }
             val todaySessions = sessions.filter { it.startTime.atZone(zone).toLocalDate() == today }
@@ -26,4 +31,8 @@ class ObserveTodayFeedingSummaryUseCase @Inject constructor(
                 breastfeedingCount = todaySessions.size,
             )
         }
+
+    private companion object {
+        const val TODAY_SUMMARY_LIMIT = 100
+    }
 }

@@ -101,7 +101,7 @@ class HomeViewModelTileOrderTest {
         logBabyEvent = mockk()
 
         every { babyRepository.getBabyProfile() } returns flowOf(testBaby)
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(emptyList())
         every { sleepRepository.getRecentOrActiveRecordsFlow(any()) } returns flowOf(emptyList())
         every { sleepRepository.observeActiveRecord() } returns flowOf(null)
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.NONE)

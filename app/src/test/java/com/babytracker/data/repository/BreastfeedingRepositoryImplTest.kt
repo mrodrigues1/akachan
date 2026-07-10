@@ -42,10 +42,10 @@ class BreastfeedingRepositoryImplTest {
     }
 
     @Test
-    fun getAllSessionsMapsEntitiesToDomain() = runTest {
-        every { dao.getAllSessions() } returns flowOf(listOf(entity))
+    fun getRecentSessionsFlowMapsEntitiesToDomain() = runTest {
+        every { dao.getRecentSessionsFlow(1) } returns flowOf(listOf(entity))
 
-        val sessions = repository.getAllSessions().first()
+        val sessions = repository.getRecentSessionsFlow(1).first()
 
         assertEquals(1, sessions.size)
         assertEquals(1L, sessions[0].id)
@@ -55,10 +55,10 @@ class BreastfeedingRepositoryImplTest {
     }
 
     @Test
-    fun getAllSessionsEmptyListEmitsEmpty() = runTest {
-        every { dao.getAllSessions() } returns flowOf(emptyList())
+    fun getRecentSessionsFlowEmptyListEmitsEmpty() = runTest {
+        every { dao.getRecentSessionsFlow(1) } returns flowOf(emptyList())
 
-        val sessions = repository.getAllSessions().first()
+        val sessions = repository.getRecentSessionsFlow(1).first()
 
         assertEquals(0, sessions.size)
     }

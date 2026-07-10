@@ -21,8 +21,8 @@ class BottleFeedRepositoryImplTest {
     private val repository = BottleFeedRepositoryImpl(dao)
 
     @Test
-    fun `getAll maps entities to domain`() = runTest {
-        coEvery { dao.getAll() } returns flowOf(
+    fun `getRecentFlow maps entities to domain`() = runTest {
+        coEvery { dao.getRecentFlow(1) } returns flowOf(
             listOf(
                 BottleFeedEntity(
                     id = 1, clientId = "client-1", timestamp = 1_000, volumeMl = 100,
@@ -31,7 +31,7 @@ class BottleFeedRepositoryImplTest {
             ),
         )
 
-        val result = repository.getAll().first()
+        val result = repository.getRecentFlow(1).first()
 
         assertEquals(1, result.size)
         assertEquals(FeedType.FORMULA, result.first().type)

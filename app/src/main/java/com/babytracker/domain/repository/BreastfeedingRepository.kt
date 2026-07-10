@@ -5,9 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
 interface BreastfeedingRepository {
-    fun getAllSessions(): Flow<List<BreastfeedingSession>>
-
-    /** Observes the [limit] most recent sessions, newest first. Bounded alternative to [getAllSessions]. */
+    /** Observes the [limit] most recent sessions, newest first. */
     fun getRecentSessionsFlow(limit: Int): Flow<List<BreastfeedingSession>>
     fun observeLatestSession(): Flow<BreastfeedingSession?>
 

@@ -15,9 +15,6 @@ import javax.inject.Singleton
 class BreastfeedingRepositoryImpl @Inject constructor(
     private val dao: BreastfeedingDao
 ) : BreastfeedingRepository {
-    override fun getAllSessions(): Flow<List<BreastfeedingSession>> =
-        dao.getAllSessions().mapList { it.toDomain() }
-
     override fun getRecentSessionsFlow(limit: Int): Flow<List<BreastfeedingSession>> =
         dao.getRecentSessionsFlow(limit).mapList { it.toDomain() }
 

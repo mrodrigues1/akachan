@@ -12,9 +12,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 abstract class BreastfeedingDao {
-    @Query("SELECT * FROM breastfeeding_sessions ORDER BY start_time DESC")
-    abstract fun getAllSessions(): Flow<List<BreastfeedingEntity>>
-
     @Query("SELECT * FROM breastfeeding_sessions WHERE end_time IS NULL LIMIT 1")
     abstract fun getActiveSession(): Flow<BreastfeedingEntity?>
 

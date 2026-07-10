@@ -9,6 +9,7 @@ import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.BottleFeedRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.usecase.bottlefeed.DeleteBottleFeedUseCase
+import com.babytracker.domain.usecase.feeding.FeedingHistoryWindow
 import com.babytracker.domain.usecase.feeding.ObserveFeedingHistoryUseCase
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
@@ -56,7 +57,7 @@ class FeedingHistoryViewModelTest {
             type = FeedType.FORMULA,
             createdAt = Instant.EPOCH,
         )
-        every { observe() } returns flowOf(listOf(FeedEntry.Bottle(bottle)))
+        every { observe(any()) } returns flowOf(FeedingHistoryWindow(listOf(FeedEntry.Bottle(bottle))))
         every { settings.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
 
         val vm = FeedingHistoryViewModel(observe, delete, settings, appContext, ZoneId.of("UTC"))
@@ -77,7 +78,7 @@ class FeedingHistoryViewModelTest {
             type = FeedType.FORMULA,
             createdAt = Instant.EPOCH,
         )
-        every { observe() } returns flowOf(emptyList())
+        every { observe(any()) } returns flowOf(FeedingHistoryWindow())
         every { settings.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
 
         val vm = FeedingHistoryViewModel(observe, delete, settings, appContext, ZoneId.of("UTC"))
@@ -97,7 +98,7 @@ class FeedingHistoryViewModelTest {
             type = FeedType.FORMULA,
             createdAt = Instant.EPOCH,
         )
-        every { observe() } returns flowOf(emptyList())
+        every { observe(any()) } returns flowOf(FeedingHistoryWindow())
         every { settings.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         val bottleFeedRepository = mockk<BottleFeedRepository>()
         val sync = mockk<SyncToFirestoreUseCase>(relaxed = true)
