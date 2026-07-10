@@ -1,8 +1,8 @@
 # Triage Labels
 
-The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker (Plane, workspace `aka-enterprise`).
+The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker (GitHub Issues, `mrodrigues1/akachan`).
 
-| Label in mattpocock/skills | Label in our tracker | Meaning                                  |
+| Label in mattpocock/skills | Label on GitHub      | Meaning                                  |
 | -------------------------- | -------------------- | ---------------------------------------- |
 | `needs-triage`             | `needs-triage`       | Maintainer needs to evaluate this issue  |
 | `needs-info`               | `needs-info`         | Waiting on reporter for more information |
@@ -10,6 +10,6 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 | `ready-for-human`          | `ready-for-human`    | Requires human implementation            |
 | `wontfix`                  | `wontfix`            | Will not be actioned                     |
 
-When a skill mentions a role (e.g. "apply the AFK-ready triage label"), apply the corresponding Plane label from this table. Create the label in the workspace if it doesn't exist yet.
+When a skill mentions a role (e.g. "apply the AFK-ready triage label"), apply the corresponding GitHub label from this table. Create it with `gh label create` if it doesn't exist yet.
 
 Edit the right-hand column to match whatever vocabulary you actually use.

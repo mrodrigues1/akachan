@@ -375,7 +375,7 @@ All repository and service implementations are `@Singleton` scoped.
 
 ### Issue tracker
 
-Issues live as Plane work items in the `aka-enterprise` workspace, via the `plane` MCP server. External PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+Issues live as GitHub issues on `mrodrigues1/akachan`, via the `gh` CLI. External PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
