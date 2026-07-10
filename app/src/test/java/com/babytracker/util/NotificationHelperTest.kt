@@ -444,16 +444,20 @@ class NotificationHelperTest {
     }
 
     @Test
-    fun `showSleepActive collapsed view uses sleep layout with hidden progress`() {
+    fun `showSleepActive collapsed view uses sleep layout with a live chronometer`() {
         val source = notificationHelperSource()
         val functionBody = Regex("fun showSleepActive[\\s\\S]*?fun cancelNotification")
             .find(source)?.value ?: error("showSleepActive body not found")
         val collapsedCall = extractCollapsedViewArgs(functionBody)
 
         assertTrue(collapsedCall.contains("notification_collapsed_sleep"), "wrong layout for sleep collapsed view")
-        assertTrue(collapsedCall.contains("progress = 0"), "sleep collapsed progress must be 0")
-        assertTrue(collapsedCall.contains("maxProgress = 1"), "sleep collapsed maxProgress must be 1")
-        assertTrue(collapsedCall.contains("showProgress = false"), "sleep collapsed progress bar must be hidden")
+        assertTrue(
+            functionBody.contains("buildChronometerCollapsedView("),
+            "showSleepActive must build its collapsed view with buildChronometerCollapsedView so it ticks " +
+                "natively instead of showing a frozen \"since HH:mm\" string",
+        )
+        assertTrue(collapsedCall.contains("chronometerBaseElapsedMs"), "sleep collapsed view must receive chronometerBaseElapsedMs for a live timer")
+        assertTrue(collapsedCall.contains("chronometerRunning = true"), "sleep collapsed chronometer must be running")
     }
 
     @Test
@@ -539,11 +543,19 @@ class NotificationHelperTest {
     }
 
     @Test
-    fun `collapsed sleep progress bar height is 4dp`() {
-        val block = collapsedLayoutProgressBarHeight("notification_collapsed_sleep.xml")
+    fun `collapsed sleep layout has no ProgressBar`() {
+        val file = listOf(
+            java.io.File("src/main/res/layout/notification_collapsed_sleep.xml"),
+            java.io.File("app/src/main/res/layout/notification_collapsed_sleep.xml")
+        ).first { it.exists() }.readText()
+
+        assertFalse(
+            file.contains("<ProgressBar"),
+            "collapsed sleep layout must not keep a ProgressBar that's never toggled visible",
+        )
         assertTrue(
-            block.contains("android:layout_height=\"4dp\""),
-            "collapsed sleep ProgressBar must be 4dp tall — 2dp is too thin to read at a glance"
+            file.contains("notification_collapsed_timer"),
+            "collapsed sleep layout must contain a Chronometer with id notification_collapsed_timer",
         )
     }
 

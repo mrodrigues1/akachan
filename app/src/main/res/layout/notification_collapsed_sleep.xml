@@ -21,6 +21,21 @@
             android:contentDescription="@null"
             android:src="@drawable/ic_sleep_section" />
 
+        <Chronometer
+            android:id="@+id/notification_collapsed_timer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="3dp"
+            android:contentDescription="@string/notif_timer_sleep_description"
+            android:fontFamily="sans-serif"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:minWidth="52dp"
+            android:maxWidth="64dp"
+            android:textColor="@color/notification_on_surface"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
         <TextView
             android:id="@+id/notification_title"
             android:layout_width="0dp"
@@ -33,16 +48,6 @@
             android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>
-
-    <ProgressBar
-        android:id="@+id/notification_progress"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="4dp"
-        android:layout_marginTop="4dp"
-        android:indeterminate="false"
-        android:progressDrawable="@drawable/notification_progress_sleep"
-        android:visibility="gone" />
 
     <TextView
         android:id="@+id/notification_body"

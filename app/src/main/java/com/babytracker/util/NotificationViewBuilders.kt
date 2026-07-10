@@ -137,6 +137,29 @@ internal fun buildCollapsedView(
     }
 }
 
+/**
+ * Collapsed view with a live [android.widget.Chronometer] instead of static title/body text. Used by
+ * notifications posted once at session start and never refreshed (e.g. sleep), where a static
+ * "since 7:05 PM" string would go stale the moment DecoratedCustomViewStyle's custom content view
+ * replaces the system header timer. Mirrors [buildFeedingActiveCollapsedView]'s chronometer wiring
+ * minus the progress bar, since these callers have nothing to show progress against.
+ */
+internal fun buildChronometerCollapsedView(
+    context: Context,
+    layoutRes: Int,
+    title: String,
+    body: String,
+    chronometerBaseElapsedMs: Long,
+    chronometerRunning: Boolean = true,
+    titleIconRes: Int? = null,
+): RemoteViews = RemoteViews(context.packageName, layoutRes).apply {
+    titleIconRes?.let { setImageViewResource(R.id.notification_title_icon, it) }
+    setTextViewText(R.id.notification_title, title)
+    setTextViewText(R.id.notification_body, body)
+    setViewVisibility(R.id.notification_collapsed_timer, View.VISIBLE)
+    setChronometer(R.id.notification_collapsed_timer, chronometerBaseElapsedMs, null, chronometerRunning)
+}
+
 internal fun buildFeedingActiveCollapsedView(
     context: Context,
     layoutRes: Int,
