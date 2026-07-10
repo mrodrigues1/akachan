@@ -4,7 +4,6 @@ import android.util.Log
 import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
-import com.babytracker.domain.model.toSleepTypeOrNull
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.SleepOpAction
@@ -104,7 +103,7 @@ class ApplySleepOpUseCase internal constructor(
     // (SleepRecord's invariant rejects endTime <= startTime).
     private fun validatedTimes(op: SleepOp): ValidTimes? {
         val startTime = op.startTimeMs?.let(Instant::ofEpochMilli) ?: return null
-        val sleepType = op.sleepType?.toSleepTypeOrNull() ?: return null
+        val sleepType = op.sleepType ?: return null
         if (startTime.isAfter(now())) return null
         val endTime = op.endTimeMs?.let(Instant::ofEpochMilli)
         if (endTime != null && (endTime.isAfter(now()) || !endTime.isAfter(startTime))) return null

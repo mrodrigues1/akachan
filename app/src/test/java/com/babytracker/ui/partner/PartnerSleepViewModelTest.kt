@@ -76,12 +76,12 @@ class PartnerSleepViewModelTest {
 
     private fun partnerActive(clientId: String = "p-cid") = SleepSnapshot(
         id = 0, startTime = now.minusSeconds(600).toEpochMilli(), endTime = null,
-        sleepType = "NAP", notes = null, clientId = clientId, startedBy = SleepAuthor.PARTNER.name,
+        sleepType = SleepType.NAP, notes = null, clientId = clientId, startedBy = SleepAuthor.PARTNER,
     )
 
     private fun ownerActive() = SleepSnapshot(
         id = 1, startTime = now.minusSeconds(600).toEpochMilli(), endTime = null,
-        sleepType = "NAP", notes = null, clientId = "o-cid", startedBy = SleepAuthor.OWNER.name,
+        sleepType = SleepType.NAP, notes = null, clientId = "o-cid", startedBy = SleepAuthor.OWNER,
     )
 
     @Test
@@ -171,7 +171,7 @@ class PartnerSleepViewModelTest {
     fun `op listener resubscribes after a transient error`() = runTest {
         val startOp = SleepOp(
             opId = "op-1", action = SleepOpAction.START, entryClientId = "active-cid",
-            authorUid = "uid", createdAtMs = now.toEpochMilli(), startTimeMs = now.toEpochMilli(), sleepType = "NAP",
+            authorUid = "uid", createdAtMs = now.toEpochMilli(), startTimeMs = now.toEpochMilli(), sleepType = SleepType.NAP,
         )
         var attempts = 0
         every { settingsRepository.getShareCode() } returns flowOf("CODE")
@@ -195,7 +195,7 @@ class PartnerSleepViewModelTest {
     fun `a consumed START overlay is retained until the snapshot shows the session`() = runTest {
         val startOp = SleepOp(
             opId = "op-1", action = SleepOpAction.START, entryClientId = "p-cid",
-            authorUid = "uid", createdAtMs = now.toEpochMilli(), startTimeMs = now.toEpochMilli(), sleepType = "NAP",
+            authorUid = "uid", createdAtMs = now.toEpochMilli(), startTimeMs = now.toEpochMilli(), sleepType = SleepType.NAP,
         )
         every { settingsRepository.getShareCode() } returns flowOf("CODE")
         coEvery { service.signInAnonymously() } returns "uid"
@@ -216,7 +216,7 @@ class PartnerSleepViewModelTest {
         val t = now.toEpochMilli()
         val startOp = SleepOp(
             opId = "op-start", action = SleepOpAction.START, entryClientId = "c",
-            authorUid = "uid", createdAtMs = t - 1_000, startTimeMs = t - 1_000, sleepType = "NAP",
+            authorUid = "uid", createdAtMs = t - 1_000, startTimeMs = t - 1_000, sleepType = SleepType.NAP,
         )
         val stopOp = SleepOp(
             opId = "op-stop", action = SleepOpAction.STOP, entryClientId = "c",

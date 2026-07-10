@@ -1,5 +1,7 @@
 package com.babytracker.sharing.domain.model
 
+import com.babytracker.domain.model.SleepAuthor
+import com.babytracker.domain.model.SleepType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -71,12 +73,12 @@ class ReconcilePendingOpsTest {
 
     // --- Sleep predicates ---
 
-    private fun record(clientId: String, endTime: Long?, sleepType: String = "NAP", start: Long = 1_000L, notes: String? = null) =
-        SleepSnapshot(0, start, endTime, sleepType, notes, clientId = clientId, startedBy = "PARTNER")
+    private fun record(clientId: String, endTime: Long?, sleepType: SleepType = SleepType.NAP, start: Long = 1_000L, notes: String? = null) =
+        SleepSnapshot(0, start, endTime, sleepType, notes, clientId = clientId, startedBy = SleepAuthor.PARTNER)
 
     @Test
     fun `sleep start is reflected once the snapshot has the session`() {
-        val op = SleepOp("op-s", SleepOpAction.START, "c1", "uid", t0, startTimeMs = 1_000L, sleepType = "NAP")
+        val op = SleepOp("op-s", SleepOpAction.START, "c1", "uid", t0, startTimeMs = 1_000L, sleepType = SleepType.NAP)
         assertFalse(sleepActiveReflected(op, emptyList()))
         assertTrue(sleepActiveReflected(op, listOf(record("c1", endTime = null))))
     }
@@ -91,16 +93,16 @@ class ReconcilePendingOpsTest {
 
     @Test
     fun `sleep edit is reflected once the snapshot record matches the edited fields`() {
-        val op = SleepOp("op-e", SleepOpAction.UPDATE, "c1", "uid", t0, startTimeMs = 2_000L, endTimeMs = 8_000L, sleepType = "NIGHT_SLEEP", notes = "x")
+        val op = SleepOp("op-e", SleepOpAction.UPDATE, "c1", "uid", t0, startTimeMs = 2_000L, endTimeMs = 8_000L, sleepType = SleepType.NIGHT_SLEEP, notes = "x")
         assertFalse(sleepEditReflected(op, listOf(record("c1", endTime = 9_000L)))) // endTime mismatch
-        assertTrue(sleepEditReflected(op, listOf(record("c1", endTime = 8_000L, sleepType = "NIGHT_SLEEP", start = 2_000L, notes = "x"))))
+        assertTrue(sleepEditReflected(op, listOf(record("c1", endTime = 8_000L, sleepType = SleepType.NIGHT_SLEEP, start = 2_000L, notes = "x"))))
         // START/STOP are not history edits -> treated as reflected so they never pin the history overlay.
         assertTrue(sleepEditReflected(SleepOp("op-s", SleepOpAction.START, "c1", "uid", t0), emptyList()))
     }
 
     @Test
     fun `history start is reflected once the snapshot has the session`() {
-        val op = SleepOp("op-s", SleepOpAction.START, "c1", "uid", t0, startTimeMs = 1_000L, sleepType = "NAP")
+        val op = SleepOp("op-s", SleepOpAction.START, "c1", "uid", t0, startTimeMs = 1_000L, sleepType = SleepType.NAP)
         assertFalse(sleepHistoryReflected(op, emptyList()))
         assertTrue(sleepHistoryReflected(op, listOf(record("c1", endTime = null))))
     }

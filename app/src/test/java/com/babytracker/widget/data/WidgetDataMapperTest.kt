@@ -238,7 +238,7 @@ class WidgetDataMapperTest {
         id: Long = 1,
         startMs: Long = Instant.parse("2026-05-24T11:00:00Z").toEpochMilli(),
         endMs: Long? = null,
-        type: String = "NAP",
+        type: SleepType = SleepType.NAP,
     ) = SleepSnapshot(
         id = id,
         startTime = startMs,

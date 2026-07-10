@@ -41,7 +41,7 @@ class UpdatePartnerSleepUseCaseTest {
         assertEquals("cid", op.entryClientId)
         assertEquals(start.toEpochMilli(), op.startTimeMs)
         assertEquals(end.toEpochMilli(), op.endTimeMs)
-        assertEquals("NAP", op.sleepType)
+        assertEquals(SleepType.NAP, op.sleepType)
         assertEquals("shorter", op.notes)
     }
 

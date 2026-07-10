@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import com.babytracker.domain.model.SleepReason
+import com.babytracker.domain.model.SleepType
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import org.junit.Rule
 import org.junit.Test
@@ -26,7 +27,7 @@ class PartnerSleepPredictionCardTest {
 
     private fun setCard(
         prediction: SleepPredictionSnapshot?,
-        activeSleepType: String? = null,
+        activeSleepType: SleepType? = null,
         hasActiveSleep: Boolean = false,
         hasActiveFeeding: Boolean = false,
     ) {
@@ -121,7 +122,7 @@ class PartnerSleepPredictionCardTest {
     fun `currently sleeping renders nap copy for active nap`() {
         setCard(
             SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt),
-            activeSleepType = "NAP",
+            activeSleepType = SleepType.NAP,
             hasActiveSleep = true,
         )
 
@@ -132,7 +133,7 @@ class PartnerSleepPredictionCardTest {
     fun `currently sleeping renders night sleep copy for active night sleep`() {
         setCard(
             SleepPredictionSnapshot(stateLabel = "CURRENTLY_SLEEPING", generatedAt = generatedAt),
-            activeSleepType = "NIGHT_SLEEP",
+            activeSleepType = SleepType.NIGHT_SLEEP,
             hasActiveSleep = true,
         )
 

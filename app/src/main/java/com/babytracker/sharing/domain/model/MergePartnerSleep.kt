@@ -43,10 +43,10 @@ private fun SleepOp.toOptimisticActive(): SleepSnapshot = SleepSnapshot(
     id = 0,
     startTime = startTimeMs ?: createdAtMs,
     endTime = null,
-    sleepType = sleepType ?: SleepType.NAP.name,
+    sleepType = sleepType ?: SleepType.NAP,
     notes = notes,
     clientId = entryClientId,
-    startedBy = SleepAuthor.PARTNER.name,
+    startedBy = SleepAuthor.PARTNER,
 )
 
 data class MergedSleepHistory(
@@ -85,7 +85,7 @@ fun mergeSleepHistory(
                         sleepType = sleepType,
                         notes = op.notes,
                         clientId = op.entryClientId,
-                        startedBy = SleepAuthor.PARTNER.name,
+                        startedBy = SleepAuthor.PARTNER,
                     )
                 }
             }

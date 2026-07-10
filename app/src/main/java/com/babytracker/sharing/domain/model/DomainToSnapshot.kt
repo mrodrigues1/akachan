@@ -78,10 +78,10 @@ fun SleepRecord.toSnapshot(): SleepSnapshot = SleepSnapshot(
     id = id,
     startTime = startTime.toEpochMilli(),
     endTime = endTime?.toEpochMilli(),
-    sleepType = sleepType.name,
+    sleepType = sleepType,
     notes = notes,
     clientId = clientId,
-    startedBy = startedBy.name,
+    startedBy = startedBy,
 )
 
 fun SleepPredictionState.toSnapshot(generatedAt: Long): SleepPredictionSnapshot? =

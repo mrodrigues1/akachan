@@ -122,7 +122,7 @@ private fun ActiveSleepControls(
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = stringResource(
-                    if (active.startedBy == SleepAuthor.PARTNER.name) {
+                    if (active.startedBy == SleepAuthor.PARTNER) {
                         R.string.partner_sleep_started_by_you
                     } else {
                         R.string.partner_sleep_started_by_partner

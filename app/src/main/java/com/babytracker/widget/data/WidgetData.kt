@@ -3,7 +3,6 @@ package com.babytracker.widget.data
 import com.babytracker.domain.model.BreastSide
 import com.babytracker.domain.model.BreastfeedingSession
 import com.babytracker.domain.model.SleepRecord
-import com.babytracker.domain.model.SleepType
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
@@ -133,5 +132,5 @@ private fun SleepSnapshot.toDomainSleep(): SleepRecord =
         id = id,
         startTime = Instant.ofEpochMilli(startTime),
         endTime = endTime?.let(Instant::ofEpochMilli),
-        sleepType = SleepType.valueOf(sleepType),
+        sleepType = sleepType,
     )

@@ -80,6 +80,7 @@ import com.babytracker.R
 import com.babytracker.domain.model.AllergyType
 import com.babytracker.domain.model.GrowthType
 import com.babytracker.domain.model.MeasurementSystem
+import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
@@ -1328,7 +1329,7 @@ private fun SleepHistoryRow(sleep: SleepSnapshot, now: Instant) {
         trailing = timeAgo ?: "",
         badgeColor = MaterialTheme.colorScheme.secondaryContainer,
         badgeContent = {
-            if (sleep.sleepType == "NIGHT_SLEEP") {
+            if (sleep.sleepType == SleepType.NIGHT_SLEEP) {
                 SleepIcon(modifier = Modifier.size(34.dp))
             } else {
                 NapIcon(modifier = Modifier.size(34.dp))
@@ -1534,14 +1535,14 @@ private fun SleepSnapshot.sleepAgoText(now: Instant, context: Context): String {
 }
 
 private fun SleepSnapshot.sleepVerb(context: Context): String =
-    if (sleepType == "NAP") {
+    if (sleepType == SleepType.NAP) {
         context.getString(R.string.partner_slept_nap)
     } else {
         context.getString(R.string.partner_slept_night)
     }
 
-internal fun sleepTypeLabel(sleepType: String, context: Context): String =
-    if (sleepType == "NAP") {
+internal fun sleepTypeLabel(sleepType: SleepType, context: Context): String =
+    if (sleepType == SleepType.NAP) {
         context.getString(R.string.sleep_type_nap)
     } else {
         context.getString(R.string.sleep_type_night)

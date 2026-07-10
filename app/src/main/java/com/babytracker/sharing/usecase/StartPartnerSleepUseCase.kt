@@ -23,7 +23,7 @@ class StartPartnerSleepUseCase @Inject constructor(
                 authorUid = authorUid,
                 createdAtMs = nowMs,
                 startTimeMs = nowMs,
-                sleepType = sleepType.name,
+                sleepType = sleepType,
             )
         }
         return entryClientId

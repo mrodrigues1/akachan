@@ -39,7 +39,7 @@ class UpdatePartnerSleepUseCase @Inject constructor(
                 createdAtMs = now().toEpochMilli(),
                 startTimeMs = startTime.toEpochMilli(),
                 endTimeMs = endTime?.toEpochMilli(),
-                sleepType = sleepType.name,
+                sleepType = sleepType,
                 notes = notes,
             )
         }

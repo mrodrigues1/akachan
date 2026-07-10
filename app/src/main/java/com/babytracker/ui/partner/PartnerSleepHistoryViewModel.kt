@@ -74,5 +74,5 @@ class PartnerSleepHistoryViewModel @Inject constructor(
     }
 
     fun isEditable(entry: SleepSnapshot): Boolean =
-        entry.startedBy == SleepAuthor.PARTNER.name && entry.clientId.isNotEmpty()
+        entry.startedBy == SleepAuthor.PARTNER && entry.clientId.isNotEmpty()
 }
