@@ -1,30 +1,34 @@
-# Issue tracker: Plane
+# Issue tracker: GitHub
 
-Issues and PRDs for this repo live as **Plane work items** in the `aka-enterprise` workspace. All operations go through the **`plane` MCP server** (`mcp.plane.so`).
-
-The Plane MCP tools are deferred — load them on demand with `ToolSearch` (e.g. query `plane`) before calling. If the server reports it needs auth, re-authenticate the `plane` MCP first.
+Issues and PRDs for this repo live as GitHub issues on `mrodrigues1/akachan`. Use the `gh` CLI for all operations.
 
 ## Conventions
 
-Map each skill operation to the corresponding Plane MCP tool (create / read / list / update / comment on work items):
+- **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.
+- **Read an issue**: `gh issue view <number> --comments`, filtering comments by `jq` and also fetching labels.
+- **List issues**: `gh issue list --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
+- **Comment on an issue**: `gh issue comment <number> --body "..."`
+- **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
+- **Close**: `gh issue close <number> --comment "..."`
 
-- **Create a work item**: create-work-item tool — pass title + Markdown description, and the target project.
-- **Read a work item**: get-work-item tool by ID, including comments.
-- **List work items**: list-work-items tool, filtered by project, state, and label.
-- **Comment on a work item**: create-comment tool against the work-item ID.
-- **Apply / remove labels**: update-work-item tool, setting the item's labels.
-- **Change state**: update-work-item tool, setting the item's state (Plane states carry the triage roles — see `triage-labels.md`).
-
-Resolve project / label / state IDs by listing them first (list-projects, list-labels, list-states) rather than hard-coding IDs.
+Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone.
 
 ## Pull requests as a triage surface
 
-**PRs as a request surface: no.** Plane work items are the only request surface; code review happens separately on GitHub PRs and is not pulled into the triage queue.
+**PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
+
+When set to `yes`, PRs run through the same labels and states as issues, using the `gh pr` equivalents:
+
+- **Read a PR**: `gh pr view <number> --comments` and `gh pr diff <number>` for the diff.
+- **List external PRs for triage**: `gh pr list --state open --json number,title,body,labels,author,authorAssociation,comments` then keep only `authorAssociation` of `CONTRIBUTOR`, `FIRST_TIME_CONTRIBUTOR`, or `NONE` (drop `OWNER`/`MEMBER`/`COLLABORATOR`).
+- **Comment / label / close**: `gh pr comment`, `gh pr edit --add-label`/`--remove-label`, `gh pr close`.
+
+GitHub shares one number space across issues and PRs, so a bare `#42` may be either — resolve with `gh pr view 42` and fall back to `gh issue view 42`.
 
 ## When a skill says "publish to the issue tracker"
 
-Create a Plane work item in the relevant project.
+Create a GitHub issue.
 
 ## When a skill says "fetch the relevant ticket"
 
-Read the Plane work item by ID (get-work-item, with comments).
+Run `gh issue view <number> --comments`.
