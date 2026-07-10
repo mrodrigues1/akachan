@@ -7,6 +7,8 @@ import com.babytracker.domain.usecase.trends.GetDayRhythmTrendUseCase
 import com.babytracker.domain.usecase.trends.GetFeedingFrequencyTrendUseCase
 import com.babytracker.domain.usecase.trends.GetFeedingIntervalTrendUseCase
 import com.babytracker.domain.usecase.trends.GetSleepDurationTrendUseCase
+import com.babytracker.domain.usecase.trends.LoadTrendFeedInstantsUseCase
+import com.babytracker.domain.usecase.trends.TrendFeedInstants
 import com.babytracker.testutil.MainDispatcherExtension
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -25,6 +27,7 @@ class TrendsViewModelTest {
     private val sleep: GetSleepDurationTrendUseCase = mockk()
     private val interval: GetFeedingIntervalTrendUseCase = mockk()
     private val rhythm: GetDayRhythmTrendUseCase = mockk()
+    private val loadFeeds: LoadTrendFeedInstantsUseCase = mockk()
 
     @JvmField
     @RegisterExtension
@@ -33,15 +36,16 @@ class TrendsViewModelTest {
     @BeforeEach
     fun setup() {
         coEvery { sleep(any()) } returns emptyList()
-        coEvery { interval(any()) } returns emptyList()
-        coEvery { rhythm(any()) } returns emptyList()
+        coEvery { loadFeeds(any()) } returns TrendFeedInstants()
+        coEvery { interval(any(), any()) } returns emptyList()
+        coEvery { rhythm(any(), any()) } returns emptyList()
     }
 
-    private fun viewModel() = TrendsViewModel(frequency, sleep, interval, rhythm)
+    private fun viewModel() = TrendsViewModel(loadFeeds, frequency, sleep, interval, rhythm)
 
     @Test
     fun `loads default 7-day range then settles loaded`() = runTest {
-        coEvery { frequency(TrendRange.SEVEN_DAYS) } returns
+        coEvery { frequency(TrendRange.SEVEN_DAYS, any()) } returns
             listOf(DailyFeedingCount(LocalDate.of(2026, 6, 14), 5))
 
         viewModel().uiState.test {
@@ -55,7 +59,7 @@ class TrendsViewModelTest {
 
     @Test
     fun `onRangeSelected recomputes for new range`() = runTest {
-        coEvery { frequency(any()) } returns emptyList()
+        coEvery { frequency(any(), any()) } returns emptyList()
 
         val vm = viewModel()
         vm.uiState.test {

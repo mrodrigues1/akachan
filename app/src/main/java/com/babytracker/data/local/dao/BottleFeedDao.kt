@@ -14,7 +14,7 @@ interface BottleFeedDao {
     fun getRecentFlow(limit: Int): Flow<List<BottleFeedEntity>>
 
     @Query("SELECT * FROM bottle_feeds WHERE timestamp >= :startMs ORDER BY timestamp DESC")
-    fun getSince(startMs: Long): Flow<List<BottleFeedEntity>>
+    suspend fun getSinceOnce(startMs: Long): List<BottleFeedEntity>
 
     @Query("SELECT * FROM bottle_feeds ORDER BY timestamp DESC LIMIT :limit")
     suspend fun getRecent(limit: Int): List<BottleFeedEntity>

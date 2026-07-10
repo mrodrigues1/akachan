@@ -17,6 +17,8 @@ import com.babytracker.domain.usecase.trends.GetDayRhythmTrendUseCase
 import com.babytracker.domain.usecase.trends.GetFeedingFrequencyTrendUseCase
 import com.babytracker.domain.usecase.trends.GetFeedingIntervalTrendUseCase
 import com.babytracker.domain.usecase.trends.GetSleepDurationTrendUseCase
+import com.babytracker.domain.usecase.trends.LoadTrendFeedInstantsUseCase
+import com.babytracker.domain.usecase.trends.TrendFeedInstants
 import com.babytracker.ui.theme.BabyTrackerTheme
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -34,14 +36,18 @@ class TrendsScreenTest {
     private val sleep = mockk<GetSleepDurationTrendUseCase>()
     private val interval = mockk<GetFeedingIntervalTrendUseCase>()
     private val rhythm = mockk<GetDayRhythmTrendUseCase>()
+    private val loadFeeds = mockk<LoadTrendFeedInstantsUseCase>()
 
-    private fun newViewModel() = TrendsViewModel(frequency, sleep, interval, rhythm)
+    private fun newViewModel(): TrendsViewModel {
+        coEvery { loadFeeds(any()) } returns TrendFeedInstants()
+        return TrendsViewModel(loadFeeds, frequency, sleep, interval, rhythm)
+    }
 
     private fun emptyViewModel(): TrendsViewModel {
-        coEvery { frequency(any()) } returns emptyList()
+        coEvery { frequency(any(), any()) } returns emptyList()
         coEvery { sleep(any()) } returns emptyList()
-        coEvery { interval(any()) } returns emptyList()
-        coEvery { rhythm(any()) } returns emptyList()
+        coEvery { interval(any(), any()) } returns emptyList()
+        coEvery { rhythm(any(), any()) } returns emptyList()
         return newViewModel()
     }
 
@@ -79,10 +85,10 @@ class TrendsScreenTest {
         // drawing. Rendering populated charts across ranges must complete without throwing.
         val today = LocalDate.of(2026, 6, 16)
         fun day(offset: Int) = today.minusDays((29 - offset).toLong())
-        coEvery { frequency(any()) } returns List(30) { DailyFeedingCount(day(it), (it % 9) + 1) }
+        coEvery { frequency(any(), any()) } returns List(30) { DailyFeedingCount(day(it), (it % 9) + 1) }
         coEvery { sleep(any()) } returns List(30) { DailySleepDuration(day(it), nightHours = 8.0, napHours = 4.0) }
-        coEvery { interval(any()) } returns List(30) { DailyFeedingInterval(day(it), averageHours = 3.0) }
-        coEvery { rhythm(any()) } returns List(30) {
+        coEvery { interval(any(), any()) } returns List(30) { DailyFeedingInterval(day(it), averageHours = 3.0) }
+        coEvery { rhythm(any(), any()) } returns List(30) {
             DayRhythm(
                 date = day(it),
                 sleepBlocks = listOf(RhythmBlock(0.0f, 0.25f, isNight = true)),
@@ -115,6 +121,6 @@ class TrendsScreenTest {
         composeRule.onNodeWithTag("trends_range_30").performClick()
         composeRule.waitForIdle()
 
-        coVerify(timeout = 5_000) { frequency(TrendRange.THIRTY_DAYS) }
+        coVerify(timeout = 5_000) { frequency(TrendRange.THIRTY_DAYS, any()) }
     }
 }
