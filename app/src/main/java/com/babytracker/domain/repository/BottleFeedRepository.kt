@@ -6,7 +6,8 @@ import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
 interface BottleFeedRepository {
-    fun getAll(): Flow<List<BottleFeed>>
+    /** Observes the newest [limit] feeds, newest first. */
+    fun getRecentFlow(limit: Int): Flow<List<BottleFeed>>
     fun getSince(start: Instant): Flow<List<BottleFeed>>
 
     /** The [limit] most recent feeds, newest first. Bounded one-shot read for sync. */

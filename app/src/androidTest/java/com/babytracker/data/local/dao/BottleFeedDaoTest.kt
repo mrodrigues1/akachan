@@ -40,7 +40,7 @@ class BottleFeedDaoTest {
         dao.insert(feed(timestamp = 1_000))
         dao.insert(feed(timestamp = 5_000))
 
-        val all = dao.getAll().first()
+        val all = dao.getRecentFlow(100).first()
 
         assertEquals(listOf(5_000L, 1_000L), all.map { it.timestamp })
     }
@@ -52,7 +52,7 @@ class BottleFeedDaoTest {
         val changed = dao.updateDetails(id, 2_000, 200, "FORMULA", null, "edited")
 
         assertEquals(1, changed)
-        val row = dao.getAll().first().first()
+        val row = dao.getRecentFlow(100).first().first()
         assertEquals(200, row.volumeMl)
         assertEquals("FORMULA", row.type)
         assertEquals("edited", row.notes)

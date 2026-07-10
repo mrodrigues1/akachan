@@ -9,12 +9,15 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -141,6 +144,7 @@ fun UnifiedFeedingHistoryScreen(
             onDeleteBottle = { pendingDelete = it },
             onEditBreastfeeding = breastfeedingViewModel::onEditSessionClick,
             onDeleteBreastfeeding = breastfeedingViewModel::onPendingDeleteSessionChanged,
+            onLoadMore = viewModel::onLoadMoreHistory,
             contentPadding = PaddingValues(
                 top = padding.calculateTopPadding() + 8.dp,
                 bottom = padding.calculateBottomPadding() + 8.dp,
@@ -200,6 +204,7 @@ internal fun UnifiedFeedingHistoryContent(
     onEditBreastfeeding: (BreastfeedingSession) -> Unit,
     onDeleteBreastfeeding: (BreastfeedingSession) -> Unit,
     modifier: Modifier = Modifier,
+    onLoadMore: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -207,12 +212,12 @@ internal fun UnifiedFeedingHistoryContent(
             state.isLoading -> LoadingHistoryState()
             state.days.isEmpty() -> EmptyFeedingHistoryState()
             else -> FeedingHistoryList(
-                days = state.days,
-                volumeUnit = state.volumeUnit,
+                state = state,
                 onEditBottle = onEditBottle,
                 onDeleteBottle = onDeleteBottle,
                 onEditBreastfeeding = onEditBreastfeeding,
                 onDeleteBreastfeeding = onDeleteBreastfeeding,
+                onLoadMore = onLoadMore,
                 contentPadding = contentPadding,
             )
         }
@@ -221,14 +226,16 @@ internal fun UnifiedFeedingHistoryContent(
 
 @Composable
 private fun FeedingHistoryList(
-    days: List<FeedingDayGroup>,
-    volumeUnit: VolumeUnit,
+    state: FeedingHistoryUiState,
     onEditBottle: (BottleFeed) -> Unit,
     onDeleteBottle: (BottleFeed) -> Unit,
     onEditBreastfeeding: (BreastfeedingSession) -> Unit,
     onDeleteBreastfeeding: (BreastfeedingSession) -> Unit,
+    onLoadMore: () -> Unit,
     contentPadding: PaddingValues,
 ) {
+    val days = state.days
+    val volumeUnit = state.volumeUnit
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = contentPadding,
@@ -251,6 +258,21 @@ private fun FeedingHistoryList(
                         onEdit = { onEditBreastfeeding(entry.session) },
                         onDelete = { onDeleteBreastfeeding(entry.session) },
                     )
+                }
+            }
+        }
+
+        if (state.hasMoreHistory) {
+            item(key = "history_load_more") {
+                // Keyed on size so it re-fires if the item stays composed after a page lands.
+                LaunchedEffect(state.entryCount) { onLoadMore() }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
                 }
             }
         }

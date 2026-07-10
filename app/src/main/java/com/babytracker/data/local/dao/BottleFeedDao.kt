@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BottleFeedDao {
-    @Query("SELECT * FROM bottle_feeds ORDER BY timestamp DESC")
-    fun getAll(): Flow<List<BottleFeedEntity>>
+    @Query("SELECT * FROM bottle_feeds ORDER BY timestamp DESC LIMIT :limit")
+    fun getRecentFlow(limit: Int): Flow<List<BottleFeedEntity>>
 
     @Query("SELECT * FROM bottle_feeds WHERE timestamp >= :startMs ORDER BY timestamp DESC")
     fun getSince(startMs: Long): Flow<List<BottleFeedEntity>>

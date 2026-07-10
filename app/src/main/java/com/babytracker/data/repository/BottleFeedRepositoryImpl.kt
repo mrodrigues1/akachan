@@ -17,8 +17,8 @@ class BottleFeedRepositoryImpl @Inject constructor(
     private val dao: BottleFeedDao,
 ) : BottleFeedRepository {
 
-    override fun getAll(): Flow<List<BottleFeed>> =
-        dao.getAll().mapList { it.toDomain() }
+    override fun getRecentFlow(limit: Int): Flow<List<BottleFeed>> =
+        dao.getRecentFlow(limit).mapList { it.toDomain() }
 
     override fun getSince(start: Instant): Flow<List<BottleFeed>> =
         dao.getSince(start.toEpochMilli()).mapList { it.toDomain() }

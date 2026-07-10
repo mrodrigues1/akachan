@@ -116,7 +116,10 @@ class HomeViewModel @Inject constructor(
     private val baseState = combine(
         combine(
             babyRepository.getBabyProfile(),
-            breastfeedingRepository.getAllSessions(),
+            // Home reads only the 3 newest feedings, the in-progress session, and the newest
+            // completed one — all within the newest handful of rows. 10 leaves margin for manual
+            // entries backdated above an in-progress session.
+            breastfeedingRepository.getRecentSessionsFlow(HOME_FEEDINGS_WINDOW),
             recentSleepRecords,
             settingsRepository.getAppMode(),
             predictNextFeed(),
@@ -216,4 +219,7 @@ class HomeViewModel @Inject constructor(
     private fun startOfYesterdayInstant(zone: ZoneId = ZoneId.systemDefault()): Instant =
         LocalDate.now(zone).minusDays(1).atStartOfDay(zone).toInstant()
 
+    private companion object {
+        const val HOME_FEEDINGS_WINDOW = 10
+    }
 }

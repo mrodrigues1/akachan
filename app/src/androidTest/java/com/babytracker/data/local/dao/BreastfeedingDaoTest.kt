@@ -42,7 +42,7 @@ class BreastfeedingDaoTest {
         )
 
         dao.insertSession(entity)
-        val sessions = dao.getAllSessions().first()
+        val sessions = dao.getRecentSessionsFlow(100).first()
 
         assertEquals(1, sessions.size)
         assertEquals("LEFT", sessions[0].startingSide)
@@ -107,7 +107,7 @@ class BreastfeedingDaoTest {
         val endTime = System.currentTimeMillis() + 60000
         dao.updateSession(entity.copy(id = id, endTime = endTime))
 
-        val sessions = dao.getAllSessions().first()
+        val sessions = dao.getRecentSessionsFlow(100).first()
         assertEquals(endTime, sessions[0].endTime)
     }
 
@@ -132,7 +132,7 @@ class BreastfeedingDaoTest {
         )
 
         assertNull(id)
-        assertEquals(1, dao.getAllSessions().first().size)
+        assertEquals(1, dao.getRecentSessionsFlow(100).first().size)
     }
 
     @Test
@@ -158,7 +158,7 @@ class BreastfeedingDaoTest {
 
         assertTrue(stopped)
         assertNull(dao.getActiveSessionOnce())
-        assertEquals(endTime, dao.getAllSessions().first()[0].endTime)
+        assertEquals(endTime, dao.getRecentSessionsFlow(100).first()[0].endTime)
     }
 
     @Test
@@ -178,7 +178,7 @@ class BreastfeedingDaoTest {
         val stopped = dao.stopActiveSession(endTime)
 
         assertTrue(stopped)
-        val session = dao.getAllSessions().first()[0]
+        val session = dao.getRecentSessionsFlow(100).first()[0]
         assertEquals(endTime, session.endTime)
         assertNull(session.pausedAt)
         assertEquals(30_000L + 120_000L, session.pausedDurationMs)

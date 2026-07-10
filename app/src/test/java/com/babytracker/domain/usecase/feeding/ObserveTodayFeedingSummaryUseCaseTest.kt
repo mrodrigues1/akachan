@@ -37,8 +37,8 @@ class ObserveTodayFeedingSummaryUseCaseTest {
         val todaySession = BreastfeedingSession(1, Instant.parse("2026-06-10T15:00:00Z"), Instant.parse("2026-06-10T15:10:00Z"), BreastSide.LEFT)
         val yesterdaySession = BreastfeedingSession(2, Instant.parse("2026-06-09T15:00:00Z"), Instant.parse("2026-06-09T15:10:00Z"), BreastSide.RIGHT)
 
-        every { getBreastfeeding.getAllSessions() } returns flowOf(listOf(todaySession, yesterdaySession))
-        every { observeBottles.getAll() } returns flowOf(listOf(todayBottleA, todayBottleB, yesterdayBottle))
+        every { getBreastfeeding.getRecentSessionsFlow(any()) } returns flowOf(listOf(todaySession, yesterdaySession))
+        every { observeBottles.getRecentFlow(any()) } returns flowOf(listOf(todayBottleA, todayBottleB, yesterdayBottle))
 
         val summary = useCase()().first()
 
@@ -54,8 +54,8 @@ class ObserveTodayFeedingSummaryUseCaseTest {
         val yesterdayBottle = BottleFeed(1, "client-1", Instant.parse("2026-06-09T12:00:00Z"), 200, FeedType.FORMULA, createdAt = Instant.EPOCH)
         val yesterdaySession = BreastfeedingSession(1, Instant.parse("2026-06-09T15:00:00Z"), Instant.parse("2026-06-09T15:10:00Z"), BreastSide.RIGHT)
 
-        every { getBreastfeeding.getAllSessions() } returns flowOf(listOf(yesterdaySession))
-        every { observeBottles.getAll() } returns flowOf(listOf(yesterdayBottle))
+        every { getBreastfeeding.getRecentSessionsFlow(any()) } returns flowOf(listOf(yesterdaySession))
+        every { observeBottles.getRecentFlow(any()) } returns flowOf(listOf(yesterdayBottle))
 
         val summary = useCase()().first()
 
@@ -73,8 +73,8 @@ class ObserveTodayFeedingSummaryUseCaseTest {
         // 2026-06-10T03:00Z is 2026-06-09 23:00 local -> yesterday in NY.
         val earlyUtcYesterdayLocal = BottleFeed(2, "client-2", Instant.parse("2026-06-10T03:00:00Z"), 50, FeedType.FORMULA, createdAt = Instant.EPOCH)
 
-        every { getBreastfeeding.getAllSessions() } returns flowOf(emptyList())
-        every { observeBottles.getAll() } returns flowOf(listOf(lateUtcStillTodayLocal, earlyUtcYesterdayLocal))
+        every { getBreastfeeding.getRecentSessionsFlow(any()) } returns flowOf(emptyList())
+        every { observeBottles.getRecentFlow(any()) } returns flowOf(listOf(lateUtcStillTodayLocal, earlyUtcYesterdayLocal))
 
         val summary = ObserveTodayFeedingSummaryUseCase(getBreastfeeding, observeBottles, zoneNy) { now }().first()
 

@@ -123,7 +123,7 @@ class HomeViewModelTest {
         logBabyEvent = mockk()
 
         every { babyRepository.getBabyProfile() } returns flowOf(testBaby)
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(emptyList())
         every { sleepRepository.getRecentOrActiveRecordsFlow(any()) } returns flowOf(emptyList())
         every { sleepRepository.observeActiveRecord() } returns flowOf(null)
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.NONE)
@@ -189,7 +189,7 @@ class HomeViewModelTest {
 
     @Test
     fun activeSession_isNull_whenNoInProgressFeeding() = runTest {
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(completedSession))
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(listOf(completedSession))
         viewModel = createViewModel()
         settle(viewModel)
         assertNull(viewModel.uiState.value.activeSession)
@@ -197,7 +197,7 @@ class HomeViewModelTest {
 
     @Test
     fun activeSession_isSet_whenInProgressFeedingExists() = runTest {
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(inProgressSession, completedSession))
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(listOf(inProgressSession, completedSession))
         viewModel = createViewModel()
         settle(viewModel)
         assertNotNull(viewModel.uiState.value.activeSession)
@@ -207,7 +207,7 @@ class HomeViewModelTest {
     @Test
     fun nextRecommendedSide_returnsOppositeOfLastCompletedSessionStartingSide_whenNoSwitch() = runTest {
         // completedSession started on RIGHT with no switch → recommend LEFT (the less-used side)
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(inProgressSession, completedSession))
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(listOf(inProgressSession, completedSession))
         viewModel = createViewModel()
         settle(viewModel)
         assertEquals(BreastSide.LEFT, viewModel.uiState.value.nextRecommendedSide)
@@ -215,7 +215,7 @@ class HomeViewModelTest {
 
     @Test
     fun nextRecommendedSide_isNull_whenNoCompletedSession() = runTest {
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(inProgressSession))
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(listOf(inProgressSession))
         viewModel = createViewModel()
         settle(viewModel)
         assertNull(viewModel.uiState.value.nextRecommendedSide)
@@ -232,7 +232,7 @@ class HomeViewModelTest {
             startingSide = BreastSide.RIGHT,
             switchTime = now.minusSeconds(170) // 19s on RIGHT before switch, then 19s on LEFT
         )
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(sessionWithSwitch))
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(listOf(sessionWithSwitch))
         viewModel = createViewModel()
         settle(viewModel)
         // RIGHT used 130s, LEFT used 19s → LEFT was used less → recommend LEFT
@@ -241,7 +241,7 @@ class HomeViewModelTest {
 
     @Test
     fun lastSessionStartTime_isNull_whenHistoryIsEmpty() = runTest {
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(emptyList())
         viewModel = createViewModel()
         settle(viewModel)
         assertNull(viewModel.uiState.value.lastSessionStartTime)
@@ -249,7 +249,7 @@ class HomeViewModelTest {
 
     @Test
     fun lastSessionStartTime_equalsActiveSessionStart_whenActiveSessionExists() = runTest {
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(inProgressSession, completedSession))
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(listOf(inProgressSession, completedSession))
         viewModel = createViewModel()
         settle(viewModel)
         assertEquals(inProgressSession.startTime, viewModel.uiState.value.lastSessionStartTime)
@@ -257,7 +257,7 @@ class HomeViewModelTest {
 
     @Test
     fun lastSessionStartTime_prefersActiveSession_evenWhenNotFirstInList() = runTest {
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(completedSession, inProgressSession))
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(listOf(completedSession, inProgressSession))
         viewModel = createViewModel()
         settle(viewModel)
         assertEquals(inProgressSession.startTime, viewModel.uiState.value.lastSessionStartTime)
@@ -265,7 +265,7 @@ class HomeViewModelTest {
 
     @Test
     fun lastSessionStartTime_equalsMostRecentCompletedStart_whenNoActiveSession() = runTest {
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(completedSession))
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(listOf(completedSession))
         viewModel = createViewModel()
         settle(viewModel)
         assertEquals(completedSession.startTime, viewModel.uiState.value.lastSessionStartTime)
@@ -383,7 +383,7 @@ class HomeViewModelTest {
             isOverdue = false,
             minutesUntil = 45,
         )
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(completedSession))
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(listOf(completedSession))
         every { predictNextFeed() } returns flowOf(prediction)
         viewModel = createViewModel()
         settle(viewModel)
@@ -399,7 +399,7 @@ class HomeViewModelTest {
             isOverdue = false,
             minutesUntil = 45,
         )
-        every { breastfeedingRepository.getAllSessions() } returns flowOf(listOf(inProgressSession, completedSession))
+        every { breastfeedingRepository.getRecentSessionsFlow(any()) } returns flowOf(listOf(inProgressSession, completedSession))
         every { predictNextFeed() } returns flowOf(prediction)
         viewModel = createViewModel()
         settle(viewModel)
