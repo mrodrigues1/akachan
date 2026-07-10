@@ -13,7 +13,7 @@ import com.babytracker.domain.repository.MilestoneRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
-import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
+import com.babytracker.domain.usecase.sleep.SharedSleepPredictionStream
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.ShareSnapshot
@@ -67,7 +67,7 @@ class SyncToFirestoreDoctorVisitTest {
 
         val sources = SnapshotSources(
             babyRepo, bfRepo, sleepRepo, inventoryRepo, bottleRepo, diaperRepo,
-            mockk<PredictSleepWindowUseCase>(), growthRepo, milestoneRepo, doctorRepo,
+            mockk<SharedSleepPredictionStream>(), growthRepo, milestoneRepo, doctorRepo,
         )
         val useCase = SyncToFirestoreUseCase(
             service, settings, sleepSettings, sources,

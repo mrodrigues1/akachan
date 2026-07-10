@@ -11,7 +11,7 @@ import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRepository
-import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
+import com.babytracker.domain.usecase.sleep.SharedSleepPredictionStream
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.MilkBagSnapshot
@@ -40,7 +40,7 @@ class GenerateShareCodeUseCaseInventoryTest {
     private val sleepRepository: SleepRepository = mockk()
     private val inventoryRepository: InventoryRepository = mockk()
     private val bottleFeedRepository: BottleFeedRepository = mockk()
-    private val predictSleepWindow: PredictSleepWindowUseCase = mockk()
+    private val sharedSleepPrediction: SharedSleepPredictionStream = mockk()
     private val fixedNow = Instant.parse("2026-05-16T10:00:00Z")
 
     private lateinit var useCase: GenerateShareCodeUseCase
@@ -58,7 +58,7 @@ class GenerateShareCodeUseCaseInventoryTest {
                 inventoryRepository,
                 bottleFeedRepository,
                 mockk { coEvery { getRecent(any()) } returns emptyList() },
-                predictSleepWindow,
+                sharedSleepPrediction,
                 mockk { every { getAllMeasurements() } returns flowOf(emptyList()) },
                 mockk { every { getMilestones() } returns flowOf(emptyList()) },
                 mockk { coEvery { getRecentVisits(any()) } returns emptyList() },
@@ -76,7 +76,7 @@ class GenerateShareCodeUseCaseInventoryTest {
         coEvery { settingsRepository.setShareCode(any()) } just Runs
         coEvery { settingsRepository.setAppMode(any()) } just Runs
         every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(false)
-        every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("disabled"))
+        every { sharedSleepPrediction.observe() } returns flowOf(SleepPredictionState.Unavailable("disabled"))
     }
 
     @Test

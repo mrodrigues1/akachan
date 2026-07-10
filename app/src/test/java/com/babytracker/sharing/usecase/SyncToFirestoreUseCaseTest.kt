@@ -19,7 +19,7 @@ import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRepository
-import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
+import com.babytracker.domain.usecase.sleep.SharedSleepPredictionStream
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.domain.model.ShareCode
@@ -33,6 +33,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -52,7 +53,7 @@ class SyncToFirestoreUseCaseTest {
     private val sleepRepository: SleepRepository = mockk()
     private val inventoryRepository: InventoryRepository = mockk()
     private val bottleFeedRepository: BottleFeedRepository = mockk()
-    private val predictSleepWindow: PredictSleepWindowUseCase = mockk()
+    private val sharedSleepPrediction: SharedSleepPredictionStream = mockk()
     private val fixedNow = Instant.parse("2026-05-16T10:00:00Z")
 
     private lateinit var useCase: SyncToFirestoreUseCase
@@ -91,7 +92,7 @@ class SyncToFirestoreUseCaseTest {
                 inventoryRepository,
                 bottleFeedRepository,
                 mockk { coEvery { getRecent(any()) } returns emptyList() },
-                predictSleepWindow,
+                sharedSleepPrediction,
                 mockk { every { getAllMeasurements() } returns flowOf(emptyList()) },
                 mockk { every { getMilestones() } returns flowOf(emptyList()) },
                 mockk { coEvery { getRecentVisits(any()) } returns emptyList() },
@@ -188,7 +189,7 @@ class SyncToFirestoreUseCaseTest {
     fun fullSyncIncludesPredictionWhenPredictiveSleepEnabled() = runTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
         every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
-        every { predictSleepWindow() } returns flowOf(
+        every { sharedSleepPrediction.observe() } returns flowOf(
             SleepPredictionState.Window(
                 SleepWindow(
                     windowStart = Instant.parse("2026-05-16T11:00:00Z"),
@@ -222,14 +223,14 @@ class SyncToFirestoreUseCaseTest {
         useCase(SyncType.FULL)
 
         assertNull(snapshot.captured.sleepPrediction)
-        coVerify(exactly = 0) { predictSleepWindow() }
+        coVerify(exactly = 0) { sharedSleepPrediction.observe() }
     }
 
     @Test
     fun sessionsSyncRefreshesPredictionWhenPredictiveSleepEnabled() = runTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
         every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
-        every { predictSleepWindow() } returns flowOf(SleepPredictionState.AfterActiveFeed)
+        every { sharedSleepPrediction.observe() } returns flowOf(SleepPredictionState.AfterActiveFeed)
         val prediction = slot<SleepPredictionSnapshot>()
         coEvery { service.syncSessions(any(), any(), capture(prediction)) } just Runs
 
@@ -247,14 +248,14 @@ class SyncToFirestoreUseCaseTest {
         useCase(SyncType.SESSIONS)
 
         coVerify { service.syncSessions(shareCode.value, any(), null) }
-        coVerify(exactly = 0) { predictSleepWindow() }
+        coVerify(exactly = 0) { sharedSleepPrediction.observe() }
     }
 
     @Test
     fun sleepRecordsSyncRefreshesPredictionWhenPredictiveSleepEnabled() = runTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
         every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
-        every { predictSleepWindow() } returns flowOf(SleepPredictionState.CurrentlySleeping)
+        every { sharedSleepPrediction.observe() } returns flowOf(SleepPredictionState.CurrentlySleeping)
         val prediction = slot<SleepPredictionSnapshot>()
         coEvery {
             service.syncSleepRecords(any(), any(), capture(prediction))
@@ -263,13 +264,39 @@ class SyncToFirestoreUseCaseTest {
         useCase(SyncType.SLEEP_RECORDS)
 
         assertEquals("CURRENTLY_SLEEPING", prediction.captured.stateLabel)
+        // The prediction must come from the shared, already-hot stream — not a freshly cold-started
+        // PredictSleepWindowUseCase pipeline — on every sleep-record sync (issue #764).
+        coVerify(exactly = 1) { sharedSleepPrediction.observe() }
+    }
+
+    @Test
+    fun sleepRecordsSyncReadsLiveSharedPredictionSoAStaleValueSelfHealsOnTheNextSync() = runTest {
+        every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
+        every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
+        // Model the shared replay=1 cache: a sync reads whatever the hot pipeline currently holds. The
+        // pipeline reacts to a write's Room invalidation asynchronously, so a sync can momentarily read
+        // a pre-write value — but once the pipeline pushes the recomputed prediction, the next sync
+        // reflects it. This is the bounded, self-healing staleness accepted in place of a per-write
+        // cold start (issue #764).
+        val shared = MutableStateFlow<SleepPredictionState>(SleepPredictionState.CurrentlySleeping)
+        every { sharedSleepPrediction.observe() } returns shared
+        val prediction = slot<SleepPredictionSnapshot>()
+        coEvery { service.syncSleepRecords(any(), any(), capture(prediction)) } just Runs
+
+        useCase(SyncType.SLEEP_RECORDS)
+        assertEquals("CURRENTLY_SLEEPING", prediction.captured.stateLabel)
+
+        // The shared pipeline recomputes off the write and updates its cache; the next sync picks it up.
+        shared.value = SleepPredictionState.AfterActiveFeed
+        useCase(SyncType.SLEEP_RECORDS)
+        assertEquals("AFTER_ACTIVE_FEED", prediction.captured.stateLabel)
     }
 
     @Test
     fun fullSyncOmitsPredictionWhenUnavailable() = runTest {
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.PRIMARY)
         every { sleepSettingsRepository.getPredictiveSleepEnabled() } returns flowOf(true)
-        every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("no baby profile"))
+        every { sharedSleepPrediction.observe() } returns flowOf(SleepPredictionState.Unavailable("no baby profile"))
         val snapshot = slot<ShareSnapshot>()
         coEvery { service.syncFullSnapshot(any(), capture(snapshot)) } just Runs
 

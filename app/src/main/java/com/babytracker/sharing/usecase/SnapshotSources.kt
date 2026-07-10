@@ -10,7 +10,7 @@ import com.babytracker.domain.repository.InventoryRepository
 import com.babytracker.domain.repository.MilestoneRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
-import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
+import com.babytracker.domain.usecase.sleep.SharedSleepPredictionStream
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
@@ -30,7 +30,7 @@ data class SnapshotSources @Inject constructor(
     val inventory: InventoryRepository,
     val bottleFeeds: BottleFeedRepository,
     val diaper: DiaperRepository,
-    val predictSleepWindow: PredictSleepWindowUseCase,
+    val sharedSleepPrediction: SharedSleepPredictionStream,
     val growth: GrowthRepository,
     val milestones: MilestoneRepository,
     val doctorVisit: DoctorVisitRepository,
@@ -80,6 +80,24 @@ internal suspend fun buildShareSnapshot(
 /**
  * Builds the synced sleep-window prediction, or null when predictive sleep is disabled. Shared by
  * every sync path that touches session or sleep state, so a stale prediction never lingers.
+ *
+ * Reads from [SharedSleepPredictionStream] rather than cold-starting PredictSleepWindowUseCase: the
+ * always-on predictive-notification coordinator keeps that shared pipeline hot with replay = 1, so a
+ * sync fired on any feed/sleep write gets the current prediction from the replay cache instantly
+ * instead of spinning up four Room flows + the ticker + a full feature extraction on every write. On
+ * the cold edge where a sync beats the first-ever emission (or the coordinator momentarily holds no
+ * subscriber under WhileSubscribed), `.first()` simply becomes the subscriber that starts the
+ * pipeline — the same cost as before, now deduplicated across concurrent consumers.
+ *
+ * Tradeoff: the cold flow used to issue its query *after* the local write, so it always saw post-write
+ * state. The replay cache instead reflects whatever the shared pipeline last computed, and that pipeline
+ * reacts to the write's Room invalidation asynchronously (on Dispatchers.Default). A write-triggered
+ * sync can therefore race the recompute and publish the pre-write prediction. In practice the several
+ * suspending DataStore/Room reads that precede this call (mode, share code, recent records, the enabled
+ * flag) yield the dispatcher long enough for the recompute to land, and any residual one-write lag
+ * self-heals on the next sync — while the sleep records in the same snapshot are always read fresh.
+ * Forcing strict freshness would mean re-introducing the per-write cold start this optimization removes,
+ * so the bounded, self-healing staleness is accepted deliberately (issue #764).
  */
 internal suspend fun currentSleepPrediction(
     sources: SnapshotSources,
@@ -87,7 +105,7 @@ internal suspend fun currentSleepPrediction(
     generatedAtMs: Long,
 ): SleepPredictionSnapshot? =
     if (sleepSettings.getPredictiveSleepEnabled().first()) {
-        sources.predictSleepWindow().first().toSnapshot(generatedAt = generatedAtMs)
+        sources.sharedSleepPrediction.observe().first().toSnapshot(generatedAt = generatedAtMs)
     } else {
         null
     }
