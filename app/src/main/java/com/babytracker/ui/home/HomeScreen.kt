@@ -3,7 +3,6 @@ package com.babytracker.ui.home
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
@@ -101,6 +100,7 @@ import com.babytracker.ui.component.PumpingIcon
 import com.babytracker.ui.component.TrendsIcon
 import com.babytracker.ui.component.VaccineIcon
 import com.babytracker.ui.component.labelRes
+import com.babytracker.ui.sleep.EaseOutQuart
 import com.babytracker.ui.theme.LocalDarkTheme
 import com.babytracker.ui.theme.OnWarningContainerAmber
 import com.babytracker.ui.theme.OnWarningContainerAmberDark
@@ -123,8 +123,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
-
-internal val EaseOutQuart = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
 
 private fun TextStyle.fitHomeTileTitle(width: Dp): TextStyle = when {
     fontSize <= 18.sp -> this

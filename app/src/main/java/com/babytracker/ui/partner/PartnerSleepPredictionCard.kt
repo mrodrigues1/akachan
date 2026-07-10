@@ -35,7 +35,7 @@ import com.babytracker.R
 import com.babytracker.domain.model.SleepType
 import com.babytracker.sharing.domain.model.PredictionStateLabel
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
-import com.babytracker.ui.home.EaseOutQuart
+import com.babytracker.ui.sleep.EaseOutQuart
 import com.babytracker.util.formatElapsedAgo
 import com.babytracker.util.formatTime
 import com.babytracker.util.resolve
