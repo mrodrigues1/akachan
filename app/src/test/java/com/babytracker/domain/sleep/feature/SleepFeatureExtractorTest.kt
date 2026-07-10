@@ -514,7 +514,7 @@ class SleepFeatureExtractorTest {
     }
 
     @Test
-    fun `SleepMetrics has napWakeP50Millis and bedtimeWakeP50Millis fields`() {
+    fun `SleepMetrics has napStats and bedtimeStats fields`() {
         val metrics = SleepMetrics(
             lastWakeMillis = null,
             lastSleepType = null,
@@ -524,18 +524,12 @@ class SleepFeatureExtractorTest {
             sleepLast24hMillis = 0L,
             napCountToday = 0,
             medianBedtimeMinuteOfDay = null,
-            napWakeIntervalCount = 0,
-            napWakeP25Millis = null,
-            napWakeP50Millis = null,
-            napWakeP75Millis = null,
-            bedtimeWakeIntervalCount = 0,
-            bedtimeWakeP25Millis = null,
-            bedtimeWakeP50Millis = null,
-            bedtimeWakeP75Millis = null,
+            napStats = WakeIntervalStats(count = 0, p25Millis = null, p50Millis = null, p75Millis = null),
+            bedtimeStats = WakeIntervalStats(count = 0, p25Millis = null, p50Millis = null, p75Millis = null),
         )
-        assertEquals(0, metrics.napWakeIntervalCount)
-        assertNull(metrics.napWakeP50Millis)
-        assertNull(metrics.bedtimeWakeP50Millis)
+        assertEquals(0, metrics.napStats.count)
+        assertNull(metrics.napStats.p50Millis)
+        assertNull(metrics.bedtimeStats.p50Millis)
     }
 
     // Helper: fixed clock + UTC zone used in type-separation tests
@@ -565,15 +559,15 @@ class SleepFeatureExtractorTest {
         val features = extractor().extract(mixedRecords(), emptyList())
         val metrics = features.metrics
         // 3 naps → 2 NAP-labeled wake intervals (between N1→N2, N2→N3)
-        assertEquals(2, metrics.napWakeIntervalCount)
-        assertNotNull(metrics.napWakeP50Millis)
+        assertEquals(2, metrics.napStats.count)
+        assertNotNull(metrics.napStats.p50Millis)
         // Nap1→Nap2 gap: 8h - 5h30m = 2h30m - 90min nap = 60 min
         // Nap2→Nap3 gap: 5h30m - 3h = 2h30m - 90min nap = 60 min
         // Both ≈ 60 min wake interval
         val expectedNapGapMs = Duration.ofMinutes(60).toMillis()
         assertTrue(
-            kotlin.math.abs(metrics.napWakeP50Millis!! - expectedNapGapMs) < Duration.ofMinutes(5).toMillis(),
-            "napWakeP50 should be ~60 min; got ${metrics.napWakeP50Millis!! / 60000} min"
+            kotlin.math.abs(metrics.napStats.p50Millis!! - expectedNapGapMs) < Duration.ofMinutes(5).toMillis(),
+            "napWakeP50 should be ~60 min; got ${metrics.napStats.p50Millis!! / 60000} min"
         )
     }
 
@@ -582,16 +576,16 @@ class SleepFeatureExtractorTest {
         val features = extractor().extract(mixedRecords(), emptyList())
         val metrics = features.metrics
         // Nap3→Night gap: 3h - 1h = 2h - 90min nap = 30 min (short pre-bedtime window)
-        assertEquals(1, metrics.bedtimeWakeIntervalCount)
-        assertNotNull(metrics.bedtimeWakeP50Millis)
+        assertEquals(1, metrics.bedtimeStats.count)
+        assertNotNull(metrics.bedtimeStats.p50Millis)
     }
 
     @Test
     fun `type-separated - naps-only produces zero bedtime intervals`() {
         val napOnly = mixedRecords().filter { it.sleepType == SleepType.NAP }
         val features = extractor().extract(napOnly, emptyList())
-        assertEquals(0, features.metrics.bedtimeWakeIntervalCount)
-        assertNull(features.metrics.bedtimeWakeP50Millis)
+        assertEquals(0, features.metrics.bedtimeStats.count)
+        assertNull(features.metrics.bedtimeStats.p50Millis)
     }
 
     @Test
@@ -604,8 +598,8 @@ class SleepFeatureExtractorTest {
             SleepRecord(id++, start, end, SleepType.NIGHT_SLEEP)
         }.sortedBy { it.startTime }
         val features = extractor().extract(nights, emptyList())
-        assertEquals(0, features.metrics.napWakeIntervalCount)
-        assertNull(features.metrics.napWakeP50Millis)
+        assertEquals(0, features.metrics.napStats.count)
+        assertNull(features.metrics.napStats.p50Millis)
     }
 
     @Test
@@ -619,10 +613,10 @@ class SleepFeatureExtractorTest {
         }.sortedBy { it.startTime }
         val features = extractor().extract(records, emptyList())
         // 3 intervals (4 records → 3 gaps), each ~90 min
-        assertEquals(3, features.metrics.napWakeIntervalCount)
-        assertNotNull(features.metrics.napWakeP50Millis)
-        assertNull(features.metrics.napWakeP25Millis)
-        assertNull(features.metrics.napWakeP75Millis)
+        assertEquals(3, features.metrics.napStats.count)
+        assertNotNull(features.metrics.napStats.p50Millis)
+        assertNull(features.metrics.napStats.p25Millis)
+        assertNull(features.metrics.napStats.p75Millis)
     }
 
     @Test
@@ -683,8 +677,8 @@ class SleepFeatureExtractorTest {
                 metrics.wakeIntervalIqrMillis!! > Duration.ofMinutes(45).toMillis(),
             "Fixture combined IQR must exceed 45-min ceiling; got ${metrics.wakeIntervalIqrMillis?.div(60_000)} min",
         )
-        assertNotNull(metrics.napWakeP25Millis, "Need >= 4 nap intervals (have ${metrics.napWakeIntervalCount})")
-        assertNotNull(metrics.bedtimeWakeP25Millis, "Need >= 4 bedtime intervals (have ${metrics.bedtimeWakeIntervalCount})")
+        assertNotNull(metrics.napStats.p25Millis, "Need >= 4 nap intervals (have ${metrics.napStats.count})")
+        assertNotNull(metrics.bedtimeStats.p25Millis, "Need >= 4 bedtime intervals (have ${metrics.bedtimeStats.count})")
         assertTrue(
             quality.hasSufficientZoneIndependentEvidence,
             "Quality must pass when both type-specific IQRs are stable even if combined IQR exceeds ceiling",
@@ -702,7 +696,7 @@ class SleepFeatureExtractorTest {
                 metrics.wakeIntervalIqrMillis!! > Duration.ofMinutes(45).toMillis(),
             "Combined IQR must exceed ceiling; got ${metrics.wakeIntervalIqrMillis?.div(60_000)} min",
         )
-        assertNull(metrics.napWakeP25Millis, "napWakeP25 must be null with only 3 nap intervals")
+        assertNull(metrics.napStats.p25Millis, "napWakeP25 must be null with only 3 nap intervals")
         assertFalse(
             quality.hasSufficientZoneIndependentEvidence,
             "Quality must fail when not enough per-type intervals for type-aware stability check",

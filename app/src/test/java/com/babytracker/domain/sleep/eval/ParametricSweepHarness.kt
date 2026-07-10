@@ -128,6 +128,11 @@ private fun sweepBuildWindow(
 // --- buildWindow helpers mirrored from SleepWindowPredictor (private there). Keep in sync; ---
 // --- the default-config parity test fails if these diverge from production scoring. ---
 
+private fun statsFor(metrics: SleepMetrics, nextType: SleepType) = when (nextType) {
+    SleepType.NAP -> metrics.napStats
+    SleepType.NIGHT_SLEEP -> metrics.bedtimeStats
+}
+
 private fun resolveTypeBlend(
     metrics: SleepMetrics,
     nextType: SleepType,
@@ -135,44 +140,26 @@ private fun resolveTypeBlend(
     ageInWeeks: Int,
 ): Triple<Long, Long, Int>? {
     val combinedP50 = metrics.medianWakeIntervalMillis ?: return null
-    return when (nextType) {
-        SleepType.NAP -> {
-            val prior = SleepAgePriors.getNapWakeWindowMidpoint(ageInWeeks)
-            val (p50, count) = if (metrics.napWakeIntervalCount >= SleepPredictionTuning.MIN_TYPE_INTERVALS &&
-                metrics.napWakeP50Millis != null
-            ) {
-                metrics.napWakeP50Millis to metrics.napWakeIntervalCount
-            } else {
-                combinedP50 to combinedIntervalCount
-            }
-            Triple(prior.toMillis(), p50, count)
-        }
-        SleepType.NIGHT_SLEEP -> {
-            val prior = SleepAgePriors.getPreBedtimeWakeWindowMidpoint(ageInWeeks)
-            val (p50, count) = if (metrics.bedtimeWakeIntervalCount >= SleepPredictionTuning.MIN_TYPE_INTERVALS &&
-                metrics.bedtimeWakeP50Millis != null
-            ) {
-                metrics.bedtimeWakeP50Millis to metrics.bedtimeWakeIntervalCount
-            } else {
-                combinedP50 to combinedIntervalCount
-            }
-            Triple(prior.toMillis(), p50, count)
-        }
+    val stats = statsFor(metrics, nextType)
+    val prior = when (nextType) {
+        SleepType.NAP -> SleepAgePriors.getNapWakeWindowMidpoint(ageInWeeks)
+        SleepType.NIGHT_SLEEP -> SleepAgePriors.getPreBedtimeWakeWindowMidpoint(ageInWeeks)
     }
+    val (p50, count) = if (stats.count >= SleepPredictionTuning.MIN_TYPE_INTERVALS && stats.p50Millis != null) {
+        stats.p50Millis to stats.count
+    } else {
+        combinedP50 to combinedIntervalCount
+    }
+    return Triple(prior.toMillis(), p50, count)
 }
 
 private fun dynamicHalfWindowMillis(metrics: SleepMetrics, nextType: SleepType): Long {
-    val (p25, p75) = when (nextType) {
-        SleepType.NAP -> metrics.napWakeP25Millis to metrics.napWakeP75Millis
-        SleepType.NIGHT_SLEEP -> metrics.bedtimeWakeP25Millis to metrics.bedtimeWakeP75Millis
-    }
+    val stats = statsFor(metrics, nextType)
     val minMillis = Duration.ofMinutes(SleepPredictionTuning.MIN_HALF_WINDOW_MINUTES).toMillis()
     val maxMillis = Duration.ofMinutes(SleepPredictionTuning.MAX_HALF_WINDOW_MINUTES).toMillis()
-    val halfWidthMillis = when {
-        p25 != null && p75 != null -> (p75 - p25) / 2
-        metrics.wakeIntervalIqrMillis != null -> metrics.wakeIntervalIqrMillis / 2
-        else -> minMillis
-    }
+    val halfWidthMillis = stats.iqrMillis?.div(2)
+        ?: metrics.wakeIntervalIqrMillis?.div(2)
+        ?: minMillis
     return halfWidthMillis.coerceIn(minMillis, maxMillis)
 }
 

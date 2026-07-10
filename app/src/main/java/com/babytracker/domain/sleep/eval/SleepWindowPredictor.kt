@@ -13,6 +13,7 @@ import com.babytracker.domain.sleep.feature.BreastfeedInterval
 import com.babytracker.domain.sleep.feature.EvidenceQuality
 import com.babytracker.domain.sleep.feature.SleepFeatures
 import com.babytracker.domain.sleep.feature.SleepMetrics
+import com.babytracker.domain.sleep.feature.WakeIntervalStats
 import com.babytracker.domain.sleep.prior.SleepAgePriors
 import java.time.Duration
 import java.time.Instant
@@ -55,9 +56,11 @@ object SleepWindowPredictor {
             ?: return SleepPredictionState.NeedMoreData(buildProgress(quality))
 
         val nextType = resolveNextSleepType(metrics, ageInWeeks, features.currentMinuteOfDay)
-        val (priorMidpointMillis, babyP50Millis, typeIntervalCount) =
-            resolveTypeBlend(metrics, nextType, quality.completedIntervalCount, ageInWeeks)
-                ?: return SleepPredictionState.NeedMoreData(buildProgress(quality))
+        val blend = resolveTypeBlend(metrics, nextType, quality.completedIntervalCount, ageInWeeks)
+            ?: return SleepPredictionState.NeedMoreData(buildProgress(quality))
+        val priorMidpointMillis = blend.priorMidpointMillis
+        val babyP50Millis = blend.babyP50Millis
+        val typeIntervalCount = blend.typeIntervalCount
 
         val qualityC = (typeIntervalCount.toFloat() / SleepPredictionTuning.FULL_PERSONALIZATION_INTERVALS)
             .coerceIn(0f, 1f)
@@ -129,39 +132,41 @@ object SleepWindowPredictor {
         )
     }
 
+    /** Blend inputs for one predicted sleep type: the age-prior midpoint, the P50 to blend it
+     * against (baby's own type-specific P50 once enough intervals are logged, else the combined
+     * P50 across all types), and the interval count backing that P50 (drives qualityC). */
+    private data class TypeBlend(
+        val priorMidpointMillis: Long,
+        val babyP50Millis: Long,
+        val typeIntervalCount: Int,
+    )
+
+    private fun statsFor(metrics: SleepMetrics, nextType: SleepType): WakeIntervalStats = when (nextType) {
+        SleepType.NAP -> metrics.napStats
+        SleepType.NIGHT_SLEEP -> metrics.bedtimeStats
+    }
+
+    private fun priorMidpointFor(nextType: SleepType, ageInWeeks: Int): Duration = when (nextType) {
+        SleepType.NAP -> SleepAgePriors.getNapWakeWindowMidpoint(ageInWeeks)
+        SleepType.NIGHT_SLEEP -> SleepAgePriors.getPreBedtimeWakeWindowMidpoint(ageInWeeks)
+    }
+
     private fun resolveTypeBlend(
         metrics: SleepMetrics,
         nextType: SleepType,
         combinedIntervalCount: Int,
         ageInWeeks: Int,
-    ): Triple<Long, Long, Int>? {
+    ): TypeBlend? {
         // Defensive: the quality gate (≥5 completed wake intervals) guarantees
         // medianWakeIntervalMillis is non-null here; the null branch is unreachable in practice.
         val combinedP50 = metrics.medianWakeIntervalMillis ?: return null
-        return when (nextType) {
-            SleepType.NAP -> {
-                val prior = SleepAgePriors.getNapWakeWindowMidpoint(ageInWeeks)
-                val (p50, count) = if (metrics.napWakeIntervalCount >= SleepPredictionTuning.MIN_TYPE_INTERVALS &&
-                    metrics.napWakeP50Millis != null
-                ) {
-                    metrics.napWakeP50Millis to metrics.napWakeIntervalCount
-                } else {
-                    combinedP50 to combinedIntervalCount
-                }
-                Triple(prior.toMillis(), p50, count)
-            }
-            SleepType.NIGHT_SLEEP -> {
-                val prior = SleepAgePriors.getPreBedtimeWakeWindowMidpoint(ageInWeeks)
-                val (p50, count) = if (metrics.bedtimeWakeIntervalCount >= SleepPredictionTuning.MIN_TYPE_INTERVALS &&
-                    metrics.bedtimeWakeP50Millis != null
-                ) {
-                    metrics.bedtimeWakeP50Millis to metrics.bedtimeWakeIntervalCount
-                } else {
-                    combinedP50 to combinedIntervalCount
-                }
-                Triple(prior.toMillis(), p50, count)
-            }
+        val stats = statsFor(metrics, nextType)
+        val (p50, count) = if (stats.count >= SleepPredictionTuning.MIN_TYPE_INTERVALS && stats.p50Millis != null) {
+            stats.p50Millis to stats.count
+        } else {
+            combinedP50 to combinedIntervalCount
         }
+        return TypeBlend(priorMidpointFor(nextType, ageInWeeks).toMillis(), p50, count)
     }
 
     internal fun resolveNextSleepType(
@@ -274,21 +279,16 @@ object SleepWindowPredictor {
     }
 
     private fun dynamicHalfWindowMillis(metrics: SleepMetrics, nextType: SleepType): Long {
-        val (p25, p75) = when (nextType) {
-            SleepType.NAP -> metrics.napWakeP25Millis to metrics.napWakeP75Millis
-            SleepType.NIGHT_SLEEP -> metrics.bedtimeWakeP25Millis to metrics.bedtimeWakeP75Millis
-        }
+        val stats = statsFor(metrics, nextType)
         val minMillis = Duration.ofMinutes(SleepPredictionTuning.MIN_HALF_WINDOW_MINUTES).toMillis()
         val maxMillis = Duration.ofMinutes(SleepPredictionTuning.MAX_HALF_WINDOW_MINUTES).toMillis()
-        val halfWidthMillis = when {
-            p25 != null && p75 != null -> (p75 - p25) / 2
-            // Type-specific quartiles need ≥4 intervals, but the type P50 center is trusted from 3
-            // (MIN_TYPE_INTERVALS). Bridge that gap with the combined-history IQR — guaranteed present
-            // by the ≥5 completed-interval quality gate — so a confident center isn't paired with a
-            // MIN-floored window.
-            metrics.wakeIntervalIqrMillis != null -> metrics.wakeIntervalIqrMillis / 2
-            else -> minMillis
-        }
+        // Type-specific quartiles need ≥4 intervals, but the type P50 center is trusted from 3
+        // (MIN_TYPE_INTERVALS). Bridge that gap with the combined-history IQR — guaranteed present
+        // by the ≥5 completed-interval quality gate — so a confident center isn't paired with a
+        // MIN-floored window.
+        val halfWidthMillis = stats.iqrMillis?.div(2)
+            ?: metrics.wakeIntervalIqrMillis?.div(2)
+            ?: minMillis
         return halfWidthMillis.coerceIn(minMillis, maxMillis)
     }
 

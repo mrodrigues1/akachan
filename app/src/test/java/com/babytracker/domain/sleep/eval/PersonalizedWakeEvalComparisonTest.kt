@@ -243,23 +243,23 @@ class PersonalizedWakeEvalComparisonTest {
         val metrics = features.metrics
 
         assertTrue(
-            metrics.napWakeP50Millis != null,
+            metrics.napStats.p50Millis != null,
             "napWakeP50 must be non-null — fixture has 14 days of data with stable 110-min nap gaps",
         )
         assertTrue(
-            metrics.bedtimeWakeP50Millis != null,
+            metrics.bedtimeStats.p50Millis != null,
             "bedtimeWakeP50 must be non-null — fixture has 14 days of data with stable 150-min pre-bedtime gaps",
         )
 
         val tolerance = Duration.ofMinutes(5).toMillis()
         assertTrue(
-            abs(metrics.napWakeP50Millis!! - Duration.ofMinutes(110).toMillis()) <= tolerance,
-            "napWakeP50 must be ~110 min; got ${metrics.napWakeP50Millis!! / 60_000} min. " +
+            abs(metrics.napStats.p50Millis!! - Duration.ofMinutes(110).toMillis()) <= tolerance,
+            "napWakeP50 must be ~110 min; got ${metrics.napStats.p50Millis!! / 60_000} min. " +
                 "Check forward fixture construction — Night→Nap1 and Nap1→Nap2 gaps must label as NAP.",
         )
         assertTrue(
-            abs(metrics.bedtimeWakeP50Millis!! - Duration.ofMinutes(150).toMillis()) <= tolerance,
-            "bedtimeWakeP50 must be ~150 min; got ${metrics.bedtimeWakeP50Millis!! / 60_000} min. " +
+            abs(metrics.bedtimeStats.p50Millis!! - Duration.ofMinutes(150).toMillis()) <= tolerance,
+            "bedtimeWakeP50 must be ~150 min; got ${metrics.bedtimeStats.p50Millis!! / 60_000} min. " +
                 "Check forward fixture construction — Nap2→Night gap must label as NIGHT_SLEEP.",
         )
     }
