@@ -13,21 +13,32 @@ data class SleepPredictionFactor(
     }
 }
 
-typealias CircadianFactorProvider = (
-    Int,       // ageInWeeks
-    SleepType, // nextType
-    Int?,      // currentMinuteOfDay
-    Int?,      // candidateMinuteOfDay
-) -> SleepPredictionFactor
+// fun interfaces (not type aliases) so every call site is forced through named parameters where it
+// matters: CircadianFactorProvider's two trailing Int? params were previously distinguishable only
+// by a positional-tuple comment, and swapping them at a call site compiled cleanly while silently
+// corrupting the circadian shift direction.
 
-typealias SleepDebtFactorProvider = (
-    Long,  // sleepLast24hMillis
-    Long?, // avgDailySleepMillis (null if insufficient history)
-    Int,   // ageInWeeks
-) -> SleepPredictionFactor
+fun interface CircadianFactorProvider {
+    operator fun invoke(
+        ageInWeeks: Int,
+        nextType: SleepType,
+        currentMinuteOfDay: Int?,
+        candidateMinuteOfDay: Int?,
+    ): SleepPredictionFactor
+}
 
-typealias NapBudgetFactorProvider = (
-    Int,       // napCountToday
-    Int,       // ageInWeeks
-    com.babytracker.domain.model.SleepType, // nextType
-) -> SleepPredictionFactor
+fun interface SleepDebtFactorProvider {
+    operator fun invoke(
+        sleepLast24hMillis: Long,
+        avgDailySleepMillis: Long?, // null if insufficient history
+        ageInWeeks: Int,
+    ): SleepPredictionFactor
+}
+
+fun interface NapBudgetFactorProvider {
+    operator fun invoke(
+        napCountToday: Int,
+        ageInWeeks: Int,
+        nextType: SleepType,
+    ): SleepPredictionFactor
+}

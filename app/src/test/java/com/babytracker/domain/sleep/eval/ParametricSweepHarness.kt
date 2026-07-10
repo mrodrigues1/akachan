@@ -56,9 +56,9 @@ fun sweepPredict(
     features: SleepFeatures,
     ageInWeeks: Int,
     now: Instant,
-    circadian: CircadianFactorProvider = CircadianBiasFactor::adjustment,
-    sleepDebt: SleepDebtFactorProvider = SleepDebtFactor::adjustment,
-    napBudget: NapBudgetFactorProvider = NapBudgetFactor::adjustment,
+    circadian: CircadianFactorProvider = CircadianFactorProvider(CircadianBiasFactor::adjustment),
+    sleepDebt: SleepDebtFactorProvider = SleepDebtFactorProvider(SleepDebtFactor::adjustment),
+    napBudget: NapBudgetFactorProvider = NapBudgetFactorProvider(NapBudgetFactor::adjustment),
 ): SleepPredictionState {
     val quality = features.quality
     if (!quality.hasSufficientZoneIndependentEvidence || !quality.isLocalDayCoverageSufficient) {
