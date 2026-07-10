@@ -2,6 +2,7 @@ package com.babytracker.ui.sleep
 
 import android.content.Context
 import app.cash.turbine.test
+import androidx.lifecycle.viewModelScope
 import com.babytracker.R
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
@@ -16,6 +17,7 @@ import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -28,6 +30,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
@@ -66,6 +69,15 @@ class SleepHistoryViewModelTest {
         every { sleepRepository.getAllRecords() } returns flowOf(emptyList())
         every { sleepRepository.getRecentRecordsFlow(any()) } returns flowOf(emptyList())
         coJustRun { syncToFirestore(any()) }
+    }
+
+
+    @AfterEach
+    fun tearDown() {
+        // Cancel the ViewModel's scope while Dispatchers.Main is still the test dispatcher: stateIn
+        // producers stubbed with never-completing flows otherwise outlive the test and dispatch into
+        // Main after resetMain(), failing a LATER test with UncaughtExceptionsBeforeTest (#788).
+        if (::viewModel.isInitialized) viewModel.viewModelScope.cancel()
     }
 
     private fun createViewModel() = SleepHistoryViewModel(
