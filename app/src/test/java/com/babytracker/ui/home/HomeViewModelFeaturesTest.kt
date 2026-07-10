@@ -23,7 +23,7 @@ import com.babytracker.domain.model.DoctorVisitSummary
 import com.babytracker.domain.model.VaccineSummary
 import com.babytracker.domain.usecase.doctorvisit.ObserveDoctorVisitSummaryUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineSummaryUseCase
-import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
+import com.babytracker.domain.usecase.sleep.SharedSleepPredictionStream
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
 import com.babytracker.sharing.usecase.SyncedWrite
@@ -56,7 +56,7 @@ class HomeViewModelFeaturesTest {
     private lateinit var pumpingRepository: PumpingRepository
     private lateinit var inventoryRepository: InventoryRepository
     private lateinit var predictNextFeed: PredictNextFeedUseCase
-    private lateinit var predictSleepWindow: PredictSleepWindowUseCase
+    private lateinit var sharedSleepPrediction: SharedSleepPredictionStream
     private lateinit var observeTodayFeedingSummary: ObserveTodayFeedingSummaryUseCase
     private lateinit var observeTodayDiaperSummary: ObserveTodayDiaperSummaryUseCase
     private lateinit var featureToggleRepository: FeatureToggleRepository
@@ -84,7 +84,7 @@ class HomeViewModelFeaturesTest {
         pumpingRepository = mockk()
         inventoryRepository = mockk()
         predictNextFeed = mockk()
-        predictSleepWindow = mockk()
+        sharedSleepPrediction = mockk()
         observeTodayFeedingSummary = mockk()
         observeTodayDiaperSummary = mockk()
         featureToggleRepository = mockk()
@@ -101,7 +101,7 @@ class HomeViewModelFeaturesTest {
         every { pumpingRepository.getActiveSession() } returns flowOf(null)
         every { inventoryRepository.getSummary() } returns flowOf(InventorySummary.Empty)
         every { predictNextFeed() } returns flowOf(null)
-        every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("test"))
+        every { sharedSleepPrediction.observe() } returns flowOf(SleepPredictionState.Unavailable("test"))
         every { observeTodayFeedingSummary() } returns flowOf(TodayFeedingSummary())
         every { observeTodayDiaperSummary() } returns flowOf(TodayDiaperSummary())
         every { observeVaccineSummary() } returns flowOf(VaccineSummary())
@@ -125,7 +125,7 @@ class HomeViewModelFeaturesTest {
             pumpingRepository,
             inventoryRepository,
             predictNextFeed,
-            predictSleepWindow,
+            sharedSleepPrediction,
             observeTodayFeedingSummary,
             observeTodayDiaperSummary,
             featureToggleRepository,

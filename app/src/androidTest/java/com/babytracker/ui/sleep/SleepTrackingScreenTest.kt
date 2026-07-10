@@ -24,6 +24,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalTime
 import com.babytracker.ui.component.CueQuickTapRow
 
@@ -91,7 +92,12 @@ class SleepTrackingScreenTest {
         composeRule.setContent {
             BabyTrackerTheme {
                 AddSleepEntrySheetContent(
-                    uiState = sheetState(SleepType.NIGHT_SLEEP),
+                    entryType = SleepType.NIGHT_SLEEP,
+                    entryDate = LocalDate.now(),
+                    entryStartTime = LocalTime.of(20, 0),
+                    entryEndTime = LocalTime.of(22, 0),
+                    entryError = null,
+                    entryDurationPreview = Duration.ofHours(2),
                     onTypeChanged = {},
                     onStartTimeClick = {},
                     onEndTimeClick = {},
@@ -111,7 +117,12 @@ class SleepTrackingScreenTest {
         composeRule.setContent {
             BabyTrackerTheme {
                 AddSleepEntrySheetContent(
-                    uiState = sheetState(SleepType.NAP),
+                    entryType = SleepType.NAP,
+                    entryDate = LocalDate.now(),
+                    entryStartTime = LocalTime.of(20, 0),
+                    entryEndTime = LocalTime.of(22, 0),
+                    entryError = null,
+                    entryDurationPreview = Duration.ofHours(2),
                     isEditing = true,
                     onTypeChanged = {},
                     onStartTimeClick = {},
@@ -132,10 +143,12 @@ class SleepTrackingScreenTest {
         composeRule.setContent {
             BabyTrackerTheme {
                 AddSleepEntrySheetContent(
-                    uiState = sheetState(SleepType.NAP).copy(
-                        entryDurationPreview = null,
-                        entryError = "End time needs to be after start time. Adjust one time to save this sleep.",
-                    ),
+                    entryType = SleepType.NAP,
+                    entryDate = LocalDate.now(),
+                    entryStartTime = LocalTime.of(20, 0),
+                    entryEndTime = LocalTime.of(22, 0),
+                    entryError = "End time needs to be after start time. Adjust one time to save this sleep.",
+                    entryDurationPreview = null,
                     onTypeChanged = {},
                     onStartTimeClick = {},
                     onEndTimeClick = {},
@@ -167,11 +180,4 @@ class SleepTrackingScreenTest {
         composeRule.onNodeWithText("Teething").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Travel").performScrollTo().assertIsDisplayed()
     }
-
-    private fun sheetState(sleepType: SleepType) = SleepUiState(
-        entryType = sleepType,
-        entryStartTime = LocalTime.of(20, 0),
-        entryEndTime = LocalTime.of(22, 0),
-        entryDurationPreview = Duration.ofHours(2),
-    )
 }

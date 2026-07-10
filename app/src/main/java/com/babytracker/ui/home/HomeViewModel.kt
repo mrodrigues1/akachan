@@ -32,7 +32,7 @@ import com.babytracker.domain.usecase.diaper.ObserveTodayDiaperSummaryUseCase
 import com.babytracker.domain.usecase.feeding.ObserveTodayFeedingSummaryUseCase
 import com.babytracker.domain.usecase.doctorvisit.ObserveDoctorVisitSummaryUseCase
 import com.babytracker.domain.usecase.vaccine.ObserveVaccineSummaryUseCase
-import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
+import com.babytracker.domain.usecase.sleep.SharedSleepPredictionStream
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.SyncedWrite
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -82,7 +82,7 @@ class HomeViewModel @Inject constructor(
     pumpingRepository: PumpingRepository,
     inventoryRepository: InventoryRepository,
     predictNextFeed: PredictNextFeedUseCase,
-    predictSleepWindow: PredictSleepWindowUseCase,
+    sharedSleepPrediction: SharedSleepPredictionStream,
     observeTodayFeedingSummary: ObserveTodayFeedingSummaryUseCase,
     observeTodayDiaperSummary: ObserveTodayDiaperSummaryUseCase,
     featureToggleRepository: FeatureToggleRepository,
@@ -130,7 +130,7 @@ class HomeViewModel @Inject constructor(
         },
         pumpingRepository.getActiveSession(),
         inventoryRepository.getSummary(),
-        predictSleepWindow(),
+        sharedSleepPrediction.observe(),
         settingsRepository.getVolumeUnit(),
     ) { partial, pumpingActive, inventorySummary, sleepPrediction, volumeUnit ->
         partial.copy(

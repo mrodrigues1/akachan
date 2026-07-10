@@ -5,13 +5,11 @@ import com.babytracker.R
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
-import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
-import com.babytracker.domain.usecase.sleep.GenerateSleepScheduleUseCase
-import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.domain.usecase.sleep.SaveSleepEntryUseCase
+import com.babytracker.domain.usecase.sleep.SharedSleepPredictionStream
 import com.babytracker.domain.usecase.sleep.UpdateSleepEntryUseCase
 import com.babytracker.manager.SleepSessionController
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase
@@ -26,6 +24,7 @@ import io.mockk.mockk
 import app.cash.turbine.test
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -41,6 +40,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.util.TimeZone
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.jupiter.api.extension.RegisterExtension
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -49,12 +49,10 @@ class SleepViewModelTest {
     private lateinit var saveSleepEntry: SaveSleepEntryUseCase
     private lateinit var updateSleepEntry: UpdateSleepEntryUseCase
     private lateinit var sleepRepository: SleepRepository
-    private lateinit var generateSchedule: GenerateSleepScheduleUseCase
-    private lateinit var babyRepository: BabyRepository
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var sleepSessionController: SleepSessionController
     private lateinit var syncToFirestore: SyncToFirestoreUseCase
-    private lateinit var predictSleepWindow: PredictSleepWindowUseCase
+    private lateinit var sharedSleepPrediction: SharedSleepPredictionStream
     private lateinit var logBabyEvent: LogBabyEventUseCase
     private lateinit var appContext: Context
     private lateinit var viewModel: SleepViewModel
@@ -69,12 +67,10 @@ class SleepViewModelTest {
         saveSleepEntry = mockk()
         updateSleepEntry = mockk()
         sleepRepository = mockk()
-        generateSchedule = mockk()
-        babyRepository = mockk()
         settingsRepository = mockk()
         sleepSessionController = mockk()
         syncToFirestore = mockk()
-        predictSleepWindow = mockk()
+        sharedSleepPrediction = mockk()
         logBabyEvent = mockk()
         coJustRun { logBabyEvent(any()) }
         appContext = mockk()
@@ -93,8 +89,7 @@ class SleepViewModelTest {
 
         every { sleepRepository.getAllRecords() } returns flowOf(emptyList())
         every { settingsRepository.getWakeTime() } returns flowOf(null)
-        every { babyRepository.getBabyProfile() } returns flowOf(null)
-        every { predictSleepWindow() } returns flowOf(SleepPredictionState.Unavailable("test"))
+        every { sharedSleepPrediction.observe() } returns flowOf(SleepPredictionState.Unavailable("test"))
         coJustRun { syncToFirestore(any()) }
     }
 
@@ -102,15 +97,30 @@ class SleepViewModelTest {
         saveSleepEntry,
         updateSleepEntry,
         sleepRepository,
-        generateSchedule,
-        babyRepository,
         settingsRepository,
         sleepSessionController,
         SyncedWrite(syncToFirestore),
-        predictSleepWindow,
+        sharedSleepPrediction,
         logBabyEvent,
         appContext,
     )
+
+    @Test
+    fun `does not observe sleep records until a consumer subscribes`() = runTest {
+        val attachCount = AtomicInteger(0)
+        every { sleepRepository.getAllRecords() } returns flow {
+            attachCount.incrementAndGet()
+            emit(emptyList())
+        }
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(0, attachCount.get())
+
+        val job = launch { viewModel.activeSleepSession.collect {} }
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(attachCount.get() >= 1)
+        job.cancel()
+    }
 
     @Test
     fun `onStartRecord delegates to sleepSessionController start with the given sleep type`() = runTest {
@@ -226,6 +236,7 @@ class SleepViewModelTest {
         viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_END)
         viewModel.onConfirmTimePicker(LocalTime.of(20, 0))
         viewModel.onSaveEntry()
+        testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(
             "End time needs to be after start time. Adjust one time to save this sleep.",
@@ -350,15 +361,18 @@ class SleepViewModelTest {
         )
         every { sleepRepository.getAllRecords() } returns flowOf(listOf(older, latest))
         viewModel = createViewModel()
+
+        val job = launch { viewModel.lastSleepSummary.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val summary = viewModel.uiState.value.lastSleepSummary
+        val summary = viewModel.lastSleepSummary.value
 
         assertTrue(summary is LastSleepSummaryState.Populated)
         summary as LastSleepSummaryState.Populated
         assertEquals(latest, summary.record)
         assertTrue(summary.awakeForLabel.startsWith("Awake for "))
         assertEquals("Ended at ${latestEnd.formatTime12h()}", summary.endedAtLabel)
+        job.cancel()
     }
 
     @Test
@@ -377,9 +391,12 @@ class SleepViewModelTest {
         )
         every { sleepRepository.getAllRecords() } returns flowOf(listOf(completed, inProgress))
         viewModel = createViewModel()
+
+        val job = launch { viewModel.lastSleepSummary.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(LastSleepSummaryState.Empty, viewModel.uiState.value.lastSleepSummary)
+        assertEquals(LastSleepSummaryState.Empty, viewModel.lastSleepSummary.value)
+        job.cancel()
     }
 
     @Test
@@ -694,113 +711,6 @@ class SleepViewModelTest {
     }
 
     @Test
-    fun `isRegressionExpanded defaults to true`() = runTest {
-        viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals(true, viewModel.uiState.value.isRegressionExpanded)
-    }
-
-    @Test
-    fun `onToggleRegression flips isRegressionExpanded from true to false`() = runTest {
-        viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.onToggleRegression()
-
-        assertEquals(false, viewModel.uiState.value.isRegressionExpanded)
-    }
-
-    @Test
-    fun `onToggleRegression twice restores isRegressionExpanded to true`() = runTest {
-        viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.onToggleRegression()
-        viewModel.onToggleRegression()
-
-        assertEquals(true, viewModel.uiState.value.isRegressionExpanded)
-    }
-
-    @Test
-    fun `historyByDateDesc emits empty list when history is empty`() = runTest {
-        viewModel = createViewModel()
-
-        viewModel.historyByDateDesc.test {
-            assertEquals(emptyList<Pair<LocalDate, List<SleepRecord>>>(), awaitItem())
-            testDispatcher.scheduler.advanceUntilIdle()
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `historyByDateDesc groups records by local date sorted descending`() = runTest {
-        val zone = ZoneId.systemDefault()
-        val day1Morning = LocalDate.of(2024, 1, 10).atTime(8, 0).atZone(zone).toInstant()
-        val day1Evening = LocalDate.of(2024, 1, 10).atTime(20, 0).atZone(zone).toInstant()
-        val day2 = LocalDate.of(2024, 1, 11).atTime(9, 0).atZone(zone).toInstant()
-        val day3 = LocalDate.of(2024, 1, 12).atTime(10, 0).atZone(zone).toInstant()
-
-        val r1 = SleepRecord(id = 1L, startTime = day1Morning, endTime = day1Morning.plusSeconds(1800), sleepType = SleepType.NAP)
-        val r2 = SleepRecord(id = 2L, startTime = day1Evening, endTime = day1Evening.plusSeconds(1800), sleepType = SleepType.NAP)
-        val r3 = SleepRecord(id = 3L, startTime = day2, endTime = day2.plusSeconds(1800), sleepType = SleepType.NAP)
-        val r4 = SleepRecord(id = 4L, startTime = day3, endTime = day3.plusSeconds(1800), sleepType = SleepType.NIGHT_SLEEP)
-
-        every { sleepRepository.getAllRecords() } returns flowOf(listOf(r1, r2, r3, r4))
-        viewModel = createViewModel()
-
-        viewModel.historyByDateDesc.test {
-            awaitItem()
-            testDispatcher.scheduler.advanceUntilIdle()
-            val grouped = awaitItem()
-
-            assertEquals(3, grouped.size)
-            assertEquals(LocalDate.of(2024, 1, 12), grouped[0].first)
-            assertEquals(LocalDate.of(2024, 1, 11), grouped[1].first)
-            assertEquals(LocalDate.of(2024, 1, 10), grouped[2].first)
-            assertEquals(2, grouped[2].second.size)
-            assertEquals(listOf(1L, 2L), grouped[2].second.map { it.id }.sorted())
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `historyByDateDesc updates reactively when history flow emits`() = runTest {
-        val zone = ZoneId.systemDefault()
-        val initial = SleepRecord(
-            id = 1L,
-            startTime = LocalDate.of(2024, 2, 1).atTime(10, 0).atZone(zone).toInstant(),
-            endTime = LocalDate.of(2024, 2, 1).atTime(11, 0).atZone(zone).toInstant(),
-            sleepType = SleepType.NAP,
-        )
-        val added = SleepRecord(
-            id = 2L,
-            startTime = LocalDate.of(2024, 2, 2).atTime(10, 0).atZone(zone).toInstant(),
-            endTime = LocalDate.of(2024, 2, 2).atTime(11, 0).atZone(zone).toInstant(),
-            sleepType = SleepType.NAP,
-        )
-        val historyFlow = MutableStateFlow(listOf(initial))
-        every { sleepRepository.getAllRecords() } returns historyFlow
-        viewModel = createViewModel()
-
-        viewModel.historyByDateDesc.test {
-            awaitItem()
-            testDispatcher.scheduler.advanceUntilIdle()
-            val first = awaitItem()
-            assertEquals(1, first.size)
-            assertEquals(LocalDate.of(2024, 2, 1), first[0].first)
-
-            historyFlow.value = listOf(initial, added)
-            testDispatcher.scheduler.advanceUntilIdle()
-            val second = awaitItem()
-            assertEquals(2, second.size)
-            assertEquals(LocalDate.of(2024, 2, 2), second[0].first)
-            assertEquals(LocalDate.of(2024, 2, 1), second[1].first)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
     fun `activeTimePicker defaults to null`() = runTest {
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -900,12 +810,16 @@ class SleepViewModelTest {
     }
 
     @Test
-    fun `sleepPrediction flowsThroughToUiState`() = runTest {
+    fun `sleepPrediction flows through the shared stream`() = runTest {
         val state = SleepPredictionState.CurrentlySleeping
-        every { predictSleepWindow() } returns flowOf(state)
+        every { sharedSleepPrediction.observe() } returns flowOf(state)
         viewModel = createViewModel()
+
+        val job = launch { viewModel.sleepPrediction.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
-        assertEquals(state, viewModel.uiState.value.sleepPrediction)
+
+        assertEquals(state, viewModel.sleepPrediction.value)
+        job.cancel()
     }
 
     @Test
