@@ -45,6 +45,7 @@ import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.sharing.usecase.EditPartnerFeedUseCase
 import com.babytracker.sharing.usecase.LogPartnerFeedUseCase
+import com.babytracker.sharing.usecase.ObservePartnerActiveSleepUseCase
 import com.babytracker.sharing.usecase.ObservePartnerDataUseCase
 import com.babytracker.sharing.usecase.ObservePartnerFeedHistoryUseCase
 import com.babytracker.sharing.usecase.StartPartnerSleepUseCase
@@ -122,16 +123,16 @@ class PartnerDashboardScreenTest {
 
     private fun buildSleepViewModel(): PartnerSleepViewModel {
         val scope = CoroutineScope(SupervisorJob())
-        val submitSleepOp = SubmitSleepOpUseCase(fakeSharing(null).service, FakePartnerSettingsRepository(), scope)
+        val service = fakeSharing(null).service
+        val settings = FakePartnerSettingsRepository()
+        val submitSleepOp = SubmitSleepOpUseCase(service, settings, scope)
+        val sharedSleepOps = SharedSleepOpStream(service, scope)
         return PartnerSleepViewModel(
             startSleep = StartPartnerSleepUseCase(submitSleepOp),
             stopSleep = StopPartnerSleepUseCase(submitSleepOp),
             updateSleep = UpdatePartnerSleepUseCase(submitSleepOp),
-            service = fakeSharing(null).service,
-            sharedSleepOps = mockk { every { observe(any(), any()) } returns emptyFlow() },
-            settingsRepository = FakePartnerSettingsRepository(),
+            observeActiveSleep = ObservePartnerActiveSleepUseCase(service, sharedSleepOps, settings),
             appContext = appContext,
-            now = Instant::now,
         )
     }
 
@@ -744,7 +745,9 @@ class PartnerDashboardScreenTest {
         // dashboard's combine never produces a value. An empty op list is the no-pending-ops case.
         every { service.observeFeedOps(any(), any()) } returns flowOf(emptyList())
         every { service.observeFeedOps(any()) } returns flowOf(emptyList())
-        every { service.observeSleepOps(any(), any()) } returns emptyFlow()
+        // The active-sleep use case combines the snapshot with the shared op stream, so the op
+        // listener must emit at least once (an empty op set = no pending ops) or the combine stalls.
+        every { service.observeSleepOps(any(), any()) } returns flowOf(emptyList())
         every { service.observeSleepOps(any()) } returns emptyFlow()
         coEvery { service.writeFeedOp(any(), any(), any()) } just Runs
         coEvery { service.deleteFeedOps(any(), any()) } just Runs

@@ -15,8 +15,10 @@ import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.MergedSleepHistory
 import com.babytracker.sharing.domain.model.ShareSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
+import com.babytracker.sharing.usecase.ObservePartnerActiveSleepUseCase
 import com.babytracker.sharing.usecase.ObservePartnerDataUseCase
 import com.babytracker.sharing.usecase.ObservePartnerSleepHistoryUseCase
+import com.babytracker.sharing.usecase.PartnerActiveSleep
 import com.babytracker.sharing.usecase.StartPartnerSleepUseCase
 import com.babytracker.sharing.usecase.StopPartnerSleepUseCase
 import com.babytracker.sharing.usecase.UpdatePartnerSleepUseCase
@@ -24,7 +26,6 @@ import com.babytracker.widget.WidgetUpdater
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Rule
 import org.junit.Test
@@ -64,17 +65,14 @@ class PartnerSleepHistoryScreenTest {
     }
 
     private fun buildSleepViewModel(): PartnerSleepViewModel {
-        val settings = mockk<com.babytracker.domain.repository.SettingsRepository>()
-        every { settings.getShareCode() } returns flowOf(null)
+        val observeActiveSleep = mockk<ObservePartnerActiveSleepUseCase>()
+        coEvery { observeActiveSleep(any()) } returns flowOf(PartnerActiveSleep())
         return PartnerSleepViewModel(
             startSleep = mockk<StartPartnerSleepUseCase>(),
             stopSleep = mockk<StopPartnerSleepUseCase>(),
             updateSleep = mockk<UpdatePartnerSleepUseCase>(),
-            service = mockk(relaxed = true),
-            sharedSleepOps = mockk { every { observe(any(), any()) } returns emptyFlow() },
-            settingsRepository = settings,
+            observeActiveSleep = observeActiveSleep,
             appContext = appContext,
-            now = Instant::now,
         )
     }
 
