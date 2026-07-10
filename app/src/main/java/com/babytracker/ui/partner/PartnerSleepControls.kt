@@ -47,6 +47,7 @@ import com.babytracker.domain.model.SleepType
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.ui.sleep.SleepTimePickerDialog
 import com.babytracker.ui.sleep.labelRes
+import com.babytracker.util.formatShortTime
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -311,7 +312,7 @@ private fun TimeField(label: String, value: LocalTime?, onClick: () -> Unit, mod
         Spacer(modifier = Modifier.height(4.dp))
         OutlinedCard(onClick = onClick, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
             Text(
-                text = value?.let { "%02d:%02d".format(it.hour, it.minute) }
+                text = value?.formatShortTime()
                     ?: stringResource(R.string.label_in_progress),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
