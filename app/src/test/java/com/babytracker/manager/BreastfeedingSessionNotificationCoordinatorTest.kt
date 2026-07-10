@@ -20,7 +20,9 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneOffset
 
 class BreastfeedingSessionNotificationCoordinatorTest {
 
@@ -29,6 +31,8 @@ class BreastfeedingSessionNotificationCoordinatorTest {
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var notificationScheduler: NotificationScheduler
     private lateinit var coordinator: BreastfeedingSessionNotificationCoordinator
+
+    private val defaultNow = Instant.parse("2026-04-24T10:05:00Z")
 
     private val session = BreastfeedingSession(
         id = 42L,
@@ -58,13 +62,16 @@ class BreastfeedingSessionNotificationCoordinatorTest {
         every { NotificationHelper.showBreastfeedingActive(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns Unit
         every { NotificationHelper.cancelNotification(any(), any()) } returns Unit
 
-        coordinator = BreastfeedingSessionNotificationCoordinator(
-            context = context,
-            feedSettingsRepository = feedSettingsRepository,
-            settingsRepository = settingsRepository,
-            notificationScheduler = notificationScheduler
-        )
+        coordinator = buildCoordinator(Clock.fixed(defaultNow, ZoneOffset.UTC))
     }
+
+    private fun buildCoordinator(clock: Clock) = BreastfeedingSessionNotificationCoordinator(
+        context = context,
+        feedSettingsRepository = feedSettingsRepository,
+        settingsRepository = settingsRepository,
+        notificationScheduler = notificationScheduler,
+        clock = clock,
+    )
 
     @AfterEach
     fun tearDown() = unmockkAll()
@@ -282,7 +289,7 @@ class BreastfeedingSessionNotificationCoordinatorTest {
 
         verify {
             notificationScheduler.scheduleMaxTotalTimeNotificationAt(
-                triggerTime = any(),
+                triggerTime = defaultNow.plusSeconds(600),
                 sessionId = 42L,
                 maxTotalMinutes = 30,
                 currentSide = "LEFT",
@@ -318,9 +325,8 @@ class BreastfeedingSessionNotificationCoordinatorTest {
     @Test
     fun `restoreActiveSession re-posts running notification and re-arms future alarms`() = runTest {
         val runningSession = session.copy(pausedDurationMs = 60_000L)
-        val now = Instant.parse("2026-04-24T10:05:00Z")
 
-        coordinator.restoreActiveSession(runningSession, now)
+        coordinator.restoreActiveSession(runningSession)
 
         verify {
             NotificationHelper.showBreastfeedingActive(
@@ -360,9 +366,9 @@ class BreastfeedingSessionNotificationCoordinatorTest {
             switchTime = Instant.parse("2026-04-24T10:10:00Z"),
             pausedDurationMs = 120_000L
         )
-        val now = Instant.parse("2026-04-24T10:12:00Z")
+        coordinator = buildCoordinator(Clock.fixed(Instant.parse("2026-04-24T10:12:00Z"), ZoneOffset.UTC))
 
-        coordinator.restoreActiveSession(switchedSession, now)
+        coordinator.restoreActiveSession(switchedSession)
 
         verify {
             notificationScheduler.scheduleMaxPerBreastNotificationAt(
@@ -386,9 +392,9 @@ class BreastfeedingSessionNotificationCoordinatorTest {
 
     @Test
     fun `restoreActiveSession skips alarms whose trigger has already passed`() = runTest {
-        val now = Instant.parse("2026-04-24T11:00:00Z")
+        coordinator = buildCoordinator(Clock.fixed(Instant.parse("2026-04-24T11:00:00Z"), ZoneOffset.UTC))
 
-        coordinator.restoreActiveSession(session, now)
+        coordinator.restoreActiveSession(session)
 
         verify {
             NotificationHelper.showBreastfeedingActive(
@@ -403,9 +409,8 @@ class BreastfeedingSessionNotificationCoordinatorTest {
     fun `restoreActiveSession posts paused notification only for paused session`() = runTest {
         val pausedAt = Instant.parse("2026-04-24T10:07:00Z")
         val pausedSession = session.copy(pausedAt = pausedAt)
-        val now = Instant.parse("2026-04-24T10:08:00Z")
 
-        coordinator.restoreActiveSession(pausedSession, now)
+        coordinator.restoreActiveSession(pausedSession)
 
         verify {
             NotificationHelper.showBreastfeedingActive(
