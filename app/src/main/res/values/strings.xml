@@ -802,7 +802,7 @@
     <string name="inventory_title">Milk Stash</string>
     <string name="inventory_settings_cd">Milk stash settings</string>
     <string name="inventory_settings_title">Milk Stash Settings</string>
-    <string name="inventory_add_bag_cd">Add bag</string>
+    <string name="inventory_add_bag">Add bag</string>
     <string name="inventory_edit_bag_title">Edit milk bag</string>
     <string name="inventory_empty_title">No bags in your stash yet</string>
     <string name="inventory_empty_subtitle">Tap + to add a bag manually</string>
