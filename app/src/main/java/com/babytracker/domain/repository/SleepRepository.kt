@@ -5,6 +5,14 @@ import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
 interface SleepRepository {
+    /**
+     * Runs [block] inside a single database transaction so a read-validate-write sequence is
+     * atomic against concurrent sleep writers (#775) — without it, two concurrent saves can each
+     * pass overlap validation before either write lands. The default runs [block] directly, which
+     * is all single-threaded test fakes need.
+     */
+    suspend fun <T> inTransaction(block: suspend () -> T): T = block()
+
     fun getAllRecords(): Flow<List<SleepRecord>>
 
     /** Observes records with startTime >= [since], newest first. Bounded alternative to [getAllRecords]. */

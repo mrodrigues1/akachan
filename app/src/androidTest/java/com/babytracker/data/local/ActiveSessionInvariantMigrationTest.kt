@@ -331,7 +331,7 @@ class MixedPathInvariantTest {
         breastfeedingDao = db.breastfeedingDao()
         sleepDao = db.sleepDao()
         breastfeedingRepo = BreastfeedingRepositoryImpl(breastfeedingDao)
-        sleepRepo = SleepRepositoryImpl(sleepDao)
+        sleepRepo = SleepRepositoryImpl(sleepDao, db)
     }
 
     @After
