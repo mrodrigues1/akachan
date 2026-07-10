@@ -25,6 +25,7 @@ class UpdateSleepEntryUseCaseTest {
     fun setUp() {
         repository = mockk()
         useCase = UpdateSleepEntryUseCase(repository, Clock.systemDefaultZone())
+        coEvery { repository.inTransaction<Any?>(any()) } coAnswers { firstArg<suspend () -> Any?>().invoke() }
         coEvery { repository.getActiveRecord() } returns null
         coEvery { repository.getCompletedRecordsBetween(any(), any()) } returns emptyList()
     }

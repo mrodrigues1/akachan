@@ -19,19 +19,23 @@ class UpdateSleepEntryUseCase @Inject constructor(
         timezoneId: String? = null,
     ) {
         val now = clock.instant()
-        val active = repository.getActiveRecord()
-        val nearby = repository.getCompletedRecordsBetween(startTime, endTime)
-        val existingRecords = if (active != null) nearby + active else nearby
-        val error = validateSleepEntry(startTime, endTime, type, existingRecords, now, excludingId = id)
-        require(error == null) { error?.name.orEmpty() }
-        repository.updateRecord(
-            SleepRecord(
-                id = id,
-                startTime = startTime,
-                endTime = endTime,
-                sleepType = type,
-                timezoneId = timezoneId,
-            ),
-        )
+        // Single transaction: without it a concurrent save/update can pass validation against the
+        // same pre-write snapshot and persist an overlapping record (#775).
+        repository.inTransaction {
+            val active = repository.getActiveRecord()
+            val nearby = repository.getCompletedRecordsBetween(startTime, endTime)
+            val existingRecords = if (active != null) nearby + active else nearby
+            val error = validateSleepEntry(startTime, endTime, type, existingRecords, now, excludingId = id)
+            require(error == null) { error?.name.orEmpty() }
+            repository.updateRecord(
+                SleepRecord(
+                    id = id,
+                    startTime = startTime,
+                    endTime = endTime,
+                    sleepType = type,
+                    timezoneId = timezoneId,
+                ),
+            )
+        }
     }
 }

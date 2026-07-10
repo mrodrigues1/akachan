@@ -34,7 +34,7 @@ class SleepEditPreservesClientIdTest {
             ApplicationProvider.getApplicationContext(),
             BabyTrackerDatabase::class.java,
         ).allowMainThreadQueries().build()
-        repository = SleepRepositoryImpl(db.sleepDao())
+        repository = SleepRepositoryImpl(db.sleepDao(), db)
     }
 
     @After

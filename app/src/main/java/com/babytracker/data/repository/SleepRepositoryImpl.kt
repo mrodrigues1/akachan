@@ -1,6 +1,8 @@
 package com.babytracker.data.repository
 
 import android.database.sqlite.SQLiteConstraintException
+import androidx.room.withTransaction
+import com.babytracker.data.local.BabyTrackerDatabase
 import com.babytracker.data.local.dao.SleepDao
 import com.babytracker.data.local.entity.toDomain
 import com.babytracker.data.local.entity.toEntity
@@ -15,8 +17,12 @@ import javax.inject.Singleton
 
 @Singleton
 class SleepRepositoryImpl @Inject constructor(
-    private val dao: SleepDao
+    private val dao: SleepDao,
+    private val db: BabyTrackerDatabase,
 ) : SleepRepository {
+    override suspend fun <T> inTransaction(block: suspend () -> T): T =
+        db.withTransaction { block() }
+
     override fun getAllRecords(): Flow<List<SleepRecord>> =
         dao.getAllRecords().mapList { it.toDomain() }
 

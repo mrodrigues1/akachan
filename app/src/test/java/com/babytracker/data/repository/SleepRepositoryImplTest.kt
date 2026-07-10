@@ -39,7 +39,7 @@ class SleepRepositoryImplTest {
     @BeforeEach
     fun setUp() {
         dao = mockk()
-        repository = SleepRepositoryImpl(dao)
+        repository = SleepRepositoryImpl(dao, mockk())
     }
 
     @Test
