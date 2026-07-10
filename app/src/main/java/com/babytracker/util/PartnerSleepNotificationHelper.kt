@@ -1,11 +1,9 @@
 package com.babytracker.util
 
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.babytracker.MainActivity
 import com.babytracker.R
@@ -31,15 +29,13 @@ object PartnerSleepNotificationHelper {
     const val PARTNER_SLEEP_NOTIFICATION_ID = 1011
 
     fun createPartnerSleepNotificationChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                PARTNER_SLEEP_CHANNEL_ID,
-                context.getString(R.string.notif_channel_partner_sleep_name),
-                NotificationManager.IMPORTANCE_DEFAULT,
-            ).apply { description = context.getString(R.string.notif_channel_partner_sleep_description) }
-            context.getSystemService(NotificationManager::class.java)
-                .createNotificationChannel(channel)
-        }
+        createNotificationChannel(
+            context = context,
+            channelId = PARTNER_SLEEP_CHANNEL_ID,
+            nameRes = R.string.notif_channel_partner_sleep_name,
+            importance = NotificationManager.IMPORTANCE_DEFAULT,
+            descriptionRes = R.string.notif_channel_partner_sleep_description,
+        )
     }
 
     fun showPartnerSleepChange(context: Context, notification: PartnerSleepNotification) {
