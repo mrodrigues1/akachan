@@ -1,5 +1,7 @@
 package com.babytracker.sharing.domain.model
 
+import com.babytracker.domain.model.SleepAuthor
+import com.babytracker.domain.model.SleepType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -11,8 +13,8 @@ class MergePartnerSleepTest {
     private val now = 100_000L
 
     private fun activeSnap(clientId: String = "snap-cid") = SleepSnapshot(
-        id = 1, startTime = 90_000L, endTime = null, sleepType = "NAP", notes = null,
-        clientId = clientId, startedBy = "PARTNER",
+        id = 1, startTime = 90_000L, endTime = null, sleepType = SleepType.NAP, notes = null,
+        clientId = clientId, startedBy = SleepAuthor.PARTNER,
     )
 
     private fun op(
@@ -21,7 +23,7 @@ class MergePartnerSleepTest {
         createdAtMs: Long = now,
         startTimeMs: Long? = null,
         endTimeMs: Long? = null,
-        sleepType: String? = null,
+        sleepType: SleepType? = null,
         notes: String? = null,
     ) = SleepOp("op-$clientId-$action", action, clientId, "uid", createdAtMs, startTimeMs, endTimeMs, sleepType, notes)
 
@@ -31,7 +33,7 @@ class MergePartnerSleepTest {
     fun `authoritative active session wins over a pending start (convergence)`() {
         val merged = mergeActiveSleep(
             activeSnap("snap-cid"),
-            listOf(op(SleepOpAction.START, "other-cid", startTimeMs = 95_000L, sleepType = "NAP")),
+            listOf(op(SleepOpAction.START, "other-cid", startTimeMs = 95_000L, sleepType = SleepType.NAP)),
             now,
         )
         assertEquals("snap-cid", merged.session?.clientId)
@@ -53,14 +55,14 @@ class MergePartnerSleepTest {
     fun `fresh pending start with no active snapshot shows a synthetic session`() {
         val merged = mergeActiveSleep(
             activeSnapshot = null,
-            pendingOps = listOf(op(SleepOpAction.START, "new-cid", startTimeMs = 99_000L, sleepType = "NIGHT_SLEEP")),
+            pendingOps = listOf(op(SleepOpAction.START, "new-cid", startTimeMs = 99_000L, sleepType = SleepType.NIGHT_SLEEP)),
             nowMs = now,
         )
         assertEquals("new-cid", merged.session?.clientId)
         assertEquals(99_000L, merged.session?.startTime)
         assertNull(merged.session?.endTime)
-        assertEquals("NIGHT_SLEEP", merged.session?.sleepType)
-        assertEquals("PARTNER", merged.session?.startedBy)
+        assertEquals(SleepType.NIGHT_SLEEP, merged.session?.sleepType)
+        assertEquals(SleepAuthor.PARTNER, merged.session?.startedBy)
     }
 
     @Test
@@ -68,7 +70,7 @@ class MergePartnerSleepTest {
         val merged = mergeActiveSleep(
             activeSnapshot = null,
             pendingOps = listOf(
-                op(SleepOpAction.START, "c", createdAtMs = 99_000L, startTimeMs = 99_000L, sleepType = "NAP"),
+                op(SleepOpAction.START, "c", createdAtMs = 99_000L, startTimeMs = 99_000L, sleepType = SleepType.NAP),
                 op(SleepOpAction.STOP, "c", createdAtMs = 99_500L, endTimeMs = 99_500L),
             ),
             nowMs = now,
@@ -80,7 +82,7 @@ class MergePartnerSleepTest {
     fun `stale pending start past the ttl is ignored`() {
         val merged = mergeActiveSleep(
             activeSnapshot = null,
-            pendingOps = listOf(op(SleepOpAction.START, "old", createdAtMs = 0L, startTimeMs = 0L, sleepType = "NAP")),
+            pendingOps = listOf(op(SleepOpAction.START, "old", createdAtMs = 0L, startTimeMs = 0L, sleepType = SleepType.NAP)),
             nowMs = now,
         )
         assertNull(merged.session)
@@ -90,16 +92,16 @@ class MergePartnerSleepTest {
 
     @Test
     fun `update overlays edited fields on the matching snapshot row`() {
-        val session = activeSnap("cid").copy(endTime = 95_000L, sleepType = "NAP")
+        val session = activeSnap("cid").copy(endTime = 95_000L, sleepType = SleepType.NAP)
         val merged = mergeSleepHistory(
             snapshotRecords = listOf(session),
-            pendingOps = listOf(op(SleepOpAction.UPDATE, "cid", startTimeMs = 91_000L, endTimeMs = 94_000L, sleepType = "NIGHT_SLEEP", notes = "fixed")),
+            pendingOps = listOf(op(SleepOpAction.UPDATE, "cid", startTimeMs = 91_000L, endTimeMs = 94_000L, sleepType = SleepType.NIGHT_SLEEP, notes = "fixed")),
             nowMs = now,
         )
         val edited = merged.entries.single()
         assertEquals(91_000L, edited.startTime)
         assertEquals(94_000L, edited.endTime)
-        assertEquals("NIGHT_SLEEP", edited.sleepType)
+        assertEquals(SleepType.NIGHT_SLEEP, edited.sleepType)
         assertEquals("fixed", edited.notes)
     }
 
@@ -108,7 +110,7 @@ class MergePartnerSleepTest {
         val session = activeSnap("cid")
         val merged = mergeSleepHistory(
             snapshotRecords = listOf(session),
-            pendingOps = listOf(op(SleepOpAction.UPDATE, "other", startTimeMs = 1L, sleepType = "NIGHT_SLEEP")),
+            pendingOps = listOf(op(SleepOpAction.UPDATE, "other", startTimeMs = 1L, sleepType = SleepType.NIGHT_SLEEP)),
             nowMs = now,
         )
         assertEquals(session, merged.entries.single())
@@ -119,7 +121,7 @@ class MergePartnerSleepTest {
         val session = activeSnap("cid")
         val merged = mergeSleepHistory(
             snapshotRecords = listOf(session),
-            pendingOps = listOf(op(SleepOpAction.UPDATE, "cid", createdAtMs = 0L, startTimeMs = 1L, sleepType = "NIGHT_SLEEP")),
+            pendingOps = listOf(op(SleepOpAction.UPDATE, "cid", createdAtMs = 0L, startTimeMs = 1L, sleepType = SleepType.NIGHT_SLEEP)),
             nowMs = now,
         )
         assertEquals(session, merged.entries.single())
@@ -131,7 +133,7 @@ class MergePartnerSleepTest {
         val merged = mergeSleepHistory(
             snapshotRecords = listOf(session),
             pendingOps = listOf(
-                op(SleepOpAction.UPDATE, "cid", createdAtMs = 95_000L, startTimeMs = 90_000L, endTimeMs = null, sleepType = "NAP"),
+                op(SleepOpAction.UPDATE, "cid", createdAtMs = 95_000L, startTimeMs = 90_000L, endTimeMs = null, sleepType = SleepType.NAP),
                 op(SleepOpAction.STOP, "cid", createdAtMs = 96_000L, endTimeMs = 96_000L),
             ),
             nowMs = now,
@@ -146,7 +148,7 @@ class MergePartnerSleepTest {
             snapshotRecords = listOf(session),
             pendingOps = listOf(
                 op(SleepOpAction.STOP, "cid", createdAtMs = 95_000L, endTimeMs = 95_000L),
-                op(SleepOpAction.UPDATE, "cid", createdAtMs = 96_000L, startTimeMs = 90_000L, endTimeMs = 99_000L, sleepType = "NAP"),
+                op(SleepOpAction.UPDATE, "cid", createdAtMs = 96_000L, startTimeMs = 90_000L, endTimeMs = 99_000L, sleepType = SleepType.NAP),
             ),
             nowMs = now,
         )
@@ -158,17 +160,17 @@ class MergePartnerSleepTest {
     @Test
     fun `history is sorted newest first and overlays pending edits`() {
         val older = activeSnap("a").copy(id = 1, startTime = 10_000L, endTime = 11_000L)
-        val newer = activeSnap("b").copy(id = 2, startTime = 50_000L, endTime = 51_000L, sleepType = "NAP")
+        val newer = activeSnap("b").copy(id = 2, startTime = 50_000L, endTime = 51_000L, sleepType = SleepType.NAP)
 
         val merged = mergeSleepHistory(
             snapshotRecords = listOf(older, newer),
-            pendingOps = listOf(op(SleepOpAction.UPDATE, "b", startTimeMs = 52_000L, endTimeMs = 53_000L, sleepType = "NIGHT_SLEEP")),
+            pendingOps = listOf(op(SleepOpAction.UPDATE, "b", startTimeMs = 52_000L, endTimeMs = 53_000L, sleepType = SleepType.NIGHT_SLEEP)),
             nowMs = now,
         )
 
         assertEquals(listOf("b", "a"), merged.entries.map { it.clientId })
         // The pending edit is overlaid on the matching row.
-        assertEquals("NIGHT_SLEEP", merged.entries.first().sleepType)
+        assertEquals(SleepType.NIGHT_SLEEP, merged.entries.first().sleepType)
         assertEquals(52_000L, merged.entries.first().startTime)
     }
 
@@ -176,7 +178,7 @@ class MergePartnerSleepTest {
     fun `history exposes pending op ids for consumed-op detection`() {
         val merged = mergeSleepHistory(
             snapshotRecords = listOf(activeSnap("a").copy(endTime = 1L)),
-            pendingOps = listOf(op(SleepOpAction.UPDATE, "a", createdAtMs = now, startTimeMs = 1L, sleepType = "NAP")),
+            pendingOps = listOf(op(SleepOpAction.UPDATE, "a", createdAtMs = now, startTimeMs = 1L, sleepType = SleepType.NAP)),
             nowMs = now,
         )
         assertEquals(setOf("op-a-UPDATE"), merged.pendingOpIds)
@@ -186,15 +188,15 @@ class MergePartnerSleepTest {
     fun `history synthesizes a session from a pending start with no snapshot record`() {
         val merged = mergeSleepHistory(
             snapshotRecords = emptyList(),
-            pendingOps = listOf(op(SleepOpAction.START, "new", startTimeMs = 99_000L, sleepType = "NIGHT_SLEEP")),
+            pendingOps = listOf(op(SleepOpAction.START, "new", startTimeMs = 99_000L, sleepType = SleepType.NIGHT_SLEEP)),
             nowMs = now,
         )
         val entry = merged.entries.single()
         assertEquals("new", entry.clientId)
         assertEquals(99_000L, entry.startTime)
         assertNull(entry.endTime)
-        assertEquals("NIGHT_SLEEP", entry.sleepType)
-        assertEquals("PARTNER", entry.startedBy)
+        assertEquals(SleepType.NIGHT_SLEEP, entry.sleepType)
+        assertEquals(SleepAuthor.PARTNER, entry.startedBy)
     }
 
     @Test
@@ -212,7 +214,7 @@ class MergePartnerSleepTest {
         val merged = mergeSleepHistory(
             snapshotRecords = emptyList(),
             pendingOps = listOf(
-                op(SleepOpAction.START, "c", createdAtMs = 98_000L, startTimeMs = 98_000L, sleepType = "NAP"),
+                op(SleepOpAction.START, "c", createdAtMs = 98_000L, startTimeMs = 98_000L, sleepType = SleepType.NAP),
                 op(SleepOpAction.STOP, "c", createdAtMs = 99_000L, endTimeMs = 99_000L),
             ),
             nowMs = now,

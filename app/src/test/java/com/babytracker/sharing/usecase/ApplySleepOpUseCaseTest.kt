@@ -35,13 +35,13 @@ class ApplySleepOpUseCaseTest {
         useCase = ApplySleepOpUseCase(repository) { now }
     }
 
-    private fun startOp(clientId: String = "c1", startMs: Long = past.toEpochMilli(), type: String? = "NAP") =
+    private fun startOp(clientId: String = "c1", startMs: Long = past.toEpochMilli(), type: SleepType? = SleepType.NAP) =
         SleepOp("op", SleepOpAction.START, clientId, "uid", now.toEpochMilli(), startTimeMs = startMs, sleepType = type)
 
     private fun stopOp(clientId: String = "c1", endMs: Long = now.toEpochMilli()) =
         SleepOp("op", SleepOpAction.STOP, clientId, "uid", now.toEpochMilli(), endTimeMs = endMs)
 
-    private fun updateOp(clientId: String = "c1", startMs: Long = past.toEpochMilli(), type: String? = "NIGHT_SLEEP") =
+    private fun updateOp(clientId: String = "c1", startMs: Long = past.toEpochMilli(), type: SleepType? = SleepType.NIGHT_SLEEP) =
         SleepOp("op", SleepOpAction.UPDATE, clientId, "uid", now.toEpochMilli(), startTimeMs = startMs, sleepType = type)
 
     private fun record(clientId: String = "c1", author: SleepAuthor = SleepAuthor.PARTNER, endTime: Instant? = null) =
@@ -92,8 +92,9 @@ class ApplySleepOpUseCaseTest {
     }
 
     @Test
-    fun `start with invalid sleepType is dropped`() = runTest {
-        val result = useCase(startOp(type = "siesta"))
+    fun `start with missing sleepType is dropped`() = runTest {
+        // The Firestore boundary parses an unrecognized wire sleepType to null; a null-typed op is dropped.
+        val result = useCase(startOp(type = null))
         assertFalse(result.roomChanged)
     }
 

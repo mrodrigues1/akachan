@@ -2,6 +2,7 @@ package com.babytracker.ui.partner
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.babytracker.domain.model.SleepType
 import com.babytracker.sharing.domain.model.SessionSnapshot
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import org.junit.Assert.assertEquals
@@ -132,8 +133,8 @@ class PartnerDashboardTimeTest {
 
     @Test
     fun `sleep type label maps nap and night sleep`() {
-        assertEquals("Nap", sleepTypeLabel("NAP", context))
-        assertEquals("Night Sleep", sleepTypeLabel("NIGHT_SLEEP", context))
+        assertEquals("Nap", sleepTypeLabel(SleepType.NAP, context))
+        assertEquals("Night Sleep", sleepTypeLabel(SleepType.NIGHT_SLEEP, context))
     }
 
     @Test
@@ -144,7 +145,7 @@ class PartnerDashboardTimeTest {
             id = 1L,
             startTime = startedAt.toEpochMilli(),
             endTime = null,
-            sleepType = "NIGHT_SLEEP",
+            sleepType = SleepType.NIGHT_SLEEP,
             notes = null,
         )
 
@@ -165,7 +166,7 @@ class PartnerDashboardTimeTest {
             id = 1L,
             startTime = startedAt.toEpochMilli(),
             endTime = null,
-            sleepType = "NAP",
+            sleepType = SleepType.NAP,
             notes = null,
         )
 

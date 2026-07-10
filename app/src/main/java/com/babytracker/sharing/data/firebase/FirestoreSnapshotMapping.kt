@@ -1,7 +1,10 @@
 package com.babytracker.sharing.data.firebase
 
+import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepType
+import com.babytracker.domain.model.toSleepAuthorOrNull
+import com.babytracker.domain.model.toSleepTypeOrNull
 import com.babytracker.domain.model.toSleepTypeSafe
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
@@ -160,10 +163,11 @@ internal fun sleepToMap(sleep: SleepSnapshot): Map<String, Any?> = mapOf(
     "id" to sleep.id,
     "startTime" to sleep.startTime,
     "endTime" to sleep.endTime,
-    "sleepType" to sleep.sleepType,
+    // Snapshot records keep the uppercase SleepType.name / SleepAuthor.name on the wire (unchanged).
+    "sleepType" to sleep.sleepType.name,
     "notes" to sleep.notes,
     "clientId" to sleep.clientId,
-    "startedBy" to sleep.startedBy,
+    "startedBy" to sleep.startedBy.name,
 )
 
 internal fun bottleFeedToMap(feed: BottleFeedSnapshot): Map<String, Any?> = mapOf(
@@ -261,10 +265,12 @@ internal fun mapToSleep(map: Map<*, *>): SleepSnapshot = SleepSnapshot(
     id = (map["id"] as? Long) ?: 0L,
     startTime = (map["startTime"] as? Long) ?: 0L,
     endTime = map["endTime"] as? Long,
-    sleepType = map["sleepType"] as? String ?: "NAP",
+    // Wire carries the uppercase SleepType.name; unknown/missing -> NAP (matches the prior UI read).
+    sleepType = (map["sleepType"] as? String)?.toSleepTypeOrNull() ?: SleepType.NAP,
     notes = map["notes"] as? String,
     clientId = map["clientId"] as? String ?: "",
-    startedBy = map["startedBy"] as? String ?: "OWNER",
+    // Wire carries the uppercase SleepAuthor.name; unknown/missing -> OWNER (matches the prior read).
+    startedBy = (map["startedBy"] as? String)?.toSleepAuthorOrNull() ?: SleepAuthor.OWNER,
 )
 
 internal fun mapToBottleFeed(map: Map<*, *>): BottleFeedSnapshot = BottleFeedSnapshot(
@@ -315,7 +321,9 @@ internal fun feedOpToMap(op: FeedOp): Map<String, Any?> = buildMap {
 }
 
 // Unknown action or missing required envelope fields -> null -> op skipped, never crash the listener.
-// Wire casing is lowercase (matches firestore.rules); sleepType is uppercased back to SleepType.name.
+// Wire casing is lowercase (matches firestore.rules); sleepType is parsed back to a typed SleepType.
+// An unrecognized sleepType parses to null, exactly as the prior `uppercase() -> toSleepTypeOrNull()`
+// chain in ApplySleepOpUseCase.validatedTimes effectively did (it then dropped the op).
 internal fun mapToSleepOp(opId: String, map: Map<*, *>): SleepOp? {
     val action = (map["action"] as? String)?.let { raw ->
         SleepOpAction.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
@@ -328,7 +336,7 @@ internal fun mapToSleepOp(opId: String, map: Map<*, *>): SleepOp? {
         createdAtMs = (map["createdAtMs"] as? Number)?.toLong() ?: return null,
         startTimeMs = (map["startTimeMs"] as? Number)?.toLong(),
         endTimeMs = (map["endTimeMs"] as? Number)?.toLong(),
-        sleepType = (map["sleepType"] as? String)?.uppercase(),
+        sleepType = (map["sleepType"] as? String)?.uppercase()?.toSleepTypeOrNull(),
         notes = map["notes"] as? String,
     )
 }
@@ -340,6 +348,6 @@ internal fun sleepOpToMap(op: SleepOp): Map<String, Any?> = buildMap {
     put("createdAtMs", op.createdAtMs)
     op.startTimeMs?.let { put("startTimeMs", it) }
     op.endTimeMs?.let { put("endTimeMs", it) }
-    op.sleepType?.let { put("sleepType", it.lowercase()) }
+    op.sleepType?.let { put("sleepType", it.name.lowercase()) }
     op.notes?.let { put("notes", it) }
 }

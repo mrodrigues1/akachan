@@ -1,5 +1,6 @@
 package com.babytracker.sharing.data.firebase
 
+import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepReason
 import com.babytracker.domain.model.SleepType
 import com.babytracker.sharing.domain.model.BabySnapshot
@@ -57,10 +58,10 @@ class FirestoreSnapshotMappingTest {
                     id = 9,
                     startTime = 3000L,
                     endTime = null,
-                    sleepType = "NIGHT_SLEEP",
+                    sleepType = SleepType.NIGHT_SLEEP,
                     notes = "down for the night",
                     clientId = "sleep-client-1",
-                    startedBy = "PARTNER",
+                    startedBy = SleepAuthor.PARTNER,
                 ),
             ),
         )
@@ -68,6 +69,29 @@ class FirestoreSnapshotMappingTest {
         val roundTripped = mapToSnapshot(snapshotToMap(snapshot))
 
         assertEquals(snapshot.sleepRecords, roundTripped.sleepRecords)
+    }
+
+    @Test
+    fun `snapshot sleep record keeps the exact uppercase sleepType and startedBy on the wire`() {
+        val record = SleepSnapshot(
+            id = 9,
+            startTime = 3000L,
+            endTime = null,
+            sleepType = SleepType.NIGHT_SLEEP,
+            notes = null,
+            clientId = "sleep-client-1",
+            startedBy = SleepAuthor.PARTNER,
+        )
+
+        val map = sleepToMap(record)
+
+        // WIRE CONTRACT: snapshot records ship SleepType.name / SleepAuthor.name (uppercase) unchanged.
+        assertEquals("NIGHT_SLEEP", map["sleepType"])
+        assertEquals("PARTNER", map["startedBy"])
+        // And a wire map deserializes those exact strings back to the typed values.
+        val parsed = mapToSleep(map)
+        assertEquals(SleepType.NIGHT_SLEEP, parsed.sleepType)
+        assertEquals(SleepAuthor.PARTNER, parsed.startedBy)
     }
 
     @Test
@@ -112,8 +136,24 @@ class FirestoreSnapshotMappingTest {
 
         val parsed = mapToSleep(legacy)
 
+        assertEquals(SleepType.NAP, parsed.sleepType)
         assertEquals("", parsed.clientId)
-        assertEquals("OWNER", parsed.startedBy)
+        assertEquals(SleepAuthor.OWNER, parsed.startedBy)
+    }
+
+    @Test
+    fun `sleep map with unknown sleepType or startedBy falls back to NAP and OWNER`() {
+        val garbage = mapOf(
+            "id" to 1L,
+            "startTime" to 2000L,
+            "sleepType" to "siesta",
+            "startedBy" to "stranger",
+        )
+
+        val parsed = mapToSleep(garbage)
+
+        assertEquals(SleepType.NAP, parsed.sleepType)
+        assertEquals(SleepAuthor.OWNER, parsed.startedBy)
     }
 
     @Test
@@ -151,16 +191,46 @@ class FirestoreSnapshotMappingTest {
             authorUid = "partner-uid",
             createdAtMs = 1000L,
             startTimeMs = 2000L,
-            sleepType = "NIGHT_SLEEP",
+            sleepType = SleepType.NIGHT_SLEEP,
             notes = "down",
         )
 
         val map = sleepOpToMap(op)
+        // WIRE CONTRACT: ops ship the action + sleepType lowercased.
         assertEquals("start", map["action"])
         assertEquals("night_sleep", map["sleepType"])
 
         val parsed = mapToSleepOp("s-1", map)
         assertEquals(op, parsed)
+    }
+
+    @Test
+    fun `sleep op serializes NAP to lowercase and deserializes lowercase wire back to the enum`() {
+        val op = SleepOp(
+            opId = "s-2",
+            action = SleepOpAction.START,
+            entryClientId = "client-1",
+            authorUid = "partner-uid",
+            createdAtMs = 1000L,
+            startTimeMs = 2000L,
+            sleepType = SleepType.NAP,
+        )
+
+        assertEquals("nap", sleepOpToMap(op)["sleepType"])
+        assertEquals(SleepType.NAP, mapToSleepOp("s-2", mapOf(
+            "action" to "start",
+            "entryClientId" to "client-1",
+            "authorUid" to "partner-uid",
+            "createdAtMs" to 1000L,
+            "startTimeMs" to 2000L,
+            "sleepType" to "nap",
+        ))?.sleepType)
+    }
+
+    @Test
+    fun `sleep op with an unrecognized wire sleepType parses to a null typed field`() {
+        val parsed = mapToSleepOp("s-3", sleepOpMap() + ("sleepType" to "siesta"))
+        assertEquals(null, parsed?.sleepType)
     }
 
     @Test

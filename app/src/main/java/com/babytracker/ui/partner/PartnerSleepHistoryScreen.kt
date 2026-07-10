@@ -37,7 +37,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.babytracker.R
 import com.babytracker.domain.model.SleepType
-import com.babytracker.domain.model.toSleepTypeOrNull
 import com.babytracker.sharing.domain.model.SleepSnapshot
 import com.babytracker.ui.component.HistoryCard
 import com.babytracker.ui.component.NapIcon
@@ -198,7 +197,7 @@ private fun PartnerSleepHistoryCard(
     editable: Boolean,
     onEdit: () -> Unit,
 ) {
-    val type = record.sleepType.toSleepTypeOrNull() ?: SleepType.NAP
+    val type = record.sleepType
     val start = Instant.ofEpochMilli(record.startTime)
     val end = record.endTime?.let(Instant::ofEpochMilli)
     val timeSubtitle = if (end != null) {
@@ -206,7 +205,7 @@ private fun PartnerSleepHistoryCard(
     } else {
         start.formatTime12h()
     }
-    val subtitle = if (record.startedBy == com.babytracker.domain.model.SleepAuthor.PARTNER.name) {
+    val subtitle = if (record.startedBy == com.babytracker.domain.model.SleepAuthor.PARTNER) {
         "$timeSubtitle · ${stringResource(R.string.sleep_author_partner_badge)}"
     } else {
         timeSubtitle

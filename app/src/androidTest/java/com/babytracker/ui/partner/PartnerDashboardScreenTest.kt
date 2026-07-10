@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.HomeTile
 import com.babytracker.domain.model.MeasurementSystem
+import com.babytracker.domain.model.SleepAuthor
+import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.model.ThemeConfig
 import com.babytracker.domain.model.VolumeUnit
 import com.babytracker.domain.repository.SettingsRepository
@@ -258,7 +260,7 @@ class PartnerDashboardScreenTest {
             id = 2L,
             startTime = fixedNow.minus(Duration.ofHours(3)).toEpochMilli(),
             endTime = fixedNow.minus(Duration.ofHours(1)).toEpochMilli(),
-            sleepType = "NAP",
+            sleepType = SleepType.NAP,
             notes = null,
         )
 
@@ -311,10 +313,10 @@ class PartnerDashboardScreenTest {
             id = 4L,
             startTime = fixedNow.minus(Duration.ofHours(1)).toEpochMilli(),
             endTime = null,
-            sleepType = "NAP",
+            sleepType = SleepType.NAP,
             notes = null,
             clientId = "owner-cid",
-            startedBy = "OWNER",
+            startedBy = SleepAuthor.OWNER,
         )
         composeRule.setContent {
             PartnerDashboardScreen(
@@ -336,10 +338,10 @@ class PartnerDashboardScreenTest {
             id = 5L,
             startTime = fixedNow.minus(Duration.ofHours(1)).toEpochMilli(),
             endTime = null,
-            sleepType = "NAP",
+            sleepType = SleepType.NAP,
             notes = null,
             clientId = "partner-cid",
-            startedBy = "PARTNER",
+            startedBy = SleepAuthor.PARTNER,
         )
         composeRule.setContent {
             PartnerDashboardScreen(
@@ -360,7 +362,7 @@ class PartnerDashboardScreenTest {
             id = 3L,
             startTime = fixedNow.minus(Duration.ofHours(2)).toEpochMilli(),
             endTime = null,
-            sleepType = "NIGHT_SLEEP",
+            sleepType = SleepType.NIGHT_SLEEP,
             notes = null,
         )
 
@@ -391,7 +393,7 @@ class PartnerDashboardScreenTest {
             id = 3L,
             startTime = initialNow.minus(Duration.ofSeconds(30)).toEpochMilli(),
             endTime = null,
-            sleepType = "NIGHT_SLEEP",
+            sleepType = SleepType.NIGHT_SLEEP,
             notes = null,
         )
 
@@ -430,7 +432,7 @@ class PartnerDashboardScreenTest {
             id = 3L,
             startTime = initialNow.minus(Duration.ofHours(3)).toEpochMilli(),
             endTime = null,
-            sleepType = "NIGHT_SLEEP",
+            sleepType = SleepType.NIGHT_SLEEP,
             notes = null,
         )
 

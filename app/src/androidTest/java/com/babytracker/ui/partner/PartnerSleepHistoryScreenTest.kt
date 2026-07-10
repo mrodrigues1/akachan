@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.babytracker.domain.model.SleepAuthor
+import com.babytracker.domain.model.SleepType
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.MergedSleepHistory
 import com.babytracker.sharing.domain.model.ShareSnapshot
@@ -40,10 +41,10 @@ class PartnerSleepHistoryScreenTest {
         id = clientId.hashCode().toLong(),
         startTime = Instant.parse("2026-05-12T09:00:00Z").toEpochMilli(),
         endTime = Instant.parse("2026-05-12T10:00:00Z").toEpochMilli(),
-        sleepType = "NAP",
+        sleepType = SleepType.NAP,
         notes = null,
         clientId = clientId,
-        startedBy = author.name,
+        startedBy = author,
     )
 
     private fun buildHistoryViewModel(rows: List<SleepSnapshot>): PartnerSleepHistoryViewModel {

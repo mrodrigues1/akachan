@@ -1,6 +1,8 @@
 package com.babytracker.ui.partner
 
 import com.babytracker.domain.model.GrowthType
+import com.babytracker.domain.model.SleepAuthor
+import com.babytracker.domain.model.SleepType
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.BottleFeedSnapshot
 import com.babytracker.sharing.domain.model.DoctorVisitSnapshot
@@ -24,7 +26,7 @@ class PartnerDashboardRecordsTest {
 
     private fun sleep(endTime: Long?) = SleepSnapshot(
         id = 0, startTime = 1_000L, endTime = endTime,
-        sleepType = "NAP", notes = null, clientId = "c", startedBy = "PARTNER",
+        sleepType = SleepType.NAP, notes = null, clientId = "c", startedBy = SleepAuthor.PARTNER,
     )
 
     @Test

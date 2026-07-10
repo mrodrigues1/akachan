@@ -1,6 +1,8 @@
 package com.babytracker.sharing.usecase
 
 import com.babytracker.debug.DebugSeedConfig
+import com.babytracker.domain.model.SleepAuthor
+import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.data.firebase.observeSleepOps
@@ -45,16 +47,16 @@ class ObservePartnerSleepHistoryUseCaseTest {
     @Test
     fun `maps snapshot records overlaid with the partner's pending edits`() = runTest {
         val record = SleepSnapshot(
-            id = 1, startTime = 90_000L, endTime = 95_000L, sleepType = "NAP", notes = null,
-            clientId = "cid", startedBy = "PARTNER",
+            id = 1, startTime = 90_000L, endTime = 95_000L, sleepType = SleepType.NAP, notes = null,
+            clientId = "cid", startedBy = SleepAuthor.PARTNER,
         )
-        val edit = SleepOp("op-1", SleepOpAction.UPDATE, "cid", "uid", now.toEpochMilli(), 91_000L, 94_000L, "NIGHT_SLEEP", "x")
+        val edit = SleepOp("op-1", SleepOpAction.UPDATE, "cid", "uid", now.toEpochMilli(), 91_000L, 94_000L, SleepType.NIGHT_SLEEP, "x")
         coEvery { service.observeSleepOps("CODE1234", "uid") } returns flowOf(listOf(edit))
 
         val merged = useCase(flowOf(listOf(record))).first()
 
         assertEquals(1, merged.entries.size)
-        assertEquals("NIGHT_SLEEP", merged.entries.first().sleepType)
+        assertEquals(SleepType.NIGHT_SLEEP, merged.entries.first().sleepType)
         assertEquals(94_000L, merged.entries.first().endTime)
         assertEquals(setOf("op-1"), merged.pendingOpIds)
     }
@@ -63,14 +65,14 @@ class ObservePartnerSleepHistoryUseCaseTest {
     fun `debug placeholder code serves seeded records without hitting Firebase`() = runTest {
         every { settingsRepository.getShareCode() } returns flowOf(DebugSeedConfig.PARTNER_SHARE_CODE)
         val record = SleepSnapshot(
-            id = 1, startTime = 90_000L, endTime = 95_000L, sleepType = "NAP", notes = null,
-            clientId = "cid", startedBy = "OWNER",
+            id = 1, startTime = 90_000L, endTime = 95_000L, sleepType = SleepType.NAP, notes = null,
+            clientId = "cid", startedBy = SleepAuthor.OWNER,
         )
 
         val merged = useCase(flowOf(listOf(record))).first()
 
         assertEquals(1, merged.entries.size)
-        assertEquals("NAP", merged.entries.first().sleepType)
+        assertEquals(SleepType.NAP, merged.entries.first().sleepType)
         assertEquals(emptySet<String>(), merged.pendingOpIds)
         coVerify(exactly = 0) { service.signInAnonymously() }
     }

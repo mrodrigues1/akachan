@@ -1,5 +1,7 @@
 package com.babytracker.sharing.domain.model
 
+import com.babytracker.domain.model.SleepAuthor
+import com.babytracker.domain.model.SleepType
 import java.time.Instant
 
 data class ShareSnapshot(
@@ -44,12 +46,12 @@ data class SleepSnapshot(
     val id: Long,
     val startTime: Long,
     val endTime: Long?,
-    val sleepType: String,
+    val sleepType: SleepType,
     val notes: String?,
     // Defaults keep snapshot documents written before SPEC-008 parsing (clientId lets the partner's
     // optimistic merge match a pending start; startedBy drives attribution + start-button gating).
     val clientId: String = "",
-    val startedBy: String = "OWNER",
+    val startedBy: SleepAuthor = SleepAuthor.OWNER,
 )
 
 data class BottleFeedSnapshot(

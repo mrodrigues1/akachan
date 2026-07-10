@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.babytracker.R
+import com.babytracker.domain.model.SleepType
 import com.babytracker.sharing.domain.model.SleepPredictionSnapshot
 import com.babytracker.ui.home.EaseOutQuart
 import com.babytracker.util.formatElapsedAgo
@@ -60,7 +61,7 @@ internal fun PartnerSleepPredictionCard(
     prediction: SleepPredictionSnapshot?,
     now: Instant,
     modifier: Modifier = Modifier,
-    activeSleepType: String? = null,
+    activeSleepType: SleepType? = null,
     hasActiveSleep: Boolean = false,
     hasActiveFeeding: Boolean = false,
 ) {

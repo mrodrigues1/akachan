@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import com.babytracker.R
 import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepType
-import com.babytracker.domain.model.toSleepTypeOrNull
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.sharing.data.firebase.FirestoreSharingService
 import com.babytracker.sharing.data.firebase.observeSleepOps
@@ -152,7 +151,7 @@ class PartnerSleepViewModel @Inject constructor(
                 mostRecent = historyEntries.firstOrNull(),
                 stopping = merged.stopping,
                 canEditActive = session != null &&
-                    session.startedBy == SleepAuthor.PARTNER.name &&
+                    session.startedBy == SleepAuthor.PARTNER &&
                     session.clientId.isNotEmpty(),
             )
         }
@@ -201,12 +200,12 @@ class PartnerSleepViewModel @Inject constructor(
 
     /** Opens the editor for a partner-owned session (active or a completed one shown on the dashboard). */
     fun startEditing(session: SleepSnapshot) {
-        if (session.startedBy != SleepAuthor.PARTNER.name || session.clientId.isEmpty()) return
+        if (session.startedBy != SleepAuthor.PARTNER || session.clientId.isEmpty()) return
         _uiState.update {
             it.copy(
                 editor = PartnerSleepEditorState(
                     clientId = session.clientId,
-                    sleepType = session.sleepType.toSleepTypeOrNull() ?: SleepType.NAP,
+                    sleepType = session.sleepType,
                     startTime = Instant.ofEpochMilli(session.startTime),
                     endTime = session.endTime?.let(Instant::ofEpochMilli),
                     notes = session.notes.orEmpty(),

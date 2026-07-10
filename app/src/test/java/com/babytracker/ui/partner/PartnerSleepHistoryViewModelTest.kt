@@ -2,6 +2,7 @@ package com.babytracker.ui.partner
 
 import android.content.Context
 import com.babytracker.domain.model.SleepAuthor
+import com.babytracker.domain.model.SleepType
 import com.babytracker.sharing.domain.model.BabySnapshot
 import com.babytracker.sharing.domain.model.MergedSleepHistory
 import com.babytracker.sharing.domain.model.ShareSnapshot
@@ -39,8 +40,8 @@ class PartnerSleepHistoryViewModelTest {
     val mainDispatcherExtension = MainDispatcherExtension(testDispatcher)
 
     private fun row(clientId: String, author: SleepAuthor) = SleepSnapshot(
-        id = 0, startTime = 1_000L, endTime = 2_000L, sleepType = "NAP", notes = null,
-        clientId = clientId, startedBy = author.name,
+        id = 0, startTime = 1_000L, endTime = 2_000L, sleepType = SleepType.NAP, notes = null,
+        clientId = clientId, startedBy = author,
     )
 
     @BeforeEach

@@ -39,6 +39,6 @@ class StartPartnerSleepUseCaseTest {
         assertEquals("uid", op.authorUid)
         assertEquals(5_000L, op.startTimeMs)
         assertEquals(5_000L, op.createdAtMs)
-        assertEquals("NIGHT_SLEEP", op.sleepType)
+        assertEquals(SleepType.NIGHT_SLEEP, op.sleepType)
     }
 }
