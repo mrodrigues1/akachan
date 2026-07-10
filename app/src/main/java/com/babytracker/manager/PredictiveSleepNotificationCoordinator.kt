@@ -2,15 +2,15 @@ package com.babytracker.manager
 
 import com.babytracker.di.ApplicationScope
 import com.babytracker.domain.model.AppFeature
-import com.babytracker.domain.model.RecommendationLifecycle
 import com.babytracker.domain.model.RecommendationOutcome
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
+import com.babytracker.domain.usecase.sleep.PersistSleepRecommendationUseCase
 import com.babytracker.domain.usecase.sleep.SharedSleepPredictionStream
-import com.babytracker.domain.usecase.sleep.SleepRecommendationUseCases
+import com.babytracker.domain.usecase.sleep.SupersedeSleepRecommendationUseCase
 import com.babytracker.util.ScheduleDecision
 import com.babytracker.util.decideSchedule
 import kotlinx.coroutines.CoroutineScope
@@ -29,7 +29,8 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
     private val sleepSettingsRepository: SleepSettingsRepository,
     private val scheduler: PredictiveSleepScheduler,
     private val sleepRepository: SleepRepository,
-    private val recommendation: SleepRecommendationUseCases,
+    private val persistRecommendation: PersistSleepRecommendationUseCase,
+    private val supersedeRecommendation: SupersedeSleepRecommendationUseCase,
     private val featureToggleRepository: FeatureToggleRepository,
     @ApplicationScope private val applicationScope: CoroutineScope,
 ) {
@@ -88,7 +89,7 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
                 } else {
                     RecommendationOutcome.ACTED_OUTSIDE
                 }
-                recommendation.createFeedback(
+                supersedeRecommendation.recordFeedback(
                     recommendationId = recId,
                     outcome = outcome,
                     actualSleepRecordId = completed.id,
@@ -124,7 +125,7 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
             quietHoursFeedbackCreated = false
         }
 
-        val recId = recommendation.persist(anchorId, window)
+        val recId = persistRecommendation(anchorId, window)
 
         activeRecommendationId = recId
         activeAnchorId = anchorId
@@ -143,7 +144,7 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
             }
             ScheduleDecision.QuietHours -> {
                 if (!quietHoursFeedbackCreated) {
-                    recommendation.createFeedback(recId, RecommendationOutcome.QUIET_HOURS_SUPPRESSED)
+                    supersedeRecommendation.recordFeedback(recId, RecommendationOutcome.QUIET_HOURS_SUPPRESSED)
                     quietHoursFeedbackCreated = true
                 }
                 clearScheduledWindowState()
@@ -156,15 +157,14 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
                 quietHoursFeedbackCreated = false
 
                 scheduler.schedulePredictiveReminderAt(decision.triggerAt, window.bestEstimate, recId)
-                recommendation.repository.updateLifecycle(recId, RecommendationLifecycle.SCHEDULED)
+                supersedeRecommendation.markScheduled(recId)
             }
         }
     }
 
     private suspend fun supersedeCurrent() {
         val id = activeRecommendationId ?: return
-        recommendation.repository.updateLifecycle(id, RecommendationLifecycle.SUPERSEDED)
-        recommendation.createFeedback(id, RecommendationOutcome.SUPERSEDED)
+        supersedeRecommendation(id)
         activeRecommendationId = null
         activeAnchorId = null
         clearScheduledWindowState()
