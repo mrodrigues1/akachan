@@ -1,6 +1,7 @@
 package com.babytracker.ui.sleep
 
 import android.content.Context
+import android.util.Log
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -367,7 +368,11 @@ class SleepViewModel @Inject constructor(
     }
 
     fun onCueTapped(type: BabyEventType) {
-        viewModelScope.launch { runCatching { logBabyEvent(type) } }
+        // Fire-and-forget by design (no UI state depends on it) — still log so a failure isn't invisible.
+        viewModelScope.launch {
+            runCatching { logBabyEvent(type) }
+                .onFailure { Log.w(TAG, "onCueTapped failed to log $type", it) }
+        }
     }
 
     fun onToggleRegression() {
@@ -405,6 +410,7 @@ class SleepViewModel @Inject constructor(
             ?: ZoneId.systemDefault()
 
     private companion object {
+        const val TAG = "SleepViewModel"
         const val LAST_SLEEP_TICK_MS = 60_000L
     }
 }

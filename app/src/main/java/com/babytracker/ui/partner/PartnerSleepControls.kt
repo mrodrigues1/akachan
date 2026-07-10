@@ -85,6 +85,14 @@ fun PartnerSleepControls(
         } else {
             ActiveSleepControls(state = state, active = active, onStop = onStop, onEdit = onEdit)
         }
+        state.startStopError?.let {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
         Spacer(modifier = Modifier.height(12.dp))
         OutlinedButton(
             onClick = onViewHistory,
