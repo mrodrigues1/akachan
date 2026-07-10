@@ -1026,6 +1026,7 @@
     <string name="error_partner_load_failed">Verifique sua conexão e tente novamente.</string>
     <string name="error_partner_delete_failed">Não foi possível remover esta mamada. Tente novamente.</string>
     <string name="error_partner_access_revoked">Seu parceiro encerrou o acesso compartilhado.</string>
+    <string name="error_partner_sleep_action_failed">Não foi possível concluir essa ação. Verifique sua conexão.</string>
     <string name="error_import_stop_sessions">Encerre todas as sessões ativas antes de importar um backup.</string>
     <string name="error_volume_required">Informe o volume em mL</string>
     <string name="error_end_after_start">O fim deve ser após o início</string>

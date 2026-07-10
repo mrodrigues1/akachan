@@ -60,6 +60,9 @@ data class PartnerSleepUiState(
     val isBusy: Boolean = false,
     val editor: PartnerSleepEditorState? = null,
     val accessRevoked: Boolean = false,
+    // Transient: set when a Start/Stop tap fails; cleared on the next start/stop attempt (mirrors
+    // the editor's validationError convention below).
+    val startStopError: String? = null,
 )
 
 /**
@@ -106,6 +109,10 @@ class PartnerSleepViewModel @Inject constructor(
                         liveOps = ops
                         recomputeActive()
                     }
+            }.onFailure { t ->
+                // Sign-in itself failed (or something outside retryWhen's reach did) — the pending-ops
+                // overlay never starts. No UI surface for this today; log so it isn't invisible.
+                Log.w(TAG, "sign-in for own sleep op listener failed; pending-ops overlay will not start", t)
             }
         }
     }
@@ -167,7 +174,7 @@ class PartnerSleepViewModel @Inject constructor(
     }
 
     private fun submit(block: suspend () -> Unit) {
-        _uiState.update { it.copy(isBusy = true) }
+        _uiState.update { it.copy(isBusy = true, startStopError = null) }
         viewModelScope.launch {
             runCatching { block() }
                 .onSuccess { _uiState.update { it.copy(isBusy = false) } }
@@ -176,12 +183,13 @@ class PartnerSleepViewModel @Inject constructor(
     }
 
     private fun handleFailure(t: Throwable) {
+        if (t is PartnerAccessRevokedException) {
+            _uiState.update { it.copy(isBusy = false, accessRevoked = true) }
+            return
+        }
+        Log.w(TAG, "partner start/stop sleep failed", t)
         _uiState.update {
-            if (t is PartnerAccessRevokedException) {
-                it.copy(isBusy = false, accessRevoked = true)
-            } else {
-                it.copy(isBusy = false)
-            }
+            it.copy(isBusy = false, startStopError = appContext.getString(R.string.error_partner_sleep_action_failed))
         }
     }
 

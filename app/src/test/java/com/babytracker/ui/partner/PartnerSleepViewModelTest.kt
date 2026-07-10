@@ -248,4 +248,45 @@ class PartnerSleepViewModelTest {
 
         assertTrue(vm.uiState.value.accessRevoked)
     }
+
+    @Test
+    fun `failed start surfaces a startStopError and clears busy`() = runTest {
+        coEvery { startSleep(any()) } throws IOException("offline")
+        val vm = buildViewModel()
+
+        vm.onStartNap()
+        advanceUntilIdle()
+
+        assertFalse(vm.uiState.value.isBusy)
+        assertNotNull(vm.uiState.value.startStopError)
+        assertFalse(vm.uiState.value.accessRevoked)
+    }
+
+    @Test
+    fun `failed stop surfaces a startStopError and clears busy`() = runTest {
+        coEvery { stopSleep(any()) } throws IOException("offline")
+        val vm = buildViewModel()
+        vm.onSleepRecordsAvailable(listOf(partnerActive("active-cid")))
+
+        vm.onStop()
+        advanceUntilIdle()
+
+        assertFalse(vm.uiState.value.isBusy)
+        assertNotNull(vm.uiState.value.startStopError)
+    }
+
+    @Test
+    fun `startStopError clears on the next start attempt`() = runTest {
+        coEvery { startSleep(any()) } throws IOException("offline") andThen "new-cid"
+        val vm = buildViewModel()
+
+        vm.onStartNap()
+        advanceUntilIdle()
+        assertNotNull(vm.uiState.value.startStopError)
+
+        vm.onStartNap()
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.startStopError)
+    }
 }

@@ -1011,6 +1011,7 @@
     <string name="error_partner_load_failed">Check your connection and try again.</string>
     <string name="error_partner_delete_failed">Couldn\'t remove this feed. Try again.</string>
     <string name="error_partner_access_revoked">Your partner ended sharing access.</string>
+    <string name="error_partner_sleep_action_failed">Couldn\'t complete that action. Check your connection.</string>
     <string name="error_import_stop_sessions">Stop all active sessions before importing a backup.</string>
     <string name="error_volume_required">Enter volume in mL</string>
     <string name="error_end_after_start">End must be after start</string>
