@@ -25,7 +25,6 @@ import java.util.Locale
 object DoctorVisitNotificationHelper {
     const val CHANNEL_ID = "doctor_visit_reminders"
     const val NOTIFICATION_ID = 1021
-    private const val RC_TAP = 3015
     private const val TAG = "DoctorVisitNotification"
 
     fun createChannel(context: Context) {
@@ -71,7 +70,7 @@ object DoctorVisitNotificationHelper {
     private fun tapPendingIntent(context: Context): PendingIntent =
         PendingIntent.getActivity(
             context,
-            RC_TAP,
+            NotificationTapRequestCodes.DOCTOR_VISIT,
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 putExtra(NotificationHelper.EXTRA_NAV_ROUTE, Routes.DOCTOR_VISIT_HISTORY)

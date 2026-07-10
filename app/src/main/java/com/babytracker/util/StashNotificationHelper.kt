@@ -26,8 +26,6 @@ object StashNotificationHelper {
     const val STASH_EXPIRATION_NOTIFICATION_ID = 1009
     const val PARTNER_STASH_CHANNEL_ID = "partner_stash_notifications"
     const val PARTNER_STASH_NOTIFICATION_ID = 1010
-    private const val RC_STASH_EXPIRATION_TAP = 3003
-    private const val RC_PARTNER_STASH_TAP = 3004
     private const val TAG = "StashNotificationHelper"
 
     fun createStashExpirationNotificationChannel(context: Context) {
@@ -81,7 +79,7 @@ object StashNotificationHelper {
     private fun stashExpirationTapPendingIntent(context: Context): PendingIntent =
         PendingIntent.getActivity(
             context,
-            RC_STASH_EXPIRATION_TAP,
+            NotificationTapRequestCodes.STASH_EXPIRATION,
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 putExtra(NotificationHelper.EXTRA_NAV_ROUTE, Routes.INVENTORY)
@@ -118,7 +116,7 @@ object StashNotificationHelper {
     private fun partnerStashTapPendingIntent(context: Context): PendingIntent =
         PendingIntent.getActivity(
             context,
-            RC_PARTNER_STASH_TAP,
+            NotificationTapRequestCodes.PARTNER_STASH,
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 putExtra(NotificationHelper.EXTRA_NAV_ROUTE, Routes.INVENTORY)

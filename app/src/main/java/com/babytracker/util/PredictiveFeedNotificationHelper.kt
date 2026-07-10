@@ -12,8 +12,6 @@ import com.babytracker.ui.theme.Pink700
 import com.babytracker.ui.theme.PrimaryPinkDark
 import java.time.Instant
 
-private const val RC_PREDICTIVE_START = 2010
-
 fun createPredictiveFeedNotificationChannel(context: Context) {
     createNotificationChannel(
         context = context,
@@ -45,7 +43,7 @@ fun showPredictiveReminder(
         putExtra(NotificationHelper.EXTRA_NAV_ROUTE, Routes.BREASTFEEDING)
     }
     val startPi = PendingIntent.getActivity(
-        context, RC_PREDICTIVE_START, startIntent,
+        context, NotificationTapRequestCodes.PREDICTIVE_FEED_START, startIntent,
         PENDING_INTENT_IMMUTABLE_UPDATE,
     )
 

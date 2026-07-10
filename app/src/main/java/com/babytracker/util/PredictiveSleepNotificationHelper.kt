@@ -12,8 +12,6 @@ import com.babytracker.ui.theme.Blue700
 import com.babytracker.ui.theme.SecondaryBlueDark
 import java.time.Instant
 
-private const val RC_PREDICTIVE_SLEEP_START = 2001
-
 fun createPredictiveSleepNotificationChannel(context: Context) {
     createNotificationChannel(
         context = context,
@@ -45,7 +43,7 @@ fun showPredictiveSleepReminder(
     }
     val startPi = PendingIntent.getActivity(
         context,
-        RC_PREDICTIVE_SLEEP_START,
+        NotificationTapRequestCodes.PREDICTIVE_SLEEP_START,
         startIntent,
         PENDING_INTENT_IMMUTABLE_UPDATE,
     )
