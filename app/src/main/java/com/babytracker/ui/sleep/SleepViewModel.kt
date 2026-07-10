@@ -8,14 +8,11 @@ import androidx.lifecycle.viewModelScope
 import com.babytracker.R
 import com.babytracker.domain.model.SleepPredictionState
 import com.babytracker.domain.model.SleepRecord
-import com.babytracker.domain.model.SleepSchedule
 import com.babytracker.domain.model.SleepType
-import com.babytracker.domain.repository.BabyRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
-import com.babytracker.domain.usecase.sleep.GenerateSleepScheduleUseCase
-import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
 import com.babytracker.domain.usecase.sleep.SaveSleepEntryUseCase
+import com.babytracker.domain.usecase.sleep.SharedSleepPredictionStream
 import com.babytracker.domain.usecase.sleep.SleepEntryError
 import com.babytracker.domain.usecase.sleep.UpdateSleepEntryUseCase
 import com.babytracker.domain.usecase.sleep.shouldUpdateWakeTimeFor
@@ -28,7 +25,6 @@ import com.babytracker.domain.usecase.baby.LogBabyEventUseCase
 import com.babytracker.util.durationBetween
 import com.babytracker.util.formatElapsedShort
 import com.babytracker.util.formatTime12h
-import com.babytracker.util.groupByDateDescending
 import com.babytracker.util.sumMergingOverlaps
 import com.babytracker.util.tickerFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,7 +36,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -95,11 +91,13 @@ internal fun sleepTodayStats(records: List<SleepRecord>, today: LocalDate, zone:
     )
 }
 
+/**
+ * Tracking-screen state. Only the imperative sheet/picker/delete fields live here as a
+ * [MutableStateFlow]; the reactive projections ([wakeTime], [lastSleepSummary], [sleepPrediction],
+ * [activeSleepSession], [todayStats]) are exposed as their own subscription-scoped [StateFlow]s so
+ * their upstream Room/prediction pipelines only run while the screen is on-screen.
+ */
 data class SleepUiState(
-    val schedule: SleepSchedule? = null,
-    val isLoading: Boolean = false,
-    val wakeTime: LocalTime? = null,
-    val lastSleepSummary: LastSleepSummaryState = LastSleepSummaryState.Empty,
     val showEntrySheet: Boolean = false,
     val entryType: SleepType = SleepType.NAP,
     val entryDate: LocalDate = LocalDate.now(),
@@ -109,9 +107,7 @@ data class SleepUiState(
     val entryDurationPreview: Duration? = null,
     val pendingDeleteRecord: SleepRecord? = null,
     val editingRecord: SleepRecord? = null,
-    val isRegressionExpanded: Boolean = true,
     val activeTimePicker: SleepTimePickerTarget? = null,
-    val sleepPrediction: SleepPredictionState = SleepPredictionState.Unavailable("loading"),
 )
 
 @HiltViewModel
@@ -119,12 +115,10 @@ class SleepViewModel @Inject constructor(
     private val saveSleepEntry: SaveSleepEntryUseCase,
     private val updateSleepEntry: UpdateSleepEntryUseCase,
     private val sleepRepository: SleepRepository,
-    private val generateSchedule: GenerateSleepScheduleUseCase,
-    private val babyRepository: BabyRepository,
     private val settingsRepository: SettingsRepository,
     private val sleepSessionController: SleepSessionController,
     private val syncedWrite: SyncedWrite,
-    private val predictSleepWindow: PredictSleepWindowUseCase,
+    sharedSleepPrediction: SharedSleepPredictionStream,
     private val logBabyEvent: LogBabyEventUseCase,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
@@ -132,55 +126,49 @@ class SleepViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SleepUiState())
     val uiState: StateFlow<SleepUiState> = _uiState.asStateFlow()
 
-    val history: StateFlow<List<SleepRecord>> = sleepRepository.getAllRecords()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val historyByDateDesc: StateFlow<List<Pair<LocalDate, List<SleepRecord>>>> = history
-        .map { records -> records.groupByDateDescending { it.startTime } }
-        .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    // One shared, subscription-scoped observer: the derived flows below all fan out from this, so a
+    // single getAllRecords() Room observer runs while any of them is collected and detaches 5s after
+    // the screen stops. No eager init collector keeps it hot for the ViewModel's whole backstack life.
+    private val history: StateFlow<List<SleepRecord>> = sleepRepository.getAllRecords()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), emptyList())
 
     val activeSleepSession: StateFlow<SleepRecord?> = history
         .map { records -> records.find { it.isInProgress } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), null)
 
     val todayStats: StateFlow<SleepTodayStats> = history
         .map { records -> sleepTodayStats(records, LocalDate.now(), ZoneId.systemDefault()) }
         .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SleepTodayStats())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), SleepTodayStats())
 
-    init {
-        viewModelScope.launch {
-            predictSleepWindow().collect { prediction ->
-                _uiState.value = _uiState.value.copy(sleepPrediction = prediction)
-            }
-        }
-        viewModelScope.launch {
-            settingsRepository.getWakeTime().collect { wakeTime ->
-                _uiState.value = _uiState.value.copy(wakeTime = wakeTime)
-            }
-        }
-        viewModelScope.launch {
-            // Select the latest completed record only when history changes; the per-minute tick then
-            // just reformats its elapsed-awake label instead of rescanning the whole history list.
-            val latestCompleted = history
-                .map { records ->
-                    if (records.any { it.isInProgress }) {
-                        null
-                    } else {
-                        // Single pass, no intermediate filtered list: latest non-null endTime.
-                        records.maxByOrNull { it.endTime ?: Instant.MIN }?.takeIf { it.endTime != null }
-                    }
+    val wakeTime: StateFlow<LocalTime?> = settingsRepository.getWakeTime()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), null)
+
+    val lastSleepSummary: StateFlow<LastSleepSummaryState> = combine(
+        // Select the latest completed record only when history changes; the per-minute tick then
+        // just reformats its elapsed-awake label instead of rescanning the whole history list.
+        history
+            .map { records ->
+                if (records.any { it.isInProgress }) {
+                    null
+                } else {
+                    // Single pass, no intermediate filtered list: latest non-null endTime.
+                    records.maxByOrNull { it.endTime ?: Instant.MIN }?.takeIf { it.endTime != null }
                 }
-                .distinctUntilChanged()
-            combine(latestCompleted, tickerFlow(LAST_SLEEP_TICK_MS)) { record, _ ->
-                buildLastSleepSummary(record)
-            }.collect { summary ->
-                _uiState.value = _uiState.value.copy(lastSleepSummary = summary)
             }
-        }
-        loadSchedule()
-    }
+            .distinctUntilChanged(),
+        tickerFlow(LAST_SLEEP_TICK_MS),
+    ) { record, _ -> buildLastSleepSummary(record) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), LastSleepSummaryState.Empty)
+
+    // The one hot prediction pipeline is shared app-wide; here it is only collected while the tracking
+    // screen is subscribed.
+    val sleepPrediction: StateFlow<SleepPredictionState> = sharedSleepPrediction.observe()
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS),
+            SleepPredictionState.Unavailable("loading"),
+        )
 
     fun onStartRecord(sleepType: SleepType) {
         viewModelScope.launch {
@@ -256,26 +244,29 @@ class SleepViewModel @Inject constructor(
     }
 
     fun onSaveEntry() {
-        val state = _uiState.value
-        val editingRecord = state.editingRecord
-        val zone = editingRecord?.let { zoneForEditing(it) } ?: ZoneId.systemDefault()
-        val startDate = state.entryDate
-        val endDate = if (state.entryEndTime.isBefore(state.entryStartTime)) startDate.plusDays(1) else startDate
-        val startInstant = state.entryStartTime.atDate(startDate).atZone(zone).toInstant()
-        val endInstant = state.entryEndTime.atDate(endDate).atZone(zone).toInstant()
-        val error = validateSleepEntry(
-            startTime = startInstant,
-            endTime = endInstant,
-            type = state.entryType,
-            existingRecords = history.value,
-            now = Instant.now(),
-            excludingId = editingRecord?.id,
-        )
-        if (error != null) {
-            _uiState.value = state.copy(entryError = appContext.getString(error.messageRes()))
-            return
-        }
         viewModelScope.launch {
+            val state = _uiState.value
+            val editingRecord = state.editingRecord
+            val zone = editingRecord?.let { zoneForEditing(it) } ?: ZoneId.systemDefault()
+            val startDate = state.entryDate
+            val endDate = if (state.entryEndTime.isBefore(state.entryStartTime)) startDate.plusDays(1) else startDate
+            val startInstant = state.entryStartTime.atDate(startDate).atZone(zone).toInstant()
+            val endInstant = state.entryEndTime.atDate(endDate).atZone(zone).toInstant()
+            // Validate against a fresh snapshot; the history observer is subscription-scoped, so read
+            // the current records directly instead of relying on a hot cache.
+            val existingRecords = sleepRepository.getAllRecords().first()
+            val error = validateSleepEntry(
+                startTime = startInstant,
+                endTime = endInstant,
+                type = state.entryType,
+                existingRecords = existingRecords,
+                now = Instant.now(),
+                excludingId = editingRecord?.id,
+            )
+            if (error != null) {
+                _uiState.value = _uiState.value.copy(entryError = appContext.getString(error.messageRes()))
+                return@launch
+            }
             try {
                 if (editingRecord != null) {
                     updateSleepEntry(
@@ -304,7 +295,7 @@ class SleepViewModel @Inject constructor(
             if (shouldUpdateWakeTimeFor(
                     endTime = endInstant,
                     sleepType = state.entryType,
-                    existingRecords = history.value,
+                    existingRecords = existingRecords,
                     zone = sysZone,
                     today = LocalDate.now(sysZone),
                     excludingId = editingRecord?.id,
@@ -320,7 +311,6 @@ class SleepViewModel @Inject constructor(
     fun onSetWakeTime(time: LocalTime) {
         viewModelScope.launch {
             settingsRepository.setWakeTime(time)
-            loadSchedule()
         }
     }
 
@@ -363,32 +353,11 @@ class SleepViewModel @Inject constructor(
         }
     }
 
-    fun refreshSchedule() {
-        loadSchedule()
-    }
-
     fun onCueTapped(type: BabyEventType) {
         // Fire-and-forget by design (no UI state depends on it) — still log so a failure isn't invisible.
         viewModelScope.launch {
             runCatching { logBabyEvent(type) }
                 .onFailure { Log.w(TAG, "onCueTapped failed to log $type", it) }
-        }
-    }
-
-    fun onToggleRegression() {
-        _uiState.value = _uiState.value.copy(isRegressionExpanded = !_uiState.value.isRegressionExpanded)
-    }
-
-    private fun loadSchedule() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            val baby = babyRepository.getBabyProfile().firstOrNull()
-            if (baby != null) {
-                val schedule = generateSchedule(baby)
-                _uiState.value = _uiState.value.copy(schedule = schedule, isLoading = false)
-            } else {
-                _uiState.value = _uiState.value.copy(isLoading = false)
-            }
         }
     }
 
@@ -412,6 +381,7 @@ class SleepViewModel @Inject constructor(
     private companion object {
         const val TAG = "SleepViewModel"
         const val LAST_SLEEP_TICK_MS = 60_000L
+        const val SUBSCRIPTION_TIMEOUT_MS = 5_000L
     }
 }
 

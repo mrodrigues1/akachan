@@ -9,7 +9,7 @@ import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
-import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
+import com.babytracker.domain.usecase.sleep.SharedSleepPredictionStream
 import com.babytracker.domain.usecase.sleep.SleepRecommendationUseCases
 import com.babytracker.util.ScheduleDecision
 import com.babytracker.util.decideSchedule
@@ -24,7 +24,7 @@ import javax.inject.Singleton
 
 @Singleton
 class PredictiveSleepNotificationCoordinator @Inject constructor(
-    private val predictSleepWindow: PredictSleepWindowUseCase,
+    private val sharedSleepPrediction: SharedSleepPredictionStream,
     private val settingsRepository: SettingsRepository,
     private val sleepSettingsRepository: SleepSettingsRepository,
     private val scheduler: PredictiveSleepScheduler,
@@ -48,7 +48,7 @@ class PredictiveSleepNotificationCoordinator @Inject constructor(
         applicationScope.launch {
             combine(
                 combine(
-                    predictSleepWindow(),
+                    sharedSleepPrediction.observe(),
                     sleepSettingsRepository.getPredictiveSleepEnabled(),
                     sleepSettingsRepository.getPredictiveSleepLeadMinutes(),
                     settingsRepository.getQuietHoursStartMinute(),

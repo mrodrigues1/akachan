@@ -120,6 +120,9 @@ fun SleepTrackingScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val activeSleepSession by viewModel.activeSleepSession.collectAsStateWithLifecycle()
     val todayStats by viewModel.todayStats.collectAsStateWithLifecycle()
+    val wakeTime by viewModel.wakeTime.collectAsStateWithLifecycle()
+    val lastSleepSummary by viewModel.lastSleepSummary.collectAsStateWithLifecycle()
+    val sleepPrediction by viewModel.sleepPrediction.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var notificationPermissionGranted by remember { mutableStateOf(isNotificationPermissionGranted(context)) }
 
@@ -146,7 +149,7 @@ fun SleepTrackingScreen(
 
     uiState.activeTimePicker?.let { target ->
         val initial = when (target) {
-            SleepTimePickerTarget.WAKE -> uiState.wakeTime ?: LocalTime.of(7, 0)
+            SleepTimePickerTarget.WAKE -> wakeTime ?: LocalTime.of(7, 0)
             SleepTimePickerTarget.ENTRY_START -> uiState.entryStartTime
             SleepTimePickerTarget.ENTRY_END -> uiState.entryEndTime
         }
@@ -173,7 +176,12 @@ fun SleepTrackingScreen(
             sheetState = sheetState
         ) {
             AddSleepEntrySheetContent(
-                uiState = uiState,
+                entryType = uiState.entryType,
+                entryDate = uiState.entryDate,
+                entryStartTime = uiState.entryStartTime,
+                entryEndTime = uiState.entryEndTime,
+                entryError = uiState.entryError,
+                entryDurationPreview = uiState.entryDurationPreview,
                 isEditing = uiState.editingRecord != null,
                 onTypeChanged = viewModel::onEntryTypeChanged,
                 onStartTimeClick = { viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START) },
@@ -235,8 +243,8 @@ fun SleepTrackingScreen(
             if (activeSleepSession == null) {
                 item {
                     TodayContextCard(
-                        summary = uiState.lastSleepSummary,
-                        wakeTime = uiState.wakeTime,
+                        summary = lastSleepSummary,
+                        wakeTime = wakeTime,
                         totalSleep = todayStats.totalSleep,
                         napCount = todayStats.napCount,
                         nightSleep = todayStats.nightSleep,
@@ -246,7 +254,7 @@ fun SleepTrackingScreen(
             }
             item {
                 SleepRecommendationSection(
-                    state = uiState.sleepPrediction,
+                    state = sleepPrediction,
                 )
             }
             item {
@@ -771,7 +779,12 @@ internal fun SleepEntryCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun AddSleepEntrySheetContent(
-    uiState: SleepUiState,
+    entryType: SleepType,
+    entryDate: LocalDate,
+    entryStartTime: LocalTime,
+    entryEndTime: LocalTime,
+    entryError: String?,
+    entryDurationPreview: Duration?,
     onTypeChanged: (SleepType) -> Unit,
     onStartTimeClick: () -> Unit,
     onEndTimeClick: () -> Unit,
@@ -787,7 +800,7 @@ internal fun AddSleepEntrySheetContent(
     val changeEndTimeDescription = stringResource(R.string.change_end_time)
 
     if (showDatePicker) {
-        val initialMillis = uiState.entryDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val initialMillis = entryDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -824,7 +837,7 @@ internal fun AddSleepEntrySheetContent(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             SleepType.entries.forEach { type ->
-                val isSelected = uiState.entryType == type
+                val isSelected = entryType == type
                 FilterChip(
                     selected = isSelected,
                     onClick = { onTypeChanged(type) },
@@ -862,7 +875,7 @@ internal fun AddSleepEntrySheetContent(
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Text(
-                    text = uiState.entryDate.format(dateFormatter),
+                    text = entryDate.format(dateFormatter),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -892,7 +905,7 @@ internal fun AddSleepEntrySheetContent(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text(
-                        text = uiState.entryStartTime.format(timeFormatter),
+                        text = entryStartTime.format(timeFormatter),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
@@ -917,7 +930,7 @@ internal fun AddSleepEntrySheetContent(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text(
-                        text = uiState.entryEndTime.format(timeFormatter),
+                        text = entryEndTime.format(timeFormatter),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
@@ -929,10 +942,10 @@ internal fun AddSleepEntrySheetContent(
             }
         }
 
-        val canSave = uiState.entryDurationPreview != null && uiState.entryError == null
+        val canSave = entryDurationPreview != null && entryError == null
 
         when {
-            uiState.entryError != null -> {
+            entryError != null -> {
                 Card(
                     shape = MaterialTheme.shapes.small,
                     colors = CardDefaults.cardColors(
@@ -940,7 +953,7 @@ internal fun AddSleepEntrySheetContent(
                     )
                 ) {
                     Text(
-                        text = stringResource(R.string.sleep_entry_error, uiState.entryError.orEmpty()),
+                        text = stringResource(R.string.sleep_entry_error, entryError.orEmpty()),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         textAlign = TextAlign.Center,
@@ -950,7 +963,7 @@ internal fun AddSleepEntrySheetContent(
                     )
                 }
             }
-            uiState.entryDurationPreview == null -> {
+            entryDurationPreview == null -> {
                 Card(
                     shape = MaterialTheme.shapes.small,
                     colors = CardDefaults.cardColors(
@@ -976,7 +989,7 @@ internal fun AddSleepEntrySheetContent(
                     )
                 ) {
                     Text(
-                        text = stringResource(R.string.sleep_entry_duration, uiState.entryDurationPreview.formatDuration()),
+                        text = stringResource(R.string.sleep_entry_duration, entryDurationPreview.formatDuration()),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -990,9 +1003,9 @@ internal fun AddSleepEntrySheetContent(
         }
 
         val saveLabel = when {
-            isEditing && uiState.entryType == SleepType.NAP -> stringResource(R.string.sleep_update_nap)
+            isEditing && entryType == SleepType.NAP -> stringResource(R.string.sleep_update_nap)
             isEditing -> stringResource(R.string.sleep_update_night)
-            uiState.entryType == SleepType.NAP -> stringResource(R.string.sleep_save_nap)
+            entryType == SleepType.NAP -> stringResource(R.string.sleep_save_nap)
             else -> stringResource(R.string.sleep_save_night)
         }
         Button(

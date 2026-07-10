@@ -15,7 +15,7 @@ import com.babytracker.domain.repository.SleepSettingsRepository
 import com.babytracker.domain.repository.SleepRepository
 import com.babytracker.domain.usecase.sleep.CreateSleepRecommendationFeedbackUseCase
 import com.babytracker.domain.usecase.sleep.PersistSleepRecommendationUseCase
-import com.babytracker.domain.usecase.sleep.PredictSleepWindowUseCase
+import com.babytracker.domain.usecase.sleep.SharedSleepPredictionStream
 import com.babytracker.domain.usecase.sleep.SleepRecommendationUseCases
 import com.babytracker.domain.repository.SleepRecommendationRepository
 import io.mockk.coEvery
@@ -455,8 +455,8 @@ class PredictiveSleepNotificationCoordinatorTest {
         recommendation: SleepRecommendationUseCases = defaultRecommendationUseCases(),
         featuresFlow: MutableStateFlow<Set<AppFeature>> = MutableStateFlow(AppFeature.ALL),
     ): PredictiveSleepNotificationCoordinator {
-        val useCase = mockk<PredictSleepWindowUseCase>().also {
-            every { it.invoke() } returns stateFlow
+        val sharedSleepPrediction = mockk<SharedSleepPredictionStream>().also {
+            every { it.observe() } returns stateFlow
         }
         val settings = mockk<SettingsRepository>().also {
             every { it.getQuietHoursStartMinute() } returns quietStartFlow
@@ -470,7 +470,7 @@ class PredictiveSleepNotificationCoordinatorTest {
             every { it.getEnabledFeatures() } returns featuresFlow
         }
         return PredictiveSleepNotificationCoordinator(
-            predictSleepWindow = useCase,
+            sharedSleepPrediction = sharedSleepPrediction,
             settingsRepository = settings,
             sleepSettingsRepository = sleepSettings,
             scheduler = scheduler,

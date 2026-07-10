@@ -52,14 +52,15 @@ import java.time.LocalTime
 fun SleepHistoryScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: SleepViewModel = hiltViewModel(),
+    viewModel: SleepHistoryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val groupedByDateDesc by viewModel.historyByDateDesc.collectAsStateWithLifecycle()
 
     uiState.activeTimePicker?.let { target ->
         val initial = when (target) {
-            SleepTimePickerTarget.WAKE -> uiState.wakeTime ?: LocalTime.of(7, 0)
+            // The history screen only edits records; the wake-time picker never opens here.
+            SleepTimePickerTarget.WAKE -> LocalTime.of(7, 0)
             SleepTimePickerTarget.ENTRY_START -> uiState.entryStartTime
             SleepTimePickerTarget.ENTRY_END -> uiState.entryEndTime
         }
@@ -86,7 +87,12 @@ fun SleepHistoryScreen(
             sheetState = sheetState
         ) {
             AddSleepEntrySheetContent(
-                uiState = uiState,
+                entryType = uiState.entryType,
+                entryDate = uiState.entryDate,
+                entryStartTime = uiState.entryStartTime,
+                entryEndTime = uiState.entryEndTime,
+                entryError = uiState.entryError,
+                entryDurationPreview = uiState.entryDurationPreview,
                 isEditing = uiState.editingRecord != null,
                 onTypeChanged = viewModel::onEntryTypeChanged,
                 onStartTimeClick = { viewModel.onShowTimePicker(SleepTimePickerTarget.ENTRY_START) },

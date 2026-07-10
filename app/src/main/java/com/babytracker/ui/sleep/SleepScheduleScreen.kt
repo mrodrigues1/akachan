@@ -74,7 +74,7 @@ import java.time.format.DateTimeFormatter
 fun SleepScheduleScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: SleepViewModel = hiltViewModel(),
+    viewModel: SleepScheduleViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
