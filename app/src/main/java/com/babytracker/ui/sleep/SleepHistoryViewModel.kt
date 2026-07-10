@@ -16,7 +16,6 @@ import com.babytracker.domain.usecase.sleep.validateSleepEntry
 import com.babytracker.sharing.usecase.SyncToFirestoreUseCase.SyncType
 import com.babytracker.sharing.usecase.SyncedWrite
 import com.babytracker.util.durationBetween
-import com.babytracker.util.groupByDateDescending
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +34,29 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import javax.inject.Inject
+
+/**
+ * Groups already-start-DESC sleep records by the local calendar day of their start time in a single
+ * pass, preserving encounter order. [SleepRepository.getAllRecords] is ordered `start_time DESC`, so
+ * days come out newest-first and each day's records newest-first with no sort and no second retained
+ * copy — contrast [com.babytracker.util.groupByDateDescending], which allocates a sorted map plus a
+ * per-day re-sort. Cross-midnight records group under their START date's day, matching prior behaviour.
+ */
+internal fun List<SleepRecord>.groupByStartDatePreservingOrder(
+    zone: ZoneId = ZoneId.systemDefault(),
+): List<Pair<LocalDate, List<SleepRecord>>> {
+    val grouped = ArrayList<Pair<LocalDate, MutableList<SleepRecord>>>()
+    for (record in this) {
+        val date = record.startTime.atZone(zone).toLocalDate()
+        val current = grouped.lastOrNull()
+        if (current != null && current.first == date) {
+            current.second.add(record)
+        } else {
+            grouped.add(date to mutableListOf(record))
+        }
+    }
+    return grouped
+}
 
 /** History-screen state: the imperative edit-sheet, picker, and delete fields. */
 data class SleepHistoryUiState(
@@ -68,7 +90,7 @@ class SleepHistoryViewModel @Inject constructor(
     // history screen leaves the foreground.
     val historyByDateDesc: StateFlow<List<Pair<LocalDate, List<SleepRecord>>>> =
         sleepRepository.getAllRecords()
-            .map { records -> records.groupByDateDescending { it.startTime } }
+            .map { records -> records.groupByStartDatePreservingOrder() }
             .flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), emptyList())
 

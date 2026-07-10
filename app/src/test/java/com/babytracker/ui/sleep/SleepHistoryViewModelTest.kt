@@ -127,7 +127,8 @@ class SleepHistoryViewModelTest {
         val r3 = SleepRecord(id = 3L, startTime = day2, endTime = day2.plusSeconds(1800), sleepType = SleepType.NAP)
         val r4 = SleepRecord(id = 4L, startTime = day3, endTime = day3.plusSeconds(1800), sleepType = SleepType.NIGHT_SLEEP)
 
-        every { sleepRepository.getAllRecords() } returns flowOf(listOf(r1, r2, r3, r4))
+        // getAllRecords() is ordered start_time DESC; feed the fake in that same order.
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(r4, r3, r2, r1))
         viewModel = createViewModel()
 
         viewModel.historyByDateDesc.test {
@@ -171,12 +172,48 @@ class SleepHistoryViewModelTest {
             assertEquals(1, first.size)
             assertEquals(LocalDate.of(2024, 2, 1), first[0].first)
 
-            historyFlow.value = listOf(initial, added)
+            // Newer record first, matching the start_time DESC ordering of getAllRecords().
+            historyFlow.value = listOf(added, initial)
             testDispatcher.scheduler.advanceUntilIdle()
             val second = awaitItem()
             assertEquals(2, second.size)
             assertEquals(LocalDate.of(2024, 2, 2), second[0].first)
             assertEquals(LocalDate.of(2024, 2, 1), second[1].first)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `historyByDateDesc groups a cross-midnight night sleep under its start date`() = runTest {
+        val zone = ZoneId.systemDefault()
+        // Night sleep starts on day 1 and ends after midnight on day 2.
+        val nightSleep = SleepRecord(
+            id = 1L,
+            startTime = LocalDate.of(2024, 3, 1).atTime(23, 0).atZone(zone).toInstant(),
+            endTime = LocalDate.of(2024, 3, 2).atTime(1, 0).atZone(zone).toInstant(),
+            sleepType = SleepType.NIGHT_SLEEP,
+        )
+        val nextDayNap = SleepRecord(
+            id = 2L,
+            startTime = LocalDate.of(2024, 3, 2).atTime(8, 0).atZone(zone).toInstant(),
+            endTime = LocalDate.of(2024, 3, 2).atTime(9, 0).atZone(zone).toInstant(),
+            sleepType = SleepType.NAP,
+        )
+        // start_time DESC: the day-2 nap precedes the day-1 night sleep.
+        every { sleepRepository.getAllRecords() } returns flowOf(listOf(nextDayNap, nightSleep))
+        viewModel = createViewModel()
+
+        viewModel.historyByDateDesc.test {
+            awaitItem()
+            testDispatcher.scheduler.advanceUntilIdle()
+            val grouped = awaitItem()
+
+            assertEquals(2, grouped.size)
+            assertEquals(LocalDate.of(2024, 3, 2), grouped[0].first)
+            assertEquals(listOf(2L), grouped[0].second.map { it.id })
+            // The cross-midnight night sleep groups under its START date (day 1), not its end date.
+            assertEquals(LocalDate.of(2024, 3, 1), grouped[1].first)
+            assertEquals(listOf(1L), grouped[1].second.map { it.id })
             cancelAndIgnoreRemainingEvents()
         }
     }
