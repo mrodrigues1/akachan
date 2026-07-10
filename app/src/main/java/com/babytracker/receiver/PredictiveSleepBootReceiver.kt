@@ -4,7 +4,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.babytracker.domain.model.AppFeature
 import com.babytracker.domain.model.SleepPredictionState
+import com.babytracker.domain.repository.FeatureToggleRepository
 import com.babytracker.domain.repository.SettingsRepository
 import com.babytracker.domain.repository.SleepRecommendationRepository
 import com.babytracker.domain.repository.SleepSettingsRepository
@@ -30,6 +32,7 @@ class PredictiveSleepBootReceiver : BroadcastReceiver() {
     @Inject lateinit var scheduler: PredictiveSleepScheduler
     @Inject lateinit var sleepRepository: SleepRepository
     @Inject lateinit var sleepRecommendationRepository: SleepRecommendationRepository
+    @Inject lateinit var featureToggleRepository: FeatureToggleRepository
 
     override fun onReceive(context: Context, intent: Intent) {
         if (!shouldHandle(intent.action)) return
@@ -39,7 +42,9 @@ class PredictiveSleepBootReceiver : BroadcastReceiver() {
     internal fun shouldHandle(action: String?): Boolean = action in HANDLED_ACTIONS
 
     internal suspend fun handle(context: Context) {
-        if (!sleepSettingsRepository.getPredictiveSleepEnabled().first()) return
+        val predictiveSleepEnabled = sleepSettingsRepository.getPredictiveSleepEnabled().first()
+        val sleepFeatureEnabled = AppFeature.SLEEP in featureToggleRepository.getEnabledFeatures().first()
+        if (!predictiveSleepEnabled || !sleepFeatureEnabled) return
         createPredictiveSleepNotificationChannel(context)
         val leadMinutes = sleepSettingsRepository.getPredictiveSleepLeadMinutes().first()
         val quietStart = settingsRepository.getQuietHoursStartMinute().first()
