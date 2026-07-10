@@ -36,10 +36,15 @@ import com.babytracker.domain.usecase.sleep.SharedSleepPredictionStream
 import com.babytracker.sharing.domain.model.AppMode
 import com.babytracker.sharing.usecase.SyncedWrite
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -91,11 +96,28 @@ class HomeViewModel @Inject constructor(
     private val logBabyEvent: LogBabyEventUseCase,
 ) : ViewModel() {
 
+    // Home reads only the 3 newest sleep records, the in-progress record, the latest wake time, and
+    // yesterday's night sleeps — all of which live in the window from the start of yesterday to now.
+    // Observing that bounded window instead of the unbounded getAllRecords() means a single sleep write
+    // no longer re-maps and re-emits the whole ~2-3k-row history. getRecentOrActiveRecordsFlow also
+    // keeps any still-open record (regardless of age) and any record that ended in the window even if
+    // it started earlier, so a stuck/forgotten active sleep — and the completed record left behind when
+    // it is finally stopped — never falls out of range. `since` is recomputed on each (re)subscription
+    // (the flow{} defers it to collection time), and WhileSubscribed(5s) re-anchors the window whenever
+    // Home is left and reopened; the downstream `today`/`yesterday` date filters are re-derived per
+    // emission below, matching ObserveTodayFeedingSummaryUseCase.
+    // ponytail: a Home screen held continuously visible (subscribed) across midnight keeps yesterday's
+    // lower bound until the next re-subscription, so its window slowly widens by the extra day's rows.
+    // Accepted: nobody keeps Home open for days on end, and re-anchoring per rollover would need a
+    // midnight-boundary flow + flatMapLatest we deliberately don't build for a sliver-sized query.
+    private val recentSleepRecords: Flow<List<SleepRecord>> =
+        flow { emitAll(sleepRepository.getRecentOrActiveRecordsFlow(startOfYesterdayInstant())) }
+
     private val baseState = combine(
         combine(
             babyRepository.getBabyProfile(),
             breastfeedingRepository.getAllSessions(),
-            sleepRepository.getAllRecords(),
+            recentSleepRecords,
             settingsRepository.getAppMode(),
             predictNextFeed(),
         ) { baby, feedings, sleepRecords, appMode, prediction ->
@@ -139,7 +161,7 @@ class HomeViewModel @Inject constructor(
             sleepPrediction = sleepPrediction,
             volumeUnit = volumeUnit,
         )
-    }
+    }.flowOn(Dispatchers.Default)
 
     val uiState: StateFlow<HomeUiState> = combine(
         baseState,
@@ -189,5 +211,9 @@ class HomeViewModel @Inject constructor(
     init {
         viewModelScope.launch { syncedWrite.sync() }
     }
+
+    /** Start of the local calendar day before today — the lower bound of Home's bounded sleep window. */
+    private fun startOfYesterdayInstant(zone: ZoneId = ZoneId.systemDefault()): Instant =
+        LocalDate.now(zone).minusDays(1).atStartOfDay(zone).toInstant()
 
 }

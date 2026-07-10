@@ -23,6 +23,19 @@ abstract class SleepDao {
     @Query("SELECT * FROM sleep_records WHERE start_time >= :sinceMillis ORDER BY start_time DESC")
     abstract fun getRecordsSinceFlow(sinceMillis: Long): Flow<List<SleepEntity>>
 
+    // Every record the Home/tracking screens can need from a since-window: started in the window,
+    // ended in the window (a cross-midnight or long sleep whose start predates it), or still open
+    // regardless of age (a stuck/forgotten active session). The end_time predicates are unindexed so
+    // this scans, but it returns only the in-window handful of rows — cheap to map and re-emit versus
+    // the unbounded getAllRecords(). Keeps the natural start_time DESC order so an old open record
+    // sorts by its (old) start, exactly as getAllRecords() presented it.
+    @Query(
+        "SELECT * FROM sleep_records " +
+            "WHERE end_time IS NULL OR start_time >= :sinceMillis OR end_time >= :sinceMillis " +
+            "ORDER BY start_time DESC",
+    )
+    abstract fun getRecentOrActiveRecordsFlow(sinceMillis: Long): Flow<List<SleepEntity>>
+
     @Query("SELECT * FROM sleep_records ORDER BY start_time DESC, id DESC LIMIT 1")
     abstract fun observeLatestRecord(): Flow<SleepEntity?>
 
@@ -34,9 +47,6 @@ abstract class SleepDao {
 
     @Query("SELECT * FROM sleep_records WHERE client_id = :clientId LIMIT 1")
     abstract suspend fun getByClientId(clientId: String): SleepEntity?
-
-    @Query("SELECT * FROM sleep_records WHERE end_time IS NULL LIMIT 1")
-    abstract suspend fun getActiveRecord(): SleepEntity?
 
     @Query("SELECT * FROM sleep_records WHERE end_time IS NULL ORDER BY start_time DESC, id DESC LIMIT 1")
     abstract suspend fun getActiveRecordOnce(): SleepEntity?

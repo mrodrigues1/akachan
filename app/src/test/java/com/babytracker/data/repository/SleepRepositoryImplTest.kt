@@ -244,7 +244,7 @@ class SleepRepositoryImplTest {
         )
         val existingEntity = entity.copy(endTime = null, id = 55L)
         coEvery { dao.insertRecord(any()) } throws SQLiteConstraintException("UNIQUE constraint failed")
-        coEvery { dao.getActiveRecord() } returns existingEntity
+        coEvery { dao.getActiveRecordOnce() } returns existingEntity
 
         val id = repository.insertRecord(activeRecord)
 
@@ -258,7 +258,7 @@ class SleepRepositoryImplTest {
             sleepType = SleepType.NAP
         )
         coEvery { dao.insertRecord(any()) } throws SQLiteConstraintException("UNIQUE constraint failed")
-        coEvery { dao.getActiveRecord() } returns null
+        coEvery { dao.getActiveRecordOnce() } returns null
 
         var thrown: SQLiteConstraintException? = null
         try {

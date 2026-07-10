@@ -100,7 +100,8 @@ class HomeViewModelTileOrderTest {
 
         every { babyRepository.getBabyProfile() } returns flowOf(testBaby)
         every { breastfeedingRepository.getAllSessions() } returns flowOf(emptyList())
-        every { sleepRepository.getAllRecords() } returns flowOf(emptyList())
+        every { sleepRepository.getRecentOrActiveRecordsFlow(any()) } returns flowOf(emptyList())
+        every { sleepRepository.observeActiveRecord() } returns flowOf(null)
         every { settingsRepository.getAppMode() } returns flowOf(AppMode.NONE)
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         every { settingsRepository.getHomeTileOrder() } returns flowOf(HomeTile.DEFAULT_ORDER)
@@ -144,10 +145,23 @@ class HomeViewModelTileOrderTest {
         return vm
     }
 
+    // baseState carries flowOn(Dispatchers.Default), so its combine runs off the test dispatcher and
+    // advanceUntilIdle() can return before that background emission crosses back into uiState. Spin the
+    // virtual clock until uiState settles to a real (baby-populated) value or a real-time safety
+    // deadline elapses, so `.value` reads are deterministic.
+    private fun settle(vm: HomeViewModel) {
+        val deadlineNanos = System.nanoTime() + 5_000_000_000L
+        do {
+            testDispatcher.scheduler.advanceUntilIdle()
+        } while (vm.uiState.value.baby == null && System.nanoTime() < deadlineNanos)
+        testDispatcher.scheduler.advanceUntilIdle()
+    }
+
+
     @Test
     fun uiState_exposesPersistedTileOrder() = runTest {
         viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
+        settle(viewModel)
         assertEquals(HomeTile.DEFAULT_ORDER, viewModel.uiState.value.tileOrder)
     }
 
@@ -166,7 +180,7 @@ class HomeViewModelTileOrderTest {
         )
         every { settingsRepository.getHomeTileOrder() } returns flowOf(custom)
         viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
+        settle(viewModel)
         assertEquals(custom, viewModel.uiState.value.tileOrder)
     }
 
