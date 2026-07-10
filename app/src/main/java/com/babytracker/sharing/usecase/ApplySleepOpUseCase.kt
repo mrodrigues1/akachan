@@ -5,6 +5,8 @@ import com.babytracker.domain.model.SleepAuthor
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.model.SleepType
 import com.babytracker.domain.repository.SleepRepository
+import com.babytracker.domain.usecase.sleep.SleepEntryError
+import com.babytracker.domain.usecase.sleep.validateSleepEntry
 import com.babytracker.sharing.domain.model.SleepOp
 import com.babytracker.sharing.domain.model.SleepOpAction
 import java.time.Instant
@@ -39,10 +41,14 @@ class ApplySleepOpUseCase internal constructor(
     @Inject
     constructor(repository: SleepRepository) : this(repository, Instant::now)
 
-    suspend operator fun invoke(op: SleepOp): SleepOpApplyResult = when (op.action) {
-        SleepOpAction.START -> applyStart(op)
-        SleepOpAction.STOP -> applyStop(op)
-        SleepOpAction.UPDATE -> applyUpdate(op)
+    // One transaction per op: the read-validate-write below must be atomic against concurrent
+    // owner saves, which take the same transactional path since #775.
+    suspend operator fun invoke(op: SleepOp): SleepOpApplyResult = repository.inTransaction {
+        when (op.action) {
+            SleepOpAction.START -> applyStart(op)
+            SleepOpAction.STOP -> applyStop(op)
+            SleepOpAction.UPDATE -> applyUpdate(op)
+        }
     }
 
     private suspend fun applyStart(op: SleepOp): SleepOpApplyResult {
@@ -52,6 +58,11 @@ class ApplySleepOpUseCase internal constructor(
         // Converge, do not create a second active record. Not a hostile drop — the partner UI
         // reconciles to whichever session is active once the re-published snapshot arrives.
         if (repository.getActiveRecord() != null) return unchanged()
+        // The open session spans startTime→ongoing, so a completed record covering any of
+        // [startTime, now] makes it invalid (#774).
+        if (overlapsExisting(payload.startTime, now(), payload.sleepType, excludingId = null)) {
+            return drop(op, "start overlaps completed record")
+        }
 
         repository.insertRecord(
             SleepRecord(
@@ -84,6 +95,11 @@ class ApplySleepOpUseCase internal constructor(
         val existing = repository.getByClientId(op.entryClientId) ?: return drop(op, "update target missing")
         // Edit only own: drop edits aimed at sessions the owner started.
         if (existing.startedBy != SleepAuthor.PARTNER) return drop(op, "update targets OWNER session")
+        // Same overlap rule the owner-side update enforces (#748); a stale partner edit that
+        // would overlap another record is dropped and converges via snapshot republish (#774).
+        if (overlapsExisting(payload.startTime, payload.endTime ?: now(), payload.sleepType, excludingId = existing.id)) {
+            return drop(op, "update overlaps existing record")
+        }
         // Last-write-wins (no field-level merge); endTime null keeps the session in progress.
         repository.updateRecord(
             existing.copy(
@@ -94,6 +110,23 @@ class ApplySleepOpUseCase internal constructor(
             ),
         )
         return SleepOpApplyResult(true, PartnerSleepNotification(SleepNotifyKind.EDITED, payload.sleepType))
+    }
+
+    // Owner-side entry points enforce overlap via validateSleepEntry since #748; partner ops
+    // bypassed it entirely (#774). Only the OVERLAP verdict is enforced here: time sanity is
+    // validatedTimes' job, and an open payload (null endTime) is checked with `now` as its
+    // provisional end, where a duration verdict would be spurious.
+    private suspend fun overlapsExisting(
+        startTime: Instant,
+        endTime: Instant,
+        sleepType: SleepType,
+        excludingId: Long?,
+    ): Boolean {
+        val active = repository.getActiveRecord()
+        val nearby = repository.getCompletedRecordsBetween(startTime, endTime)
+        val existingRecords = if (active != null) nearby + active else nearby
+        val error = validateSleepEntry(startTime, endTime, sleepType, existingRecords, now(), excludingId)
+        return error == SleepEntryError.OVERLAP
     }
 
     private data class ValidTimes(val startTime: Instant, val endTime: Instant?, val sleepType: SleepType)
