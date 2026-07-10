@@ -18,11 +18,13 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -62,6 +64,7 @@ class SleepHistoryViewModelTest {
         every { appContext.getString(R.string.error_sleep_overlap) } returns
             "This sleep overlaps with an existing record. Adjust the times to save this sleep."
         every { sleepRepository.getAllRecords() } returns flowOf(emptyList())
+        every { sleepRepository.getRecentRecordsFlow(any()) } returns flowOf(emptyList())
         coJustRun { syncToFirestore(any()) }
     }
 
@@ -83,7 +86,7 @@ class SleepHistoryViewModelTest {
             endTime = Instant.now().plusSeconds(60),
             sleepType = SleepType.NAP,
         )
-        every { sleepRepository.getAllRecords() } returns flow {
+        every { sleepRepository.getRecentRecordsFlow(any()) } returns flow {
             attachCount.incrementAndGet()
             emit(listOf(record))
         }
@@ -95,7 +98,7 @@ class SleepHistoryViewModelTest {
         // synchronising the attach counter across the background dispatcher.
         viewModel.historyByDateDesc.test {
             var latest = awaitItem()
-            while (latest.isEmpty()) {
+            while (latest.days.isEmpty()) {
                 latest = awaitItem()
             }
             assertTrue(attachCount.get() >= 1)
@@ -104,11 +107,11 @@ class SleepHistoryViewModelTest {
     }
 
     @Test
-    fun `historyByDateDesc emits empty list when history is empty`() = runTest {
+    fun `historyByDateDesc emits empty window when history is empty`() = runTest {
         viewModel = createViewModel()
 
         viewModel.historyByDateDesc.test {
-            assertEquals(emptyList<Pair<LocalDate, List<SleepRecord>>>(), awaitItem())
+            assertEquals(SleepHistoryWindow(), awaitItem())
             testDispatcher.scheduler.advanceUntilIdle()
             cancelAndIgnoreRemainingEvents()
         }
@@ -127,14 +130,14 @@ class SleepHistoryViewModelTest {
         val r3 = SleepRecord(id = 3L, startTime = day2, endTime = day2.plusSeconds(1800), sleepType = SleepType.NAP)
         val r4 = SleepRecord(id = 4L, startTime = day3, endTime = day3.plusSeconds(1800), sleepType = SleepType.NIGHT_SLEEP)
 
-        // getAllRecords() is ordered start_time DESC; feed the fake in that same order.
-        every { sleepRepository.getAllRecords() } returns flowOf(listOf(r4, r3, r2, r1))
+        // getRecentRecordsFlow() is ordered start_time DESC; feed the fake in that same order.
+        every { sleepRepository.getRecentRecordsFlow(any()) } returns flowOf(listOf(r4, r3, r2, r1))
         viewModel = createViewModel()
 
         viewModel.historyByDateDesc.test {
             awaitItem()
             testDispatcher.scheduler.advanceUntilIdle()
-            val grouped = awaitItem()
+            val grouped = awaitItem().days
 
             assertEquals(3, grouped.size)
             assertEquals(LocalDate.of(2024, 1, 12), grouped[0].first)
@@ -162,20 +165,20 @@ class SleepHistoryViewModelTest {
             sleepType = SleepType.NAP,
         )
         val historyFlow = MutableStateFlow(listOf(initial))
-        every { sleepRepository.getAllRecords() } returns historyFlow
+        every { sleepRepository.getRecentRecordsFlow(any()) } returns historyFlow
         viewModel = createViewModel()
 
         viewModel.historyByDateDesc.test {
             awaitItem()
             testDispatcher.scheduler.advanceUntilIdle()
-            val first = awaitItem()
+            val first = awaitItem().days
             assertEquals(1, first.size)
             assertEquals(LocalDate.of(2024, 2, 1), first[0].first)
 
-            // Newer record first, matching the start_time DESC ordering of getAllRecords().
+            // Newer record first, matching the start_time DESC ordering of getRecentRecordsFlow().
             historyFlow.value = listOf(added, initial)
             testDispatcher.scheduler.advanceUntilIdle()
-            val second = awaitItem()
+            val second = awaitItem().days
             assertEquals(2, second.size)
             assertEquals(LocalDate.of(2024, 2, 2), second[0].first)
             assertEquals(LocalDate.of(2024, 2, 1), second[1].first)
@@ -200,13 +203,13 @@ class SleepHistoryViewModelTest {
             sleepType = SleepType.NAP,
         )
         // start_time DESC: the day-2 nap precedes the day-1 night sleep.
-        every { sleepRepository.getAllRecords() } returns flowOf(listOf(nextDayNap, nightSleep))
+        every { sleepRepository.getRecentRecordsFlow(any()) } returns flowOf(listOf(nextDayNap, nightSleep))
         viewModel = createViewModel()
 
         viewModel.historyByDateDesc.test {
             awaitItem()
             testDispatcher.scheduler.advanceUntilIdle()
-            val grouped = awaitItem()
+            val grouped = awaitItem().days
 
             assertEquals(2, grouped.size)
             assertEquals(LocalDate.of(2024, 3, 2), grouped[0].first)
@@ -214,6 +217,72 @@ class SleepHistoryViewModelTest {
             // The cross-midnight night sleep groups under its START date (day 1), not its end date.
             assertEquals(LocalDate.of(2024, 3, 1), grouped[1].first)
             assertEquals(listOf(1L), grouped[1].second.map { it.id })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `history window flags hasMore and grows on load more`() = runTest {
+        val zone = ZoneId.systemDefault()
+        // 51 rows: one past the first page of 50, so hasMore is derived without a count query.
+        val records = List(51) { i ->
+            SleepRecord(
+                id = i + 1L,
+                startTime = LocalDate.of(2024, 4, 1).atTime(10, 0).atZone(zone).toInstant().minusSeconds(3_600L * i),
+                endTime = LocalDate.of(2024, 4, 1).atTime(10, 30).atZone(zone).toInstant().minusSeconds(3_600L * i),
+                sleepType = SleepType.NAP,
+            )
+        }
+        every { sleepRepository.getRecentRecordsFlow(51) } returns flowOf(records)
+        every { sleepRepository.getRecentRecordsFlow(101) } returns flowOf(records)
+        viewModel = createViewModel()
+
+        viewModel.historyByDateDesc.test {
+            var window = awaitItem()
+            while (window.recordCount < 50) {
+                window = awaitItem()
+            }
+            assertTrue(window.hasMore)
+
+            // Second call arrives before the grown window emits: it must be ignored, otherwise the
+            // limit reaches 150 and the unstubbed getRecentRecordsFlow(151) fails this test.
+            viewModel.onLoadMoreHistory()
+            viewModel.onLoadMoreHistory()
+
+            while (window.recordCount != 51) {
+                window = awaitItem()
+            }
+            assertFalse(window.hasMore)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `onLoadMoreHistory is a no-op when the full history is already loaded`() = runTest {
+        val zone = ZoneId.systemDefault()
+        val records = List(3) { i ->
+            SleepRecord(
+                id = i + 1L,
+                startTime = LocalDate.of(2024, 4, 1).atTime(10, 0).atZone(zone).toInstant().minusSeconds(3_600L * i),
+                endTime = LocalDate.of(2024, 4, 1).atTime(10, 30).atZone(zone).toInstant().minusSeconds(3_600L * i),
+                sleepType = SleepType.NAP,
+            )
+        }
+        every { sleepRepository.getRecentRecordsFlow(51) } returns flowOf(records)
+        viewModel = createViewModel()
+
+        viewModel.historyByDateDesc.test {
+            var window = awaitItem()
+            while (window.recordCount == 0) {
+                window = awaitItem()
+            }
+            assertEquals(3, window.recordCount)
+            assertFalse(window.hasMore)
+
+            // No-op: an unstubbed getRecentRecordsFlow(101) would fail this test if the limit grew.
+            viewModel.onLoadMoreHistory()
+            testDispatcher.scheduler.advanceUntilIdle()
+            expectNoEvents()
             cancelAndIgnoreRemainingEvents()
         }
     }

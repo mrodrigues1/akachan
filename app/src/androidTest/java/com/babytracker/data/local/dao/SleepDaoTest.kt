@@ -135,7 +135,7 @@ class SleepDaoTest {
             dao.insertRecord(SleepEntity(startTime = i.toLong() * 1000L, sleepType = "NAP"))
         }
 
-        val results = dao.getRecentRecords(3)
+        val results = dao.getRecentRecordsFlow(3).first()
 
         assertEquals(3, results.size)
     }
@@ -145,7 +145,7 @@ class SleepDaoTest {
         dao.insertRecord(SleepEntity(startTime = 1000L, sleepType = "NAP"))
         dao.insertRecord(SleepEntity(startTime = 2000L, sleepType = "NAP"))
 
-        val results = dao.getRecentRecords(10)
+        val results = dao.getRecentRecordsFlow(10).first()
 
         assertEquals(2, results.size)
     }
@@ -155,7 +155,7 @@ class SleepDaoTest {
         dao.insertRecord(SleepEntity(startTime = 1000L, sleepType = "NAP"))
         dao.insertRecord(SleepEntity(startTime = 2000L, sleepType = "NIGHT_SLEEP"))
 
-        val results = dao.getRecentRecords(2)
+        val results = dao.getRecentRecordsFlow(2).first()
 
         assertEquals("NIGHT_SLEEP", results[0].sleepType)
         assertEquals("NAP", results[1].sleepType)

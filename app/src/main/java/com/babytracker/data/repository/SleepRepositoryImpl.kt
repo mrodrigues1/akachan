@@ -9,6 +9,7 @@ import com.babytracker.data.local.entity.toEntity
 import com.babytracker.domain.model.SleepRecord
 import com.babytracker.domain.repository.SleepRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.util.UUID
@@ -44,8 +45,13 @@ class SleepRepositoryImpl @Inject constructor(
     override suspend fun getCompletedRecordsBetween(start: Instant, end: Instant): List<SleepRecord> =
         dao.getCompletedRecordsBetween(start.toEpochMilli(), end.toEpochMilli()).map { it.toDomain() }
 
+    // One-shot read off the same bounded query as getRecentRecordsFlow; none of its callers run
+    // inside a transaction, so collecting the Room flow here is safe.
     override suspend fun getRecentRecords(limit: Int): List<SleepRecord> =
-        dao.getRecentRecords(limit).map { it.toDomain() }
+        dao.getRecentRecordsFlow(limit).first().map { it.toDomain() }
+
+    override fun getRecentRecordsFlow(limit: Int): Flow<List<SleepRecord>> =
+        dao.getRecentRecordsFlow(limit).mapList { it.toDomain() }
 
     override suspend fun getLatestRecord(): SleepRecord? =
         dao.getLatestRecord()?.toDomain()

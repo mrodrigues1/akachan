@@ -109,7 +109,7 @@ class SleepRepositoryImplTest {
     @Test
     fun getRecentRecordsPassesLimitToDao() = runTest {
         val slot = slot<Int>()
-        coEvery { dao.getRecentRecords(capture(slot)) } returns emptyList()
+        every { dao.getRecentRecordsFlow(capture(slot)) } returns flowOf(emptyList())
 
         repository.getRecentRecords(5)
 
@@ -118,7 +118,7 @@ class SleepRepositoryImplTest {
 
     @Test
     fun getRecentRecordsMapsResultsToDomain() = runTest {
-        coEvery { dao.getRecentRecords(any()) } returns listOf(entity)
+        every { dao.getRecentRecordsFlow(any()) } returns flowOf(listOf(entity))
 
         val results = repository.getRecentRecords(1)
 
