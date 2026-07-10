@@ -77,20 +77,20 @@ object SleepWindowPredictor {
             offsetFromNow = Duration.between(now, bestEstimate),
         )
         val circadianFactor = circadianFactorProvider(
-            ageInWeeks,
-            nextType,
-            features.currentMinuteOfDay,
-            candidateMinute,
+            ageInWeeks = ageInWeeks,
+            nextType = nextType,
+            currentMinuteOfDay = features.currentMinuteOfDay,
+            candidateMinuteOfDay = candidateMinute,
         )
         val sleepDebtFactor = sleepDebtFactorProvider(
-            metrics.sleepLast24hMillis,
-            metrics.avgDailySleepMillis,
-            ageInWeeks,
+            sleepLast24hMillis = metrics.sleepLast24hMillis,
+            avgDailySleepMillis = metrics.avgDailySleepMillis,
+            ageInWeeks = ageInWeeks,
         )
         val napBudgetFactor = napBudgetFactorProvider(
-            metrics.napCountToday,
-            ageInWeeks,
-            nextType,
+            napCountToday = metrics.napCountToday,
+            ageInWeeks = ageInWeeks,
+            nextType = nextType,
         )
         val factors = listOf(circadianFactor, sleepDebtFactor, napBudgetFactor)
         val rawFactorShift = factors.fold(Duration.ZERO) { acc, f -> acc.plus(f.adjustment) }
