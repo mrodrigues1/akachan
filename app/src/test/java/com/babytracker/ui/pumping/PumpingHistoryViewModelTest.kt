@@ -17,11 +17,13 @@ import io.mockk.mockk
 import io.mockk.unmockkAll
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -61,7 +63,7 @@ class PumpingHistoryViewModelTest {
         pumpingRepository = mockk()
         updateSession = mockk()
         settingsRepository = mockk()
-        every { pumpingRepository.getAllSessions() } returns historyFlow
+        every { pumpingRepository.getRecentSessionsFlow(any()) } returns historyFlow
         every { settingsRepository.getVolumeUnit() } returns flowOf(VolumeUnit.ML)
         appContext = mockk(relaxed = true)
         every { appContext.getString(R.string.error_start_future) } returns "Start cannot be in the future"
@@ -80,11 +82,33 @@ class PumpingHistoryViewModelTest {
     }
 
     @Test
-    fun `sessions flow emits list from repository`() = runTest {
+    fun `history window emits sessions from the bounded query`() = runTest {
         historyFlow.value = listOf(sampleSession)
-        testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(listOf(sampleSession), viewModel.uiState.value.sessions)
+        val window = viewModel.history.first { it.sessions.isNotEmpty() }
+
+        assertEquals(listOf(sampleSession), window.sessions)
+        assertFalse(window.hasMore)
+    }
+
+    @Test
+    fun `history window flags hasMore and grows on load more`() = runTest {
+        // 51 rows: one past the first page of 50, so hasMore is derived without a count query.
+        val sessions = List(51) { i -> sampleSession.copy(id = i + 1L, startTime = fixedNow.minusSeconds(600L + i)) }
+        every { pumpingRepository.getRecentSessionsFlow(51) } returns flowOf(sessions)
+        every { pumpingRepository.getRecentSessionsFlow(101) } returns flowOf(sessions)
+
+        val firstPage = viewModel.history.first { it.sessions.isNotEmpty() }
+        assertEquals(50, firstPage.sessions.size)
+        assertTrue(firstPage.hasMore)
+
+        // Second call arrives before the grown window emits: it must be ignored, otherwise the
+        // limit reaches 150 and the unstubbed getRecentSessionsFlow(151) fails this test.
+        viewModel.onLoadMoreHistory()
+        viewModel.onLoadMoreHistory()
+
+        val secondPage = viewModel.history.first { it.sessions.size == 51 }
+        assertFalse(secondPage.hasMore)
     }
 
     @Test

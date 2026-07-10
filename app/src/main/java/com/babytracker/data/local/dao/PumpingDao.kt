@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PumpingDao {
-    @Query("SELECT * FROM pumping_sessions ORDER BY start_time DESC")
-    fun getAllSessions(): Flow<List<PumpingEntity>>
+    @Query("SELECT * FROM pumping_sessions ORDER BY start_time DESC LIMIT :limit")
+    fun getRecentSessionsFlow(limit: Int): Flow<List<PumpingEntity>>
 
     @Query("SELECT * FROM pumping_sessions WHERE end_time IS NULL LIMIT 1")
     fun getActiveSession(): Flow<PumpingEntity?>

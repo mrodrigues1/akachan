@@ -67,7 +67,8 @@ class PumpingHistoryScreenTest {
         composeRule.setContent {
             BabyTrackerTheme {
                 PumpingHistoryContent(
-                    state = PumpingHistoryUiState(sessions = sessions),
+                    state = PumpingHistoryUiState(),
+                    window = PumpingHistoryWindow(sessions = sessions),
                     onEditClicked = {},
                 )
             }
@@ -83,7 +84,8 @@ class PumpingHistoryScreenTest {
         composeRule.setContent {
             BabyTrackerTheme {
                 PumpingHistoryContent(
-                    state = PumpingHistoryUiState(sessions = sessions),
+                    state = PumpingHistoryUiState(),
+                    window = PumpingHistoryWindow(sessions = sessions),
                     onEditClicked = {},
                 )
             }
@@ -99,7 +101,8 @@ class PumpingHistoryScreenTest {
         composeRule.setContent {
             BabyTrackerTheme {
                 PumpingHistoryContent(
-                    state = PumpingHistoryUiState(sessions = sessions),
+                    state = PumpingHistoryUiState(),
+                    window = PumpingHistoryWindow(sessions = sessions),
                     onEditClicked = { clicked = it },
                 )
             }
@@ -119,7 +122,8 @@ class PumpingHistoryScreenTest {
         composeRule.setContent {
             BabyTrackerTheme {
                 PumpingHistoryContent(
-                    state = PumpingHistoryUiState(sessions = sessions),
+                    state = PumpingHistoryUiState(),
+                    window = PumpingHistoryWindow(sessions = sessions),
                     onEditClicked = {},
                 )
             }
