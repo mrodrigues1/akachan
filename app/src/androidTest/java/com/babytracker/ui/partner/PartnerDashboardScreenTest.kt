@@ -745,9 +745,9 @@ class PartnerDashboardScreenTest {
         // dashboard's combine never produces a value. An empty op list is the no-pending-ops case.
         every { service.observeFeedOps(any(), any()) } returns flowOf(emptyList())
         every { service.observeFeedOps(any()) } returns flowOf(emptyList())
-        // The active-sleep use case combines the snapshot with the shared op stream, so the op
-        // listener must emit at least once (an empty op set = no pending ops) or the combine stalls.
-        every { service.observeSleepOps(any(), any()) } returns flowOf(emptyList())
+        // Deliberately never emits: the active-sleep use case seeds its ops leg with an empty list
+        // (onStart), so snapshot-backed data must render even when the op listener produces nothing.
+        every { service.observeSleepOps(any(), any()) } returns emptyFlow()
         every { service.observeSleepOps(any()) } returns emptyFlow()
         coEvery { service.writeFeedOp(any(), any(), any()) } just Runs
         coEvery { service.deleteFeedOps(any(), any()) } just Runs

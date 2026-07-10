@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.scan
 import java.time.Instant
 import javax.inject.Inject
@@ -60,9 +61,14 @@ class ObservePartnerActiveSleepUseCase @Inject constructor(
 
         return flow {
             val uid = service.signInAnonymously()
+            // The ops leg is seeded with an empty list so the combine can resolve from the snapshot
+            // alone while ops load: the shared stream retries listener errors internally (never
+            // propagating them), so without the seed a failing op listener would leave this combine —
+            // and the dashboard's snapshot-backed active session — stalled for the whole backoff.
+            val ops = sharedSleepOps.observe(codeValue, uid).onStart { emit(emptyList()) }
             emitAll(
-                combine(snapshotRecords, sharedSleepOps.observe(codeValue, uid)) { records, ops ->
-                    records to ops
+                combine(snapshotRecords, ops) { records, liveOps ->
+                    records to liveOps
                 }.scan(ReconcileState()) { state, (records, liveOps) ->
                     ReconcileState(
                         records = records,
