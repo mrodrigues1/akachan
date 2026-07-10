@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.scan
 import java.time.Instant
 import javax.inject.Inject
@@ -44,9 +45,13 @@ class ObservePartnerSleepHistoryUseCase @Inject constructor(
         }
         return flow {
             val uid = service.signInAnonymously()
+            // Seeded ops leg: the shared stream retries listener errors internally and never
+            // propagates them, so without an initial empty emission a failing op listener would stall
+            // this combine and pin the history screen on its loading spinner despite snapshot data.
+            val ops = sharedSleepOps.observe(code.value, uid).onStart { emit(emptyList()) }
             emitAll(
-                combine(snapshotRecords, sharedSleepOps.observe(code.value, uid)) { records, ops ->
-                    records to ops
+                combine(snapshotRecords, ops) { records, liveOps ->
+                    records to liveOps
                 }.scan(ReconcileState()) { state, (records, liveOps) ->
                     val reconciled = reconcilePendingOps(
                         isReflected = { sleepHistoryReflected(it, records) },

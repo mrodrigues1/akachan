@@ -13,7 +13,9 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -64,7 +66,9 @@ class ObservePartnerActiveSleepUseCaseTest {
         )
         every { sharedSleepOps.observe("CODE", "uid") } returns flowOf(listOf(startOp))
 
-        val result = useCase(flowOf(emptyList())).first()
+        // last(): the ops leg is seeded with an initial empty emission, so the first combined value
+        // may not include the pending op yet.
+        val result = useCase(flowOf(emptyList())).toList().last()
 
         assertNotNull(result.active)
         assertEquals("active-cid", result.active?.clientId)
@@ -98,7 +102,7 @@ class ObservePartnerActiveSleepUseCaseTest {
         )
         every { sharedSleepOps.observe("CODE", "uid") } returns flowOf(listOf(startOp, stopOp))
 
-        val result = useCase(flowOf(emptyList())).first()
+        val result = useCase(flowOf(emptyList())).toList().last()
 
         assertNull(result.active)
         assertEquals("c", result.lastCompleted?.clientId)
@@ -112,6 +116,19 @@ class ObservePartnerActiveSleepUseCaseTest {
 
         assertTrue(useCase(flowOf(listOf(partnerActive()))).first().canEditActive)
         assertFalse(useCase(flowOf(listOf(ownerActive()))).first().canEditActive)
+    }
+
+    @Test
+    fun `snapshot-backed active session renders even if the op stream never emits`() = runTest {
+        // A failing op listener behind SharedSleepOpStream's internal retry never emits — the
+        // snapshot leg alone must still produce, or the dashboard tile shows "no sleep" despite a
+        // live session in the snapshot.
+        every { sharedSleepOps.observe("CODE", "uid") } returns flow { awaitCancellation() }
+
+        val result = useCase(flowOf(listOf(partnerActive("p-cid")))).first()
+
+        assertEquals("p-cid", result.active?.clientId)
+        assertTrue(result.canEditActive)
     }
 
     @Test

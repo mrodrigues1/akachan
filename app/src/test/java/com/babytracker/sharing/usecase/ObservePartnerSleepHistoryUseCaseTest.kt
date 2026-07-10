@@ -14,8 +14,11 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -51,12 +54,31 @@ class ObservePartnerSleepHistoryUseCaseTest {
         val edit = SleepOp("op-1", SleepOpAction.UPDATE, "cid", "uid", now.toEpochMilli(), 91_000L, 94_000L, SleepType.NIGHT_SLEEP, "x")
         every { sharedSleepOps.observe("CODE1234", "uid") } returns flowOf(listOf(edit))
 
-        val merged = useCase(flowOf(listOf(record))).first()
+        // last(): the ops leg is seeded with an initial empty emission, so the first combined value
+        // may not include the pending edit yet.
+        val merged = useCase(flowOf(listOf(record))).toList().last()
 
         assertEquals(1, merged.entries.size)
         assertEquals(SleepType.NIGHT_SLEEP, merged.entries.first().sleepType)
         assertEquals(94_000L, merged.entries.first().endTime)
         assertEquals(setOf("op-1"), merged.pendingOpIds)
+    }
+
+    @Test
+    fun `snapshot records render even if the op stream never emits`() = runTest {
+        // A failing op listener behind SharedSleepOpStream's internal retry never emits — the
+        // snapshot leg alone must still produce, or the history screen stalls on its loading spinner.
+        val record = SleepSnapshot(
+            id = 1, startTime = 90_000L, endTime = 95_000L, sleepType = SleepType.NAP, notes = null,
+            clientId = "cid", startedBy = SleepAuthor.PARTNER,
+        )
+        every { sharedSleepOps.observe("CODE1234", "uid") } returns flow { awaitCancellation() }
+
+        val merged = useCase(flowOf(listOf(record))).first()
+
+        assertEquals(1, merged.entries.size)
+        assertEquals("cid", merged.entries.first().clientId)
+        assertEquals(emptySet<String>(), merged.pendingOpIds)
     }
 
     @Test
