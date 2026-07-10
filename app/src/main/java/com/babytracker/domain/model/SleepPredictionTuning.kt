@@ -66,10 +66,11 @@ object SleepPredictionTuning {
     const val SLEEP_DEBT_MIN_HOURS = 1L
     const val NAP_BUDGET_MAX_SHIFT_MINUTES = 20L
     const val NAP_BUDGET_MINUTES_PER_NAP = 10L
-    // Ceiling on the summed factor shift; below MAX_HALF_WINDOW_MINUTES. Deliberately equal to
-    // OVERDUE_GRACE_MINUTES: a maximal later shift can at most consume the overdue grace period,
-    // never revive a window that is already past grace.
-    const val MAX_TOTAL_FACTOR_SHIFT_MINUTES = 45L
+    // Ceiling on the summed factor shift; below MAX_HALF_WINDOW_MINUTES. Bound to OVERDUE_GRACE_MINUTES
+    // (not just numerically equal) so the staleness guarantee that SleepWindowPredictor's isStaleWindow
+    // comment relies on — a maximal later shift can at most consume the overdue grace period, never
+    // revive a window that is already past grace — survives retuning either constant.
+    const val MAX_TOTAL_FACTOR_SHIFT_MINUTES = OVERDUE_GRACE_MINUTES
     const val MIN_QUALIFIED_TZ_PROVENANCE_RATE = 0.5f
     const val HIGH_CONFIDENCE_QUALITY_C_THRESHOLD = 0.8f
     const val DISRUPTION_LOOKBACK_HOURS = 48L
