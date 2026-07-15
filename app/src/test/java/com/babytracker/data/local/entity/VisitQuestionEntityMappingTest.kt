@@ -17,4 +17,12 @@ class VisitQuestionEntityMappingTest {
         val q = VisitQuestion(id = 2, text = "Sleep regression?", answered = true, visitId = 9, createdAt = Instant.ofEpochMilli(200))
         assertEquals(q, q.toEntity().toDomain())
     }
+
+    @Test
+    fun `question with free-text answer round trips`() {
+        val q = VisitQuestion(
+            id = 3, text = "Rash?", answered = true, answer = "Eczema", visitId = 9, createdAt = Instant.ofEpochMilli(300),
+        )
+        assertEquals(q, q.toEntity().toDomain())
+    }
 }

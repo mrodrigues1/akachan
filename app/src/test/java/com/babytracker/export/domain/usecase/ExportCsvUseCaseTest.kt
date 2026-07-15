@@ -88,12 +88,14 @@ class ExportCsvUseCaseTest {
     fun `visit questions csv has header and a data row`() = runTest {
         coEvery { source.readTracking() } returns tracking(
             visitQuestions = listOf(
-                VisitQuestionBackup(id = 2, text = "rash?", answered = true, visitId = 1, createdAt = 3_000),
+                VisitQuestionBackup(
+                    id = 2, text = "rash?", answered = true, answer = "eczema", visitId = 1, createdAt = 3_000,
+                ),
             ),
         )
         val lines = useCase().getValue("visit_questions").trim().split("\n")
-        assertEquals("id,text,answered,visit_id,created_at", lines[0])
-        assertEquals("2,rash?,true,1,3000", lines[1])
+        assertEquals("id,text,answered,answer,visit_id,created_at", lines[0])
+        assertEquals("2,rash?,true,eczema,1,3000", lines[1])
     }
 
     @Test

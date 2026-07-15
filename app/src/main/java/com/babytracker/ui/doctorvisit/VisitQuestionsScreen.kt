@@ -44,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -89,6 +90,8 @@ fun VisitQuestionsScreen(
         onAdd = viewModel::onAdd,
         onToggleAnswered = viewModel::onToggleAnswered,
         onExpand = viewModel::onExpand,
+        onAnswerDraftChange = viewModel::onAnswerDraftChange,
+        onSaveAnswer = viewModel::onSaveAnswer,
         onDelete = viewModel::onDelete,
         onNavigateBack = onNavigateBack,
         modifier = modifier,
@@ -104,6 +107,8 @@ fun VisitQuestionsContent(
     onAdd: () -> Unit,
     onToggleAnswered: (Long) -> Unit,
     onExpand: (VisitQuestion?) -> Unit,
+    onAnswerDraftChange: (String) -> Unit,
+    onSaveAnswer: () -> Unit,
     onDelete: (VisitQuestion) -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -148,9 +153,12 @@ fun VisitQuestionsContent(
                         QuestionRow(
                             question = question,
                             expanded = expanded,
+                            answerDraft = if (expanded) state.answerDraft else "",
                             colors = colors,
                             onToggleAnswered = { onToggleAnswered(question.id) },
                             onExpand = { onExpand(if (expanded) null else question) },
+                            onAnswerDraftChange = onAnswerDraftChange,
+                            onSaveAnswer = onSaveAnswer,
                             onDelete = { onDelete(question) },
                         )
                     }
@@ -200,13 +208,17 @@ private fun QuestionInputRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun QuestionRow(
     question: VisitQuestion,
     expanded: Boolean,
+    answerDraft: String,
     colors: DoctorVisitPalette,
     onToggleAnswered: () -> Unit,
     onExpand: () -> Unit,
+    onAnswerDraftChange: (String) -> Unit,
+    onSaveAnswer: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val expandLabel = stringResource(
@@ -215,7 +227,8 @@ private fun QuestionRow(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .animateContentSize(),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = colors.container),
     ) {
@@ -237,7 +250,6 @@ private fun QuestionRow(
                 modifier = Modifier
                     .weight(1f)
                     .clickable(onClickLabel = expandLabel, onClick = onExpand)
-                    .animateContentSize()
                     .padding(vertical = 16.dp),
             )
             IconButton(onClick = onDelete) {
@@ -247,6 +259,22 @@ private fun QuestionRow(
                     tint = colors.onContainer,
                 )
             }
+        }
+        if (expanded) {
+            OutlinedTextField(
+                value = answerDraft,
+                onValueChange = onAnswerDraftChange,
+                label = { Text(stringResource(R.string.visit_questions_answer_label)) },
+                placeholder = { Text(stringResource(R.string.visit_questions_answer_hint)) },
+                minLines = 2,
+                maxLines = 6,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onSaveAnswer() }),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                    .onFocusChanged { if (!it.isFocused) onSaveAnswer() },
+            )
         }
     }
 }

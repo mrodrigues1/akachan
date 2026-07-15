@@ -15,6 +15,7 @@ data class VisitQuestionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(name = "text") val text: String,
     @ColumnInfo(name = "answered") val answered: Boolean = false,
+    @ColumnInfo(name = "answer") val answer: String? = null,
     @ColumnInfo(name = "visit_id") val visitId: Long? = null,
     @ColumnInfo(name = "created_at") val createdAt: Long,
 )
@@ -23,6 +24,7 @@ fun VisitQuestionEntity.toDomain(): VisitQuestion = VisitQuestion(
     id = id,
     text = text,
     answered = answered,
+    answer = answer,
     visitId = visitId,
     createdAt = Instant.ofEpochMilli(createdAt),
 )
@@ -31,6 +33,7 @@ fun VisitQuestion.toEntity(): VisitQuestionEntity = VisitQuestionEntity(
     id = id,
     text = text,
     answered = answered,
+    answer = answer,
     visitId = visitId,
     createdAt = createdAt.toEpochMilli(),
 )

@@ -1317,6 +1317,8 @@
     <string name="visit_questions_undo">Desfazer</string>
     <string name="visit_questions_expand">Expandir pergunta</string>
     <string name="visit_questions_collapse">Recolher pergunta</string>
+    <string name="visit_questions_answer_label">Resposta</string>
+    <string name="visit_questions_answer_hint">Anote a resposta do médico…</string>
 
     <!-- Doctor Visit — visit sheet + home tile -->
     <string name="doctor_visit_tile_label">Consultas médicas</string>

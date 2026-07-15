@@ -85,11 +85,11 @@ fun DoctorVisitBackup.toEntity() = DoctorVisitEntity(
 )
 
 fun VisitQuestionEntity.toBackup() = VisitQuestionBackup(
-    id = id, text = text, answered = answered, visitId = visitId, createdAt = createdAt,
+    id = id, text = text, answered = answered, answer = answer, visitId = visitId, createdAt = createdAt,
 )
 
 fun VisitQuestionBackup.toEntity() = VisitQuestionEntity(
-    id = id, text = text, answered = answered, visitId = visitId, createdAt = createdAt,
+    id = id, text = text, answered = answered, answer = answer, visitId = visitId, createdAt = createdAt,
 )
 
 fun GrowthMeasurementEntity.toBackup() = GrowthBackup(

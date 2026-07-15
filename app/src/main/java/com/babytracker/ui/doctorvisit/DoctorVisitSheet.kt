@@ -263,11 +263,19 @@ private fun AttachQuestionsSection(
                         colors = CheckboxDefaults.colors(checkedColor = colors.accent),
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = question.text,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f),
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = question.text,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        question.answer?.let { answer ->
+                            Text(
+                                text = answer,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
         }

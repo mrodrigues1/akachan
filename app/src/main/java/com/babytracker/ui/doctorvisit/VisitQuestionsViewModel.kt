@@ -6,6 +6,7 @@ import com.babytracker.domain.model.VisitQuestion
 import com.babytracker.domain.repository.DoctorVisitRepository
 import com.babytracker.domain.usecase.doctorvisit.AddVisitQuestionUseCase
 import com.babytracker.domain.usecase.doctorvisit.ToggleVisitQuestionAnsweredUseCase
+import com.babytracker.domain.usecase.doctorvisit.UpdateVisitQuestionAnswerUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,6 +21,7 @@ data class VisitQuestionsUiState(
     val questions: List<VisitQuestion> = emptyList(),
     val draft: String = "",
     val expandedQuestion: VisitQuestion? = null,
+    val answerDraft: String = "",
     val lastDeleted: VisitQuestion? = null,
 )
 
@@ -28,6 +30,7 @@ class VisitQuestionsViewModel @Inject constructor(
     private val repository: DoctorVisitRepository,
     private val addQuestion: AddVisitQuestionUseCase,
     private val toggleAnswered: ToggleVisitQuestionAnsweredUseCase,
+    private val updateAnswer: UpdateVisitQuestionAnswerUseCase,
 ) : ViewModel() {
 
     private val localState = MutableStateFlow(VisitQuestionsUiState())
@@ -52,7 +55,24 @@ class VisitQuestionsViewModel @Inject constructor(
         viewModelScope.launch { toggleAnswered(id) }
     }
 
-    fun onExpand(question: VisitQuestion?) = localState.update { it.copy(expandedQuestion = question) }
+    fun onExpand(question: VisitQuestion?) {
+        // Collapsing (or switching rows) persists the outgoing answer first, so an edit isn't lost
+        // when the user taps to collapse without blurring the field.
+        persistPendingAnswer()
+        localState.update { it.copy(expandedQuestion = question, answerDraft = question?.answer.orEmpty()) }
+    }
+
+    fun onAnswerDraftChange(text: String) = localState.update { it.copy(answerDraft = text) }
+
+    /** Persist the expanded question's answer (blur / IME Done). A non-blank answer auto-checks it. */
+    fun onSaveAnswer() = persistPendingAnswer()
+
+    private fun persistPendingAnswer() {
+        val question = localState.value.expandedQuestion ?: return
+        val answer = localState.value.answerDraft
+        if (answer == question.answer.orEmpty()) return
+        viewModelScope.launch { updateAnswer(question.id, answer) }
+    }
 
     fun onDelete(question: VisitQuestion) {
         viewModelScope.launch {
@@ -64,7 +84,9 @@ class VisitQuestionsViewModel @Inject constructor(
     fun onUndoDelete() {
         val deleted = localState.value.lastDeleted ?: return
         viewModelScope.launch {
-            addQuestion(deleted.text)
+            // Reinsert the whole question (id reset for autogen) so the answer, answered flag and
+            // original createdAt survive an undo — re-adding just the text would discard them.
+            repository.insertQuestion(deleted.copy(id = 0))
             localState.update { it.copy(lastDeleted = null) }
         }
     }

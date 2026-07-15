@@ -339,7 +339,10 @@ class BackupImporterImplTest {
                 DoctorVisitBackup(id = 100, date = 5000, providerName = "Dr A", createdAt = 1000),
             ),
             visitQuestions = listOf(
-                VisitQuestionBackup(id = 200, text = "attached?", visitId = 100, createdAt = 10),
+                VisitQuestionBackup(
+                    id = 200, text = "attached?", answered = true, answer = "eczema",
+                    visitId = 100, createdAt = 10,
+                ),
                 VisitQuestionBackup(id = 201, text = "inbox?", visitId = null, createdAt = 20),
             ),
         )
@@ -350,7 +353,9 @@ class BackupImporterImplTest {
         assertEquals(2, counts.visitQuestionsInserted)
         val visitId = db.doctorVisitDao().getAllVisitsOnce().single().id
         val questions = db.doctorVisitDao().getAllQuestionsOnce()
-        assertEquals(visitId, questions.single { it.text == "attached?" }.visitId)
+        val attached = questions.single { it.text == "attached?" }
+        assertEquals(visitId, attached.visitId)
+        assertEquals("eczema", attached.answer) // free-text answer survives restore
         assertEquals(null, questions.single { it.text == "inbox?" }.visitId)
         coVerify { doctorScheduler.rescheduleAll() }
 

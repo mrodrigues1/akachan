@@ -2,7 +2,7 @@ package com.babytracker.export.domain.model
 
 import kotlinx.serialization.Serializable
 
-const val CURRENT_BACKUP_FORMAT_VERSION = 6
+const val CURRENT_BACKUP_FORMAT_VERSION = 7
 
 @Serializable
 data class BackupData(
@@ -45,6 +45,10 @@ data class VisitQuestionBackup(
     val id: Long,
     val text: String,
     val answered: Boolean = false,
+    // Added in format version 7; default-null so pre-v7 backups still deserialize. Bumping the
+    // format (not just defaulting the field) makes older apps reject a v7 backup as too-new rather
+    // than silently dropping recorded answers on re-export.
+    val answer: String? = null,
     val visitId: Long? = null,
     val createdAt: Long,
 )

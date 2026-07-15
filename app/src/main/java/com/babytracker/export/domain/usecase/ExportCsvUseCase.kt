@@ -104,9 +104,9 @@ class ExportCsvUseCase @Inject constructor(
             },
         ),
         "visit_questions" to buildCsv(
-            listOf("id", "text", "answered", "visit_id", "created_at"),
+            listOf("id", "text", "answered", "answer", "visit_id", "created_at"),
             t.visitQuestions.map {
-                listOf(it.id, it.text, it.answered, it.visitId, it.createdAt)
+                listOf(it.id, it.text, it.answered, it.answer, it.visitId, it.createdAt)
             },
         ),
     )

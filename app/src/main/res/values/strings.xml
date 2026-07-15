@@ -1292,6 +1292,8 @@
     <string name="visit_questions_undo">Undo</string>
     <string name="visit_questions_expand">Expand question</string>
     <string name="visit_questions_collapse">Collapse question</string>
+    <string name="visit_questions_answer_label">Answer</string>
+    <string name="visit_questions_answer_hint">Record the doctor\'s answer…</string>
 
     <!-- Doctor Visit — visit sheet + home tile -->
     <string name="doctor_visit_tile_label">Doctor visits</string>

@@ -32,4 +32,12 @@ class BackupConvertersDoctorVisitTest {
         val entity = VisitQuestionEntity(id = 2, text = "sleep?", answered = true, visitId = 9, createdAt = 200)
         assertEquals(entity, entity.toBackup().toEntity())
     }
+
+    @Test
+    fun `answered question with free-text answer round trips`() {
+        val entity = VisitQuestionEntity(
+            id = 3, text = "rash?", answered = true, answer = "Eczema, use cream", visitId = 9, createdAt = 300,
+        )
+        assertEquals(entity, entity.toBackup().toEntity())
+    }
 }
