@@ -96,7 +96,8 @@ class BackupImporterImpl @Inject constructor(
         for (q in data.visitQuestions) {
             val resolvedVisitId = q.visitId?.let { visitIdMap[it] }
             val entity = VisitQuestionEntity(
-                text = q.text, answered = q.answered, visitId = resolvedVisitId, createdAt = q.createdAt,
+                text = q.text, answered = q.answered, answer = q.answer,
+                visitId = resolvedVisitId, createdAt = q.createdAt,
             )
             if (seen.add(entity.identity())) {
                 db.doctorVisitDao().insertQuestion(entity)

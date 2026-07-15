@@ -450,6 +450,31 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate19To20_addsNullableAnswerColumn() {
+        helper.createDatabase(TEST_DB, 19).use { db ->
+            db.execSQL(
+                "INSERT INTO visit_questions (id, text, answered, visit_id, created_at)" +
+                    " VALUES (1, 'Ask about sleep', 1, NULL, 1000)",
+            )
+        }
+        // Throws if the migrated schema (incl. the new answer column) differs from entity schema 20.
+        val db = helper.runMigrationsAndValidate(TEST_DB, 20, true, MIGRATION_19_20)
+
+        // The pre-existing row migrates with answer = NULL.
+        db.query("SELECT answer FROM visit_questions WHERE id = 1").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertTrue(cursor.isNull(0))
+        }
+        // The new column is writable.
+        db.execSQL("UPDATE visit_questions SET answer = 'Naps are fine' WHERE id = 1")
+        db.query("SELECT answer FROM visit_questions WHERE id = 1").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("Naps are fine", cursor.getString(0))
+        }
+        db.close()
+    }
+
+    @Test
     fun migrate15To16_roomSchemaValidationPasses() {
         helper.createDatabase(TEST_DB, 15).use { db ->
             db.execSQL(

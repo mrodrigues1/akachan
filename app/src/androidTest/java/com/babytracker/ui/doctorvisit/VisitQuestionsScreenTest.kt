@@ -41,6 +41,8 @@ class VisitQuestionsScreenTest {
                     onAdd = onAdd,
                     onToggleAnswered = {},
                     onExpand = onExpand,
+                    onAnswerDraftChange = {},
+                    onSaveAnswer = {},
                     onDelete = onDelete,
                     onNavigateBack = {},
                 )

@@ -35,7 +35,27 @@ class BackupDataVersionTest {
     }
 
     @Test
-    fun `current format version is 6`() {
-        assertEquals(6, CURRENT_BACKUP_FORMAT_VERSION)
+    fun `current format version is 7`() {
+        assertEquals(7, CURRENT_BACKUP_FORMAT_VERSION)
+    }
+
+    @Test
+    fun `v6 payload without question answers deserializes them as null`() {
+        val v6 = BackupData(
+            backupFormatVersion = 6, roomSchemaVersion = 15, appVersion = "1.0", exportedAt = 0,
+            baby = null, settings = settings(), breastfeeding = emptyList(), sleep = emptyList(),
+            pumping = emptyList(), milkBags = emptyList(),
+            visitQuestions = listOf(
+                VisitQuestionBackup(id = 1, text = "rash?", answered = true, createdAt = 100),
+            ),
+        )
+        // encodeDefaults = false omits the default-null answer, mimicking a real v6 file.
+        // Match the exact key so "answered" (a distinct field) doesn't produce a false positive.
+        val encoded = json.encodeToString(BackupData.serializer(), v6)
+        assertFalse(encoded.contains("\"answer\":"))
+
+        val decoded = json.decodeFromString(BackupData.serializer(), encoded)
+        assertEquals(6, decoded.backupFormatVersion)
+        assertEquals(null, decoded.visitQuestions.single().answer)
     }
 }

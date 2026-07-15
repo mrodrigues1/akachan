@@ -33,7 +33,7 @@ import com.babytracker.data.local.entity.SleepRecommendationFeedbackEntity
 import com.babytracker.data.local.entity.VaccineEntity
 import com.babytracker.data.local.entity.VisitQuestionEntity
 
-const val DB_VERSION = 19
+const val DB_VERSION = 20
 
 @Database(
     entities = [
@@ -538,6 +538,15 @@ val MIGRATION_18_19 = object : Migration(18, 19) {
             "CREATE INDEX IF NOT EXISTS index_breastfeeding_sessions_end_time " +
                 "ON breastfeeding_sessions(end_time DESC)",
         )
+    }
+}
+
+// Adds an optional free-text answer column to visit_questions so a checked-off pre-visit question
+// can also record the doctor's actual answer (issue #792). Nullable, no default — existing rows
+// migrate with answer = NULL.
+val MIGRATION_19_20 = object : Migration(19, 20) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE visit_questions ADD COLUMN answer TEXT")
     }
 }
 
